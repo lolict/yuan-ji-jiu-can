@@ -1,11 +1,52 @@
 # 满全法 · 囡囝共生元 · 开发路线图 (ROADMAP)
 
 > 最后更新: 2026-08-02
-> 当前阶段: v0.2 加密完备 + 四态完备 + 三元裁判 + Android寄生 + 元输入法
+> 当前阶段: v0.3 C 核心 (clang, 无 Python 依赖)
 
 ---
 
-## v0.2 新增 (2026-08-02)
+## v0.3 新增 (2026-08-02) — C 语言回正
+
+### 核心语言切换
+- [x] 主语言从 Python 3 切换到 C (clang -std=c17)
+- [x] 新增 Makefile 构建系统
+- [x] Python 代码保留在 kernel/ 等目录作为参考实现
+
+### MCCP 紧凑编码
+- [x] 编码规范文档 (encoding/mccp.md)
+- [x] 32 bit/glyph 定宽编码头 (encoding/mccp.h)
+- [x] Kind 枚举 (16 类: 汉字/声母/韵母/声调/偏旁/笔画/操作符/协议/FSM/病理/系统)
+- [x] 位运算宏: MCP(kind,idx,a,b) / MCCP_KIND/INDEX/METAA/METAB
+- [x] 内存密度: 1 誓约 4 字 = ~16 bytes (Python 同等开销 ≈ 240+ bytes, 15× 更紧凑)
+
+### C 内核
+- [x] mqf_kernel.h / mqf_kernel.c — 进程/立约/FSM/一元递归
+- [x] FSM 4 态 9 转换规则：囝囡↔囡囡↔囝囝↔囝囡闭环
+- [x] 终止性进程状态 (相遇/缔约/立约/合一递归/解体)
+- [x] 所有 25+ 断言测试通过 (-Werror)
+- [x] MqfProcess 栈分配零开销 = 1048 bytes
+- [x] CoupleOS (64 进程) = 67 KB (含全部进程槽)
+
+### C 加密层
+- [x] mqf_crypto.h / mqf_crypto.c — 直接链接 libsodium + libcrypto
+- [x] X25519 密钥对生成 + clamp (libsodium scalarmult)
+- [x] ECDH 共享秘密 (32B)
+- [x] AES-256-GCM AEAD (OpenSSL 3 EVP)
+- [x] HKDF-SHA256 会话密钥派生
+- [x] NonceTracker 防重放
+- [x] 唤魂/招魂会话握手 → 加密 MCCP 消息
+- [x] GCM 篡改检测 (ciphertext + tag)
+- [x] 全部 10+ 加密断言通过
+
+### 二进度统计
+- 二进制产物: mqf.elf = 22 KB / mqf_crypto_test.elf = 22 KB
+- Python 参考代码: 8200 行 (kernel/, morph/, ime-agent/)
+- C 代码: ~1400 行 (encoding/ + core/)
+- 编译: 零警告 (-Werror), 零 Python 依赖
+
+---
+
+## v0.2 新增 (已累加到 v0.3)
 
 ### 加密层
 - [x] X25519 ECDH 握手
