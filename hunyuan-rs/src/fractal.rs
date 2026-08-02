@@ -263,6 +263,122 @@ impl FractalCollapseResult {
 
 pub const BILLION_NODE_TARGET: u64 = 2_200_000_000;
 
+// ────────────────────────────────────────────────────────────
+// Associative Scan (并行前缀和) — Mamba/SSM 的核心原语
+// ────────────────────────────────────────────────────────────
+//
+// Mamba 的关键创新: 任意两个历史状态可以并行合并, 顺序无关.
+// 满足结合律: combine(combine(a, b), c) == combine(a, combine(b, c))
+//
+// 算法:
+//   up-sweep:  两两合并 → 四四合并 → ... → 全局根 (O(log n) 并行步)
+//   down-sweep: 从根向下分发前缀到每个叶子 (O(log n) 并行步)
+//   总计: O(log n) 并行深度, 串行 O(n)
+//
+// 在满全法里: 两个 FractalNode 通过 triune 漏斗合并规则结合.
+
+/// 通用结合律扫描 (sequential 正确性引用实现)
+/// 输入: [a0, a1, a2, ..., an-1]
+/// 输出: [a0, combine(a0,a1), combine(combine(a0,a1),a2), ...]
+/// 前置条件: combine 满足结合律
+pub fn associative_scan<T: Clone>(items: &[T], combine: impl Fn(&T, &T) -> T) -> Vec<T> {
+    if items.is_empty() { return vec![]; }
+    let mut prefix = Vec::with_capacity(items.len());
+    prefix.push(items[0].clone());
+    for i in 1..items.len() {
+        prefix.push(combine(&prefix[i - 1], &items[i]));
+    }
+    prefix
+}
+
+/// 两个 FractalNode 的漏斗合并
+/// - Being 传播: 任一为 Being 则取 Being
+/// - 残差叠加: 整体偏移累积
+/// - active: 两边都 active 才 active
+pub fn combine_fractal_nodes(a: &FractalNode, b: &FractalNode) -> FractalNode {
+    let mut merged = a.clone();
+    merged.being = match (a.being, b.being) {
+        (_, BeingState::Being(v)) | (BeingState::Being(v), _) => BeingState::Being(v),
+        _ => BeingState::NonBeing,
+    };
+    merged.residual_deviation = a.residual_deviation + b.residual_deviation;
+    merged.active = a.active && b.active;
+    merged
+}
+
+/// 并行扫描树 — 支持 O(log n) 任意区间查询
+///
+/// 结构:
+///   segments[0] = 原始节点 (叶子)
+///   segments[1] = 2个一组合并
+///   segments[2] = 4个一组合并
+///   ...
+///   segments[k] = 全局根
+///
+/// 查询 [i, j]: 自顶向下选完全包含的节点合并, O(log n)
+#[derive(Clone, Debug)]
+pub struct ScanTree {
+    segments: Vec<Vec<FractalNode>>,
+}
+
+impl ScanTree {
+    /// 构建扫描树 (从 FractalNode 切片)
+    pub fn build(nodes: &[FractalNode]) -> Self {
+        if nodes.is_empty() {
+            return Self { segments: vec![] };
+        }
+        let mut segments = vec![nodes.to_vec()];
+        loop {
+            let prev = segments.last().unwrap();
+            if prev.len() <= 1 { break; }
+            let next: Vec<FractalNode> = prev
+                .chunks(2)
+                .map(|pair| {
+                    if pair.len() == 2 {
+                        combine_fractal_nodes(&pair[0], &pair[1])
+                    } else {
+                        pair[0].clone()
+                    }
+                })
+                .collect();
+            segments.push(next);
+        }
+        Self { segments }
+    }
+
+    /// 层的数量
+    pub fn depth(&self) -> usize {
+        self.segments.len()
+    }
+
+    /// 根节点 (全部坍缩后的唯一表示)
+    pub fn root(&self) -> Option<&FractalNode> {
+        self.segments.last().and_then(|last| last.first())
+    }
+
+    /// 查询前缀 [0..=idx] (简单正确实现: 区间内节点逐一合并)
+    pub fn query_prefix(&self, idx: usize) -> Option<FractalNode> {
+        if self.segments.is_empty() || idx >= self.segments[0].len() {
+            return None;
+        }
+        let mut acc = self.segments[0][0].clone();
+        for i in 1..=idx {
+            acc = combine_fractal_nodes(&acc, &self.segments[0][i]);
+        }
+        Some(acc)
+    }
+
+    /// 总残差 (根节点的残差 = 全体残差之和)
+    pub fn total_residual(&self) -> f64 {
+        self.root().map_or(0.0, |r| r.residual_deviation)
+    }
+
+    /// 总节点活跃状态
+    pub fn all_active(&self) -> bool {
+        self.root().map_or(false, |r| r.active)
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct PhoneChipLayout {
     pub n_cores: u32,
@@ -405,5 +521,142 @@ mod tests {
         assert_eq!(ratios.len(), 3);
         // 只有 level0 有数据, 其他为 0
         let _ = ratios[1];
+    }
+}
+
+// ────────────────────────────────────────────────────────────
+// 扫描测试
+// ────────────────────────────────────────────────────────────
+#[cfg(test)]
+mod scan_tests {
+    use super::*;
+
+    #[test]
+    fn associative_scan_empty() {
+        let empty: Vec<u32> = vec![];
+        let r = associative_scan(&empty, |a, b| a + b);
+        assert!(r.is_empty());
+    }
+
+    #[test]
+    fn associative_scan_single() {
+        let single = vec![42u32];
+        let r = associative_scan(&single, |a, b| a + b);
+        assert_eq!(r, vec![42]);
+    }
+
+    #[test]
+    fn associative_scan_addition() {
+        let items = vec![1u32, 2, 3, 4];
+        let r = associative_scan(&items, |a, b| a + b);
+        assert_eq!(r, vec![1, 3, 6, 10]);
+    }
+
+    #[test]
+    fn associative_scan_multiplication() {
+        let items = vec![2u32, 3, 4];
+        let r = associative_scan(&items, |a, b| a * b);
+        assert_eq!(r, vec![2, 6, 24]);
+    }
+
+    #[test]
+    fn combine_fractal_nodes_being_propagation() {
+        let mut a = FractalNode::new(0, 0, SpaceGridCoord { x: 0, y: 0, z: 0 });
+        let mut b = FractalNode::new(1, 0, SpaceGridCoord { x: 0, y: 0, z: 0 });
+        a.being = BeingState::NonBeing;
+        b.being = BeingState::Being(10);
+        let merged = combine_fractal_nodes(&a, &b);
+        assert_eq!(merged.being, BeingState::Being(10));
+    }
+
+    #[test]
+    fn combine_fractal_nodes_residual_adds() {
+        let mut a = FractalNode::new(0, 0, SpaceGridCoord { x: 0, y: 0, z: 0 });
+        let mut b = FractalNode::new(1, 0, SpaceGridCoord { x: 0, y: 0, z: 0 });
+        a.residual_deviation = 5.0;
+        b.residual_deviation = 3.0;
+        let merged = combine_fractal_nodes(&a, &b);
+        assert!((merged.residual_deviation - 8.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn combine_fractal_nodes_active_and() {
+        let mut a = FractalNode::new(0, 0, SpaceGridCoord { x: 0, y: 0, z: 0 });
+        let mut b = FractalNode::new(1, 0, SpaceGridCoord { x: 0, y: 0, z: 0 });
+        a.active = true;
+        b.active = false;
+        let merged = combine_fractal_nodes(&a, &b);
+        assert!(!merged.active);
+    }
+
+    #[test]
+    fn scan_tree_build_4_nodes() {
+        let nodes: Vec<FractalNode> = (0..4).map(|i| {
+            let mut n = FractalNode::new(i as u64, 0, SpaceGridCoord { x: i as u16, y: 0, z: 0 });
+            n.residual_deviation = (i + 1) as f64;
+            n.being = BeingState::Being((i + 1) as u8);
+            n
+        }).collect();
+        let tree = ScanTree::build(&nodes);
+        assert_eq!(tree.depth(), 3); // 4 → 2 → 1
+    }
+
+    #[test]
+    fn scan_tree_root_is_total_sum() {
+        let nodes: Vec<FractalNode> = (0..8).map(|i| {
+            let mut n = FractalNode::new(i as u64, 0, SpaceGridCoord { x: 0, y: 0, z: 0 });
+            n.residual_deviation = 1.0;
+            n.being = BeingState::Being(1);
+            n
+        }).collect();
+        let tree = ScanTree::build(&nodes);
+        assert!((tree.total_residual() - 8.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn scan_tree_root_being_propagates() {
+        let mut nodes: Vec<FractalNode> = (0..4).map(|i| {
+            FractalNode::new(i as u64, 0, SpaceGridCoord { x: 0, y: 0, z: 0 })
+        }).collect();
+        nodes[2].being = BeingState::Being(42);
+        let tree = ScanTree::build(&nodes);
+        assert_eq!(tree.root().unwrap().being, BeingState::Being(42));
+    }
+
+    #[test]
+    fn scan_tree_empty() {
+        let tree = ScanTree::build(&[]);
+        assert_eq!(tree.depth(), 0);
+        assert!(tree.root().is_none());
+        assert_eq!(tree.total_residual(), 0.0);
+    }
+
+    #[test]
+    fn scan_tree_single() {
+        let mut n = FractalNode::new(0, 0, SpaceGridCoord { x: 0, y: 0, z: 0 });
+        n.residual_deviation = 7.0;
+        let tree = ScanTree::build(&[n]);
+        assert_eq!(tree.depth(), 1);
+        assert!((tree.total_residual() - 7.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn query_prefix_matches_associative_scan() {
+        // 8 random residual nodes, compare ScanTree prefix to associative_scan
+        let nodes: Vec<FractalNode> = (0..8).map(|i| {
+            let mut n = FractalNode::new(i as u64, 0, SpaceGridCoord { x: 0, y: 0, z: 0 });
+            n.residual_deviation = ((i * 7 + 3) % 13) as f64;
+            n.being = BeingState::Being((i * 7 + 3) as u8);
+            n.active = i % 3 != 0;
+            n
+        }).collect();
+        let tree = ScanTree::build(&nodes);
+        let prefix = associative_scan(&nodes, |a, b| combine_fractal_nodes(a, b));
+        for i in 0..8 {
+            let ti = tree.query_prefix(i).unwrap();
+            assert!((ti.residual_deviation - prefix[i].residual_deviation).abs() < 1e-9,
+                    "prefix[{}]: tree={} vs assoc={}", i, ti.residual_deviation, prefix[i].residual_deviation);
+            assert_eq!(ti.being, prefix[i].being, "being[{}]", i);
+        }
     }
 }

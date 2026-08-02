@@ -64,7 +64,8 @@ pub use triune::{BeingState, FlowDirection, Funnel, Funnel as TriuneFunnel,
 pub use funnel::{TimeGovernor, SpaceBatcher, FunnelScheduler, CascadedFunnel,
                 TimeLevel, SchedulerStatus};
 pub use fractal::{FractalNode, FractalLevel, FractalGrid, FractalCollapseResult,
-                  PhoneChipLayout, BILLION_NODE_TARGET, SpaceGridCoord, FractalOutput};
+                  PhoneChipLayout, BILLION_NODE_TARGET, SpaceGridCoord, FractalOutput,
+                  associative_scan, combine_fractal_nodes, ScanTree};
 pub use relational::{Identity, Weight, FlowRight, Priority, Actor, Cluster,
                      Relation, RelationType, RelAlgebra};
 pub use pleasure::{Pleasure, ExternalEntity, Attractor, SimplificationReport,
