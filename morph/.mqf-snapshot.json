@@ -1,0 +1,29 @@
+{
+  "repos": {
+    "hunyuan-os": {
+      "full_name": "lolict/hunyuan-os",
+      "sha": null
+    },
+    "hunyuan-univ": {
+      "full_name": "lolict/hunyuan-universe",
+      "sha": null
+    },
+    "manquanfa-enc": {
+      "full_name": "lolict/manquanfa-encoding",
+      "sha": null
+    },
+    "manquanfa-dict": {
+      "full_name": "lolict/manquanfa-dict",
+      "sha": null
+    },
+    "sacred-cov": {
+      "full_name": "lolict/sacred-covenant",
+      "sha": null
+    },
+    "license": {
+      "full_name": "lolict/manquanfa-license",
+      "sha": null
+    }
+  },
+  "timestamp": 1785677917.0036933
+}

@@ -1,0 +1,28 @@
+{
+  "anchor": "mqf-cli-log-ring",
+  "entry_count": 2,
+  "merkle_root": "e191e1751f4565fc1948df04c358e5556021aa201cdd3b8d1d6ee53dc74632e3",
+  "last_hash": "981212b3c7f1c86bfada2b5e745911c716bf897c618a1a869aed3635af11aa0f",
+  "entries": [
+    {
+      "seq": 0,
+      "kind": "test",
+      "payload": {
+        "text": "hello world"
+      },
+      "ts": 1785680232.90716,
+      "prev_hash": "220e2c7c76c6c1c4d311c77cb553709906af4d0c6d7f0c88104699bf36bde3a7",
+      "hash": "4a7a8bb33ba8bc51d7c0cd29ae2bcea0d6f501a145a012a8afefc3d61de30928"
+    },
+    {
+      "seq": 1,
+      "kind": "test",
+      "payload": {
+        "text": "msg1"
+      },
+      "ts": 1785680318.3130138,
+      "prev_hash": "4a7a8bb33ba8bc51d7c0cd29ae2bcea0d6f501a145a012a8afefc3d61de30928",
+      "hash": "981212b3c7f1c86bfada2b5e745911c716bf897c618a1a869aed3635af11aa0f"
+    }
+  ]
+}

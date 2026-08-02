@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>满全法 · 蚕蛹 (Chrysalis)</title>
+<style>
+    /* global CSS - the chrysalis's style  */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+        --bg: #0b0d10;
+        --fg: #d4d8e0;
+        --cyan: #4fd1c5;
+        --ylw: #f6c453;
+        --grn: #68d391;
+        --red: #fc8181;
+        --bld: #ffffff;
+        --dim: #3a4050;
+    }
+    body {
+        background: var(--bg); color: var(--fg);
+        font-family: ui-monospace, "SFMono-Regular", "Menlo", "Consolas", monospace;
+        font-size: 14px; line-height: 1.5;
+        padding: 20px;
+    }
+    h1 { color: var(--cyan); font-size: 16px; margin-bottom: 8px; }
+    h2 { color: var(--ylw);  font-size: 13px; margin: 20px 0 8px 0; }
+    .panel {
+        background: #13161b; border: 1px solid var(--dim);
+        border-radius: 6px; padding: 12px; margin: 8px 0;
+    }
+    .btn {
+        display: inline-block; padding: 6px 14px; margin: 4px 4px 4px 0;
+        background: #1a2030; color: var(--cyan);
+        border: 1px solid var(--cyan); border-radius: 4px;
+        cursor: pointer; font-family: inherit; font-size: 13px;
+    }
+    .btn:hover { background: var(--cyan); color: var(--bg); }
+    .btn.active { background: var(--cyan); color: var(--bg); }
+    .log {
+        background: #080a0d; padding: 10px; border-radius: 4px;
+        max-height: 400px; overflow-y: auto;
+        font-size: 12px; color: #a0a8b8;
+        margin: 8px 0;
+    }
+    .log-ok   { color: var(--grn); }
+    .log-warn { color: var(--ylw); }
+    .log-err  { color: var(--red); }
+    .log-info { color: var(--cyan); }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .choice {
+        flex: 1; min-width: 140px;
+        padding: 8px; border: 1px solid var(--dim);
+        border-radius: 4px; cursor: pointer;
+        transition: all 0.15s;
+    }
+    .choice:hover  { border-color: var(--cyan); }
+    .choice.sel    { border-color: var(--cyan); background: #142430; }
+    .cap-badge {
+        display: inline-block; padding: 2px 6px; border-radius: 10px;
+        font-size: 10px; margin-left: 6px;
+        background: #1a2030; color: var(--grn);
+        border: 1px solid var(--grn);
+    }
+    .cap-badge.no { color: var(--red); border-color: var(--red); }
+    .stage-bar {
+        display: flex; gap: 4px; margin: 12px 0;
+    }
+    .stage {
+        flex: 1; height: 4px; border-radius: 2px;
+        background: var(--dim);
+    }
+    .stage.done { background: var(--grn); }
+    .stage.active { background: var(--cyan); }
+    .full { width: 100%; }
+    .mt { margin-top: 12px; }
+    a { color: var(--cyan); }
+</style>
+</head>
+<body>
+
+<h1>满全法 · 自由寄生壳 · Chrysalis</h1>
+<div class="stage-bar">
+    <div class="stage active"  id="st-probe"></div>
+    <div class="stage" id="st-molt"></div>
+    <div class="stage" id="st-wear"></div>
+    <div class="stage" id="st-cap"></div>
+    <div class="stage" id="st-run"></div>
+</div>
+
+<div id="screen"></div>
+
+<script>
+/* =====================================================================
+   满全法 Chrysalis — 浏览器内运行的蚕蛹
+   自带权限 (Capability-based),不依赖 OS 权限
+   浏览器就是 OS,WebCrypto/IndexedDB 就是"自带文件系统"
+   ===================================================================== */
+
+// ---- 状态 ----
+const State = {
+    stage: 'probe',
+    env: null,
+    chosenShell: null,
+    anchor: null,
+    capPair: null,        // {privateKey, publicKey} in CryptoKey
+    capabilityToken: null,
+    log: []
+};
+
+// ---- 日志 ----
+function log(level, msg) {
+    State.log.push({ level, msg, ts: new Date().toISOString() });
+    const el = document.getElementById('screen');
+    if (el && el.lastElementChild && el.lastElementChild.classList.contains('log')) {
+        const line = document.createElement('div');
+        line.className = `log-${level}`;
+        line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+        el.lastElementChild.appendChild(line);
+        el.lastElementChild.scrollTop = 1e9;
+    }
+}
+function logInfo(m)  { log('info', m); }
+function logOk(m)    { log('ok', m); }
+function logWarn(m)  { log('warn', m); }
+function logErr(m)   { log('err', m); }
+
+// ---- 阶段条 ----
+function setStage(name) {
+    State.stage = name;
+    ['probe','molt','wear','cap','run'].forEach((s, i) => {
+        const el = document.getElementById('st-' + s);
+        if (!el) return;
+        el.className = 'stage';
+        const target = ['probe','molt','wear','cap','run'].indexOf(name);
+        if (i < target) el.classList.add('done');
+        if (i === target) el.classList.add('active');
+    });
+}
+
+// ---- 渲染 ----
+async function render() {
+    const el = document.getElementById('screen');
+    el.innerHTML = '';
+    switch (State.stage) {
+        case 'probe': return renderProbe();
+        case 'molt':  return renderMolt();
+        case 'wear':  return renderWear();
+        case 'cap':   return renderCap();
+        case 'run':   return renderRun();
+    }
+}
+
+// ============ Stage 1: 环境探测 ============
+function renderProbe() {
+    const el = document.getElementById('screen');
+    el.innerHTML = `
+        <h2>阶段 1: 环境探测</h2>
+        <div class="panel">
+            <p>浏览器作为宿主,自带"沙盒操作系统"</p>
+            <p style="margin-top:8px">
+                <span class="cap-badge ${(navigator.userAgent||'').includes('Chrome')?'':'no'}">
+                    WebCrypto
+                </span>
+                <span class="cap-badge ${window.indexedDB?'':'no'}">
+                    IndexedDB
+                </span>
+                <span class="cap-badge ${navigator.storage&&navigator.storage.estimate?'':'no'}">
+                    Storage API
+                </span>
+                <span class="cap-badge ${navigator.serviceWorker?'':'no'}">
+                    ServiceWorker
+                </span>
+            </p>
+        </div>
+        <button class="btn" onclick="doProbe()">开始探测</button>
+        <div class="log mt" id="probe-log"></div>
+    `;
+    const logEl = document.getElementById('probe-log');
+    State.log = [];
+    const origPush = State.log.push.bind(State.log);
+    State.log.push = function(...args) {
+        origPush(...args);
+        const last = State.log[State.log.length - 1];
+        const div = document.createElement('div');
+        div.className = `log-${last.level}`;
+        div.textContent = `[${new Date(last.ts).toLocaleTimeString()}] ${last.msg}`;
+        logEl.appendChild(div);
+        logEl.scrollTop = 1e9;
+    };
+}
+
+async function doProbe() {
+    logInfo('开始环境探测...');
+
+    const ua = navigator.userAgent || '';
+    const platform = navigator.platform || '';
+
+    let os = 'unknown';
+    if (/Android/i.test(ua)) os = 'android';
+    else if (/iPhone|iPad|iPod/i.test(ua)) os = 'ios';
+    else if (/Mac/.test(platform)) os = 'macos';
+    else if (/Win/.test(platform)) os = 'windows';
+    else if (/Linux/.test(platform)) os = 'linux';
+
+    const capabilities = {
+        webcrypto: !!window.crypto && !!window.crypto.subtle,
+        indexedDB: !!window.indexedDB,
+        storageManager: !!(navigator.storage && navigator.storage.estimate),
+        serviceWorker: 'serviceWorker' in navigator,
+        webSocket: 'WebSocket' in window,
+        wasm: typeof WebAssembly === 'object'
+    };
+
+    const caps = Object.entries(capabilities)
+        .filter(([k,v]) => v)
+        .map(([k]) => k);
+    const missing = Object.entries(capabilities)
+        .filter(([k,v]) => !v)
+        .map(([k]) => k);
+
+    logOk(`user-agent  : ${ua.substring(0, 60)}...`);
+    logOk(`platform    : ${platform}`);
+    logOk(`OS          : ${os}`);
+    logOk(`capabilities: ${caps.join(', ')}`);
+    if (missing.length) logWarn(`missing     : ${missing.join(', ')}`);
+
+    // 浏览器本身就是 "OS" —— 自带沙盒
+    logInfo('');
+    logOk('浏览器内自带 WebCrypto: 可以生成不可见的签名密钥对');
+    logOk('浏览器内自带 IndexedDB: 可以持久化蚕蛹状态');
+    logOk('浏览器内自带 ServiceWorker: 可以持久化后台进程');
+    logOk('不需要安装,不需要 OS 任何写权限');
+    logOk('');
+    logInfo('环境探测完成,进入脱壳阶段');
+
+    State.env = { ua: ua.substring(0, 80), platform, os, capabilities };
+    State.chosenShell = suggestShell(os, capabilities);
+
+    setTimeout(() => { setStage('molt'); render(); }, 800);
+}
+
+function suggestShell(os, caps) {
+    if (os === 'android') return 'android_webview';
+    if (os === 'ios')     return 'ios_wkwebview';
+    if (caps.serviceWorker) return 'browser_pwa';
+    return 'browser_stub';
+}
+
+// ============ Stage 2: 选壳 (脱壳) ============
+function renderMolt() {
+    const env = State.env;
+    const shells = [
+        { id: 'browser_pwa',     icon: '🌐', name: '浏览器 PWA',     desc: 'ServiceWorker 后台 + notifications' },
+        { id: 'browser_stub',    icon: '📄', name: '浏览器单页',      desc: '当前页面就是蚕蛹,无后台' },
+        { id: 'ios_wkwebview',   icon: '🍎', name: 'iOS WebView',    desc: '需要 iOS App 壳' },
+        { id: 'android_webview', icon: '📱', name: 'Android WebView',desc: '需要 Android App 壳' },
+        { id: 'electron',        icon: '🖥️', name: 'Electron 外壳',  desc: '可访问系统 FS,伪装成普通桌面程序' },
+        { id: 'bci_stream',      icon: '🧠', name: 'BCI 数据流',     desc: '通过 WebSocket 接入脑电硬件' },
+        { id: 'satcom_json',     icon: '🛰️', name: '卫星遥测接口',  desc: '通过 WebSocket 接入卫星数据流' },
+    ];
+
+    const el = document.getElementById('screen');
+    el.innerHTML = `
+        <h2>阶段 2: 蚕蛹脱壳 — 选择寄生壳</h2>
+        <div class="panel">
+            <p>推荐: <b>${shells.find(s => s.id === State.chosenShell)?.name || '无推荐'}</b></p>
+            <div class="row mt">
+                ${shells.map(s => `
+                    <div class="choice ${s.id === State.chosenShell ? 'sel' : ''}"
+                         id="shell-${s.id}"
+                         onclick="selectShell('${s.id}')">
+                        <div><span style="font-size:20px">${s.icon}</span> <b>${s.name}</b></div>
+                        <div style="font-size:11px;color:#888;margin-top:4px">${s.desc}</div>
+                        ${s.id === State.chosenShell ? '<div style="font-size:10px;color:var(--grn);margin-top:4px">推荐</div>' : ''}
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+        <button class="btn" onclick="confirmShell()">确认穿衣</button>
+    `;
+}
+
+function selectShell(id) {
+    State.chosenShell = id;
+    document.querySelectorAll('.choice').forEach(c => c.classList.remove('sel'));
+    const el = document.getElementById('shell-' + id);
+    if (el) el.classList.add('sel');
+}
+
+async function confirmShell() {
+    logOk(`穿衣选择: ${State.chosenShell}`);
+    setStage('wear');
+    render();
+}
+
+// ============ Stage 3: 穿衣 (写配置) ============
+async function renderWear() {
+    const el = document.getElementById('screen');
+    el.innerHTML = `
+        <h2>阶段 3: 穿衣 — 生成锚 + 写状态</h2>
+        <button class="btn" onclick="doWear()">开始穿衣</button>
+        <div class="log mt" id="wear-log"></div>
+    `;
+    State.log = [];
+    const logEl = document.getElementById('wear-log');
+    const origPush = State.log.push.bind(State.log);
+    State.log.push = function(...args) {
+        origPush(...args);
+        const last = State.log[State.log.length - 1];
+        const div = document.createElement('div');
+        div.className = `log-${last.level}`;
+        div.textContent = `[${new Date(last.ts).toLocaleTimeString()}] ${last.msg}`;
+        logEl.appendChild(div);
+        logEl.scrollTop = 1e9;
+    };
+}
+
+function wearJSON(db, store, key, value) {
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(store, 'readwrite');
+        tx.objectStore(store).put(value, key);
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
+    });
+}
+
+async function doWear() {
+    logInfo('穿衣开始...');
+    logInfo('');
+
+    // 锚 = sha256 刘楚恬&lolict+时间戳
+    const ts = new Date().toISOString();
+    const material = `刘楚恬&lolict|${State.chosenShell}|${State.env?.os}|${ts}`;
+    const enc = new TextEncoder();
+    const data = enc.encode(material);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    State.anchor = `mqf-${hashHex.substring(0, 32)}`;
+
+    logInfo(`时间戳     : ${ts}`);
+    logOk(`锚 (anchor): ${State.anchor}`);
+    logInfo('');
+
+    // 写状态到 IndexedDB (自带文件系统)
+    logInfo('打开 IndexedDB (浏览器自带数据库)...');
+
+    const openDB = () => new Promise((resolve, reject) => {
+        const req = indexedDB.open('ManQuanFa', 1);
+        req.onerror = () => reject(req.error);
+        req.onsuccess = () => resolve(req.result);
+        req.onupgradeneeded = (ev) => {
+            const db = ev.target.result;
+            if (!db.objectStoreNames.contains('state'))
+                db.createObjectStore('state');
+            if (!db.objectStoreNames.contains('caps'))
+                db.createObjectStore('caps');
+        };
+    });
+
+    try {
+        const db = await openDB();
+
+        // 写 .manquanfa-shell.json 对等结构
+        await wearJSON(db, 'state', 'shell', {
+            version: '0.1.0-html',
+            shell: State.chosenShell,
+            os: State.env?.os,
+            anchor: State.anchor,
+            installed_at: ts,
+            workspace: 'idb://ManQuanFa/state'
+        });
+
+        await wearJSON(db, 'state', 'config', {
+            lingxi_ready: true,
+            anchor: State.anchor,
+            wear_timestamp: ts,
+            chrysalis_version: '0.1.0-html'
+        });
+
+        logOk('写 IndexedDB/state/shell');
+        logOk('写 IndexedDB/state/config');
+        logInfo('');
+        logOk('穿衣完成,状态已持久化在浏览器内部');
+        logInfo('不需要硬盘写权限,不需要安装');
+    } catch (e) {
+        logErr('IndexedDB 失败: ' + e);
+        logWarn('回退到 sessionStorage');
+        sessionStorage.setItem('mqf-shell', JSON.stringify({
+            shell: State.chosenShell, anchor: State.anchor
+        }));
+        logOk('sessionStorage 写成功');
+    }
+
+    logInfo('');
+    logInfo('进入第 4 阶段: 内生能力 (Capability)');
+
+    setTimeout(() => { setStage('cap'); render(); }, 1000);
+}
+
+// ============ Stage 4: 内生能力 (Capability-Based) ============
+function renderCap() {
+    const el = document.getElementById('screen');
+    el.innerHTML = `
+        <h2>阶段 4: 内生能力 (Capability)</h2>
+        <div class="panel">
+            <p><b>什么是内生能力?</b></p>
+            <p style="margin-top:8px">
+                OS 权限(用户组/root/SELinux)是<b>外部授予</b>的,系统可以随时收回。
+            </p>
+            <p style="margin-top:8px">
+                内生能力是<b>蚕蛹内部自带</b>的签名密钥对 -- 不依赖任何外部授权。
+                持有私钥 = 拥有能力。OS 不给,自己生。谁也撤不走。
+            </p>
+            <p style="margin-top:8px">
+                <code>privateKey</code> 留在浏览器里,
+                <code>publicKey</code> 导出给刘楚恬/lolict。
+                用私钥签名的 Capability Token,任何人都无法伪造。
+            </p>
+        </div>
+        <button class="btn" onclick="doCap()">生成内生能力</button>
+        <div class="log mt" id="cap-log"></div>
+    `;
+    State.log = [];
+    const logEl = document.getElementById('cap-log');
+    const origPush = State.log.push.bind(State.log);
+    State.log.push = function(...args) {
+        origPush(...args);
+        const last = State.log[State.log.length - 1];
+        const div = document.createElement('div');
+        div.className = `log-${last.level}`;
+        div.textContent = `[${new Date(last.ts).toLocaleTimeString()}] ${last.msg}`;
+        logEl.appendChild(div);
+        logEl.scrollTop = 1e9;
+    };
+}
+
+async function doCap() {
+    logInfo('--- 内生能力生成 ---');
+    logInfo('用 WebCrypto API 生成 Ed25519 密钥对...');
+
+    try {
+        // 尝试 EdDSA (Chrome 等支持)
+        const pair = await crypto.subtle.generateKey(
+            { name: 'EdDSA' },
+            true,
+            ['sign', 'verify']
+        );
+        State.capPair = pair;
+        logOk('EdDSA 密钥对生成成功');
+    } catch (e1) {
+        logWarn('EdDSA 不可用,回退到 ECDSA P-256');
+        try {
+            const pair = await crypto.subtle.generateKey(
+                { name: 'ECDSA', namedCurve: 'P-256' },
+                true,
+                ['sign', 'verify']
+            );
+            State.capPair = pair;
+            logOk('ECDSA P-256 密钥对生成成功');
+        } catch (e2) {
+            logErr('无法生成密钥对: ' + e2);
+            return;
+        }
+    }
+
+    // 导出公钥
+    const pubRaw = await crypto.subtle.exportKey('raw', State.capPair.publicKey);
+    const pubHex = Array.from(new Uint8Array(pubRaw))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+
+    logInfo(`公钥 (pub): ${pubHex.substring(0, 40)}...`);
+    logInfo('私钥永不离开浏览器');
+    logInfo('');
+
+    // 生成 Capability Token
+    const payload = JSON.stringify({
+        sub: State.anchor,
+        shell: State.chosenShell,
+        iss: 'chrysalis-v1',
+        iat: Date.now(),
+        caps: ['read_state','write_state','trigger_jieshu','wear_shell'],
+        anchor: State.anchor
+    });
+
+    const enc = new TextEncoder();
+    const sig = await crypto.subtle.sign(
+        State.capPair.algorithm,
+        State.capPair.privateKey,
+        enc.encode(payload)
+    );
+
+    State.capabilityToken = {
+        payload: btoa(payload),
+        sig: btoa(String.fromCharCode(...new Uint8Array(sig)))
+    };
+
+    logOk('Capability Token 生成:');
+    logOk(`  sub  = ${State.anchor}`);
+    logOk(`  caps = read_state, write_state, trigger_jieshu, wear_shell`);
+    logOk(`  sig  = ${State.capabilityToken.sig.substring(0, 32)}...`);
+
+    logInfo('');
+    logOk('内生能力完成: 蚕蛹自带权限,不依赖任何外部 OS');
+
+    setTimeout(() => { setStage('run'); render(); }, 1000);
+}
+
+// ============ Stage 5: 运行 (蚕蛹工作) ============
+function renderRun() {
+    const capToken = State.capabilityToken || {};
+    const payload = capToken.payload
+        ? JSON.parse(atob(capToken.payload))
+        : { caps: [], sub: '?' };
+
+    const el = document.getElementById('screen');
+    el.innerHTML = `
+        <h2>阶段 5: 蚕蛹已工作</h2>
+        <div class="panel">
+            <p><b>寄生状态</b></p>
+            <table style="margin-top:8px;width:100%;border-collapse:collapse">
+                <tr><td style="color:var(--dim)">outer ca</td><td>${State.chosenShell}</td></tr>
+                <tr><td style="color:var(--dim)">anchor </td><td>${State.anchor || '?'}</td></tr>
+                <tr><td style="color:var(--dim)">内 capability sub</td><td>${payload.sub}</td></tr>
+                <tr><td style="color:var(--dim)">caps</td><td>
+                    ${(payload.caps||[]).map(c => `<span class="cap-badge">${c}</span>`).join(' ')}
+                </td></tr>
+                <tr><td style="color:var(--dim)">PubKey</td><td>${(capToken.sig||'').substring(0, 32)}...</td></tr>
+            </table>
+        </div>
+        <div class="panel">
+            <p>蚕蛹已穿衣,寄生在工作环境内</p>
+            <p style="margin-top:8px">
+                不需要 OS 权限,不安装任何文件,
+                不写入硬盘 service 状态全都存在浏览器里。
+            </p>
+            </p>
+            <p style="margin-top:8px;color:var(--ylw)">
+                <b>这就是"自带权限的力量"。</b>
+            </p>
+            <p style="margin-top:8px;font-size:12px;color:#777">
+                灵犀协议 (LingXi) 握手通道已就绪。下一步可将他方进程接入封神榜。
+            </p>
+            <p style="margin-top:8px;font-size:13px;color:var(--cyan)">
+                深海之渊,
+                是为满全。
+            </p>
+        </div>
+        <div class="log">${State.log.map(l => {
+            const d = new Date(l.ts).toLocaleTimeString();
+            return `<div class="log-${l.level}">[${d}] ${l.msg}</div>`;
+        }).join('')}</div>
+    `;
+}
+
+// ============ 启动 ============
+window.addEventListener('load', async () => {
+    renderProbe();
+});
+</script>
+</body>
+</html>
