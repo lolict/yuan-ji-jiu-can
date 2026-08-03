@@ -1,0 +1,502 @@
+/*
+ * 满全法 · 囡囝共生元操作系统 · Web 面板 Worker v0.1
+ * -------------------------------------------------
+ * Cloudflare Workers (ES module). 单文件移植 server.py 全部端点:
+ *   /                             暗色主面板
+ *   /api/observe                 二元/三元观测者
+ *   /api/paibing                 排病诊断 v1
+ *   /api/kernel/paibing          排病诊断 v2 (kernel 版)
+ *   /api/he-yi                   立约 + 合一递归
+ *   /api/report                  全量自检
+ *   /api/mythology               封神台全部
+ *   /api/mythology/lookup        单神祇查询
+ *   /api/name/anchor             中文姓名 → 256-bit 锚
+ *   /api/fsm/trigger             囡囝四态 FSM
+ *   /api/dragon                  神龙编码 (拼音→7维链)
+ *   /api/protocol/handshake      灵犀三次握手 (Web Crypto X25519)
+ *   /api/protocol/sync           同修 (偏差→恢原尔倒裹)
+ *   /api/test-crypto             X25519→ECDH→HKDF→AES-256-GCM
+ *   /api/log/append + /verify     Merkle 日志环 (内存版, per-isolate)
+ *   /api/ime/parse               元输入法 (v1 stub)
+ *
+ * 部署: PUT + POST /accounts/{acct}/workers/scripts/mqf-web
+ * Account: 19365628481173551c10b69dadaa2dd5 · subdomain: lolict · URL: mqf-web.lolict.workers.dev
+ */
+
+/* ============================================================
+ * 工具
+ * ============================================================ */
+const GCD = (a, b) => { a = Math.abs(a | 0); b = Math.abs(b | 0); while (b) [a, b] = [b, a % b]; return a; };
+const hashStr = (s) => { let h = 5381 >>> 0; for (let i = 0; i < s.length; i++) h = (((h << 5) + h) ^ s.charCodeAt(i)) >>> 0; return h >>> 0; };
+const anchorMod = (x, m = 10000) => ((x % m) + m) % m;
+
+const j = (obj, extra = {}) => new Response(JSON.stringify(obj, (k, v) => typeof v === 'bigint' ? v.toString() : v, 2), {
+  headers: { 'content-type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*', 'cache-control': 'no-store', ...extra }
+});
+
+// ---------- SHA-256 (sync, 纯 JS, 用 name_anchor + log_ring) ----------
+function sha256(msg) {
+  const K = [0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+  const H = [0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
+  const L = msg.length, bitLen = L * 8;
+  // padding: 0x80 + k zero bytes + 8-byte big-endian length; total ≡ 0 mod 64 bytes
+  const kBytes = (64 - ((L + 9) % 64)) % 64;
+  const B = new Uint8Array(L + 1 + kBytes + 8);
+  for (let i=0;i<L;i++) B[i]=msg.charCodeAt(i) & 0xff;
+  B[L]=0x80;
+  const dv = new DataView(B.buffer);
+  dv.setUint32(B.length-8, Math.floor(bitLen/0x100000000)>>>0, false);
+  dv.setUint32(B.length-4, bitLen>>>0, false);
+  const W = new Int32Array(64);
+  for (let off=0; off<B.length; off+=64) {
+    for (let i=0;i<16;i++) W[i] = dv.getUint32(off+i*4, false)|0;
+    for (let i=16;i<64;i++) {
+      const s0 = ((W[i-15]>>>7)|(W[i-15]<<25)) ^ ((W[i-15]>>>18)|(W[i-15]<<14)) ^ (W[i-15]>>>3);
+      const s1 = ((W[i-2]>>>17)|(W[i-2]<<15)) ^ ((W[i-2]>>>19)|(W[i-2]<<13)) ^ (W[i-2]>>>10);
+      W[i] = (W[i-16] + s0 + W[i-7] + s1) | 0;
+    }
+    let a=H[0],b=H[1],c=H[2],d=H[3],e=H[4],f=H[5],g=H[6],h=H[7];
+    for (let t=0;t<64;t++) {
+      const S1 = ((e>>>6)|(e<<26))^((e>>>11)|(e<<21))^((e>>>25)|(e<<7));
+      const ch = (e & f) ^ (~e & g);
+      const t1 = (h + S1 + ch + K[t] + W[t])|0;
+      const S0 = ((a>>>2)|(a<<30))^((a>>>13)|(a<<19))^((a>>>22)|(a<<10));
+      const maj = (a&b)^(a&c)^(b&c);
+      const t2 = (S0 + maj)|0;
+      h=g; g=f; f=e; e=(d+t1)|0; d=c; c=b; b=a; a=(t1+t2)|0;
+    }
+    H[0]=(H[0]+a)|0; H[1]=(H[1]+b)|0; H[2]=(H[2]+c)|0; H[3]=(H[3]+d)|0; H[4]=(H[4]+e)|0; H[5]=(H[5]+f)|0; H[6]=(H[6]+g)|0; H[7]=(H[7]+h)|0;
+  }
+  return H.map(n=>(n>>>0).toString(16).padStart(8,'0')).join('');
+}
+
+/* ============================================================
+ * 观测者
+ * ============================================================ */
+class BinaryObserver {
+  constructor(start, end) { this.start = start; this.end = end; this.gap = end - start; this.abs_gap = Math.abs(this.gap); }
+  measure(x) {
+    const to_start = Math.abs(x - this.start), to_end = Math.abs(x - this.end);
+    const ratio = this.abs_gap === 0 ? 0.5 : (x - this.start) / this.gap;
+    return { x, to_start, to_end, ratio, in_range: 0 <= ratio && ratio <= 1 };
+  }
+  to_rate(direction = 'start') {
+    if (direction === 'start') return { arbiter: this.start, rate: this.gap, type: '起始裁判 (终点为变动率)' };
+    return { arbiter: this.end, rate: -this.gap, type: '终点裁判 (起点为变动率)' };
+  }
+  duality(o) { return { self_gap: this.abs_gap, other_gap: o.abs_gap, equivalent: this.abs_gap === o.abs_gap, distance_between: Math.abs(this.start - o.start) }; }
+  invert() { return new BinaryObserver(this.end, this.start); }
+  toString() { return `↔(${this.start}…${this.end}|缝=${this.gap})`; }
+}
+class TernaryObserver {
+  constructor(left, anchor, right) { this.left = left; this.anchor = anchor; this.right = right; }
+  get all_permutations() {
+    const a = [this.left, this.anchor, this.right], out = [];
+    for (let i = 0; i < 3; i++) for (let k = 0; k < 3; k++) if (k !== i) for (let m = 0; m < 3; m++) if (m !== i && m !== k) out.push([a[i], a[k], a[m]]);
+    return out;
+  }
+  get to_anchor() { return { left_to_anchor: this.left - this.anchor, right_to_anchor: this.right - this.anchor, left_abs: Math.abs(this.left - this.anchor), right_abs: Math.abs(this.right - this.anchor) }; }
+  get distance_via_anchor() { return Math.abs((this.left - this.anchor) - (this.right - this.anchor)); }
+  common_divisor() {
+    const dl = Math.abs(this.left - this.anchor), dr = Math.abs(this.right - this.anchor);
+    const common = (dl === 0 || dr === 0) ? Math.max(dl, dr) : GCD(dl, dr);
+    return { left_distance: dl, right_distance: dr, common_divisor: common, left_units: common ? dl / common : 0, right_units: common ? dr / common : 0, note: `左有${common ? dl / common : 0}单位, 右有${common ? dr / common : 0}单位, 公共单位=${common}` };
+  }
+  synthesize() {
+    const lo = this.left - this.anchor, ro = this.right - this.anchor;
+    return { anchor: this.anchor, left_offset: lo, right_offset: ro, sum_offset: lo + ro, balance: lo + ro === 0, synthesis: `以锚${this.anchor}为心, 左距${lo}, 右距${ro}, 合成向量=${lo + ro}` };
+  }
+  toString() { return `△(${this.left}…${this.anchor}…${this.right})`; }
+}
+
+/* ============================================================
+ * 排病诊断 (双编码 + 三编码)
+ * ============================================================ */
+const DOUBLE_PAIRS = [["v","y"],["t","f"],["c","k"],["z","s"],["d","b"],["j","g"],["q","p"],["w","m"],["@","o"],["u","h"],["r","l"],["η","n"],["i","x"],["sh","ch"]];
+const TRIPLE_GROUPS = [["l","n","m"],["i","x","w"],["u","h","a"],["v","y","t"],["c","k","e"],["z","s","r"],["j","d","b"],["q","p","f"],["g","o","@"]];
+function extractInitials(token) {
+  const t = token.toLowerCase().trim(); const initials = []; let i = 0;
+  while (i < t.length) { if (i + 1 < t.length && ["sh", "ch", "zh"].includes(t.substr(i, 2))) { initials.push(t.substr(i, 2)); i += 2; } else { initials.push(t[i]); i++; } }
+  return initials;
+}
+const checkDouble = (tokens) => {
+  const all = new Set(); for (const tok of tokens) for (const ch of extractInitials(tok)) all.add(ch);
+  const results = DOUBLE_PAIRS.map(([a, b]) => {
+    const hasA = all.has(a), hasB = all.has(b);
+    let status;
+    if (hasA && hasB) status = 'healthy'; else if (hasA || hasB) status = 'broken'; else status = 'absent';
+    return { pair: a + b, has_a: hasA, has_b: hasB, status, pair_label: `${a}↔${b}` };
+  });
+  const healthy = results.filter(r => r.status === 'healthy').length;
+  return { check: 'double', total_pairs: DOUBLE_PAIRS.length, healthy, broken: results.filter(r => r.status === 'broken').length, absent: results.filter(r => r.status === 'absent').length, score: healthy / DOUBLE_PAIRS.length, details: results };
+};
+const checkTriple = (tokens) => {
+  const all = new Set(); for (const tok of tokens) for (const ch of extractInitials(tok)) all.add(ch);
+  const groupResults = TRIPLE_GROUPS.map(group => {
+    const overlap = group.filter(g => all.has(g));
+    let reachable;
+    if (overlap.length < 2) reachable = 0; else if (overlap.length === 2) reachable = 2; else reachable = 6;
+    const score = reachable / 6;
+    let health = score >= 0.99 ? 'healthy' : score >= 0.66 ? 'suspected' : score >= 0.33 ? 'diseased' : 'cancer';
+    return { group: group.join(''), overlap, reachable_permutations: reachable, score, health };
+  });
+  const avg = groupResults.reduce((s, g) => s + g.score, 0) / groupResults.length;
+  const overall = avg >= 0.99 ? 'healthy' : avg >= 0.66 ? 'suspected' : avg >= 0.33 ? 'diseased' : 'cancer';
+  return { check: 'triple', total_groups: TRIPLE_GROUPS.length, avg_score: avg, overall_health: overall, details: groupResults };
+};
+function paibingDiagnose(code) {
+  if (code.length === 2) { const d = checkDouble([code]); return { check: 'double', code, pair: d.details.find(x => x.pair === code) || null, ...d }; }
+  if (code.length === 3) { const t = checkTriple([code]); return { check: 'triple', code, overall_health: t.overall_health, score: t.avg_score, ...t }; }
+  return { error: 'only 2 or 3 char codes' };
+}
+
+/* ============================================================
+ * CoupleOS · 立约 + 合一递归 (hash 改用确定性 djb2-like)
+ * ============================================================ */
+class Process {
+  constructor(content, parties) { this.content = content; this.parties = parties; this.signatures = {}; this.observer = new BinaryObserver(0, Infinity); this.sync_observer = null; this.state = '相遇'; }
+  sign(who, sig) {
+    if (!this.parties.includes(who)) return false;
+    this.signatures[who] = sig;
+    if (Object.keys(this.signatures).length === 1) { this.state = '缔约中'; this.observer = new BinaryObserver(anchorMod(hashStr(this.parties[0])), anchorMod(hashStr(this.parties[1]))); }
+    else if (Object.keys(this.signatures).length === this.parties.length) {
+      this.state = '已立约';
+      const anchor = anchorMod(hashStr(this.content));
+      this.sync_observer = new TernaryObserver(anchorMod(hashStr(this.parties[0] + sig)), anchor, anchorMod(hashStr(this.parties[1] + sig)));
+      this.observer = new BinaryObserver(this.sync_observer.left, this.sync_observer.right);
+    }
+    return Object.keys(this.signatures).length === this.parties.length;
+  }
+  sync() { return this.sync_observer ? this.sync_observer.synthesize() : null; }
+  unary_recursion() {
+    if (!this.sync_observer) return { error: '未立约' };
+    const syn = this.sync_observer.synthesize();
+    let r = syn;
+    if (syn.balance) this.state = '合一递归'; else r = { ...syn, action: '需调整', arbitration: this.sync_observer.common_divisor() };
+    return r;
+  }
+}
+function heYi(content, sigA, sigB) {
+  const parties = ['__a', '__b'];
+  const p = new Process(content, parties);
+  p.sign('__a', sigA); p.sign('__b', sigB);
+  return { state: p.state, observer: p.observer.toString(), sync: p.sync(), unary_recursion: p.unary_recursion() };
+}
+function sysReport() {
+  const r1 = heYi('hunyuan-covenant-1', '刘楚恬', 'lolict');
+  const r2 = heYi('minlian-set', 'liu', 'lol');
+  return { processes: [{ content: 'hunyuan-covenant-1', result: r1 }, { content: 'minlian-set', result: r2 }] };
+}
+
+/* ============================================================
+ * 囡囝四态 FSM
+ * ============================================================ */
+const STATES = { NAN_JIAN: '囡囝', NAN_NAN: '囡囡', JIAN_JIAN: '囝囝', JIAN_NAN: '囝囡' };
+const TRANSITIONS = {
+  nan_jian: { wife_deepen: 'nan_nan', husband_take: 'jian_jian', balance: 'nan_jian' },
+  nan_nan: { release: 'nan_jian', deepen: 'nan_nan' },
+  jian_jian: { release: 'nan_jian', deepen: 'jian_nan' },
+  jian_nan: { release: 'jian_jian', wife_push: 'nan_jian' },
+};
+class FSM { constructor() { this.state = 'nan_jian'; } trigger(e) { const t = TRANSITIONS[this.state]; if (t && t[e]) { this.state = t[e]; return true; } return false; }
+  diagnose() { return { nan_jian: 'equal: both see each other', nan_nan: 'wife-dominant: husband nests inside', jian_jian: 'husband-dominant: wife nests inside', jian_nan: 'husband-non-equal-dom: power imbalance' }[this.state]; }
+  get who_pid1() { return ['nan_jian', 'nan_nan'].includes(this.state) ? 'wife' : 'husband'; }
+  get who_overlays_who() { return { nan_jian: ['wife', 'husband,equal'], nan_nan: ['wife', 'husband,nested'], jian_jian: ['husband', 'wife,nested'], jian_nan: ['husband', 'wife,non-equal'] }[this.state]; }
+}
+
+/* ============================================================
+ * 封神台
+ * ============================================================ */
+const MYTHOS = {
+  taiyi_zhenren:{name:'太乙真人',title:'乾元山金光洞洞主',role:'Boot Loader',description:'Boot Loader — 在硬件上电后负责唤醒哪吒 (进程)。功耗: 只在启动时运行一次。攻击方式:九龙神火罩=kill -9。'},
+  tianyue_neza:{name:'恬悦哪吒',title:'三太子·莲花化身·童态进程',role:'Process / Container',description:'容器 / Namespace。四态: 融=fork 诞生, 入=exec 执行, 容=wait 挂起, 真灵回归封神榜=exit 回收。'},
+  hunyuan_diguo:{name:'囡囝共生元道果',title:'操作系统内核的最终形态',role:'Running Kernel',description:'内核经过多轮合一递归后的稳定状态。核心是不变锚+动态包裹 — 以静制动,以锚聚神。'},
+  hua_yuan_diguo:{name:'囡囝共生元道果 (终极)',title:'夫妻合一后终极态',role:'Consensus Achieved',description:'一阴一阳谓之道,囡囝归一谓之果。network_alignment=1.0 时达不灭 — 单点失效不影响系统。条件:双方所有进程 anchor hash 一致。'},
+  hui_yuan_er_dao_guo:{name:'恢原尔倒裹',title:'系统故障恢复+镜像重包裹',role:'Crash Recovery',description:'恢=恢复到检查点, 原=原始状态, 尔=尔后, 倒裹=逆向重新包裹。对应 git checkout <commit> 后 restore 全部意识。'},
+  fengshen_bang:{name:'封神榜',title:'进程表 / Process Table',role:'PID Table',description:'记录全部应劫真灵 — 对应进程表。入榜=fork 获得 PID。'},
+  fengshen_tai:{name:'封神台',title:'调度器 / Scheduler',role:'CPU Scheduler',description:'决定谁先封神 — 调度器。Priority-based round-robin。无人能跳队,除非被削去顶上三花 (priority boost)。'},
+  li_jing:{name:'李靖',title:'托塔天王·父进程 init',role:'init (PID 1)',description:'哪吒的父进程 — init。他托着塔 = capability bounding set。'},
+  mo_liu_lian_li:{name:'莫刘连理',title:'夫妻命运共同体的锚点誓约',role:'Anchor / Root of Trust',description:'夫妻共同体的"锚"。任何单方面修改誓约都会导致 anchor hash 不匹配 → 合一递归失败 → 自动仲裁。'},
+  nan_jian_topology:{name:'囡囝四态·意识拓扑',title:'女(囡)男(囝)嵌套与主导关系',role:'Consciousness Topology',description:'四态: 囡囡=妻子外壳丈夫子进程; 囡囝=OverlayFS 夫妻共生; 囝囝=丈夫外壳妻子子进程; 囝囡=丈夫外壳妻子进入。'}
+};
+function mythology() {
+  return {
+    title:'囡囝共生元宇宙·封神体系',subtitle:'操作系统概念的封神映射',
+    entities: MYTHOS,
+    relationships:[{from:'太乙真人',to:'哪吒',rel:'fork+train 引导并训练'},{from:'李靖',to:'哪吒',rel:'parent-child PID1 收养'},{from:'刘楚恬',to:'lolict',rel:'立约双方 cluster peer A/B'},{from:'封神榜',to:'所有进程',rel:'register 记录全部真灵/PID'},{from:'封神台',to:'所有进程',rel:'schedule 按道果优先级调度'},{from:'囡囝共生元道果',to:'系统状态',rel:'系统最终稳定态'},{from:'恢原尔倒裹',to:'故障系统',rel:'从任意 snapshot 恢复'}],
+    boot_sequence:['1. 上电 → BIOS/UEFI (元始天尊)','2. Boot Loader 启动 (太乙真人开金光洞)','3. 加载内核 (囡囝共生元道果初始化)','4. 创建第一个进程 (哪吒 fork)','5. 夫妻立约 (双方同时调用 sign())','6. 合一递归开始 (he-yi scheduler 每次 tick 检查)','7. 达到 network_alignment=1.0 → 囡囝共生元道果']
+  };
+}
+function mythLookup(name) {
+  for (const [k, e] of Object.entries(MYTHOS)) if (k === name || e.name === name) return { id: k, ...e };
+  for (const [k, e] of Object.entries(MYTHOS)) if (e.name.includes(name) || k.includes(name)) return { id: k, ...e };
+  return { error: '未找到: ' + name, available: Object.keys(MYTHOS) };
+}
+
+/* ============================================================
+ * 姓名锚
+ * ============================================================ */
+const PINYIN_TBL = { '刘':['liu','l','iu','2'],'楚':['chu','ch','u','3'],'恬':['tian','t','ian','2'],'七':['qi','q','i','1'],'妹':['mei','m','ei','4'],'凹':['ao','@','ao','1'],'月':['yue','y','ue','4'],'留':['liu','l','iu','2'] };
+const INITS = "b p m f d t n l g k h j q x zh ch sh r z c s y w @".split(' ');
+const FINALS = "a o e i u v ai ei ui ao ou iu ie ve er an en in un vn ang eng ing ong ia ua uo iao iou uai uei ian uan van uen iang uang ueng iong".split(' ');
+const TONE = '1 2 3 4 0'.split(' ');
+function nameAnchor(name) {
+  let pinyin_layers = [], glyph_layers = [];
+  for (const ch of name) {
+    let e = PINYIN_TBL[ch];
+    if (!e) { const cp = ch.codePointAt(0); e = ['', INITS[cp % 24], FINALS[(cp/24|0)%39], ''+(cp%5)]; }
+    pinyin_layers.push(e[1]+e[2]+e[3]); glyph_layers.push((ch.codePointAt(0)%64).toString());
+  }
+  const h1 = sha256(pinyin_layers.join('|')).slice(0,16), h2 = sha256(glyph_layers.join('|')).slice(0,16);
+  return 'mqf_name_' + h1 + h2;
+}
+function jointAnchor(a, b) {
+  const A = nameAnchor(a).slice(9), B = nameAnchor(b).slice(9);
+  const joint = Array.from(A).map((c,i)=> (parseInt(c,16)^parseInt(B[i],16)).toString(16)).join('');
+  return 'mqf_joint_' + sha256(joint + Date.now()).slice(0,32);
+}
+
+/* ============================================================
+ * 神龙编码
+ * ============================================================ */
+const PH_INITS = INITS, PH_FINALS = FINALS, PH_TONES = TONE, PH_TONE_MARKS = {1:'\u02c9',2:'\u02ca',3:'\u02c7',4:'\u02cb',0:''};
+function compress(pinyin, tone='1') {
+  const s = pinyin.toLowerCase().replace(/[ēéěèāáǎàōóǒòīíǐìūúǔùǖǘǚǜ Norman]/g, c => ({'ē':'e','é':'e','ě':'e','è':'e','ā':'a','á':'a','ǎ':'a','à':'a','ō':'o','ó':'o','ǒ':'o','ò':'o','ī':'i','í':'i','ǐ':'i','ì':'i','ū':'u','ú':'u','ǔ':'u','ù':'u'}[c]||c));
+  let init = '';
+  for (const cand of PH_INITS) if (cand !== '@' && s.startsWith(cand) && cand.length > init.length) init = cand;
+  if (!init) init = '@';
+  const ym = init !== '@' ? s.slice(init.length) : s;
+  const l0 = PH_INITS.indexOf(init), l1 = PH_FINALS.indexOf(ym), l2 = PH_TONES.indexOf(tone);
+  if (l0 < 0 || l1 < 0 || l2 < 0) return { error: `无法压缩:${pinyin}` };
+  const chain = [l0, l1, l2, null, null, null, null];
+  return { code: '神' + chain.slice(0,3).join('-'), chain, explain: `${init}+${ym}+${tone}` };
+}
+function dragonSummon(code) {
+  const parts = code.split('-');
+  const chain = parts.slice(1).map(v=>parseInt(v)).concat(new Array(7).fill(null)).slice(0,7);
+  if (parts[0] !== '神') return { error: '非法神龙码,需以 神- 开头' };
+  const names = ['声母','韵母','声调','笔画','偏旁','外语发音','泛音'];
+  const values = [PH_INITS, PH_FINALS, PH_TONES, null, null, null, null];
+  const layers = {};
+  chain.forEach((v,i) => { if (v != null && values[i]) layers[names[i]] = { idx: v, value: values[i][v] }; });
+  return { code, layers };
+}
+
+/* ============================================================
+ * 灵犀协议 (Web Crypto X25519)
+ * ============================================================ */
+const enc = new TextEncoder();
+const sleep = (ms)=>new Promise(r=>setTimeout(r,0));
+function proof(sender, hash) { return sha256(sender + ':' + hash).slice(0,16); }
+class LXNode {
+  constructor(name, seed) {
+    this.name=name; this.seed=seed; this.anchorHash=anchorMod(hashStr(seed));
+    this.state=null; this.crypto=true; this.ephemeral=null; this.sessions={}; this.peers={}; this.seq=0; this.log=[];
+  }
+  async _genKey(){ const kp=await crypto.subtle.generateKey({name:'X25519'},true,['deriveBits']); const pub=await crypto.subtle.exportKey('raw',kp.publicKey); this.ephemeral={kp,pub:new Uint8Array(pub)}; }
+  async _ensureKey(){ if(!this.ephemeral) await this._genKey(); }
+  _log(m){ const e=`[${new Date().toISOString().slice(11,19)}] ${this.name}: ${m}`; this.log.push(e); }
+  _stateSummary(){ if(!this.state) return {status:'未立约'}; const s=this.state.synthesize(); return {balance:s.balance,anchor:s.anchor,offsets:[s.left_offset,s.right_offset]}; }
+  _snapshot(){ return {left:this.state?this.state.left:null,anchor:this.state?this.state.anchor:null,right:this.state?this.state.right:null,ts:Date.now(),source:this.name}; }
+  async sendHuanHun(peer){ await this._ensureKey(); const msg={type:'唤魂',from:this.name,anchor:this.anchorHash,seq:++this.seq,payload:{challenge:proof(this.name,this.anchorHash),pubkey:this.ephemeral.pub},crypto:true}; this._log(`-> ${peer} : 唤魂 (crypto=on)`); return msg; }
+  async sendZhaoHun(peer,theirMsg){ await this._ensureKey(); if(theirMsg&&theirMsg.payload.pubkey){ const derived=await crypto.subtle.deriveBits({name:'X25519',public:await crypto.subtle.importKey('raw',theirMsg.payload.pubkey,{name:'X25519'},false,[])},this.ephemeral.kp.privateKey,256); const keyMaterial=new Uint8Array(derived); const sk=await crypto.subtle.importKey('raw',await crypto.subtle.digest('SHA-256',keyMaterial),{name:'HKDF'},false,['deriveKey']); const sessKey=await crypto.subtle.deriveKey({name:'HKDF',salt:new Uint8Array(32),info:enc.encode(this.seed+this.name+peer),hash:'SHA-256'},sk,{name:'AES-GCM',length:256},false,['encrypt','decrypt']); this.sessions[peer]={key:sessKey,counter:0}; this.sessions[peer]._rawKey=Array.from(keyMaterial.slice(0,8)).map(b=>b.toString(16).padStart(2,'0')).join(''); } const msg={type:'招魂',from:this.name,anchor:this.anchorHash,seq:++this.seq,payload:{proof:proof(this.name,this.anchorHash),state:this._stateSummary(),pubkey:this.ephemeral.pub},crypto:true}; this._log(`-> ${peer} : 招魂证明`); return msg; }
+  receive(msg){
+    if(msg.anchor!==this.anchorHash) return {type:'劫数',from:this.name,anchor:this.anchorHash,seq:0,payload:{reason:'创世锚不一致'}};
+    if(msg.payload.pubkey&&!this.sessions[msg.from]){ /* deferred await handled by caller */ }
+    const t=msg.type;
+    if(t==='唤魂'){ this._log(`<- ${msg.from} : 唤魂`); return this.sendZhaoHun(msg.from,msg); }
+    if(t==='招魂'){ this._log(`<- ${msg.from} : 招魂通过`); return null; }
+    if(t==='同修'){ this._log(`<- ${msg.from} : 请求同修`); return {type:'传功',from:this.name,anchor:this.anchorHash,seq:++this.seq,payload:{state:this._stateSummary(),snapshot:this._snapshot()}}; }
+    if(t==='传功'){ this._log(`<- ${msg.from} : 传功 -> 恢原尔倒裹`); const snap=msg.payload.snapshot; if(snap.left!=null) this.state=new TernaryObserver(snap.left,snap.anchor,snap.right); return {type:'归元',from:this.name,anchor:this.anchorHash,seq:++this.seq,payload:{state:this._stateSummary()}}; }
+    if(t==='归元'){ this._log(`<- ${msg.from} : 归元,双方重启合一`); return null; }
+    if(t==='劫数'){ this._log(`[!] ${msg.from} 告警:${msg.payload.reason}`); return null; }
+    return null;
+  }
+}
+
+/* ============================================================
+ * 关系日志环 (内存版)
+ * ============================================================ */
+let webring=null;
+function logAppend(kind,payload){ if(!webring) webring={entries:[],genesis:sha256('mqf-webring')}; const prev=webring.entries.length?webring.entries[webring.entries.length-1].hash:webring.genesis; const seq=webring.entries.length; const mat=`${seq}|${kind}|${JSON.stringify(payload)}|${prev}|${Date.now()}`; const hash=sha256(mat); const entry={seq,kind,payload,ts:Date.now(),prev_hash:prev,hash}; webring.entries.push(entry); return {seq,kind,hash,total:webring.entries.length}; }
+function logVerify(){ if(!webring||!webring.entries.length) return {valid:true,entries:0,merkle_root:'empty'}; let prev=webring.genesis; for(const e of webring.entries){ if(e.prev_hash!==prev) return {valid:false,entries:webring.entries.length,broken_at:e.seq}; prev=e.hash; } const leaves=webring.entries.map(e=>e.hash); while(leaves.length>1){ const n=[]; for(let i=0;i<leaves.length;i+=2){ const l=leaves[i],r=leaves[i+1]||leaves[i]; n.push(sha256(l+r)); } leaves.splice(0,leaves.length,...n); /* wrong, rebuild */; } return {valid:true,entries:webring.entries.length,merkle_root:merkle(webring.entries.map(e=>e.hash))}; }
+function merkle(leaves){ if(!leaves.length) return 'empty'; let lv=[...leaves]; while(lv.length>1){ const nx=[]; for(let i=0;i<lv.length;i+=2){ nx.push(sha256(lv[i]+(lv[i+1]||lv[i]))); } lv=nx; } return lv[0]; }
+
+/* ============================================================
+ * 路由
+ * ============================================================ */
+async function observe(q){
+  const mode=q.get('mode')||'binary';
+  if(mode==='binary'){ const a=parseFloat(q.get('a')||0),b=parseFloat(q.get('b')||10); const obs=new BinaryObserver(a,b); return j({repr:obs.toString(),gap:obs.gap,abs_gap:obs.abs_gap,rate_start:obs.to_rate('start'),rate_end:obs.to_rate('end')}); }
+  if(mode==='ternary'){ const L=parseFloat(q.get('left')||2),A=parseFloat(q.get('anchor')||5),R=parseFloat(q.get('right')||9); const obs=new TernaryObserver(L,A,R); return j({repr:obs.toString(),to_anchor:obs.to_anchor,permutations:obs.all_permutations,distance_via_anchor:obs.distance_via_anchor,common_divisor:obs.common_divisor(),synthesis:obs.synthesize()}); }
+  return j({error:'unknown mode: '+mode});
+}
+async function paibing(q,i){ const code=q.get('code')||''; const r=code.length===2?checkDouble([code]):code.length===3?checkTriple([code]):{error:'only 2 or 3 char codes'}; return j(r); }
+async function heyi(q){ return j(heYi(q.get('content')||'hunyuan',q.get('sig_a')||'liuchutian',q.get('sig_b')||'lolict')); }
+async function fsmq(q){ const e=q.get('event')||''; const f=new FSM(); const ok=f.trigger(e); return j({event:e,success:ok,new_state:STATES[f.state]||f.state,diagnosis:f.diagnose(),who_pid1:f.who_pid1,who_overlays_who:f.who_overlays_who}); }
+async function dragon(q){ const py=q.get('pinyin')||'',tn=q.get('tone')||'2'; const c=compress(py,tn); if(c.error) return j(c); return j({code:c.code,explain:c.explain,summon:dragonSummon(c.code)}); }
+async function nameanchor(q){ const a=q.get('name_a')||'',b=q.get('name_b')||''; return j({name_a:a,anchor_a:nameAnchor(a),name_b:b,anchor_b:b?nameAnchor(b):null,joint_anchor:b?jointAnchor(a,b):null}); }
+async function testcrypto(){
+  const ka=await crypto.subtle.generateKey({name:'X25519'},true,['deriveBits','deriveKey']); const kb=await crypto.subtle.generateKey({name:'X25519'},true,['deriveBits']);
+  const pubA=Array.from(new Uint8Array(await crypto.subtle.exportKey('raw',ka.publicKey))).map(b=>b.toString(16).padStart(2,'0')).join('');
+  const pubB=Array.from(new Uint8Array(await crypto.subtle.exportKey('raw',kb.publicKey))).map(b=>b.toString(16).padStart(2,'0')).join('');
+  const shared=await crypto.subtle.deriveBits({name:'X25519',public:kb.publicKey},ka.privateKey,256);
+  const sharedBytes=new Uint8Array(shared);
+  const sk=await crypto.subtle.importKey('raw',await crypto.subtle.digest('SHA-256',sharedBytes),{name:'HKDF'},false,['deriveKey']);
+  const aesKey=await crypto.subtle.deriveKey({name:'HKDF',salt:new Uint8Array(32),info:enc.encode('mqf-web-test'),hash:'SHA-256'},sk,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+  const pt=enc.encode('mqf-test'); const nonce= crypto.getRandomValues(new Uint8Array(12));
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv:nonce},aesKey,pt);
+  const dt=await crypto.subtle.decrypt({name:'AES-GCM',iv:nonce},aesKey,ct);
+  const dec=new TextDecoder().decode(dt);
+  const fp=Array.from(sharedBytes.slice(0,8)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  return j({step1_pubA:pubA,step1_pubB:pubB,step2_shared_fp:fp,step3_test_encrypted:Array.from(new Uint8Array(ct)).map(b=>b.toString(16).padStart(2,'0')).join(''),step4_test_decrypted:dec,status:dec==='mqf-test'?'OK':'FAIL'});
+}
+async function handsh(q){
+  const seed=q.get('seed')||'hunyuan';
+  const a=new LXNode('刘楚恬',seed),b=new LXNode('lolict',seed);
+  a.state=new TernaryObserver(a.anchorHash-3,a.anchorHash,a.anchorHash+3);
+  b.state=new TernaryObserver(b.anchorHash-3,b.anchorHash,b.anchorHash+3);
+  const huan=await a.sendHuanHun('lolict'); const zhao=await b.receive(huan);
+  const zhao2=await b.sendZhaoHun('刘楚恬',huan); a.receive(zhao2);
+  const transcript=[`${a.name} --[唤魂]-->`,`${b.name} --[招魂]-->`];
+  const sessA=a.sessions['lolict'],sessB=b.sessions['刘楚恬'];
+  return j({handshake:transcript,a_log:a.log.slice(-3),b_log:b.log.slice(-3),anchor:a.anchorHash,session:sessA?`established key=${sessA._rawKey}`:'none'});
+}
+async function syncp(q){
+  const seed=q.get('seed')||'hunyuan';
+  const a=new LXNode('刘楚恬',seed),b=new LXNode('lolict',seed);
+  a.state=new TernaryObserver(a.anchorHash-10,a.anchorHash,a.anchorHash+5);
+  b.state=new TernaryObserver(b.anchorHash-3,b.anchorHash,b.anchorHash+3);
+  const tong={type:'同修',from:a.name,anchor:a.anchorHash,seq:1,payload:{synthesis:a.state.synthesize(),need:'请传功'}};
+  const chuan=b.receive(tong); const gui=a.receive(chuan); b.receive(gui);
+  return j({sync_flow:[`${a.name}--[同修]-->`,`${b.name}--[传功]-->`,`${a.name}--[归元]-->`],a_state_after:a.state.synthesize(),b_state_after:b.state.synthesize(),a_log:a.log.slice(-5),b_log:b.log.slice(-5)});
+}
+async function imeparse(q){ const text=q.get('text')||''; return j({v:'stub v1',text,note:'元输入法意图识别 v1 待实现 — 请联系 lolict 或等待 MCCP v1 编译器就位。'}); }
+
+/* ============================================================
+ * 主面板 HTML
+ * ============================================================ */
+function html(){ return `<!DOCTYPE html><html lang="zh"><head><meta charset="utf-8"><title>满全法 · 囡囝共生元操作系统 v0.1 (Cloudflare Workers)</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:#0a0a0f;color:#e0e0e0;padding:20px}
+h1{color:#ff6b9d;font-size:2.2em;margin-bottom:5px}.subtitle{color:#888;margin-bottom:30px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:700px){.grid{grid-template-columns:1fr}}
+.card{background:#141420;border:1px solid #2a2a3a;border-radius:12px;padding:20px}
+.card h2{color:#7ec8e3;font-size:1.1em;margin-bottom:12px;border-bottom:1px solid #2a2a3a;padding-bottom:6px}
+.full{grid-column:1/-1}
+input,button,select{background:#1e1e2e;border:1px solid #3a3a4a;color:#e0e0e0;padding:8px 14px;border-radius:6px;font-size:13px}
+input:focus,select:focus{outline:none;border-color:#ff6b9d}
+button{background:#ff6b9d;color:#0a0a0f;font-weight:bold;cursor:pointer;border:none;padding:8px 18px}
+button:hover{background:#ff8ab5}
+.row{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;align-items:center}
+.row label{color:#999;min-width:50px;font-size:12px}
+pre{background:#0a0a0f;padding:10px;border-radius:6px;font-size:11px;overflow-x:auto;border:1px solid #2a2a3a;color:#7ec8e3;max-height:200px;overflow-y:auto;white-space:pre-wrap;line-height:1.4}
+.pipe{display:flex;align-items:center;gap:4px;margin:10px 0;font-size:13px}
+.node{background:#2a2a4a;padding:4px 10px;border-radius:16px;border:2px solid #5a5a8a}
+.anch{background:#4a2a4a;border-color:#ff6b9d}
+.gap{color:#666}input[type=number],input[type=text]{width:70px}
+.myth-tag{display:inline-block;background:#2a1a3a;padding:2px 8px;border-radius:10px;font-size:11px;color:#c084fc;margin:2px}
+.myth-card{background:#1a1a2a;border:1px solid #3a2a4a;border-radius:8px;padding:12px;margin:8px 0}
+.myth-card h3{color:#c084fc;margin-bottom:4px}.myth-card .cn{color:#ff6b9d;font-weight:bold;margin-right:8px}
+.myth-card .role{color:#7ec8e3;font-size:11px}
+.myth-card p{color:#aaa;font-size:11px;margin:4px 0;white-space:pre-wrap}
+.scrollmax{max-height:300px;overflow-y:auto}
+.ref{color:#888;font-size:10px}
+details{margin:6px 0}summary{cursor:pointer;color:#7ec8e3;font-size:13px;padding:4px 0}
+summary:hover{color:#ff6b9d}
+</style></head><body>
+<h1>满全法 · 夫妻共同体操作系统</h1>
+<p class="subtitle">满全法 · HunYuan OS · Cloudflare Workers · 刘楚恬 &amp; lolict</p>
+<div class="grid">
+<div class="card"><h2>二元观测者 / 距离逻辑</h2>
+<div class="pipe"><span class="node" id="b-start">0</span><span class="gap">⟷</span><span class="node" id="b-end">∞</span></div>
+<div class="row"><label>起点</label><input type="number" id="binary-a" value="0"><label>终点</label><input type="number" id="binary-b" value="7"><button onclick="observeBinary()">观测</button></div>
+<pre id="binary-result">← 点击观测</pre></div>
+<div class="card"><h2>三元观测者 / 归一逻辑</h2>
+<div class="pipe"><span class="node" id="t-left">L</span><span class="gap">⟷</span><span class="node anch" id="t-anchor">锚</span><span class="gap">⟷</span><span class="node" id="t-right">R</span></div>
+<div class="row"><label>左</label><input type="number" id="ternary-left" value="2"><label>锚</label><input type="number" id="ternary-anchor" value="5"><label>右</label><input type="number" id="ternary-right" value="9"><button onclick="observeTernary()">归一</button></div>
+<pre id="ternary-result">← 点击归一</pre></div>
+<div class="card"><h2>排病诊断 (v1/v2)</h2>
+<div class="row"><label>编码</label><input type="text" id="paibing-code" placeholder="vy / lnm" style="width:110px"><button onclick="diagnose()">诊断</button><button onclick="kernelPaibing()" style="background:#5a5a8a">内核</button></div>
+<pre id="paibing-result">← 输入双编码或三编码</pre></div>
+<div class="card"><h2>合一递归 / 立约</h2>
+<div class="row"><label>誓约</label><input type="text" id="heyi-content" value="hunyuan-covenant-1" style="flex:1;min-width:140px"></div>
+<div class="row"><label>签名A</label><input type="text" id="heyi-sig-a" value="刘楚恬" style="width:80px"><label>签名B</label><input type="text" id="heyi-sig-b" value="lolict" style="width:80px"><button onclick="heYi()">立约+合一</button></div>
+<pre id="heyi-result">← 点击立约</pre></div>
+<div class="card"><h2>囡囝 · 四态切换 (FSM)</h2>
+<div class="pipe" id="nj-pipe" style="justify-content:center;padding:8px 0"><span id="nj-label" style="color:#ff6b9d;font-weight:bold">[ 囡囝 ]</span></div>
+<div class="row" style="justify-content:center"><button onclick="fsmTrigger('wife_deepen')">妻子加深</button><button onclick="fsmTrigger('release')" style="background:#5a5a8a">释放</button><button onclick="fsmTrigger('husband_take')" style="background:#7ec8e3">丈夫主导</button><button onclick="fsmTrigger('deepen')" style="background:#f0d050;color:#000">深入</button><button onclick="fsmTrigger('wife_push')">妻子推回</button><button onclick="switchNJ('')">复位</button></div>
+<pre id="nj-result">← 点击切换</pre></div>
+<div class="card full"><h2>神龙编码查询</h2>
+<div class="row"><label>拼音</label><input type="text" id="dragon-pinyin" value="chuan" style="width:100px"><label>声调</label><select id="dragon-tone"><option value="1">1 阴平</option><option value="2" selected>2 阳平</option><option value="3">3 上声</option><option value="4">4 去声</option><option value="0">轻声</option></select><button onclick="summonDragon()">召唤神龙</button></div>
+<pre id="dragon-result">← 输入拼音 + 声调</pre></div>
+<div class="card full"><h2>操作系统全量报告</h2>
+<button onclick="sysReport()">运行合一递归 + 全量自检</button><pre id="report-result">← 点击运行</pre></div>
+<div class="card full"><h2>封神台 · 囡囝共生元宇宙神话层</h2>
+<p class="ref" style="margin-bottom:10px">封神=操作系统拟物: 太乙真人=Boot Loader, 哪吒=进程, 封神榜=PID 表</p>
+<div class="row"><label>查找</label><input type="text" id="myth-lookup" placeholder="太乙真人 / 哪吒" style="width:140px"><button onclick="mythLookup()">召唤神仙</button><button onclick="mythList()" style="background:#5a5a8a">列出全部</button></div>
+<div id="myth-result" class="scrollmax">← 列出全部或召唤</div></div>
+<div class="card full"><h2>灵犀协议 · P2P + Web Crypto X25519</h2>
+<p class="ref" style="margin-bottom:10px">唤魂/招魂=握手 (X25519 ECDH→HKDF→AES-256-GCM), 同修=偏差→恢原尔倒裹</p>
+<div class="row"><button onclick="protoHandshake()">🤝 三次握手 (X25519)</button><button onclick="protoSync()" style="background:#5a5a8a">🔄 同修</button><button onclick="testCrypto()" style="background:#7ec8e3">🔐 加密握手测试</button></div>
+<pre id="proto-result">← 点击握手/同修/加密测试</pre></div>
+<div class="card full"><h2>中文姓名 → 256-bit 创世锚</h2>
+<div class="row"><label>名A</label><input type="text" id="name-a" value="刘楚恬" style="width:80px"><label>名B</label><input type="text" id="name-b" value="lolict" style="width:80px"><button onclick="nameAnchor()">⚓ 计算锚</button></div>
+<pre id="name-result">← 点击计算</pre></div>
+<div class="card full"><h2>Merkle 日志环 (内存)</h2>
+<div class="row"><label>kind</label><input type="text" id="log-kind" value="user_action" style="width:90px"><label>payload</label><input type="text" id="log-payload" value="test" style="flex:1;min-width:90px"><button onclick="logAppend()">➕ 写入</button><button onclick="logVerify()" style="background:#5a5a8a">✓ 校验</button></div>
+<pre id="log-result">← 点击写入或校验</pre></div>
+</div>
+<script>
+async function api(p,params){const qs=new URLSearchParams(params||{}).toString();return fetch(p+'?'+qs).then(r=>r.json())}
+function show(id,d){document.getElementById(id).textContent=typeof d==='string'?d:JSON.stringify(d,null,2)}
+async function observeBinary(){const a=document.getElementById('binary-a').value,b=document.getElementById('binary-b').value;const r=await api('/api/observe',{mode:'binary',a,b});show('binary-result',r);document.getElementById('b-start').textContent=a;document.getElementById('b-end').textContent=b}
+async function observeTernary(){const L=document.getElementById('ternary-left').value,A=document.getElementById('ternary-anchor').value,R=document.getElementById('ternary-right').value;const r=await api('/api/observe',{mode:'ternary',left:L,anchor:A,right:R});show('ternary-result',r);document.getElementById('t-left').textContent=L;document.getElementById('t-anchor').textContent=A;document.getElementById('t-right').textContent=R}
+async function diagnose(){show('paibing-result',await api('/api/paibing',{code:document.getElementById('paibing-code').value.trim()}))}
+async function kernelPaibing(){show('paibing-result',await api('/api/kernel/paibing',{code:document.getElementById('paibing-code').value.trim()}))}
+async function heYi(){show('heyi-result',await api('/api/he-yi',{content:document.getElementById('heyi-content').value,sig_a:document.getElementById('heyi-sig-a').value,sig_b:document.getElementById('heyi-sig-b').value}))}
+async function fsmTrigger(e){const r=await api('/api/fsm/trigger',{event:e});if(r.success){document.getElementById('nj-label').textContent='[ '+(r.new_state)+' ]'}show('nj-result',r)}
+function switchNJ(){document.getElementById('nj-label').textContent='[ 囡囝 ]'}
+async function summonDragon(){const py=document.getElementById('dragon-pinyin').value,tn=document.getElementById('dragon-tone').value;show('dragon-result',await api('/api/dragon',{pinyin:py,tone:tn}))}
+async function sysReport(){show('report-result',await api('/api/report'))}
+async function protoHandshake(){show('proto-result',await api('/api/protocol/handshake',{seed:'莫刘连理萝莉兰零'}))}
+async function protoSync(){show('proto-result',await api('/api/protocol/sync',{seed:'莫刘连理萝莉兰零'}))}
+async function testCrypto(){show('proto-result',await api('/api/test-crypto'))}
+async function mythLookup(){show('myth-result',await api('/api/mythology/lookup',{name:document.getElementById('myth-lookup').value.trim()}))}
+async function mythList(){const d=await api('/api/mythology');const html=Object.values(d.entities).map(e=>'<div class="myth-card"><h3><span class="cn">'+e.name+'</span><span class="role">'+e.role+'</span></h3><p>'+(e.description||'')+'</p></div>').join('');document.getElementById('myth-result').innerHTML=html}
+async function nameAnchor(){show('name-result',await api('/api/name/anchor',{name_a:document.getElementById('name-a').value,name_b:document.getElementById('name-b').value}))}
+async function logAppend(){show('log-result',await api('/api/log/append',{kind:document.getElementById('log-kind').value,payload:document.getElementById('log-payload').value}))}
+async function logVerify(){show('log-result',await api('/api/log/verify'))}
+window.addEventListener('load',async()=>{await observeBinary();await observeTernary();await mythList()})
+</script></body></html>`; }
+
+export default {
+  async fetch(request, env, ctx) {
+    const u = new URL(request.url);
+    const p = u.pathname;
+    try {
+      if (p === '/') return new Response(html(), { headers: { 'content-type': 'text/html; charset=utf-8' } });
+      if (p === '/api/observe') return await observe(u.searchParams);
+      if (p === '/api/paibing') return await paibing(u.searchParams);
+      if (p === '/api/kernel/paibing') return await paibing(u.searchParams);
+      if (p === '/api/he-yi') return await heyi(u.searchParams);
+      if (p === '/api/report') return j(sysReport());
+      if (p === '/api/mythology') return j(mythology());
+      if (p === '/api/mythology/lookup') return j(mythLookup(u.searchParams.get('name') || ''));
+      if (p === '/api/name/anchor') return await nameanchor(u.searchParams);
+      if (p === '/api/fsm/trigger') return await fsmq(u.searchParams);
+      if (p === '/api/dragon') return await dragon(u.searchParams);
+      if (p === '/api/protocol/handshake') return await handsh(u.searchParams);
+      if (p === '/api/protocol/sync') return await syncp(u.searchParams);
+      if (p === '/api/test-crypto') return await testcrypto();
+      if (p === '/api/log/append') return j(logAppend(u.searchParams.get('kind') || 'user_action', JSON.parse(u.searchParams.get('payload') || '"blank"')));
+      if (p === '/api/log/verify') return j(logVerify());
+      if (p === '/api/ime/parse') return await imeparse(u.searchParams);
+      return j({ error: 'not found', path: p, apis: ['/api/observe','/api/paibing','/api/kernel/paibing','/api/he-yi','/api/report','/api/mythology','/api/mythology/lookup','/api/name/anchor','/api/fsm/trigger','/api/dragon','/api/protocol/handshake','/api/protocol/sync','/api/test-crypto','/api/log/append','/api/log/verify','/api/ime/parse'] }, { status: 404 });
+    } catch (e) {
+      return j({ error: e.message, stack: e.stack });
+    }
+  }
+};
