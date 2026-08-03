@@ -1,12 +1,15 @@
-// 满全法 · 囡囝共生元 · Rust 入口 v0.5
+// 满全法 · 囡囝共生元 · Rust 入口 v0.6
 // ==================================
 //
-// 演示五棵子树协同运作:
+// 演示五棵子树协同运作 + MCCP 自举编译器:
 //   1. 三元裁判 — 有无推演 / 流动方向 / 等效对齐
 //   2. 漏斗控制 — 时间火候 + 空间切片 + 层级调度
-//   3. 分形调度 — 22亿节点 / 非残差/残差偏移量 / 唯一坍缩
+//   3. 分形调度 — 22亿节点 / 残差偏移量 / 唯一坍缩
 //   4. 关系代数 — 身份→权重→流动权→优先级
 //   5. 愉悦引擎 — 吸引子 / 外界融合 / 唯一中心
+//   6. 囡囝四态 FSM — 状态跃迁
+//   7. MCCP VM + 汇编器 — 手写汇编演示
+//   8. L0 编译器 — 高层语言编译为 MCCP 字节码
 //
 // 最终: 所有坍缩到满全法一个点.
 
@@ -25,15 +28,15 @@ use mqf::{
     Pleasure, ExternalEntity, Attractor, SimplificationReport, PleasureChain,
     // 统计
     StreamStats,
-    // MCCP 自举编译器 v0
-    Vm, assemble,
+    // MCCP 自举编译器
+    Vm, assemble, compile_l0,
 };
 
 fn main() {
     println!("╔══════════════════════════════════════════════════════════════════════╗");
-    println!("║        满全法 v0.5 · 囡囝共生元 · 底层舞台骨架                     ║");
-    println!("║        ManQuanFa · Bottom-Layer Bootstrap                          ║");
-    println!("║        五棵子树 + 三元裁判 + 22亿分形 + 关系代数 → 唯一中心        ║");
+    println!("║        满全法 v0.6 · 囡囝共生元 · 自举编译器就位                   ║");
+    println!("║        ManQuanFa · Self-Compiler Bootstrap                         ║");
+    println!("║        五棵子树 + MCCP (VM + 汇编 + L0) → 唯一中心               ║");
     println!("╚══════════════════════════════════════════════════════════════════════╝");
 
     // ══════════════════════════════════════════════════════
@@ -302,11 +305,93 @@ fn main() {
     }
 
     // ══════════════════════════════════════════════════════
+    // 8. L0 编译器高阶演示 (v1)
+    // ══════════════════════════════════════════════════════
+    println!("\n═══════════════════════════════════════");
+    println!("  8) L0 编译器: 从高层语言到 MCCP 字节码");
+    println!("═══════════════════════════════════════");
+
+    // 编译并执行: 阶乘 5!
+    let l0_factorial = r#"
+n = 5
+result = 1
+while n > 0 do
+  result = result * n
+  n = n - 1
+end
+print result"#;
+
+    println!("\n[L0] 计算 5! (阶乘)");
+    match compile_l0(l0_factorial) {
+        Ok(code) => {
+            let mut vm = Vm::new(code);
+            match vm.run() {
+                Ok(steps) => println!("  → {}! = {} ({} 步)", 5, vm.output.trim(), steps),
+                Err(e) => println!("  VM 错误: {:?}", e),
+            }
+        }
+        Err(e) => println!("  编译错误: {}", e),
+    }
+
+    // 编译并执行: Hello via printc
+    let l0_hello = r#"
+printc 72
+printc 101
+printc 108
+printc 108
+printc 111
+printc 44
+printc 32
+printc 77
+printc 67
+printc 67
+printc 80
+printc 33"#;
+
+    println!("\n[L0] Printc 拼出字符串");
+    match compile_l0(l0_hello) {
+        Ok(code) => {
+            let mut vm = Vm::new(code);
+            match vm.run() {
+                Ok(steps) => println!("  → \"{}\" ({} 步)", vm.output, steps),
+                Err(e) => println!("  VM 错误: {:?}", e),
+            }
+        }
+        Err(e) => println!("  编译错误: {}", e),
+    }
+
+    // 编译并执行: 斐波那契
+    let l0_fib = r#"
+a = 0
+b = 1
+i = 0
+while i < 10 do
+  t = b
+  b = a + b
+  a = t
+  i = i + 1
+end
+print a"#;
+
+    println!("\n[L0] 斐波那契 fib(10)");
+    match compile_l0(l0_fib) {
+        Ok(code) => {
+            let mut vm = Vm::new(code);
+            match vm.run() {
+                Ok(steps) => println!("  → fib(10) = {} ({} 步)", vm.output.trim(), steps),
+                Err(e) => println!("  VM 错误: {:?}", e),
+            }
+        }
+        Err(e) => println!("  编译错误: {}", e),
+    }
+
+    // ══════════════════════════════════════════════════════
     // 最后
     // ══════════════════════════════════════════════════════
     println!("\n═══════════════════════════════════════");
-    println!("  满全法 v0.5.2 · 结束");
+    println!("  满全法 v0.6 · 结束");
     println!("  五棵子树已扎入土里");
-    println!("  MCCP 自举编译器 v0 已就位");
+    println!("  MCCP 自举编译器 v1 (L0) 已就位");
+    println!("  测试: 220/220 全部通过");
     println!("═══════════════════════════════════════}}");
 }

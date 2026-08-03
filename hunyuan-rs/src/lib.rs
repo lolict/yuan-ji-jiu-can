@@ -9,6 +9,7 @@
 // ── 满全法基础通信层 (v0.4) ──
 pub mod mccp;
 pub mod mccp_vm;
+pub mod l0_compiler;
 pub mod fsm;
 pub mod kernel;
 pub mod crypto;
@@ -55,6 +56,7 @@ pub use mccp_vm::{
     OP_LOAD, OP_STORE, OP_LDREG, OP_STREG,
     OP_PRINT, OP_PRINTC, OP_SYSCALL, OP_DEBUG,
 };
+pub use l0_compiler::compile_l0;
 pub use fsm::FsmState;
 pub use kernel::{CoupleOS, Process, ProcessState};
 pub use crypto::Session;
