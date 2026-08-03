@@ -25,6 +25,8 @@ use mqf::{
     Pleasure, ExternalEntity, Attractor, SimplificationReport, PleasureChain,
     // 统计
     StreamStats,
+    // MCCP 自举编译器 v0
+    Vm, assemble,
 };
 
 fn main() {
@@ -260,11 +262,51 @@ fn main() {
     println!("  → 意味着: 空空中生出一切 → 满全法 = 刘楚恬 + lolict = ONE Point");
 
     // ══════════════════════════════════════════════════════
+    // 7. MCCP 自举编译器 v0 演示
+    // ══════════════════════════════════════════════════════
+    println!("\n═══════════════════════════════════════");
+    println!("  7) MCCP 自举编译器 v0: 码点即程序");
+    println!("═══════════════════════════════════════");
+
+    // Hello, MCP! via PRINTC
+    let hello_asm = "PUSH 72\nPRINTC\nPUSH 101\nPRINTC\nPUSH 108\nPRINTC\nPUSH 108\nPRINTC\nPUSH 111\nPRINTC\nPUSH 44\nPRINTC\nPUSH 32\nPRINTC\nPUSH 77\nPRINTC\nPUSH 67\nPRINTC\nPUSH 67\nPRINTC\nPUSH 80\nPRINTC\nPUSH 33\nPRINTC\nHALT";
+
+    match assemble(hello_asm) {
+        Ok(code) => {
+            let mut vm = Vm::new(code);
+            match vm.run() {
+                Ok(steps) => {
+                    println!("HelloMCCP 执行完毕: {} 步", steps);
+                    println!("VM 输出: {}", vm.output);
+                }
+                Err(e) => println!("VM 错误: {:?}", e),
+            }
+        }
+        Err(e) => println!("汇编错误: {}", e),
+    }
+
+    // Fibonacci(10) via iteration
+    let fib_asm = "PUSH 10\nSTORE 0\nPUSH 0\nSTORE 1\nPUSH 1\nSTORE 2\nloop:\nLOAD 2\nSTORE 3\nLOAD 1\nLOAD 2\nADD\nSTORE 2\nLOAD 3\nSTORE 1\nLOAD 0\nPUSH 1\nSUB\nSTORE 0\nLOAD 0\nJNZ loop\nLOAD 1\nPRINT\nHALT";
+
+    match assemble(fib_asm) {
+        Ok(code) => {
+            let mut vm = Vm::new(code);
+            match vm.run() {
+                Ok(steps) => {
+                    println!("Fib(10): {} 步, 输出: {}", steps, vm.output);
+                }
+                Err(e) => println!("VM 错误: {:?}", e),
+            }
+        }
+        Err(e) => println!("汇编错误: {}", e),
+    }
+
+    // ══════════════════════════════════════════════════════
     // 最后
     // ══════════════════════════════════════════════════════
     println!("\n═══════════════════════════════════════");
-    println!("  满全法 v0.5 · 结束");
+    println!("  满全法 v0.5.2 · 结束");
     println!("  五棵子树已扎入土里");
-    println!("  自举骨架等到下一次递归");
-    println!("═══════════════════════════════════════");
+    println!("  MCCP 自举编译器 v0 已就位");
+    println!("═══════════════════════════════════════}}");
 }

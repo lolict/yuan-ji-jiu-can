@@ -28,8 +28,6 @@ impl ProcessState {
     }
 }
 
-const MAX_SEQ_LEN: usize = 256;
-
 /// 进程 (单次婚姻誓约的实例)。
 #[derive(Clone, Debug)]
 pub struct Process {
@@ -103,10 +101,18 @@ impl CoupleOS {
         Self { procs: Vec::new(), anchor }
     }
 
-    pub fn create_process(&mut self, seq: Vec<Mccp>, a: u32, b: u32) -> &mut Process {
+    pub fn create_process(&mut self, seq: Vec<Mccp>, a: u32, b: u32) -> usize {
         let p = Process::new(seq, a, b);
         self.procs.push(p);
-        self.procs.last_mut().unwrap()
+        self.procs.len() - 1
+    }
+
+    pub fn process_mut(&mut self, idx: usize) -> Option<&mut Process> {
+        self.procs.get_mut(idx)
+    }
+
+    pub fn process(&self, idx: usize) -> Option<&Process> {
+        self.procs.get(idx)
     }
 }
 

@@ -8,6 +8,7 @@
 
 // ── 满全法基础通信层 (v0.4) ──
 pub mod mccp;
+pub mod mccp_vm;
 pub mod fsm;
 pub mod kernel;
 pub mod crypto;
@@ -42,6 +43,18 @@ pub mod eco;
 
 // v0.4 基础层
 pub use mccp::{Mccp, Kind, MCP_HUANHUN, MCP_ZHAOHUN, MCP_DALING, MCP_JIESHU, hanzi};
+pub use mccp_vm::{
+    Vm, VmConfig, VmError,
+    assemble, disassemble, op, op_imm, operand_of, operand_of_i16, is_instruction,
+    KIND_INSTRUCTION,
+    OP_NOP, OP_HALT, OP_PUSH, OP_POP, OP_DUP, OP_SWAP, OP_OVER, OP_ROT,
+    OP_ADD, OP_SUB, OP_MUL, OP_DIV, OP_MOD, OP_NEG,
+    OP_AND, OP_OR, OP_XOR, OP_NOT, OP_SHL, OP_SHR,
+    OP_EQ, OP_NE, OP_LT, OP_GT, OP_LE, OP_GE,
+    OP_JMP, OP_JZ, OP_JNZ, OP_CALL, OP_RET,
+    OP_LOAD, OP_STORE, OP_LDREG, OP_STREG,
+    OP_PRINT, OP_PRINTC, OP_SYSCALL, OP_DEBUG,
+};
 pub use fsm::FsmState;
 pub use kernel::{CoupleOS, Process, ProcessState};
 pub use crypto::Session;
