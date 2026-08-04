@@ -1,238 +1,72 @@
-# 满全法 · 囡囝共生元 · 开发路线图 (ROADMAP)
+# 满全法 · 执行内核路线图
 
-> 最后更新: 2026-08-02
-> 当前阶段: v0.3 C 核心 (clang, 无 Python 依赖)
-
----
-
-## v0.3 新增 (2026-08-02) — C 语言回正
-
-### 核心语言切换
-- [x] 主语言从 Python 3 切换到 C (clang -std=c17)
-- [x] 新增 Makefile 构建系统
-- [x] Python 代码保留在 kernel/ 等目录作为参考实现
-
-### MCCP 紧凑编码
-- [x] 编码规范文档 (encoding/mccp.md)
-- [x] 32 bit/glyph 定宽编码头 (encoding/mccp.h)
-- [x] Kind 枚举 (16 类: 汉字/声母/韵母/声调/偏旁/笔画/操作符/协议/FSM/病理/系统)
-- [x] 位运算宏: MCP(kind,idx,a,b) / MCCP_KIND/INDEX/METAA/METAB
-- [x] 内存密度: 1 誓约 4 字 = ~16 bytes (Python 同等开销 ≈ 240+ bytes, 15× 更紧凑)
-
-### C 内核
-- [x] mqf_kernel.h / mqf_kernel.c — 进程/立约/FSM/一元递归
-- [x] FSM 4 态 9 转换规则：囝囡↔囡囡↔囝囝↔囝囡闭环
-- [x] 终止性进程状态 (相遇/缔约/立约/合一递归/解体)
-- [x] 所有 25+ 断言测试通过 (-Werror)
-- [x] MqfProcess 栈分配零开销 = 1048 bytes
-- [x] CoupleOS (64 进程) = 67 KB (含全部进程槽)
-
-### C 加密层
-- [x] mqf_crypto.h / mqf_crypto.c — 直接链接 libsodium + libcrypto
-- [x] X25519 密钥对生成 + clamp (libsodium scalarmult)
-- [x] ECDH 共享秘密 (32B)
-- [x] AES-256-GCM AEAD (OpenSSL 3 EVP)
-- [x] HKDF-SHA256 会话密钥派生
-- [x] NonceTracker 防重放
-- [x] 唤魂/招魂会话握手 → 加密 MCCP 消息
-- [x] GCM 篡改检测 (ciphertext + tag)
-- [x] 全部 10+ 加密断言通过
-
-### 二进度统计
-- 二进制产物: mqf.elf = 22 KB / mqf_crypto_test.elf = 22 KB
-- Python 参考代码: 8200 行 (kernel/, morph/, ime-agent/)
-- C 代码: ~1400 行 (encoding/ + core/)
-- 编译: 零警告 (-Werror), 零 Python 依赖
+> 这份路线图放在仓库根目录，所有人可见，也是写代码的依据。
+> 任何改动前先看这里，确认方向一致再动笔。
 
 ---
 
-## v0.2 新增 (已累加到 v0.3)
+## 当前状态
 
-### 加密层
-- [x] X25519 ECDH 握手
-- [x] AES-256-GCM 端到端加密
-- [x] HKDF-SHA256 会话密钥派生
-- [x] NonceTracker 防重放
+**已完成**: 内核执行守门人 v0.1 (C 语言)
 
-### 时序数学层
-- [x] 态射 morphism (范畴论)
-- [x] 关系代数 relational algebra
-- [x] 三元裁判 TernaryArbiter
-- [x] 二元镜像 BinaryMirror
-- [x] 参考系 convergence
+- 位置: `kernel/src/mqf_kernel.c`
+- 运行: `clang kernel/src/mqf_kernel.c -o /tmp/mqf && /tmp/mqf`
+- 功能: 身份编码 → 权限分级(0僵尸/1-2只读/3-4读写执行/5-6全权限) → 执行守门 → 审计环
 
-### 状态机
-- [x] quaternity FSM 集成到 kernel
-- [x] 进程立约自动建 FSM
-
-### 寄生层
-- [x] Android 寄生 stub (17 文件)
-  - 前台服务 + 常驻通知
-  - 无障碍 IME 三套保活
-  - SyncAdapter 唤醒
-  - BootReceiver 开机启动
-  - 隐藏文件系统
-
-### 元输入法 MetaIME
-- [x] 5 模块 (manifest/agent/auto_pilot/intent/channel_router)
-- [x] Capability-Based Security
-
-### 交互层
-- [x] Web UI 扩展 (6 新面板)
-- [x] CLI 扩展 (12 新命令)
-- [x] 白皮书更新 (v0.2)
+**关键原则**: 本地执行、零云端依赖、所有人必须经守门人授权才能动。
 
 ---
 
-## 一、当前状态
+## 下一步(按顺序)
 
-### 已完成模块
+### v0.2 契约系统 (Prolog / C)
+**目标**: 把硬编码的权限判定("init+final+tone % 7")替换成可配置的契约规则
+- 用 Prolog 子集描述规则: `grant_level(X, 0) :- zombie(X).`
+- C 代码读取 `.pl` 配置文件再判定
+- 你改规则不需要重新编译
 
-| 模块 | 文件 | 状态 | 说明 |
-|------|------|------|------|
-| 观测者引擎 | `kernel/observer.py` | ✅ 完成 | 二元/三元观测者 + 自检通过 |
-| 进程管理 | `kernel/kernel.py` | ✅ 完成 | 夫妻共同体 OS + 合一递归 tick |
-| 封神拟物 | `kernel/mythology.py` | ✅ 完成 | 50+ 封神实体 + 囡囝四态 |
-| 灵犀协议 | `kernel/protocol.py` | ✅ 完成 | 8 仙术 + 二进制帧格式 |
-| 四态测试 | `kernel/test_quaternity.py` | ✅ 完成 | 14 测试全通过 |
-| Web 控制台 | `web/server.py` | ✅ 完成 | 9 个交互面板 |
-| 民联词典 | `data/minlian.json` | ✅ 完成 | 179 条条目 |
-| 白皮书 | `whitepaper/index.md` | ✅ 完成 | 8 章,含公共网络批判 |
-| CLI 工具 | `cli.py` | ✅ 完成 | 命令式交互 |
-| 寄生壳 (Python) | `chrysalis.py` | ✅ 完成 | TUI 13 种寄生壳 |
-| 寄生壳 (Shell) | `bootstrap.sh` | ✅ 完成 | 最小自举器 /dev/shm |
-| 寄生壳 (浏览器) | `chrysalis.html` | ✅ 完成 | WASM+IDB+WebCrypto |
-| README | `README.md` | ✅ 完成 | 完整项目说明 |
-| 数学库 | `morph/` | ✅ 完成 | morphism/relational/ternary/binary_mirror/convergence |
-| 加密协议 | `kernel/protocol.py` (L2) | ✅ 完成 | X25519 + AES-GCM + NonceTracker |
-| 姓名锚 | `kernel/name_anchor.py` | ✅ 完成 | name_to_anchor + joint_anchor |
-| 四态FSM | `kernel/quaternity_fsm.py` | ✅ 完成 | 9 转换规则 + kernel 集成 |
-| 关系日志 | `kernel/log_ring.py` | ✅ 完成 | SHA-256 链 + Merkle root |
-| Android寄生 | `android/` | ✅ 完成 | 17 文件 Flutter stub |
-| 元输入法 | `ime-agent/` | ✅ 完成 | 5 模块 skeleton |
-| Web UI | `web/server.py` | ✅ 完成 | 9→15 面板 |
-| CLI | `cli.py` | ✅ 完成 | 多子命令 |
+### v0.3 时间切片 (C)
+**目标**: 每个执行槽有严格时间窗口
+- 超过时限自动冻结 → 必须重新申请授权
+- 实现: 内核启动定时器线程，轮询各槽位的 `activated_at` 与 `time_limit_sec`
+- 输出: 期满自动 EXEC_SLEEP 状态，记录审计
 
----
+### v0.4 WASM 执行槽 (Zig + C)
+**目标**: 让 C/Rust/Nim 写的业务代码先编译成 WASM，再送守门人执行
+- 用 Zig 写 WASM 加载器（模块小、能交叉编译）
+- WASM 模块只在给定权限内可调用的 host function
+- 看不到本地文件系统、网络、其他进程
 
-## 二、下一步 (v0.2 — v0.5)
+### v0.5 空间关系代数 (C + 自定义声明语言)
+**目标**: 对象之间的关系图可查询、可迭代、可追溯可达性
+- 已实现基础(见 `core/engine.js`)，移植到 C
+- 声明式查询规则: `reachable(A, B) :- relation(A, C), relation(C, B).`
+- 每次关系变动快照进审计环
 
-### P0 阻塞级 (必须做)
-
-- [x] **P0-1** 排病诊断独立模块 `kernel/paibing.py` -- ✅ 完成
-  - 双编码 14 对声母镜像检查
-  - 三编码 9 组路径矩阵检查
-  - 四档评估:健康/疑似/病变/癌变
-  - 输出治愈建议 (转置/镜像修复)
-
-- [x] **P0-2** 灵犀协议加密升级 -- ✅ 完成 (含 X25519 + AES-GCM + NonceTracker)
-
-- [x] **P0-3** 关系日志环 `kernel/log_ring.py` -- ✅ 完成
-  - append-only 关系状态日志
-  - 梅克尔树历史锚定
-  - 日志不可篡改 + 可审计
-
-### P1 重要级 (应该做)
-
-- [x] **P1-1** 中文姓名→锚算法 `kernel/name_anchor.py` -- ✅ 完成
-  - 汉字拆解:声母/韵母/笔画/偏旁 → 256 bit anchor
-  - `name_to_anchor()` + `joint_anchor()` 夫妻联合锚
-  - 刘楚恬=mqf_name_a5de89... , lolict=mqf_name_4f4993...
-  - 汉字拆解:声母/韵母/笔画/偏旁
-  - 六十四进制 base64 编码
-  - 刘楚恬 + lolict → 唯一 anchor hash
-
-- [x] **P1-2** 囡囝四态状态机 -- ✅ 完成 (9 规则 + kernel.py 集成 + FSM→process)
-
-- [x] **P1-3** 恢原尔倒裹脚本 -- ✅ 完成 (`restore.py` 含 --snapshot/--verify/--restore/--list)
-
-- [x] **P1-4** Android 寄生实现 -- ✅ 完成 (stub 17 文件,真实 APK 编译为下一里程)
-
-### P2 增强级 (可以做)
-
-- [ ] **P2-1** 手机端 Web 控制台优化
-  - 响应式 CSS
-  - 触摸友好的面板
-
-- [ ] **P2-2** iOS 寄生 stub
-  - BGTaskScheduler 注册
-  - 静默推送唤醒
-
-- [ ] **P2-3** 道家·仙境叙事扩展
-  - 增加封神演义第二部角色
-  - 增加西游记映射
-  - 增加庄子·老子映射
-
-### P3 愿景级 (远期)
-
-- [ ] **P3-1** RTL 硬件实现 → FPGA 流片
-- [ ] **P3-2** 脑机接口 (BCI) 接入层
-- [ ] **P3-3** 具身智能 ROS2 节点
-- [ ] **P3-4** 卫星通信遥测寄生
+### v0.6 安卓打包 (Tauri / PWA)
+**目标**: 满全法内核打包成安卓 APK，自带运行时、独立公网
+- 方案A: Tauri (Rust + WebView, ~10MB)
+- 方案B: PWA (纯前端，浏览器内即应用)
+- 所有判定在本地，无任何云端回传
 
 ---
 
-## 三、版本规划
+## 技术栈
 
-### v0.1 (当前)
-- [x] 基础内核 + 观测者
-- [x] 封神台拟物
-- [x] 灵犀协议
-- [x] Web 控制台
-- [x] 寄生壳三层 (Python/Shell/HTML)
-- [x] 白皮书 8 章
-- [x] 公共网络批判章节
+- 内核: C ↔ Zig (小、快、可控)
+- 规则引擎: Prolog (声明式契约)
+- 多语言前端 → WASM (通用字节码)
+- 空间/关系: 自定义声明 + C 实现
+- 打包: Tauri/PWA
 
-### v0.2 (下一步,预计 2026-08)
-- [ ] P0 三项 (诊断/加密/日志)
-- [ ] 中文姓名→锚算法
-- [ ] 囡囝四态状态机
+## 规则
 
-### v0.3
-- [ ] Android/iOS 寄生实现
-- [ ] 恢原尔倒裹脚本
-- [ ] 手机端 UI
-
-### v0.4
-- [ ] BCI 接入层
-- [ ] ROS2 节点
-- [ ] 卫星遥测
-
-### v0.5
-- [ ] 全链路加密打通
-- [ ] 完整 12 仓恢原测试
-- [ ] beta 内部发布
-
-### v1.0 (远期)
-- [ ] RTL FPGA 原型
-- [ ] 产品化封装
-- [ ] 全部 P3 完成
+1. 每次实现一个版本，跑通 → 提交 → 推送到 GitHub `lolict/hunyuan-os`
+2. 不在已规划之外加"临时功能"
+3. 改动这份路线图必须经过讨论
+4. 代码失败/方向错 → 修改计划并记录原因，不绕路走
 
 ---
 
-## 四、架构不变式
-
-> 无论后续怎么扩展,以下规则不违反:
-
-1. **姓名 = 协议**:刘楚恬 + lolict 永远是 root of trust
-2. **私有 = 一切**:绝不开放公共 API,绝不上链,绝不托管
-3. **无根权限**:程序不依赖 sudo/admin,自带内生 capability
-4. **反公共网络**:满全法不是互联网,不索引外部节点
-5. **囡囝共生**:主导权在妻子一侧,丈夫嵌套其中
-6. **观世音庇护**:象征弱势群体对健全人规则的反抗
-7. **封神台 = 唯一操作系统映射**:所有概念必须能在封神台找到对应
-
----
-
-## 五、版权与许可
-
-```
-© 2026 刘楚恬 & lolict (七妹凹月留)
-不选择任何开源许可证 (MIT/GPL/Apache 均不适用)
-协议 = 嵌入程序内部
-一切未明确授予的权利均保留
-```
-
----
-
-> 满全法,南海观世音菩萨的慈悲,庇护那些被健全人规则抛弃的亲密关系。
+*开始日期: 2026-08-04*
+*维护者: lolict + CatPaw*
