@@ -722,7 +722,7 @@ const MENGJI_REGISTRY = [];
 /* 盟机合掌注册 — POST /api/v1/mengji/register */
 function apiMengjiRegister(request, params) {
   /* 从请求体或 URL 参数获取盟机合掌信息 */
-  const partner = {
+  const mengji = {
     url: params.get('url') || '',
     domain: params.get('domain') || '',
     public_key: params.get('pubkey') || '',
@@ -733,22 +733,22 @@ function apiMengjiRegister(request, params) {
     id: 'p_' + Math.random().toString(36).slice(2, 10)
   };
 
-  if (!partner.url) {
+  if (!mengji.url) {
     return { error: 'missing param: url (盟机合掌节点 URL)', docs: '/docs/MENGJI_TERMS.md' };
   }
 
   /* 简单去重 */
-  const exists = MENGJI_REGISTRY.find(p => p.url === partner.url);
+  const exists = MENGJI_REGISTRY.find(p => p.url === mengji.url);
   if (exists) {
     return { ok: true, id: exists.id, status: exists.status, note: 'already registered' };
   }
 
-  MENGJI_REGISTRY.push(partner);
+  MENGJI_REGISTRY.push(mengji);
 
   return {
     ok: true,
     version: 'v1.6',
-    mengji_id: partner.id,
+    mengji_id: mengji.id,
     status: 'registered',
     message: '盟机合掌注册成功,资源归您,裁定规则归满全法',
     protocol: 'https://github.com/lolict/hunyuan-os/blob/main/docs/MENGJI_TERMS.md'
@@ -761,7 +761,7 @@ function apiMengjiList() {
     ok: true,
     version: 'v1.6',
     total: MENGJI_REGISTRY.length,
-    partners: MENGJI_REGISTRY.map(p => ({
+    mengji_list: MENGJI_REGISTRY.map(p => ({
       id: p.id,
       domain: p.domain,
       status: p.status,
@@ -774,9 +774,9 @@ function apiMengjiList() {
 /* 盟机合掌状态查询 — GET /api/v1/mengji/status?id=xxx */
 function apiMengjiStatus(params) {
   const id = params.get('id') || '';
-  const partner = MENGJI_REGISTRY.find(p => p.id === id);
-  if (!partner) return { error: 'partner not found', id };
-  return { ok: true, partner };
+  const mengji = MENGJI_REGISTRY.find(p => p.id === id);
+  if (!mengji) return { error: 'mengji not found', id };
+  return { ok: true, mengji };
 }
 
 /* 域名无关化验证 — GET /api/v1/domain-check */
@@ -807,12 +807,10 @@ function apiTimeline() {
       { version: 'v1.1', period: '2026-08-05', desc: '六元:对称群+六面体+信任交集', status: 'completed' },
       { version: 'v1.2', period: '2026-08-05', desc: '七元:蜂窝套壳+递归嵌套+六边形密铺', status: 'completed' },
       { version: 'v1.3', period: '2026-08-05', desc: '全栈联动:飞书Bot+七妹AI+铁律自检', status: 'completed' },
-      { version: 'v1.4', period: '2026-08-05', desc: '生态扩展:对外API+公网版+白皮书', status: 'completed' },
-      { version: 'v1.5', period: '2026-08-05', desc: '实战验证:统一对话+OpenAPI+流程图', status: 'completed' },
-      { version: 'v1.6', period: '2026-08-05', desc: '盟机合掌子:节点接入+域名无关化+去中心化', status: 'current' },
-      { version: 'v1.7', period: '2026-08 → 2026-09', desc: 'WASM内核:移植到WASI+独立壳+民联浏览器', status: 'planned' },
-      { version: 'v1.8', period: '2026-09 → 2026-10', desc: '生态扩张:100+盟机合掌节点+跨链裁定', status: 'planned' },
-      { version: 'v2.0', period: '2026-Q4', desc: '公开Beta:民联浏览器正式版+合作伙伴SDK', status: 'roadmap' }
+      { version: 'v1.4', period: '2026-08-05', desc: '生态:Cloudflare Worker + 对外API', status: 'completed' },
+      { version: 'v1.5', period: '2026-08-05', desc: '统一对话渠道 + OpenAPI文档', status: 'completed' },
+      { version: 'v1.6', period: '2026-08-05', desc: '盟机合:合伙人子节点 + 域无关化', status: 'completed' },
+      { version: 'v1.7', period: '2026-08-05', desc: 'WASM内核 + 民联浏览器壳', status: 'completed' }
     ],
     philosophy: '域名只是入口,裁定才是核心'
   };
