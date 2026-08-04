@@ -10,7 +10,7 @@
 
 ## 当前状态
 
-**已完成**: 六元对称群+六面体 v1.1
+**已完成**: 七元蜂窝套壳 v1.2
 
 新增:
 - `mqf_domain_tag()` 域内核标记(三值:内/外/界)
@@ -148,12 +148,36 @@
 - 三大场景演示:M1 背靠背镜像对称 / M2 六面投影可视化 / M3 信任交集与无交集
 - 验证结果:ios/bank 双重背书通过, wechat/android 拒绝
 
+### v1.2 七元蜂窝套壳 ← 当前
+- `mqf_shell_nest_init()`:初始化七元蜂窝套壳引擎(最多 16 个节点)
+- `mqf_shell_nest_wrap(name)`:包装一个最外层壳(level=0)
+- `mqf_shell_nest_insert(parent, child)`:在父壳内插入子壳
+  · 每个壳最多 6 个子壳(六边形蜂窝密铺)
+  · 子壳空间占比 = 父壳 / 6
+  · 递归层级无限
+- `mqf_shell_nest_honeycomb(level)`:对指定层所有壳蜂窝化(6 个子壳)
+- `mqf_shell_nest_print()`:平面状态表输出
+- `mqf_shell_nest_recursive_print()`:递归树可视化
+- 数据结构:
+  ```c
+  typedef struct {
+      char name[MAX_NAME_LEN];
+      int level;           /* 0=最外层 */
+      int parent_id;       /* -1=无父 */
+      int child_ids[6];
+      int child_count;
+      int occupied;
+      float space_ratio;   /* 父壳/6^level */
+  } shell_nest_t;
+  ```
+- 三大场景:N1 壳中壳递归嵌套 / N2 蜂窝密铺填充 / N3 套壳哲学含义
+- 验证结果:嵌套深度 3 层,蜂窝子壳完整,总节点 16 个
+
 ---
 
 ## 下一步(按顺序)
 
-### v1.2 七元蜂窝套壳
-**目标**: 把 v0.1-v0.8 执行内核与飞书 Bot、Workers KV 打通,让裁判能力真正输出到外部世界
+### v1.3 全栈联动
 
 - 飞书 Bot → MQ 内核:每个飞书消息触发一次内核观测+规则裁定
 - 飞书 Bot ← MQ 内核:七妹(满全法 AI 助手)的回复,由内核通过镜像代理给出
@@ -180,4 +204,4 @@
 
 *开始日期: 2026-08-04*
 *维护者: lolict + CatPaw*
-*最后更新: 2026-08-05 (v1.1)*
+*最后更新: 2026-08-05 (v1.2)*

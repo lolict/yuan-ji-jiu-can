@@ -58,7 +58,16 @@ void mqf_six_yuan_set_trust(int pair_id, float ta, float tb);
 int  mqf_six_yuan_verdict(int pair_id);
 extern int sy_count;
 
-#define MQF_VERSION     "1.0.0"
+/* v1.2 七元蜂窝套壳前置声明 */
+void mqf_shell_nest_init(void);
+void mqf_shell_nest_demo(void);
+void mqf_shell_nest_print(void);
+int  mqf_shell_nest_wrap(const char* name);
+int  mqf_shell_nest_insert(int parent_id, const char* child_name);
+void mqf_shell_nest_honeycomb(int level);
+extern int sn_count;
+
+#define MQF_VERSION     "1.2.0"
 #define MQF_AUTH_LEN    32
 #define MQF_HASH_LEN    64
 #define MAX_EXEC_SLOTS  16
@@ -743,7 +752,7 @@ static void mqf_watchdog_stop(){ if(WATCHDOG_RUNNING){ WATCHDOG_RUNNING=0; pthre
 /* ============================================================
  * 第 6 层: 执行守门人
  * ============================================================ */
-void mqf_init(){ memset(&K,0,sizeof(K)); K.ver=10; memset(&AUDIT,0,sizeof(AUDIT)); mqf_load_contracts(); mqf_spatial_init(); mqf_rule_init(); mqf_shell_init(); mqf_cone_init(); mqf_five_yuan_init(); mqf_six_yuan_init(); printf("[内核 v%s] 六元对称群引擎版就绪\n\n",MQF_VERSION); mqf_watchdog_start(); }
+void mqf_init(){ memset(&K,0,sizeof(K)); K.ver=11; memset(&AUDIT,0,sizeof(AUDIT)); mqf_load_contracts(); mqf_spatial_init(); mqf_rule_init(); mqf_shell_init(); mqf_cone_init(); mqf_five_yuan_init(); mqf_six_yuan_init(); mqf_shell_nest_init(); printf("[内核 v%s] 七元蜂窝套壳引擎版就绪\n\n",MQF_VERSION); mqf_watchdog_start(); }
 
 int mqf_reg(const char* name, void(*fn)(void*), void* arg){ mqf_identity_t id=mqf_encode(name); capability_t cap; mqf_evaluate(name,&cap); memcpy(cap.auth_code,id.auth_code,MQF_HASH_LEN+1); if(cap.perm==PERM_NONE){ mqf_audit_log(AUDIT_REJECT,name,-1); return -1; } int i=-1; pthread_mutex_lock(&K_LOCK); for(int j=0;j<MAX_EXEC_SLOTS;j++) if(!K.s[j].used){ i=j; break; } if(i<0){ pthread_mutex_unlock(&K_LOCK); return -1; } K.s[i].used=1; memcpy(K.s[i].auth,cap.auth_code,MQF_HASH_LEN+1); strncpy(K.s[i].name,name,127); K.s[i].st=EXEC_PENDING; K.s[i].cap=cap; K.s[i].fn=fn; K.s[i].arg=arg; K.s[i].exec_count=0; pthread_mutex_unlock(&K_LOCK); mqf_audit_log(AUDIT_REGISTER,name,i); return i; }
 
@@ -1041,6 +1050,7 @@ int main(){
            CONE.share_count, CONE.total_ticks, CONE.dominant_state);
     printf("五元旋钮: %d 节点 / 阈值 %d ticks\n", fy_count, FIVE_YUAN_OCCUPY_THRESHOLD);
     printf("六元对称群: %d 对裁判\n", sy_count);
+    printf("七元蜂窝套壳: %d 节点\n", sn_count);
     printf("规则引擎: %d 规则\n", RE.rule_count);
     printf("=========================================\n");
 
@@ -1049,6 +1059,9 @@ int main(){
 
     /* v1.1 六元对称群 demo */
     mqf_six_yuan_demo();
+
+    /* v1.2 七元蜂窝套壳 demo */
+    mqf_shell_nest_demo();
 
     return 0;
 }
@@ -1439,6 +1452,239 @@ void mqf_six_yuan_demo(void) {
     printf("  4. 最终裁定 = 交集>0.6 AND 镜像对齐 → 双重背书通过\n");
     printf("  5. 六面体可视化 = 前/后/左/右/上/下 六个视角投影\n");
     printf("  6. 六元+五元×四元 = '静态面+动态旋钮+对称背书'三层闭环\n\n");
+}
+
+/* ============================================================
+ * 七元蜂窝套壳 v1.2 — 递归嵌套壳 + 蜂窝密铺
+ *
+ *  七元 = 点 + 关系 + 面 + 间隔 + 旋钮 + 对称群 + 蜂窝套壳
+ *
+ *  工程特征:
+ *    - 壳中壳递归嵌套(容器-in-容器),无限层级
+ *    - 每个壳最多 6 个子壳(六边形蜂窝密铺)
+ *    - 空间填充规则: 外层壳包含内层壳,最内层=实体
+ *    - 层级深度无限,每层都可再套
+ * ============================================================ */
+
+#define SHELL_NEST_MAX 16   /* 最大嵌套层数 */
+#define SHELL_MAX_CHILD 6   /* 每个壳最多 6 个子壳(蜂窝六边形) */
+
+typedef struct {
+    char name[MAX_NAME_LEN];
+    int level;           /* 嵌套层级 0=最外层壳 */
+    int parent_id;       /* 父壳 id (-1 = 最外层无父) */
+    int child_ids[SHELL_MAX_CHILD];
+    int child_count;
+    int occupied;        /* 是否填充有内容 */
+    float space_ratio;   /* 空间占比 0.0~1.0 */
+    int shell_id;        /* 对应的金壳对象 id */
+} shell_nest_t;
+
+shell_nest_t sn_nodes[SHELL_NEST_MAX];
+int sn_count = 0;
+
+void mqf_shell_nest_init(void) {
+    memset(sn_nodes, 0, sizeof(sn_nodes));
+    sn_count = 0;
+    printf("[七元蜂窝套壳] 初始化,最多 %d 个壳节点,每壳最多 %d 子壳\n",
+           SHELL_NEST_MAX, SHELL_MAX_CHILD);
+}
+
+/* 包装一个最外层壳 */
+int mqf_shell_nest_wrap(const char* name) {
+    if (sn_count >= SHELL_NEST_MAX) return -1;
+    int idx = sn_count++;
+    strncpy(sn_nodes[idx].name, name, MAX_NAME_LEN-1);
+    sn_nodes[idx].level = 0;
+    sn_nodes[idx].parent_id = -1;
+    sn_nodes[idx].child_count = 0;
+    sn_nodes[idx].occupied = 1;
+    sn_nodes[idx].space_ratio = 1.0f;
+    return idx;
+}
+
+/* 在某个壳内插入子壳 */
+int mqf_shell_nest_insert(int parent_id, const char* child_name) {
+    if (parent_id < 0 || parent_id >= sn_count) return -1;
+    if (sn_count >= SHELL_NEST_MAX) return -1;
+
+    shell_nest_t* parent = &sn_nodes[parent_id];
+    if (parent->child_count >= SHELL_MAX_CHILD) return -1; /* 蜂窝满 */
+
+    int idx = sn_count++;
+    strncpy(sn_nodes[idx].name, child_name, MAX_NAME_LEN-1);
+    sn_nodes[idx].level = parent->level + 1;
+    sn_nodes[idx].parent_id = parent_id;
+    sn_nodes[idx].child_count = 0;
+    sn_nodes[idx].occupied = 1;
+    /* 子壳空间占比: 每增加一层的体积占比是上一层的 1/6 */
+    sn_nodes[idx].space_ratio = parent->space_ratio / (float)SHELL_MAX_CHILD;
+
+    /* 注册到父壳 */
+    parent->child_ids[parent->child_count++] = idx;
+
+    return idx;
+}
+
+/* 打印壳嵌套树 */
+void mqf_shell_nest_print(void) {
+    printf("\n[七元蜂窝套壳状态]\n");
+    printf("%-4s %-20s %6s %8s %6s %6s\n",
+           "层级", "壳名", "父id", "空间%", "子数", "填充");
+    printf("----------------------------------------------------------------\n");
+    for (int i = 0; i < sn_count; i++) {
+        shell_nest_t* s = &sn_nodes[i];
+        printf("%-4d %-20s %6d %8.4f %6d %s\n",
+               s->level, s->name, s->parent_id,
+               s->space_ratio * 100.0f, s->child_count,
+               s->occupied ? "★" : "○");
+    }
+}
+
+/* 递归打印嵌套树(可视化) */
+static void mqf_shell_nest_recursive_print(int node_id, int depth) {
+    if (node_id < 0 || node_id >= sn_count) return;
+    shell_nest_t* s = &sn_nodes[node_id];
+
+    for (int i = 0; i < depth; i++) printf("  │");
+    if (depth > 0) printf("──");
+
+    printf("[%d]%s(Lv%d,%.2f%%)\n",
+           node_id, s->name, s->level, s->space_ratio * 100.0f);
+
+    for (int c = 0; c < s->child_count; c++) {
+        mqf_shell_nest_recursive_print(s->child_ids[c], depth + 1);
+    }
+}
+
+/* 蜂窝密铺: 在某层中的所有壳都填满 6 个子壳 */
+void mqf_shell_nest_honeycomb(int level) {
+    if (level < 0 || level >= SHELL_NEST_MAX) return;
+
+    const char* honeycomb_names[] = {
+        "东蜂窝", "东南蜂窝", "西南蜂窝", "西蜂窝", "西北蜂窝", "东北蜂窝"
+    };
+
+    /* 找到所有指定层级的壳 */
+    for (int i = 0; i < sn_count; i++) {
+        if (sn_nodes[i].level != level) continue;
+        if (sn_nodes[i].child_count >= SHELL_MAX_CHILD) continue;
+
+        /* 填满子壳 */
+        for (int c = 0; c < SHELL_MAX_CHILD && sn_nodes[i].child_count < SHELL_MAX_CHILD; c++) {
+            char child_name[MAX_NAME_LEN];
+            snprintf(child_name, MAX_NAME_LEN, "%s.%d[%s]",
+                     sn_nodes[i].name, c + 1, honeycomb_names[c]);
+            mqf_shell_nest_insert(i, child_name);
+        }
+    }
+}
+
+/* 获取壳的总嵌套深度 */
+static int mqf_shell_nest_max_depth(void) {
+    int max_d = 0;
+    for (int i = 0; i < sn_count; i++) {
+        if (sn_nodes[i].level > max_d) max_d = sn_nodes[i].level;
+    }
+    return max_d;
+}
+
+/* 获取指定层的所有壳数量 */
+static int mqf_shell_nest_count_level(int level) {
+    int cnt = 0;
+    for (int i = 0; i < sn_count; i++) {
+        if (sn_nodes[i].level == level) cnt++;
+    }
+    return cnt;
+}
+
+void mqf_shell_nest_demo(void) {
+    printf("\n");
+    printf("════════════════════════════════════════════\n");
+    printf("  v1.2 ★ 七元蜂窝套壳 ★\n");
+    printf("════════════════════════════════════════════\n\n");
+
+    printf("=== 场景 N1: 壳中壳递归嵌套 ===\n\n");
+
+    printf("原理:\n");
+    printf("  七元 = 在六元对称群的基础上,增加'壳中壳'递归嵌套结构\n");
+    printf("  每一个外部实体被包进一层壳,壳内还可以再包壳\n");
+    printf("  最外层壳 = MQ 主权边界\n");
+    printf("  最内层壳 = 实体本身(被层层统治)\n");
+    printf("  每层最多 6 个子壳 = 蜂窝六边形密铺\n\n");
+
+    /* 创建套壳层次结构 */
+    int root = mqf_shell_nest_wrap("MQ-主权外壳");
+    int layer1_a = mqf_shell_nest_insert(root, "ios-壳");
+    int layer1_b = mqf_shell_nest_insert(root, "bank-壳");
+    int layer1_c = mqf_shell_nest_insert(root, "wechat-壳");
+    int layer1_d = mqf_shell_nest_insert(root, "android-壳");
+
+    /* 在第二层再插入子壳 */
+    int layer2_ios = mqf_shell_nest_insert(layer1_a, "ios-app-壳");
+    int layer2_bank = mqf_shell_nest_insert(layer1_b, "bank-api-壳");
+
+    /* 在最深层插入具体实体 */
+    mqf_shell_nest_insert(layer2_ios, "ios-支付实体");
+    mqf_shell_nest_insert(layer2_ios, "ios-登录实体");
+    mqf_shell_nest_insert(layer2_bank, "bank-账户实体");
+
+    printf("--- 套壳嵌套树 (递归可视化) ---\n\n");
+    mqf_shell_nest_recursive_print(root, 0);
+
+    printf("\n--- 套壳平面状态表 ---\n");
+    mqf_shell_nest_print();
+
+    printf("\n=== 场景 N2: 蜂窝密铺填充 ===\n\n");
+
+    printf("蜂窝原理:\n");
+    printf("  六边形是自然界最高效的密铺(蜂巢)\n");
+    printf("  在 MQ 体系中,任何一个壳都可以展开为 6 个蜂窝子壳\n");
+    printf("  每个子壳占据父壳 1/6 的空间\n");
+    printf("  子壳继续展开 → 无穷递归 → 空间无限可分\n\n");
+
+    /* 对第一层蜂窝化 */
+    printf("--- 对 Layer 1 蜂窝化 (每个壳展开 6 个子壳) ---\n\n");
+    mqf_shell_nest_honeycomb(1);
+
+    printf("--- 蜂窝化后的套壳树 ---\n\n");
+    mqf_shell_nest_recursive_print(root, 0);
+
+    printf("\n--- 蜂窝化后的统计 ---\n");
+    int max_depth = mqf_shell_nest_max_depth();
+    printf("  最大嵌套深度: %d 层\n", max_depth);
+    printf("  总壳节点数: %d 个\n", sn_count);
+    for (int d = 0; d <= max_depth && d <= 4; d++) {
+        printf("  Lv%d 层: %d 个壳\n", d, mqf_shell_nest_count_level(d));
+    }
+
+    printf("\n=== 场景 N3: 套壳的哲学含义 ===\n\n");
+
+    printf("  壳中壳的意义:\n");
+    printf("    每个外部实体都被我们剥开一层又一层壳\n");
+    printf("    '你以为你看到的是实体?不,这只是无数层壳的最外一层'\n");
+    printf("    我们统治的不是实体本身\n");
+    printf("    我们统治的是壳的嵌套结构\n");
+    printf("    实体被我们一层层剥开、一层层统治\n\n");
+
+    printf("  蜂窝密铺的意义:\n");
+    printf("    六边形 = 最高效的空间填充\n");
+    printf("    每个壳的 6 个子壳 = 完整的圆周视角(6 × 60° = 360°)\n");
+    printf("    外部势力进入我们的体系 → 被分配到 6 个蜂窝格之一\n");
+    printf("    每个蜂窝格内继续划分 → 直到最细粒度\n\n");
+
+    printf("  七元 = 六元对称群 + 蜂窝套壳:\n");
+    printf("    六元提供'对称裁判'的裁决\n");
+    printf("    七元提供'递归嵌套'的统治结构\n");
+    printf("    任一个被背书的信任实体,都会自动被蜂窝化包裹\n");
+    printf("    任一个被拒绝的实体,都会被最外层壳直接挡住\n\n");
+
+    printf("=== v1.2 七元蜂窝套壳小结 ===\n\n");
+    printf("  1. 壳中壳 = 递归嵌套,无限层级\n");
+    printf("  2. 蜂窝子壳 = 最多 6 个(六边形密铺)\n");
+    printf("  3. 空间占比 = 父壳 / 6^(层级)\n");
+    printf("  4. 外层决定内层,内层不感知外层\n");
+    printf("  5. 七元+六元×五元×四元 × 三元闭环 = 满全法完整结构\n\n");
 }
 
 void mqf_audit_summary(){
