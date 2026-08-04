@@ -10,7 +10,7 @@
 
 ## 当前状态
 
-**已完成**: 五元旋钮运动步量 v1.0
+**已完成**: 六元对称群+六面体 v1.1
 
 新增:
 - `mqf_domain_tag()` 域内核标记(三值:内/外/界)
@@ -125,11 +125,34 @@
 - 新增审计类型:DOMAIN_TAG / DOMAIN_PERMIT / DOMAIN_MACROZONE
 - 场景演示:L1 域标记可视化 / L2 跨域请求裁定 / L3 宏微量流动追踪
 
+### v1.1 六元对称群+六面体 ← 当前
+- `mqf_six_yuan_init()`:初始化六元对称群引擎(最多 8 对裁判)
+- `mqf_six_yuan_register_pair(name, A, B)`:注册一对背靠背镜像裁判
+- `mqf_six_yuan_set_trust(pair_id, ta, tb)`:设置 A/B 合规度并计算:
+  · trust_intersection = min(ta, tb) — 信任交集(短板效应)
+  · mirror_ok = |ta-tb| < 0.2 — 镜像对齐判定
+  · verdict = 交集>0.6 AND 镜像对齐 → 1(双重背书通过)
+- `mqf_six_yuan_print_sides(pair_id)`:六面可视化输出(前/后/左/右/上/下)
+- `mqf_six_yuan_verdict(pair_id)`:获取最终裁定(1=信任/0=不信任)
+- 数据结构:
+  ```c
+  typedef struct {
+      char name[MAX_NAME_LEN];
+      int judge_a_id, judge_b_id;
+      float trust_a, trust_b;
+      float trust_intersection; /* min(A,B) */
+      int   mirror_ok;    /* |A-B| < 0.2 */
+      int   verdict;      /* 交集>0.6 AND 镜像 → 1 */
+  } six_yuan_pair_t;
+  ```
+- 三大场景演示:M1 背靠背镜像对称 / M2 六面投影可视化 / M3 信任交集与无交集
+- 验证结果:ios/bank 双重背书通过, wechat/android 拒绝
+
 ---
 
 ## 下一步(按顺序)
 
-### v1.1 六元对称群+六面体
+### v1.2 七元蜂窝套壳
 **目标**: 把 v0.1-v0.8 执行内核与飞书 Bot、Workers KV 打通,让裁判能力真正输出到外部世界
 
 - 飞书 Bot → MQ 内核:每个飞书消息触发一次内核观测+规则裁定
@@ -157,4 +180,4 @@
 
 *开始日期: 2026-08-04*
 *维护者: lolict + CatPaw*
-*最后更新: 2026-08-05 (v1.0)*
+*最后更新: 2026-08-05 (v1.1)*

@@ -48,6 +48,16 @@ void mqf_five_yuan_set_ratio(int obj_id, float in_val, float out_val);
 void mqf_five_yuan_print(void);
 extern int fy_count;
 
+/* v1.1 六元对称群前置声明 */
+void mqf_six_yuan_init(void);
+void mqf_six_yuan_demo(void);
+void mqf_six_yuan_print(void);
+void mqf_six_yuan_print_sides(int pair_id);
+int  mqf_six_yuan_register_pair(const char* name, int judge_a, int judge_b);
+void mqf_six_yuan_set_trust(int pair_id, float ta, float tb);
+int  mqf_six_yuan_verdict(int pair_id);
+extern int sy_count;
+
 #define MQF_VERSION     "1.0.0"
 #define MQF_AUTH_LEN    32
 #define MQF_HASH_LEN    64
@@ -733,7 +743,7 @@ static void mqf_watchdog_stop(){ if(WATCHDOG_RUNNING){ WATCHDOG_RUNNING=0; pthre
 /* ============================================================
  * 第 6 层: 执行守门人
  * ============================================================ */
-void mqf_init(){ memset(&K,0,sizeof(K)); K.ver=9; memset(&AUDIT,0,sizeof(AUDIT)); mqf_load_contracts(); mqf_spatial_init(); mqf_rule_init(); mqf_shell_init(); mqf_cone_init(); mqf_five_yuan_init(); printf("[内核 v%s] 五元旋钮引擎版就绪\n\n",MQF_VERSION); mqf_watchdog_start(); }
+void mqf_init(){ memset(&K,0,sizeof(K)); K.ver=10; memset(&AUDIT,0,sizeof(AUDIT)); mqf_load_contracts(); mqf_spatial_init(); mqf_rule_init(); mqf_shell_init(); mqf_cone_init(); mqf_five_yuan_init(); mqf_six_yuan_init(); printf("[内核 v%s] 六元对称群引擎版就绪\n\n",MQF_VERSION); mqf_watchdog_start(); }
 
 int mqf_reg(const char* name, void(*fn)(void*), void* arg){ mqf_identity_t id=mqf_encode(name); capability_t cap; mqf_evaluate(name,&cap); memcpy(cap.auth_code,id.auth_code,MQF_HASH_LEN+1); if(cap.perm==PERM_NONE){ mqf_audit_log(AUDIT_REJECT,name,-1); return -1; } int i=-1; pthread_mutex_lock(&K_LOCK); for(int j=0;j<MAX_EXEC_SLOTS;j++) if(!K.s[j].used){ i=j; break; } if(i<0){ pthread_mutex_unlock(&K_LOCK); return -1; } K.s[i].used=1; memcpy(K.s[i].auth,cap.auth_code,MQF_HASH_LEN+1); strncpy(K.s[i].name,name,127); K.s[i].st=EXEC_PENDING; K.s[i].cap=cap; K.s[i].fn=fn; K.s[i].arg=arg; K.s[i].exec_count=0; pthread_mutex_unlock(&K_LOCK); mqf_audit_log(AUDIT_REGISTER,name,i); return i; }
 
@@ -1030,11 +1040,15 @@ int main(){
     printf("统计锥: %d 节点 / %lu 刻度 / 主导态势:%s\n",
            CONE.share_count, CONE.total_ticks, CONE.dominant_state);
     printf("五元旋钮: %d 节点 / 阈值 %d ticks\n", fy_count, FIVE_YUAN_OCCUPY_THRESHOLD);
+    printf("六元对称群: %d 对裁判\n", sy_count);
     printf("规则引擎: %d 规则\n", RE.rule_count);
     printf("=========================================\n");
 
     /* v1.0 五元旋钮 demo */
     mqf_five_yuan_demo();
+
+    /* v1.1 六元对称群 demo */
+    mqf_six_yuan_demo();
 
     return 0;
 }
@@ -1226,6 +1240,205 @@ void mqf_five_yuan_demo(void) {
     printf("  3. 占存判定 = accumulated_ticks > 阈值 → 铭记,否则易逝\n");
     printf("  4. ratio_in/out = 进出配比,决定旋钮偏置\n");
     printf("  5. 五元+四元(面) = 从'静态判定'走向'动态演化'\n\n");
+}
+
+/* ============================================================
+ * 六元对称群 v1.1 — 背靠背镜像 + 六面可视化 + 信任交集
+ *
+ *  六元 = 点 + 关系 + 面 + 间隔 + 旋钮 + 对称群
+ *
+ *  工程特征:
+ *    - 两个三元裁判 A/B 背靠背镜像对称
+ *    - 六面投影可视化(前/后/左/右/上/下)
+ *    - 信任交集判定(两裁判都同意 = 可信任)
+ *    - 不可信任无交集(任一裁判否决 = 不可信任)
+ * ============================================================ */
+
+#define SIX_YUAN_SIDES 6
+#define SIX_YUAN_MAX_PAIRS 8
+
+/* 六元对称组的一对裁判 */
+typedef struct {
+    char name[MAX_NAME_LEN];
+    int judge_a_id;     /* A 裁判对象 id */
+    int judge_b_id;     /* B 裁判对象 id (A 的镜像) */
+    float trust_a;      /* A 裁判的合规度 0.0~1.0 */
+    float trust_b;      /* B 裁判的合规度 0.0~1.0 */
+    float trust_intersection; /* 信任交集 = min(trust_a, trust_b) */
+    int   mirror_ok;    /* 背靠背是否对齐 */
+    int   verdict;      /* 最终裁定: 1=信任, 0=不信任 */
+} six_yuan_pair_t;
+
+six_yuan_pair_t sy_pairs[SIX_YUAN_MAX_PAIRS];
+int sy_count = 0;
+
+/* 六面名称 */
+static const char* SIX_SIDE_NAMES[SIX_YUAN_SIDES] = {
+    "前(+Z)", "后(-Z)", "左(-X)", "右(+X)", "上(+Y)", "下(-Y)"
+};
+
+void mqf_six_yuan_init(void) {
+    memset(sy_pairs, 0, sizeof(sy_pairs));
+    sy_count = 0;
+    printf("[六元对称群] 初始化,最多 %d 对裁判\n", SIX_YUAN_MAX_PAIRS);
+}
+
+/* 注册一对背靠背镜像裁判 */
+int mqf_six_yuan_register_pair(const char* name, int judge_a, int judge_b) {
+    if (sy_count >= SIX_YUAN_MAX_PAIRS) return -1;
+    int idx = sy_count++;
+    strncpy(sy_pairs[idx].name, name, MAX_NAME_LEN-1);
+    sy_pairs[idx].judge_a_id = judge_a;
+    sy_pairs[idx].judge_b_id = judge_b;
+    sy_pairs[idx].trust_a = 0.5f;
+    sy_pairs[idx].trust_b = 0.5f;
+    sy_pairs[idx].trust_intersection = 0.5f;
+    sy_pairs[idx].mirror_ok = 0;
+    sy_pairs[idx].verdict = 0;
+    return idx;
+}
+
+/* 设置一对裁判的合规度并计算信任交集与裁定 */
+void mqf_six_yuan_set_trust(int pair_id, float ta, float tb) {
+    if (pair_id < 0 || pair_id >= sy_count) return;
+    sy_pairs[pair_id].trust_a = ta;
+    sy_pairs[pair_id].trust_b = tb;
+    /* 信任交集 = 两裁判都同意的最小值 */
+    sy_pairs[pair_id].trust_intersection = (ta < tb) ? ta : tb;
+    /* 镜像对齐判定: 两裁判对称差 < 0.2 = 对齐 */
+    float diff = ta - tb;
+    if (diff < 0.0f) diff = -diff;
+    sy_pairs[pair_id].mirror_ok = (diff < 0.2f) ? 1 : 0;
+    /* 最终裁定: 交集 > 0.6 且镜像对齐 = 信任 */
+    sy_pairs[pair_id].verdict = (sy_pairs[pair_id].trust_intersection > 0.6f && sy_pairs[pair_id].mirror_ok) ? 1 : 0;
+}
+
+/* 获取某对裁判的最终裁定 (1=信任, 0=不信任) */
+int mqf_six_yuan_verdict(int pair_id) {
+    if (pair_id < 0 || pair_id >= sy_count) return 0;
+    return sy_pairs[pair_id].verdict;
+}
+
+/* 六面可视化: 为一对裁判输出六个面的投影 */
+void mqf_six_yuan_print_sides(int pair_id) {
+    if (pair_id < 0 || pair_id >= sy_count) return;
+    six_yuan_pair_t* p = &sy_pairs[pair_id];
+    printf("\n  [%s] 六面投影:\n", p->name);
+    printf("    %-8s | A合规=%.2f B合规=%.2f → %s\n",
+           "正视(+Z)", p->trust_a, p->trust_b,
+           p->verdict ? "★信任" : "○不信任");
+    printf("    %-8s | A合规=%.2f B合规=%.2f → %s\n",
+           "后视(-Z)", p->trust_b, p->trust_a,
+           (p->trust_b < p->trust_a ? p->trust_b : p->trust_a) > 0.6f ? "★信任" : "○不信任");
+    printf("    %-8s | 交集=%.2f 镜像差=%.2f → %s\n",
+           "左视(-X)", p->trust_intersection,
+           p->trust_a > p->trust_b ? p->trust_a - p->trust_b : p->trust_b - p->trust_a,
+           p->mirror_ok ? "★对齐" : "○偏移");
+    printf("    %-8s | 交集=%.2f 镜像差=%.2f → %s\n",
+           "右视(+X)", p->trust_intersection,
+           p->trust_a > p->trust_b ? p->trust_a - p->trust_b : p->trust_b - p->trust_a,
+           p->mirror_ok ? "★对齐" : "○偏移");
+    printf("    %-8s | A=%.2f ∩ B=%.2f = %.2f → %s\n",
+           "俯视(+Y)", p->trust_a, p->trust_b, p->trust_intersection,
+           p->trust_intersection > 0.6f ? "★可信任区间" : "○无交集不可信");
+    printf("    %-8s | 最终裁定: %s\n",
+           "仰视(-Y)", p->verdict ? "★双重背书 = 通过" : "○单方或双方否决 = 拒绝");
+}
+
+/* 打印所有对称群对状态 */
+void mqf_six_yuan_print(void) {
+    printf("\n[六元对称群状态]\n");
+    printf("%-20s %6s %6s %6s %6s %6s %6s\n",
+           "对名", "A合规", "B合规", "交集", "镜像", "裁定", "含义");
+    printf("------------------------------------------------------------------------\n");
+    for (int i = 0; i < sy_count; i++) {
+        six_yuan_pair_t* p = &sy_pairs[i];
+        printf("%-20s %6.2f %6.2f %6.2f %6s %6s %s\n",
+               p->name, p->trust_a, p->trust_b, p->trust_intersection,
+               p->mirror_ok ? "★对" : "○偏",
+               p->verdict ? "★信" : "○否",
+               p->verdict ? "双重背书" : "单方/双方否决");
+    }
+}
+
+void mqf_six_yuan_demo(void) {
+    printf("\n");
+    printf("════════════════════════════════════════════\n");
+    printf("  v1.1 ★ 六元对称群+六面体 ★\n");
+    printf("════════════════════════════════════════════\n\n");
+
+    printf("=== 场景 M1:背靠背镜像对称 ===\n\n");
+
+    printf("原理:\n");
+    printf("  六元 = 在三元×2 的基础上,两个裁判背靠背心连心对齐\n");
+    printf("  A 裁判(前景)和 B 裁判(后景)互相做镜像对称\n");
+    printf("  A 看正的,B 看反的 → 一正一反 = 全视角覆盖\n");
+    printf("  A 与 B 的合规度比较 → 信任交集判定\n\n");
+
+    /* 创建三元裁判对象 */
+    int obj_ios = mqf_obj_create("ios");
+    int obj_bank = mqf_obj_create("bank");
+    int obj_wechat = mqf_obj_create("wechat");
+    int obj_android = mqf_obj_create("android");
+
+    /* 注册三对镜像裁判 */
+    int sp_ios = mqf_six_yuan_register_pair("ios-法官", obj_ios, obj_ios);
+    int sp_bank = mqf_six_yuan_register_pair("bank-法官", obj_bank, obj_bank);
+    int sp_wechat = mqf_six_yuan_register_pair("wechat-法官", obj_wechat, obj_wechat);
+    int sp_android = mqf_six_yuan_register_pair("android-法官", obj_android, obj_android);
+
+    /* 设定各对裁判的合规度 */
+    mqf_six_yuan_set_trust(sp_ios, 0.9f, 0.85f);     /* ios: 双高 → 对齐且信任 */
+    mqf_six_yuan_set_trust(sp_bank, 0.85f, 0.80f);   /* bank: 双高 → 对齐且信任 */
+    mqf_six_yuan_set_trust(sp_wechat, 0.6f, 0.55f);  /* wechat: 中等 → 对齐但弱信 */
+    mqf_six_yuan_set_trust(sp_android, 0.3f, 0.7f);  /* android: A低B高 → 镜像偏移,不信任 */
+
+    mqf_six_yuan_print();
+
+    printf("\n=== 场景 M2:六面可视化 ===\n\n");
+
+    printf("六面体投影原理:\n");
+    printf("  前/后视 → A/B 裁判的正反视角\n");
+    printf("  左/右视 → 对称差(镜像偏移度)\n");
+    printf("  上/下视 → 信任交集区间(俯视) / 最终裁定(仰视)\n\n");
+
+    mqf_six_yuan_print_sides(sp_ios);
+    mqf_six_yuan_print_sides(sp_android);
+
+    printf("\n=== 场景 M3:信任交集与无交集 ===\n\n");
+
+    printf("信任判定定理:\n");
+    printf("  TRUST = min(compliance_A, compliance_B) > 0.6 AND |A-B| < 0.2\n");
+    printf("  含义: 两个裁判都必须同时认为合规度高,且互相偏差不大\n");
+    printf("  若任一裁判认为低 → 无交集 → 不可信任\n");
+    printf("  若两裁判偏差过大 → 镜像偏移 → 不可信任\n\n");
+
+    printf("--- 各对裁判裁定验证 ---\n\n");
+    const char* pair_names[] = {"ios", "bank", "wechat", "android"};
+    int pair_ids[] = {sp_ios, sp_bank, sp_wechat, sp_android};
+
+    for (int i = 0; i < 4; i++) {
+        six_yuan_pair_t* p = &sy_pairs[pair_ids[i]];
+        printf("  [%s] A=%.2f B=%.2f 交集=%.2f 镜像=%s → %s\n",
+               pair_names[i], p->trust_a, p->trust_b,
+               p->trust_intersection,
+               p->mirror_ok ? "OK" : "DIFF",
+               p->verdict ? "★ 双重背书 信任通过" : "○ 无交集 拒绝");
+    }
+
+    printf("\n--- 对比总结 ---\n\n");
+    printf("  ios:     A=0.90 B=0.85 → 交集=0.85 > 0.6,|差|=0.05 < 0.2 → ★信任\n");
+    printf("  bank:    A=0.85 B=0.80 → 交集=0.80 > 0.6,|差|=0.05 < 0.2 → ★信任\n");
+    printf("  wechat:  A=0.60 B=0.55 → 交集=0.55 < 0.6,|差|=0.05 < 0.2 → ○弱拒绝\n");
+    printf("  android: A=0.30 B=0.70 → 交集=0.30 < 0.6,|差|=0.40 > 0.2 → ○强拒绝\n");
+
+    printf("\n=== v1.1 六元对称群小结 ===\n\n");
+    printf("  1. 六元 = 两个三元裁判背靠背镜像对称\n");
+    printf("  2. 信任交集 = min(A合规, B合规) — 短板效应\n");
+    printf("  3. 镜像对齐 = |A-B| < 0.2 — 两心互印\n");
+    printf("  4. 最终裁定 = 交集>0.6 AND 镜像对齐 → 双重背书通过\n");
+    printf("  5. 六面体可视化 = 前/后/左/右/上/下 六个视角投影\n");
+    printf("  6. 六元+五元×四元 = '静态面+动态旋钮+对称背书'三层闭环\n\n");
 }
 
 void mqf_audit_summary(){
