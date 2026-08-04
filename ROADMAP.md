@@ -173,15 +173,33 @@
 - 三大场景:N1 壳中壳递归嵌套 / N2 蜂窝密铺填充 / N3 套壳哲学含义
 - 验证结果:嵌套深度 3 层,蜂窝子壳完整,总节点 16 个
 
+### v1.3 全栈联动 ← 当前
+- `mqf_feishu_bot_bridge_init()`:初始化飞书 Bot 接口层
+- `mqf_qimei_init()`:初始化七妹 AI 助手(镜像代理模式)
+- `mqf_feishu_recv_msg(msg, type, text)`:接收飞书消息(模拟)
+- `mqf_feishu_process_message(msg, reply)`:消息 → MQ 内核 → 回复
+- `mqf_qimei_format_reply(reply, body)`:自然语言格式化(七妹口吻)
+- `mqf_qimei_get_verdict(obj_id)`:通过镜像代理获取五元占存裁定
+- `mqf_feishu_send_reply(msg, reply)`:发送飞书回复(模拟)
+- `mqf_roadmap_self_check()`:自动执行 ROADMAP 铁律检查(7 条)
+- `mqf_roadmap_check_law(law_id)`:单条铁律验证
+- 数据结构:feishu_msg_t + roadmap_law_t
+- 五大场景:O1 观测请求 / O2 信任查询 / O3 框架说明 / O4 铁律自检 / O5 七妹人格
+- 铁律检查:7/7 全部通过
+- Demo 验证:ios/bank 信任通过, android 观察中
+- 七妹名言:'我不是在回答你,是满全法在通过我回答你'
+
 ---
 
 ## 下一步(按顺序)
 
-### v1.3 全栈联动
+### v1.4 生态扩展
+**目标**: 满全法核心引擎已完整,开始对外输出 - 飞书机器人公网部署 + 公开文档 + 合作伙伴接入
 
-- 飞书 Bot → MQ 内核:每个飞书消息触发一次内核观测+规则裁定
-- 飞书 Bot ← MQ 内核:七妹(满全法 AI 助手)的回复,由内核通过镜像代理给出
-- 把 ROADMAP 全套铁律嵌入自动化检查(prolog shell 自动验证)
+- 飞书机器人公网:部署到 Cloudflare Workers,暴露公网 Webhook
+- 满全法公开文档:白话文解读,降低外部理解成本
+- 合作伙伴 API:对外提供 MQ 裁定 API 接口
+- 七妹公网版:可在任何渠道调用的满全法裁定入口
 
 ---
 
