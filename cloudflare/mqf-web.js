@@ -705,23 +705,23 @@ function apiHealth() {
     version: 'v1.6',
     status: 'healthy',
     timestamp: new Date().toISOString(),
-    kernel: 'C17 单文件,三元→七元+全栈+生态+合伙人',
+    kernel: 'C17 单文件,三元→七元+全栈+生态+盟机合掌',
     engine: '满全法 MQ裁定引擎',
-    partner_ready: true,
+    mengji_ready: true,
     architecture: 'domain-agnostic, self-contained Worker'
   };
 }
 
 /* ============================================================
- * v1.6 新增: 合伙人子节点接入 + 域名无关化
+ * v1.6 新增: 盟机合掌子节点接入 + 域名无关化
  * ============================================================ */
 
-/* 合伙人节点内存注册表(per-isolate,实际生产可用 KV/D1) */
-const PARTNER_REGISTRY = [];
+/* 盟机合掌节点内存注册表(per-isolate,实际生产可用 KV/D1) */
+const MENGJI_REGISTRY = [];
 
-/* 合伙人注册 — POST /api/v1/partner/register */
-function apiPartnerRegister(request, params) {
-  /* 从请求体或 URL 参数获取合伙人信息 */
+/* 盟机合掌注册 — POST /api/v1/mengji/register */
+function apiMengjiRegister(request, params) {
+  /* 从请求体或 URL 参数获取盟机合掌信息 */
   const partner = {
     url: params.get('url') || '',
     domain: params.get('domain') || '',
@@ -734,47 +734,47 @@ function apiPartnerRegister(request, params) {
   };
 
   if (!partner.url) {
-    return { error: 'missing param: url (合伙人节点 URL)', docs: '/docs/PARTNER_PROTOCOL.md' };
+    return { error: 'missing param: url (盟机合掌节点 URL)', docs: '/docs/MENGJI_TERMS.md' };
   }
 
   /* 简单去重 */
-  const exists = PARTNER_REGISTRY.find(p => p.url === partner.url);
+  const exists = MENGJI_REGISTRY.find(p => p.url === partner.url);
   if (exists) {
     return { ok: true, id: exists.id, status: exists.status, note: 'already registered' };
   }
 
-  PARTNER_REGISTRY.push(partner);
+  MENGJI_REGISTRY.push(partner);
 
   return {
     ok: true,
     version: 'v1.6',
-    partner_id: partner.id,
+    mengji_id: partner.id,
     status: 'registered',
-    message: '合伙人注册成功,资源归您,裁定规则归满全法',
-    protocol: 'https://github.com/lolict/hunyuan-os/blob/main/docs/PARTNER_PROTOCOL.md'
+    message: '盟机合掌注册成功,资源归您,裁定规则归满全法',
+    protocol: 'https://github.com/lolict/hunyuan-os/blob/main/docs/MENGJI_TERMS.md'
   };
 }
 
-/* 合伙人节点查询 — GET /api/v1/partners */
-function apiPartnersList() {
+/* 盟机合掌节点查询 — GET /api/v1/mengji/list */
+function apiMengjiList() {
   return {
     ok: true,
     version: 'v1.6',
-    total: PARTNER_REGISTRY.length,
-    partners: PARTNER_REGISTRY.map(p => ({
+    total: MENGJI_REGISTRY.length,
+    partners: MENGJI_REGISTRY.map(p => ({
       id: p.id,
       domain: p.domain,
       status: p.status,
       registered_at: p.registered_at
     })),
-    note: '合伙人资源自有,裁定规则统一'
+    note: '盟机合掌资源自有,裁定规则统一'
   };
 }
 
-/* 合伙人状态查询 — GET /api/v1/partner/status?id=xxx */
-function apiPartnerStatus(params) {
+/* 盟机合掌状态查询 — GET /api/v1/mengji/status?id=xxx */
+function apiMengjiStatus(params) {
   const id = params.get('id') || '';
-  const partner = PARTNER_REGISTRY.find(p => p.id === id);
+  const partner = MENGJI_REGISTRY.find(p => p.id === id);
   if (!partner) return { error: 'partner not found', id };
   return { ok: true, partner };
 }
@@ -809,9 +809,9 @@ function apiTimeline() {
       { version: 'v1.3', period: '2026-08-05', desc: '全栈联动:飞书Bot+七妹AI+铁律自检', status: 'completed' },
       { version: 'v1.4', period: '2026-08-05', desc: '生态扩展:对外API+公网版+白皮书', status: 'completed' },
       { version: 'v1.5', period: '2026-08-05', desc: '实战验证:统一对话+OpenAPI+流程图', status: 'completed' },
-      { version: 'v1.6', period: '2026-08-05', desc: '合伙人子:节点接入+域名无关化+去中心化', status: 'current' },
+      { version: 'v1.6', period: '2026-08-05', desc: '盟机合掌子:节点接入+域名无关化+去中心化', status: 'current' },
       { version: 'v1.7', period: '2026-08 → 2026-09', desc: 'WASM内核:移植到WASI+独立壳+民联浏览器', status: 'planned' },
-      { version: 'v1.8', period: '2026-09 → 2026-10', desc: '生态扩张:100+合伙人节点+跨链裁定', status: 'planned' },
+      { version: 'v1.8', period: '2026-09 → 2026-10', desc: '生态扩张:100+盟机合掌节点+跨链裁定', status: 'planned' },
       { version: 'v2.0', period: '2026-Q4', desc: '公开Beta:民联浏览器正式版+合作伙伴SDK', status: 'roadmap' }
     ],
     philosophy: '域名只是入口,裁定才是核心'
@@ -958,13 +958,13 @@ export default {
       if (p === '/v1/chat') return j(apiV1Chat(u.searchParams));
       if (p === '/docs/v2') return j(apiDocsV2());
       if (p === '/diagrams') return apiDiagrams();
-      /* v1.6 新增路由:合伙人子节点接入+域名无关化 */
-      if (p === '/api/v1/partner/register') return j(apiPartnerRegister(request, u.searchParams));
-      if (p === '/api/v1/partners') return j(apiPartnersList());
-      if (p === '/api/v1/partner/status') return j(apiPartnerStatus(u.searchParams));
+      /* v1.6 新增路由:盟机合掌子节点接入+域名无关化 */
+      if (p === '/api/v1/mengji/register') return j(apiMengjiRegister(request, u.searchParams));
+      if (p === '/api/v1/mengji/list') return j(apiMengjiList());
+      if (p === '/api/v1/mengji/status') return j(apiMengjiStatus(u.searchParams));
       if (p === '/api/v1/domain-check') return j(apiDomainCheck(request));
       if (p === '/api/v1/timeline') return j(apiTimeline());
-      return j({ error: 'not found', path: p, apis: ['/api/observe','/api/paibing','/api/kernel/paibing','/api/he-yi','/api/report','/api/mythology','/api/mythology/lookup','/api/name/anchor','/api/fsm/trigger','/api/dragon','/api/protocol/handshake','/api/protocol/sync','/api/test-crypto','/api/log/append','/api/log/verify','/api/ime/parse','/api/v1/verdict','/api/v1/qimei','/api/v1/health','/docs','/v1/chat','/docs/v2','/diagrams','/api/v1/partner/register','/api/v1/partners','/api/v1/partner/status','/api/v1/domain-check','/api/v1/timeline'] }, { status: 404 });
+      return j({ error: 'not found', path: p, apis: ['/api/observe','/api/paibing','/api/kernel/paibing','/api/he-yi','/api/report','/api/mythology','/api/mythology/lookup','/api/name/anchor','/api/fsm/trigger','/api/dragon','/api/protocol/handshake','/api/protocol/sync','/api/test-crypto','/api/log/append','/api/log/verify','/api/ime/parse','/api/v1/verdict','/api/v1/qimei','/api/v1/health','/docs','/v1/chat','/docs/v2','/diagrams','/api/v1/mengji/register','/api/v1/mengji/list','/api/v1/mengji/status','/api/v1/domain-check','/api/v1/timeline'] }, { status: 404 });
     } catch (e) {
       return j({ error: e.message, stack: e.stack });
     }
