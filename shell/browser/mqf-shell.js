@@ -27,7 +27,7 @@
 // ============== 裁定核心 ==============
 // 与 mqf_wasm.c 算法严格一致
 
-const MQF_SHELL_VERSION = '1.10.0';
+const MQF_SHELL_VERSION = '1.12.0';
 const FIVE_YUAN_STEPS = 5;
 const FIVE_YUAN_OCCUPY_THRESHOLD = 100;
 const SIX_YUAN_MIRROR_THRESHOLD = 0.2;
@@ -380,6 +380,11 @@ class MqfShellController {
    * 持久化历史 — v1.10+ 支持 mqfNative (Android/iOS), 回退 localStorage
    */
   _persistHistory() {
+    if (window.MqfStorage) {
+      window.MqfStorage.addVerdict(this.history[0]);
+      return;
+    }
+    // v1.10 之前的回退
     const data = JSON.stringify(this.history.slice(0, 20));
     if (window.mqfNative && typeof window.mqfNative.save === 'function') {
       try { window.mqfNative.save('verdict_history', data); } catch(e) {}
@@ -389,6 +394,17 @@ class MqfShellController {
   }
 
   _loadPersistedHistory() {
+    if (window.MqfStorage) {
+      window.MqfStorage.getVerdicts().then(list => {
+        if (list && list.length > 0) {
+          this.history = list;
+          this._renderHistory();
+          this._log(`sys: 恢复 ${list.length} 条历史 [${window.MqfStorage.kind}]`);
+        }
+      }).catch(() => {});
+      return;
+    }
+    // v1.10 之前的回退
     let data = null;
     if (window.mqfNative && typeof window.mqfNative.load === 'function') {
       try { data = window.mqfNative.load('verdict_history'); } catch(e) {}
