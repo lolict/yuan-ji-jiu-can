@@ -16,7 +16,7 @@
 #include <string.h>
 #include <math.h>
 
-#define MQF_WASM_VERSION "1.7.0"
+#define MQF_WASM_VERSION "2.0.0"
 #define MAX_OBJECTS      64
 #define MAX_PAIRS        16
 #define MAX_NEST         32

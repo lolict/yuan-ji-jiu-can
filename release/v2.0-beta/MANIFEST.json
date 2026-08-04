@@ -1,0 +1,35 @@
+{
+  "name": "民联浏览器 · MQF Shell",
+  "version": "v2.0-beta",
+  "codename": "民联公开Beta",
+  "release_date": "2026-08-05",
+  "min_platforms": {
+    "browser": "Chrome 90+, Firefox 90+, Safari 15+, Edge 90+",
+    "android": "Android 8.0+ (API 26)",
+    "ios": "iOS 16.0+",
+    "desktop": "Windows 10+, macOS 12+, Linux (glibc 2.31+)"
+  },
+  "files": {
+    "index.html": "入口 HTML",
+    "mqf-shell.js": "裁定引擎 + UI 控制器",
+    "mqf-storage.js": "持久化存储 (IndexedDB/localStorage)",
+    "mobile-bridge.js": "移动端桥 (Android/iOS/浏览器)",
+    "shell.css": "暗色主题样式"
+  },
+  "engine": {
+    "five_yuan": "旋钮步量 + 角度 wrap + 占存 (>100 ticks)",
+    "six_yuan": "对称群信任交集 + 镜像对齐 (<0.2)",
+    "seven_yuan": "蜂窝套壳递归 (6 子壳)"
+  },
+  "features": [
+    "离线运行 (file:// / assets)",
+    "域无关: 同样的裁决结果",
+    "移动端原生桥 (WebView / WKWebView)",
+    "多节点 Gossip 同步",
+    "裁定历史持久化 (500 条)",
+    "七元蜂窝嵌套可视化",
+    "旋钮/力度/角度实时控制",
+    "多种预设 (ios/bank/android)"
+  ],
+  "integrity": "SHA-256 哈希见 SUMS.txt"
+}

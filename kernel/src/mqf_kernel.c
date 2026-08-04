@@ -2,6 +2,7 @@
  * 满全法执行内核 v0.9 — MQF Executive Kernel
  * -----------------------------------------
  * v1.0 新增: 五元旋钮 —— 运动步量 + 角度 wrap + 占存判定
+ * v2.0 里程碑: 三元→七元+全栈+生态+盟机合+WASM+移动端
  *
  * 已落地的维度演化:
  *   三元(v0.6) → 点+关系(身份编码 + 规则引擎 + 空间代数 + 统计锥)
@@ -76,7 +77,7 @@ void mqf_qimei_demo(void);
 void mqf_roadmap_check_demo(void);
 void mqf_v13_demo(void);
 
-#define MQF_VERSION     "1.6.0"
+#define MQF_VERSION     "2.0.0"
 #define MQF_AUTH_LEN    32
 #define MQF_HASH_LEN    64
 #define MAX_EXEC_SLOTS  16

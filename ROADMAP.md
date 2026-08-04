@@ -10,21 +10,17 @@
 
 ## 当前状态
 
-**已完成**: 民联浏览器壳 v1.7c (进行中)
+**v2.0 公开 Beta** 🎉 (2026-08-05)
 
-新增:
-- `kernel/wasm/mqf_wasm.c` — WASI 裁决内核移植 (五元+六元+七元)
-- `shell/browser/` — 民联浏览器壳 (HTML/CSS/JS 三栏裁决台)
-- `shell/native/` — Electron / Tauri / pywebview 多平台原生包装
-- `cloudflare/mqf-web.js` — 盟机合注册 + 域名无关化
+核心组件:
+- `kernel/src/mqf_kernel.c` — C 三元→七元核心 (3500+ 行,v2.0.0)
+- `kernel/wasm/mqf_wasm.c` — WASI 裁决核心 (307 行,v2.0.0)
+- `cloudflare/mqf-web.js` — Worker + 盟机合 + 同步 (970+ 行)
+- `cloudflare/sync-protocol.js` — Gossip 多节点同步 (417 行)
+- `shell/browser/` — 民联浏览器壳 v2.0 (5 文件)
+- `shell/native/` — Android/iOS/Electron/Tauri/pywebview
+- `release/v2.0-beta/` — 公开 Beta 发布包 (11 文件,92KB)
 - 盟机合 67 术语体系 (docs/MENGJI_TERMS.md)
-
-位置:
-- C 内核: `kernel/src/mqf_kernel.c`
-- WASM: `kernel/wasm/mqf_wasm.c`
-- Worker: `cloudflare/mqf-web.js`
-- 浏览器壳: `shell/browser/`
-- 原生壳: `shell/native/`
 
 ## 已完成版本
 
@@ -215,33 +211,45 @@
 - `/api/v1/timeline` — 盟机合参与历史
 - 域名无关化设计: 任何域名运行输出一致
 
-### v1.7 WASM 内核 + 民联浏览器壳 ← 进行中
+### v1.7 WASM 内核 + 民联浏览器壳 ← 已完成
 **目标**: 裁决引擎脱离中心化平台,运行在用户自己的设备
 
 - **v1.7a**: WASM 内核设计 (`docs/WASM_CORE_v17.md`)
 - **v1.7b**: 移植 mqf_wasm.c (`kernel/wasm/mqf_wasm.c`)
-  - 五元 + 六元 + 七元 全部移植到 WASI
-  - JSON stdin/stdout 接口
-  - 无 pthread, 无文件系统依赖
 - **v1.7c**: 民联浏览器壳 (`shell/browser/`)
-  - HTML/CSS/JS 三栏裁决台
-  - WASM 优先 + JS 回退
-  - Electron / Tauri / pywebview 多平台原生包装
-  - 离线运行 + 域无关
+
+### v1.10 移动端深度集成 ← 已完成
+- Android WebView 壳 (Kotlin) + iOS WKWebView 壳 (Swift)
+- `mobile-bridge.js` 统一桥
+- 原生 SharedPreferences / UserDefaults 持久化
+
+### v1.11 多节点同步协议 ← 已完成
+- Gossip 风格去中心化同步
+- `cloudflare/sync-protocol.js` + 默克尔树完整性校验
+- PUSH / PULL / RESP 三消息协议
+
+### v1.12 持久化存储 ← 已完成
+- IndexedDB 主存储 + localStorage 回退
+- 500 条裁定历史 + 同步状态 + 用户偏好
+
+### v2.0 公开 Beta ← 当前
+- 综合发布包 (`release/v2.0-beta/`,92KB)
+- 所有平台壳完整可用 (5 种运行方式)
+- MANIFEST.json + SHA-256 校验
 
 ---
 
-## 下一步(按顺序)
+## 下一步
 
-### v1.8 里程碑文档
-- 固化盟机合架构 + 场域扩展
-- v1.6-v1.7 开发经验总结
-- 下阶段规划:移动端深度集成 / 多节点同步
+### v2.1 稳定版 (规划中)
+- 修复 Beta 用户反馈的问题
+- 性能优化 (IndexedDB 查询加速)
+- 文档完善 (视频教程 / 交互式教程)
 
-### v1.9 术语统一
-- PARTNER_PROTOCOL.md → MENGJI_TERMS.md (更新残留)
-- 代码注释全面切换盟机合术语
-- 对外文档对齐
+### v3.0 正式版 (远期)
+- 支持 100+ 盟机合掌节点的稳定运行
+- 跨链裁定 (与区块链身份系统集成)
+- 国际化 (英文/日文界面)
 
 ---
 
@@ -266,4 +274,4 @@
 
 *开始日期: 2026-08-04*
 *维护者: lolict + CatPaw · 七妹*
-*最后更新: 2026-08-05 (v1.7c)*
+*最后更新: 2026-08-05 (v2.0 Beta)*

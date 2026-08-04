@@ -94,31 +94,29 @@ hunyuan-os/
 
 ---
 
-## 当前状态(2026-08-05 停下的位置)
+## 当前状态 (2026-08-05 — v2.0 公开 Beta)
 
 ### 已落地(无需再讨论)
-- v0.1-v1.3 全部完成并通过 demo 验证
+- v0.1-v1.3 全部完成 (三元→七元+全栈联动)
 - v1.4 生态 API (Cloudflare Worker 对外)
 - v1.5 统一对话渠道 + OpenAPI 文档 + SVG 流程图
-- v1.6 盟机合子节点 (域名无关化 + 资源归合伙人 + 主导权归满全法)
-- v1.7a WASM 内核设计
-- v1.7b WASM 核心移植 (kernel/wasm/mqf_wasm.c)
-- 三元(编码+规则引擎+空间代数+统计锥)
-- 四元(拓扑域标记+跨域裁定+宏微量)
-- 五元(旋钮运动步量+角度wrap+占存判定)
-- 六元(对称群+六面可视化+信任交集)
-- 七元(蜂窝套壳+递归嵌套+六边形密铺)
-- 全栈(飞书 Bot Bridge + 七妹 AI + ROADMAP 铁律自检)
-- 金壳封装+镜像代理
-- Docker 容器+白皮书+飞书对接文档+角色宪法
-- 盟机合 67 术语体系 (docs/MENGJI_TERMS.md)
+- v1.6 盟机合子节点 (67术语 + 域名无关化 + 三层场域)
+- v1.7 WASM 内核 (mqf_wasm.c) + 民联浏览器壳
+- v1.8 里程碑文档 (ADR 5项)
+- v1.9 术语统一 (partner → 盟机合)
+- v1.10 移动端深度集成 (Android WebView + iOS WKWebView)
+- v1.11 多节点同步 (Gossip 协议 + 默克尔树)
+- v1.12 持久化存储 (IndexedDB + localStorage 回退)
+- v2.0 公开 Beta 发布包 (release/v2.0-beta/)
 
 ### 代码文件
-- `kernel/src/mqf_kernel.c` (3500+ 行,本地核心)
-- `kernel/wasm/mqf_wasm.c` (WASI 裁定内核,307 行)
-- `cloudflare/mqf-web.js` (Cloudflare Worker + 盟机合注册)
-- `shell/browser/` (民联浏览器壳 v1.7c — HTML+CSS+JS)
-- `shell/native/Electron` / `Tauri` / `pywebview` 多平台原生包装器
+- `kernel/src/mqf_kernel.c` (3500+ 行,v2.0.0)
+- `kernel/wasm/mqf_wasm.c` (WASI 内核,v2.0.0,307 行)
+- `cloudflare/mqf-web.js` (Worker + 盟机合 + 同步端点,970+ 行)
+- `cloudflare/sync-protocol.js` (多节点同步引擎,417 行)
+- `shell/browser/` (民联浏览器壳 v2.0 — HTML+CSS+JS,5 文件)
+- `shell/native/` (Android/iOS/Electron/Tauri/pywebview 全平台)
+- `release/v2.0-beta/` (公开 Beta 发布包,11 文件,92KB)
 
 ### Demo 验证方式
 ```bash
