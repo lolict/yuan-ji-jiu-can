@@ -1,13 +1,20 @@
 /**
- * 民联浏览器壳 · MQF Shell v1.7
- * ============================
+ * 民联浏览器壳 · MQF Shell v1.7-v1.10
+ * ==================================
  * 民联浏览器 · WASM 裁定内核加载器
+ * 
+ * v1.10 新增: 移动端原生持久化
+ *   - Android WebView mqfNative 桥
+ *   - iOS WKWebView mqfNative 桥
+ *   - localStorage 自动回退
+ *   - window.mqfNative 统一接口 (save/load/clear/getPlatform)
  * 
  * 功能:
  *   1. 优先加载 mqf_core.wasm (WASI 裁定内核)
  *   2. 如 WASM 不可用,自动回退到 JS 实现
  *   3. 提供裁定台 UI 控制器 / 旋钮可视化 / 蜂窝嵌套视图
- *   4. 域无关: 任何地方运行输出一致
+ *   4. 移动端原生持久化 (优先) / localStorage (回退)
+ *   5. 域无关: 任何地方运行输出一致
  *
  * 裁定引擎与 kernel/wasm/mqf_wasm.c 保持算法一致:
  *   五元: step + angle wrap 360° + 占存 (>100 → ETERNAL)
@@ -20,7 +27,7 @@
 // ============== 裁定核心 ==============
 // 与 mqf_wasm.c 算法严格一致
 
-const MQF_SHELL_VERSION = '1.7.0';
+const MQF_SHELL_VERSION = '1.10.0';
 const FIVE_YUAN_STEPS = 5;
 const FIVE_YUAN_OCCUPY_THRESHOLD = 100;
 const SIX_YUAN_MIRROR_THRESHOLD = 0.2;
@@ -247,6 +254,7 @@ class MqfShellController {
 
     this._bindUI();
     this._renderShell();
+    this._loadPersistedHistory();
     this._runDefaultVerdict();
   }
 
@@ -365,6 +373,35 @@ class MqfShellController {
     this.history.unshift(result);
     if (this.history.length > 50) this.history.pop();
     this._renderHistory();
+    this._persistHistory();
+  }
+
+  /**
+   * 持久化历史 — v1.10+ 支持 mqfNative (Android/iOS), 回退 localStorage
+   */
+  _persistHistory() {
+    const data = JSON.stringify(this.history.slice(0, 20));
+    if (window.mqfNative && typeof window.mqfNative.save === 'function') {
+      try { window.mqfNative.save('verdict_history', data); } catch(e) {}
+    } else {
+      try { localStorage.setItem('mqf_verdict_history', data); } catch(e) {}
+    }
+  }
+
+  _loadPersistedHistory() {
+    let data = null;
+    if (window.mqfNative && typeof window.mqfNative.load === 'function') {
+      try { data = window.mqfNative.load('verdict_history'); } catch(e) {}
+    }
+    if (!data) {
+      try { data = localStorage.getItem('mqf_verdict_history'); } catch(e) {}
+    }
+    if (data) {
+      try {
+        this.history = JSON.parse(data);
+        this._renderHistory();
+      } catch(e) {}
+    }
   }
 
   _renderHistory() {
