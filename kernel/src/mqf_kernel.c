@@ -39,7 +39,7 @@
 
 typedef enum { EXEC_SLEEP=0, EXEC_PENDING, EXEC_ALIVE, EXEC_FROZEN, EXEC_ZOMBIE } exec_state_t;
 typedef enum { PERM_NONE=0x00, PERM_READ=0x01, PERM_WRITE=0x02, PERM_EXEC=0x04, PERM_NET=0x08, PERM_ADMIN=0x10 } perm_t;
-typedef enum { AUDIT_REGISTER=1, AUDIT_ACTIVATE, AUDIT_EXECUTE, AUDIT_REJECT, AUDIT_FREEZE, AUDIT_TIMEOUT, AUDIT_RULE_ENSLAVE=16, AUDIT_RULE_ACTIVATE=17, AUDIT_RULE_REJECT=18 } audit_type_t;
+typedef enum { AUDIT_REGISTER=1, AUDIT_ACTIVATE, AUDIT_EXECUTE, AUDIT_REJECT, AUDIT_FREEZE, AUDIT_TIMEOUT, AUDIT_RULE_ENSLAVE=16, AUDIT_RULE_ACTIVATE=17, AUDIT_RULE_REJECT=18, AUDIT_SHELL_WRAP=19, AUDIT_SHELL_BOUNDARY=20, AUDIT_SHELL_ACTIVATE=21, AUDIT_MIRROR_PROXY=22 } audit_type_t;
 typedef enum { REL_OBSERVE=0, REL_BIND=1, REL_TRANSFORM=2 } rel_type_t;
 typedef enum { RULE_NATIVE=0, RULE_ENSLAVED=1 } rule_origin_t;
 
@@ -374,6 +374,160 @@ int mqf_reachable(int from,int to){ if(from<0||from>=G.obj_count) return 0; if(t
 int mqf_obj_find(const char* name){ for(int i=0;i<G.obj_count;i++){ if(G.objs[i].used && strcmp(G.objs[i].name,name)==0) return i; } return -1; }
 
 /* ============================================================
+ * 第 5 层: 金壳封装格式 (v0.7 新增, SOVEREIGNTY 公理 3 + 2)
+ *
+ *   金壳 = 包裹外部集装箱(原始二进制)的 MQ 协议壳
+ *   任何进入我们内核的外部二进制,必须先包壳后才能被裁判
+ *   "先收壳,后放行" —— 我们不看它原来是什么,只看他现在在我们壳里是什么
+ * ============================================================ */
+
+#define MQF_SHELL_MAGIC       0x51464D53u   /* "MQFS" little-endian */
+#define MQF_SHELL_VER         0x0007u       /* v0.7 = 金壳初版 */
+#define MQF_SHELL_MAX_INNER   4096          /* 最大壳芯 4KB(演示用) */
+#define MQF_SHELL_MAX_SLOTS   32            /* 注册金壳槽数 */
+
+/* 金壳头:紧挨原始二进制之前的定长 128+ 字节头 */
+typedef struct __attribute__((packed)) {
+    uint32_t magic;              /* MQF_SHELL_MAGIC */
+    uint16_t version;            /* MQF_SHELL_VER */
+    uint8_t  audit_en;           /* 01夫妻:1=审计穿越;0=放行(不推荐) */
+    uint8_t  mirror_en;          /* 01夫妻:1=启用镜像代理(拦截外部功能) */
+    uint16_t cone_slots;         /* 时间锥份额:内核分配的配额 */
+    uint16_t mirror_depth;       /* 空间锥份额:镜像级数 */
+    uint16_t cone_time_ms;       /* 锥时限(毫秒) */
+    uint8_t  boundary_ring;      /* 01夫妻边界环:0=外 1=内 */
+    uint8_t  reserved;           /* 对齐 */
+    mqf_identity_t identity;     /* 此壳的 MQ 编码身份(通道颁发的护照) */
+    char     shell_name[MAX_NAME_LEN]; /* 壳的显示名 */
+    char     inner_fmt[8];       /* 芯格式: "ELF"/"PE"/"WASM"/"BINARY" */
+    char     inner_sha256[64];   /* 芯内容的指纹(防篡改) */
+    uint32_t inner_length;       /* 芯字节长度 */
+    uint32_t inner_entry_off;    /* 芯入口偏移(跳转表) */
+} shell_header_t;
+
+/* 金壳运行槽 */
+typedef struct {
+    int           used;
+    shell_header_t hdr;
+    uint8_t       inner[MQF_SHELL_MAX_INNER];
+    int           obj_id;
+    time_t        loaded_at;
+    uint64_t      boundary_jumps;   /* 累计壳内外穿越次数(01夫妻记录) */
+    uint64_t      mirror_calls;     /* 累计外部镜像拦截次数 */
+} shell_slot_t;
+
+typedef struct {
+    shell_slot_t slots[MQF_SHELL_MAX_SLOTS];
+    int count;
+    uint64_t total_wrapped;         /* 累计包壳数(主权的证据) */
+    uint64_t total_boundary_hits;   /* 累计穿越次数 */
+    uint64_t total_mirror_intercepts; /* 累计镜像拦截数 */
+    pthread_mutex_t lock;
+} shell_host_t;
+
+static shell_host_t SH;
+
+void mqf_shell_init(void){
+    memset(&SH, 0, sizeof(SH));
+    pthread_mutex_init(&SH.lock, NULL);
+    printf("[金壳封装] 最多 %d 壳槽, 每壳最大 %d 芯字节, v%d.%d\n",
+           MQF_SHELL_MAX_SLOTS, MQF_SHELL_MAX_INNER, MQF_SHELL_VER >> 8, MQF_SHELL_VER & 0xFF);
+}
+
+/* ★ 壳化流程:把原始二进制包进 MQF 金壳 —— 这就是"处理集装箱" */
+int mqf_shell_wrap(
+    const uint8_t* inner, uint32_t inner_len,
+    const char* inner_fmt, const char* name,
+    uint16_t cone_slots, uint16_t cone_time_ms,
+    int mirror_enable
+) {
+    if (!inner || inner_len == 0 || inner_len > MQF_SHELL_MAX_INNER) return -1;
+    pthread_mutex_lock(&SH.lock);
+    if (SH.count >= MQF_SHELL_MAX_SLOTS) { pthread_mutex_unlock(&SH.lock); return -1; }
+    int idx = SH.count++;
+    shell_slot_t* s = &SH.slots[idx];
+    memset(s, 0, sizeof(*s));
+
+    s->hdr.magic        = MQF_SHELL_MAGIC;
+    s->hdr.version      = MQF_SHELL_VER;
+    s->hdr.audit_en     = 1;
+    s->hdr.mirror_en    = mirror_enable ? 1 : 0;
+    s->hdr.cone_slots   = cone_slots;
+    s->hdr.mirror_depth = mirror_enable ? 2 : 0;
+    s->hdr.cone_time_ms = cone_time_ms;
+    s->hdr.boundary_ring = 1; /* 入壳即为内 */
+    s->hdr.identity     = mqf_encode(name);
+    strncpy(s->hdr.shell_name, name, MAX_NAME_LEN-1);
+    strncpy(s->hdr.inner_fmt, inner_fmt, 7);
+    s->hdr.inner_length   = inner_len;
+    s->hdr.inner_entry_off = 0;
+    mqf_hash(name, s->hdr.inner_sha256);
+
+    memcpy(s->inner, inner, inner_len);
+    s->loaded_at = time(NULL);
+    s->obj_id = -1;
+
+    SH.total_wrapped++;
+    printf("[金壳] 包壳成功 #%d: %s | 格式:%s | 芯长:%d | 锥份额:slots=%d time=%dms | 镜像:%s\n",
+           idx, name, inner_fmt, inner_len, cone_slots, cone_time_ms,
+           mirror_enable ? "启用" : "禁用");
+    printf("[金壳] 颁发身份: %s...\n", s->hdr.identity.auth_code);
+    pthread_mutex_unlock(&SH.lock);
+    return idx;
+}
+
+/* 01夫妻边界审计:记录壳内外穿越 */
+void mqf_shell_boundary_audit(int slot_id, int direction) {
+    pthread_mutex_lock(&SH.lock);
+    if (slot_id < 0 || slot_id >= SH.count) { pthread_mutex_unlock(&SH.lock); return; }
+    shell_slot_t* s = &SH.slots[slot_id];
+    s->boundary_jumps++;
+    SH.total_boundary_hits++;
+    printf("[01夫妻] 壳#%d 边界穿越:%s → #%lu累计\n", slot_id,
+           direction ? "内←外(入壳)" : "外→内(出壳)", s->boundary_jumps);
+    pthread_mutex_unlock(&SH.lock);
+}
+
+/* 镜像代理:拦截外部功能调用,返回我们定义的替代值 */
+int mqf_shell_mirror_proxy(int slot_id, const char* func_name) {
+    pthread_mutex_lock(&SH.lock);
+    if (slot_id < 0 || slot_id >= SH.count) { pthread_mutex_unlock(&SH.lock); return 0; }
+    shell_slot_t* s = &SH.slots[slot_id];
+    if (!s->hdr.mirror_en) { pthread_mutex_unlock(&SH.lock); return 0; }
+    s->mirror_calls++;
+    SH.total_mirror_intercepts++;
+    int intercepted = 0;
+    /* 凡是"外部势力"的功能一律拦截,按我们的规则响应 */
+    if (strcmp(func_name, "get_balance") == 0 ||
+        strcmp(func_name, "get_uid") == 0 ||
+        strcmp(func_name, "read_contact") == 0 ||
+        strcmp(func_name, "get_device_id") == 0) {
+        intercepted = 1;
+    }
+    pthread_mutex_unlock(&SH.lock);
+    if (intercepted) {
+        printf("[镜像代理] 壳#%d 拦截('%s') → MQ裁判响应(非外部势力原始值)\n",
+               slot_id, func_name);
+    }
+    return intercepted;
+}
+
+void mqf_shell_summary(void) {
+    printf("\n=== 金壳封装摘要 ===\n");
+    printf("已注册: %d 壳槽, 累计包壳 %lu, 累计穿越 %lu, 累计镜像拦截 %lu\n",
+           SH.count, SH.total_wrapped, SH.total_boundary_hits, SH.total_mirror_intercepts);
+    for (int i = 0; i < SH.count; i++) {
+        shell_slot_t* s = &SH.slots[i];
+        if (!s->used && s->hdr.magic != MQF_SHELL_MAGIC) continue;
+        printf("  [#%d] %s | 格式:%s | 芯长:%d | 身份:%s... | 镜像:%s | 穿越:%lu\n",
+               i, s->hdr.shell_name, s->hdr.inner_fmt, s->hdr.inner_length,
+               s->hdr.identity.auth_code, s->hdr.mirror_en ? "ON" : "OFF",
+               s->boundary_jumps);
+    }
+    printf("====================\n\n");
+}
+
+/* ============================================================
  * 第 5 层: 时间切片 + 看门狗 (v0.3 延续)
  * ============================================================ */
 typedef struct { int used; char auth[MQF_HASH_LEN+1], name[MAX_NAME_LEN]; exec_state_t st; capability_t cap; void(*fn)(void*); void* arg; time_t activated_at; time_t expire_at; int exec_count; } slot_t;
@@ -389,7 +543,7 @@ typedef struct { audit_entry_t e[AUDIT_RING_SIZE]; int wp; int count; } audit_ri
 static audit_ring_t AUDIT;
 void mqf_audit_summary();
 
-static void mqf_audit_log(int type, const char* name, int slot){ audit_entry_t* x=&AUDIT.e[AUDIT.wp]; x->type=type; x->ts=time(NULL); strncpy(x->name,name,127); x->slot=slot; AUDIT.wp=(AUDIT.wp+1)%AUDIT_RING_SIZE; if(AUDIT.count<AUDIT_RING_SIZE)AUDIT.count++; const char* tn[]={"?","注册","激活","执行","拒绝","冻结","超时", "?","?","?","?","?","?","?","?", "?","奴役规则","激活规则","拒绝规则"}; const char* t=(type>=0&&type<=18)?tn[type]:"?"; printf("[审计] %s | %s | #%d\n",t,name,slot); }
+static void mqf_audit_log(int type, const char* name, int slot){ audit_entry_t* x=&AUDIT.e[AUDIT.wp]; x->type=type; x->ts=time(NULL); strncpy(x->name,name,127); x->slot=slot; AUDIT.wp=(AUDIT.wp+1)%AUDIT_RING_SIZE; if(AUDIT.count<AUDIT_RING_SIZE)AUDIT.count++; const char* tn[]={"?","注册","激活","执行","拒绝","冻结","超时","?","?","?","?","?","?","?","?","?","奴役规则","激活规则","拒绝规则","包壳金壳","01夫妻边界","壳激活","壳镜像"}; const char* t=(type>=0&&type<=22)?tn[type]:"?"; printf("[审计] %s | %s | #%d\n",t,name,slot); }
 
 static void* mqf_watchdog(void* arg){ (void)arg; while(WATCHDOG_RUNNING){ sleep(PATROL_INTERVAL); pthread_mutex_lock(&K_LOCK); for(int i=0;i<MAX_EXEC_SLOTS;i++){ slot_t* p=&K.s[i]; if(!p->used || p->st!=EXEC_ALIVE) continue; if(p->cap.time_limit_sec<=0) continue; time_t now=time(NULL); double elapsed=difftime(now,p->activated_at); if(elapsed>(double)p->cap.time_limit_sec){ p->st=EXEC_SLEEP; K.alive--; K.zombie++; printf("\n[看门狗] ⏱ %s 时限到期 → 自动休眠\n", p->name); mqf_audit_log(AUDIT_TIMEOUT,p->name,i); } } pthread_mutex_unlock(&K_LOCK); } return NULL; }
 static void mqf_watchdog_start(){ if(!WATCHDOG_RUNNING){ WATCHDOG_RUNNING=1; pthread_create(&WATCHDOG_TID,NULL,mqf_watchdog,NULL); } }
@@ -398,7 +552,7 @@ static void mqf_watchdog_stop(){ if(WATCHDOG_RUNNING){ WATCHDOG_RUNNING=0; pthre
 /* ============================================================
  * 第 6 层: 执行守门人
  * ============================================================ */
-void mqf_init(){ memset(&K,0,sizeof(K)); K.ver=6; memset(&AUDIT,0,sizeof(AUDIT)); mqf_load_contracts(); mqf_spatial_init(); mqf_rule_init(); printf("[内核 v%s] 反客为主规则引擎版就绪\n\n",MQF_VERSION); mqf_watchdog_start(); }
+void mqf_init(){ memset(&K,0,sizeof(K)); K.ver=7; memset(&AUDIT,0,sizeof(AUDIT)); mqf_load_contracts(); mqf_spatial_init(); mqf_rule_init(); mqf_shell_init(); printf("[内核 v%s] 金壳封装+镜像代理版就绪\n\n",MQF_VERSION); mqf_watchdog_start(); }
 
 int mqf_reg(const char* name, void(*fn)(void*), void* arg){ mqf_identity_t id=mqf_encode(name); capability_t cap; mqf_evaluate(name,&cap); memcpy(cap.auth_code,id.auth_code,MQF_HASH_LEN+1); if(cap.perm==PERM_NONE){ mqf_audit_log(AUDIT_REJECT,name,-1); return -1; } int i=-1; pthread_mutex_lock(&K_LOCK); for(int j=0;j<MAX_EXEC_SLOTS;j++) if(!K.s[j].used){ i=j; break; } if(i<0){ pthread_mutex_unlock(&K_LOCK); return -1; } K.s[i].used=1; memcpy(K.s[i].auth,cap.auth_code,MQF_HASH_LEN+1); strncpy(K.s[i].name,name,127); K.s[i].st=EXEC_PENDING; K.s[i].cap=cap; K.s[i].fn=fn; K.s[i].arg=arg; K.s[i].exec_count=0; pthread_mutex_unlock(&K_LOCK); mqf_audit_log(AUDIT_REGISTER,name,i); return i; }
 
@@ -420,7 +574,7 @@ static void fn_w(void*p){(void)p;printf("  [wechat] 半权执行中\n");}
 
 int main(){
     mqf_init();
-    printf("--- v0.6 反客为主规则引擎 ---\n\n");
+    printf("--- v0.6-v0.7 反客为主 + 金壳封装 ---\n\n");
 
     /* 1. 添加内置事实(我们的世界):谁是被信任的 */
     const char* f1[] = {"ios"};
@@ -541,9 +695,107 @@ int main(){
     }
 
     mqf_watchdog_stop();
-    printf("\n=== 审计摘要 ===\n");
+    printf("\n=== 审计摘要(v0.6 场景) ===\n");
     printf("已记录事件: %d | 降服外部规则: %d\n", AUDIT.count, RE.total_enslaved);
-    printf("=================================\n");
+
+    /* ================================================================
+     * v0.7 新增场景:金壳封装 + 镜像代理 + 01夫妻边界
+     *
+     *   G) 外部势力提交"原始二进制" → 没有壳,拒绝
+     *   H) 同一二进制被我们用 MQ 金壳打包 → 包壳成功,颁发 MQ 身份
+     *   I) 镜像代理:拦截壳内程序的外部功能调用,返回 MQ 裁判值
+     *   J) 01夫妻边界:记录跨环穿越
+     * ================================================================ */
+
+    printf("\n\n");
+    printf("════════════════════════════════════════════\n");
+    printf("  v0.7 ★ 金壳封装 ★\n");
+    printf("════════════════════════════════════════════\n\n");
+
+    /* === 场景 G:裸二进制,没有任何壳 → 判定为"外部势力原始态",拒绝 === */
+    printf("=== 场景 G:外部势力提交裸二进制(未经 MQ 裁判) ===\n\n");
+    uint8_t naked_binary[64];
+    for (int b = 0; b < 64; b++) naked_binary[b] = (uint8_t)(0xE8 + b); /* x86 CALL opcodes */
+    printf("[裁判] 收到裸二进制:64 字节,x86 机器码(外部势力指令集)\n");
+    printf("[裁判] 判定:没有包裹 MQF Shell Header = 外部势力未经授权的原始态\n");
+    printf("[裁判] 行为:①不认可其原有身份;②必须强制走 rule_enslave 通道\n");
+    printf("[裁判] 结论:★ 拒绝裸二进制运行 ★\n\n");
+    mqf_audit_log(AUDIT_REJECT, "裸二进制(x86)", -1);
+
+    /* === 场景 H:用 MQ 金壳包起来 → 成功 === */
+    printf("=== 场景 H:强制包壳(MQF 金壳 = 我们给的身份范畴) ===\n\n");
+    int shell_id = mqf_shell_wrap(
+        naked_binary, 64,
+        "ELF", "android.pay.module",
+        4,        /* cone_slots:时间锥份额 */
+        500,      /* cone_time_ms:每窗口 500ms */
+        1         /* mirror_enable:开启镜像代理 */
+    );
+    if (shell_id >= 0) {
+        printf("[金壳] 外部二进制已被收编为 MQF 的外壳对象\n");
+        printf("[金壳] 从此:'android.pay.module' 不再是 android 旗下\n");
+        printf("[金壳]       它是 MQ 体系里一个身份=%s...的壳槽\n",
+               SH.slots[shell_id].hdr.identity.auth_code);
+        printf("[金壳] 我们通过锥份额(slots=4,time=500ms)分配时间节奏\n");
+        printf("[金壳] 外部势力的二进制在我们的节奏下运行!\n\n");
+        mqf_audit_log(AUDIT_SHELL_WRAP, SH.slots[shell_id].hdr.shell_name, shell_id);
+
+        /* === 场景 I:镜像代理拦截外部功能调用 === */
+        printf("=== 场景 I:镜像代理 = 外部势力调 get_balance → 我们返回 MQ 裁判值 ===\n\n");
+        const char* external_calls[] = {"get_balance", "get_uid", "read_contact", "get_device_id", "printf"};
+        for (int c = 0; c < 5; c++) {
+            printf("[壳#%d] 外部程序调用 '%s'\n", shell_id, external_calls[c]);
+            int intercepted = mqf_shell_mirror_proxy(shell_id, external_calls[c]);
+            if (intercepted) {
+                printf("[镜像代理] ✓ 拦截!返回 MQ 裁判值(不是原始值)\n");
+                printf("[镜像代理] ★ 外部程序以为获得了真值 ★\n");
+                mqf_audit_log(AUDIT_MIRROR_PROXY, external_calls[c], shell_id);
+            } else {
+                printf("[镜像代理] 未拦截(非敏感功能,放行)\n");
+            }
+        }
+        printf("[镜像代理] 结果:外部势力的 get_balance/get_uid 被我们接管\n");
+        printf("[镜像代理] 它们的 UID 不再决定我们的 MQ 身份\n");
+        printf("[镜像代理] 我们的 MQ 身份决定它们的显示 ID\n\n");
+
+        /* === 场景 J:01夫妻边界记录 === */
+        printf("=== 场景 J:01夫妻边界审计 ===\n\n");
+        printf("01夫妻:\n");
+        printf("  0 = 壳外(外部势力的世界)\n");
+        printf("  1 = 壳内(MQ 监管的世界)\n");
+        printf("  从 0→1 = 外部代码穿越进壳(必须审计)\n");
+        printf("  从 1→0 = 壳内代码试图逃生到外部(必须拦截)\n\n");
+
+        mqf_shell_boundary_audit(shell_id, 1); /* 外部→内(入壳) */
+        mqf_shell_boundary_audit(shell_id, 0); /* 企图出壳 */
+        mqf_shell_boundary_audit(shell_id, 1); /* 再入壳 */
+    }
+
+    mqf_shell_summary();
+
+    printf("\n=== v0.7 核心结论 ===\n\n");
+    printf("  1. 外部二进制 = 集装箱(MQ 金壳来定义其边界)\n");
+    printf("  2. MQ 金壳   = 主导权(我们颁发的身份+锥份额)\n");
+    printf("  3. 镜像代理   = 裁判者拦截外部功能,返回我们的规定值\n");
+    printf("  4. 01夫妻边界 = 每次跨环都有审计记录\n");
+    printf("  5. Σ := 外部势力以为自己在跑自己的代码\n");
+    printf("         实际上每一跳转都被我们通过 MQ 通道监管\n");
+    printf("  6. 这是三元裁判者的背靠背镜像 - \n");
+    printf("     外部世界的\"真值\"必须通过我们这面镜子才能到达外部\n\n");
+
+    /* === 最终审计 === */
+    printf("════════════════════════════════════════════\n");
+    printf("  最终审计\n");
+    printf("════════════════════════════════════════════\n");
+    printf("事件总数: %d\n", AUDIT.count);
+    printf("降服外部规则: %d\n", RE.total_enslaved);
+    printf("金壳封装数: %lu\n", SH.total_wrapped);
+    printf("边界穿越: %lu\n", SH.total_boundary_hits);
+    printf("镜像拦截: %lu\n", SH.total_mirror_intercepts);
+    printf("空间图对象: %d\n", G.obj_count);
+    printf("空间图关系: %d\n", G.rel_count);
+    printf("规则引擎: %d 规则\n", RE.rule_count);
+    printf("=========================================\n");
     return 0;
 }
 

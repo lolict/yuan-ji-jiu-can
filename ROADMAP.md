@@ -10,16 +10,16 @@
 
 ## 当前状态
 
-**已完成**: 反客为主规则引擎 v0.6 (C + Prolog 子集解释器 + rule_enslave 通道)
+**已完成**: 金壳封装 + 镜像代理 v0.7 (C 语言 + shell_header_t 格式 + 01夫妻边界审计)
 
 - 位置: `kernel/src/mqf_kernel.c`
-- 运行: `clang kernel/src/mqf_kernel.c -pthread -o /tmp/mqf -lm && /tmp/mqf`
+- 运行: `make` → `./kernel/src/mqf_kernel.elf`
 - 功能:
-  - **公理1 identity_enslave**: 声母/韵母/声调/笔画 → auth_code,一切实体强制经编码洗礼
-  - **公理4 锥份额**: 看门狗 + 执行槽的时间切片
-  - **公理2 路径/间接力/内镜像**: 空间代数
-  - **★ 公理5 反客为主**: `mqf_rule_enslave()` 函数,外部规则经 MQ 通道 transmute 为受控碎片
-- 宪法: `SOVEREIGNTY.md`(主导权公约 v1.0)
+  - **公理1**: 声母/韵母/声调/笔画 → auth_code,一切实体强制经编码洗礼
+  - **公理2**: 镜像代理拦截外部功能调用,返回我们的规定裁判值
+  - **公理3**: 金壳封装格式 `shell_header_t`,任何外部二进制必须套 MQ Shell Header
+  - **公理4**: 锥份额 = cone_slots + cone_time_ms + mirror_depth,时间节奏由我们分配
+  - **公理5**: `mqf_rule_enslave()`,外部规则经 MQ 通道 transmute 为受控碎片
 
 ## 已完成版本
 
@@ -41,47 +41,24 @@
 ### v0.5 空间关系代数
 - 对象/关系 CRUD、路径可达(BFS)、间接力(DP)、内镜像(分层展开)、态势判决
 
-### v0.6 反客为主规则引擎 ← 当前
+### v0.6 反客为主规则引擎
 - 内置 Prolog 子集解释器: fact 库 + rule 库 + resolve/arbitrate
 - `mqf_rule_enslave()` 函数: 外部规则 → transmute → 受控 ENSLAVED 碎片
 - 身份让渡: 外部规则身份被 mqf_encode 重新颁发,我们成为其"主人"
 - 锥份额裁决: ENSLAVED 规则默认 priority=0(我们裁判者授权才升高)
 - 审计新增 RULE_ENSLAVE/RULE_ACTIVATE/RULE_REJECT 事件类型
 
+### v0.7 金壳封装 + 镜像代理 ← 当前
+- `shell_header_t` 格式: 128 bytes 壳头包裹外部二进制(ELF/PE/WASM/...)
+- `mqf_shell_wrap()`: 强制颁发 MQ 身份 + 锥份额(slots+time+mirror_depth)
+- `mqf_shell_mirror_proxy()`: 拦截 get_balance/get_uid 等外部敏感功能
+- `mqf_shell_boundary_audit()`: 01夫妻边界(内=1/外=0)每次穿越都被审计
+- 新增审计事件: SHELL_WRAP/SHELL_BOUNDARY/SHELL_ACTIVATE/MIRROR_PROXY
+- 六大场景演示:裸二进制→拒绝 → 包壳→颁发身份 → 镜像拦截 → 01边界审计
+
 ---
 
 ## 下一步(按顺序)
-
-### v0.6 反客为主规则引擎 (C + Prolog 子集)
-**目标**: 把契约系统(v0.2)升级为可外部加载的声明式规则引擎,实现**公理5(反客为主)**
-
-核心:
-- Prolog 子集解释器(内置在 C 运行时,无外部依赖)
-- 规则文件 `.pl` 可热加载,增删改无需重编译内核
-- **公理5的实现**: 任何外部"规则"被送入系统时,先被我们的裁判通道解析、降级为"被调动者",再按我们的锥份额运行
-- **公理1的强化**: identity_enslave() 默认启用,任何进入的实体**强制**接受 MQF 编码
-- **准备公理2**: 规则可定义"镜像策略"——裁判者看到外部请求后,可返回替代响应
-
-数据结构:
-```c
-typedef struct {
-    char name[128];        // 规则名
-    char pattern[256];     // 匹配模式(类似 Prolog head)
-    char action[256];      // 执行动作(Prolog body)
-    int priority;          // 优先级(高优先覆盖低优先)
-    int loaded_from_file;  // 标记是外部加载还是内置
-} rule_t;
-
-// 外部规则进入时先走此函数 → "反客为主"
-int rule_enslave(const char* external_rule, rule_t* out);
-```
-
-### v0.7 金壳封装格式 (C + Shell Header)
-**目标**: 实现**公理3(集装箱封装)**——任何外部二进制先套上我们的壳
-
-- Shell Header 定义: identity/CID, 权限/锥份额, 镜像映射, 01夫妻边界标签
-- 壳加载器: 解析壳头 → 内部原二进制送裁判 → 根据锥份额决定是否激活
-- 01夫妻边界: 每跳 cross-boundary 行为都要被审计和裁定
 
 ### v0.8 统计锥引擎 (C)
 **目标**: 把 v0.5 的空间代数升级为**公理4(统计锥切片)**完整实现

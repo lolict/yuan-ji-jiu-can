@@ -20,3 +20,4 @@ Thumbs.db
 Cargo.lock
 zig/
 kernel/src/mqf_kernel
+kernel/src/mqf_kernel.elf
