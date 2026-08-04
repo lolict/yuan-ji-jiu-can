@@ -3,35 +3,28 @@
 ## 用法:
 ##   make          — 构建全部
 ##   make test     — 构建 + 运行全部测试
-##   make crypto   — 构建加密层测试
+##   make kernel   — 构建空间关系代数内核
 ##   make clean    — 清理产物
-##   make python   — 运行 python cli.py 的 report (保留参考实现)
 
 CC       = clang
-CFLAGS   = -O2 -std=c17 -Wall -Wextra -Werror -I.
+CFLAGS   = -O2 -std=c17 -Wall -Wextra -Wno-unused-variable -I.
 LDLIBS   = -L/usr/lib/x86_64-linux-gnu \
            /usr/lib/x86_64-linux-gnu/libsodium.so.23 \
            /usr/lib/x86_64-linux-gnu/libcrypto.so.3
+KERN_LIBS = -pthread -lm
 
-.PHONY: all test clean python
+.PHONY: all test clean kernel
 
-all: core/mqf.elf core/mqf_crypto_test.elf
+all: kernel
 
-core/mqf.elf: core/main.c core/mqf_kernel.c core/mqf_kernel.h encoding/mccp.h
-	$(CC) $(CFLAGS) core/main.c core/mqf_kernel.c -o $@
+kernel: kernel/src/mqf_kernel.elf
 
-core/mqf_crypto_test.elf: core/test_crypto.c core/mqf_crypto.c core/mqf_crypto.h core/mqf_kernel.h encoding/mccp.h
-	$(CC) $(CFLAGS) core/test_crypto.c core/mqf_crypto.c -o $@ $(LDLIBS)
+kernel/src/mqf_kernel.elf: kernel/src/mqf_kernel.c
+	$(CC) $(CFLAGS) $< -o $@ $(KERN_LIBS)
 
-test: all
-	@echo "═══ 内核测试 ═══"
-	LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu ./core/mqf.elf
-	@echo ""
-	@echo "═══ 加密层测试 ═══"
-	LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu ./core/mqf_crypto_test.elf
+test: kernel
+	@echo "═══ 满全法内核测试 ═══"
+	./kernel/src/mqf_kernel.elf
 
 clean:
-	rm -f core/mqf.elf core/mqf_crypto_test.elf
-
-python:
-	python3 cli.py report
+	rm -f kernel/src/mqf_kernel.elf

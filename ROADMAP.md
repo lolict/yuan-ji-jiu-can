@@ -10,16 +10,16 @@
 
 ## 当前状态
 
-**已完成**: 空间关系代数 v0.5 (C 语言 + pthread)
+**已完成**: 反客为主规则引擎 v0.6 (C + Prolog 子集解释器 + rule_enslave 通道)
 
 - 位置: `kernel/src/mqf_kernel.c`
 - 运行: `clang kernel/src/mqf_kernel.c -pthread -o /tmp/mqf -lm && /tmp/mqf`
 - 功能:
-  - **公理1 identity_enslave**: 声母/韵母/声调/笔画 → auth_code → capability → exec slot
+  - **公理1 identity_enslave**: 声母/韵母/声调/笔画 → auth_code,一切实体强制经编码洗礼
   - **公理4 锥份额**: 看门狗 + 执行槽的时间切片
-  - **公理2**: 路径可达(BFS) + 间接力(DP) + 内镜像(分层展开) → 镜像代理的基础
-
-- 宪法: `SOVEREIGNTY.md`(主导权公约 v1.0)已批准并成为所有后续版本的指导
+  - **公理2 路径/间接力/内镜像**: 空间代数
+  - **★ 公理5 反客为主**: `mqf_rule_enslave()` 函数,外部规则经 MQ 通道 transmute 为受控碎片
+- 宪法: `SOVEREIGNTY.md`(主导权公约 v1.0)
 
 ## 已完成版本
 
@@ -39,12 +39,14 @@
 - Host Bridge: log/getAuth/time/kernelCall/yield ↔ 看门狗协作
 
 ### v0.5 空间关系代数
-- `mqf_spatial_init / mqf_obj_create / mqf_rel_add`
-- `mqf_reachable(from, to): bool` (BFS)
-- `mqf_indirect_force(from, to, hops): float` (DP 累积权重)
-- `mqf_inner_mirror(center, depth, layers, count)` (按层展开)
-- `mqf_assess(): situation_t` (稳态/渐变态/逆变态)
-- 线程安全: 单 mutex 保护空间引擎
+- 对象/关系 CRUD、路径可达(BFS)、间接力(DP)、内镜像(分层展开)、态势判决
+
+### v0.6 反客为主规则引擎 ← 当前
+- 内置 Prolog 子集解释器: fact 库 + rule 库 + resolve/arbitrate
+- `mqf_rule_enslave()` 函数: 外部规则 → transmute → 受控 ENSLAVED 碎片
+- 身份让渡: 外部规则身份被 mqf_encode 重新颁发,我们成为其"主人"
+- 锥份额裁决: ENSLAVED 规则默认 priority=0(我们裁判者授权才升高)
+- 审计新增 RULE_ENSLAVE/RULE_ACTIVATE/RULE_REJECT 事件类型
 
 ---
 
