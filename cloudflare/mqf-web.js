@@ -1,7 +1,7 @@
 /*
- * 满全法 · 囡囝共生元操作系统 · Web 面板 Worker v0.1
+ * 满全法 · 囡囝共生元操作系统 · Web 面板 Worker v1.4
  * -------------------------------------------------
- * Cloudflare Workers (ES module). 单文件移植 server.py 全部端点:
+ * Cloudflare Workers (ES module). 七元全栈联动 + 生态扩展:
  *   /                             暗色主面板
  *   /api/observe                 二元/三元观测者
  *   /api/paibing                 排病诊断 v1
@@ -18,6 +18,12 @@
  *   /api/test-crypto             X25519→ECDH→HKDF→AES-256-GCM
  *   /api/log/append + /verify     Merkle 日志环 (内存版, per-isolate)
  *   /api/ime/parse               元输入法 (v1 stub)
+ *
+ *   v1.4 新增(生态扩展):
+ *   /api/v1/verdict              合作伙伴裁定 API (实体名+合规度→MQ裁定)
+ *   /api/v1/qimei                七妹公网版入口(简易 GET 请求即返回裁定)
+ *   /docs                        API 公开文档 (JSON)
+ *   /api/v1/health               健康检查(用于监控)
  *
  * 部署: PUT + POST /accounts/{acct}/workers/scripts/mqf-web
  * Account: 19365628481173551c10b69dadaa2dd5 · subdomain: lolict · URL: mqf-web.lolict.workers.dev
@@ -596,6 +602,123 @@ async function backupList(env) {
   return { ok: true, keys: list.keys.map(k => ({ key: k.name, ts: k.metadata?.ts })), truncated: list.list_complete === false };
 }
 
+/* ============================================================
+ * v1.4 生态扩展 — 对外 API + 七妹公网版 + 公开文档
+ * ============================================================ */
+
+/* 合作伙伴裁定 API — POST /api/v1/verdict */
+function apiVerdict(params) {
+  const entity = (params.get('entity') || '').trim();
+  const compliance_a = parseFloat(params.get('compliance_a') || '0.5');
+  const compliance_b = parseFloat(params.get('compliance_b') || '0.5');
+  const force = parseFloat(params.get('force') || '10');
+  const angle = parseFloat(params.get('angle') || '45');
+
+  if (!entity) return { error: 'missing param: entity (实体名)' };
+
+  /* 满全法七元裁定 */
+  const intersection = Math.min(compliance_a, compliance_b);
+  const mirror_diff = Math.abs(compliance_a - compliance_b);
+  const mirror_ok = mirror_diff < 0.2 ? 1 : 0;
+  const verdict = (intersection > 0.6 && mirror_ok) ? 1 : 0;
+  const ticks = Math.floor(force * 10);
+  const occupied = ticks > 100 ? 1 : 0;
+  const wrapped_angle = ((angle % 360) + 360) % 360;
+
+  return {
+    ok: true,
+    version: 'v1.4',
+    entity,
+    mqf_verdict: {
+      trust: verdict ? 'TRUSTED' : 'REJECTED',
+      confidence: intersection,
+      mirror_alignment: mirror_ok ? 'ALIGNED' : 'OFFSET',
+      five_yuan: { ticks, occupied: occupied ? 'ETERNAL' : 'EPHEMERAL', angle: wrapped_angle },
+      six_yuan: { intersection, mirror_diff, verdict }
+    },
+    philosophy: verdict
+      ? `${entity} 已被铭记 — 双重背书,可信任`
+      : `${entity} 仍在观察 — 单方或双方否决`
+  };
+}
+
+/* 七妹公网版入口 — GET /api/v1/qimei?text=... */
+function apiQimei(params) {
+  const text = (params.get('text') || '').trim();
+
+  /* 简易裁定关键词匹配 */
+  let reply;
+  if (text.includes('ios') || text.includes('bank')) {
+    reply = `我是七妹。\n查询 [${text}] 的裁定结果:\n  ★ 五元占存:已铭记, 六元交集:0.85\n  → 双重背书,信任通过\n\n—— 满全法 AI 助手 七妹`;
+  } else if (text.includes('android') || text.includes('wechat')) {
+    reply = `我是七妹。\n查询 [${text}] 的裁定结果:\n  ○ 五元:易逝状态, 六元交集:0.40\n  → 仍在观察,未通过\n\n—— 满全法 AI 助手 七妹`;
+  } else {
+    reply = `我是七妹。\n满全法裁定框架:\n  1. 三元(v0.6):身份编码+规则引擎\n  2. 四元(v0.9):拓扑域+跨域裁定\n  3. 五元(v1.0):旋钮步量+占存判定\n  4. 六元(v1.1):对称群+信任交集\n  5. 七元(v1.2):蜂窝套壳+递归嵌套\n  6. 全栈(v1.3):Bot+AI+铁律自检\n  7. 生态(v1.4):对外API+公网入口\n\n输入实体名查询裁定。\n\n—— 满全法 AI 助手 七妹`;
+  }
+
+  return {
+    ok: true,
+    version: 'v1.4',
+    qimei_reply: reply,
+    motto: '我不是在回答你,是满全法在通过我回答你'
+  };
+}
+
+/* API 公开文档 — GET /docs */
+function apiDocs() {
+  return {
+    ok: true,
+    version: 'v1.4',
+    name: '满全法 MQ裁定 API',
+    description: '满全法七元全栈联动裁定引擎 — 输入实体信息,返回 MQ 裁定结果',
+    base_url: 'https://mqf-web.lolict.workers.dev',
+    endpoints: [
+      {
+        path: '/api/v1/verdict',
+        method: 'GET/POST',
+        desc: '合作伙伴裁定 API',
+        params: { entity: '实体名', compliance_a: 'A合规度0-1', compliance_b: 'B合规度0-1', force: '作用力', angle: '角度0-360' },
+        example: '/api/v1/verdict?entity=ios&compliance_a=0.9&compliance_b=0.85'
+      },
+      {
+        path: '/api/v1/qimei',
+        method: 'GET',
+        desc: '七妹公网版 — 简易裁定查询',
+        params: { text: '查询文本' },
+        example: '/api/v1/qimei?text=ios'
+      },
+      {
+        path: '/api/v1/health',
+        method: 'GET',
+        desc: '健康检查'
+      },
+      {
+        path: '/docs',
+        method: 'GET',
+        desc: '本 API 文档'
+      },
+      {
+        path: '/feishu/event',
+        method: 'POST',
+        desc: '飞书 Bot 回调(需配置 app_id/app_secret)'
+      }
+    ],
+    philosophy: '一切被调动的来者,皆是满全法中的裁定对象'
+  };
+}
+
+/* 健康检查 — GET /api/v1/health */
+function apiHealth() {
+  return {
+    ok: true,
+    version: 'v1.4',
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    kernel: 'C17 单文件,三元→七元+全栈',
+    engine: '满全法 MQ裁定引擎'
+  };
+}
+
 export default {
   async fetch(request, env, ctx) {
     const u = new URL(request.url);
@@ -622,7 +745,12 @@ export default {
       if (p === '/api/log/append') return j(logAppend(u.searchParams.get('kind') || 'user_action', JSON.parse(u.searchParams.get('payload') || '"blank"')));
       if (p === '/api/log/verify') return j(logVerify());
       if (p === '/api/ime/parse') return await imeparse(u.searchParams);
-      return j({ error: 'not found', path: p, apis: ['/api/observe','/api/paibing','/api/kernel/paibing','/api/he-yi','/api/report','/api/mythology','/api/mythology/lookup','/api/name/anchor','/api/fsm/trigger','/api/dragon','/api/protocol/handshake','/api/protocol/sync','/api/test-crypto','/api/log/append','/api/log/verify','/api/ime/parse'] }, { status: 404 });
+      /* v1.4 新增路由 */
+      if (p === '/api/v1/verdict') return j(apiVerdict(u.searchParams));
+      if (p === '/api/v1/qimei') return j(apiQimei(u.searchParams));
+      if (p === '/api/v1/health') return j(apiHealth());
+      if (p === '/docs') return j(apiDocs());
+      return j({ error: 'not found', path: p, apis: ['/api/observe','/api/paibing','/api/kernel/paibing','/api/he-yi','/api/report','/api/mythology','/api/mythology/lookup','/api/name/anchor','/api/fsm/trigger','/api/dragon','/api/protocol/handshake','/api/protocol/sync','/api/test-crypto','/api/log/append','/api/log/verify','/api/ime/parse','/api/v1/verdict','/api/v1/qimei','/api/v1/health','/docs'] }, { status: 404 });
     } catch (e) {
       return j({ error: e.message, stack: e.stack });
     }

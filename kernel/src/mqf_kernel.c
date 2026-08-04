@@ -76,7 +76,7 @@ void mqf_qimei_demo(void);
 void mqf_roadmap_check_demo(void);
 void mqf_v13_demo(void);
 
-#define MQF_VERSION     "1.3.0"
+#define MQF_VERSION     "1.4.0"
 #define MQF_AUTH_LEN    32
 #define MQF_HASH_LEN    64
 #define MAX_EXEC_SLOTS  16
