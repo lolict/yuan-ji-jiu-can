@@ -10,7 +10,7 @@
 
 ## 当前状态
 
-**已完成**: 金壳封装 + 镜像代理 v0.7 (C 语言 + shell_header_t 格式 + 01夫妻边界审计)
+**已完成**: 统计锥引擎 v0.8 (C 语言 + cone_share_t 锥份额 + cone_snapshot_t 历史快照)
 
 - 位置: `kernel/src/mqf_kernel.c`
 - 运行: `make` → `./kernel/src/mqf_kernel.elf`
@@ -18,7 +18,7 @@
   - **公理1**: 声母/韵母/声调/笔画 → auth_code,一切实体强制经编码洗礼
   - **公理2**: 镜像代理拦截外部功能调用,返回我们的规定裁判值
   - **公理3**: 金壳封装格式 `shell_header_t`,任何外部二进制必须套 MQ Shell Header
-  - **公理4**: 锥份额 = cone_slots + cone_time_ms + mirror_depth,时间节奏由我们分配
+  - **公理4**: 统计锥 = cone_slots + cone_time_ms + mirror_depth,按合规度动态调节
   - **公理5**: `mqf_rule_enslave()`,外部规则经 MQ 通道 transmute 为受控碎片
 
 ## 已完成版本
@@ -56,16 +56,27 @@
 - 新增审计事件: SHELL_WRAP/SHELL_BOUNDARY/SHELL_ACTIVATE/MIRROR_PROXY
 - 六大场景演示:裸二进制→拒绝 → 包壳→颁发身份 → 镜像拦截 → 01边界审计
 
+### v0.8 统计锥引擎 ← 当前
+- `cone_share_t`:每个节点的锥份额向量(time_slice_ms/space_depth/mirror_levels/compliance/accumulated_ticks)
+- `cone_snapshot_t`:历史态势记录(ts/global_compliance/active_nodes/dominant_state)
+- `mqf_cone_tick()`:每周期重新计算合规度,按以下策略调整锥份额:
+  · compliance ≥ 70% → 稳态:时间 *1.2 奖励,空间深度 +1
+  · compliance < 40% → 逆变态:时间 *0.7 惩戒,空间深度 -1
+  · 中间区间 → 渐变态:份额不变
+- `mqf_cone_register()`:对象注册到统计锥,领取初始锥份额
+- 历史环形缓冲(MAX_CONE_HISTORY=64):可追溯 N 个周期前的态势
+- 七大场景演示:K1注册 → K2五轮tick动态调整 → K3历史态势 → K4锥哲学
+
 ---
 
 ## 下一步(按顺序)
 
-### v0.8 统计锥引擎 (C)
-**目标**: 把 v0.5 的空间代数升级为**公理4(统计锥切片)**完整实现
+### v0.9 全栈联调 + 飞书 Bot API 回归测试 (C + JS + 外部集成)
+**目标**: 把 v0.1-v0.8 执行内核与飞书 Bot、Workers KV 打通,让裁判能力真正输出到外部世界
 
-- 锥形态: 时间份额 + 空间份额 + 镜像级数 + 合规度权重
-- 锥调度: 按合规度动态调整份额(observe_ratio 高的多给)
-- 锥快照: 定时拍照全图状态,回溯历史态势
+- 飞书 Bot → MQ 内核:每个飞书消息触发一次内核观测+规则裁定
+- 飞书 Bot ← MQ 内核:七妹(满全法 AI 助手)的回复,由内核通过镜像代理给出
+- 把 ROADMAP 全套铁律嵌入自动化检查(prolog shell 自动验证)
 
 ---
 

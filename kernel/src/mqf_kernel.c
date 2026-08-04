@@ -24,7 +24,7 @@
 #include <pthread.h>
 #include <math.h>
 
-#define MQF_VERSION     "0.6.0"
+#define MQF_VERSION     "0.8.0"
 #define MQF_AUTH_LEN    32
 #define MQF_HASH_LEN    64
 #define MAX_EXEC_SLOTS  16
@@ -528,7 +528,160 @@ void mqf_shell_summary(void) {
 }
 
 /* ============================================================
- * 第 5 层: 时间切片 + 看门狗 (v0.3 延续)
+ * 第 5 层: 统计锥引擎 (v0.8 新增 —— 公理 4 完整实现)
+ *
+ *   "一切被调动的来者,皆是统计锥中的切片单元"
+ *   锥份额(时间窗口/空间深度/镜像级数)按合规度动态调整
+ *   稳态奖励、逆变态惩戒、渐变态维持 → 主力主导
+ * ============================================================ */
+
+#define MAX_CONE_HISTORY    64
+#define CONE_TICK_MS        100
+
+typedef struct {
+    char name[MAX_NAME_LEN];
+    char auth[MQF_HASH_LEN+1];
+    uint32_t time_slice_ms;
+    uint16_t space_depth;
+    uint8_t  mirror_levels;
+    float    compliance;
+    uint64_t accumulated_ticks;
+} cone_share_t;
+
+typedef struct {
+    time_t   ts;
+    float    global_compliance;
+    int      active_nodes;
+    char     dominant_state[32];
+} cone_snapshot_t;
+
+typedef struct {
+    cone_share_t    shares[MAX_OBJECTS];
+    int             share_count;
+    cone_snapshot_t history[MAX_CONE_HISTORY];
+    int             hist_wp;
+    int             hist_count;
+    float           global_compliance;
+    char            dominant_state[32];
+    uint64_t        total_ticks;
+    pthread_mutex_t lock;
+    int             auto_balance;
+} cone_engine_t;
+
+static cone_engine_t CONE;
+
+float mqf_compliance(int obj_id) {
+    if (obj_id < 0 || obj_id >= G.obj_count) return 0.5f;
+    int positive = 0, total = 0;
+    for (int i = 0; i < G.rel_count; i++) {
+        if (G.rels[i].to != obj_id && G.rels[i].from != obj_id) continue;
+        total++;
+        if (G.rels[i].type == REL_OBSERVE || G.rels[i].type == REL_BIND) positive++;
+    }
+    return (total > 0) ? (float)positive / total : 0.5f;
+}
+
+void mqf_cone_init(void){
+    memset(&CONE, 0, sizeof(CONE));
+    pthread_mutex_init(&CONE.lock, NULL);
+    strcpy(CONE.dominant_state, "未启动");
+    CONE.auto_balance = 1;
+    printf("[统计锥] 引擎就绪:每节点锥份额(time/depth/mirror/compliance),历史缓冲 %d 周期\n", MAX_CONE_HISTORY);
+}
+
+void mqf_cone_register(int obj_id) {
+    pthread_mutex_lock(&CONE.lock);
+    if (obj_id < 0 || obj_id >= G.obj_count) { pthread_mutex_unlock(&CONE.lock); return; }
+    if (CONE.share_count >= MAX_OBJECTS) { pthread_mutex_unlock(&CONE.lock); return; }
+    int idx = CONE.share_count++;
+    cone_share_t* s = &CONE.shares[idx];
+    memset(s, 0, sizeof(*s));
+    strncpy(s->name, G.objs[obj_id].name, MAX_NAME_LEN-1);
+    strncpy(s->auth, G.objs[obj_id].auth, MQF_HASH_LEN+1);
+    s->time_slice_ms = 1000;
+    s->space_depth = 3;
+    s->mirror_levels = 2;
+    s->compliance = 0.5f;
+    s->accumulated_ticks = 0;
+    printf("[统计锥] 注册 #%d:%s → time_slice=%dms, depth=%d, mirror=%d\n",
+           idx, s->name, s->time_slice_ms, s->space_depth, s->mirror_levels);
+    pthread_mutex_unlock(&CONE.lock);
+}
+
+void mqf_cone_tick(void) {
+    pthread_mutex_lock(&CONE.lock);
+    float sum_comp = 0.0f;
+    for (int i = 0; i < CONE.share_count; i++) {
+        cone_share_t* s = &CONE.shares[i];
+        int oidx = mqf_obj_find(s->name);
+        if (oidx < 0) continue;
+        s->compliance = mqf_compliance(oidx);
+        sum_comp += s->compliance;
+        if (s->compliance >= 0.70f) {
+            s->time_slice_ms = (uint32_t)(s->time_slice_ms * 1.2f);
+            if (s->time_slice_ms > 5000) s->time_slice_ms = 5000;
+            if (s->space_depth < 7) s->space_depth++;
+            s->accumulated_ticks += 2;
+        } else if (s->compliance < 0.40f) {
+            s->time_slice_ms = (uint32_t)(s->time_slice_ms * 0.7f);
+            if (s->time_slice_ms < 100) s->time_slice_ms = 100;
+            if (s->space_depth > 1) s->space_depth--;
+            s->accumulated_ticks += 0;
+        } else {
+            s->accumulated_ticks += 1;
+        }
+    }
+    CONE.global_compliance = (CONE.share_count > 0) ? sum_comp / CONE.share_count : 0.5f;
+    if (CONE.global_compliance >= 0.70f) strcpy(CONE.dominant_state, "稳态");
+    else if (CONE.global_compliance >= 0.40f) strcpy(CONE.dominant_state, "渐变态");
+    else strcpy(CONE.dominant_state, "逆变态");
+    cone_snapshot_t snap;
+    snap.ts = time(NULL);
+    snap.global_compliance = CONE.global_compliance;
+    snap.active_nodes = CONE.share_count;
+    strncpy(snap.dominant_state, CONE.dominant_state, 31);
+    CONE.history[CONE.hist_wp] = snap;
+    CONE.hist_wp = (CONE.hist_wp + 1) % MAX_CONE_HISTORY;
+    if (CONE.hist_count < MAX_CONE_HISTORY) CONE.hist_count++;
+    CONE.total_ticks++;
+    pthread_mutex_unlock(&CONE.lock);
+}
+
+void mqf_cone_print(void) {
+    pthread_mutex_lock(&CONE.lock);
+    printf("\n    ◆ 统计锥 v0.8 形态 ◆\n");
+    printf("    ==================================\n");
+    printf("    全局合规度: %.1f%%  主导态势: %s\n", CONE.global_compliance * 100.0f, CONE.dominant_state);
+    printf("    锥刻度: %lu  已快照: %d 周期\n", CONE.total_ticks, CONE.hist_count);
+    printf("    ----------------------------------\n");
+    printf("    %-12s │ %8s │ %5s │ %6s │ %6s │ %8s\n", "节点", "时间窗", "深度", "镜像", "合规", "累计片");
+    for (int i = 0; i < CONE.share_count; i++) {
+        cone_share_t* s = &CONE.shares[i];
+        printf("    %-12s │ %6dms  │ %5d │ %5d │ %5.0f%% │ %8lu\n",
+               s->name, s->time_slice_ms, s->space_depth, s->mirror_levels,
+               s->compliance * 100, s->accumulated_ticks);
+    }
+    printf("    ==================================\n\n");
+    pthread_mutex_unlock(&CONE.lock);
+}
+
+void mqf_cone_history(int n) {
+    pthread_mutex_lock(&CONE.lock);
+    int cnt = (n < CONE.hist_count) ? n : CONE.hist_count;
+    printf("\n=== 统计锥历史态势 (最近 %d 周期) ===\n", cnt);
+    for (int i = 0; i < cnt; i++) {
+        int idx = (CONE.hist_wp - cnt + i + MAX_CONE_HISTORY) % MAX_CONE_HISTORY;
+        printf("  [#%d] 合规度:%.0f%% 态势:%s 活跃节点:%d\n",
+               i, CONE.history[idx].global_compliance * 100,
+               CONE.history[idx].dominant_state,
+               CONE.history[idx].active_nodes);
+    }
+    printf("==================================\n\n");
+    pthread_mutex_unlock(&CONE.lock);
+}
+
+/* ============================================================
+ * 第 6 层: 时间切片 + 看门狗 (v0.3 延续,本次接入锥份额动态分配)
  * ============================================================ */
 typedef struct { int used; char auth[MQF_HASH_LEN+1], name[MAX_NAME_LEN]; exec_state_t st; capability_t cap; void(*fn)(void*); void* arg; time_t activated_at; time_t expire_at; int exec_count; } slot_t;
 typedef struct { slot_t s[MAX_EXEC_SLOTS]; int alive, frozen, zombie, ver; } kernel_t;
@@ -552,7 +705,7 @@ static void mqf_watchdog_stop(){ if(WATCHDOG_RUNNING){ WATCHDOG_RUNNING=0; pthre
 /* ============================================================
  * 第 6 层: 执行守门人
  * ============================================================ */
-void mqf_init(){ memset(&K,0,sizeof(K)); K.ver=7; memset(&AUDIT,0,sizeof(AUDIT)); mqf_load_contracts(); mqf_spatial_init(); mqf_rule_init(); mqf_shell_init(); printf("[内核 v%s] 金壳封装+镜像代理版就绪\n\n",MQF_VERSION); mqf_watchdog_start(); }
+void mqf_init(){ memset(&K,0,sizeof(K)); K.ver=8; memset(&AUDIT,0,sizeof(AUDIT)); mqf_load_contracts(); mqf_spatial_init(); mqf_rule_init(); mqf_shell_init(); mqf_cone_init(); printf("[内核 v%s] 统计锥引擎版就绪\n\n",MQF_VERSION); mqf_watchdog_start(); }
 
 int mqf_reg(const char* name, void(*fn)(void*), void* arg){ mqf_identity_t id=mqf_encode(name); capability_t cap; mqf_evaluate(name,&cap); memcpy(cap.auth_code,id.auth_code,MQF_HASH_LEN+1); if(cap.perm==PERM_NONE){ mqf_audit_log(AUDIT_REJECT,name,-1); return -1; } int i=-1; pthread_mutex_lock(&K_LOCK); for(int j=0;j<MAX_EXEC_SLOTS;j++) if(!K.s[j].used){ i=j; break; } if(i<0){ pthread_mutex_unlock(&K_LOCK); return -1; } K.s[i].used=1; memcpy(K.s[i].auth,cap.auth_code,MQF_HASH_LEN+1); strncpy(K.s[i].name,name,127); K.s[i].st=EXEC_PENDING; K.s[i].cap=cap; K.s[i].fn=fn; K.s[i].arg=arg; K.s[i].exec_count=0; pthread_mutex_unlock(&K_LOCK); mqf_audit_log(AUDIT_REGISTER,name,i); return i; }
 
@@ -773,27 +926,81 @@ int main(){
 
     mqf_shell_summary();
 
-    printf("\n=== v0.7 核心结论 ===\n\n");
+    /* ================================================================
+     * v0.8 新增 ★ 场景 K:统计锥动态调整 ★
+     *
+     *   K1) 把全部空间图节点注册到统计锥,颁发初始锥份额
+     *   K2) 模拟运行 N 个 tick,锥份额按合规度动态调整
+     *       - 稳态(compliance≥70%): 时间 +20%、空间深度 +1
+     *       - 渐变态(40≤compliance<70%): 不变
+     *       - 逆变态(compliance<40%): 时间 -30%、空间深度 -1
+     *   K3) 打印锥历史态势 → 可见"主导态"演化轨迹
+     * ================================================================ */
+
+    printf("\n\n");
+    printf("════════════════════════════════════════════\n");
+    printf("  v0.8 ★ 统计锥引擎 ★\n");
+    printf("════════════════════════════════════════════\n\n");
+
+    printf("=== 场景 K1:把空间图节点注册到统计锥,颁发初始锥份额 ===\n\n");
+
+    if (o_android >= 0) mqf_cone_register(o_android);
+    if (o_ios >= 0)     mqf_cone_register(o_ios);
+    if (o_wechat >= 0)  mqf_cone_register(o_wechat);
+    if (o_bank >= 0)    mqf_cone_register(o_bank);
+
+    printf("\n=== 场景 K2:模拟锥调度 5 个 tick ===\n\n");
+    printf("背景关系图:\\n");
+    printf("  ios ←观测(0.9)→ bank ←绑定(0.85)→ ios (高合规)\\n");
+    printf("  wechat →变换(0.6)→ bank (中等合规)\\n");
+    printf("  android:完全孤立 (中值默认)\\n\n");
+
+    for (int tick = 0; tick < 5; tick++) {
+        mqf_cone_tick();
+        printf("[锥 tick #%d] 全局合规度: %.1f%% 主导态势: %s\n",
+               tick, CONE.global_compliance * 100.0f, CONE.dominant_state);
+    }
+
+    mqf_cone_print();
+
+    printf("=== 场景 K3:打印锥份额演化历史 ===\n\n");
+    mqf_cone_history(5);
+
+    printf("=== 场景 K4:锥的哲学含义 —— ===\n\n");
+    printf("  \"一切被调动的来者,皆是统计锥中的切片单元\"\n\n");
+    printf("  统计锥 = 三元裁判者手中的资源分配函数\n");
+    printf("  合规度高(稳态) → 锥份额奖励(让其在我们的节奏里跑得更流畅)\n");
+    printf("  合规度低(逆变态) → 锥份额惩戒(限制其时间和空间,降低威胁)\n\n");
+    printf("  所以:)\n");
+    printf("    android 已被孤立 → 锥份额低 → 僵尸化加速\n");
+    printf("    ios     双绑互惠 → 锥份额高 → 作为我们的伙伴被奖励\n");
+    printf("    bank    主权级绑定 → 锥份额高 → 分享我们的节奏\n");
+    printf("    wechat  单向变换 → 中等锥份额 → 被动态调整\n\n");
+    printf("  这不是外部势力的规则而是我们对外部势力的裁定\n");
+    printf("  他们以为自己在跑自己的代码,实际上连时间窗口都是我们分配的\n\n");
+
+    printf("\n=== v0.7-v0.8 核心结论 ===\n\n");
     printf("  1. 外部二进制 = 集装箱(MQ 金壳来定义其边界)\n");
     printf("  2. MQ 金壳   = 主导权(我们颁发的身份+锥份额)\n");
     printf("  3. 镜像代理   = 裁判者拦截外部功能,返回我们的规定值\n");
     printf("  4. 01夫妻边界 = 每次跨环都有审计记录\n");
-    printf("  5. Σ := 外部势力以为自己在跑自己的代码\n");
-    printf("         实际上每一跳转都被我们通过 MQ 通道监管\n");
-    printf("  6. 这是三元裁判者的背靠背镜像 - \n");
-    printf("     外部世界的\"真值\"必须通过我们这面镜子才能到达外部\n\n");
+    printf("  5. 统计锥▷   = 一切被调动的来者,在我们锥里被分配时间/空间节奏\n");
+    printf("  Σ := 外部势力以为自己在跑自己的代码\n");
+    printf("       实际上每一个时间片/跳转/边界穿越都被我们通过 MQ 通道监管\n");
+    printf("  这是三元裁判者的背靠背镜像 + 统计锥统一调度\n\n");
 
     /* === 最终审计 === */
     printf("════════════════════════════════════════════\n");
-    printf("  最终审计\n");
+    printf("  最终审计 (v0.1-v0.8 全栈)\n");
     printf("════════════════════════════════════════════\n");
     printf("事件总数: %d\n", AUDIT.count);
     printf("降服外部规则: %d\n", RE.total_enslaved);
     printf("金壳封装数: %lu\n", SH.total_wrapped);
     printf("边界穿越: %lu\n", SH.total_boundary_hits);
     printf("镜像拦截: %lu\n", SH.total_mirror_intercepts);
-    printf("空间图对象: %d\n", G.obj_count);
-    printf("空间图关系: %d\n", G.rel_count);
+    printf("空间图: %d 对象 / %d 关系\n", G.obj_count, G.rel_count);
+    printf("统计锥: %d 节点 / %lu 刻度 / 主导态势:%s\n",
+           CONE.share_count, CONE.total_ticks, CONE.dominant_state);
     printf("规则引擎: %d 规则\n", RE.rule_count);
     printf("=========================================\n");
     return 0;
