@@ -1,0 +1,15 @@
+[package]
+name = "mqf-shell"
+version = "1.7.0"
+description = "民联浏览器壳 · Tauri 原生包装"
+edition = "2021"
+
+[dependencies]
+tauri = { version = "1.7", features = [] }
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
+
+[build-dependencies]
+tauri-build = { version = "1.5", features = [] }

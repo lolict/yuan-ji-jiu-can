@@ -10,22 +10,21 @@
 
 ## 当前状态
 
-**已完成**: 七元蜂窝套壳 v1.2
+**已完成**: 民联浏览器壳 v1.7c (进行中)
 
 新增:
-- `mqf_domain_tag()` 域内核标记(三值:内/外/界)
-- `mqf_domain_permit()` 跨域请求裁定
-- `mqf_macronein_domain()` 宏量流入/微量流失判定
-- 场景 L1 L2 L3 演示
+- `kernel/wasm/mqf_wasm.c` — WASI 裁决内核移植 (五元+六元+七元)
+- `shell/browser/` — 民联浏览器壳 (HTML/CSS/JS 三栏裁决台)
+- `shell/native/` — Electron / Tauri / pywebview 多平台原生包装
+- `cloudflare/mqf-web.js` — 盟机合注册 + 域名无关化
+- 盟机合 67 术语体系 (docs/MENGJI_TERMS.md)
 
-- 位置: `kernel/src/mqf_kernel.c`
-- 运行: `make` → `./kernel/src/mqf_kernel.elf`
-- 功能:
-  - **公理1**: 声母/韵母/声调/笔画 → auth_code,一切实体强制经编码洗礼
-  - **公理2**: 镜像代理拦截外部功能调用,返回我们的规定裁判值
-  - **公理3**: 金壳封装格式 `shell_header_t`,任何外部二进制必须套 MQ Shell Header
-  - **公理4**: 统计锥 = cone_slots + cone_time_ms + mirror_depth,按合规度动态调节
-  - **公理5**: `mqf_rule_enslave()`,外部规则经 MQ 通道 transmute 为受控碎片
+位置:
+- C 内核: `kernel/src/mqf_kernel.c`
+- WASM: `kernel/wasm/mqf_wasm.c`
+- Worker: `cloudflare/mqf-web.js`
+- 浏览器壳: `shell/browser/`
+- 原生壳: `shell/native/`
 
 ## 已完成版本
 
@@ -191,35 +190,80 @@
 
 ---
 
+### v1.4 生态扩展 ← 已完成
+**目标**: 满全法核心引擎对外输出 - 飞书机器人公网部署 + 公开文档 + 合作伙伴接入
+
+- Cloudflare Workers 部署 (mqf-web.js 970+ 行)
+- 裁决 API: `/api/v1/verdict`, `/api/v1/qimei`, `/api/v1/health`
+- 裁定请求/响应 JSON 标准化
+- 飞书 Bot Webhook 接入
+
+### v1.5 统一对话渠道 ← 已完成
+**目标**: 统一飞书/Telegram/网页 多渠道入口
+
+- `/v1/chat` 统一对话端点 (channel=web|feishu|telegram)
+- OpenAPI 3.0 文档 (`/docs/v2`)
+- SVG 流程图 (`/diagrams`)
+- 七妹人格在多渠道保持一致
+
+### v1.6 盟机合子节点 ← 已完成
+**目标**: 任何人都可成为合伙人,资源归合伙人,裁决主导权归满全法
+
+- 盟机合 67 术语体系 (`docs/MENGJI_TERMS.md`)
+- `/api/v1/mengji/register` `/list` `/status` — 合伙人注册管理
+- `/api/v1/domain/check` — 域名无关化验证
+- `/api/v1/timeline` — 盟机合参与历史
+- 域名无关化设计: 任何域名运行输出一致
+
+### v1.7 WASM 内核 + 民联浏览器壳 ← 进行中
+**目标**: 裁决引擎脱离中心化平台,运行在用户自己的设备
+
+- **v1.7a**: WASM 内核设计 (`docs/WASM_CORE_v17.md`)
+- **v1.7b**: 移植 mqf_wasm.c (`kernel/wasm/mqf_wasm.c`)
+  - 五元 + 六元 + 七元 全部移植到 WASI
+  - JSON stdin/stdout 接口
+  - 无 pthread, 无文件系统依赖
+- **v1.7c**: 民联浏览器壳 (`shell/browser/`)
+  - HTML/CSS/JS 三栏裁决台
+  - WASM 优先 + JS 回退
+  - Electron / Tauri / pywebview 多平台原生包装
+  - 离线运行 + 域无关
+
+---
+
 ## 下一步(按顺序)
 
-### v1.4 生态扩展
-**目标**: 满全法核心引擎已完整,开始对外输出 - 飞书机器人公网部署 + 公开文档 + 合作伙伴接入
+### v1.8 里程碑文档
+- 固化盟机合架构 + 场域扩展
+- v1.6-v1.7 开发经验总结
+- 下阶段规划:移动端深度集成 / 多节点同步
 
-- 飞书机器人公网:部署到 Cloudflare Workers,暴露公网 Webhook
-- 满全法公开文档:白话文解读,降低外部理解成本
-- 合作伙伴 API:对外提供 MQ 裁定 API 接口
-- 七妹公网版:可在任何渠道调用的满全法裁定入口
+### v1.9 术语统一
+- PARTNER_PROTOCOL.md → MENGJI_TERMS.md (更新残留)
+- 代码注释全面切换盟机合术语
+- 对外文档对齐
 
 ---
 
 ## 技术栈
 
 - 内核: C ↔ Zig (小、快、可控)
+- WASM: clang/wasi-sdk (可移植裁决字节码)
+- 浏览器壳: vanilla JS + CSS (零依赖,离线)
+- 原生壳: Electron (大) / Tauri (小) / pywebview (轻)
+- Worker: Cloudflare Workers (无服务器)
 - 规则引擎: Prolog 子集 (声明式契约)
-- 多语言前端 → WASM (通用字节码)
 - 空间/关系代数: 自定义 + C 实现 (线程安全)
-- 打包: Tauri/PWA
 
 ## 规则
 
-1. 每次实现一个版本，跑通 → 提交 → 推送到 GitHub `lolict/hunyuan-os`
+1. 每次实现一个版本,跑通 → 提交 → 推送到 GitHub `lolict/hunyuan-os`
 2. 不在已规划之外加"临时功能"
 3. 改动这份路线图必须经过讨论
-4. 代码失败/方向错 → 修改计划并记录原因，不绕路走
+4. 代码失败/方向错 → 修改计划并记录原因,不绕路走
 
 ---
 
 *开始日期: 2026-08-04*
-*维护者: lolict + CatPaw*
-*最后更新: 2026-08-05 (v1.2)*
+*维护者: lolict + CatPaw · 七妹*
+*最后更新: 2026-08-05 (v1.7c)*

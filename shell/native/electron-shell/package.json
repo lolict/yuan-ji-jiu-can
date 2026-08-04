@@ -1,0 +1,24 @@
+{
+  "name": "mqf-shell-electron",
+  "version": "1.7.0",
+  "description": "民联浏览器壳 · Electron 原生包装",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac",
+    "build:linux": "electron-builder --linux"
+  },
+  "build": {
+    "appId": "dev.mqf.shell",
+    "productName": "民联浏览器",
+    "files": ["main.js", "preload.js", "../../browser/**/*"],
+    "win": { "target": "portable" },
+    "mac": { "target": "dmg" },
+    "linux": { "target": "AppImage" }
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.0.0"
+  }
+}

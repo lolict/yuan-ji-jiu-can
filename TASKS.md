@@ -12,10 +12,10 @@
 ## 时间轴(版本里程碑)
 
 ```
-v0.1 ── v0.2 ── v0.3 ── v0.4 ── v0.5 ── v0.6 ── v0.7 ── v0.8 ── v0.9 ── v1.0 ── v1.1 ── v1.2 ── v1.3
- │        │        │        │        │        │        │        │        │        │        │        │        │
- 编码    契约    看门狗   WASM_v0 空间代数 反客为主 金壳镜像 统计锥  四元面  五元旋钮  六元对称  蜂窝套壳  全栈联动
- 完成    完成    完成    完成    完成    完成    完成    完成    完成    完成     完成     完成     完成
+v0.1 ── v0.2 ── v0.3 ── v0.4 ── v0.5 ── v0.6 ── v0.7 ── v0.8 ── v0.9 ── v1.0 ── v1.1 ── v1.2 ── v1.3 ── v1.4 ── v1.5 ── v1.6 ── v1.7
+ │        │        │        │        │        │        │        │        │        │        │        │        │        │        │         │         │
+ 编码    契约    看门狗   WASM_v0 空间代数 反客为主 金壳镜像 统计锥  四元面  五元旋钮  六元对称  蜂窝套壳  全栈联动  生态API  对话渠道  盟机合子节点  WASM内核+壳
+ 完成    完成    完成    完成    完成    完成    完成    完成    完成    完成     完成     完成     完成      完成      完成        完成          进行中
 ```
 
 ### 已交付版本详细说明
@@ -49,17 +49,24 @@ hunyuan-os/
 │
 ├── kernel/
 │   └── src/mqf_kernel.c        ← ★ 核心文件,所有版本代码都在这(3500+ 行)
+│   └── wasm/mqf_wasm.c         ← WASI 裁决内核 v1.7 (307 行)
 │   └── wasm/runner.zig         ← Zig WASM 加载器
 │
 ├── cloudflare/
-│   └── mqf-web.js              ← Cloudflare Worker + 飞书 Bot 入口
+│   └── mqf-web.js              ← Cloudflare Worker + 盟机合注册 (970+ 行)
+│
+├── shell/                        ← 民联浏览器壳 v1.7c
+│   └── browser/                  ← HTML+CSS+JS 裁决台
+│   └── native/                   ← Electron/Tauri/pywebview 原生包装
 │
 ├── android/                    ← Android parasitate 辅助服务代码
 │   └── src/com/mqf/parasite/   ← 6 个文件:IME/Alarm/Boot/HiddenFS/CoverApp/Accessibility
 │
 ├── docs/
+│   ├── MENGJI_TERMS.md         ← 盟机合 67 术语体系
+│   ├── WASM_CORE_v17.md        ← WASM 内核技术设计
 │   ├── CAST.md                 ← 三元裁判者人格宪法
-│   └── WHITEPAPER.md           ← 对外白皮书
+│   ├── WHITEPAPER.md           ← 对外白皮书
 │   └── ARCHITECTURE.md         ← 架构细节
 │
 ├── deploy/
@@ -91,6 +98,11 @@ hunyuan-os/
 
 ### 已落地(无需再讨论)
 - v0.1-v1.3 全部完成并通过 demo 验证
+- v1.4 生态 API (Cloudflare Worker 对外)
+- v1.5 统一对话渠道 + OpenAPI 文档 + SVG 流程图
+- v1.6 盟机合子节点 (域名无关化 + 资源归合伙人 + 主导权归满全法)
+- v1.7a WASM 内核设计
+- v1.7b WASM 核心移植 (kernel/wasm/mqf_wasm.c)
 - 三元(编码+规则引擎+空间代数+统计锥)
 - 四元(拓扑域标记+跨域裁定+宏微量)
 - 五元(旋钮运动步量+角度wrap+占存判定)
@@ -99,9 +111,14 @@ hunyuan-os/
 - 全栈(飞书 Bot Bridge + 七妹 AI + ROADMAP 铁律自检)
 - 金壳封装+镜像代理
 - Docker 容器+白皮书+飞书对接文档+角色宪法
+- 盟机合 67 术语体系 (docs/MENGJI_TERMS.md)
 
-### 代码中唯一的核心文件
-`kernel/src/mqf_kernel.c`(3500+ 行,一处改动全栈生效)
+### 代码文件
+- `kernel/src/mqf_kernel.c` (3500+ 行,本地核心)
+- `kernel/wasm/mqf_wasm.c` (WASI 裁定内核,307 行)
+- `cloudflare/mqf-web.js` (Cloudflare Worker + 盟机合注册)
+- `shell/browser/` (民联浏览器壳 v1.7c — HTML+CSS+JS)
+- `shell/native/Electron` / `Tauri` / `pywebview` 多平台原生包装器
 
 ### Demo 验证方式
 ```bash
