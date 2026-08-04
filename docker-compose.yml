@@ -1,0 +1,36 @@
+# 满全法 · 囡囝共生元 — 一键部署配置 v0.8
+# ManQuanFa · NanJian Symbiosis Metakernel — One-Click Deploy
+#
+# 用法:
+#   docker compose up             # 运行一次演示
+#   docker compose run --rm mqf   # 同上
+#   docker compose run --rm mqf --shell  # 开发者 shell
+#
+# 这套容器把满全法 v0.1-v0.8 全部内核封装在一张镜像里
+
+version: "3.9"
+
+services:
+  mqf:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: mqf-kernel:0.8
+    container_name: mqf-judge
+    # 默认运行演示;改为 "--shell" 则进入开发 shell
+    command: ["--run-demo"]
+    # 裁判内核是纯本地计算,不需要端口映射;
+    # 如果要对外暴露 API(例如 REST 桥接),取消下面注释:
+    # ports:
+    #   - "127.0.0.1:12789:12789"
+    restart: "no"
+    labels:
+      - "com.manquanfa.kernel=true"
+      - "com.manquanfa.version=0.8"
+      - "com.manquanfa.role=judge"
+
+# 如果未来需要持久化 KV(例如把飞书 Bot 的状态存下来):
+# volumes:
+#   - mqf-data:/mqf/data
+# volumes:
+#   mqf-data:
