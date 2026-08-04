@@ -10,9 +10,10 @@
 
 | 组件 | 状态 | 说明 |
 |------|------|------|
-| Workers: `mqf-web` | **已部署 + 公网可达** | 17 个 API + 1 个 HTML 主面板 |
-| workers.dev 子域 `lolict` | **已启用** | deployment id `b7eb76da-7178-4639-8b01-b5948ed961e2` 流量 100% |
-| R2 存储桶 `mqf-backup` | ⚠️ 待激活 | Workers API 端 R2 激活必须走 Dashboard UI；沙箱无法走 Dashboard（余额门槛） |
+| Workers: `mqf-web` | **已部署 + 公网可达** | 19 个 API + 1 个 HTML 主面板 + 飞书回调 |
+| Workers KV `mqf-backup` | **已创建 + 已绑定** | 免费 1GB / 10k写/100k读每天，无需银行卡 |
+| workers.dev 子域 `lolict` | **待用户在 Dashboard 注册** | 免费操作 |
+| 飞书机器人 `cli_aae37ced6a785bdb` | **已配置后端** | 菜单「控惗编程」+ 消息回调 + Qwen 对接 |
 
 ---
 

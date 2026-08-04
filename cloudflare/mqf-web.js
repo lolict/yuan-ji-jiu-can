@@ -472,12 +472,140 @@ async function logVerify(){show('log-result',await api('/api/log/verify'))}
 window.addEventListener('load',async()=>{await observeBinary();await observeTernary();await mythList()})
 </script></body></html>`; }
 
+/* ============================================================
+ * 飞书机器人回调 — im.message.receive_v1
+ *   /feishu/event  接收飞书推送的事件 (URL验证 + 消息 + Qwen 回复)
+ *   /feishu/menu   返回飞书菜单 URL 列表 (JSON)
+ * 需要 env 密钥: FEISHU_APP_ID, FEISHU_APP_SECRET, QWEN_KEY (Cloudflare Worker Secret)
+ * ============================================================ */
+async function feishuEvent(request, env) {
+  if (request.method !== 'POST') return new Response('method not allowed', { status: 405 });
+  let body;
+  try { body = await request.json(); } catch { return new Response('bad json', { status: 400 }); }
+
+  // 飞书回调 URL 验证 — 首次设置"请求网址"时飞书发这条
+  if (body.type === 'url_verification') {
+    return new Response(JSON.stringify({ challenge: body.challenge }), {
+      headers: { 'content-type': 'application/json' }
+    });
+  }
+
+  // Schema 2.0 事件
+  if (body.schema !== '2.0') {
+    return new Response(JSON.stringify({ code: 0 }), { headers: { 'content-type': 'application/json' } });
+  }
+  const header = body.header || {};
+  const ev = body.event || {};
+  if (header.event_type !== 'im.message.receive_v1') {
+    return new Response(JSON.stringify({ code: 0 }), { headers: { 'content-type': 'application/json' } });
+  }
+  const msg = ev.message || {};
+  const msgType = msg.message_type;
+  if (msgType !== 'text') {
+    return new Response(JSON.stringify({ code: 0 }), { headers: { 'content-type': 'application/json' } });
+  }
+  // 解析消息内容
+  let userText = '';
+  try {
+    const c = JSON.parse(msg.content || '{}');
+    userText = (c.text || '').replace(/@_user_\d+\s*/g, '').trim();
+  } catch { /* ignore */ }
+  if (!userText) return new Response(JSON.stringify({ code: 0 }), { headers: { 'content-type': 'application/json' } });
+
+  // 取 tenant_access_token
+  const tokenJson = await fetch('https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ app_id: env.FEISHU_APP_ID, app_secret: env.FEISHU_APP_SECRET })
+  }).then(r => r.json());
+  const tenantToken = tokenJson.tenant_access_token;
+  if (!tenantToken) return new Response(JSON.stringify({ error: 'no token' }), { status: 500 });
+
+  // 调通义千问 Qwen
+  const qwenJson = await fetch('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'authorization': 'Bearer ' + env.QWEN_KEY, 'content-type': 'application/json' },
+    body: JSON.stringify({
+      model: 'qwen-max',
+      messages: [
+        { role: 'system', content: '你是满全法操作系统的人工智能助手“七妹”。由刘楚恬与 lolict 共建。问满全法、观测者、排病、封神台、神龙、囡囝四态时，优先引用系统概念。回答简洁、神秘、友好。' },
+        { role: 'user', content: userText }
+      ],
+      temperature: 0.6,
+      max_tokens: 2048
+    })
+  }).then(r => r.json());
+  const reply = qwenJson.choices?.[0]?.message?.content?.trim() || '（七妹在入定，稍候）';
+
+  // 回复飞书消息
+  const messageId = msg.message_id;
+  if (messageId) {
+    await fetch(`https://open.feishu.cn/open-apis/im/v1/messages/${messageId}/reply`, {
+      method: 'POST',
+      headers: { 'authorization': 'Bearer ' + tenantToken, 'content-type': 'application/json' },
+      body: JSON.stringify({ content: JSON.stringify({ text: reply }), msg_type: 'text' })
+    }).catch(() => {});
+  }
+  return new Response(JSON.stringify({ code: 0 }), { headers: { 'content-type': 'application/json' } });
+}
+
+function feishuMenu() {
+  return j({
+    app_id: 'cli_aae37ced6a785bdb',
+    menus: [
+      {
+        name: '控惗编程',
+        name_i18n: { zh_CN: '控惗编程', en_US: 'Control-Intent Programming' },
+        is_web_url: true,
+        url: 'https://mqf-web.lolict.workers.dev/',
+        desc: '满全法 · 囡囝共生元操作系统 — 排病诊断 / 封神台 / 观测者 一体化面板'
+      }
+    ]
+  });
+}
+
+/* ============================================================
+ * 备份 API — PUT /api/backup/now + GET /api/backup/list
+ * 使用 Workers KV (免费层 1GB / 10k 写/天 / 100k 读/天)
+ * KV namespace "mqf-backup" 已在 Cloudflare Dashboard 创建
+ * 无需银行卡、无需信用卡、无需 R2 激活
+ * ============================================================ */
+async function backupNow(env) {
+  if (!env.KV) return { error: 'KV binding 未配置 — 请到 Cloudflare Dashboard > Workers & Pages > mqf-web > Settings > Functions > KV namespace bindings 添加 mqf-backup' };
+  const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const snapshot = {
+    ts,
+    project: 'hunyuan-os · 囡囝共生元操作系统',
+    version: 'v0.1',
+    commits: { github: 'lolict/hunyuan-os', gitee: 'lolict/yuan-ji-jiu-can' },
+    endpoints: ['/','/api/observe','/api/paibing','/api/he-yi','/api/report','/api/dragon',
+               '/api/mythology','/api/protocol/handshake','/api/protocol/sync',
+               '/api/name/anchor','/api/fsm/trigger','/api/log/append','/api/log/verify',
+               '/api/ime/parse','/api/backup/now','/api/backup/list','/feishu/event','/feishu/menu'],
+    feishu: { app:'cli_aae37ced6a785bdb', callback:'/feishu/event', llm:'qwen-max' }
+  };
+  const key = `snapshot-${ts}`;
+  await env.KV.put(key, JSON.stringify(snapshot), { metadata: { ts, project: 'hunyuan-os' } });
+  const val = JSON.stringify(snapshot).length;
+  return { ok: true, key, size: val, ts, note: 'hunyuan-os v0.1 快照已写入 Workers KV 免费层 (1GB / 10k 写/天 / 无需银行卡)' };
+}
+
+async function backupList(env) {
+  if (!env.KV) return { error: 'KV binding 未配置' };
+  const list = await env.KV.list({ prefix: 'snapshot-', limit: 50 });
+  return { ok: true, keys: list.keys.map(k => ({ key: k.name, ts: k.metadata?.ts })), truncated: list.list_complete === false };
+}
+
 export default {
   async fetch(request, env, ctx) {
     const u = new URL(request.url);
     const p = u.pathname;
     try {
       if (p === '/') return new Response(html(), { headers: { 'content-type': 'text/html; charset=utf-8' } });
+      if (p === '/feishu/event') return await feishuEvent(request, env);
+      if (p === '/feishu/menu') return feishuMenu();
+      if (p === '/api/backup/now' && request.method === 'POST') return j(await backupNow(env));
+      if (p === '/api/backup/list') return j(await backupList(env));
       if (p === '/api/observe') return await observe(u.searchParams);
       if (p === '/api/paibing') return await paibing(u.searchParams);
       if (p === '/api/kernel/paibing') return await paibing(u.searchParams);
