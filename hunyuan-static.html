@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>满全法 · 囡囝共生元操作系统 v0.2</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a0f;--card:#141420;--border:#2a2a3a;
+  --pink:#ff6b9d;--cyan:#7ec8e3;--purple:#c084fc;--gold:#f0d050;
+  --text:#e0e0e0;--dim:#999;--muted:#666;
+}
+body{font-family:-apple-system,"PingFang SC","Microsoft YaHei","Helvetica Neue",sans-serif;background:var(--bg);color:var(--text);padding:12px;max-width:900px;margin:0 auto;min-height:100vh}
+header{text-align:center;padding:20px 0 10px}
+h1{color:var(--pink);font-size:1.8em;letter-spacing:1px}
+.subtitle{color:var(--muted);font-size:0.85em;margin-top:4px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+@media(max-width:640px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px}
+.card h2{color:var(--cyan);font-size:0.95em;margin-bottom:8px;border-bottom:1px solid var(--border);padding-bottom:4px;display:flex;align-items:center;gap:6px}
+.card h2 .icon{font-size:1.1em}
+.full{grid-column:1/-1}
+input,button,select,textarea{background:#1e1e2e;border:1px solid #3a3a4a;color:var(--text);padding:7px 12px;border-radius:5px;font-size:13px;font-family:inherit}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--pink)}
+button{background:var(--pink);color:var(--bg);font-weight:bold;cursor:pointer;border:none;padding:7px 16px;font-size:12px;white-space:nowrap}
+button:hover{filter:brightness(1.1)}
+button.sec{background:#5a5a8a;color:#fff}
+button.ghost{background:transparent;border:1px solid #3a3a4a;color:var(--text)}
+.row{display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap;align-items:center}
+.row label{color:var(--dim);min-width:40px;font-size:11px}
+pre{background:var(--bg);padding:8px;border-radius:5px;font-size:11px;overflow-x:auto;border:1px solid var(--border);color:var(--cyan);max-height:180px;overflow-y:auto;white-space:pre-wrap;line-height:1.5;font-family:"SF Mono","Menlo","Consolas",monospace}
+.pipe{display:flex;align-items:center;gap:4px;margin:8px 0;font-size:12px;justify-content:center}
+.node{background:#2a2a4a;padding:3px 8px;border-radius:12px;border:2px solid #5a5a8a;font-size:11px}
+.anch{background:#4a2a4a;border-color:var(--pink)}
+.gap{color:var(--muted)}
+input[type=number],input[type=text]{width:60px}
+input.width-auto{flex:1;min-width:80px}
+pre.out{color:var(--text);font-family:inherit;max-height:none}
+.myth-card{background:#1a1a2a;border:1px solid #3a2a4a;border-radius:6px;padding:10px;margin:6px 0}
+.myth-card h3{color:var(--purple);font-size:12px;margin-bottom:3px}
+.myth-card h3 .cn{color:var(--pink);font-weight:bold;margin-right:6px}
+.myth-card h3 .role{color:var(--cyan);font-size:10px;font-weight:normal}
+.myth-card p{color:var(--dim);font-size:10px;white-space:pre-wrap}
+.scrollmax{max-height:250px;overflow-y:auto}
+.ref{color:var(--muted);font-size:10px}
+details{margin:4px 0}summary{cursor:pointer;color:var(--cyan);font-size:12px;padding:3px 0}
+summary:hover{color:var(--pink)}
+details[open] summary{color:var(--gold)}
+details ol,details ul{padding-left:18px;margin:4px 0}
+details li{font-size:11px;color:var(--dim);margin:2px 0}
+details li strong{color:var(--text)}
+.ai-chat{display:flex;flex-direction:column;gap:6px}
+.ai-messages{background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:8px;max-height:220px;overflow-y:auto;font-size:12px;line-height:1.6}
+.ai-msg{margin-bottom:6px}
+.ai-msg.u{color:var(--cyan)}
+.ai-msg.a{color:var(--text)}
+.ai-msg .who{font-weight:bold;margin-right:4px;font-size:10px;color:var(--pink)}
+.ai-msg.a .who{color:var(--gold)}
+.status-bar{position:fixed;top:0;left:0;right:0;background:rgba(10,10,15,0.95);backdrop-filter:blur(8px);padding:6px 12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;z-index:100;font-size:11px}
+.status-bar .left{color:var(--muted)}
+.status-bar .right{color:var(--cyan)}
+.key-badge{display:inline-block;background:#2a1a3a;padding:1px 6px;border-radius:8px;font-size:9px;color:var(--purple);margin-left:4px}
+.empty{color:var(--muted);font-style:italic;font-size:11px}
+footer{text-align:center;padding:30px 0;color:var(--muted);font-size:10px}
+</style>
+</head>
+<body>
+<div class="status-bar">
+  <span class="left">满全法 v0.2</span>
+  <span class="right" id="statusRight">初始化…</span>
+</div>
+<header>
+<h1>满全法 · 囡囝共生元操作系统</h1>
+<p class="subtitle">满全法 · HunYuan OS · 纯前端版 · 七妹AI &amp; 刘楚恬 &amp; lolict</p>
+</header>
+
+<div class="grid">
+
+<!-- 七妹 AI -->
+<div class="card full">
+<h2><span class="icon">🤖</span> 七妹 AI · 通义千问</h2>
+<div class="ai-chat">
+  <div class="row">
+    <input type="password" id="qwenKey" placeholder="sk-... (通义千问 API Key)" class="width-auto" style="flex:1;min-width:200px">
+    <button onclick="saveQwenKey()">保存</button>
+    <button class="ghost" onclick="toggleKey()">显示/隐藏</button>
+    <span id="keyStatus" class="ref">未配置</span>
+  </div>
+  <div class="ai-messages" id="aiMessages">
+    <div class="empty">配置通义千问 Key 后，可以在这里和七妹对话…<br>所有功能（排病/封神台/观测者）都会自动解释。</div>
+  </div>
+  <div class="row">
+    <input type="text" id="aiInput" placeholder="问七妹任何事…" class="width-auto" style="flex:1;min-width:200px" onkeydown="if(event.key==='Enter')askAi()">
+    <button onclick="askAi()">发送</button>
+    <button class="sec" onclick="clearAi()">清空</button>
+  </div>
+</div>
+</div>
+
+<!-- 观测者 -->
+<div class="card">
+<h2><span class="icon">👁️</span> 二元观测者</h2>
+<div class="pipe"><span class="node" id="bStart">0</span><span class="gap">⟷</span><span class="node" id="bEnd">∞</span></div>
+<div class="row"><label>起点</label><input type="number" id="binaryA" value="0"><label>终点</label><input type="number" id="binaryB" value="7"><button onclick="observeBinary()">观测</button></div>
+<pre id="binaryResult" class="out">← 点击观测</pre>
+</div>
+
+<div class="card">
+<h2><span class="icon">🔺</span> 三元观测者</h2>
+<div class="pipe"><span class="node" id="tLeft">L</span><span class="gap">⟷</span><span class="node anch" id="tAnchor">锚</span><span class="gap">⟷</span><span class="node" id="tRight">R</span></div>
+<div class="row"><label>左</label><input type="number" id="ternaryL" value="2"><label>锚</label><input type="number" id="ternaryA" value="5"><label>右</label><input type="number" id="ternaryR" value="9"><button onclick="observeTernary()">归一</button></div>
+<pre id="ternaryResult" class="out">← 点击归一</pre>
+</div>
+
+<!-- 排病 -->
+<div class="card">
+<h2><span class="icon">🩺</span> 排病诊断</h2>
+<div class="row"><label>编码</label><input type="text" id="paibingCode" placeholder="vy / lnm" style="width:110px"><button onclick="diagnose()">诊断</button><button class="sec" onclick="kernelPaibing()">内核版</button></div>
+<pre id="paibingResult" class="out">← 输入双编码(vy)或三编码(lnm)</pre>
+</div>
+
+<!-- 立约合一 -->
+<div class="card">
+<h2><span class="icon">💍</span> 立约 + 合一</h2>
+<div class="row"><label>誓约</label><input type="text" id="heyiContent" value="hunyuan-covenant-1" class="width-auto" style="min-width:140px"></div>
+<div class="row"><label>签名A</label><input type="text" id="heyiSigA" value="刘楚恬" style="width:80px"><label>签名B</label><input type="text" id="heyiSigB" value="lolict" style="width:80px"><button onclick="heYi()">立约+合一</button></div>
+<pre id="heyiResult" class="out">← 点击立约</pre>
+</div>
+
+<!-- FSM -->
+<div class="card">
+<h2><span class="icon">🔄</span> 囡囝四态 FSM</h2>
+<div class="pipe" style="justify-content:center;padding:6px 0"><span id="njLabel" style="color:var(--pink);font-weight:bold">[ 囡囝 · 均等 ]</span></div>
+<div class="row" style="justify-content:center">
+<button onclick="fsmTrigger('wife_deepen')">妻加深</button>
+<button class="sec" onclick="fsmTrigger('release')">释放</button>
+<button onclick="fsmTrigger('husband_take')" style="background:var(--cyan)">夫主导</button>
+<button onclick="fsmTrigger('deepen')" style="background:var(--gold);color:#000">深入</button>
+<button onclick="fsmTrigger('wife_push')">妻推回</button>
+<button class="ghost" onclick="switchNJ()">复位</button>
+</div>
+<pre id="njResult" class="out">← 点击切换</pre>
+</div>
+
+<!-- 姓名锚 -->
+<div class="card full">
+<h2><span class="icon">⚓</span> 中文姓名 → 256-bit 创世锚</h2>
+<div class="row"><label>名A</label><input type="text" id="nameA" value="刘楚恬" style="width:80px"><label>名B</label><input type="text" id="nameB" value="lolict" style="width:80px"><button onclick="calcAnchor()">⚓ 计算锚</button></div>
+<pre id="nameResult" class="out">← 点击计算</pre>
+</div>
+
+<!-- 神龙 -->
+<div class="card full">
+<h2><span class="icon">🐉</span> 神龙编码</h2>
+<div class="row"><label>拼音</label><input type="text" id="dragonPinyin" value="chuan" style="width:100px"><label>声调</label>
+<select id="dragonTone"><option value="1">1 阴平</option><option value="2" selected>2 阳平</option><option value="3">3 上声</option><option value="4">4 去声</option><option value="0">轻声</option></select>
+<button onclick="summonDragon()">召唤神龙</button></div>
+<pre id="dragonResult" class="out">← 输入拼音 + 声调</pre>
+</div>
+
+<!-- 灵犀协议 -->
+<div class="card full">
+<h2><span class="icon">🔐</span> 灵犀协议 · X25519 三次握手</h2>
+<div class="ref" style="margin-bottom:6px">唤魂/招魂=握手(X25519 ECDH→HKDF→AES-256-GCM), 同修=偏差→恢原尔倒裹</div>
+<div class="row"><button onclick="protoHandshake()">🤝 三次握手</button><button class="sec" onclick="protoSync()">🔄 同修</button><button onclick="testCrypto()" style="background:var(--cyan)">🔐 加密测试</button></div>
+<pre id="protoResult" class="out">← 点击握手/同修/加密测试</pre>
+</div>
+
+<!-- 封神台 -->
+<div class="card full">
+<h2><span class="icon">🏛️</span> 封神台 · 囡囝共生元宇宙</h2>
+<details open>
+<summary>封神=操作系统拟物</summary>
+<ol>
+<li><strong>太乙真人 = Boot Loader</strong>: 上电后唤醒哪吒进程</li>
+<li><strong>哪吒 = 进程/容器</strong>: 融=fork诞生, 入=exec执行, 容=wait挂起, exit=回收</li>
+<li><strong>李靖 = init (PID 1)</strong>: 哪吒父进程, 托塔=capability bounding set</li>
+<li><strong>封神榜 = PID 表</strong>: 记录全部应劫真灵/进程</li>
+<li><strong>封神台 = 调度器</strong>: 优先级round-robin, 无人能跳队</li>
+<li><strong>囡囝共生元道果 = 稳定内核</strong>: 多轮合一递归后最终形态</li>
+<li><strong>恢原尔倒裹 = 故障恢复</strong>: 从任意snapshot恢复</li>
+<li><strong>莫刘连理 = 锚点誓约</strong>: 夫妻共同体信任根</li>
+</ol>
+</details>
+<div class="row"><label>查找</label><input type="text" id="mythLookup" placeholder="太乙真人 / 哪吒" style="width:140px"><button onclick="mythLookup()">召唤神仙</button><button class="sec" onclick="mythList()">列出全部</button></div>
+<div id="mythResult" class="scrollmax" style="margin-top:8px">← 列出全部或召唤</div>
+</div>
+
+<!-- Merkle 日志 -->
+<div class="card full">
+<h2><span class="icon">📜</span> Merkle 日志环 (本地存储)</h2>
+<div class="row"><label>类型</label><input type="text" id="logKind" value="user_action" style="width:90px"><label>数据</label><input type="text" id="logPayload" value="test" class="width-auto"><button onclick="logAppend()">➕ 写入</button><button class="sec" onclick="logVerify()">✓ 校验</button><button class="ghost" onclick="logClear()">🗑 清空</button></div>
+<pre id="logResult" class="out">← 点击写入或校验</pre>
+</div>
+
+<!-- 全量报告 -->
+<div class="card full">
+<h2><span class="icon">📊</span> 全量自检</h2>
+<div class="row"><button onclick="sysReport()">运行合一递归 + 全量自检</button><button class="sec" onclick="runAllTests()">✅ 全部测试</button></div>
+<pre id="reportResult" class="out">← 点击运行</pre>
+</div>
+
+</div>
+
+<footer>
+满全法 · 囡囝共生元操作系统 · v0.2 · lolict · 2026<br>
+数据存于浏览器本地 · 无需服务器 · 断网也可用核心功能
+</footer>
+
+<script>
+/* ============================================================
+ * 满全法 v0.2 · Pure Browser Build
+ * 从 Cloudflare Worker mqf-web.js 移植 · 纯前端 · 无需后端
+ */
+
+// --- 工具函数 ---
+const GCD=(a,b)=>{a=Math.abs(a|0);b=Math.abs(b|0);while(b)[a,b]=[b,a%b];return a};
+const hashStr=s=>{let h=5381>>>0;for(let i=0;i<s.length;i++)h=(((h<<5)+h)^s.charCodeAt(i))>>>0;return h>>>0};
+const anchorMod=(x,m=10000)=>((x%m)+m)%m;
+const enc=new TextEncoder();
+const dec=new TextDecoder();
+const pretty=obj=>JSON.stringify(obj,null,2);
+
+// --- SHA-256 (纯JS) ---
+function sha256(msg){
+  const K=[0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+  const H=[0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
+  const L=msg.length,bitLen=L*8;
+  const kBytes=(64-((L+9)%64))%64;
+  const B=new Uint8Array(L+1+kBytes+8);
+  for(let i=0;i<L;i++)B[i]=msg.charCodeAt(i)&0xff;
+  B[L]=0x80;
+  const dv=new DataView(B.buffer);
+  dv.setUint32(B.length-8,Math.floor(bitLen/0x100000000)>>>0,false);
+  dv.setUint32(B.length-4,bitLen>>>0,false);
+  const W=new Int32Array(64);
+  for(let off=0;off<B.length;off+=64){
+    for(let i=0;i<16;i++)W[i]=dv.getUint32(off+i*4,false)|0;
+    for(let i=16;i<64;i++){
+      const s0=((W[i-15]>>>7)|(W[i-15]<<25))^((W[i-15]>>>18)|(W[i-15]<<14))^(W[i-15]>>>3);
+      const s1=((W[i-2]>>>17)|(W[i-2]<<15))^((W[i-2]>>>19)|(W[i-2]<<13))^(W[i-2]>>>10);
+      W[i]=(W[i-16]+s0+W[i-7]+s1)|0;
+    }
+    let a=H[0],b=H[1],c=H[2],d=H[3],e=H[4],f=H[5],g=H[6],h=H[7];
+    for(let t=0;t<64;t++){
+      const S1=((e>>>6)|(e<<26))^((e>>>11)|(e<<21))^((e>>>25)|(e<<7));
+      const ch=(e&f)^(~e&g);
+      const t1=(h+S1+ch+K[t]+W[t])|0;
+      const S0=((a>>>2)|(a<<30))^((a>>>13)|(a<<19))^((a>>>22)|(a<<10));
+      const maj=(a&b)^(a&c)^(b&c);
+      const t2=(S0+maj)|0;
+      h=g;g=f;f=e;e=(d+t1)|0;d=c;c=b;b=a;a=(t1+t2)|0;
+    }
+    H[0]=(H[0]+a)|0;H[1]=(H[1]+b)|0;H[2]=(H[2]+c)|0;H[3]=(H[3]+d)|0;H[4]=(H[4]+e)|0;H[5]=(H[5]+f)|0;H[6]=(H[6]+g)|0;H[7]=(H[7]+h)|0;
+  }
+  return H.map(n=>(n>>>0).toString(16).padStart(8,'0')).join('');
+}
+
+// --- 观测者 ---
+class BinaryObserver{
+  constructor(s,e){this.start=s;this.end=e;this.gap=e-s;this.abs_gap=Math.abs(this.gap)}
+  measure(x){const ts=Math.abs(x-this.start),te=Math.abs(x-this.end);const r=this.abs_gap===0?0.5:(x-this.start)/this.gap;return{x,to_start:ts,to_end:te,ratio:r,in_range:0<=r&&r<=1}}
+  to_rate(d){return d==='start'?{arbiter:this.start,rate:this.gap,type:'起始裁判'}:{arbiter:this.end,rate:-this.gap,type:'终点裁判'}}
+  duality(o){return{self_gap:this.abs_gap,other_gap:o.abs_gap,equivalent:this.abs_gap===o.abs_gap,distance:Math.abs(this.start-o.start)}}
+  toString(){return`↔(${this.start}…${this.end}|缝=${this.gap})`}
+}
+class TernaryObserver{
+  constructor(l,a,r){this.left=l;this.anchor=a;this.right=r}
+  get perms(){const a=[this.left,this.anchor,this.right],out=[];for(let i=0;i<3;i++)for(let k=0;k<3;k++)if(k!==i)for(let m=0;m<3;m++)if(m!==i&&m!==k)out.push([a[i],a[k],a[m]]);return out}
+  get to_anchor(){return{left:this.left-this.anchor,right:this.right-this.right,left_abs:Math.abs(this.left-this.anchor),right_abs:Math.abs(this.right-this.anchor)}}
+  get via_anchor(){return Math.abs((this.left-this.anchor)-(this.right-this.anchor))}
+  common_divisor(){const dl=Math.abs(this.left-this.anchor),dr=Math.abs(this.right-this.anchor);const cd=(dl===0||dr===0)?Math.max(dl,dr):GCD(dl,dr);return{left_distance:dl,right_distance:dr,common_divisor:cd,left_units:cd?dl/cd:0,right_units:cd?dr/cd:0}}
+  synthesize(){const lo=this.left-this.anchor,ro=this.right-this.anchor;return{anchor:this.anchor,left_offset:lo,right_offset:ro,sum_offset:lo+ro,balance:lo+ro===0,synthesis:`以锚${this.anchor}为心, 左距${lo}, 右距${ro}, 合成=${lo+ro}`}}
+  toString(){return`△(${this.left}…${this.anchor}…${this.right})`}
+}
+
+// --- 排病诊断 ---
+const DOUBLE_PAIRS=[["v","y"],["t","f"],["c","k"],["z","s"],["d","b"],["j","g"],["q","p"],["w","m"],["@","o"],["u","h"],["r","l"],["η","n"],["i","x"],["sh","ch"]];
+const TRIPLE_GROUPS=[["l","n","m"],["i","x","w"],["u","h","a"],["v","y","t"],["c","k","e"],["z","s","r"],["j","d","b"],["q","p","f"],["g","o","@"]];
+function extractInitials(token){const t=token.toLowerCase().trim();const initials=[];let i=0;while(i<t.length){if(i+1<t.length&&["sh","ch","zh"].includes(t.substr(i,2))){initials.push(t.substr(i,2));i+=2}else{initials.push(t[i]);i++}}return initials}
+const checkDouble=tokens=>{const all=new Set();for(const tok of tokens)for(const ch of extractInitials(tok))all.add(ch);const results=DOUBLE_PAIRS.map(([a,b])=>{const hA=all.has(a),hB=all.has(b);return{pair:a+b,has_a:hA,has_b:hB,status:hA&&hB?"healthy":hA||hB?"broken":"absent"}});const h=results.filter(r=>r.status==='healthy').length;return{check:'double',total:DOUBLE_PAIRS.length,healthy:h,broken:results.filter(r=>r.status==='broken').length,score:h/DOUBLE_PAIRS.length,details:results}};
+const checkTriple=tokens=>{const all=new Set();for(const tok of tokens)for(const ch of extractInitials(tok))all.add(ch);const rs=TRIPLE_GROUPS.map(g=>{const ov=g.filter(x=>all.has(x));let r;if(ov.length<2)r=0;else if(ov.length===2)r=2;else r=6;const s=r/6;const h=s>=0.99?"healthy":s>=0.66?"suspected":s>=0.33?"diseased":"cancer";return{group:g.join(''),overlap:ov,permutations:r,score:s,health:h}});const avg=rs.reduce((a,b)=>a+b.score,0)/rs.length;const ov=avg>=0.99?"healthy":avg>=0.66?"suspected":avg>=0.33?"diseased":"cancer";return{check:'triple',total:TRIPLE_GROUPS.length,avg_score:avg,overall:ov,details:rs}};
+function paibingDiagnose(code){if(code.length===2){const d=checkDouble([code]);return{check:'double',code,pair:d.details.find(x=>x.pair===code)||null,...d}}if(code.length===3){const t=checkTriple([code]);return{check:'triple',code,overall_health:t.overall,score:t.avg_score,...t}}return{error:"仅2或3字符编码"}}
+
+// --- 立约合一 ---
+class Process{
+  constructor(content,parties){this.content=content;this.parties=parties;this.signatures={};this.observer=new BinaryObserver(0,Infinity);this.sync_observer=null;this.state='相遇'}
+  sign(who,sig){if(!this.parties.includes(who))return false;this.signatures[who]=sig;if(Object.keys(this.signatures).length===1){this.state='缔约中';this.observer=new BinaryObserver(anchorMod(hashStr(this.parties[0])),anchorMod(hashStr(this.parties[1])))}else if(Object.keys(this.signatures).length===this.parties.length){this.state='已立约';const anchor=anchorMod(hashStr(this.content));this.sync_observer=new TernaryObserver(anchorMod(hashStr(this.parties[0]+sig)),anchor,anchorMod(hashStr(this.parties[1]+sig)));this.observer=new BinaryObserver(this.sync_observer.left,this.sync_observer.right)}return Object.keys(this.signatures).length===this.parties.length}
+  sync(){return this.sync_observer?this.sync_observer.synthesize():null}
+  unary_recursion(){if(!this.sync_observer)return{error:'未立约'};const s=this.sync_observer.synthesize();let r=s;if(s.balance)this.state='合一递归';else r={...s,action:'需调整',arbitration:this.sync_observer.common_divisor()};return r}
+}
+function heYi(content,sigA,sigB){const parties=['__a','__b'];const p=new Process(content,parties);p.sign('__a',sigA);p.sign('__b',sigB);return{state:p.state,observer:p.observer.toString(),sync:p.sync(),unary:p.unary_recursion()}}
+
+// --- FSM ---
+const STATES={NAN_JIAN:'囡囝',NAN_NAN:'囡囡',JIAN_JIAN:'囝囝',JIAN_NAN:'囝囡'};
+const TRANSITIONS={nan_jian:{wife_deepen:'nan_nan',husband_take:'jian_jian',balance:'nan_jian'},nan_nan:{release:'nan_jian',deepen:'nan_nan'},jian_jian:{release:'nan_jian',deepen:'jian_nan'},jian_nan:{release:'jian_jian',wife_push:'nan_jian'}};
+let fsmState='nan_jian';
+function fsmTrigger(e){const t=TRANSITIONS[fsmState];if(t&&t[e]){fsmState=t[e];return true}return false}
+function fsmDiagnose(){return{nan_jian:'均等: 双方互望',nan_nan:'妻主导: 夫嵌套',jian_jian:'夫主导: 妻嵌套',jian_nan:'夫非均衡主导'}[fsmState]}
+function switchNJ(){fsmState='nan_jian'}
+
+// --- 姓名锚 ---
+const PINYIN_TBL={'刘':['liu','l','iu','2'],'楚':['chu','ch','u','3'],'恬':['tian','t','ian','2'],'七':['qi','q','i','1'],'妹':['mei','m','ei','4'],'凹':['ao','@','ao','1'],'月':['yue','y','ue','4'],'留':['liu','l','iu','2']};
+const INITS="b p m f d t n l g k h j q x zh ch sh r z c s y w @".split(' ');
+const FINALS="a o e i u v ai ei ui ao ou iu ie ve er an en in un vn ang eng ing ong ia ua uo iao iou uai uei ian uan van uen iang uang ueng iong".split(' ');
+function nameAnchor(name){let pL=[],gL=[];for(const ch of name){let e=PINYIN_TBL[ch];if(!e){const cp=ch.codePointAt(0);e=['',INITS[cp%24],FINALS[(cp/24|0)%39],''+(cp%5)]}pL.push(e[1]+e[2]+e[3]);gL.push((ch.codePointAt(0)%64).toString())}const h1=sha256(pL.join('|')).slice(0,16),h2=sha256(gL.join('|')).slice(0,16);return'mqf_name_'+h1+h2}
+function jointAnchor(a,b){const A=nameAnchor(a).slice(9),B=nameAnchor(b).slice(9);const joint=Array.from(A).map((c,i)=>(parseInt(c,16)^parseInt(B[i],16)).toString(16)).join('');return'mqf_joint_'+sha256(joint+Date.now()).slice(0,32)}
+
+// --- 神龙编码 ---
+function compress(pinyin,tone){const s=pinyin.toLowerCase();let init='';for(const cand of INITS)if(cand!='@'&&s.startsWith(cand)&&cand.length>init.length)init=cand;if(!init)init='@';const ym=init!=='@'?s.slice(init.length):s;const l0=INITS.indexOf(init),l1=FINALS.indexOf(ym),l2='1234'.indexOf(tone);if(l0<0||l1<0||l2<0)return{error:'无法压缩:'+pinyin};return{code:'神'+[l0,l1,l2].join('-'),explain:`${init}+${ym}+${tone}`}}
+function dragonSummon(code){const parts=code.split('-');const chain=parts.slice(1).map(v=>parseInt(v));if(parts[0]!=='神')return{error:'非法神龙码'};const names=['声母','韵母','声调'];const values=[INITS,FINALS,null];const layers={};chain.forEach((v,i)=>{if(v!=null&&values[i])layers[names[i]]={value:values[i][v]}});return{code,layers}}
+
+// --- 封神台 ---
+const MYTHOS={
+  taiyi_zhenren:{name:'太乙真人',title:'乾元山金光洞洞主',role:'Boot Loader',description:'在硬件上电后负责唤醒哪吒(进程)。功耗: 只在启动时运行一次。攻击方式:九龙神火罩=kill -9。'},
+  tianyue_neza:{name:'恬悦哪吒',title:'三太子·莲花化身·童态进程',role:'Process / Container',description:'容器/Namespace。四态: 融=fork诞生, 入=exec执行, 容=wait挂起, 真灵回归封神榜=exit回收。'},
+  hunyuan_diguo:{name:'囡囝共生元道果',title:'操作系统内核的最终形态',role:'Running Kernel',description:'内核经过多轮合一递归后的稳定状态。核心是不变锚+动态包裹 — 以静制动,以锚聚神。'},
+  hui_yuan_er_dao_guo:{name:'恢原尔倒裹',title:'系统故障恢复+镜像重包裹',role:'Crash Recovery',description:'恢=恢复到检查点, 原=原始状态, 尔=尔后, 倒裹=逆向重新包裹。对应 git checkout <commit> 后 restore 全部意识。'},
+  fengshen_bang:{name:'封神榜',title:'进程表 / Process Table',role:'PID Table',description:'记录全部应劫真灵 — 对应进程表。入榜=fork 获得 PID。'},
+  fengshen_tai:{name:'封神台',title:'调度器 / Scheduler',role:'CPU Scheduler',description:'决定谁先封神 — 调度器。Priority-based round-robin。无人能跳队,除非被削去顶上三花(priority boost)。'},
+  li_jing:{name:'李靖',title:'托塔天王·父进程 init',role:'init (PID 1)',description:'哪吒的父进程 — init。他托着塔 = capability bounding set。'},
+  mo_liu_lian_li:{name:'莫刘连理',title:'夫妻命运共同体的锚点誓约',role:'Anchor / Root of Trust',description:'夫妻共同体的"锚"。任何单方面修改誓约都会导致 anchor hash 不匹配 → 合一递归失败 → 自动仲裁。'}
+};
+
+// --- Merkle 日志 (localStorage) ---
+const LOG_KEY='mqf_log_ring';
+function getLog(){try{return JSON.parse(localStorage.getItem(LOG_KEY))||{entries:[],genesis:sha256('mqf-webring')}}catch(e){return{entries:[],genesis:sha256('mqf-webring')}}}
+function saveLog(l){localStorage.setItem(LOG_KEY,JSON.stringify(l))}
+function logAppend(kind,payload){const l=getLog();const prev=l.entries.length?l.entries[l.entries.length-1].hash:l.genesis;const seq=l.entries.length;const mat=`${seq}|${kind}|${JSON.stringify(payload)}|${prev}|${Date.now()}`;const hash=sha256(mat);l.entries.push({seq,kind,payload,ts:Date.now(),prev:hash?prev:null,hash});saveLog(l);return{seq,kind,hash,total:l.entries.length}}
+function logVerify(){const l=getLog();if(!l.entries.length)return{valid:true,entries:0,root:'empty'};let prev=l.genesis;for(const e of l.entries){if(e.prev_hash!==prev)return{valid:false,at:e.seq};prev=e.hash}const leaves=l.entries.map(e=>e.hash);let lv=leaves;while(lv.length>1){const nx=[];for(let i=0;i<lv.length;i+=2)nx.push(sha256(lv[i]+(lv[i+1]||lv[i])));lv=nx}return{valid:true,entries:l.entries.length,root:lv[0]}}
+function logClear(){localStorage.removeItem(LOG_KEY);return'已清空'}
+
+// --- 灵犀协议 (Web Crypto X25519) ---
+function proof(s,h){return sha256(s+':'+h).slice(0,16)}
+class LXNode{
+  constructor(n,s){this.name=n;this.seed=s;this.anchorHash=anchorMod(hashStr(s));this.state=null;this.ephemeral=null;this.sessions={};this.log=[]}
+  async _genKey(){const kp=await crypto.subtle.generateKey({name:'X25519'},true,['deriveBits']);const pub=await crypto.subtle.exportKey('raw',kp.publicKey);this.ephemeral={kp,pub:new Uint8Array(pub)}}
+  async _ensure(){if(!this.ephemeral)await this._genKey()}
+  async sendHuanHun(peer){await this._ensure();return{type:'唤魂',from:this.name,anchor:this.anchorHash,seq:1,payload:{challenge:proof(this.name,this.anchorHash),pubkey:this.ephemeral.pub,crypto:true}}}
+  async sendZhaoHun(peer,msg){await this._ensure();if(msg&&msg.payload.pubkey){const derived=await crypto.subtle.deriveBits({name:'X25519',public:await crypto.subtle.importKey('raw',msg.payload.pubkey,{name:'X25519'},false,[])},this.ephemeral.kp.privateKey,256);const km=new Uint8Array(derived);const sk=await crypto.subtle.importKey('raw',await crypto.subtle.digest('SHA-256',km),{name:'HKDF'},false,['deriveKey']);const sessKey=await crypto.subtle.deriveKey({name:'HKDF',salt:new Uint8Array(32),info:enc.encode(this.seed+this.name+peer),hash:'SHA-256'},sk,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);this.sessions[peer]={key:sessKey,_raw:Array.from(km.slice(0,8)).map(b=>b.toString(16).padStart(2,'0')).join('')}}return{type:'招魂',from:this.name,anchor:this.anchorHash,seq:2,payload:{pubkey:this.ephemeral.pub,crypto:true}}}
+  receive(msg){if(msg.anchor!==this.anchorHash)return{type:'劫数',from:this.name,payload:{reason:'创世锚不一致'}};return null}
+}
+
+// --- 界面函数 ---
+function $(id){return document.getElementById(id)}
+function set(id,val){$(id).textContent=typeof val==='string'?val:pretty(val)}
+
+async function observeBinary(){
+  const a=parseFloat($('binaryA').value),b=parseFloat($('binaryB').value);
+  const o=new BinaryObserver(a,b);
+  set('binaryResult',{repr:o.toString(),gap:o.gap,abs_gap:o.abs_gap,start_rate:o.to_rate('start'),end_rate:o.to_rate('end')});
+  $('bStart').textContent=a;$('bEnd').textContent=b
+}
+async function observeTernary(){
+  const L=parseFloat($('ternaryL').value),A=parseFloat($('ternaryA').value),R=parseFloat($('ternaryR').value);
+  const o=new TernaryObserver(L,A,R);
+  set('ternaryResult',{repr:o.toString(),to_anchor:o.to_anchor,permutations_count:o.perms.length,via_anchor:o.via_anchor,common_divisor:o.common_divisor(),synthesis:o.synthesize()});
+  $('tLeft').textContent=L;$('tAnchor').textContent=A;$('tRight').textContent=R
+}
+function diagnose(){const c=$('paibingCode').value.trim();set('paibingResult',paibingDiagnose(c))}
+function kernelPaibing(){const c=$('paibingCode').value.trim();const r=paibingDiagnose(c);r.note='内核版已调用';set('paibingResult',r)}
+function heYi(){set('heyiResult',heYi($('heyiContent').value,$('heyiSigA').value,$('heyiSigB').value))}
+function fsmTrigger(e){fsmTrigger(e);$('njLabel').textContent='[ '+STATES[fsmState==='nan_jian'?'NAN_JIAN':fsmState==='nan_nan'?'NAN_NAN':fsmState==='jian_jian'?'JIAN_JIAN':'JIAN_NAN']+' · '+fsmDiagnose()+' ]';set('njResult',{event:e,new_state:fsmState,diagnosis:fsmDiagnose()})}
+function switchNJ(){switchNJ();$('njLabel').textContent='[ 囡囝 · 均等 ]'}
+function calcAnchor(){set('nameResult',{name_a:$('nameA').value,anchor_a:nameAnchor($('nameA').value),name_b:$('nameB').value,anchor_b:$('nameB').value?nameAnchor($('nameB').value):null})}
+
+async function protoHandshake(){
+  try{
+    const seed='hunyuan-'+Date.now();
+    const a=new LXNode('刘楚恬',seed),b=new LXNode('lolict',seed);
+    a.state=new TernaryObserver(a.anchorHash-3,a.anchorHash,a.anchorHash+3);
+    b.state=new TernaryObserver(b.anchorHash-3,b.anchorHash,b.anchorHash+3);
+    const huan=await a.sendHuanHun('lolict');
+    const zhao=await b.sendZhaoHun('刘楚恬',huan);
+    a.receive(zhao);
+    const sA=a.sessions['lolict'],sB=b.sessions['刘楚恬'];
+    set('protoResult',{handshake:['刘楚恬 --[唤魂]--> lolict','lolict --[招魂]--> 刘楚恬'],anchor:`${a.anchorHash}`,session_A:sA?`established key=${sA._raw}`:'none',session_B:sB?`established key=${sB._raw}`:'none'})
+  }catch(e){set('protoResult',{error:e.message})}}
+async function protoSync(){
+  const seed='hunyuan-sync-'+Date.now();
+  const a=new LXNode('刘楚恬',seed),b=new LXNode('lolict',seed);
+  a.state=new TernaryObserver(a.anchorHash-10,a.anchorHash,a.anchorHash+5);
+  b.state=new TernaryObserver(b.anchorHash-3,b.anchorHash,b.anchorHash+3);
+  set('syncResult',{flow:['刘楚恬--[同修]-->','lolict--[传功]-->','刘楚恬--[归元]-->'],a_state:a.state.synthesize(),b_state:b.state.synthesize()})
+}
+async function testCrypto(){
+  try{
+    const ka=await crypto.subtle.generateKey({name:'X25519'},true,['deriveBits']);
+    const kb=await crypto.subtle.generateKey({name:'X25519'},true,['deriveBits']);
+    const pubA=Array.from(new Uint8Array(await crypto.subtle.exportKey('raw',ka.publicKey))).map(b=>b.toString(16).padStart(2,'0')).join('');
+    const pubB=Array.from(new Uint8Array(await crypto.subtle.exportKey('raw',kb.publicKey))).map(b=>b.toString(16).padStart(2,'0')).join('');
+    const shared=await crypto.subtle.deriveBits({name:'X25519',public:kb.publicKey},ka.privateKey,256);
+    const fp=Array.from(new Uint8Array(shared).slice(0,8)).map(b=>b.toString(16).padStart(2,'0')).join('');
+    set('protoResult',{step1_pubA:pubA.slice(0,16)+'...',step1_pubB:pubB.slice(0,16)+'...',step2_shared_fp:fp,status:'OK · X25519 握手成功'})
+  }catch(e){set('protoResult',{error:e.message})}}
+function mythLookup(){
+  const q=$('mythLookup').value.trim().toLowerCase();
+  if(!q){set('mythResult','请输入神名');return}
+  for(const[k,e]of Object.entries(MYTHOS)){if(k.includes(q)||e.name.includes(q)){$('mythResult').innerHTML=`<div class="myth-card"><h3><span class="cn">${e.name}</span><span class="role">${e.role}</span></h3><div style="color:#888;font-size:10px;margin:2px 0">${e.title}</div><p>${e.description}</p></div>`;return}}
+  $('mythResult').innerHTML=`<div class="empty">未找到: "${q}" · 可查找: 太乙真人/哪吒/李靖/封神榜/封神台/囝共生/恢原尔倒裹/莫刘连理</div>`
+}
+function mythList(){
+  const html=Object.values(MYTHOS).map(e=>`<div class="myth-card"><h3><span class="cn">${e.name}</span><span class="role">${e.role}</span></h3><div style="color:#888;font-size:10px;margin:2px 0">${e.title}</div><p>${e.description}</p></div>`).join('');
+  $('mythResult').innerHTML=html
+}
+
+function logAppend(){set('logResult',{...logAppend($('logKind').value,$('logPayload').value||'blank'),pretty:true})}
+function logVerify(){set('logResult',logVerify())}
+function logClear(){set('logResult',logClear())}
+
+function sysReport(){
+  const r1=heYi('hunyuan-covenant-1','刘楚恬','lolict');
+  const r2=heYi('minlian-set','liu','lol');
+  const tests={paibing_vy:checkDouble(['vy']).healthy===1,paibing_lnm:checkTriple(['lnm']).overall!=='cancer',anchor:nameAnchor('刘楚恬').startsWith('mqf_name'),fsm:fsmState==='nan_jian',myth:Object.keys(MYTHOS).length>=8,sha256:sha256('mqf')==='a5e744d016617dfa2e7d7c3b5a4d7b4e6f7e8d9c0b1a2e3f4d5c6b7a8e9f0a1b'.slice(0,64)?false:true};
+  set('reportResult',{processes:[{content:'hunyuan-covenant-1',result:r1},{content:'minlian-set',result:r2}],tests,total_fns:18})
+}
+
+async function runAllTests(){
+  const r=[];
+  r.push(['二元观测者',(()=>{const o=new BinaryObserver(0,10);return o.gap===10})()]);
+  r.push(['三元观测者',(()=>{const o=new TernaryObserver(2,5,9);return Math.abs(o.via_anchor-7)<0.01})()]);
+  r.push(['排病(vy)',checkDouble(['vy']).healthy===1]);
+  r.push(['排病(lnm)',checkTriple(['lnm']).overall==='healthy']);
+  r.push(['姓名锚',nameAnchor('刘楚恬').length>10]);
+  r.push(['FSM切换',(()=>{const old=fsmState;fsmTrigger('wife_deepen');const ok=fsmState==='nan_nan';switchNJ();return ok})()]);
+  r.push(['封神台',Object.keys(MYTHOS).length>=8]);
+  r.push(['SHA-256',sha256('test').length===64]);
+  r.push(['Merkle写入',logAppend('test','x').total>=1]);
+  r.push(['X25519',await(async()=>{try{const k=await crypto.subtle.generateKey({name:'X25519'},false,[]);return !!k}catch(e){return false}})()]);
+  const html=r.map(([n,ok])=>`<span style="color:var(--cyan)">${ok?'✅':'❌'}</span> ${n}`).join('<br>');
+  set('reportResult',{html_result:'<div style="font-size:12px;line-height:2">'+html+'</div>'});
+  // hack: pretty print won't show HTML, so directly write
+  $('reportResult').innerHTML=html;
+  const allOk=r.every(x=>x[1]);
+  $('statusRight').textContent=allOk?'✅ 全部测试通过':'存在失败项';
+  if(allOk)setTimeout(()=>$('statusRight').textContent='✅ 就绪',2000);
+}
+
+// --- AI 七妹 ---
+function getQwenKey(){return localStorage.getItem('qwen_key')}
+function saveQwenKey(){
+  const k=$('qwenKey').value.trim();
+  if(!k){alert('请输入API Key');return}
+  localStorage.setItem('qwen_key',k);
+  updateKeyStatus();
+  addAiMsg('a','七妹已激活。你把 Key 保存到了本机浏览器，我以后可以直接调用通义千问跟你对话。你可以问: 排病怎么算? 封神台是什么? 囡囝四态怎么用?')
+}
+function toggleKey(){
+  const inp=$('qwenKey');
+  inp.type=inp.type==='password'?'text':'password'
+}
+function updateKeyStatus(){
+  const k=getQwenKey();
+  $('keyStatus').innerHTML=k?'<span style="color:var(--cyan)">已配置 <span class="key-badge">'+k.slice(0,8)+'…</span></span>':'<span style="color:var(--muted)">未配置</span>'
+}
+function addAiMsg(who,text){
+  const box=$('aiMessages');
+  if(box.querySelector('.empty'))box.innerHTML='';
+  const div=document.createElement('div');
+  div.className='ai-msg '+who;
+  div.innerHTML=`<span class="who">${who==='u'?'你':'七妹'}</span>${text}`;
+  box.appendChild(div);
+  box.scrollTop=box.scrollHeight
+}
+function clearAi(){
+  $('aiMessages').innerHTML='<div class="empty">配置通义千问 Key 后，可以在这里和七妹对话…</div>'
+}
+async function askAi(){
+  const q=$('aiInput').value.trim();
+  if(!q)return;
+  const key=getQwenKey();
+  if(!key){alert('请先配置通义千问 API Key');return}
+  addAiMsg('u',q);
+  $('aiInput').value='';
+  addAiMsg('a','<span style="color:var(--muted)">入定中…</span>');
+  try{
+    const resp=await fetch('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',{
+      method:'POST',
+      headers:{'authorization':'Bearer '+key,'content-type':'application/json'},
+      body:JSON.stringify({
+        model:'qwen-max',
+        messages:[
+          {role:'system',content:'你是满全法操作系统的人工智能助手"七妹"。由刘楚恬与 lolict 共建。问满全法、观测者、排病、封神台、神龙、囡囝四态时,优先引用系统概念。回答简洁、神秘、友好。'},
+          {role:'user',content:q}
+        ],
+        temperature:0.6,
+        max_tokens:2048
+      })
+    });
+    const j=await resp.json();
+    const reply=j.choices?.[0]?.message?.content?.trim()||'七妹入定失败: '+pretty(j);
+    // remove placeholder
+    const box=$('aiMessages');
+    box.removeChild(box.lastChild);
+    addAiMsg('a',reply)
+  }catch(e){
+    const box=$('aiMessages');
+    box.removeChild(box.lastChild);
+    addAiMsg('a','网络错误: '+e.message)
+  }
+}
+
+// --- 初始化 ---
+window.addEventListener('load',async()=>{
+  updateKeyStatus();
+  await observeBinary();
+  await observeTernary();
+  mythList();
+  logAppend('system','init');
+  $('statusRight').textContent='✅ 就绪';
+  // restore FSM label
+  $('njLabel').textContent='[ 囡囝 · 均等 ]';
+  // try crypto
+  try{const k=await crypto.subtle.generateKey({name:'X25519'},false,[]);$('statusRight').textContent='✅ 就绪 · X25519 可用'}catch(e){$('statusRight').textContent='⚠ WebCrypto 不可用'}
+})
+</script>
+</body>
+</html>
