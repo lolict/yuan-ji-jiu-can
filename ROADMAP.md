@@ -10,7 +10,13 @@
 
 ## 当前状态
 
-**已完成**: 统计锥引擎 v0.8 (C 语言 + cone_share_t 锥份额 + cone_snapshot_t 历史快照)
+**已完成**: 四元面判断(面+内外间隔) v0.9
+
+新增:
+- `mqf_domain_tag()` 域内核标记(三值:内/外/界)
+- `mqf_domain_permit()` 跨域请求裁定
+- `mqf_macronein_domain()` 宏量流入/微量流失判定
+- 场景 L1 L2 L3 演示
 
 - 位置: `kernel/src/mqf_kernel.c`
 - 运行: `make` → `./kernel/src/mqf_kernel.elf`
@@ -66,6 +72,28 @@
 - `mqf_cone_register()`:对象注册到统计锥,领取初始锥份额
 - 历史环形缓冲(MAX_CONE_HISTORY=64):可追溯 N 个周期前的态势
 - 七大场景演示:K1注册 → K2五轮tick动态调整 → K3历史态势 → K4锥哲学
+
+### v0.9 四元面判断(域+跨域+宏量/微量判定) ← 当前
+- `mqf_domain_tag()`:域内核标记
+  · 输入:对象id + 域代表id(三元裁判者 id)
+  · 输出:DOMAIN_INTERNAL(40) / DOMAIN_EXTERNAL(41) / DOMAIN_INTERSTITICE(42)
+  · 基于深度优先(DFS)遍历:能否从域代表出发通过 observe/bind 边到达此对象
+  · 能到达 = 域内,不能到达 = 域外,边界上(在 observe/bind 边边缘) = 间隙
+
+- `mqf_domain_permit(域,请求方,资源类型)`:跨域请求裁定
+  · 请求方在域内 + 资源在域内 → PERMIT_INTERNAL
+  · 请求方在域外 + 资源在域内 → PERMIT_DENIED(默认拒绝)
+  · 请求方在间隙 → PERMIT_CONDITIONAL(需提交审查,暂时存入审查队列)
+  · 任何带 transform 类型的关系 → PERMIT_DENIED(跨域变换一律拒绝)
+
+- `mqf_macronein_domain()`: 宏量 vs 微量判定
+  · 宏量:涉及资源>阈值 → 受严格域控 → 需审查
+  · 微量:涉及资源≤阈值 → 可能从宽 → 视合规度而定
+  · 微量积聚→宏量:任何宏量积累到阈值自动升级为宏量审查
+  · "内积可积累"(同一域内的微量可积累) vs "外积不可积累"(域外的微量积累无效)
+
+- 新增审计类型:DOMAIN_TAG / DOMAIN_PERMIT / DOMAIN_MACROZONE
+- 场景演示:L1 域标记可视化 / L2 跨域请求裁定 / L3 宏微量流动追踪
 
 ---
 
