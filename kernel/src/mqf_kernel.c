@@ -1,11 +1,12 @@
 /**
  * 满全法执行内核 v0.9 — MQF Executive Kernel
  * -----------------------------------------
- * v0.9 新增: 四元面判断 —— 域内外 + 宏量/微量判定
+ * v1.0 新增: 五元旋钮 —— 运动步量 + 角度 wrap + 占存判定
  *
  * 已落地的维度演化:
  *   三元(v0.6) → 点+关系(身份编码 + 规则引擎 + 空间代数 + 统计锥)
  *   四元(v0.9) → 面+内外间隔(拓扑域 + 跨域裁定 + 宏微量判断 + 金壳镜像)
+ *   五元(v1.0) → 旋钮+运动步量(5 步位移累加 + 角度 wrap 360° + 占存判定)
  *
  * NEXT 维度演化(已规划待实现):
  *   五元(v1.0) → 旋钮+运动步量
@@ -36,7 +37,18 @@
 #include <pthread.h>
 #include <math.h>
 
-#define MQF_VERSION     "0.8.0"
+/* ============================================================
+ * v1.0 五元旋钮前置声明
+ * ============================================================ */
+void mqf_five_yuan_init(void);
+void mqf_five_yuan_demo(void);
+int  mqf_five_yuan_register(const char* name);
+void mqf_five_yuan_push(int obj_id, float angle_inc, float force_inc);
+void mqf_five_yuan_set_ratio(int obj_id, float in_val, float out_val);
+void mqf_five_yuan_print(void);
+extern int fy_count;
+
+#define MQF_VERSION     "1.0.0"
 #define MQF_AUTH_LEN    32
 #define MQF_HASH_LEN    64
 #define MAX_EXEC_SLOTS  16
@@ -48,6 +60,10 @@
 #define MAX_OBJECTS     128
 #define MAX_RELATIONS   1024
 #define MAX_NAME_LEN    128
+
+/* v1.0 五元旋钮常量 */
+#define FIVE_YUAN_STEPS 5
+#define FIVE_YUAN_OCCUPY_THRESHOLD 100
 
 typedef enum { EXEC_SLEEP=0, EXEC_PENDING, EXEC_ALIVE, EXEC_FROZEN, EXEC_ZOMBIE } exec_state_t;
 typedef enum { PERM_NONE=0x00, PERM_READ=0x01, PERM_WRITE=0x02, PERM_EXEC=0x04, PERM_NET=0x08, PERM_ADMIN=0x10 } perm_t;
@@ -717,7 +733,7 @@ static void mqf_watchdog_stop(){ if(WATCHDOG_RUNNING){ WATCHDOG_RUNNING=0; pthre
 /* ============================================================
  * 第 6 层: 执行守门人
  * ============================================================ */
-void mqf_init(){ memset(&K,0,sizeof(K)); K.ver=8; memset(&AUDIT,0,sizeof(AUDIT)); mqf_load_contracts(); mqf_spatial_init(); mqf_rule_init(); mqf_shell_init(); mqf_cone_init(); printf("[内核 v%s] 统计锥引擎版就绪\n\n",MQF_VERSION); mqf_watchdog_start(); }
+void mqf_init(){ memset(&K,0,sizeof(K)); K.ver=9; memset(&AUDIT,0,sizeof(AUDIT)); mqf_load_contracts(); mqf_spatial_init(); mqf_rule_init(); mqf_shell_init(); mqf_cone_init(); mqf_five_yuan_init(); printf("[内核 v%s] 五元旋钮引擎版就绪\n\n",MQF_VERSION); mqf_watchdog_start(); }
 
 int mqf_reg(const char* name, void(*fn)(void*), void* arg){ mqf_identity_t id=mqf_encode(name); capability_t cap; mqf_evaluate(name,&cap); memcpy(cap.auth_code,id.auth_code,MQF_HASH_LEN+1); if(cap.perm==PERM_NONE){ mqf_audit_log(AUDIT_REJECT,name,-1); return -1; } int i=-1; pthread_mutex_lock(&K_LOCK); for(int j=0;j<MAX_EXEC_SLOTS;j++) if(!K.s[j].used){ i=j; break; } if(i<0){ pthread_mutex_unlock(&K_LOCK); return -1; } K.s[i].used=1; memcpy(K.s[i].auth,cap.auth_code,MQF_HASH_LEN+1); strncpy(K.s[i].name,name,127); K.s[i].st=EXEC_PENDING; K.s[i].cap=cap; K.s[i].fn=fn; K.s[i].arg=arg; K.s[i].exec_count=0; pthread_mutex_unlock(&K_LOCK); mqf_audit_log(AUDIT_REGISTER,name,i); return i; }
 
@@ -1013,9 +1029,203 @@ int main(){
     printf("空间图: %d 对象 / %d 关系\n", G.obj_count, G.rel_count);
     printf("统计锥: %d 节点 / %lu 刻度 / 主导态势:%s\n",
            CONE.share_count, CONE.total_ticks, CONE.dominant_state);
+    printf("五元旋钮: %d 节点 / 阈值 %d ticks\n", fy_count, FIVE_YUAN_OCCUPY_THRESHOLD);
     printf("规则引擎: %d 规则\n", RE.rule_count);
     printf("=========================================\n");
+
+    /* v1.0 五元旋钮 demo */
+    mqf_five_yuan_demo();
+
     return 0;
+}
+
+/* ============================================================
+ * 五元旋钮 v1.0 — 运动步量 + 角度 wrap + 占存判定
+ *
+ *  五元 = 点 + 关系 + 面 + 内外间隔 + 旋钮/运动步量
+ *
+ *  工程特征:
+ *    - 5 步位移累加 (step0~step4)
+ *    - 角度 0~360°,累加取模 wrap
+ *    - ratio_in(进入配比) vs ratio_out(离开配比)
+ *    - accumulated_ticks 占存判定(铭记/遗忘)
+ * ============================================================ */
+
+#define FIVE_YUAN_STEPS 5
+#define FIVE_YUAN_OCCUPY_THRESHOLD 100
+
+typedef struct {
+    char name[MAX_NAME_LEN];
+    int step;            /* 当前步数 0~4 */
+    float angle;         /* 累计角度 0~360 */
+    float force;         /* 作用力 = weight 累积 */
+    float ratio_in;      /* 进入配比 */
+    float ratio_out;     /* 离开配比 */
+    int   accumulated_ticks; /* 累计刻度 */
+    int   occupied;      /* 占存(1) / 易逝(0) */
+} five_yuan_state_t;
+
+static five_yuan_state_t fy_nodes[MAX_OBJECTS];
+int fy_count = 0;
+
+void mqf_five_yuan_init(void) {
+    memset(fy_nodes, 0, sizeof(fy_nodes));
+    fy_count = 0;
+    printf("[五元旋钮] 初始化,最多 %d 节点,占存阈值 %d ticks\n", MAX_OBJECTS, FIVE_YUAN_OCCUPY_THRESHOLD);
+}
+
+int mqf_five_yuan_register(const char* name) {
+    if (fy_count >= MAX_OBJECTS) return -1;
+    int idx = fy_count++;
+    strncpy(fy_nodes[idx].name, name, MAX_NAME_LEN-1);
+    fy_nodes[idx].step = 0;
+    fy_nodes[idx].angle = 0.0f;
+    fy_nodes[idx].force = 0.0f;
+    fy_nodes[idx].ratio_in = 1.0f;
+    fy_nodes[idx].ratio_out = 1.0f;
+    fy_nodes[idx].accumulated_ticks = 0;
+    fy_nodes[idx].occupied = 0;
+    return idx;
+}
+
+void mqf_five_yuan_push(int obj_id, float angle_inc, float force_inc) {
+    if (obj_id < 0 || obj_id >= fy_count) return;
+
+    five_yuan_state_t* s = &fy_nodes[obj_id];
+    if (s->step >= FIVE_YUAN_STEPS) return; /* 已满 5 步 */
+
+    s->step++;
+    s->angle += angle_inc;
+    /* wrap 0~360 */
+    while (s->angle >= 360.0f) s->angle -= 360.0f;
+    while (s->angle < 0.0f) s->angle += 360.0f;
+    s->force += force_inc;
+    s->accumulated_ticks += (int)(force_inc * 10.0f);
+
+    /* 占存判定 */
+    if (s->accumulated_ticks > FIVE_YUAN_OCCUPY_THRESHOLD) {
+        s->occupied = 1; /* 占存 = 铭记 */
+    }
+}
+
+void mqf_five_yuan_set_ratio(int obj_id, float in_val, float out_val) {
+    if (obj_id < 0 || obj_id >= fy_count) return;
+    fy_nodes[obj_id].ratio_in = in_val;
+    fy_nodes[obj_id].ratio_out = out_val;
+}
+
+void mqf_five_yuan_print(void) {
+    printf("\n[五元旋钮状态]\n");
+    printf("%-30s %5s %8s %8s %8s %8s %6s\n",
+           "节点", "Step", "角度°", "力", "R_in", "R_out", "占存");
+    printf("------------------------------------------------------------------------\n");
+    for (int i = 0; i < fy_count; i++) {
+        five_yuan_state_t* s = &fy_nodes[i];
+        printf("%-30s %5d %8.1f %8.1f %8.2f %8.2f %s\n",
+               s->name, s->step, s->angle, s->force,
+               s->ratio_in, s->ratio_out,
+               s->occupied ? "★占存" : "○易逝");
+    }
+}
+
+void mqf_five_yuan_demo(void) {
+    printf("\n");
+    printf("════════════════════════════════════════════\n");
+    printf("  v1.0 ★ 五元旋钮运动步量 ★\n");
+    printf("════════════════════════════════════════════\n\n");
+
+    printf("=== 场景 L1:五元旋钮步量 —— 铭记 vs 易逝 ===\n\n");
+
+    printf("原理:\n");
+    printf("  外界实体进入 MQ 体系时,我们为它分配一个五元旋钮\n");
+    printf("  旋钮在每一个 tick 中受 force 驱动,沿角度方向前进 step 步\n");
+    printf("  角度 wrap 0~360°:旋钮走完一圈回到原点 = 循环再循环\n");
+    printf("  当 accumulated_ticks 超过阈值 → '占存'(永远铭记)\n");
+    printf("  否则 → '易逝'(可被覆盖/遗忘)\n");
+    printf("  刻度是旋钮的记忆,角度是旋钮的方向\n\n");
+
+    /* 注册四个节点:ios/bank(高力,铭记) vs wechat/android(低力,易逝) */
+    int fy_ios = mqf_five_yuan_register("ios");
+    int fy_bank = mqf_five_yuan_register("bank");
+    int fy_wechat = mqf_five_yuan_register("wechat");
+    int fy_android = mqf_five_yuan_register("android");
+
+    /* 设置进出配比 */
+    mqf_five_yuan_set_ratio(fy_ios, 0.9f, 0.1f);     /* ios:高进低出 = 铭记倾向 */
+    mqf_five_yuan_set_ratio(fy_bank, 0.85f, 0.15f);  /* bank:高进低出 */
+    mqf_five_yuan_set_ratio(fy_wechat, 0.5f, 0.5f);  /* wechat:均衡 */
+    mqf_five_yuan_set_ratio(fy_android, 0.1f, 0.9f);  /* android:低进高出 = 易逝 */
+
+    /* 推进五元旋钮:模拟不同 force 和角度增量 */
+    printf("--- 推进 5 个 step,对比铭记 vs 易逝 ---\n\n");
+
+    /* ios:小角度高力 → 快速达到占存 */
+    for (int s = 0; s < 5; s++) {
+        mqf_five_yuan_push(fy_ios, 45.0f, 15.0f);
+    }
+
+    /* bank:中角度中力 */
+    for (int s = 0; s < 5; s++) {
+        mqf_five_yuan_push(fy_bank, 60.0f, 12.0f);
+    }
+
+    /* wechat:大角度低力 */
+    for (int s = 0; s < 5; s++) {
+        mqf_five_yuan_push(fy_wechat, 90.0f, 5.0f);
+    }
+
+    /* android:随机小力 */
+    for (int s = 0; s < 5; s++) {
+        mqf_five_yuan_push(fy_android, 15.0f, 2.0f);
+    }
+
+    mqf_five_yuan_print();
+
+    printf("\n=== 场景 L2:角度 wrap 360° 循环 ===\n\n");
+    printf("角度累加取模范例:\n");
+    printf("  ios    初始 0° + 45*5 = 225° → wrap 225°\n");
+    printf("  bank   初始 0° + 60*5 = 300° → wrap 300°\n");
+    printf("  wechat 初始 0° + 90*5 = 450° → wrap 90° (绕回一圈)\n");
+    printf("  android初始 0° + 15*5 = 75° → wrap 75°\n");
+    printf("  (见上方五元旋钮状态表)\n\n");
+
+    printf("=== 场景 L3:占存与易逝的哲学含义 ===\n\n");
+    printf("  占存(occupied=1):\n");
+    printf("    ios/bank 被我们铭记 → 永久保留,不可被外部删除\n");
+    printf("    '你是我这一辈子用force记住的人'\n\n");
+    printf("  易逝(occupied=0):\n");
+    printf("    android 只是路过 → 可被覆写,不留痕迹\n");
+    printf("    '你以为你进入了我的世界,其实只是我的旋钮转过了一圈'\n\n");
+
+    printf("  总刻度 = force * 累计ticks\n");
+    printf("  高力(信任绑定) → 刻度积累快 → 早占存\n");
+    printf("  低力(单向变换) → 刻度不够 → 易逝\n\n");
+
+    printf("=== 场景 L4:五元旋钮 + 四元面结合 ===\n\n");
+    printf("  四元给出'面'、五元给出'运动方向'\n");
+    printf("  面的内外 + 旋钮的占存 = 完整的'谁是自人、谁是过客'判定\n\n");
+
+    /* 验证占存情况 */
+    printf("--- 占存验证 ---\n");
+    printf("  ios:    accumulated_ticks=%d → %s\n",
+           fy_nodes[fy_ios].accumulated_ticks,
+           fy_nodes[fy_ios].occupied ? "★ 铭记" : "○ 易逝");
+    printf("  bank:   accumulated_ticks=%d → %s\n",
+           fy_nodes[fy_bank].accumulated_ticks,
+           fy_nodes[fy_bank].occupied ? "★ 铭记" : "○ 易逝");
+    printf("  wechat: accumulated_ticks=%d → %s\n",
+           fy_nodes[fy_wechat].accumulated_ticks,
+           fy_nodes[fy_wechat].occupied ? "★ 铭记" : "○ 易逝");
+    printf("  android:accumulated_ticks=%d → %s\n",
+           fy_nodes[fy_android].accumulated_ticks,
+           fy_nodes[fy_android].occupied ? "★ 铭记" : "○ 易逝");
+
+    printf("\n=== v1.0 五元旋钮小结 ===\n\n");
+    printf("  1. 五元旋钮 = 节点周围角度/力的五次运动累加\n");
+    printf("  2. 角度 wrap 0~360° = 循环往复,我们的律动\n");
+    printf("  3. 占存判定 = accumulated_ticks > 阈值 → 铭记,否则易逝\n");
+    printf("  4. ratio_in/out = 进出配比,决定旋钮偏置\n");
+    printf("  5. 五元+四元(面) = 从'静态判定'走向'动态演化'\n\n");
 }
 
 void mqf_audit_summary(){

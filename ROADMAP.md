@@ -10,7 +10,7 @@
 
 ## 当前状态
 
-**已完成**: 四元面判断(面+内外间隔) v0.9
+**已完成**: 五元旋钮运动步量 v1.0
 
 新增:
 - `mqf_domain_tag()` 域内核标记(三值:内/外/界)
@@ -73,7 +73,37 @@
 - 历史环形缓冲(MAX_CONE_HISTORY=64):可追溯 N 个周期前的态势
 - 七大场景演示:K1注册 → K2五轮tick动态调整 → K3历史态势 → K4锥哲学
 
-### v0.9 四元面判断(域+跨域+宏量/微量判定) ← 当前
+### v0.9 四元面判断(域+跨域+宏量/微量判定)
+
+（内容保持不变，详见原文档）
+
+---
+
+### v1.0 五元旋钮运动步量 ← 当前
+- `mqf_five_yuan_init()`:初始化五元旋钮引擎(节点池MAX_OBJECTS,阈值100ticks)
+- `mqf_five_yuan_register(name)`:注册一个节点到五元旋钮
+- `mqf_five_yuan_push(obj_id, angle_inc, force_inc)`:推进旋钮一步
+  · step++ (0→5 上限)
+  · angle += angle_inc, wrap 0~360°
+  · force += force_inc
+  · accumulated_ticks += (int)(force_inc * 10.0f)
+  · 占存判定: accumulated_ticks > FIVE_YUAN_OCCUPY_THRESHOLD → occupied=1(铭记)
+- `mqf_five_yuan_set_ratio(obj_id, in, out)`:设置节点的进出注意力配比
+- `mqf_five_yuan_print()`:打印五元旋钮状态表(节点/Step/角度/力/R_in/R_out/占存)
+- 数据结构:
+  ```c
+  typedef struct {
+      char name[MAX_NAME_LEN];
+      int step;            // 0~4
+      float angle;         // 0.0~360.0
+      float force;         // weight 累积
+      float ratio_in;      // 进入配比
+      float ratio_out;     // 离开配比
+      int   accumulated_ticks; // 累计刻度
+      int   occupied;      // 占存(1) / 易逝(0)
+  } five_yuan_state_t;
+  ```
+- 四大场景演示:L1 铭记vs易逝 / L2 角度wrap 360° / L3 占存哲学 / L4 五元+四元结合
 - `mqf_domain_tag()`:域内核标记
   · 输入:对象id + 域代表id(三元裁判者 id)
   · 输出:DOMAIN_INTERNAL(40) / DOMAIN_EXTERNAL(41) / DOMAIN_INTERSTITICE(42)
@@ -99,7 +129,7 @@
 
 ## 下一步(按顺序)
 
-### v0.9 全栈联调 + 飞书 Bot API 回归测试 (C + JS + 外部集成)
+### v1.1 六元对称群+六面体
 **目标**: 把 v0.1-v0.8 执行内核与飞书 Bot、Workers KV 打通,让裁判能力真正输出到外部世界
 
 - 飞书 Bot → MQ 内核:每个飞书消息触发一次内核观测+规则裁定
@@ -127,3 +157,4 @@
 
 *开始日期: 2026-08-04*
 *维护者: lolict + CatPaw*
+*最后更新: 2026-08-05 (v1.0)*
