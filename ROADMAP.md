@@ -7,56 +7,70 @@
 
 ## 当前状态
 
-**已完成**: 内核执行守门人 v0.1 (C 语言)
+**已完成**: 空间关系代数 v0.5 (C 语言 + pthread)
 
 - 位置: `kernel/src/mqf_kernel.c`
-- 运行: `clang kernel/src/mqf_kernel.c -o /tmp/mqf && /tmp/mqf`
-- 功能: 身份编码 → 权限分级(0僵尸/1-2只读/3-4读写执行/5-6全权限) → 执行守门 → 审计环
+- 运行: `clang kernel/src/mqf_kernel.c -pthread -o /tmp/mqf -lm && /tmp/mqf`
+- 功能:
+  - 身份编码 → 权限分级(0僵尸/1-2只读/3-4读写执行/5-6全权限)
+  - 执行守门 → 审计环
+  - 时间切片 + 看门狗 (v0.3)
+  - **空间关系代数**: 对象/关系 CRUD、路径可达(BFS)、间接力(hop步累积)、内镜像(depth层)、态势判决(稳态/渐变态/逆变态)
 
-**关键原则**: 本地执行、零云端依赖、所有人必须经守门人授权才能动。
+---
+
+## 已完成版本
+
+### v0.1 身份编码 + 守门人
+- 声母/韵母/声调/笔画 → auth_code → capability → exec slot
+
+### v0.2 契约系统
+- 规则驱动权限判定(不再是硬编码 `%7`)
+- 事实库 + 规则库,增删改无需重编译 C
+
+### v0.3 时间切片 + 看门狗
+- 每个执行槽有限定窗口(3s/10s/∞)
+- 看门狗线程 period=1s 轮询,超时 → EXEC_SLEEP
+
+### v0.4 WASM 执行槽 (Zig)
+- `kernel/wasm/runner.zig`: Zig 加载 WASM 字节码,解析 export,i32 栈机 + 128KB 内存
+- Host Bridge: log/getAuth/time/kernelCall/yield ↔ 看门狗协作
+
+### v0.5 空间关系代数
+- `mqf_spatial_init / mqf_obj_create / mqf_rel_add`
+- `mqf_reachable(from, to): bool` (BFS)
+- `mqf_indirect_force(from, to, hops): float` (DP 累积权重)
+- `mqf_inner_mirror(center, depth, layers, count)` (按层展开)
+- `mqf_assess(): situation_t` (稳态/渐变态/逆变态)
+- 线程安全: 单 mutex 保护空间引擎
 
 ---
 
 ## 下一步(按顺序)
 
-### v0.2 契约系统 (Prolog / C)
-**目标**: 把硬编码的权限判定("init+final+tone % 7")替换成可配置的契约规则
-- 用 Prolog 子集描述规则: `grant_level(X, 0) :- zombie(X).`
-- C 代码读取 `.pl` 配置文件再判定
-- 你改规则不需要重新编译
+### v0.6 Prolog 声明式规则导出 (C + Plog 子集)
+**目标**: 把契约规则(第2层)改成可从外部加载的声明式脚本
+- 支持: `grant_level(X, L) :- has_auth(X), trusted(X).`
+- 解释器内置在 C 运行时,无需安装外部 Prolog
 
-### v0.3 时间切片 (C)
-**目标**: 每个执行槽有严格时间窗口
-- 超过时限自动冻结 → 必须重新申请授权
-- 实现: 内核启动定时器线程，轮询各槽位的 `activated_at` 与 `time_limit_sec`
-- 输出: 期满自动 EXEC_SLEEP 状态，记录审计
-
-### v0.4 WASM 执行槽 (Zig + C)
-**目标**: 让 C/Rust/Nim 写的业务代码先编译成 WASM，再送守门人执行
-- 用 Zig 写 WASM 加载器（模块小、能交叉编译）
-- WASM 模块只在给定权限内可调用的 host function
-- 看不到本地文件系统、网络、其他进程
-
-### v0.5 空间关系代数 (C + 自定义声明语言)
-**目标**: 对象之间的关系图可查询、可迭代、可追溯可达性
-- 已实现基础(见 `core/engine.js`)，移植到 C
-- 声明式查询规则: `reachable(A, B) :- relation(A, C), relation(C, B).`
-- 每次关系变动快照进审计环
-
-### v0.6 安卓打包 (Tauri / PWA)
+### v0.7 安卓打包 (Tauri / PWA)
 **目标**: 满全法内核打包成安卓 APK，自带运行时、独立公网
 - 方案A: Tauri (Rust + WebView, ~10MB)
 - 方案B: PWA (纯前端，浏览器内即应用)
 - 所有判定在本地，无任何云端回传
+
+### v0.8 空间关系代数 ZooKeeper
+**目标**: 图结构持久化 + 变动事件订阅
+- 关系变动 → 事件流 → 订阅者(信用分/态势告警)
 
 ---
 
 ## 技术栈
 
 - 内核: C ↔ Zig (小、快、可控)
-- 规则引擎: Prolog (声明式契约)
+- 规则引擎: Prolog 子集 (声明式契约)
 - 多语言前端 → WASM (通用字节码)
-- 空间/关系: 自定义声明 + C 实现
+- 空间/关系代数: 自定义 + C 实现 (线程安全)
 - 打包: Tauri/PWA
 
 ## 规则
