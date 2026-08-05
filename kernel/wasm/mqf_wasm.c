@@ -19,14 +19,19 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <stdint.h>
+#include <stddef.h>
 
 #define MQF_WASM_VERSION "2.0.0"
-#define MAX_OBJECTS      64
-#define MAX_PAIRS        16
-#define MAX_NEST         32
-#define MAX_NAME_LEN     64
-#define MAX_INPUT        4096
-#define MAX_OUTPUT       8192
+#define NJSG_MAX_OBJECTS      64
+#define NJSG_MAX_PAIRS        16
+#define NJSG_MAX_NEST         32
+#define NJSG_MAX_NAME_LEN     64
+#define NJSG_MAX_INPUT        4096
+#define NJSG_MAX_OUTPUT       8192
+
+/* 32/64 位同源码:阶梯制·双向公约 */
+
 
 /* ========== 五元旋钮 ========== */
 
@@ -34,18 +39,18 @@
 #define FIVE_YUAN_OCCUPY_THRESHOLD 100
 
 typedef struct {
-    char name[MAX_NAME_LEN];
-    int step;
-    float angle;
-    float force;
-    float ratio_in;
-    float ratio_out;
-    int   accumulated_ticks;
-    int   occupied;
+    char name[NJSG_MAX_NAME_LEN];
+    int32_t step;
+    float   angle;
+    float   force;
+    float   ratio_in;
+    float   ratio_out;
+    int32_t accumulated_ticks;
+    int32_t occupied;
 } five_yuan_state_t;
 
-static five_yuan_state_t fy_nodes[MAX_OBJECTS];
-static int fy_count = 0;
+static five_yuan_state_t fy_nodes[NJSG_MAX_OBJECTS];
+static int32_t fy_count = 0;
 
 void mqf_five_yuan_init(void) {
     memset(fy_nodes, 0, sizeof(fy_nodes));
@@ -53,9 +58,9 @@ void mqf_five_yuan_init(void) {
 }
 
 int mqf_five_yuan_register(const char* name) {
-    if (fy_count >= MAX_OBJECTS) return -1;
+    if (fy_count >= NJSG_MAX_OBJECTS) return -1;
     int idx = fy_count++;
-    strncpy(fy_nodes[idx].name, name, MAX_NAME_LEN - 1);
+    strncpy(fy_nodes[idx].name, name, NJSG_MAX_NAME_LEN - 1);
     fy_nodes[idx].step = 0;
     fy_nodes[idx].angle = 0.0f;
     fy_nodes[idx].force = 0.0f;
@@ -75,7 +80,7 @@ void mqf_five_yuan_push(int obj_id, float angle_inc, float force_inc) {
     while (s->angle >= 360.0f) s->angle -= 360.0f;
     while (s->angle < 0.0f) s->angle += 360.0f;
     s->force += force_inc;
-    s->accumulated_ticks += (int)(force_inc * 10.0f);
+    s->accumulated_ticks += (int32_t)(force_inc * 10.0f);
     if (s->accumulated_ticks > FIVE_YUAN_OCCUPY_THRESHOLD) {
         s->occupied = 1;
     }
@@ -84,16 +89,16 @@ void mqf_five_yuan_push(int obj_id, float angle_inc, float force_inc) {
 /* ========== 六元对称群 ========== */
 
 typedef struct {
-    char name[MAX_NAME_LEN];
+    char name[NJSG_MAX_NAME_LEN];
     float trust_a;
     float trust_b;
     float trust_intersection;
-    int   mirror_ok;
-    int   verdict;
+    int32_t mirror_ok;
+    int32_t verdict;
 } six_yuan_pair_t;
 
-static six_yuan_pair_t sy_pairs[MAX_PAIRS];
-static int sy_count = 0;
+static six_yuan_pair_t sy_pairs[NJSG_MAX_PAIRS];
+static int32_t sy_count = 0;
 
 void mqf_six_yuan_init(void) {
     memset(sy_pairs, 0, sizeof(sy_pairs));
@@ -101,9 +106,9 @@ void mqf_six_yuan_init(void) {
 }
 
 int mqf_six_yuan_register_pair(const char* name) {
-    if (sy_count >= MAX_PAIRS) return -1;
+    if (sy_count >= NJSG_MAX_PAIRS) return -1;
     int idx = sy_count++;
-    strncpy(sy_pairs[idx].name, name, MAX_NAME_LEN - 1);
+    strncpy(sy_pairs[idx].name, name, NJSG_MAX_NAME_LEN - 1);
     sy_pairs[idx].trust_a = 0.5f;
     sy_pairs[idx].trust_b = 0.5f;
     sy_pairs[idx].trust_intersection = 0.5f;
@@ -130,19 +135,19 @@ int mqf_six_yuan_verdict(int pair_id) {
 
 /* ========== 七元蜂窝套壳 ========== */
 
-#define MAX_CHILD 6
+#define NJSG_MAX_CHILD 6
 
 typedef struct {
-    char name[MAX_NAME_LEN];
-    int level;
-    int parent_id;
-    int child_ids[MAX_CHILD];
-    int child_count;
+    char name[NJSG_MAX_NAME_LEN];
+    int32_t level;
+    int32_t parent_id;
+    int32_t child_ids[NJSG_MAX_CHILD];
+    int32_t child_count;
     float space_ratio;
 } shell_nest_t;
 
-static shell_nest_t sn_nodes[MAX_NEST];
-static int sn_count = 0;
+static shell_nest_t sn_nodes[NJSG_MAX_NEST];
+static int32_t sn_count = 0;
 
 void mqf_shell_nest_init(void) {
     memset(sn_nodes, 0, sizeof(sn_nodes));
@@ -150,9 +155,9 @@ void mqf_shell_nest_init(void) {
 }
 
 int mqf_shell_nest_wrap(const char* name) {
-    if (sn_count >= MAX_NEST) return -1;
+    if (sn_count >= NJSG_MAX_NEST) return -1;
     int idx = sn_count++;
-    strncpy(sn_nodes[idx].name, name, MAX_NAME_LEN - 1);
+    strncpy(sn_nodes[idx].name, name, NJSG_MAX_NAME_LEN - 1);
     sn_nodes[idx].level = 0;
     sn_nodes[idx].parent_id = -1;
     sn_nodes[idx].child_count = 0;
@@ -162,15 +167,15 @@ int mqf_shell_nest_wrap(const char* name) {
 
 int mqf_shell_nest_insert(int parent_id, const char* child_name) {
     if (parent_id < 0 || parent_id >= sn_count) return -1;
-    if (sn_count >= MAX_NEST) return -1;
+    if (sn_count >= NJSG_MAX_NEST) return -1;
     shell_nest_t* parent = &sn_nodes[parent_id];
-    if (parent->child_count >= MAX_CHILD) return -1;
+    if (parent->child_count >= NJSG_MAX_CHILD) return -1;
     int idx = sn_count++;
-    strncpy(sn_nodes[idx].name, child_name, MAX_NAME_LEN - 1);
+    strncpy(sn_nodes[idx].name, child_name, NJSG_MAX_NAME_LEN - 1);
     sn_nodes[idx].level = parent->level + 1;
     sn_nodes[idx].parent_id = parent_id;
     sn_nodes[idx].child_count = 0;
-    sn_nodes[idx].space_ratio = parent->space_ratio / (float)MAX_CHILD;
+    sn_nodes[idx].space_ratio = parent->space_ratio / (float)NJSG_MAX_CHILD;
     parent->child_ids[parent->child_count++] = idx;
     return idx;
 }
@@ -178,7 +183,7 @@ int mqf_shell_nest_insert(int parent_id, const char* child_name) {
 /* ========== 裁定主引擎 ========== */
 
 typedef struct {
-    char entity[MAX_NAME_LEN];
+    char entity[NJSG_MAX_NAME_LEN];
     float compliance_a;
     float compliance_b;
     float force;
@@ -186,12 +191,12 @@ typedef struct {
 } verdict_request_t;
 
 typedef struct {
-    int   verdict;          /* 1=TRUSTED, 0=REJECTED */
-    float confidence;       /* 信任交集 */
-    int   mirror_align;     /* 镜像对齐 */
-    int   ticks;            /* 五元刻度 */
-    int   occupied;         /* 1=铭记, 0=易逝 */
-    float final_angle;      /* 五元最终角度 */
+    int32_t verdict;        /* 1=TRUSTED, 0=REJECTED */
+    float   confidence;     /* 信任交集 */
+    int32_t mirror_align;   /* 镜像对齐 */
+    int32_t ticks;          /* 五元刻度 */
+    int32_t occupied;       /* 1=铭记, 0=易逝 */
+    float   final_angle;    /* 五元最终角度 */
 } verdict_result_t;
 
 static verdict_result_t mqf_verdict_engine(verdict_request_t* req) {
@@ -203,7 +208,7 @@ static verdict_result_t mqf_verdict_engine(verdict_request_t* req) {
     while (a >= 360.0f) a -= 360.0f;
     while (a < 0.0f) a += 360.0f;
     res.final_angle = a;
-    res.ticks = (int)(req->force * 10.0f);
+    res.ticks = (int32_t)(req->force * 10.0f);
     res.occupied = (res.ticks > FIVE_YUAN_OCCUPY_THRESHOLD) ? 1 : 0;
 
     /* 六元:信任交集 + 镜像对齐 */
@@ -237,21 +242,21 @@ static int json_parse_float(const char* p, float* out) {
 /* ========== WASI 主入口 ========== */
 
 int main(void) {
-    char input[MAX_INPUT];
-    char output[MAX_OUTPUT];
+    char input[NJSG_MAX_INPUT];
+    char output[NJSG_MAX_OUTPUT];
     verdict_request_t req;
-    memset(&req, 0, sizeof(req));
+    memset(&req, 0, sizeof(req)); /* 32/64 同源码:阶梯制·双向公约 */
     req.compliance_a = 0.5f;
     req.compliance_b = 0.5f;
     req.force = 10.0f;
     req.angle = 45.0f;
 
     /* 读取 stdin JSON */
-    int total = 0;
-    int n;
+    size_t total = 0;
+    size_t n;
     while ((n = fread(input + total, 1, sizeof(input) - total - 1, stdin)) > 0) {
         total += n;
-        if (total >= (int)sizeof(input) - 1) break;
+        if (total >= sizeof(input) - 1) break;
     }
     input[total] = '\0';
 
@@ -261,7 +266,7 @@ int main(void) {
     if (pv) {
         while (*pv == ' ' || *pv == '"') pv++;
         int i = 0;
-        while (*pv && *pv != '"' && *pv != ',' && *pv != '}' && i < MAX_NAME_LEN - 1) {
+        while (*pv && *pv != '"' && *pv != ',' && *pv != '}' && i < NJSG_MAX_NAME_LEN - 1) {
             req.entity[i++] = *pv++;
         }
         req.entity[i] = '\0';
