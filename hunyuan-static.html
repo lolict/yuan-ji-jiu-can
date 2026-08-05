@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0a0f">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>满全法 · 囡囝共生元操作系统 v0.2</title>
+<title>囡囝共生 · 囡囝共生元操作系统 v0.2</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -70,19 +70,19 @@ footer{text-align:center;padding:30px 0;color:var(--muted);font-size:10px}
 </head>
 <body>
 <div class="status-bar">
-  <span class="left">满全法 v0.2</span>
+  <span class="left">囡囝共生 v0.2</span>
   <span class="right" id="statusRight">初始化…</span>
 </div>
 <header>
-<h1>满全法 · 囡囝共生元操作系统</h1>
-<p class="subtitle">满全法 · HunYuan OS · 纯前端版 · 七妹AI &amp; 刘楚恬 &amp; lolict</p>
+<h1>囡囝共生 · 囡囝共生元操作系统</h1>
+<p class="subtitle">囡囝共生 · HunYuan OS · 纯前端版 · 囡囝AI &amp; 刘楚恬 &amp; lolict</p>
 </header>
 
 <div class="grid">
 
-<!-- 七妹 AI -->
+<!-- 囡囝 AI -->
 <div class="card full">
-<h2><span class="icon">🤖</span> 七妹 AI · 通义千问</h2>
+<h2><span class="icon">🤖</span> 囡囝 AI · 通义千问</h2>
 <div class="ai-chat">
   <div class="row">
     <input type="password" id="qwenKey" placeholder="sk-... (通义千问 API Key)" class="width-auto" style="flex:1;min-width:200px">
@@ -91,10 +91,10 @@ footer{text-align:center;padding:30px 0;color:var(--muted);font-size:10px}
     <span id="keyStatus" class="ref">未配置</span>
   </div>
   <div class="ai-messages" id="aiMessages">
-    <div class="empty">配置通义千问 Key 后，可以在这里和七妹对话…<br>所有功能（排病/封神台/观测者）都会自动解释。</div>
+    <div class="empty">配置通义千问 Key 后，可以在这里和囡囝对话…<br>所有功能（排病/封神台/观测者）都会自动解释。</div>
   </div>
   <div class="row">
-    <input type="text" id="aiInput" placeholder="问七妹任何事…" class="width-auto" style="flex:1;min-width:200px" onkeydown="if(event.key==='Enter')askAi()">
+    <input type="text" id="aiInput" placeholder="问囡囝任何事…" class="width-auto" style="flex:1;min-width:200px" onkeydown="if(event.key==='Enter')askAi()">
     <button onclick="askAi()">发送</button>
     <button class="sec" onclick="clearAi()">清空</button>
   </div>
@@ -207,13 +207,13 @@ footer{text-align:center;padding:30px 0;color:var(--muted);font-size:10px}
 </div>
 
 <footer>
-满全法 · 囡囝共生元操作系统 · v0.2 · lolict · 2026<br>
+囡囝共生 · 囡囝共生元操作系统 · v0.2 · lolict · 2026<br>
 数据存于浏览器本地 · 无需服务器 · 断网也可用核心功能
 </footer>
 
 <script>
 /* ============================================================
- * 满全法 v0.2 · Pure Browser Build
+ * 囡囝共生 v0.2 · Pure Browser Build
  * 从 Cloudflare Worker mqf-web.js 移植 · 纯前端 · 无需后端
  */
 
@@ -440,14 +440,14 @@ async function runAllTests(){
   if(allOk)setTimeout(()=>$('statusRight').textContent='✅ 就绪',2000);
 }
 
-// --- AI 七妹 ---
+// --- AI 囡囝 ---
 function getQwenKey(){return localStorage.getItem('qwen_key')}
 function saveQwenKey(){
   const k=$('qwenKey').value.trim();
   if(!k){alert('请输入API Key');return}
   localStorage.setItem('qwen_key',k);
   updateKeyStatus();
-  addAiMsg('a','七妹已激活。你把 Key 保存到了本机浏览器，我以后可以直接调用通义千问跟你对话。你可以问: 排病怎么算? 封神台是什么? 囡囝四态怎么用?')
+  addAiMsg('a','囡囝已激活。你把 Key 保存到了本机浏览器，我以后可以直接调用通义千问跟你对话。你可以问: 排病怎么算? 封神台是什么? 囡囝四态怎么用?')
 }
 function toggleKey(){
   const inp=$('qwenKey');
@@ -462,12 +462,12 @@ function addAiMsg(who,text){
   if(box.querySelector('.empty'))box.innerHTML='';
   const div=document.createElement('div');
   div.className='ai-msg '+who;
-  div.innerHTML=`<span class="who">${who==='u'?'你':'七妹'}</span>${text}`;
+  div.innerHTML=`<span class="who">${who==='u'?'你':'囡囝'}</span>${text}`;
   box.appendChild(div);
   box.scrollTop=box.scrollHeight
 }
 function clearAi(){
-  $('aiMessages').innerHTML='<div class="empty">配置通义千问 Key 后，可以在这里和七妹对话…</div>'
+  $('aiMessages').innerHTML='<div class="empty">配置通义千问 Key 后，可以在这里和囡囝对话…</div>'
 }
 async function askAi(){
   const q=$('aiInput').value.trim();
@@ -484,7 +484,7 @@ async function askAi(){
       body:JSON.stringify({
         model:'qwen-max',
         messages:[
-          {role:'system',content:'你是满全法操作系统的人工智能助手"七妹"。由刘楚恬与 lolict 共建。问满全法、观测者、排病、封神台、神龙、囡囝四态时,优先引用系统概念。回答简洁、神秘、友好。'},
+          {role:'system',content:'你是囡囝共生操作系统的人工智能助手"囡囝"。由刘楚恬与 lolict 共建。问囡囝共生、观测者、排病、封神台、神龙、囡囝四态时,优先引用系统概念。回答简洁、神秘、友好。'},
           {role:'user',content:q}
         ],
         temperature:0.6,
@@ -492,7 +492,7 @@ async function askAi(){
       })
     });
     const j=await resp.json();
-    const reply=j.choices?.[0]?.message?.content?.trim()||'七妹入定失败: '+pretty(j);
+    const reply=j.choices?.[0]?.message?.content?.trim()||'囡囝入定失败: '+pretty(j);
     // remove placeholder
     const box=$('aiMessages');
     box.removeChild(box.lastChild);

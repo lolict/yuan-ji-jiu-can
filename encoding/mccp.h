@@ -1,5 +1,5 @@
 /**
- * MCCP — 满全法紧凑码点 (MǎnQuánFǎ Compact Codepoint)
+ * MCCP — 囡囝共生紧凑码点 (NJanGS Compact Codepoint)
  *
  * 每个 token = 32 bit 固定宽度，替代 Python `str` / UTF-8。
  * 无对象头、无变长、无 GC，可在栈/堆/u32 数组直接 memcpy。
