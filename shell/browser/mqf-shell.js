@@ -183,10 +183,64 @@ const MqfCore = {
     return mqfVerdictEngine(request);
   },
 
+  /**
+   * 通过 WASM 计算裁定
+   *
+   * 需要:
+   *   1) njsg_core.wasm 存在(由 build_wasm.sh dual 模式生成)
+   *   2) 该 wasm 导出 njsg_verdict_json 而非走 stdin/stdout 通道
+   *
+   * 当前沙箱环境无 wasm-ld,无法产出 .wasm,因此此函数作为
+   * "wasm 加载路径就绪时"的骨架,仍回退到 JS 逻辑。
+   * 回退裁定结果与 C 源码五/六元算法保持数值等价(阶梯制约束)。
+   */
   _verdictWasm(request) {
-    // 调用 wasm 导出的 mqf_verdict
-    // TODO: 实现 WASI stdin 写入
-    return mqfVerdictEngine(request); // fallback for now
+    try {
+      // 如果 wasm 导出 njsg_verdict_json 函数,直接调用
+      const exports = this.wasmModule && this.wasmModule.exports;
+      if (exports && typeof exports.njsg_verdict_json === 'function') {
+        return this._execVerdictExport(request, exports);
+      }
+      // 否则走 stdin/stdout WASI 通道(当前 channel shim 仅 fd_write,
+      // 需要 wasi-libc 环境才能完整实现)
+      if (exports && typeof exports.main === 'function') {
+        console.warn('[WASM] main() 需要完整 WASI 运行环境,暂时回退 JS');
+      }
+    } catch (e) {
+      console.warn('[WASM] exec failed:', e.message);
+    }
+    // 回退到 JS 实现(数值等价)
+    return mqfVerdictEngine(request);
+  },
+
+  /**
+   * 通过 njsg_verdict_json 导出调用裁定
+   * 该函数指针对应 kernel/wasm/mqf_wasm.c 中新增的非 wasi 导出
+   */
+  _execVerdictExport(request, exports) {
+    const mem = exports.memory;
+    const u8 = new Uint8Array(mem.buffer);
+    const enc = new TextEncoder();
+
+    // 写入输入 JSON 到 wasm 内存偏移 0x1000
+    const inputPtr = 0x1000;
+    const inputJson = JSON.stringify(request).replace(/'/g, "'");
+    const bytes = enc.encode(inputJson);
+    u8.set(bytes, inputPtr);
+    u8[inputPtr + bytes.length] = 0;
+
+    // 输出缓冲区 offset 0x3000 (最大 8192 字节)
+    const outputPtr = 0x3000;
+    const outputCap = 8192;
+
+    exports.njsg_verdict_json(inputPtr, outputPtr, outputCap);
+
+    // 从 wasm 内存读回输出
+    let end = outputPtr;
+    while (end < outputPtr + outputCap && u8[end] !== 0) end++;
+    const outBytes = u8.subarray(outputPtr, end);
+    const result = JSON.parse(new TextDecoder().decode(outBytes));
+    return result;
   }
 };
 

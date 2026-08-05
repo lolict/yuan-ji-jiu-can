@@ -106,7 +106,11 @@ hunyuan-os/
   - kernel/wasm/mqf_wasm.c 去 32/64 假设:int32_t/size_t/NJSG_* 宏
   - shell/native/build_wasm.sh 单源码双出 (wasm32 + wasm64)
   - docs/DUAL-BINDING-TIER.md 阶梯制文档
+  - 魔数→命名常量(NJ_TRUSTED/NJ_ALIGNED 等)
+  - 新增 `njsg_verdict_json` 导出函数:浏览器 JS 通过 wasm 内存共享直接调用(绕过 WASI)
+  - mqf-shell.js 增加 `_execVerdictExport()` 路径:当 .wasm 存在且导出该函数时真正使用 WASM
   - 双阶梯语法检查通过 (wasm32-wasi ✅, wasm64-wasi ✅)
+  - ⚠ 沙箱环境无 wasm-ld,未能产出 .wasm 二进制(需本地安装 lld-18 或 wasi-sdk)
 
 ### 代码文件
 - `kernel/wasm/mqf_wasm.c` (WASI 裁定内核,v2.0-ladder,320 行,32/64 同源码)

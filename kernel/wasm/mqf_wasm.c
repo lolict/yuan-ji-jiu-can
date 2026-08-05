@@ -335,3 +335,88 @@ int main(void) {
     fflush(stdout);
     return 0;
 }
+
+/**
+ * 导出函数:供浏览器 JS 直接调用(绕过 WASI stdin/stdout)
+ *
+ * 输入:    in_json  — 输入 JSON 字符串指针(C string*,UTF-8)
+ * 输出:    out_buf  — 输出缓冲区(写入裁定 JSON 结果)
+ *          out_cap  — 输出缓冲区容量(字节)
+ * 返回:    实际写入的字节数(不含 NUL); 若 out_cap=0 即返回所需大小。
+ *
+ * 这是阶梯制的关键握手点:
+ *   C 五/六元算法  ←单一权威实现→  JS 壳通过内存共享传参/回读
+ *   编译到 wasm32 或 wasm64,JS 侧调用路径完全一致。
+ */
+__attribute__((export_name("njsg_verdict_json")))
+int njsg_verdict_json(const char* in_json, char* out_buf, int out_cap) {
+    if (!in_json) return 0;
+
+    verdict_request_t req;
+    memset(&req, 0, sizeof(req));
+    req.compliance_a = NJSG_DEFAULT_COMPLIANCE;
+    req.compliance_b = NJSG_DEFAULT_COMPLIANCE;
+    req.force = NJSG_DEFAULT_FORCE;
+    req.angle = NJSG_DEFAULT_ANGLE;
+
+    /* 解析输入 JSON (与 main() 中解析逻辑一致) */
+    const char* pv;
+    pv = json_find_key(in_json, "entity");
+    if (pv) {
+        while (*pv == ' ' || *pv == '"') pv++;
+        int i = 0;
+        while (*pv && *pv != '"' && *pv != ',' && *pv != '}' && i < NJSG_MAX_NAME_LEN - 1) {
+            req.entity[i++] = *pv++;
+        }
+        req.entity[i] = '\0';
+    }
+    pv = json_find_key(in_json, "compliance_a");
+    json_parse_float(pv, &req.compliance_a);
+    pv = json_find_key(in_json, "compliance_b");
+    json_parse_float(pv, &req.compliance_b);
+    pv = json_find_key(in_json, "force");
+    json_parse_float(pv, &req.force);
+    pv = json_find_key(in_json, "angle");
+    json_parse_float(pv, &req.angle);
+
+    /* 执行裁定 */
+    verdict_result_t res = mqf_verdict_engine(&req);
+
+    /* 生成输出 JSON */
+    char tmp[NJSG_MAX_OUTPUT];
+    snprintf(tmp, sizeof(tmp),
+        "{"
+        "\"ok\":true,"
+        "\"version\":\"" MQF_WASM_VERSION "\","
+        "\"entity\":\"%s\","
+        "\"mqf_verdict\":{"
+            "\"trust\":\"%s\","
+            "\"confidence\":%.3f,"
+            "\"mirror_alignment\":\"%s\","
+            "\"five_yuan\":{\"ticks\":%d,\"occupied\":\"%s\",\"angle\":%.1f},"
+            "\"six_yuan\":{\"intersection\":%.3f,\"verdict\":%d}"
+        "},"
+        "\"philosophy\":\"%s\""
+        "}",
+        req.entity[0] ? req.entity : "unknown",
+        res.verdict ? "TRUSTED" : "REJECTED",
+        res.confidence,
+        res.mirror_align ? "ALIGNED" : "OFFSET",
+        res.ticks,
+        res.occupied ? "ETERNAL" : "EPHEMERAL",
+        res.final_angle,
+        res.confidence,
+        res.verdict,
+        res.verdict ? NJ_PHRASE_TRUSTED : NJ_PHRASE_REJECTED
+    );
+
+    int len = (int)strlen(tmp);
+    if (out_cap <= 0) return len;  /* 查询所需大小 */
+    if (!out_buf) return 0;
+
+    /* 安全拷贝(防溢出) */
+    int copy = (len < out_cap - 1) ? len : out_cap - 1;
+    memcpy(out_buf, tmp, copy);
+    out_buf[copy] = '\0';
+    return copy;
+}
