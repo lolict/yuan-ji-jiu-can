@@ -38,6 +38,27 @@
 #define FIVE_YUAN_STEPS 5
 #define FIVE_YUAN_OCCUPY_THRESHOLD 100
 
+/* 六元阈值 */
+#define NJSG_MIRROR_ALIGN_TOLERANCE  0.2f
+#define NJSG_TRUST_VERDICT_THRESHOLD  0.6f
+
+/* 默认输入(无 stdin 时) */
+#define NJSG_DEFAULT_COMPLIANCE 0.5f
+#define NJSG_DEFAULT_FORCE      10.0f
+#define NJSG_DEFAULT_ANGLE      45.0f
+
+/* 裁定结果枚举状标签 */
+#define NJ_REJECTED 0
+#define NJ_TRUSTED  1
+#define NJ_OFFSET   0
+#define NJ_ALIGNED  1
+#define NJ_EPHEMERAL 0
+#define NJ_ETERNAL   1
+
+/* 哲学回应(裁定通过时) */
+#define NJ_PHRASE_TRUSTED "已被铭记 — 双重背书,可共生"
+#define NJ_PHRASE_REJECTED "仍在观察 — 单方或双方否决,待共首源"
+
 typedef struct {
     char name[NJSG_MAX_NAME_LEN];
     int32_t step;
@@ -215,8 +236,8 @@ static verdict_result_t mqf_verdict_engine(verdict_request_t* req) {
     res.confidence = (req->compliance_a < req->compliance_b) ? req->compliance_a : req->compliance_b;
     float diff = req->compliance_a - req->compliance_b;
     if (diff < 0.0f) diff = -diff;
-    res.mirror_align = (diff < 0.2f) ? 1 : 0;
-    res.verdict = (res.confidence > 0.6f && res.mirror_align) ? 1 : 0;
+    res.mirror_align = (diff < NJSG_MIRROR_ALIGN_TOLERANCE) ? NJ_ALIGNED : NJ_OFFSET;
+    res.verdict = (res.confidence > NJSG_TRUST_VERDICT_THRESHOLD && res.mirror_align) ? NJ_TRUSTED : NJ_REJECTED;
 
     return res;
 }
@@ -246,10 +267,10 @@ int main(void) {
     char output[NJSG_MAX_OUTPUT];
     verdict_request_t req;
     memset(&req, 0, sizeof(req)); /* 32/64 同源码:阶梯制·双向公约 */
-    req.compliance_a = 0.5f;
-    req.compliance_b = 0.5f;
-    req.force = 10.0f;
-    req.angle = 45.0f;
+    req.compliance_a = NJSG_DEFAULT_COMPLIANCE;
+    req.compliance_b = NJSG_DEFAULT_COMPLIANCE;
+    req.force = NJSG_DEFAULT_FORCE;
+    req.angle = NJSG_DEFAULT_ANGLE;
 
     /* 读取 stdin JSON */
     size_t total = 0;
@@ -307,7 +328,7 @@ int main(void) {
         res.final_angle,
         res.confidence,
         res.verdict,
-        res.verdict ? "已被铭记 — 双重背书,可信任" : "仍在观察 — 单方或双方否决"
+        res.verdict ? NJ_PHRASE_TRUSTED : NJ_PHRASE_REJECTED
     );
 
     fwrite(output, 1, strlen(output), stdout);
