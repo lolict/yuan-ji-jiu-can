@@ -1,12 +1,12 @@
 // ╔══════════════════════════════════════════════════════════════════╗
-// ║  满全法 · 囡囝共生元 — Rust 核心库                               ║
+// ║  囡囝共生 · 囡囝共生元 — Rust 核心库                               ║
 // ║  ManQuanFa · NanJian Symbiosis — Core Library                   ║
 // ║                                                                  ║
-// ║  Copyright © 刘楚恬 & lolict (七妹凹月留)                         ║
+// ║  Copyright © 刘楚恬 & lolict (囡囝凹月留)                         ║
 // ║  所有权保留 · 无 MIT / GPL / Apache 许可                          ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
-// ── 满全法基础通信层 (v0.4) ──
+// ── 囡囝共生基础通信层 (v0.4) ──
 pub mod mccp;
 pub mod mccp_vm;
 pub mod l0_compiler;
@@ -15,7 +15,7 @@ pub mod kernel;
 pub mod crypto;
 pub mod protocol;
 
-// ── 满全法综合扩展层 (v0.4 保留) ──
+// ── 囡囝共生综合扩展层 (v0.4 保留) ──
 pub mod name_creator;
 pub mod holo_3d;
 pub mod log_ring;
@@ -23,7 +23,7 @@ pub mod time_node;
 pub mod stats;
 pub mod router;
 
-// ── 满全法底层舞台 (v0.5 · 自举骨架) ──
+// ── 囡囝共生底层舞台 (v0.5 · 自举骨架) ──
 // 五个子树自己可以独立 bootstrap:
 //   triune   — 三元裁判机 (有无推演 / 流动方向 / 等效对齐)
 //   funnel   — 漏斗控制器 (时间火候 + 空间切片 + 层级调度)

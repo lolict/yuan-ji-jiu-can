@@ -27,7 +27,7 @@
 //   4) 非残差累加到 self-similar 计数
 //   5) 残差进入残差偏移量统计
 //   6) 全局: 残差偏移量逐个统计; 非残差聚合坍缩
-//   7) 最终坍缩为唯一一点 = 满全法中心
+//   7) 最终坍缩为唯一一点 = 囡囝共生中心
 
 use crate::stats::StreamStats;
 use crate::triune::{BeingState, TriuneVerdict};
@@ -275,7 +275,7 @@ pub const BILLION_NODE_TARGET: u64 = 2_200_000_000;
 //   down-sweep: 从根向下分发前缀到每个叶子 (O(log n) 并行步)
 //   总计: O(log n) 并行深度, 串行 O(n)
 //
-// 在满全法里: 两个 FractalNode 通过 triune 漏斗合并规则结合.
+// 在囡囝共生里: 两个 FractalNode 通过 triune 漏斗合并规则结合.
 
 /// 通用结合律扫描 (sequential 正确性引用实现)
 /// 输入: [a0, a1, a2, ..., an-1]

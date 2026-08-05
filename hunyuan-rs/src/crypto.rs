@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════════════════════
-// crypto.rs — 满全法加密层 (Rust FFI)
+// crypto.rs — 囡囝共生加密层 (Rust FFI)
 // ══════════════════════════════════════════════════════════════════
 //
 // 对应 C 版 core/mqf_crypto.c。
@@ -559,7 +559,7 @@ mod tests {
     fn aes_gcm_roundtrip() {
         let key = [0x42u8; SESSION_LEN];
         let nonce = [0xABu8; GCM_NONCE_LEN];
-        let pt = "hello mqf 满全法".as_bytes();
+        let pt = "hello mqf 囡囝共生".as_bytes();
         let mut ct = vec![0u8; pt.len()];
         let mut tag = [0u8; GCM_TAG_LEN];
         assert_eq!(gcm_encrypt(&key, &nonce, None, pt, &mut ct, &mut tag), CRYPTO_OK);

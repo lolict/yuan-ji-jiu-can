@@ -1,5 +1,5 @@
 """
-满全法 X25519 ECDH
+囡囝共生 X25519 ECDH
 ==================
 
 Pure Python fallback X25519 (for portability).

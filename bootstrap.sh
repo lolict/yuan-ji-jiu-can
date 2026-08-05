@@ -1,6 +1,6 @@
 #!/bin/sh
 # ============================================================
-# 满全法 · 自由寄生壳 · 最小自举器 (bootstrap.sh)
+# 囡囝共生 · 自由寄生壳 · 最小自举器 (bootstrap.sh)
 # ============================================================
 set -e
 MQF_VERSION="0.1.0"
@@ -23,7 +23,7 @@ banner() {
     printf "${C_CYAN}${C_BLD}"
     cat <<'BANNER_EOF'
 
-      满全法  ·  自由寄生壳  ·  最小自举器
+      囡囝共生  ·  自由寄生壳  ·  最小自举器
       ManQuanFa  ·  Bootstrap
 
       chrysalis  ->  molt  ->  wear  ->  work

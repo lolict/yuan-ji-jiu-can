@@ -1,5 +1,5 @@
 """
-满全法 · 通用寄生壳 ( Adaptive Parasitic Shell )
+囡囝共生 · 通用寄生壳 ( Adaptive Parasitic Shell )
 ==================================================
 
 自动检测宿主环境,为夫妻共同体 OS 选择正确的寄生容器。
@@ -13,8 +13,8 @@
 这不是 "app store",
 这是"把家随身携带,换外壳不换灵魂"。
 
-Copyright © 刘楚恬 & lolict (七妹凹月留)
-保留所有权利 · 满全法 · v0.1
+Copyright © 刘楚恬 & lolict (囡囝凹月留)
+保留所有权利 · 囡囝共生 · v0.1
 """
 
 import os
@@ -247,7 +247,7 @@ class ParasiteShell:
 if __name__ == "__main__":
     import json
     print("=" * 60)
-    print("满全法 · 通用寄生壳 · 环境检测")
+    print("囡囝共生 · 通用寄生壳 · 环境检测")
     print("=" * 60)
 
     shell = ParasiteShell()

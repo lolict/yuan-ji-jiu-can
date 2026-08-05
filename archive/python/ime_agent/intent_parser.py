@@ -135,7 +135,7 @@ if __name__ == "__main__":
     p = IntentParser()
     tests = [
         "抓取 https://github.com/lolict/hunyuan-os",
-        "push 满全法 v0.2 协议升级",
+        "push 囡囝共生 v0.2 协议升级",
         "生成一段五言绝句",
         "查询 clv / nha",
         "握手",

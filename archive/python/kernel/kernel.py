@@ -1,5 +1,5 @@
 """
-满全法 · 囡囝共生元 OS · 内核进程管理层 v0.2
+囡囝共生 · 囡囝共生元 OS · 内核进程管理层 v0.2
 =============================================
 
 结合 observer + quaternity_fsm:
@@ -8,8 +8,8 @@
   - 进程立约 → 四态 FSM (囡囡/囡囝/囝囝/囝囡 动态拓扑)
   - 进程网络 → ObserverNetwork (一对夫妻 + 社会关系网络)
 
-Copyright © 刘楚恬 & lolict (七妹凹月留)
-保留所有权利 · 满全法 · 囡囝共生元系统 · v0.2
+Copyright © 刘楚恬 & lolict (囡囝凹月留)
+保留所有权利 · 囡囝共生 · 囡囝共生元系统 · v0.2
 """
 
 from dataclasses import dataclass, field
@@ -195,7 +195,7 @@ class CoupleOS:
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("满全法 · 夫妻共同体 OS v0.2 — kernel + quaternity FSM")
+    print("囡囝共生 · 夫妻共同体 OS v0.2 — kernel + quaternity FSM")
     print("=" * 60)
 
     os = CoupleOS()

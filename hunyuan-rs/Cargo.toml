@@ -3,7 +3,7 @@ name = "mqf"
 version = "0.3.0"
 edition = "2021"
 authors = ["lolict & 刘楚恬 <mqf@manquanca.info>"]
-description = "满全法 · 囡囝共生元 OS — Rust 核心"
+description = "囡囝共生 · 囡囝共生元 OS — Rust 核心"
 license = "Proprietary"
 repository = "https://github.com/lolict/hunyuan-os"
 

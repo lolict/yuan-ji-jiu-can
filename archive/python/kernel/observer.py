@@ -18,8 +18,8 @@
   三元归一: π(x, 锚) = x - 锚, 两两相减即得距离 (省去重复测量)
   公约数:  gcd(|a-锚|, |b-锚|) 即公共单位
 
-Copyright © 刘楚恬 & lolict (七妹凹月留)
-保留所有权利 · 满全法 · 囡囝共生元操作系统内核 · v0.1
+Copyright © 刘楚恬 & lolict (囡囝凹月留)
+保留所有权利 · 囡囝共生 · 囡囝共生元操作系统内核 · v0.1
 """
 
 from typing import List, Tuple, Optional

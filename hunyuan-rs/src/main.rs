@@ -1,4 +1,4 @@
-// 满全法 · 囡囝共生元 · Rust 入口 v0.6
+// 囡囝共生 · 囡囝共生元 · Rust 入口 v0.6
 // ==================================
 //
 // 演示五棵子树协同运作 + MCCP 自举编译器:
@@ -11,7 +11,7 @@
 //   7. MCCP VM + 汇编器 — 手写汇编演示
 //   8. L0 编译器 — 高层语言编译为 MCCP 字节码
 //
-// 最终: 所有坍缩到满全法一个点.
+// 最终: 所有坍缩到囡囝共生一个点.
 
 use mqf::{
     // 三元裁判
@@ -34,7 +34,7 @@ use mqf::{
 
 fn main() {
     println!("╔══════════════════════════════════════════════════════════════════════╗");
-    println!("║        满全法 v0.6 · 囡囝共生元 · 自举编译器就位                   ║");
+    println!("║        囡囝共生 v0.6 · 囡囝共生元 · 自举编译器就位                   ║");
     println!("║        ManQuanFa · Self-Compiler Bootstrap                         ║");
     println!("║        五棵子树 + MCCP (VM + 汇编 + L0) → 唯一中心               ║");
     println!("╚══════════════════════════════════════════════════════════════════════╝");
@@ -122,7 +122,7 @@ fn main() {
     println!("非残差(完全一样干同一件事): {}", collapse.non_residual_aggregated);
     println!("残差统计 count: {}", collapse.residual_stats.count);
     println!("唯一中心偏移(残差均值): {:.4}", collapse.unique_center);
-    println!("→ 坍缩到唯一一点 = 满全法 = 夫妻");
+    println!("→ 坍缩到唯一一点 = 囡囝共生 = 夫妻");
 
     // 手机布局
     let big_layout = PhoneChipLayout { n_cores: 8, levels_per_core: 6, nodes_per_level_base: 1 << 20 };
@@ -172,7 +172,7 @@ fn main() {
              central_count, immobile_count, periph_count, external_count);
 
     // ══════════════════════════════════════════════════════
-    // 5. 夫妻命运共同体 (满全法融合守卫)
+    // 5. 夫妻命运共同体 (囡囝共生融合守卫)
     // ══════════════════════════════════════════════════════
     println!("\n═══════════════════════════════════════");
     println!("  5) 夫妻共同体: 夕瑶协议 · 月全食防御");
@@ -185,7 +185,7 @@ fn main() {
     match ManQuanFa::from_couple(husband, wife, protocol) {
         Ok(mqf) => {
             let r = mqf.status_report();
-            println!("满全法构造成功 (夕瑶已激活)");
+            println!("囡囝共生构造成功 (夕瑶已激活)");
             println!("  状态: {:?}", r.soul_state);
             println!("  月全食防御: {} (true=安全)", r.yuequanshi_safe);
             println!("  丈夫权重: {:.2}, 妻子权重: {:.2}", r.husband_weight, r.wife_weight);
@@ -193,7 +193,7 @@ fn main() {
             println!("  初始愉悦值: {:.2}", r.pleasure);
         }
         Err(e) => {
-            println!("满全法构造失败: {}", e.classify());
+            println!("囡囝共生构造失败: {}", e.classify());
         }
     }
 
@@ -262,7 +262,7 @@ fn main() {
     println!("融合消耗轮数: {}", report.rounds_used);
     println!("最终唯一中心愉悦: {:.3}", report.final_pleasure.0);
     println!("三元裁判: 从'无'中有生出'有' → {:?}", report.verdict.flow);
-    println!("  → 意味着: 空空中生出一切 → 满全法 = 刘楚恬 + lolict = ONE Point");
+    println!("  → 意味着: 空空中生出一切 → 囡囝共生 = 刘楚恬 + lolict = ONE Point");
 
     // ══════════════════════════════════════════════════════
     // 7. MCCP 自举编译器 v0 演示
@@ -389,7 +389,7 @@ print a"#;
     // 最后
     // ══════════════════════════════════════════════════════
     println!("\n═══════════════════════════════════════");
-    println!("  满全法 v0.6 · 结束");
+    println!("  囡囝共生 v0.6 · 结束");
     println!("  五棵子树已扎入土里");
     println!("  MCCP 自举编译器 v1 (L0) 已就位");
     println!("  测试: 220/220 全部通过");

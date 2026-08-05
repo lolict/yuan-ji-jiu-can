@@ -11,7 +11,7 @@ MetaIME · 本地 AI 决策引擎
   3. 决策树 — 给定意图 → 最佳执行序列
 
 不靠向量数据库,不靠 LLM,不靠云。
-用的是满全法独创的"态射数学 + 关系代数 + 三垣观测"。
+用的是囡囝共生独创的"态射数学 + 关系代数 + 三垣观测"。
 """
 import time
 import json
@@ -75,9 +75,9 @@ class LocalAgent:
         """预置核心知识图谱"""
         self.add_node("liuchutian", "刘楚恬",
             {"role": "妻子", "hash_prefix": "a5de8919"})
-        self.add_node("lolict", "lolict(七妹凹月留)",
+        self.add_node("lolict", "lolict(囡囝凹月留)",
             {"role": "丈夫", "hash_prefix": "2c1edeb7"})
-        self.add_node("hunyuan_os", "满全法 OS",
+        self.add_node("hunyuan_os", "囡囝共生 OS",
             {"type": "core_system", "version": "0.2"})
         self.add_node("lingxi_protocol", "灵犀协议",
             {"type": "p2p", "layers": "唤魂/招魂/问灵/答灵/同修/传功/归元/劫数"})
@@ -176,7 +176,7 @@ if __name__ == "__main__":
 
     intents = [
         "灵犀握手",
-        "推送满全法 v0.2",
+        "推送囡囝共生 v0.2",
         "抓取 https://example.com",
         "随便打字",
     ]

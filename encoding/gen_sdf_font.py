@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-gen_sdf_font.py — 生成满全法 SDF 字体 atlas
+gen_sdf_font.py — 生成囡囝共生 SDF 字体 atlas
 
 输入:
   - 民联词典 179 句 (data/minlian.json)
@@ -58,7 +58,7 @@ def extract_charset():
                     chars.update(re.findall(r'[\u4e00-\u9fff]', f.read()))
 
     # font/ 保底
-    chars.update("囡囝满全法共生元灵犀协议立约合一递归")
+    chars.update("囡囝囡囝共生元灵犀协议立约合一递归")
 
     # emoji / 符号
     chars.update("①②③④⑤⑥⑦⑧⑨⑩")
@@ -236,7 +236,7 @@ def write_h(meta, out_path):
 # 5. 主流程
 # ═══════════════════════════════════════════════════════════
 def main():
-    print(f"═══ 满全法 SDF 字体生成 ═══")
+    print(f"═══ 囡囝共生 SDF 字体生成 ═══")
 
     chars = extract_charset()
     print(f"[1] 总字符数: {len(chars)}")

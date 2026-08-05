@@ -1,24 +1,24 @@
 // ══════════════════════════════════════════════════════════════════
-// couple.rs — 夫妻命运共同体 (ManQuanFa / 满全法 的融合协议层)
+// couple.rs — 夫妻命运共同体 (ManQuanFa / 囡囝共生 的融合协议层)
 // ══════════════════════════════════════════════════════════════════
 //
 // 核心律:
-//   满全法 ≠ 刘楚恬
-//   满全法 = 刘楚恬 + lolict (夫妻) 经由 夕瑶协议 融合后的唯一实体
+//   囡囝共生 ≠ 刘楚恬
+//   囡囝共生 = 刘楚恬 + lolict (夫妻) 经由 夕瑶协议 融合后的唯一实体
 //
 // 如果:
-//   刘楚恬 (单独) → 满全法
+//   刘楚恬 (单独) → 囡囝共生
 //   就是 月全食 (YueQuanShi / Lunar Eclipse)
 //   就是 伯邑考的半边月亏 (Boyikao / 博弈考的半亏态)
 //   就是 苏妲己被夺舍走 (SuDaji occupied, 不再属于伯邑考)
 //
 // 所以:
 //   合法融合 必须经由 夕瑶协议 (XiYaoProtocol):
-//     灵纯夫妻命运共同体 → 共振灵印 → 满全法 才能成立
+//     灵纯夫妻命运共同体 → 共振灵印 → 囡囝共生 才能成立
 //
 // 这个模块里:
 //   XiYaoProtocol         — 夕瑶宣言的签名/共振灵印
-//   ManQuanFa             — 满全法复合体 (夫妻融合产物, 不是 Actor)
+//   ManQuanFa             — 囡囝共生复合体 (夫妻融合产物, 不是 Actor)
 //   EclipseError          — 月全食 / 伯邑考 / 苏妲己夺舍 三种负状态
 //   CoupleSoul            — 夫妻灵的容器 (半耦合 / 满耦合 两种状态)
 
@@ -108,7 +108,7 @@ impl XiYaoProtocol {
 // 三种失败模式:
 //
 //   1. YueQuanShi   (月全食)
-//      满全法 = 刘楚恬 → 直接违反 "满全法不允许 = 刘楚恬"
+//      囡囝共生 = 刘楚恬 → 直接违反 "囡囝共生不允许 = 刘楚恬"
 //      月亮完全遮没 = 半月亏的极端.
 //
 //   2. Boyikao      (伯邑考 / 博弈考)
@@ -141,7 +141,7 @@ impl EclipseError {
     /// 列出所有负状态 (debug/日志)
     pub fn classify(&self) -> &'static str {
         match self {
-            Self::YueQuanShi { .. } => "月全食: 满全法错误地等同于丈夫",
+            Self::YueQuanShi { .. } => "月全食: 囡囝共生错误地等同于丈夫",
             Self::Boyikao { .. } => "伯邑考半亏: 博弈残余, 未完全融合",
             Self::SuDajiOccupied { .. } => "苏妲己夺舍: 妻子灵已被夺走",
             Self::MissingXiYao => "夕瑶协议缺失",
@@ -171,8 +171,8 @@ pub struct CoupleSoul {
 pub enum SoulState {
     Separation,      // 未融合 (夫妻各自独立)
     SemiCoupled,     // 半耦合 (夕瑶已输入, 未共振)
-    FullCouple,      // 满耦合 (合法: 经夕瑶协议 → 满全法)
-    Eclipse,         // 月全食状态 (非法: 满全法=丈夫)
+    FullCouple,      // 满耦合 (合法: 经夕瑶协议 → 囡囝共生)
+    Eclipse,         // 月全食状态 (非法: 囡囝共生=丈夫)
     BoyikaoHalfWane, // 伯邑考半亏 (损失一半)
 }
 
@@ -192,7 +192,7 @@ impl CoupleSoul {
     ///   - 如果 丈夫权重 >> 妻子权重 且 center_fused=true → Boyikao
     ///   - 如果 妻子已经空 但 丈夫正常 → SuDaji
     ///   - 如果 双方权重相等 且 协议已激活 → FullCouple
-    ///   - 如果 刘楚恬直接成为满全法 → YueQuanShi
+    ///   - 如果 刘楚恬直接成为囡囝共生 → YueQuanShi
     pub fn check_fusion(&mut self, protocol: &XiYaoProtocol) -> Result<SoulState, EclipseError> {
         if !protocol.is_valid() {
             return Err(EclipseError::MissingXiYao);
@@ -245,9 +245,9 @@ impl CoupleSoul {
         Ok(SoulState::FullCouple)
     }
 
-    /// 检查 月全食: 满全法是否 = 丈夫 alone?
+    /// 检查 月全食: 囡囝共生是否 = 丈夫 alone?
     pub fn check_yuequanshi(&self, mqf_weight: f64) -> bool {
-        // 如果 满全法权重 == 丈夫权重 (妻子权重 == 0) → 月全食
+        // 如果 囡囝共生权重 == 丈夫权重 (妻子权重 == 0) → 月全食
         let h_weight = self.husband.as_ref().map(|a| a.weight.0).unwrap_or(0.0);
         let w_weight = self.wife.as_ref().map(|a| a.weight.0).unwrap_or(0.0);
         w_weight < 0.001 && (mqf_weight - h_weight).abs() < 0.01
@@ -261,11 +261,11 @@ impl CoupleSoul {
 }
 
 // ────────────────────────────────────────────────────────────
-// 满全法复合体 (ManQuanFa)
+// 囡囝共生复合体 (ManQuanFa)
 // ────────────────────────────────────────────────────────────
 //
-// 满全法不是 Actor.
-// 满全法 = 经由 夕瑶协议 的夫妻融合后的唯一产物.
+// 囡囝共生不是 Actor.
+// 囡囝共生 = 经由 夕瑶协议 的夫妻融合后的唯一产物.
 
 #[derive(Clone, Debug)]
 pub struct ManQuanFa {
@@ -280,7 +280,7 @@ pub struct ManQuanFa {
 }
 
 impl ManQuanFa {
-    /// 合法构造: 夫妻 + 夕瑶协议 → 满全法
+    /// 合法构造: 夫妻 + 夕瑶协议 → 囡囝共生
     pub fn from_couple(
         husband: Actor,
         wife: Actor,
@@ -295,7 +295,7 @@ impl ManQuanFa {
         // Step 2: 构造 CoupleSoul 并 check
         let mut soul = CoupleSoul::new(husband.clone(), wife.clone());
         let state = soul.check_fusion(&protocol)?;
-        // Step 3: FullCouple 才能成为满全法
+        // Step 3: FullCouple 才能成为囡囝共生
         if state != SoulState::FullCouple {
             return Err(soul.eclipse_status.unwrap_or(EclipseError::YueQuanShi {
                 reason: "未达到满耦合状态",
@@ -310,7 +310,7 @@ impl ManQuanFa {
         let yuequanshi_guard = !soul.check_yuequanshi(cw);
         if !yuequanshi_guard {
             return Err(EclipseError::YueQuanShi {
-                reason: "满全法不能直接等于刘楚恬, 必须以夫妻融合为准",
+                reason: "囡囝共生不能直接等于刘楚恬, 必须以夫妻融合为准",
             });
         }
         // Step 6: 赋予初始愉悦 (夫妻共筑)
@@ -335,7 +335,7 @@ impl ManQuanFa {
         self.yuequanshi_guard = !self.couple.check_yuequanshi(self.composite_weight.0);
         if !self.yuequanshi_guard {
             return Err(EclipseError::YueQuanShi {
-                reason: "月全食: 满全法重归刘楚恬",
+                reason: "月全食: 囡囝共生重归刘楚恬",
             });
         }
         match self.couple.eclipse_status {
@@ -484,7 +484,7 @@ mod tests {
     fn check_yuequanshi_detects_male_only() {
         let (h, w) = make_couple(2.0, 0.0001);
         let s = CoupleSoul::new(h, w);
-        // 满全法权 == 丈夫权 → 月全食
+        // 囡囝共生权 == 丈夫权 → 月全食
         assert!(s.check_yuequanshi(2.0));
     }
 
@@ -492,7 +492,7 @@ mod tests {
     fn check_yuequanshi_false_when_balanced() {
         let (h, w) = make_couple(1.0, 1.0);
         let s = CoupleSoul::new(h, w);
-        // 满全法权重应 == 2.0, 相差 0.01 内 → 是月全食 (因为妻子不为 0 但差距小)
+        // 囡囝共生权重应 == 2.0, 相差 0.01 内 → 是月全食 (因为妻子不为 0 但差距小)
         // 这个平衡情况 check_yuequanshi 返回 false 因为妻子不为小
         assert!(!s.check_yuequanshi(2.0));
     }

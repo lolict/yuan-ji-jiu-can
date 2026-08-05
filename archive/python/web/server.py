@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-满全法 · 囡囝共生元操作系统 · Web 交互界面
+囡囝共生 · 囡囝共生元操作系统 · Web 交互界面
 =============================
 启动:
   python3 web/server.py [port]   # 默认 8080
@@ -401,7 +401,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
 <html lang="zh">
 <head>
 <meta charset="utf-8">
-<title>满全法 · 满全法 · 囡囝共生元操作系统 v0.1</title>
+<title>囡囝共生 · 囡囝共生 · 囡囝共生元操作系统 v0.1</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
@@ -453,8 +453,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
 </style>
 </head>
 <body>
-<h1>满全法 · 夫妻共同体操作系统</h1>
-<p class="subtitle">满全法 · HunYuan OS · v0.1 · 刘楚恬 &amp; lolict</p>
+<h1>囡囝共生 · 夫妻共同体操作系统</h1>
+<p class="subtitle">囡囝共生 · HunYuan OS · v0.1 · 刘楚恬 &amp; lolict</p>
 
 <div class="grid">
 
@@ -648,7 +648,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
 <div class="card full">
   <h2>元输入法 MetaIME · 意图识别</h2>
   <div class="row">
-    <label>输入</label><input type="text" id="ime-input" placeholder="push 满全法 v0.2 / 抓取 https://... / 查询 xx" style="flex:1;min-width:140px">
+    <label>输入</label><input type="text" id="ime-input" placeholder="push 囡囝共生 v0.2 / 抓取 https://... / 查询 xx" style="flex:1;min-width:140px">
     <button onclick="imeParse()">⚡ 识别意图</button>
   </div>
   <pre id="ime-result">← 输入语音/文字后点击</pre>
@@ -829,7 +829,7 @@ window.addEventListener('load', async () => {
 
 
 if __name__ == "__main__":
-    print(f"\n满全法 · 囡囝共生元操作系统 Web 界面");
+    print(f"\n囡囝共生 · 囡囝共生元操作系统 Web 界面");
     print(f"  监听: http://localhost:{PORT}")
     print(f"  请在浏览器打开\n")
     server = http.server.HTTPServer(("0.0.0.0", PORT), Handler)

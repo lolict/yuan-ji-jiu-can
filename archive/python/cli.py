@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-满全法 · 囡囝共生元 OS · 命令行入口
+囡囝共生 · 囡囝共生元 OS · 命令行入口
 =====================================
 
 用法:
@@ -384,7 +384,7 @@ def main():
         import importlib
         m = importlib.import_module("web.server")
         m.PORT = port
-        print(f"\n满全法 · 囡囝共生元 OS")
+        print(f"\n囡囝共生 · 囡囝共生元 OS")
         print(f"  监听: http://localhost:{port}")
         server = __import__("http.server").server.HTTPServer(("0.0.0.0", port), m.Handler)
         try:

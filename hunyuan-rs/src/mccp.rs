@@ -1,4 +1,4 @@
-// MCCP — 满全法紧凑码点
+// MCCP — 囡囝共生紧凑码点
 // 对应 C 版 encoding/mccp.h。
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]

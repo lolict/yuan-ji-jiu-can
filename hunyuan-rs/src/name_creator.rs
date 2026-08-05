@@ -217,7 +217,7 @@ mod tests {
 
     #[test]
     fn joint_prefix_and_len() {
-        let j = joint_anchor("刘楚恬", "七妹凹月留", 1722681600000);
+        let j = joint_anchor("刘楚恬", "囡囝凹月留", 1722681600000);
         assert!(j.starts_with("mqf_joint_"));
         // mqf_joint_ + 32 hex chars
         assert_eq!(j.len(), "mqf_joint_".len() + 32);

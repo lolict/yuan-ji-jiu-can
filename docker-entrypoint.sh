@@ -1,11 +1,11 @@
 #!/bin/bash
-# 满全法 · 容器入口脚本
+# 囡囝共生 · 容器入口脚本
 # ManQuanFa · Container Entrypoint
 
 set -e
 
 echo "══════════════════════════════════════════════════"
-echo "  满全法 · 囡囝共生元  |  ManQuanFa NanJian"
+echo "  囡囝共生 · 囡囝共生元  |  ManQuanFa NanJian"
 echo "  执行内核容器 v0.8"
 echo "══════════════════════════════════════════════════"
 echo ""
@@ -26,13 +26,13 @@ case "$MODE" in
     ;;
 
   --version)
-    echo "满全法 执行内核 v0.8.0"
+    echo "囡囝共生 执行内核 v0.8.0"
     echo "层: 编码·契约·空间代数·时间切片·WASM·规则引擎·金壳封装·统计锥"
     ;;
 
   --help)
     cat <<'HELP'
-满全法 · 囡囝共生元 容器
+囡囝共生 · 囡囝共生元 容器
 
 用法:
   docker run --rm mqf-kernel:0.8 --run-demo      运行全套规则演示(默认)

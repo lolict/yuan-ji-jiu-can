@@ -1,9 +1,9 @@
-# 满全法 · 飞书 Bot 对接指南
+# 囡囝共生 · 飞书 Bot 对接指南
 > ManQuanFa · Feishu Bot Integration Manual
 
 ## 概述
 
-这套文档说明:有飞书企业账号的人,如何把“三元裁判者”接到自己的飞书群里,让群友都能跟满全法内核对话。
+这套文档说明:有飞书企业账号的人,如何把“三元裁判者”接到自己的飞书群里,让群友都能跟囡囝共生内核对话。
 
 **完成后效果**:群友发消息 → 三元裁判者裁定 → 返回 MQ 裁剪后的响应。
 
@@ -17,7 +17,7 @@
 | 一台服务器 / Cloudflare Worker | ✅ | 跑 Node.js 或 Workers |
 | 飞书 App ID + Secret | ✅ | 飞书开放平台申请 |
 | Qwen Key(可选,v0.8 升级前) | ✅ | 临时 LLM,未来换三元裁判者自研裁定 |
-| 满全法内核 | ✅ | 见 `hunyuan-os/cloudflare/mqf-web.js` |
+| 囡囝共生内核 | ✅ | 见 `hunyuan-os/cloudflare/mqf-web.js` |
 
 ---
 
@@ -63,12 +63,12 @@ npx wrangler secret put QWEN_KEY  # 临时用,未来去掉
   │
   ▼
 ┌─────────────────────────────────┐  ┌────────────────────────┐
-│ Cloudflare Worker               │  │ 满全法 C 内核          │
+│ Cloudflare Worker               │  │ 囡囝共生 C 内核          │
 │ /feishu/event                   │  │ (未来部署在用户服务器)   │
 │   ↓                             │  │                        │
 │ 解析消息内容                     │  │ 三元裁判者裁定          │
 │   ↓                             │  │   ↓                    │
-│ (未来)调满全法 C 内核           │◀─┤ MQ passport 核验       │
+│ (未来)调囡囝共生 C 内核           │◀─┤ MQ passport 核验       │
 │   ↓                             │  │ 规则引擎匹配             │
 │ 返回 MQ 裁定后的响应             │  │ 金壳镜像代理            │
 │                                 │  │ 统计锥份额分配          │
@@ -111,7 +111,7 @@ npx wrangler secret put QWEN_KEY  # 临时用,未来去掉
 
 - 去掉 Qwen 外部 LLM,三元裁判者自身裁定
 - Workers 只负责消息进出,所有逻辑跑在用户自有服务器
-- 用户服务器跑满全法内核容器(Dockerfile 见 deploy/)
+- 用户服务器跑囡囝共生内核容器(Dockerfile 见 deploy/)
 - 飞书 Bot 就是三元裁判者的“公开皮肤”
 
 ---
@@ -119,5 +119,5 @@ npx wrangler secret put QWEN_KEY  # 临时用,未来去掉
 *这套指南的目的是让有飞书企业的人一键接入三元裁判者。*
 *即使你不是那个“有飞书企业的人”,你可以把这份文件转发给有。*
 
-*维护者:lolict + CatPaw · 七妹*
+*维护者:lolict + CatPaw · 囡囝*
 *版本:v0.8*

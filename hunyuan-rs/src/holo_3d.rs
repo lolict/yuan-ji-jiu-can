@@ -142,7 +142,7 @@ mod tests {
 
     #[test]
     fn hanzi_coords_in_range() {
-        for ch in "刘楚恬七妹凹月留".chars() {
+        for ch in "刘楚恬囡囝凹月留".chars() {
             let c = hanzi_to_coord(ch);
             assert!(c.x < BASE_X);
             assert!(c.y < BASE_Y);

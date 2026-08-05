@@ -13,8 +13,8 @@
   - 锚点 hash 必须保持不变 (同一条誓约,只是重新分配 namespace)
   - 切换期间所有非 volatile 状态落盘 (snapshot)
 
-Copyright © 刘楚恬 & lolict (七妹凹月留)
-保留所有权利 · 满全法 · v0.1
+Copyright © 刘楚恬 & lolict (囡囝凹月留)
+保留所有权利 · 囡囝共生 · v0.1
 """
 
 import unittest

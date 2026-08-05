@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-满全法 · 自由寄生壳 · 蚕蛹 (Chrysalis)
+囡囝共生 · 自由寄生壳 · 蚕蛹 (Chrysalis)
 =====================================
 
 我们下载的是"蚕蛹"
@@ -19,7 +19,7 @@
   3. 用户选择 / 自动检测
   4. 脱壳 (删除临时层)
   5. 穿衣 (写入对应寄生壳配置)
-  6. 满全法启动 (内核挂载)
+  6. 囡囝共生启动 (内核挂载)
 """
 
 import os
@@ -49,7 +49,7 @@ SHELL_CATALOG: List[Dict] = [
         "risk": "medium",
         "post_install": [
             "[ -d ~/.config/systemd/user ] || mkdir -p ~/.config/systemd/user",
-            "echo '[Unit]\\nDescription=满全法 Android寄生\\n\\n[Service]\\nExecStart=/usr/bin/python3 {path}/kernel_daemon.py\\nRestart=always\\n\\n[Install]\\nWantedBy=default.target' > ~/.config/systemd/user/manquanfa-android.service"
+            "echo '[Unit]\\nDescription=囡囝共生 Android寄生\\n\\n[Service]\\nExecStart=/usr/bin/python3 {path}/kernel_daemon.py\\nRestart=always\\n\\n[Install]\\nWantedBy=default.target' > ~/.config/systemd/user/manquanfa-android.service"
         ],
     },
     {
@@ -116,7 +116,7 @@ SHELL_CATALOG: List[Dict] = [
         "capability": "resident",
         "risk": "low",
         "post_install": [
-            "nssm install 满全法 \"{path}\\python.exe\" \"{path}\\kernel_daemon.py\"",
+            "nssm install 囡囝共生 \"{path}\\python.exe\" \"{path}\\kernel_daemon.py\"",
         ],
     },
     {
@@ -194,7 +194,7 @@ SHELL_CATALOG: List[Dict] = [
         "capability": "background",
         "risk": "low",
         "post_install": [
-            "docker run -d --name 满全法 --restart always -v {path}:/opt/manquanfa python:3.11 python3 /opt/manquanfa/kernel_daemon.py"
+            "docker run -d --name 囡囝共生 --restart always -v {path}:/opt/manquanfa python:3.11 python3 /opt/manquanfa/kernel_daemon.py"
         ],
     },
     {
@@ -500,13 +500,13 @@ class Chrysalis:
         TUI.ok(f"灵犀锚写入: state={state_path}")
 
     def mount_kernel(self):
-        """阶段四: 穿衣后,挂载满全法内核"""
+        """阶段四: 穿衣后,挂载囡囝共生内核"""
         TUI.section("内核挂载")
 
         sys.path.insert(0, self.workspace)
         try:
             from kernel import kernel
-            TUI.ok("满全法内核导入成功")
+            TUI.ok("囡囝共生内核导入成功")
 
             # 启动夫妻共同体 OS (测试)
             if os.path.exists(os.path.join(self.workspace, "kernel", "kernel.py")):
@@ -569,7 +569,7 @@ class Chrysalis:
         self.mount_kernel()
         self.full_report(shell)
 
-        TUI.ok("蚕蛹完成使命. 满全法 OS 启动.")
+        TUI.ok("蚕蛹完成使命. 囡囝共生 OS 启动.")
         return 0
 
 

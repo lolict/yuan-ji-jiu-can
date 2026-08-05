@@ -1,4 +1,4 @@
-# 满全法 · 囡囝共生元 — 一键部署配置 v0.8
+# 囡囝共生 · 囡囝共生元 — 一键部署配置 v0.8
 # ManQuanFa · NanJian Symbiosis Metakernel — One-Click Deploy
 #
 # 用法:
@@ -6,7 +6,7 @@
 #   docker compose run --rm mqf   # 同上
 #   docker compose run --rm mqf --shell  # 开发者 shell
 #
-# 这套容器把满全法 v0.1-v0.8 全部内核封装在一张镜像里
+# 这套容器把囡囝共生 v0.1-v0.8 全部内核封装在一张镜像里
 
 version: "3.9"
 

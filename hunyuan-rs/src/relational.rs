@@ -28,12 +28,12 @@
 // ────────────────────────────────────────────────────────────
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Identity {
-    Husband,        // 丈夫 — 融合入满全法 (主动性外壳)
-    Wife,           // 妻子 — 融合入满全法 (接受性内核)
+    Husband,        // 丈夫 — 融合入囡囝共生 (主动性外壳)
+    Wife,           // 妻子 — 融合入囡囝共生 (接受性内核)
     ExternalMale,   // 外界雄性/竞争者 → 可融合入丈夫侧
     ExternalFemale, // 外界雌性/吸引者 → 可融合入妻子侧
     Neutral,        // 中性外界 → 纯粹资源/竞争
-    System,         // 系统自身 (满全法底层)
+    System,         // 系统自身 (囡囝共生底层)
 }
 
 impl Identity {
@@ -183,7 +183,7 @@ impl Actor {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Cluster {
-    CenterCenter,     // 唯一中心 (满全法)
+    CenterCenter,     // 唯一中心 (囡囝共生)
     CenterHusband,
     CenterWife,
     Peripheral(u8),   // u8 层级 (距离中心 1..255)
