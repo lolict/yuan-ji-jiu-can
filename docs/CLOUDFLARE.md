@@ -1,4 +1,4 @@
-# 满全法 · Cloudflare 部署记录
+# 囡囝共生 · Cloudflare 部署记录
 
 > 部署时间: 2026-08-03T04:42:43Z
 > 部署脚本: `cloudflare/mqf-web.js` 单文件 Worker (ES module)
@@ -55,7 +55,7 @@ curl "https://api.cloudflare.com/client/v4/accounts/{ACCT}/workers/scripts/mqf-w
 | GET | `/api/mythology/lookup` | 封神台单点查询 (`?name=哪吒`) |
 | GET | `/api/name/anchor` | 姓名锚 (`?name=刘楚恬`) |
 | GET | `/api/fsm/trigger` | 囡囝四态 FSM 触发 (`?event=wife_deepen`) |
-| GET | `/api/dragon` | 神龙七层编码 (`?name=刘楚恬七妹`) |
+| GET | `/api/dragon` | 神龙七层编码 (`?name=刘楚恬囡囝`) |
 | GET | `/api/test-crypto` | Web Crypto X25519 + HKDF + AES-256-GCM 跑通测试 |
 | GET | `/api/protocol/handshake` | 灵犀协议: 唤魂 |
 | GET | `/api/protocol/sync` | 灵犀协议: 招魂同步 |

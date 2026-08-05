@@ -1,5 +1,5 @@
 /**
- * 民联浏览器壳 · MQF Shell v1.7-v1.10
+ * 民联浏览器壳 · 囡囝共生 Shell v2.0
  * ==================================
  * 民联浏览器 · WASM 裁定内核加载器
  * 
@@ -27,7 +27,7 @@
 // ============== 裁定核心 ==============
 // 与 mqf_wasm.c 算法严格一致
 
-const MQF_SHELL_VERSION = '1.12.0';
+const MQF_SHELL_VERSION = '2.0.0';
 const FIVE_YUAN_STEPS = 5;
 const FIVE_YUAN_OCCUPY_THRESHOLD = 100;
 const SIX_YUAN_MIRROR_THRESHOLD = 0.2;
@@ -134,7 +134,7 @@ const MqfCore = {
         }
       }
     } catch (e) {
-      console.warn('[MQF Shell] WASM load failed, falling back to JS:', e.message);
+      console.warn('[囡囝共生 Shell] WASM load failed, falling back to JS:', e.message);
     }
     this.mode = 'js';
     return 'js';

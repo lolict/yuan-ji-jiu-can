@@ -1,6 +1,6 @@
-# 满全法 v1.6-v1.7 里程碑 · 总结文档
+# 囡囝共生 v1.6-v1.7 里程碑 · 总结文档
 
-> 从中心化到去中心化 — 满全法生态演化记录
+> 从中心化到去中心化 — 囡囝共生生态演化记录
 
 ---
 
@@ -8,7 +8,7 @@
 
 ### v1.6 盟机合子节点 — 合伙人架构
 
-**核心理念**: 资源归合伙人,主导权归满全法
+**核心理念**: 资源归合伙人,主导权归囡囝共生
 
 **关键成果**:
 | 组件 | 文件 | 说明 |
@@ -53,13 +53,13 @@
 #### v1.7a 设计
 
 文档 `docs/WASM_CORE_v17.md` 规划:
-- WASI SDK 编译 mqf_wasm.c → mqf_core.wasm
+- WASI SDK 编译 njsg_wasm.c → njsg_core.wasm
 - 纯 stdin/stdout JSON 接口
 - 五层跨平台的壳方案 (WebView2/WKWebView/WebKitGTK/Android/iOS)
 
 #### v1.7b WASM 内核移植
 
-文件 `kernel/wasm/mqf_wasm.c` (307 行):
+文件 `kernel/wasm/njsg_wasm.c` (307 行):
 
 | 维度 | 实现 | 测试 |
 |------|------|------|
@@ -70,11 +70,11 @@
 
 ```bash
 # 编译
-/opt/wasi-sdk/bin/clang --target=wasm32-wasi -O2 -o mqf_core.wasm mqf_wasm.c
+/opt/wasi-sdk/bin/clang --target=wasm32-wasi -O2 -o njsg_core.wasm njsg_wasm.c
 
 # 运行
-echo '{"entity":"ios","compliance_a":0.9,"compliance_b":0.85,"force":15,"angle":45}' | wasmtime mqf_core.wasm
-# → { "mqf_verdict": { "trust": "TRUSTED", ... } }
+echo '{"entity":"ios","compliance_a":0.9,"compliance_b":0.85,"force":15,"angle":45}' | wasmtime njsg_core.wasm
+# → { "njsg_verdict": { "trust": "TRUSTED", ... } }
 ```
 
 #### v1.7c 民联浏览器壳
@@ -87,7 +87,7 @@ shell/browser/                ← HTML/CSS/JS 裁决台 (零依赖)
   shell.css                   ← CSS 变量主题
 
 shell/native/                 ← 跨平台原生包装
-  mqf_webview.py              ← Python pywebview (最简单)
+  njsg_webview.py              ← Python pywebview (最简单)
   electron-shell/             ← Electron (exe/dmg/AppImage,体积大)
   tauri-shell/                ← Tauri (体积中等,最实用)
   build_wasm.sh               ← WASI SDK 编译脚本
@@ -99,7 +99,7 @@ shell/native/                 ← 跨平台原生包装
 - `ShellNest.honeycomb(level)` → 6 子壳递归填充
 
 **WASM 优先策略**: 
-- 首次加载尝试 fetch('mqf_core.wasm')
+- 首次加载尝试 fetch('njsg_core.wasm')
 - 可用则使用 WASI 接口
 - 不可用则自动回退到 JS 实现 (算法等价)
 
@@ -159,7 +159,7 @@ shell/native/                 ← 跨平台原生包装
 ### ADR-005: 域无关作为核心约束
 
 **选择**: "域无关"写入内核设计原则
-**理由**: 绑定特定域名 = 丧失主权;满全法裁定逻辑必须与域名完全解耦;同样的输入在 lolict.workers.dev / mqf.合伙人.com / file:///本地.html 输出完全一致
+**理由**: 绑定特定域名 = 丧失主权;囡囝共生裁定逻辑必须与域名完全解耦;同样的输入在 lolict.workers.dev / mqf.合伙人.com / file:///本地.html 输出完全一致
 
 ---
 
@@ -168,9 +168,9 @@ shell/native/                 ← 跨平台原生包装
 1. **WASM 加载性能**: fetch + instantiate 在大型 .wasm 文件下可能有延迟
 2. **离线状态下的持久化**: 裁定历史目前内存存储,需 localStorage/IndexedDB
 3. **多节点同步**: 多个盟机合节点间的裁定结果一致性
-4. **WASI 文件系统**: mqf_wasm.c 目前只支持 stdin/stdout,未来需要本地文件持久化
+4. **WASI 文件系统**: njsg_wasm.c 目前只支持 stdin/stdout,未来需要本地文件持久化
 5. **移动壳细化**: iOS WKWebView 和 Android System WebView 的具体胶水代码
-6. **WASM 签名验证**: 防止 mqf_core.wasm 被篡改 (代码签名或哈希校验)
+6. **WASM 签名验证**: 防止 njsg_core.wasm 被篡改 (代码签名或哈希校验)
 
 ---
 
@@ -178,13 +178,13 @@ shell/native/                 ← 跨平台原生包装
 
 | 维度 | 文件 |
 |------|------|
-| 内核 C | `kernel/src/mqf_kernel.c` (三元~七元+全栈,3500+ 行) |
-| WASM C | `kernel/wasm/mqf_wasm.c` (WASI 裁定核心,307 行) |
+| 内核 C | `kernel/src/njsg_kernel.c` (三元~七元+全栈,3500+ 行) |
+| WASM C | `kernel/wasm/njsg_wasm.c` (WASI 裁定核心,307 行) |
 | Worker | `cloudflare/mqf-web.js` (Cloudflare Worker,970+ 行) |
 | 浏览器壳 | `shell/browser/mqf-shell.js` (JS 引擎+UI,~470 行) |
 | 术语集 | `docs/MENGJI_TERMS.md` |
 | WASM 设计 | `docs/WASM_CORE_v17.md` |
-| Python 壳 | `shell/native/mqf_webview.py` |
+| Python 壳 | `shell/native/njsg_webview.py` |
 | Electron 壳 | `shell/native/electron-shell/main.js` |
 | Tauri 壳 | `shell/native/tauri-shell/src-tauri/src/main.rs` |
 | WASM 编译 | `shell/native/build_wasm.sh` |
@@ -194,10 +194,10 @@ shell/native/                 ← 跨平台原生包装
 ## 六、当前稳定版本
 
 ```
-MQF_VERSION                 "1.6.0"   (kernel/src/mqf_kernel.c 第 79 行)
-kernel ver (K.ver)             12      (kernel/src/mqf_kernel.c)
-MQF_WASM_VERSION            "1.7.0"   (kernel/wasm/mqf_wasm.c 第 19 行)
-MQF_SHELL_VERSION           "1.7.0"   (shell/browser/mqf-shell.js)
+囡囝_VERSION                 "1.6.0"   (kernel/src/njsg_kernel.c 第 79 行)
+kernel ver (K.ver)             12      (kernel/src/njsg_kernel.c)
+囡囝_WASM_VERSION            "1.7.0"   (kernel/wasm/njsg_wasm.c 第 19 行)
+囡囝_SHELL_VERSION           "1.7.0"   (shell/browser/mqf-shell.js)
 Worker version display      "v1.5"    (实际包含 v1.6-v1.7b 端点)
 ```
 
@@ -205,4 +205,4 @@ Worker version display      "v1.5"    (实际包含 v1.6-v1.7b 端点)
 
 *文档: v1.8 里程碑总结*
 *日期: 2026-08-05*
-*维护者: lolict + CatPaw · 七妹*
+*维护者: lolict + CatPaw · 囡囝*

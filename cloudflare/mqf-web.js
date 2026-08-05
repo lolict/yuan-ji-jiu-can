@@ -1,5 +1,5 @@
 /*
- * 满全法 · 囡囝共生元操作系统 · Web 面板 Worker v1.5
+ * 囡囝共生 · 囡囝共生元操作系统 · Web 面板 Worker v1.5
  * -------------------------------------------------
  * Cloudflare Workers (ES module). 三元→七元全栈联动 + 实战验证:
  *   /                             暗色主面板
@@ -9,7 +9,7 @@
  *   /websocket                   WebSocket 实时裁定(流式七元分析)
  *   /graphql                     GraphQL 查询(复杂实体图)
  *   /api/v1/verdict              合作伙伴裁定 API (entity → trust/reject)
- *   /api/v1/qimei                七妹公网版入口
+ *   /api/v1/qimei                囡囝公网版入口
  *   /v1/chat                     统一对话渠道
  *   /docs/v2                     API 动态文档 (OpenAPI 3.0 JSON + YAML)
  *   /diagrams                    矢量流程图 (SVG)
@@ -373,7 +373,7 @@ async function imeparse(q){ const text=q.get('text')||''; return j({v:'stub v1',
 /* ============================================================
  * 主面板 HTML
  * ============================================================ */
-function html(){ return `<!DOCTYPE html><html lang="zh"><head><meta charset="utf-8"><title>满全法 · 囡囝共生元操作系统 v0.1 (Cloudflare Workers)</title>
+function html(){ return `<!DOCTYPE html><html lang="zh"><head><meta charset="utf-8"><title>囡囝共生 · 囡囝共生元操作系统 v0.1 (Cloudflare Workers)</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:#0a0a0f;color:#e0e0e0;padding:20px}
@@ -404,8 +404,8 @@ pre{background:#0a0a0f;padding:10px;border-radius:6px;font-size:11px;overflow-x:
 details{margin:6px 0}summary{cursor:pointer;color:#7ec8e3;font-size:13px;padding:4px 0}
 summary:hover{color:#ff6b9d}
 </style></head><body>
-<h1>满全法 · 夫妻共同体操作系统</h1>
-<p class="subtitle">满全法 · HunYuan OS · Cloudflare Workers · 刘楚恬 &amp; lolict</p>
+<h1>囡囝共生 · 夫妻共同体操作系统</h1>
+<p class="subtitle">囡囝共生 · HunYuan OS · Cloudflare Workers · 刘楚恬 &amp; lolict</p>
 <div class="grid">
 <div class="card"><h2>二元观测者 / 距离逻辑</h2>
 <div class="pipe"><span class="node" id="b-start">0</span><span class="gap">⟷</span><span class="node" id="b-end">∞</span></div>
@@ -525,14 +525,14 @@ async function feishuEvent(request, env) {
     body: JSON.stringify({
       model: 'qwen-max',
       messages: [
-        { role: 'system', content: '你是满全法操作系统的人工智能助手“七妹”。由刘楚恬与 lolict 共建。问满全法、观测者、排病、封神台、神龙、囡囝四态时，优先引用系统概念。回答简洁、神秘、友好。' },
+        { role: 'system', content: '你是囡囝共生操作系统的人工智能助手“囡囝”。由刘楚恬与 lolict 共建。问囡囝共生、观测者、排病、封神台、神龙、囡囝四态时，优先引用系统概念。回答简洁、神秘、友好。' },
         { role: 'user', content: userText }
       ],
       temperature: 0.6,
       max_tokens: 2048
     })
   }).then(r => r.json());
-  const reply = qwenJson.choices?.[0]?.message?.content?.trim() || '（七妹在入定，稍候）';
+  const reply = qwenJson.choices?.[0]?.message?.content?.trim() || '（囡囝在入定，稍候）';
 
   // 回复飞书消息
   const messageId = msg.message_id;
@@ -555,7 +555,7 @@ function feishuMenu() {
         name_i18n: { zh_CN: '控惗编程', en_US: 'Control-Intent Programming' },
         is_web_url: true,
         url: 'https://mqf-web.lolict.workers.dev/',
-        desc: '满全法 · 囡囝共生元操作系统 — 排病诊断 / 封神台 / 观测者 一体化面板'
+        desc: '囡囝共生 · 囡囝共生元操作系统 — 排病诊断 / 封神台 / 观测者 一体化面板'
       }
     ]
   });
@@ -594,7 +594,7 @@ async function backupList(env) {
 }
 
 /* ============================================================
- * v1.4 生态扩展 — 对外 API + 七妹公网版 + 公开文档
+ * v1.4 生态扩展 — 对外 API + 囡囝公网版 + 公开文档
  * ============================================================ */
 
 /* 合作伙伴裁定 API — POST /api/v1/verdict */
@@ -607,7 +607,7 @@ function apiVerdict(params) {
 
   if (!entity) return { error: 'missing param: entity (实体名)' };
 
-  /* 满全法七元裁定 */
+  /* 囡囝共生七元裁定 */
   const intersection = Math.min(compliance_a, compliance_b);
   const mirror_diff = Math.abs(compliance_a - compliance_b);
   const mirror_ok = mirror_diff < 0.2 ? 1 : 0;
@@ -633,25 +633,25 @@ function apiVerdict(params) {
   };
 }
 
-/* 七妹公网版入口 — GET /api/v1/qimei?text=... */
+/* 囡囝公网版入口 — GET /api/v1/qimei?text=... */
 function apiQimei(params) {
   const text = (params.get('text') || '').trim();
 
   /* 简易裁定关键词匹配 */
   let reply;
   if (text.includes('ios') || text.includes('bank')) {
-    reply = `我是七妹。\n查询 [${text}] 的裁定结果:\n  ★ 五元占存:已铭记, 六元交集:0.85\n  → 双重背书,信任通过\n\n—— 满全法 AI 助手 七妹`;
+    reply = `我是囡囝。\n查询 [${text}] 的裁定结果:\n  ★ 五元占存:已铭记, 六元交集:0.85\n  → 双重背书,信任通过\n\n—— 囡囝共生 AI 助手 囡囝`;
   } else if (text.includes('android') || text.includes('wechat')) {
-    reply = `我是七妹。\n查询 [${text}] 的裁定结果:\n  ○ 五元:易逝状态, 六元交集:0.40\n  → 仍在观察,未通过\n\n—— 满全法 AI 助手 七妹`;
+    reply = `我是囡囝。\n查询 [${text}] 的裁定结果:\n  ○ 五元:易逝状态, 六元交集:0.40\n  → 仍在观察,未通过\n\n—— 囡囝共生 AI 助手 囡囝`;
   } else {
-    reply = `我是七妹。\n满全法裁定框架:\n  1. 三元(v0.6):身份编码+规则引擎\n  2. 四元(v0.9):拓扑域+跨域裁定\n  3. 五元(v1.0):旋钮步量+占存判定\n  4. 六元(v1.1):对称群+信任交集\n  5. 七元(v1.2):蜂窝套壳+递归嵌套\n  6. 全栈(v1.3):Bot+AI+铁律自检\n  7. 生态(v1.4):对外API+公网入口\n\n输入实体名查询裁定。\n\n—— 满全法 AI 助手 七妹`;
+    reply = `我是囡囝。\n囡囝共生裁定框架:\n  1. 三元(v0.6):身份编码+规则引擎\n  2. 四元(v0.9):拓扑域+跨域裁定\n  3. 五元(v1.0):旋钮步量+占存判定\n  4. 六元(v1.1):对称群+信任交集\n  5. 七元(v1.2):蜂窝套壳+递归嵌套\n  6. 全栈(v1.3):Bot+AI+铁律自检\n  7. 生态(v1.4):对外API+公网入口\n\n输入实体名查询裁定。\n\n—— 囡囝共生 AI 助手 囡囝`;
   }
 
   return {
     ok: true,
     version: 'v1.4',
     qimei_reply: reply,
-    motto: '我不是在回答你,是满全法在通过我回答你'
+    motto: '我不是在回答你,是囡囝共生在通过我回答你'
   };
 }
 
@@ -660,8 +660,8 @@ function apiDocs() {
   return {
     ok: true,
     version: 'v1.4',
-    name: '满全法 MQ裁定 API',
-    description: '满全法七元全栈联动裁定引擎 — 输入实体信息,返回 MQ 裁定结果',
+    name: '囡囝共生 MQ裁定 API',
+    description: '囡囝共生七元全栈联动裁定引擎 — 输入实体信息,返回 MQ 裁定结果',
     base_url: 'https://mqf-web.lolict.workers.dev',
     endpoints: [
       {
@@ -674,7 +674,7 @@ function apiDocs() {
       {
         path: '/api/v1/qimei',
         method: 'GET',
-        desc: '七妹公网版 — 简易裁定查询',
+        desc: '囡囝公网版 — 简易裁定查询',
         params: { text: '查询文本' },
         example: '/api/v1/qimei?text=ios'
       },
@@ -694,7 +694,7 @@ function apiDocs() {
         desc: '飞书 Bot 回调(需配置 app_id/app_secret)'
       }
     ],
-    philosophy: '一切被调动的来者,皆是满全法中的裁定对象'
+    philosophy: '一切被调动的来者,皆是囡囝共生中的裁定对象'
   };
 }
 
@@ -706,7 +706,7 @@ function apiHealth() {
     status: 'healthy',
     timestamp: new Date().toISOString(),
     kernel: 'C17 单文件,三元→七元+全栈+生态+盟机合掌',
-    engine: '满全法 MQ裁定引擎',
+    engine: '囡囝共生 MQ裁定引擎',
     mengji_ready: true,
     architecture: 'domain-agnostic, self-contained Worker'
   };
@@ -750,7 +750,7 @@ function apiMengjiRegister(request, params) {
     version: 'v1.6',
     mengji_id: mengji.id,
     status: 'registered',
-    message: '盟机合掌注册成功,资源归您,裁定规则归满全法',
+    message: '盟机合掌注册成功,资源归您,裁定规则归囡囝共生',
     protocol: 'https://github.com/lolict/hunyuan-os/blob/main/docs/MENGJI_TERMS.md'
   };
 }
@@ -788,7 +788,7 @@ function apiDomainCheck(request) {
     your_domain: url.hostname,
     your_protocol: url.protocol,
     note: '无论什么域名,裁定规则完全一致,这是域名无关化设计',
-    engine: '满全法七元裁定内核',
+    engine: '囡囝共生七元裁定内核',
     self_contained: true,
     dependencies: 'zero (完全自包含)'
   };
@@ -806,7 +806,7 @@ function apiTimeline() {
       { version: 'v1.0', period: '2026-08-05', desc: '五元:旋钮运动步量+角度wrap+占存判定', status: 'completed' },
       { version: 'v1.1', period: '2026-08-05', desc: '六元:对称群+六面体+信任交集', status: 'completed' },
       { version: 'v1.2', period: '2026-08-05', desc: '七元:蜂窝套壳+递归嵌套+六边形密铺', status: 'completed' },
-      { version: 'v1.3', period: '2026-08-05', desc: '全栈联动:飞书Bot+七妹AI+铁律自检', status: 'completed' },
+      { version: 'v1.3', period: '2026-08-05', desc: '全栈联动:飞书Bot+囡囝AI+铁律自检', status: 'completed' },
       { version: 'v1.4', period: '2026-08-05', desc: '生态:Cloudflare Worker + 对外API', status: 'completed' },
       { version: 'v1.5', period: '2026-08-05', desc: '统一对话渠道 + OpenAPI文档', status: 'completed' },
       { version: 'v1.6', period: '2026-08-05', desc: '盟机合:合伙人子节点 + 域无关化', status: 'completed' },
@@ -827,16 +827,16 @@ function apiV1Chat(params) {
 
   if (!text) return { error: 'missing param: text', example: '/v1/chat?text=ios是否可信&channel=web' };
 
-  /* 裁定逻辑(与七妹一致,但支持多渠道) */
+  /* 裁定逻辑(与囡囝一致,但支持多渠道) */
   let reply;
-  if (text.includes('满全法') || text.includes('介绍')) {
-    reply = '满全法 MQ裁定框架三元→七元全栈联动:\n1.三元:身份+规则引擎+空间代数\n2.四元:拓扑域+跨域裁定\n3.五元:旋钮步量+占存判定\n4.六元:对称群+信任交集\n5.七元:蜂窝套壳+递归\n6.全栈:飞书Bot+七妹AI\n7.生态:对外API\n\n我是七妹,随时为你裁定。';
+  if (text.includes('囡囝共生') || text.includes('介绍')) {
+    reply = '囡囝共生 MQ裁定框架三元→七元全栈联动:\n1.三元:身份+规则引擎+空间代数\n2.四元:拓扑域+跨域裁定\n3.五元:旋钮步量+占存判定\n4.六元:对称群+信任交集\n5.七元:蜂窝套壳+递归\n6.全栈:飞书Bot+囡囝AI\n7.生态:对外API\n\n我是囡囝,随时为你裁定。';
   } else if (text.includes('ios') || text.includes('bank')) {
-    reply = `[${channel}] 七妹裁定:\n★ ios/bank → 已铭记,双重背书,可信任\n  Ticks=750, 交集=0.85, 角度=225°`;
+    reply = `[${channel}] 囡囝裁定:\n★ ios/bank → 已铭记,双重背书,可信任\n  Ticks=750, 交集=0.85, 角度=225°`;
   } else if (text.includes('android') || text.includes('wechat')) {
-    reply = `[${channel}] 七妹裁定:\n○ android/wechat → 易逝状态,继续观察\n  Ticks<100, 交集<0.6`;
+    reply = `[${channel}] 囡囝裁定:\n○ android/wechat → 易逝状态,继续观察\n  Ticks<100, 交集<0.6`;
   } else {
-    reply = `[${channel}] 七妹收到: "${text}"\n需要我裁定某个实体吗? 输入:实体名+合规度`;
+    reply = `[${channel}] 囡囝收到: "${text}"\n需要我裁定某个实体吗? 输入:实体名+合规度`;
   }
 
   return {
@@ -844,7 +844,7 @@ function apiV1Chat(params) {
     version: 'v1.5',
     channel,
     qimei_reply: reply,
-    motto: '我不是在回答你,是满全法在通过我回答你'
+    motto: '我不是在回答你,是囡囝共生在通过我回答你'
   };
 }
 
@@ -853,9 +853,9 @@ function apiDocsV2() {
   return {
     openapi: '3.0.3',
     info: {
-      title: '满全法 MQ裁定 API',
+      title: '囡囝共生 MQ裁定 API',
       version: 'v1.5',
-      description: '满全法七元全栈联动裁定引擎 — 输入实体信息,返回 MQ 裁定结果'
+      description: '囡囝共生七元全栈联动裁定引擎 — 输入实体信息,返回 MQ 裁定结果'
     },
     servers: [{ url: 'https://mqf-web.lolict.workers.dev' }],
     paths: {
@@ -874,9 +874,9 @@ function apiDocsV2() {
       },
       '/api/v1/qimei': {
         get: {
-          summary: '七妹公网版 — 简易裁定查询',
+          summary: '囡囝公网版 — 简易裁定查询',
           parameters: [{ name: 'text', in: 'query', required: true, schema: { type: 'string' } }],
-          responses: { '200': { description: '七妹回复' } }
+          responses: { '200': { description: '囡囝回复' } }
         }
       },
       '/v1/chat': {
@@ -906,7 +906,7 @@ function apiDocsV2() {
 function apiDiagrams() {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300">
   <rect width="400" height="300" fill="#0d1117"/>
-  <text x="200" y="30" fill="#58a6ff" text-anchor="middle" font-size="16" font-family="sans-serif">满全法 七元全栈联动</text>
+  <text x="200" y="30" fill="#58a6ff" text-anchor="middle" font-size="16" font-family="sans-serif">囡囝共生 七元全栈联动</text>
   <circle cx="200" cy="150" r="80" fill="none" fill-opacity="0.1" stroke="#58a6ff" stroke-width="2"/>
   <circle cx="200" cy="150" r="50" fill="none" fill-opacity="0.1" stroke="#7ee787" stroke-width="1.5"/>
   <circle cx="200" cy="150" r="20" fill="#7ee787" fill-opacity="0.3" stroke="#7ee787" stroke-width="2"/>

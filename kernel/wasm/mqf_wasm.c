@@ -1,14 +1,18 @@
 /**
- * 满全法 WASM 内核 v1.7 — mqf_wasm.c
- * --------------------------------
+ * 囡囝共生 WASM 内核 v1.0 — 囡囝共生 Symbiosis WASM Kernel
+ * -------------------------------------------------------
+ * 囡囝:方言,意为小孩,萌而正向
+ * 共生:共识圆 · 共生圆 · 共生姻 · 共首源 · 共首一 · 共守约 · 感受益
+ * 人名谱: 刘连理/刘楚恬/前芳/萝莉兰/零离俩/零厘里/零劳累等
+ *
  * 七元裁定引擎的 WASI 移植版
  * 无 pthread,无文件系统 IO,纯 stdin/stdout JSON
  *
  * 编译(WASI SDK):
- *   /opt/wasi-sdk/bin/clang --target=wasm32-wasi -O2 -o mqf_core.wasm mqf_wasm.c
+ *   /opt/wasi-sdk/bin/clang --target=wasm32-wasi -O2 -o njsg_core.wasm mqf_wasm.c
  *
  * 运行:
- *   echo '{"entity":"ios","compliance_a":0.9,"compliance_b":0.85,"force":15,"angle":45}' | wasmtime mqf_core.wasm
+ *   echo '{"entity":"ios","compliance_a":0.9,"compliance_b":0.85,"force":15,"angle":45}' | wasmtime njsg_core.wasm
  */
 
 #include <stdio.h>

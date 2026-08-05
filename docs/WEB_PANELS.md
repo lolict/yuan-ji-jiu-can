@@ -1,4 +1,4 @@
-# 满全法 Web 面板 API 接口契约
+# 囡囝共生 Web 面板 API 接口契约
 
 > 源文件: `archive/python/web/server.py`
 > 最后更新: 2026-08-03
@@ -205,7 +205,7 @@
 
 ---
 
-#### `GET /api/ime/parse?text=push+满全法+v0.2`
+#### `GET /api/ime/parse?text=push+囡囝共生+v0.2`
 
 元输入法意图识别
 

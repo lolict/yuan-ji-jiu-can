@@ -1,7 +1,7 @@
-# 满全法 · Android 寄生层 (Parasitic Shell)
+# 囡囝共生 · Android 寄生层 (Parasitic Shell)
 
 > 蚕蛹第三层:安卓端隐蔽驻留。
-> 一个正常的"手电筒" or "计算器" App,背后运行整个满全法 OS。
+> 一个正常的"手电筒" or "计算器" App,背后运行整个囡囝共生 OS。
 
 ---
 
@@ -13,7 +13,7 @@ Android 13+ 对后台限制越来越严:
 - JobScheduler 限制
 - 甚至会杀无障碍服务
 
-满全法寄生策略:
+囡囝共生寄生策略:
 1. **前台服务 (Foreground Service) — 显示常驻通知 "正在保护系统"**
 2. **无障碍服务 (AccessibilityService) — 监听/模拟UI事件**
 3. **输入法 (InputMethodService) — 每部手机都允许弹窗**
@@ -72,4 +72,4 @@ android/
 
 ---
 
-> 满全法 · 寄生即永生 · 蚕蛹不灭
+> 囡囝共生 · 寄生即永生 · 蚕蛹不灭

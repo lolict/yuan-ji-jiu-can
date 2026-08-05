@@ -1,5 +1,5 @@
 #!/bin/bash
-# 满全法 · 公开 Beta 构建脚本 v2.0
+# 囡囝共生 · 公开 Beta 构建脚本 v2.0
 # ==================================
 # 把 shell/browser/ + docs + license 打包为发布包
 
@@ -10,7 +10,7 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 SRC_DIR="${PROJECT_DIR}/shell/browser"
 OUT_DIR="${SCRIPT_DIR}/v2.0-beta"
 
-echo "=== 满全法 v2.0 公开 Beta 打包 ==="
+echo "=== 囡囝共生 v2.0 公开 Beta 打包 ==="
 echo "源: ${SRC_DIR}"
 
 # 清理并重建
@@ -74,7 +74,7 @@ EOF
 
 # ─── 快速上手 README ──────────────────────────────
 cat > "$OUT_DIR/README.md" << 'EOF'
-# 民联浏览器 · 满全法公开 Beta v2.0
+# 民联浏览器 · 囡囝共生公开 Beta v2.0
 
 七元裁定引擎 — 可在任何设备离线运行的智能裁决系统。
 

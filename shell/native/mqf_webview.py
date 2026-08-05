@@ -41,7 +41,7 @@ def launch_webview():
         sys.exit(1)
 
     window = webview.create_window(
-        '民联浏览器 · MQF Shell v1.7',
+        '民联浏览器 · 囡囝囡囝 Shell v1.7',
         f'file://{html_path}',
         width=1200,
         height=800,

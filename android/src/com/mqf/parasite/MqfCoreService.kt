@@ -7,7 +7,7 @@ import android.util.Log
 import java.io.File
 
 /**
- * 满全法 · 前台常驻服务 (Foreground Service)
+ * 囡囝共生 · 前台常驻服务 (Foreground Service)
  * ==========================================
  *
  * 这是整个 Android 寄生层的心脏。

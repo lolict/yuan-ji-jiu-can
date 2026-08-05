@@ -1,4 +1,4 @@
-## 满全法 · 囡囝共生元 — 构建系统
+## 囡囝共生 · 囡囝共生元 — 构建系统
 ##
 ## 用法:
 ##   make          — 构建内核
@@ -17,20 +17,20 @@ KERN_LIBS = -pthread -lm
 
 all: kernel
 
-kernel: kernel/src/mqf_kernel.elf
+kernel: kernel/src/njsg_kernel.elf
 
-kernel/src/mqf_kernel.elf: kernel/src/mqf_kernel.c
+kernel/src/njsg_kernel.elf: kernel/src/njsg_kernel.c
 	$(CC) $(CFLAGS) $< -o $@ $(KERN_LIBS)
 
 test: kernel
-	@echo "═══ 满全法内核测试 ═══"
-	./kernel/src/mqf_kernel.elf
+	@echo "═══ 囡囝共生内核测试 ═══"
+	./kernel/src/njsg_kernel.elf
 
 clean:
-	rm -f kernel/src/mqf_kernel.elf
+	rm -f kernel/src/njsg_kernel.elf
 
 docs:
-	@echo "═══ 满全法 v0.8 文档入口 ═══"
+	@echo "═══ 囡囝共生 v0.8 文档入口 ═══"
 	@echo ""
 	@echo "核心白皮书:  docs/WHITEPAPER.md"
 	@echo "角色谱系:    docs/CAST.md"

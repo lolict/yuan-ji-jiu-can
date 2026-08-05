@@ -1,6 +1,6 @@
 # v1.7 WASM 内核 · 技术设计
 
-> 把满全法七元裁定引擎移植到 WASM,运行在独立壳(民联浏览器)中
+> 把囡囝共生七元裁定引擎移植到 WASM,运行在独立壳(民联浏览器)中
 
 ---
 
@@ -21,7 +21,7 @@
 │  ┌───────────────────────────────────────────────────┐  │
 │  │  WASI 运行时(wasmtime / wasmer / WasmEdge)        │  │
 │  │  ┌─────────────────────────────────────────────┐  │  │
-│  │  │  mqf_core.wasm                              │  │  │
+│  │  │  njsg_core.wasm                              │  │  │
 │  │  │  · 三元:编码 + 规则引擎                      │  │  │
 │  │  │  · 四元:拓扑域 + 跨域裁定                    │  │  │
 │  │  │  · 五元:旋钮步量 + 占存判定                  │  │  │
@@ -40,9 +40,9 @@
 
 ## 三、实现步骤
 
-### Step 1: 提取核心算法 → mqf_wasm.c
+### Step 1: 提取核心算法 → njsg_wasm.c
 
-从 `mqf_kernel.c` 中提取裁定相关函数:
+从 `njsg_kernel.c` 中提取裁定相关函数:
 
 ```c
 /* 不依赖 pthread 的裁定核心 */
@@ -50,11 +50,11 @@ typedef struct { ... } five_yuan_state_t;
 typedef struct { ... } six_yuan_pair_t;
 typedef struct { ... } shell_nest_t;
 
-void mqf_wasm_init(void);
-int  mqf_wasm_verdict(const char* entity, float a, float b, float force, float angle);
-int  mqf_wasm_five_yuan_push(int id, float angle, float force);
-int  mqf_wasm_six_yuan_trust(int id, float a, float b);
-int  mqf_wasm_shell_nest_wrap(const char* name);
+void njsg_wasm_init(void);
+int  njsg_wasm_verdict(const char* entity, float a, float b, float force, float angle);
+int  njsg_wasm_five_yuan_push(int id, float angle, float force);
+int  njsg_wasm_six_yuan_trust(int id, float a, float b);
+int  njsg_wasm_shell_nest_wrap(const char* name);
 ```
 
 ### Step 2: WASI 接口层
@@ -72,7 +72,7 @@ int main() {
     int len = wasi_fd_read(0, input, sizeof(input));
     
     /* 解析 JSON → 调用裁定引擎 */
-    mqf_verdict_t result = mqf_wasm_verdict(input);
+    njsg_verdict_t result = njsg_wasm_verdict(input);
     
     /* 输出结果 JSON 到 stdout */
     wasi_fd_write(1, result_json, strlen(result_json));
@@ -90,8 +90,8 @@ int main() {
   -O2 \
   -z stack-size=1048576 \
   -Wl,--initial-memory=65536 \
-  -o mqf_core.wasm \
-  mqf_wasm.c
+  -o njsg_core.wasm \
+  njsg_wasm.c
 ```
 
 ### Step 4: 民联浏览器壳
@@ -105,7 +105,7 @@ int main() {
 | iOS | WKWebView |
 
 壳的职责:
-- 加载并运行 mqf_core.wasm
+- 加载并运行 njsg_core.wasm
 - 提供本地文件系统访问
 - 提供 UI(可选,可以用命令行模式)
 - 网络同步(可选)
@@ -151,4 +151,4 @@ WASM 核心的裁定结果与域名无关:
 
 ---
 
-*v1.7 · 规划中 · 2026-08-05 · 七妹*
+*v1.7 · 规划中 · 2026-08-05 · 囡囝*

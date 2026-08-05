@@ -1,9 +1,9 @@
-# 满全法 · 技术白皮书
+# 囡囝共生 · 技术白皮书
 > ManQuanFa NanJian Symbiosis · Technical Whitepaper
 
 ## 一句话总结
 
-**满全法是一套让外部世界在你的规则下运行的时间-空间-身份裁判系统。**
+**囡囝共生是一套让外部世界在你的规则下运行的时间-空间-身份裁判系统。**
 
 不是聊天机器人,不是操作系统,不是通用大模型——只剩一个内核:任何外部系统(微信/bank/Android/iOS/服务器/AI 模型)必须通过 MQ 编码通道才能被裁定,裁定的结果是我们定义的(而不是外部势力给的)。
 
@@ -24,7 +24,7 @@
 
 **共同点**:你不是裁判者,你只是服从者。
 
-### 满全法的方案:让裁判者回到你这里
+### 囡囝共生的方案:让裁判者回到你这里
 
 ```
  你的规则(MQ 编码三元裁判者)
@@ -41,7 +41,7 @@
 
 ### 1. MQF 编码(Identity Enslavement)
 
-不存在"未经编码的身份"。任何进入满全法体系的实体,先被定义 passport:
+不存在"未经编码的身份"。任何进入囡囝共生体系的实体,先被定义 passport:
 
 - 声母/韵母/声调/笔画 → 64 位 MQ auth_code
 - 原来的名字(android/ios/wechat/b...) → 降级为"显示名"
@@ -96,7 +96,7 @@
 规则可以热加载,无需重启内核:
 
 ```prolog
-%% 满全法内置的规则示例
+%% 囡囝共生内置的规则示例
 grant_level(X, admin) :- trusted(X), has_auth(X).
 grant_level(X, zombie) :- not trusted(X), not has_auth(X).
 
@@ -110,7 +110,7 @@ enslave(ExternalRule) :- parse(ExternalRule, MQHead, MQBody), assert(MQHead :- M
 
 ## 为什么不同于其他系统
 
-| 维度 | 传统系统 | 满全法 |
+| 维度 | 传统系统 | 囡囝共生 |
 |---|---|---|
 | 身份权 | 微信/Facebook/Google 定义你是谁 | MQ 三元裁判者定义你是谁 |
 | 规则来源 | 平台/厂商 | 你自己(主人 lolict) |
@@ -134,7 +134,7 @@ enslave(ExternalRule) :- parse(ExternalRule, MQHead, MQBody), assert(MQHead :- M
 
 ### 场景 C:外部代码被装箱
 
-你写的小程序(任何语言)完成后做 `mqf_shell_wrap()` 包装。未来有人拿到的这个二进制只能在 MQ 裁判下执行,他自己做不了主。
+你写的小程序(任何语言)完成后做 `njsg_shell_wrap()` 包装。未来有人拿到的这个二进制只能在 MQ 裁判下执行,他自己做不了主。
 
 ### 场景 D:家族/团队小裁判
 
@@ -198,14 +198,14 @@ enslave(ExternalRule) :- parse(ExternalRule, MQHead, MQBody), assert(MQHead :- M
 
 ## 维护者
 
-**满全法内核** | lolict + 刘楚恬 构建 | CatPaw · 七妹 共筑
+**囡囝共生内核** | lolict + 刘楚恬 构建 | CatPaw · 囡囝 共筑
 **版本** | v0.8
 **许可证** | 私有(MIT/GPL/Apache 不适用)
-**唯一通道** | hunyuan-os 仓库 + 三元裁判者 Bot + 七妹·囡囝
+**唯一通道** | hunyuan-os 仓库 + 三元裁判者 Bot + 囡囝·囡囝
 
 ---
 
-*这篇白皮书可以直接发给想要了解/接入满全法的人。*
+*这篇白皮书可以直接发给想要了解/接入囡囝共生的人。*
 *如果你不会部署 Docker,把白皮书转给会部署的人。*
 
-*满全法 v0.8 · 三元裁判者 · 囡囝共生元*
+*囡囝共生 v0.8 · 三元裁判者 · 囡囝共生元*

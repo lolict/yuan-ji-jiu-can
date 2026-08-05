@@ -1,4 +1,4 @@
-# 满全法 · 任务规划(连贯性节点表)
+# 囡囝共生 · 任务规划(连贯性节点表)
 > ManQuanFa · Task Planning · Coherent Reads
 
 ## 怎样用这份文档
@@ -22,15 +22,15 @@ v0.1 ── v0.2 ── v0.3 ── v0.4 ── v0.5 ── v0.6 ── v0.7 ─
 
 | 版本 | 时间 | 核心产出 | 入口文件 | 验证方式 |
 |---|---|---|---|---|
-| v0.1 | 2026-08-04 | 身份编码 + 守门人 | `kernel/src/mqf_kernel.c` | `mqf_encode("ios")` |
-| v0.2 | 2026-08-04 | 契约引擎(规则驱动) | `mqf_contract_add(...)` | main() 场景 A |
-| v0.3 | 2026-08-04 | 看门狗(pthread) | `mqf_watchdog()` | 场景超时自动 EXEC_SLEEP |
+| v0.1 | 2026-08-04 | 身份编码 + 守门人 | `kernel/src/njsg_kernel.c` | `njsg_encode("ios")` |
+| v0.2 | 2026-08-04 | 契约引擎(规则驱动) | `njsg_contract_add(...)` | main() 场景 A |
+| v0.3 | 2026-08-04 | 看门狗(pthread) | `njsg_watchdog()` | 场景超时自动 EXEC_SLEEP |
 | v0.4 | 2026-08-04 | WASM 执行槽(Zig) | `kernel/wasm/runner.zig` | `zig run runner.zig` |
-| v0.5 | 2026-08-04 | 空间代数(BFS/DP) | `mqf_reachable/inner_mirror` | 场景 K1-K4 |
-| v0.6 | 2026-08-05 | 反客为主(rule_enslave) | `mqf_rule_enslave(...)` | 场景 A-F |
-| v0.7 | 2026-08-05 | 金壳封装+镜像代理 | `mqf_shell_wrap/proxy` | 场景 G-J |
-| v0.8 | 2026-08-05 | 统计锥(cone_share/cone_tick) | `mqf_cone_*/compliance` | 场景 K1-K4 |
-| v0.9 | 2026-08-05 | 四元面判断(域+宏微量) | `mqf_domain_*/macronein` | 场景 L1-L3 |
+| v0.5 | 2026-08-04 | 空间代数(BFS/DP) | `njsg_reachable/inner_mirror` | 场景 K1-K4 |
+| v0.6 | 2026-08-05 | 反客为主(rule_enslave) | `njsg_rule_enslave(...)` | 场景 A-F |
+| v0.7 | 2026-08-05 | 金壳封装+镜像代理 | `njsg_shell_wrap/proxy` | 场景 G-J |
+| v0.8 | 2026-08-05 | 统计锥(cone_share/cone_tick) | `njsg_cone_*/compliance` | 场景 K1-K4 |
+| v0.9 | 2026-08-05 | 四元面判断(域+宏微量) | `njsg_domain_*/macronein` | 场景 L1-L3 |
 
 ---
 
@@ -48,8 +48,8 @@ hunyuan-os/
 ├── Makefile                    ← 构建系统(kernel+docs)
 │
 ├── kernel/
-│   └── src/mqf_kernel.c        ← ★ 核心文件,所有版本代码都在这(3500+ 行)
-│   └── wasm/mqf_wasm.c         ← WASI 裁决内核 v1.7 (307 行)
+│   └── src/njsg_kernel.c        ← ★ 核心文件,所有版本代码都在这(3500+ 行)
+│   └── wasm/njsg_wasm.c         ← WASI 裁决内核 v1.7 (307 行)
 │   └── wasm/runner.zig         ← Zig WASM 加载器
 │
 ├── cloudflare/
@@ -84,7 +84,7 @@ hunyuan-os/
 1. **`TASKS.md`** — 当前文件,知道时间轴在哪
 2. **`ROADMAP.md`** — 看当前版本与下一步
 3. **`SOVEREIGNTY.md`** — 5 条公理,所有规则的根基
-4. **`kernel/src/mqf_kernel.c`** — 核心代码,从顶部注释即可确认当前版本
+4. **`kernel/src/njsg_kernel.c`** — 核心代码,从顶部注释即可确认当前版本
 
 **可选读(按需):**
 - 要接飞书 → 读 `deploy/FEISHU.md`
@@ -101,7 +101,7 @@ hunyuan-os/
 - v1.4 生态 API (Cloudflare Worker 对外)
 - v1.5 统一对话渠道 + OpenAPI 文档 + SVG 流程图
 - v1.6 盟机合子节点 (67术语 + 域名无关化 + 三层场域)
-- v1.7 WASM 内核 (mqf_wasm.c) + 民联浏览器壳
+- v1.7 WASM 内核 (njsg_wasm.c) + 民联浏览器壳
 - v1.8 里程碑文档 (ADR 5项)
 - v1.9 术语统一 (partner → 盟机合)
 - v1.10 移动端深度集成 (Android WebView + iOS WKWebView)
@@ -110,8 +110,8 @@ hunyuan-os/
 - v2.0 公开 Beta 发布包 (release/v2.0-beta/)
 
 ### 代码文件
-- `kernel/src/mqf_kernel.c` (3500+ 行,v2.0.0)
-- `kernel/wasm/mqf_wasm.c` (WASI 内核,v2.0.0,307 行)
+- `kernel/src/njsg_kernel.c` (3500+ 行,v2.0.0)
+- `kernel/wasm/njsg_wasm.c` (WASI 内核,v2.0.0,307 行)
 - `cloudflare/mqf-web.js` (Worker + 盟机合 + 同步端点,970+ 行)
 - `cloudflare/sync-protocol.js` (多节点同步引擎,417 行)
 - `shell/browser/` (民联浏览器壳 v2.0 — HTML+CSS+JS,5 文件)
@@ -130,7 +130,7 @@ make clean && make && make test
 
 ### 优先级 1:v1.0 五元旋钮运动步量
 **工程目标**:
-- `mqf_five_yuan_push(node, step, angle, force)`:5 步位移累加
+- `njsg_five_yuan_push(node, step, angle, force)`:5 步位移累加
 - 角度 wrap:0~360°,每步累加并对 360 取模
 - 注意力配比:`ratio_in`(进入这个节点的边权重和) vs `ratio_out`(离开的边权重和)
 - 占存判定:节点的 accumulated_ticks > 阈值 → "占存"(铭记),否则不占存(可被遗忘)
@@ -147,9 +147,9 @@ typedef struct {
     int   occupied;      // 占存(1) / 不占存(0)
 } five_yuan_state_t;
 
-void mqf_five_yuan_init(void);
-void mqf_five_yuan_push(int obj_id, int step, float angle_inc, float force);
-void mqf_five_yuan_print(void);
+void njsg_five_yuan_init(void);
+void njsg_five_yuan_push(int obj_id, int step, float angle_inc, float force);
+void njsg_five_yuan_print(void);
 ```
 
 ### 优先级 2:v1.1 六元对称群+六面体
@@ -170,13 +170,13 @@ void mqf_five_yuan_print(void);
 
 1. 每次新会话**先读 ROADMAP.md 顶部**确认当前版本号
 2. **任何改动前先读 SOVEREIGNTY.md**确认符合公理
-3. **所有规则层改动在 `mqf_kernel.c`** 单文件完成(保持架构一致)
+3. **所有规则层改动在 `njsg_kernel.c`** 单文件完成(保持架构一致)
 4. **新增文档放 `docs/` 或 `deploy/`**,保持仓库整洁
 5. **完成后更新本文档的"当前状态"一节**
 6. **每次版本提交更新 ROADMAP.md 的已完成列表**
 
 ---
 
-*维护者:lolict + CatPaw · 七妹*
+*维护者:lolict + CatPaw · 囡囝*
 *最后更新:2026-08-05*
 *当前稳定版本:v1.3*

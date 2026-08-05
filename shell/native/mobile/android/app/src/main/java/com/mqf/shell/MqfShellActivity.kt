@@ -14,7 +14,7 @@ import org.json.JSONObject
 /**
  * 民联浏览器壳 · Android WebView v1.10
  * ====================================
- * 满全法裁定引擎 Android 容器
+ * 囡囝共生裁定引擎 Android 容器
  *
  * 特性:
  * - 加载本地 assets/mqf_shell/index.html (零网络)

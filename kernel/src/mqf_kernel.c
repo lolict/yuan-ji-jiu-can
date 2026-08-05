@@ -1,6 +1,10 @@
 /**
- * 满全法执行内核 v0.9 — MQF Executive Kernel
- * -----------------------------------------
+ * 囡囝共生 · 共生共识内核 v1.0 — MQ Symbiosis Kernel
+ * ------------------------------------------------
+ * 囡囝:方言,意为小孩,萌而正向
+ * 共生:共识圆 · 共生圆 · 共生姻 · 共首源 · 共首一 · 共守约 · 感受益
+ * 人名谱: 刘连理/刘楚恬/前芳/萝莉兰/零离俩/零厘里/零劳累等
+ *
  * v1.0 新增: 五元旋钮 —— 运动步量 + 角度 wrap + 占存判定
  * v2.0 里程碑: 三元→七元+全栈+生态+盟机合+WASM+移动端
  *
@@ -8,17 +12,8 @@
  *   三元(v0.6) → 点+关系(身份编码 + 规则引擎 + 空间代数 + 统计锥)
  *   四元(v0.9) → 面+内外间隔(拓扑域 + 跨域裁定 + 宏微量判断 + 金壳镜像)
  *   五元(v1.0) → 旋钮+运动步量(5 步位移累加 + 角度 wrap 360° + 占存判定)
- *
- * NEXT 维度演化(已规划待实现):
- *   五元(v1.0) → 旋钮+运动步量
- *      "五元旋钮的有无等效对称动态位移传感器周边角度绕曲圆周注意力关系分配给五次对象的几何运动"
- *      工程: step1~step5 位移递增,角度累加 wrap 0~360,进入 vs 离开配比,周边注意力分配
- *   六元(v1.1) → 对称群+六面体
- *      "两个三元裁判背靠背心连心对齐,对称群贯彻曲线的等效几何模型"
- *      工程: 双三元镜像对称,六面三维可视化,信任交集 vs 不可信任无交集
- *   七元(v1.2) → 蜂窝套壳
- *      "实心的蜂窝圆圈套壳"
- *      工程: 壳层无限嵌套,空间填充,容器-in-容器
+ *   六元(v1.1) → 对称群+六面体 (双三元镜像对称,信任交集 vs 不可信任无交集)
+ *   七元(v1.2) → 蜂窝套壳 (壳层无限嵌套,容器-in-容器)
  *
  * 四元面判断的工程特征:
  *   - 拓扑域标记: DFS 从三元裁判者出发,只走 observe+bind 边,能达 = 内部
@@ -1062,7 +1057,7 @@ int main(){
     printf("六元对称群: %d 对裁判\n", sy_count);
     printf("七元蜂窝套壳: %d 节点\n", sn_count);
     printf("飞书 Bot Bridge: 就绪\n");
-    printf("七妹 AI: 就绪\n");
+    printf("囡囝 AI: 就绪\n");
     printf("规则引擎: %d 规则\n", RE.rule_count);
     printf("=========================================\n");
 
@@ -1702,17 +1697,17 @@ void mqf_shell_nest_demo(void) {
     printf("  2. 蜂窝子壳 = 最多 6 个(六边形密铺)\n");
     printf("  3. 空间占比 = 父壳 / 6^(层级)\n");
     printf("  4. 外层决定内层,内层不感知外层\n");
-    printf("  5. 七元+六元×五元×四元 × 三元闭环 = 满全法完整结构\n\n");
+    printf("  5. 七元+六元×五元×四元 × 三元闭环 = 囡囝共生完整结构\n\n");
 }
 
 /* ============================================================
- * v1.3 全栈联动 — 飞书 Bot + 七妹 AI + ROADMAP 铁律自检
+ * v1.3 全栈联动 — 飞书 Bot + 囡囝 AI + ROADMAP 铁律自检
  *
  *  全栈 = 三元到七元的裁定能力,真正输出到外部世界
  *
  *  工程特征:
  *    - 飞书 Bot Bridge:接收飞书消息 → 触发 MQ 内核 → 返回裁定
- *    - 七妹 AI:通过镜像代理获取内核裁定 → 格式化自然语言回复
+ *    - 囡囝 AI:通过镜像代理获取内核裁定 → 格式化自然语言回复
  *    - ROADMAP 铁律自检:自动验证代码是否符合规划铁律
  * ============================================================ */
 
@@ -1728,11 +1723,11 @@ typedef struct {
     int  type;           /* 1=观测请求 2=信任查询 3=自定义 */
 } feishu_msg_t;
 
-/* 七妹回复模板 */
+/* 囡囝回复模板 */
 typedef struct {
-    char prefix[128];    /* 七妹自称前缀 */
+    char prefix[128];    /* 囡囝自称前缀 */
     char body[FEISHU_REPLY_MAX];
-    char suffix[128];    /* 七妹签名 suffix */
+    char suffix[128];    /* 囡囝签名 suffix */
 } qimei_reply_t;
 
 /* ROADMAP 铁律条目 */
@@ -1751,9 +1746,9 @@ void mqf_feishu_bot_bridge_init(void) {
            FEISHU_MSG_MAX, FEISHU_REPLY_MAX);
 }
 
-/* 七妹 AI 初始化 */
+/* 囡囝 AI 初始化 */
 void mqf_qimei_init(void) {
-    printf("[七妹 AI] 初始化,镜像代理模式,随时可裁定\n");
+    printf("[囡囝 AI] 初始化,镜像代理模式,随时可裁定\n");
 }
 
 /* 接收飞书消息(模拟) */
@@ -1766,11 +1761,11 @@ static int mqf_feishu_recv_msg(feishu_msg_t* msg, int msg_type, const char* text
     return 1;
 }
 
-/* 七妹格式化回复 */
+/* 囡囝格式化回复 */
 static void mqf_qimei_format_reply(qimei_reply_t* reply, const char* body) {
-    strncpy(reply->prefix, "我是七妹,", 127);
+    strncpy(reply->prefix, "我是囡囝,", 127);
     strncpy(reply->body, body, FEISHU_REPLY_MAX-1);
-    strncpy(reply->suffix, "\n\n—— 满全法 AI 助手 七妹", 127);
+    strncpy(reply->suffix, "\n\n—— 囡囝共生 AI 助手 囡囝", 127);
 }
 
 /* 获取裁定结果(通过镜像代理) */
@@ -1799,7 +1794,7 @@ static void mqf_feishu_process_message(feishu_msg_t* msg, qimei_reply_t* reply) 
         }
 
         snprintf(reply_body, FEISHU_REPLY_MAX,
-                 "七妹裁定报告:\n"
+                 "囡囝裁定报告:\n"
                  "  ▪ ios     → 五元占存:%s, 六元交集:0.85 → ★信任通过\n"
                  "  ▪ bank    → 五元占存:%s, 六元交集:0.80 → ★信任通过\n"
                  "  ▪ android → 五元占存:%s, 六元交集:0.30 → ○观察中\n"
@@ -1837,13 +1832,13 @@ static void mqf_feishu_process_message(feishu_msg_t* msg, qimei_reply_t* reply) 
     } else {
         /* 自定义:返回通用裁定框架说明 */
         const char* framework =
-            "满全法裁定框架 = 七元全栈联动:\n"
+            "囡囝共生裁定框架 = 七元全栈联动:\n"
             "  1. 三元(v0.6):身份编码 + 规则引擎 + 空间代数 + 统计锥\n"
             "  2. 四元(v0.9):拓扑域标记 + 跨域裁定 + 宏微量\n"
             "  3. 五元(v1.0):旋钮运动步量 + 角度wrap + 占存判定\n"
             "  4. 六元(v1.1):对称群 + 六面体 + 信任交集\n"
             "  5. 七元(v1.2):蜂窝套壳 + 递归嵌套 + 六边形密铺\n"
-            "  6. 全栈(v1.3):飞书 Bot 入口 + 七妹 AI 回复 + 自动化铁律检查";
+            "  6. 全栈(v1.3):飞书 Bot 入口 + 囡囝 AI 回复 + 自动化铁律检查";
         mqf_qimei_format_reply(reply, framework);
     }
 }
@@ -1928,7 +1923,7 @@ void mqf_roadmap_check_demo(void) {
     }
 
     printf("\n铁律通过率: %d/%d\n", ROADMAP_LAWS, ROADMAP_LAWS);
-    printf("结论: 代码和规划文档一致,符合满全法铁律\n\n");
+    printf("结论: 代码和规划文档一致,符合囡囝共生铁律\n\n");
 }
 
 /* 飞书 Bot Demo */
@@ -1942,7 +1937,7 @@ void mqf_feishu_bot_demo(void) {
     printf("--- 场景 O1:飞书发观测请求 ---\n\n");
     feishu_msg_t msg1;
     qimei_reply_t reply1;
-    mqf_feishu_recv_msg(&msg1, 1, "七妹,当前所有实体信任状态如何?");
+    mqf_feishu_recv_msg(&msg1, 1, "囡囝,当前所有实体信任状态如何?");
     mqf_feishu_process_message(&msg1, &reply1);
     mqf_feishu_send_reply(&msg1, &reply1);
 
@@ -1958,32 +1953,32 @@ void mqf_feishu_bot_demo(void) {
     printf("--- 场景 O3:飞书发框架说明请求 ---\n\n");
     feishu_msg_t msg3;
     qimei_reply_t reply3;
-    mqf_feishu_recv_msg(&msg3, 3, "七妹,介绍一下满全法");
+    mqf_feishu_recv_msg(&msg3, 3, "囡囝,介绍一下囡囝共生");
     mqf_feishu_process_message(&msg3, &reply3);
     mqf_feishu_send_reply(&msg3, &reply3);
 }
 
-/* 七妹 AI Demo */
+/* 囡囝 AI Demo */
 void mqf_qimei_demo(void) {
     printf("\n");
     printf("════════════════════════════════════════════\n");
-    printf("  v1.3 ★ 七妹 AI 助手 ★\n");
+    printf("  v1.3 ★ 囡囝 AI 助手 ★\n");
     printf("════════════════════════════════════════════\n\n");
 
-    printf("七妹是谁?\n");
-    printf("  七妹 = 满全法 AI 助手,名字来自'七元'\n");
-    printf("  七妹是三元到七元裁定能力的外部人格化\n");
-    printf("  七妹的每一个回复,都由 MQ 内核通过镜像代理给出\n");
-    printf("  七妹不代表自己,七妹代表裁定结果\n\n");
+    printf("囡囝是谁?\n");
+    printf("  囡囝 = 囡囝共生 AI 助手,名字来自'七元'\n");
+    printf("  囡囝是三元到七元裁定能力的外部人格化\n");
+    printf("  囡囝的每一个回复,都由 MQ 内核通过镜像代理给出\n");
+    printf("  囡囝不代表自己,囡囝代表裁定结果\n\n");
 
-    printf("七妹的核心能力:\n");
+    printf("囡囝的核心能力:\n");
     printf("  1. 观测请求 → 查询实体在五元/六元中的状态\n");
     printf("  2. 信任查询 → 获取六元对称群的背书裁定\n");
     printf("  3. 自动回复 → 通过镜像代理返回格式化裁定\n");
     printf("  4. 日志记录 → 所有回复自动写入审计\n\n");
 
-    printf("七妹的格言:\n");
-    printf("  '我不是在回答你,是满全法在通过我回答你'\n");
+    printf("囡囝的格言:\n");
+    printf("  '我不是在回答你,是囡囝共生在通过我回答你'\n");
     printf("  '你以为你在和一个 AI 聊天,其实你在和一个文明对话'\n\n");
 }
 
@@ -1998,7 +1993,7 @@ void mqf_v13_demo(void) {
     printf("  飞书用户 ──消息──→ 飞书 Bot Bridge ──触发──→ MQ 内核\n");
     printf("    ↑                                          │\n");
     printf("    │                                          ↓\n");
-    printf("  飞书用户 ←─回复── 七妹 AI ←─镜像代理── 裁定结果\n");
+    printf("  飞书用户 ←─回复── 囡囝 AI ←─镜像代理── 裁定结果\n");
     printf("    │\n");
     printf("    └──→ ROADMAP 铁律自检 ←─自动化验证\n\n");
 
@@ -2006,17 +2001,17 @@ void mqf_v13_demo(void) {
     printf("  1. 用户在飞书问:'ios 是否可信?'\n");
     printf("  2. Bot Bridge 接收消息,解析类型为'信任查询'\n");
     printf("  3. 触发 MQ 内核:五元旋钮步量 + 六元对称群裁定\n");
-    printf("  4. 七妹 AI 通过镜像代理获取结果:\n");
+    printf("  4. 囡囝 AI 通过镜像代理获取结果:\n");
     printf("     'ios → 5步完成,角度225°,750ticks占存,交集0.85 → ★信任通过'\n");
     printf("  5. Bot Bridge 发送回复到飞书\n");
     printf("  6. 每次交互自动执行 ROADMAP 铁律检查\n\n");
 
     printf("Demo 子场景:\n");
-    printf("  O1: 飞书观测请求 → 七妹回复完整信任报告\n");
-    printf("  O2: 飞书信任查询 → 七妹回复指定实体裁定\n");
-    printf("  O3: 飞书框架说明 → 七妹介绍满全法结构\n");
+    printf("  O1: 飞书观测请求 → 囡囝回复完整信任报告\n");
+    printf("  O2: 飞书信任查询 → 囡囝回复指定实体裁定\n");
+    printf("  O3: 飞书框架说明 → 囡囝介绍囡囝共生结构\n");
     printf("  O4: 铁律自动化检查 → 验证代码与规划一致性\n");
-    printf("  O5: 七妹人格化展示 → AI 助手的能力与格言\n\n");
+    printf("  O5: 囡囝人格化展示 → AI 助手的能力与格言\n\n");
 }
 
 void mqf_audit_summary(){

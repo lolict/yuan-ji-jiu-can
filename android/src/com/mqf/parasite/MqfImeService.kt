@@ -15,7 +15,7 @@ import android.widget.LinearLayout
 import android.widget.Button
 
 /**
- * 满全法 MetaIME — 真正的输入引擎
+ * 囡囝共生 MetaIME — 真正的输入引擎
  * ============================
  *
  * 功能:
@@ -24,7 +24,7 @@ import android.widget.Button
  *   - 候选字表: 179 minlian 词 + 1309 汉字子集
  *   - 服务端连线: 可把内容 after commit 写入 P2P 沙箱
  *
- * Copyright © 刘楚恬 & lolict (七妹凹月留) · 满全法 · 囡囝共生元
+ * Copyright © 刘楚恬 & lolict (囡囝凹月留) · 囡囝共生 · 囡囝共生元
  */
 class MqfImeService : InputMethodService() {
 

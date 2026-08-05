@@ -81,7 +81,7 @@ object MqfPinyinTable {
         reg("qiu", "秋")
         reg("dong", "冬")
 
-        // 满全法核心词
+        // 囡囝共生核心词
         reg("nan", "囡")
         reg("jian", "囝")
         reg("man", "满")
