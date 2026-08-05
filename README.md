@@ -97,29 +97,29 @@ cargo tauri dev
 ### Python 一键启动
 ```bash
 pip install pywebview
-python3 shell/native/mqf_webview.py
+python3 shell/native/njsg_webview.py
 ```
 
 ## 裁定 API
 
 ```javascript
-const result = mqfVerdictEngine({
+const result = njsgVerdictEngine({
   entity: 'ios',
   complianceA: 0.9,
   complianceB: 0.85,
   force: 15,
   angle: 45
 });
-// → { mqf_verdict: { trust: 'TRUSTED', confidence: 0.85, ... } }
+// → { njsg_verdict: { trust: 'TRUSTED', confidence: 0.85, ... } }
 ```
 
 ## 核心文件
 
 | 文件 | 说明 |
 |------|------|
-| `kernel/src/mqf_kernel.c` | C 三元→七元核心 (3500+ 行) |
-| `kernel/wasm/mqf_wasm.c` | WASI 裁决内核 (307 行) |
-| `cloudflare/mqf-web.js` | Worker + 同步 (970+ 行) |
+| `kernel/src/njsg_kernel.c` | C 三元→七元核心 (3500+ 行) |
+| `kernel/wasm/njsg_wasm.c` | WASI 裁决内核 (307 行) |
+| `cloudflare/njsg-web.js` | Worker + 同步 (970+ 行) |
 | `cloudflare/sync-protocol.js` | Gossip 多节点同步 (417 行) |
 | `shell/browser/` | 民联浏览器壳 v2.0 |
 | `shell/native/` | 全平台原生壳 |

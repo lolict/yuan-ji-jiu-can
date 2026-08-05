@@ -1,4 +1,4 @@
-# 囡囝共生(MQF) · 对外技术白皮书 v1.4
+# 囡囝共生(NJSG) · 对外技术白皮书 v1.4
 
 > 囡囝共生是 lolict 设计的裁定引擎三元→七元全栈联动系统,用于对任何外部请求/实体做出"铭记"或"易逝"的裁定。
 
@@ -64,7 +64,7 @@
 
 ## 三、对外 API
 
-囡囝共生 Cloudflare Worker 公网入口: `https://mqf-web.lolict.workers.dev`
+囡囝共生 Cloudflare Worker 公网入口: `https://njsg-web.lolict.workers.dev`
 
 ### 3.1 合作伙伴裁定 API
 
@@ -182,7 +182,7 @@ IoT 设备定期汇报数据:
 |------|------|
 | GitHub | `github.com/lolict/hunyuan-os.git` |
 | Gitee | `gitee.com/lolict/yuan-ji-jiu-can.git` |
-| Cloudflare | `mqf-web.lolict.workers.dev` |
+| Cloudflare | `njsg-web.lolict.workers.dev` |
 
 ---
 
@@ -190,7 +190,7 @@ IoT 设备定期汇报数据:
 
 已注册飞书机器人:
 - App ID: `cli_aae37ced6a785bdb`
-- 飞书消息回调: `https://mqf-web.lolict.workers.dev/feishu/event`
+- 飞书消息回调: `https://njsg-web.lolict.workers.dev/feishu/event`
 
 在飞书中直接和囡囝对话即可触发囡囝共生裁定。
 

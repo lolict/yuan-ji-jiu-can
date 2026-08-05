@@ -10,10 +10,10 @@
 shell/
 ├── browser/                  # 浏览器壳 (核心)
 │   ├── index.html            # 主界面 (三栏布局)
-│   ├── mqf-shell.js          # 裁定核心 + WASM 加载器
+│   ├── njsg-shell.js          # 裁定核心 + WASM 加载器
 │   └── shell.css             # 暗色裁定台样式
 ├── native/                   # 原生包装器
-│   ├── mqf_webview.py        # Python pywebview 启动器
+│   ├── njsg_webview.py        # Python pywebview 启动器
 │   ├── electron-shell/       # Electron 包装 (Win/Mac/Linux)
 │   │   ├── package.json
 │   │   ├── main.js
@@ -42,7 +42,7 @@ python3 -m http.server 8080
 
 ```bash
 pip install pywebview
-python3 shell/native/mqf_webview.py
+python3 shell/native/njsg_webview.py
 ```
 
 > 注意: Linux 需要安装 WebKitGTK (`apt install libwebkit2gtk-4.0-dev`)
@@ -88,7 +88,7 @@ cargo tauri build            # 打包发布
   --target=wasm32-wasi \
   -O2 \
   -o shell/browser/njsg_core.wasm \
-  kernel/wasm/mqf_wasm.c
+  kernel/wasm/njsg_wasm.c
 ```
 
 如 WASM 不可用,壳会自动回退到 JS 实现的裁定引擎 (算法完全一致)。

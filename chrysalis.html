@@ -337,7 +337,7 @@ async function doWear() {
     const hashBuffer = await crypto.subtle.digest('SHA-256', data);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    State.anchor = `mqf-${hashHex.substring(0, 32)}`;
+    State.anchor = `njsg-${hashHex.substring(0, 32)}`;
 
     logInfo(`时间戳     : ${ts}`);
     logOk(`锚 (anchor): ${State.anchor}`);
@@ -347,7 +347,7 @@ async function doWear() {
     logInfo('打开 IndexedDB (浏览器自带数据库)...');
 
     const openDB = () => new Promise((resolve, reject) => {
-        const req = indexedDB.open('ManQuanFa', 1);
+        const req = indexedDB.open('YinYangOS', 1);
         req.onerror = () => reject(req.error);
         req.onsuccess = () => resolve(req.result);
         req.onupgradeneeded = (ev) => {
@@ -362,14 +362,14 @@ async function doWear() {
     try {
         const db = await openDB();
 
-        // 写 .manquanfa-shell.json 对等结构
+        // 写 .njsg-shell.json 对等结构
         await wearJSON(db, 'state', 'shell', {
             version: '0.1.0-html',
             shell: State.chosenShell,
             os: State.env?.os,
             anchor: State.anchor,
             installed_at: ts,
-            workspace: 'idb://ManQuanFa/state'
+            workspace: 'idb://YinYangOS/state'
         });
 
         await wearJSON(db, 'state', 'config', {
@@ -387,7 +387,7 @@ async function doWear() {
     } catch (e) {
         logErr('IndexedDB 失败: ' + e);
         logWarn('回退到 sessionStorage');
-        sessionStorage.setItem('mqf-shell', JSON.stringify({
+        sessionStorage.setItem('njsg-shell', JSON.stringify({
             shell: State.chosenShell, anchor: State.anchor
         }));
         logOk('sessionStorage 写成功');

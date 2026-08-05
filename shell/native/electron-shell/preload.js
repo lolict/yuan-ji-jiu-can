@@ -5,7 +5,7 @@
  */
 const { contextBridge } = require('electron');
 
-contextBridge.exposeInMainWorld('mqfShell', {
+contextBridge.exposeInMainWorld('njsgShell', {
   version: '1.7.0',
   platform: process.platform,
   // 未来可扩展文件系统/网络代理

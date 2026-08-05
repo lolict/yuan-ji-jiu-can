@@ -132,7 +132,7 @@ atlas 大小: 2 × (32×32 × 32×32) × 1 byte = 2 × 1048576 = 2 MB (原始)
 压缩: SDF 32 + pack 到 8px/cell with 2px padding:
     实际 atlas: 2 × (256×256 × 1B) = 128 KB
 进一步: 用 6-bit SDF (足够精度) + RLE/pack → 目标 < 100 KB
-最终目标: 一个 .ttf-fallback-less 的 .mqf-font 文件 < 200 KB
+最终目标: 一个 .ttf-fallback-less 的 .njsg-font 文件 < 200 KB
 ```
 
 ## 下一步
@@ -140,8 +140,8 @@ atlas 大小: 2 × (32×32 × 32×32) × 1 byte = 2 × 1048576 = 2 MB (原始)
 - [ ] 硬编码声母/韵母/偏旁 C 头文件 (`.h` 表)
 - [ ] 汉字索引表 (按拼音 hash 排序的 1257 字)
 - [ ] `mccp_encode()` / `mccp_decode()`：UTF-8 ↔ MCCP 双向
-- [ ] C 核心 kernel (`mqf_kernel.c/h`) — 替代 Python `kernel.py`
-- [ ] Rust 重写 crypto (`mqf_crypto.rs`) — 替代 Python `protocol.py`
+- [ ] C 核心 kernel (`njsg_kernel.c/h`) — 替代 Python `kernel.py`
+- [ ] Rust 重写 crypto (`njsg_crypto.rs`) — 替代 Python `protocol.py`
 
 ## Python in archive/
 

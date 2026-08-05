@@ -1,5 +1,5 @@
 {
-  "name": "mqf-shell-electron",
+  "name": "njsg-shell-electron",
   "version": "1.7.0",
   "description": "民联浏览器壳 · Electron 原生包装",
   "main": "main.js",
@@ -10,7 +10,7 @@
     "build:linux": "electron-builder --linux"
   },
   "build": {
-    "appId": "dev.mqf.shell",
+    "appId": "dev.njsg.shell",
     "productName": "民联浏览器",
     "files": ["main.js", "preload.js", "../../browser/**/*"],
     "win": { "target": "portable" },

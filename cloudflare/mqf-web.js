@@ -16,8 +16,8 @@
  *
  * v1.5 新增: WebSocket + GraphQL + 统一对话 + OpenAPI文档 + 流程图
  *
- * 部署: wrangler deploy 或 PUT /accounts/{acct}/workers/scripts/mqf-web
- * Account: 19365628481173551c10b69dadaa2dd5 · subdomain: lolict · URL: mqf-web.lolict.workers.dev
+ * 部署: wrangler deploy 或 PUT /accounts/{acct}/workers/scripts/njsg-web
+ * Account: 19365628481173551c10b69dadaa2dd5 · subdomain: lolict · URL: njsg-web.lolict.workers.dev
  */
 
 /* ============================================================
@@ -245,12 +245,12 @@ function nameAnchor(name) {
     pinyin_layers.push(e[1]+e[2]+e[3]); glyph_layers.push((ch.codePointAt(0)%64).toString());
   }
   const h1 = sha256(pinyin_layers.join('|')).slice(0,16), h2 = sha256(glyph_layers.join('|')).slice(0,16);
-  return 'mqf_name_' + h1 + h2;
+  return 'njsg_name_' + h1 + h2;
 }
 function jointAnchor(a, b) {
   const A = nameAnchor(a).slice(9), B = nameAnchor(b).slice(9);
   const joint = Array.from(A).map((c,i)=> (parseInt(c,16)^parseInt(B[i],16)).toString(16)).join('');
-  return 'mqf_joint_' + sha256(joint + Date.now()).slice(0,32);
+  return 'njsg_joint_' + sha256(joint + Date.now()).slice(0,32);
 }
 
 /* ============================================================
@@ -315,7 +315,7 @@ class LXNode {
  * 关系日志环 (内存版)
  * ============================================================ */
 let webring=null;
-function logAppend(kind,payload){ if(!webring) webring={entries:[],genesis:sha256('mqf-webring')}; const prev=webring.entries.length?webring.entries[webring.entries.length-1].hash:webring.genesis; const seq=webring.entries.length; const mat=`${seq}|${kind}|${JSON.stringify(payload)}|${prev}|${Date.now()}`; const hash=sha256(mat); const entry={seq,kind,payload,ts:Date.now(),prev_hash:prev,hash}; webring.entries.push(entry); return {seq,kind,hash,total:webring.entries.length}; }
+function logAppend(kind,payload){ if(!webring) webring={entries:[],genesis:sha256('njsg-webring')}; const prev=webring.entries.length?webring.entries[webring.entries.length-1].hash:webring.genesis; const seq=webring.entries.length; const mat=`${seq}|${kind}|${JSON.stringify(payload)}|${prev}|${Date.now()}`; const hash=sha256(mat); const entry={seq,kind,payload,ts:Date.now(),prev_hash:prev,hash}; webring.entries.push(entry); return {seq,kind,hash,total:webring.entries.length}; }
 function logVerify(){ if(!webring||!webring.entries.length) return {valid:true,entries:0,merkle_root:'empty'}; let prev=webring.genesis; for(const e of webring.entries){ if(e.prev_hash!==prev) return {valid:false,entries:webring.entries.length,broken_at:e.seq}; prev=e.hash; } const leaves=webring.entries.map(e=>e.hash); while(leaves.length>1){ const n=[]; for(let i=0;i<leaves.length;i+=2){ const l=leaves[i],r=leaves[i+1]||leaves[i]; n.push(sha256(l+r)); } leaves.splice(0,leaves.length,...n); /* wrong, rebuild */; } return {valid:true,entries:webring.entries.length,merkle_root:merkle(webring.entries.map(e=>e.hash))}; }
 function merkle(leaves){ if(!leaves.length) return 'empty'; let lv=[...leaves]; while(lv.length>1){ const nx=[]; for(let i=0;i<lv.length;i+=2){ nx.push(sha256(lv[i]+(lv[i+1]||lv[i]))); } lv=nx; } return lv[0]; }
 
@@ -340,13 +340,13 @@ async function testcrypto(){
   const shared=await crypto.subtle.deriveBits({name:'X25519',public:kb.publicKey},ka.privateKey,256);
   const sharedBytes=new Uint8Array(shared);
   const sk=await crypto.subtle.importKey('raw',await crypto.subtle.digest('SHA-256',sharedBytes),{name:'HKDF'},false,['deriveKey']);
-  const aesKey=await crypto.subtle.deriveKey({name:'HKDF',salt:new Uint8Array(32),info:enc.encode('mqf-web-test'),hash:'SHA-256'},sk,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
-  const pt=enc.encode('mqf-test'); const nonce= crypto.getRandomValues(new Uint8Array(12));
+  const aesKey=await crypto.subtle.deriveKey({name:'HKDF',salt:new Uint8Array(32),info:enc.encode('njsg-web-test'),hash:'SHA-256'},sk,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+  const pt=enc.encode('njsg-test'); const nonce= crypto.getRandomValues(new Uint8Array(12));
   const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv:nonce},aesKey,pt);
   const dt=await crypto.subtle.decrypt({name:'AES-GCM',iv:nonce},aesKey,ct);
   const dec=new TextDecoder().decode(dt);
   const fp=Array.from(sharedBytes.slice(0,8)).map(b=>b.toString(16).padStart(2,'0')).join('');
-  return j({step1_pubA:pubA,step1_pubB:pubB,step2_shared_fp:fp,step3_test_encrypted:Array.from(new Uint8Array(ct)).map(b=>b.toString(16).padStart(2,'0')).join(''),step4_test_decrypted:dec,status:dec==='mqf-test'?'OK':'FAIL'});
+  return j({step1_pubA:pubA,step1_pubB:pubB,step2_shared_fp:fp,step3_test_encrypted:Array.from(new Uint8Array(ct)).map(b=>b.toString(16).padStart(2,'0')).join(''),step4_test_decrypted:dec,status:dec==='njsg-test'?'OK':'FAIL'});
 }
 async function handsh(q){
   const seed=q.get('seed')||'hunyuan';
@@ -554,7 +554,7 @@ function feishuMenu() {
         name: '控惗编程',
         name_i18n: { zh_CN: '控惗编程', en_US: 'Control-Intent Programming' },
         is_web_url: true,
-        url: 'https://mqf-web.lolict.workers.dev/',
+        url: 'https://njsg-web.lolict.workers.dev/',
         desc: '囡囝共生 · 囡囝共生元操作系统 — 排病诊断 / 封神台 / 观测者 一体化面板'
       }
     ]
@@ -564,11 +564,11 @@ function feishuMenu() {
 /* ============================================================
  * 备份 API — PUT /api/backup/now + GET /api/backup/list
  * 使用 Workers KV (免费层 1GB / 10k 写/天 / 100k 读/天)
- * KV namespace "mqf-backup" 已在 Cloudflare Dashboard 创建
+ * KV namespace "njsg-backup" 已在 Cloudflare Dashboard 创建
  * 无需银行卡、无需信用卡、无需 R2 激活
  * ============================================================ */
 async function backupNow(env) {
-  if (!env.KV) return { error: 'KV binding 未配置 — 请到 Cloudflare Dashboard > Workers & Pages > mqf-web > Settings > Functions > KV namespace bindings 添加 mqf-backup' };
+  if (!env.KV) return { error: 'KV binding 未配置 — 请到 Cloudflare Dashboard > Workers & Pages > njsg-web > Settings > Functions > KV namespace bindings 添加 njsg-backup' };
   const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
   const snapshot = {
     ts,
@@ -620,7 +620,7 @@ function apiVerdict(params) {
     ok: true,
     version: 'v1.4',
     entity,
-    mqf_verdict: {
+    njsg_verdict: {
       trust: verdict ? 'TRUSTED' : 'REJECTED',
       confidence: intersection,
       mirror_alignment: mirror_ok ? 'ALIGNED' : 'OFFSET',
@@ -662,7 +662,7 @@ function apiDocs() {
     version: 'v1.4',
     name: '囡囝共生 MQ裁定 API',
     description: '囡囝共生七元全栈联动裁定引擎 — 输入实体信息,返回 MQ 裁定结果',
-    base_url: 'https://mqf-web.lolict.workers.dev',
+    base_url: 'https://njsg-web.lolict.workers.dev',
     endpoints: [
       {
         path: '/api/v1/verdict',
@@ -857,7 +857,7 @@ function apiDocsV2() {
       version: 'v1.5',
       description: '囡囝共生七元全栈联动裁定引擎 — 输入实体信息,返回 MQ 裁定结果'
     },
-    servers: [{ url: 'https://mqf-web.lolict.workers.dev' }],
+    servers: [{ url: 'https://njsg-web.lolict.workers.dev' }],
     paths: {
       '/api/v1/verdict': {
         get: {

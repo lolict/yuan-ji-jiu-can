@@ -1,19 +1,19 @@
-/* 民联浏览器壳 · MQF Shell v1.7
+/* 民联浏览器壳 · NJSG Shell v1.7
  * ============================
  * 七元裁定引擎 · WebView 容器界面
  */
 
 :root {
-  --mqf-bg: #0a0e1a;
-  --mqf-fg: #e8ecf4;
-  --mqf-dim: #6b7a99;
-  --mqf-accent: #5eead4;
-  --mqf-danger: #f87171;
-  --mqf-ok: #4ade80;
-  --mqf-gold: #fbbf24;
-  --mqf-shell: #1e293b;
-  --mqf-border: #334155;
-  --mqf-input: #0f172a;
+  --njsg-bg: #0a0e1a;
+  --njsg-fg: #e8ecf4;
+  --njsg-dim: #6b7a99;
+  --njsg-accent: #5eead4;
+  --njsg-danger: #f87171;
+  --njsg-ok: #4ade80;
+  --njsg-gold: #fbbf24;
+  --njsg-shell: #1e293b;
+  --njsg-border: #334155;
+  --njsg-input: #0f172a;
   --font-mono: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
 }
 
@@ -21,46 +21,46 @@
 
 body {
   font-family: var(--font-mono);
-  background: var(--mqf-bg);
-  color: var(--mqf-fg);
+  background: var(--njsg-bg);
+  color: var(--njsg-fg);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
 }
 
 /* ── Header ── */
-.mqf-header {
+.njsg-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0.6rem 1.2rem;
-  background: var(--mqf-shell);
-  border-bottom: 1px solid var(--mqf-border);
+  background: var(--njsg-shell);
+  border-bottom: 1px solid var(--njsg-border);
 }
-.mqf-logo {
+.njsg-logo {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   font-weight: 700;
   font-size: 1rem;
-  color: var(--mqf-accent);
+  color: var(--njsg-accent);
 }
-.mqf-logo .icon { font-size: 1.3rem; }
-.mqf-status {
+.njsg-logo .icon { font-size: 1.3rem; }
+.njsg-status {
   font-size: 0.75rem;
-  color: var(--mqf-dim);
+  color: var(--njsg-dim);
 }
-.mqf-status .dot {
+.njsg-status .dot {
   display: inline-block;
   width: 7px; height: 7px;
   border-radius: 50%;
   margin-right: 4px;
-  background: var(--mqf-ok);
+  background: var(--njsg-ok);
   vertical-align: middle;
 }
 
 /* ── Main layout ── */
-.mqf-main {
+.njsg-main {
   flex: 1;
   display: grid;
   grid-template-columns: 280px 1fr 320px;
@@ -69,78 +69,78 @@ body {
 }
 
 /* ── Left panel: 旋钮控制器 ── */
-.mqf-left {
-  border-right: 1px solid var(--mqf-border);
+.njsg-left {
+  border-right: 1px solid var(--njsg-border);
   padding: 1rem;
   overflow-y: auto;
   background: #0c1220;
 }
-.mqf-section-title {
+.njsg-section-title {
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--mqf-dim);
+  color: var(--njsg-dim);
   margin-bottom: 0.4rem;
 }
-.mqf-card {
-  background: var(--mqf-shell);
-  border: 1px solid var(--mqf-border);
+.njsg-card {
+  background: var(--njsg-shell);
+  border: 1px solid var(--njsg-border);
   border-radius: 6px;
   padding: 0.7rem;
   margin-bottom: 0.8rem;
 }
-.mqf-card label {
+.njsg-card label {
   display: block;
   font-size: 0.75rem;
-  color: var(--mqf-dim);
+  color: var(--njsg-dim);
   margin-bottom: 0.25rem;
 }
-.mqf-card input[type="text"],
-.mqf-card input[type="number"],
-.mqf-card select {
+.njsg-card input[type="text"],
+.njsg-card input[type="number"],
+.njsg-card select {
   width: 100%;
   padding: 0.4rem 0.5rem;
-  background: var(--mqf-input);
-  border: 1px solid var(--mqf-border);
+  background: var(--njsg-input);
+  border: 1px solid var(--njsg-border);
   border-radius: 4px;
-  color: var(--mqf-fg);
+  color: var(--njsg-fg);
   font-family: var(--font-mono);
   font-size: 0.8rem;
   outline: none;
 }
-.mqf-card input:focus,
-.mqf-card select:focus {
-  border-color: var(--mqf-accent);
+.njsg-card input:focus,
+.njsg-card select:focus {
+  border-color: var(--njsg-accent);
 }
-.mqf-slider-row {
+.njsg-slider-row {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   margin-top: 0.3rem;
 }
-.mqf-slider-row input[type="range"] {
+.njsg-slider-row input[type="range"] {
   flex: 1;
-  accent-color: var(--mqf-accent);
+  accent-color: var(--njsg-accent);
 }
-.mqf-slider-row span {
+.njsg-slider-row span {
   font-size: 0.75rem;
-  color: var(--mqf-accent);
+  color: var(--njsg-accent);
   min-width: 3ch;
   text-align: right;
 }
 
 /* ── Center panel: 裁定台 ── */
-.mqf-center {
+.njsg-center {
   padding: 1.2rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
   overflow-y: auto;
 }
-.mqf-verdict-stage {
+.njsg-verdict-stage {
   flex: 1;
-  background: var(--mqf-shell);
-  border: 1px solid var(--mqf-border);
+  background: var(--njsg-shell);
+  border: 1px solid var(--njsg-border);
   border-radius: 8px;
   padding: 1.2rem;
   display: flex;
@@ -150,132 +150,132 @@ body {
   min-height: 280px;
   position: relative;
 }
-.mqf-verdict-icon {
+.njsg-verdict-icon {
   font-size: 4rem;
   margin-bottom: 0.5rem;
   transition: transform 0.3s, filter 0.3s;
 }
-.mqf-verdict-icon.trusted { color: var(--mqf-ok); filter: drop-shadow(0 0 12px #4ade8066); }
-.mqf-verdict-icon.rejected { color: var(--mqf-danger); filter: drop-shadow(0 0 12px #f8717166); }
+.njsg-verdict-icon.trusted { color: var(--njsg-ok); filter: drop-shadow(0 0 12px #4ade8066); }
+.njsg-verdict-icon.rejected { color: var(--njsg-danger); filter: drop-shadow(0 0 12px #f8717166); }
 .mvf-verdict-label {
   font-size: 1.5rem;
   font-weight: 700;
   letter-spacing: 0.15em;
 }
-.mqf-verdict-sub {
+.njsg-verdict-sub {
   font-size: 0.85rem;
-  color: var(--mqf-dim);
+  color: var(--njsg-dim);
   margin-top: 0.3rem;
 }
-.mqf-verdict-ticks {
+.njsg-verdict-ticks {
   margin-top: 0.6rem;
   font-size: 0.75rem;
-  color: var(--mqf-dim);
+  color: var(--njsg-dim);
 }
 
 /* 六元对称可视化 */
-.mqf-mirror-viz {
+.njsg-mirror-viz {
   display: flex;
   align-items: center;
   gap: 1rem;
   margin-top: 0.8rem;
 }
-.mqf-mirror-a, .mqf-mirror-b {
+.njsg-mirror-a, .njsg-mirror-b {
   padding: 0.3rem 0.7rem;
   border-radius: 4px;
   font-size: 0.8rem;
-  border: 1px solid var(--mqf-border);
+  border: 1px solid var(--njsg-border);
 }
-.mqf-mirror-a { color: #93c5fd; border-color: #93c5fd55; }
-.mqf-mirror-b { color: #fca5a5; border-color: #fca5a555; }
-.mqf-mirror-gap {
+.njsg-mirror-a { color: #93c5fd; border-color: #93c5fd55; }
+.njsg-mirror-b { color: #fca5a5; border-color: #fca5a555; }
+.njsg-mirror-gap {
   font-size: 0.7rem;
-  color: var(--mqf-dim);
+  color: var(--njsg-dim);
 }
-.mqf-mirror-gap.aligned { color: var(--mqf-ok); }
-.mqf-mirror-gap.offset { color: var(--mqf-danger); }
+.njsg-mirror-gap.aligned { color: var(--njsg-ok); }
+.njsg-mirror-gap.offset { color: var(--njsg-danger); }
 
 /* ── Right panel: 裁定历史 ── */
-.mqf-right {
-  border-left: 1px solid var(--mqf-border);
+.njsg-right {
+  border-left: 1px solid var(--njsg-border);
   padding: 1rem;
   display: flex;
   flex-direction: column;
   background: #0c1220;
   overflow-y: auto;
 }
-.mqf-history-item {
+.njsg-history-item {
   padding: 0.5rem 0.6rem;
   margin-bottom: 0.3rem;
-  border-left: 3px solid var(--mqf-border);
-  background: var(--mqf-shell);
+  border-left: 3px solid var(--njsg-border);
+  background: var(--njsg-shell);
   border-radius: 0 4px 4px 0;
   font-size: 0.7rem;
   cursor: pointer;
   transition: background 0.15s;
 }
-.mqf-history-item:hover { background: #253047; }
-.mqf-history-item.trusted { border-left-color: var(--mqf-ok); }
-.mqf-history-item.rejected { border-left-color: var(--mqf-danger); }
-.mqf-history-item .h-entity {
+.njsg-history-item:hover { background: #253047; }
+.njsg-history-item.trusted { border-left-color: var(--njsg-ok); }
+.njsg-history-item.rejected { border-left-color: var(--njsg-danger); }
+.njsg-history-item .h-entity {
   font-weight: 600;
-  color: var(--mqf-fg);
+  color: var(--njsg-fg);
 }
-.mqf-history-item .h-meta {
-  color: var(--mqf-dim);
+.njsg-history-item .h-meta {
+  color: var(--njsg-dim);
   font-size: 0.65rem;
 }
 
 /* ── Button row ── */
-.mqf-buttons {
+.njsg-buttons {
   display: flex;
   gap: 0.5rem;
   justify-content: center;
 }
-.mqf-btn {
+.njsg-btn {
   padding: 0.5rem 1.2rem;
-  border: 1px solid var(--mqf-border);
+  border: 1px solid var(--njsg-border);
   border-radius: 5px;
-  background: var(--mqf-shell);
-  color: var(--mqf-fg);
+  background: var(--njsg-shell);
+  color: var(--njsg-fg);
   font-family: var(--font-mono);
   font-size: 0.85rem;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
 }
-.mqf-btn:hover { background: #253047; border-color: var(--mqf-accent); }
-.mqf-btn-primary {
+.njsg-btn:hover { background: #253047; border-color: var(--njsg-accent); }
+.njsg-btn-primary {
   background: #065f46;
   border-color: #059669;
   color: #d1fae5;
 }
-.mqf-btn-primary:hover { background: #047857; }
-.mqf-btn-danger {
+.njsg-btn-primary:hover { background: #047857; }
+.njsg-btn-danger {
   background: #7f1d1d;
   border-color: #b91c1c;
   color: #fecaca;
 }
 
 /* ── Bottom: 蜂窝嵌套视图 ── */
-.mqf-shellview {
-  background: var(--mqf-shell);
-  border: 1px solid var(--mqf-border);
+.njsg-shellview {
+  background: var(--njsg-shell);
+  border: 1px solid var(--njsg-border);
   border-radius: 8px;
   padding: 0.8rem;
 }
-.mqf-shellview-title {
+.njsg-shellview-title {
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--mqf-dim);
+  color: var(--njsg-dim);
   margin-bottom: 0.5rem;
 }
-.mqf-shell-nodes {
+.njsg-shell-nodes {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
 }
-.mqf-shell-node {
+.njsg-shell-node {
   padding: 0.25rem 0.5rem;
   background: #1e3a5f55;
   border: 1px solid #3b82f655;
@@ -285,7 +285,7 @@ body {
 }
 
 /* ── WASM badge ── */
-.mqf-wasm-badge {
+.njsg-wasm-badge {
   display: inline-block;
   padding: 0.15rem 0.5rem;
   background: #312e81;
@@ -296,7 +296,7 @@ body {
   vertical-align: middle;
   margin-left: 0.4rem;
 }
-.mqf-wasm-badge.fallback {
+.njsg-wasm-badge.fallback {
   background: #451a03;
   border-color: #d97706;
   color: #fde68a;
@@ -304,12 +304,12 @@ body {
 
 /* ── Responsive ── */
 @media (max-width: 900px) {
-  .mqf-main { grid-template-columns: 1fr; }
-  .mqf-left, .mqf-right { display: none; }
+  .njsg-main { grid-template-columns: 1fr; }
+  .njsg-left, .njsg-right { display: none; }
 }
 
 /* Terminal mode */
-.mqf-terminal {
+.njsg-terminal {
   background: #000;
   border: 1px solid #222;
   border-radius: 6px;
@@ -321,7 +321,7 @@ body {
   min-height: 120px;
   max-height: 200px;
 }
-.mqf-terminal .line { white-space: pre-wrap; word-break: break-all; }
-.mqf-terminal .line.out { color: #86efac; }
-.mqf-terminal .line.err { color: #fca5a5; }
-.mqf-terminal .line.sys { color: #94a3b8; }
+.njsg-terminal .line { white-space: pre-wrap; word-break: break-all; }
+.njsg-terminal .line.out { color: #86efac; }
+.njsg-terminal .line.err { color: #fca5a5; }
+.njsg-terminal .line.sys { color: #94a3b8; }

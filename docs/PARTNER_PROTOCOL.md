@@ -127,7 +127,7 @@
 
 ### 5.1 盟机合掌拥有(资源层)
 
-- 自己的域名 `盟机合址` (`partner.mqf-盟机合掌.domain`)
+- 自己的域名 `盟机合址` (`partner.njsg-盟机合掌.domain`)
 - 自己的服务器/Cloudflare 账户 (盟机合站)
 - 自己的飞书 Bot App ID (盟机合装)
 - 自己的 KV 存储空间 (盟机合载)
@@ -169,8 +169,8 @@
 
 ```
 1. 注册 Cloudflare 免费账户
-2. 创建 Worker,名称随意(如 mqf-mengji-001)
-3. 复制 mqf-web.js 到 Worker 编辑器
+2. 创建 Worker,名称随意(如 njsg-mengji-001)
+3. 复制 njsg-web.js 到 Worker 编辑器
 4. 绑定自定义域名(可用免费的 workers.dev 萌机合址)
 5. 部署上线
 6. 向盟机合主注册(提交 Worker URL + 公钥)
@@ -183,7 +183,7 @@
 1. 购买/获取一个域名(或使用已拥有的)
 2. 在 Cloudflare 添加域名(免费 DNS)
 3. 创建 Worker,配置路由:
-   partner-domain.com/* → mqf-partner-worker
+   partner-domain.com/* → njsg-partner-worker
 4. DNS 自动生效(Cloudflare 托管)
 5. 向盟机合主注册
 6. 上线
@@ -222,7 +222,7 @@ cargo tauri build        # 打包发布
     │
     ├── 通知所有注册盟机合掌(通过盟机合目录)
     │
-    └── 盟机合掌拉取最新 mqf-web.js 并部署
+    └── 盟机合掌拉取最新 njsg-web.js 并部署
        盟机合掌拉取最新 njsg_core.wasm (WASM 场)
 
 同步策略:

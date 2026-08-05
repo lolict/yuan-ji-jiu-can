@@ -42,16 +42,16 @@ cargo tauri dev
 ### 方式 5: Python WebView
 ```bash
 pip install pywebview
-python3 shell/native/mqf_webview.py
+python3 shell/native/njsg_webview.py
 ```
 
 ## WASM 内核 (可选)
 
-将 mqf_core.wasm 放置于 index.html 旁边,浏览器会自动检测并使用。
+将 njsg_core.wasm 放置于 index.html 旁边,浏览器会自动检测并使用。
 
 ```bash
 # 编译
-/opt/wasi-sdk/bin/clang --target=wasm32-wasi -O2 -o index.html.dir/mqf_core.wasm kernel/wasm/mqf_c
+/opt/wasi-sdk/bin/clang --target=wasm32-wasi -O2 -o index.html.dir/njsg_core.wasm kernel/wasm/njsg_c
 ```
 
 ## 裁定 API
@@ -68,7 +68,7 @@ const result = mqfVerdictEngine({
   force: 15,
   angle: 45
 });
-// → { mqf_verdict: { trust: 'TRUSTED', confidence: 0.85, ... } }
+// → { njsg_verdict: { trust: 'TRUSTED', confidence: 0.85, ... } }
 ```
 
 ## 多节点同步

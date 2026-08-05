@@ -214,7 +214,7 @@ footer{text-align:center;padding:30px 0;color:var(--muted);font-size:10px}
 <script>
 /* ============================================================
  * 囡囝共生 v0.2 · Pure Browser Build
- * 从 Cloudflare Worker mqf-web.js 移植 · 纯前端 · 无需后端
+ * 从 Cloudflare Worker njsg-web.js 移植 · 纯前端 · 无需后端
  */
 
 // --- 工具函数 ---
@@ -307,8 +307,8 @@ function switchNJ(){fsmState='nan_jian'}
 const PINYIN_TBL={'刘':['liu','l','iu','2'],'楚':['chu','ch','u','3'],'恬':['tian','t','ian','2'],'七':['qi','q','i','1'],'妹':['mei','m','ei','4'],'凹':['ao','@','ao','1'],'月':['yue','y','ue','4'],'留':['liu','l','iu','2']};
 const INITS="b p m f d t n l g k h j q x zh ch sh r z c s y w @".split(' ');
 const FINALS="a o e i u v ai ei ui ao ou iu ie ve er an en in un vn ang eng ing ong ia ua uo iao iou uai uei ian uan van uen iang uang ueng iong".split(' ');
-function nameAnchor(name){let pL=[],gL=[];for(const ch of name){let e=PINYIN_TBL[ch];if(!e){const cp=ch.codePointAt(0);e=['',INITS[cp%24],FINALS[(cp/24|0)%39],''+(cp%5)]}pL.push(e[1]+e[2]+e[3]);gL.push((ch.codePointAt(0)%64).toString())}const h1=sha256(pL.join('|')).slice(0,16),h2=sha256(gL.join('|')).slice(0,16);return'mqf_name_'+h1+h2}
-function jointAnchor(a,b){const A=nameAnchor(a).slice(9),B=nameAnchor(b).slice(9);const joint=Array.from(A).map((c,i)=>(parseInt(c,16)^parseInt(B[i],16)).toString(16)).join('');return'mqf_joint_'+sha256(joint+Date.now()).slice(0,32)}
+function nameAnchor(name){let pL=[],gL=[];for(const ch of name){let e=PINYIN_TBL[ch];if(!e){const cp=ch.codePointAt(0);e=['',INITS[cp%24],FINALS[(cp/24|0)%39],''+(cp%5)]}pL.push(e[1]+e[2]+e[3]);gL.push((ch.codePointAt(0)%64).toString())}const h1=sha256(pL.join('|')).slice(0,16),h2=sha256(gL.join('|')).slice(0,16);return'njsg_name_'+h1+h2}
+function jointAnchor(a,b){const A=nameAnchor(a).slice(9),B=nameAnchor(b).slice(9);const joint=Array.from(A).map((c,i)=>(parseInt(c,16)^parseInt(B[i],16)).toString(16)).join('');return'njsg_joint_'+sha256(joint+Date.now()).slice(0,32)}
 
 // --- 神龙编码 ---
 function compress(pinyin,tone){const s=pinyin.toLowerCase();let init='';for(const cand of INITS)if(cand!='@'&&s.startsWith(cand)&&cand.length>init.length)init=cand;if(!init)init='@';const ym=init!=='@'?s.slice(init.length):s;const l0=INITS.indexOf(init),l1=FINALS.indexOf(ym),l2='1234'.indexOf(tone);if(l0<0||l1<0||l2<0)return{error:'无法压缩:'+pinyin};return{code:'神'+[l0,l1,l2].join('-'),explain:`${init}+${ym}+${tone}`}}
@@ -327,8 +327,8 @@ const MYTHOS={
 };
 
 // --- Merkle 日志 (localStorage) ---
-const LOG_KEY='mqf_log_ring';
-function getLog(){try{return JSON.parse(localStorage.getItem(LOG_KEY))||{entries:[],genesis:sha256('mqf-webring')}}catch(e){return{entries:[],genesis:sha256('mqf-webring')}}}
+const LOG_KEY='njsg_log_ring';
+function getLog(){try{return JSON.parse(localStorage.getItem(LOG_KEY))||{entries:[],genesis:sha256('njsg-webring')}}catch(e){return{entries:[],genesis:sha256('njsg-webring')}}}
 function saveLog(l){localStorage.setItem(LOG_KEY,JSON.stringify(l))}
 function logAppend(kind,payload){const l=getLog();const prev=l.entries.length?l.entries[l.entries.length-1].hash:l.genesis;const seq=l.entries.length;const mat=`${seq}|${kind}|${JSON.stringify(payload)}|${prev}|${Date.now()}`;const hash=sha256(mat);l.entries.push({seq,kind,payload,ts:Date.now(),prev:hash?prev:null,hash});saveLog(l);return{seq,kind,hash,total:l.entries.length}}
 function logVerify(){const l=getLog();if(!l.entries.length)return{valid:true,entries:0,root:'empty'};let prev=l.genesis;for(const e of l.entries){if(e.prev_hash!==prev)return{valid:false,at:e.seq};prev=e.hash}const leaves=l.entries.map(e=>e.hash);let lv=leaves;while(lv.length>1){const nx=[];for(let i=0;i<lv.length;i+=2)nx.push(sha256(lv[i]+(lv[i+1]||lv[i])));lv=nx}return{valid:true,entries:l.entries.length,root:lv[0]}}
@@ -415,7 +415,7 @@ function logClear(){set('logResult',logClear())}
 function sysReport(){
   const r1=heYi('hunyuan-covenant-1','刘楚恬','lolict');
   const r2=heYi('minlian-set','liu','lol');
-  const tests={paibing_vy:checkDouble(['vy']).healthy===1,paibing_lnm:checkTriple(['lnm']).overall!=='cancer',anchor:nameAnchor('刘楚恬').startsWith('mqf_name'),fsm:fsmState==='nan_jian',myth:Object.keys(MYTHOS).length>=8,sha256:sha256('mqf')==='a5e744d016617dfa2e7d7c3b5a4d7b4e6f7e8d9c0b1a2e3f4d5c6b7a8e9f0a1b'.slice(0,64)?false:true};
+  const tests={paibing_vy:checkDouble(['vy']).healthy===1,paibing_lnm:checkTriple(['lnm']).overall!=='cancer',anchor:nameAnchor('刘楚恬').startsWith('njsg_name'),fsm:fsmState==='nan_jian',myth:Object.keys(MYTHOS).length>=8,sha256:sha256('njsg')==='a5e744d016617dfa2e7d7c3b5a4d7b4e6f7e8d9c0b1a2e3f4d5c6b7a8e9f0a1b'.slice(0,64)?false:true};
   set('reportResult',{processes:[{content:'hunyuan-covenant-1',result:r1},{content:'minlian-set',result:r2}],tests,total_fns:18})
 }
 

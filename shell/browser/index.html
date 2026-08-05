@@ -9,111 +9,111 @@
 <body>
 
   <!-- 顶部 Header -->
-  <header class="mqf-header">
-    <div class="mqf-logo">
+  <header class="njsg-header">
+    <div class="njsg-logo">
       <span class="icon">⚙</span>
       <span>民联浏览器 · 囡囝共生 Shell</span>
-      <span id="wasm-mode-badge" class="mqf-wasm-badge fallback">JS 回退</span>
+      <span id="wasm-mode-badge" class="njsg-wasm-badge fallback">JS 回退</span>
     </div>
-    <div class="mqf-status">
+    <div class="njsg-status">
       <span class="dot"></span>
       <span>在线 · 囡囝共生裁定引擎就绪</span>
     </div>
   </header>
 
   <!-- 主体三栏布局 -->
-  <main class="mqf-main">
+  <main class="njsg-main">
 
     <!-- 左: 旋钮控制 -->
-    <aside class="mqf-left">
-      <div class="mqf-section-title">五元旋钮参数</div>
+    <aside class="njsg-left">
+      <div class="njsg-section-title">五元旋钮参数</div>
 
       <!-- 实体名 -->
-      <div class="mqf-card">
+      <div class="njsg-card">
         <label>实体名称</label>
         <input type="text" id="input-entity" placeholder="ios / bank / ..." value="ios">
       </div>
 
       <!-- 合规度 -->
-      <div class="mqf-card">
+      <div class="njsg-card">
         <label>合规度 A (0.0 ~ 1.0)</label>
-        <div class="mqf-slider-row">
+        <div class="njsg-slider-row">
           <input type="range" id="input-compliance-a" min="0" max="100" value="90">
-          <span id="val-compliance-a" style="font-size:0.75rem;color:var(--mqf-accent)">0.90</span>
+          <span id="val-compliance-a" style="font-size:0.75rem;color:var(--njsg-accent)">0.90</span>
         </div>
 
         <label style="margin-top:0.5rem">合规度 B (0.0 ~ 1.0)</label>
-        <div class="mqf-slider-row">
+        <div class="njsg-slider-row">
           <input type="range" id="input-compliance-b" min="0" max="100" value="85">
-          <span id="val-compliance-b" style="font-size:0.75rem;color:var(--mqf-accent)">0.85</span>
+          <span id="val-compliance-b" style="font-size:0.75rem;color:var(--njsg-accent)">0.85</span>
         </div>
       </div>
 
       <!-- 力度 -->
-      <div class="mqf-card">
+      <div class="njsg-card">
         <label>力度 (force)</label>
-        <div class="mqf-slider-row">
+        <div class="njsg-slider-row">
           <input type="range" id="input-force" min="0" max="300" value="150">
           <span id="val-force">15</span>
         </div>
       </div>
 
       <!-- 角度 -->
-      <div class="mqf-card">
+      <div class="njsg-card">
         <label>角度 (0 ~ 360°)</label>
-        <div class="mqf-slider-row">
+        <div class="njsg-slider-row">
           <input type="range" id="input-angle" min="0" max="360" value="45">
           <span id="val-angle">45</span>
         </div>
       </div>
 
       <!-- 预设快速按钮 -->
-      <div class="mqf-section-title">快速预设</div>
+      <div class="njsg-section-title">快速预设</div>
       <div style="display:flex;flex-direction:column;gap:0.3rem">
-        <button class="mqf-btn" id="btn-preset-ios">📱 iOS (高信)</button>
-        <button class="mqf-btn" id="btn-preset-android">🤖 Android (低信)</button>
-        <button class="mqf-btn" id="btn-preset-bank">🏦 Bank (高信)</button>
+        <button class="njsg-btn" id="btn-preset-ios">📱 iOS (高信)</button>
+        <button class="njsg-btn" id="btn-preset-android">🤖 Android (低信)</button>
+        <button class="njsg-btn" id="btn-preset-bank">🏦 Bank (高信)</button>
       </div>
     </aside>
 
     <!-- 中: 裁定台 -->
-    <section class="mqf-center">
-      <div class="mqf-verdict-stage" id="verdict-stage">
-        <div class="mqf-verdict-icon trusted" id="verdict-icon">★</div>
-        <div class="mqf-verdict-label" id="verdict-label" style="color:var(--mqf-ok)">TRUSTED (信赖)</div>
-        <div class="mqf-verdict-sub" id="verdict-sub">已被铭记 — 双重背书,可信任</div>
-        <div class="mqf-verdict-ticks" id="verdict-ticks">ticks=150 · ETERNAL · 角度=45° · 交集=0.85</div>
+    <section class="njsg-center">
+      <div class="njsg-verdict-stage" id="verdict-stage">
+        <div class="njsg-verdict-icon trusted" id="verdict-icon">★</div>
+        <div class="njsg-verdict-label" id="verdict-label" style="color:var(--njsg-ok)">TRUSTED (信赖)</div>
+        <div class="njsg-verdict-sub" id="verdict-sub">已被铭记 — 双重背书,可信任</div>
+        <div class="njsg-verdict-ticks" id="verdict-ticks">ticks=150 · ETERNAL · 角度=45° · 交集=0.85</div>
 
         <!-- 六元对称可视化 -->
-        <div class="mqf-mirror-viz">
-          <div class="mqf-mirror-a" id="mirror-a">A: 0.85</div>
-          <div class="mqf-mirror-gap aligned" id="mirror-gap">≈ 对齐</div>
-          <div class="mqf-mirror-b" id="mirror-b">B: 0.85</div>
+        <div class="njsg-mirror-viz">
+          <div class="njsg-mirror-a" id="mirror-a">A: 0.85</div>
+          <div class="njsg-mirror-gap aligned" id="mirror-gap">≈ 对齐</div>
+          <div class="njsg-mirror-b" id="mirror-b">B: 0.85</div>
         </div>
       </div>
 
       <!-- 按钮行 -->
-      <div class="mqf-buttons">
-        <button class="mqf-btn mqf-btn-primary" id="btn-run">⚡ 执行裁定</button>
-        <button class="mqf-btn" id="btn-honeycomb">🔶 蜂窝填充</button>
+      <div class="njsg-buttons">
+        <button class="njsg-btn njsg-btn-primary" id="btn-run">⚡ 执行裁定</button>
+        <button class="njsg-btn" id="btn-honeycomb">🔶 蜂窝填充</button>
       </div>
 
       <!-- 蜂窝套壳视图 -->
-      <div class="mqf-shellview">
-        <div class="mqf-shellview-title">七元蜂窝套壳 · 节点树</div>
-        <div class="mqf-shell-nodes" id="shell-nodes"></div>
+      <div class="njsg-shellview">
+        <div class="njsg-shellview-title">七元蜂窝套壳 · 节点树</div>
+        <div class="njsg-shell-nodes" id="shell-nodes"></div>
       </div>
 
       <!-- 终端输出 -->
-      <div class="mqf-shellview" style="flex:1;display:flex;flex-direction:column">
-        <div class="mqf-shellview-title">系统日志</div>
-        <div class="mqf-terminal" id="terminal-output"></div>
+      <div class="njsg-shellview" style="flex:1;display:flex;flex-direction:column">
+        <div class="njsg-shellview-title">系统日志</div>
+        <div class="njsg-terminal" id="terminal-output"></div>
       </div>
     </section>
 
     <!-- 右: 裁定历史 -->
-    <aside class="mqf-right">
-      <div class="mqf-section-title">裁定历史</div>
+    <aside class="njsg-right">
+      <div class="njsg-section-title">裁定历史</div>
       <div id="history-list"></div>
     </aside>
 
@@ -121,8 +121,8 @@
 
   <!-- v1.10-v1.12: 移动端桥 + 持久化存储层 -->
   <script src="./mobile-bridge.js"></script>
-  <script src="./mqf-storage.js"></script>
-  <script src="./mqf-shell.js"></script>
+  <script src="./njsg-storage.js"></script>
+  <script src="./njsg-shell.js"></script>
   <script>
     (function() {
       var sa = document.querySelector('#input-compliance-a');

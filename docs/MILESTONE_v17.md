@@ -14,8 +14,8 @@
 | 组件 | 文件 | 说明 |
 |------|------|------|
 | 盟机合术语 | `docs/MENGJI_TERMS.md` | 67 个术语,三层架构(决策/资源/服务) |
-| 合伙人注册 | `cloudflare/mqf-web.js` | `apiMengjiRegister/status/list` 三个端点 |
-| 域名无关化 | `cloudflare/mqf-web.js` | `apiDomainCheck` + 相同输入必相同输出 |
+| 合伙人注册 | `cloudflare/njsg-web.js` | `apiMengjiRegister/status/list` 三个端点 |
+| 域名无关化 | `cloudflare/njsg-web.js` | `apiDomainCheck` + 相同输入必相同输出 |
 | 合伙人目录 | in-memory 注册表 | MENGJI_REGISTRY per-isolate |
 
 **三层模型**:
@@ -83,7 +83,7 @@ echo '{"entity":"ios","compliance_a":0.9,"compliance_b":0.85,"force":15,"angle":
 ```
 shell/browser/                ← HTML/CSS/JS 裁决台 (零依赖)
   index.html                  ← 暗色三栏布局
-  mqf-shell.js                ← 裁定引擎 JS + WASM 加载器 + UI 控制器
+  njsg-shell.js                ← 裁定引擎 JS + WASM 加载器 + UI 控制器
   shell.css                   ← CSS 变量主题
 
 shell/native/                 ← 跨平台原生包装
@@ -159,7 +159,7 @@ shell/native/                 ← 跨平台原生包装
 ### ADR-005: 域无关作为核心约束
 
 **选择**: "域无关"写入内核设计原则
-**理由**: 绑定特定域名 = 丧失主权;囡囝共生裁定逻辑必须与域名完全解耦;同样的输入在 lolict.workers.dev / mqf.合伙人.com / file:///本地.html 输出完全一致
+**理由**: 绑定特定域名 = 丧失主权;囡囝共生裁定逻辑必须与域名完全解耦;同样的输入在 lolict.workers.dev / njsg.合伙人.com / file:///本地.html 输出完全一致
 
 ---
 
@@ -180,8 +180,8 @@ shell/native/                 ← 跨平台原生包装
 |------|------|
 | 内核 C | `kernel/src/njsg_kernel.c` (三元~七元+全栈,3500+ 行) |
 | WASM C | `kernel/wasm/njsg_wasm.c` (WASI 裁定核心,307 行) |
-| Worker | `cloudflare/mqf-web.js` (Cloudflare Worker,970+ 行) |
-| 浏览器壳 | `shell/browser/mqf-shell.js` (JS 引擎+UI,~470 行) |
+| Worker | `cloudflare/njsg-web.js` (Cloudflare Worker,970+ 行) |
+| 浏览器壳 | `shell/browser/njsg-shell.js` (JS 引擎+UI,~470 行) |
 | 术语集 | `docs/MENGJI_TERMS.md` |
 | WASM 设计 | `docs/WASM_CORE_v17.md` |
 | Python 壳 | `shell/native/njsg_webview.py` |
@@ -197,7 +197,7 @@ shell/native/                 ← 跨平台原生包装
 囡囝_VERSION                 "1.6.0"   (kernel/src/njsg_kernel.c 第 79 行)
 kernel ver (K.ver)             12      (kernel/src/njsg_kernel.c)
 囡囝_WASM_VERSION            "1.7.0"   (kernel/wasm/njsg_wasm.c 第 19 行)
-囡囝_SHELL_VERSION           "1.7.0"   (shell/browser/mqf-shell.js)
+囡囝_SHELL_VERSION           "1.7.0"   (shell/browser/njsg-shell.js)
 Worker version display      "v1.5"    (实际包含 v1.6-v1.7b 端点)
 ```
 

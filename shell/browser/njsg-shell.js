@@ -4,10 +4,10 @@
  * 民联浏览器 · WASM 裁定内核加载器
  * 
  * v1.10 新增: 移动端原生持久化
- *   - Android WebView mqfNative 桥
- *   - iOS WKWebView mqfNative 桥
+ *   - Android WebView njsgNative 桥
+ *   - iOS WKWebView njsgNative 桥
  *   - localStorage 自动回退
- *   - window.mqfNative 统一接口 (save/load/clear/getPlatform)
+ *   - window.njsgNative 统一接口 (save/load/clear/getPlatform)
  * 
  * 功能:
  *   1. 优先加载 njsg_core.wasm (WASI 裁定内核)
@@ -16,7 +16,7 @@
  *   4. 移动端原生持久化 (优先) / localStorage (回退)
  *   5. 域无关: 任何地方运行输出一致
  *
- * 裁定引擎与 kernel/wasm/mqf_wasm.c 保持算法一致:
+ * 裁定引擎与 kernel/wasm/njsg_wasm.c 保持算法一致:
  *   五元: step + angle wrap 360° + 占存 (>100 → ETERNAL)
  *   六元: 信任交集(min) + 镜像对齐(|a-b|<0.2)
  *   七元: 蜂窝套壳递归 (6 child per shell)
@@ -25,9 +25,9 @@
 'use strict';
 
 // ============== 裁定核心 ==============
-// 与 mqf_wasm.c 算法严格一致
+// 与 njsg_wasm.c 算法严格一致
 
-const MQF_SHELL_VERSION = '2.0.0';
+const NJSG_SHELL_VERSION = '2.0.0';
 const FIVE_YUAN_STEPS = 5;
 const FIVE_YUAN_OCCUPY_THRESHOLD = 100;
 const SIX_YUAN_MIRROR_THRESHOLD = 0.2;
@@ -68,9 +68,9 @@ function sixYuanVerdict(complianceA, complianceB) {
 }
 
 /**
- * 裁定主引擎 (对应 mqf_verdict_engine in mqf_wasm.c)
+ * 裁定主引擎 (对应 njsg_verdict_engine in njsg_wasm.c)
  */
-function mqfVerdictEngine(request) {
+function njsgVerdictEngine(request) {
   const { entity, complianceA, complianceB, force, angle } = request;
 
   // 五元: 角度 wrap
@@ -81,16 +81,16 @@ function mqfVerdictEngine(request) {
   // 六元: 信任交集 + 镜像对齐
   const { intersection, mirrorAligned, verdict } = sixYuanVerdict(complianceA, complianceB);
 
-  // 与 C 端 mqf_wasm.c 中 NJ_PHRASE_TRUSTED/REJECTED 保持文字一致(共生赔伴律)
+  // 与 C 端 njsg_wasm.c 中 NJ_PHRASE_TRUSTED/REJECTED 保持文字一致(共生赔伴律)
   const philosophy = verdict === VerdictState.TRUSTED
     ? '已被铭记 — 双重背书,可共生'
     : '仍在观察 — 单方或双方否决,待共首源';
 
   return {
     ok: true,
-    version: MQF_SHELL_VERSION,
+    version: NJSG_SHELL_VERSION,
     entity: entity || 'unknown',
-    mqf_verdict: {
+    njsg_verdict: {
       trust: verdict === VerdictState.TRUSTED ? 'TRUSTED' : 'REJECTED',
       confidence: Math.round(intersection * 1000) / 1000,
       mirror_alignment: mirrorAligned ? 'ALIGNED' : 'OFFSET',
@@ -114,7 +114,7 @@ function mqfVerdictEngine(request) {
  * 尝试加载 njsg_core.wasm
  * 如可用,使用 WASI 接口; 如不可用,回退到 JS 实现
  */
-const MqfCore = {
+const NjsgCore = {
   wasmModule: null,
   wasmReady: false,
   mode: 'js', // 'wasm' or 'js'
@@ -181,7 +181,7 @@ const MqfCore = {
     if (this.mode === 'wasm' && this.wasmReady) {
       return this._verdictWasm(request);
     }
-    return mqfVerdictEngine(request);
+    return njsgVerdictEngine(request);
   },
 
   /**
@@ -211,12 +211,12 @@ const MqfCore = {
       console.warn('[WASM] exec failed:', e.message);
     }
     // 回退到 JS 实现(数值等价)
-    return mqfVerdictEngine(request);
+    return njsgVerdictEngine(request);
   },
 
   /**
    * 通过 njsg_verdict_json 导出调用裁定
-   * 该函数指针对应 kernel/wasm/mqf_wasm.c 中新增的非 wasi 导出
+   * 该函数指针对应 kernel/wasm/njsg_wasm.c 中新增的非 wasi 导出
    */
   _execVerdictExport(request, exports) {
     const mem = exports.memory;
@@ -296,7 +296,7 @@ class ShellNest {
 
 // ============== UI 控制器 ==============
 
-class MqfShellController {
+class NjsgShellController {
   constructor() {
     this.history = [];
     this.shellNest = new ShellNest();
@@ -304,7 +304,7 @@ class MqfShellController {
   }
 
   async init() {
-    const mode = await MqfCore.init();
+    const mode = await NjsgCore.init();
     this._log(`mode=${mode} (${mode === 'wasm' ? 'WASI 内核' : 'JS 回退'})`);
 
     this._bindUI();
@@ -368,7 +368,7 @@ class MqfShellController {
     });
 
     // WASM badge
-    if (MqfCore.mode === 'wasm') {
+    if (NjsgCore.mode === 'wasm') {
       this.el.wasmBadge.textContent = 'WASM';
       this.el.wasmBadge.classList.remove('fallback');
     } else {
@@ -395,32 +395,32 @@ class MqfShellController {
     const force = parseFloat(this.el.force.value) || 10;
     const angle = parseFloat(this.el.angle.value) || 45;
 
-    const result = MqfCore.verdict({ entity, complianceA, complianceB, force, angle });
+    const result = NjsgCore.verdict({ entity, complianceA, complianceB, force, angle });
 
     this._displayVerdict(result);
     this._addToHistory(result);
-    this._log(`out: ${JSON.stringify(result.mqf_verdict)}`);
+    this._log(`out: ${JSON.stringify(result.njsg_verdict)}`);
   }
 
   _displayVerdict(result) {
-    const v = result.mqf_verdict;
+    const v = result.njsg_verdict;
     const trusted = v.trust === 'TRUSTED';
 
     // 图标 + 标签
     this.el.verdictIcon.textContent = trusted ? '★' : '○';
-    this.el.verdictIcon.className = 'mqf-verdict-icon ' + (trusted ? 'trusted' : 'rejected');
+    this.el.verdictIcon.className = 'njsg-verdict-icon ' + (trusted ? 'trusted' : 'rejected');
     this.el.verdictLabel.textContent = trusted ? 'TRUSTED (信赖)' : 'REJECTED (否决)';
-    this.el.verdictLabel.style.color = trusted ? 'var(--mqf-ok)' : 'var(--mqf-danger)';
+    this.el.verdictLabel.style.color = trusted ? 'var(--njsg-ok)' : 'var(--njsg-danger)';
     this.el.verdictSub.textContent = result.philosophy;
     this.el.verdictTicks.textContent =
       `ticks=${v.five_yuan.ticks} · ${v.five_yuan.occupied} · 角度=${v.five_yuan.angle}° · 交集=${v.six_yuan.intersection}`;
 
     // 六元可视化
-    if (this.el.mirrorA) this.el.mirrorA.textContent = `A: ${result.mqf_verdict.confidence.toFixed(2)}`;
-    if (this.el.mirrorB) this.el.mirrorB.textContent = `B: ${result.mqf_verdict.confidence.toFixed(2)}`;
+    if (this.el.mirrorA) this.el.mirrorA.textContent = `A: ${result.njsg_verdict.confidence.toFixed(2)}`;
+    if (this.el.mirrorB) this.el.mirrorB.textContent = `B: ${result.njsg_verdict.confidence.toFixed(2)}`;
     if (this.el.mirrorGap) {
       this.el.mirrorGap.textContent = v.mirror_alignment === 'ALIGNED' ? '≈ 对齐' : '≠ 偏移';
-      this.el.mirrorGap.className = v.mirror_alignment === 'ALIGNED' ? 'mqf-mirror-gap aligned' : 'mqf-mirror-gap offset';
+      this.el.mirrorGap.className = v.mirror_alignment === 'ALIGNED' ? 'njsg-mirror-gap aligned' : 'njsg-mirror-gap offset';
     }
   }
 
@@ -432,7 +432,7 @@ class MqfShellController {
   }
 
   /**
-   * 持久化历史 — v1.10+ 支持 mqfNative (Android/iOS), 回退 localStorage
+   * 持久化历史 — v1.10+ 支持 njsgNative (Android/iOS), 回退 localStorage
    */
   _persistHistory() {
     if (window.MqfStorage) {
@@ -441,10 +441,10 @@ class MqfShellController {
     }
     // v1.10 之前的回退
     const data = JSON.stringify(this.history.slice(0, 20));
-    if (window.mqfNative && typeof window.mqfNative.save === 'function') {
-      try { window.mqfNative.save('verdict_history', data); } catch(e) {}
+    if (window.njsgNative && typeof window.njsgNative.save === 'function') {
+      try { window.njsgNative.save('verdict_history', data); } catch(e) {}
     } else {
-      try { localStorage.setItem('mqf_verdict_history', data); } catch(e) {}
+      try { localStorage.setItem('njsg_verdict_history', data); } catch(e) {}
     }
   }
 
@@ -461,11 +461,11 @@ class MqfShellController {
     }
     // v1.10 之前的回退
     let data = null;
-    if (window.mqfNative && typeof window.mqfNative.load === 'function') {
-      try { data = window.mqfNative.load('verdict_history'); } catch(e) {}
+    if (window.njsgNative && typeof window.njsgNative.load === 'function') {
+      try { data = window.njsgNative.load('verdict_history'); } catch(e) {}
     }
     if (!data) {
-      try { data = localStorage.getItem('mqf_verdict_history'); } catch(e) {}
+      try { data = localStorage.getItem('njsg_verdict_history'); } catch(e) {}
     }
     if (data) {
       try {
@@ -477,10 +477,10 @@ class MqfShellController {
 
   _renderHistory() {
     const html = this.history.slice(0, 20).map(r => {
-      const trusted = r.mqf_verdict.trust === 'TRUSTED';
+      const trusted = r.njsg_verdict.trust === 'TRUSTED';
       return `<div class="history-item ${trusted ? 'trusted' : 'rejected'}">
         <span class="h-entity">${r.entity}</span>
-        <span class="h-meta">${r.mqf_verdict.trust} · ticks=${r.mqf_verdict.five_yuan.ticks} · ${r.mqf_verdict.five_yuan.occupied}</span>
+        <span class="h-meta">${r.njsg_verdict.trust} · ticks=${r.njsg_verdict.five_yuan.ticks} · ${r.njsg_verdict.five_yuan.occupied}</span>
       </div>`;
     }).join('');
     this.el.history.innerHTML = html || '<div style="color:#6b7a99;font-size:0.7rem">暂无裁定记录</div>';
@@ -490,7 +490,7 @@ class MqfShellController {
     const nodes = this.shellNest.nodes.slice(0, 50);
     const html = nodes.map(n => {
       const indent = '&nbsp;'.repeat(n.level * 2);
-      return `<div class="mqf-shell-node" title="level=${n.level} ratio=${n.spaceRatio.toFixed(3)}">${indent}${n.name} (l${n.level})</div>`;
+      return `<div class="njsg-shell-node" title="level=${n.level} ratio=${n.spaceRatio.toFixed(3)}">${indent}${n.name} (l${n.level})</div>`;
     }).join('');
     this.el.shellNodes.innerHTML = html;
   }
@@ -513,11 +513,11 @@ class MqfShellController {
 
 // ============== 启动 ==============
 document.addEventListener('DOMContentLoaded', () => {
-  window.mqfShell = new MqfShellController();
-  window.mqfShell.init();
+  window.njsgShell = new NjsgShellController();
+  window.njsgShell.init();
 });
 
 // 导出供外部调用 (Node / WebView / 测试环境)
 if (typeof module !== 'undefined') {
-  module.exports = { mqfVerdictEngine, MqfCore, ShellNest, MqfShellController, MQF_SHELL_VERSION };
+  module.exports = { njsgVerdictEngine, NjsgCore, ShellNest, NjsgShellController, NJSG_SHELL_VERSION };
 }

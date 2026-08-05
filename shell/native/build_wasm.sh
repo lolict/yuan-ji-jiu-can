@@ -26,7 +26,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SHELL_DIR="$(dirname "$SCRIPT_DIR")"
 ROOT_DIR="$(dirname "$SHELL_DIR")"
-SRC="${ROOT_DIR}/kernel/wasm/mqf_wasm.c"
+SRC="${ROOT_DIR}/kernel/wasm/njsg_wasm.c"
 OUT_DIR="${SHELL_DIR}/browser"
 WASM32_OUT="${OUT_DIR}/njsg_core.wasm32.wasm"
 WASM64_OUT="${OUT_DIR}/njsg_core.wasm64.wasm"

@@ -193,7 +193,7 @@
 
 关系日志环写入 (append-only + Merkle 树)
 
-返回字段: `seq`, `kind`, `hash`, `total`; 同时持久化到 `/tmp/mqf-webring.json`
+返回字段: `seq`, `kind`, `hash`, `total`; 同时持久化到 `/tmp/njsg-webring.json`
 
 ---
 

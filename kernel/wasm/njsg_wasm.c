@@ -9,7 +9,7 @@
  * 无 pthread,无文件系统 IO,纯 stdin/stdout JSON
  *
  * 编译(WASI SDK):
- *   /opt/wasi-sdk/bin/clang --target=wasm32-wasi -O2 -o njsg_core.wasm mqf_wasm.c
+ *   /opt/wasi-sdk/bin/clang --target=wasm32-wasi -O2 -o njsg_core.wasm njsg_wasm.c
  *
  * 运行:
  *   echo '{"entity":"ios","compliance_a":0.9,"compliance_b":0.85,"force":15,"angle":45}' | wasmtime njsg_core.wasm
@@ -22,7 +22,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#define MQF_WASM_VERSION "2.0.0"
+#define NJSG_WASM_VERSION "2.0.0"
 #define NJSG_MAX_OBJECTS      64
 #define NJSG_MAX_PAIRS        16
 #define NJSG_MAX_NEST         32
@@ -73,12 +73,12 @@ typedef struct {
 static five_yuan_state_t fy_nodes[NJSG_MAX_OBJECTS];
 static int32_t fy_count = 0;
 
-void mqf_five_yuan_init(void) {
+void njsg_five_yuan_init(void) {
     memset(fy_nodes, 0, sizeof(fy_nodes));
     fy_count = 0;
 }
 
-int mqf_five_yuan_register(const char* name) {
+int njsg_five_yuan_register(const char* name) {
     if (fy_count >= NJSG_MAX_OBJECTS) return -1;
     int idx = fy_count++;
     strncpy(fy_nodes[idx].name, name, NJSG_MAX_NAME_LEN - 1);
@@ -92,7 +92,7 @@ int mqf_five_yuan_register(const char* name) {
     return idx;
 }
 
-void mqf_five_yuan_push(int obj_id, float angle_inc, float force_inc) {
+void njsg_five_yuan_push(int obj_id, float angle_inc, float force_inc) {
     if (obj_id < 0 || obj_id >= fy_count) return;
     five_yuan_state_t* s = &fy_nodes[obj_id];
     if (s->step >= FIVE_YUAN_STEPS) return;
@@ -121,12 +121,12 @@ typedef struct {
 static six_yuan_pair_t sy_pairs[NJSG_MAX_PAIRS];
 static int32_t sy_count = 0;
 
-void mqf_six_yuan_init(void) {
+void njsg_six_yuan_init(void) {
     memset(sy_pairs, 0, sizeof(sy_pairs));
     sy_count = 0;
 }
 
-int mqf_six_yuan_register_pair(const char* name) {
+int njsg_six_yuan_register_pair(const char* name) {
     if (sy_count >= NJSG_MAX_PAIRS) return -1;
     int idx = sy_count++;
     strncpy(sy_pairs[idx].name, name, NJSG_MAX_NAME_LEN - 1);
@@ -138,7 +138,7 @@ int mqf_six_yuan_register_pair(const char* name) {
     return idx;
 }
 
-void mqf_six_yuan_set_trust(int pair_id, float ta, float tb) {
+void njsg_six_yuan_set_trust(int pair_id, float ta, float tb) {
     if (pair_id < 0 || pair_id >= sy_count) return;
     sy_pairs[pair_id].trust_a = ta;
     sy_pairs[pair_id].trust_b = tb;
@@ -149,7 +149,7 @@ void mqf_six_yuan_set_trust(int pair_id, float ta, float tb) {
     sy_pairs[pair_id].verdict = (sy_pairs[pair_id].trust_intersection > 0.6f && sy_pairs[pair_id].mirror_ok) ? 1 : 0;
 }
 
-int mqf_six_yuan_verdict(int pair_id) {
+int njsg_six_yuan_verdict(int pair_id) {
     if (pair_id < 0 || pair_id >= sy_count) return 0;
     return sy_pairs[pair_id].verdict;
 }
@@ -170,12 +170,12 @@ typedef struct {
 static shell_nest_t sn_nodes[NJSG_MAX_NEST];
 static int32_t sn_count = 0;
 
-void mqf_shell_nest_init(void) {
+void njsg_shell_nest_init(void) {
     memset(sn_nodes, 0, sizeof(sn_nodes));
     sn_count = 0;
 }
 
-int mqf_shell_nest_wrap(const char* name) {
+int njsg_shell_nest_wrap(const char* name) {
     if (sn_count >= NJSG_MAX_NEST) return -1;
     int idx = sn_count++;
     strncpy(sn_nodes[idx].name, name, NJSG_MAX_NAME_LEN - 1);
@@ -186,7 +186,7 @@ int mqf_shell_nest_wrap(const char* name) {
     return idx;
 }
 
-int mqf_shell_nest_insert(int parent_id, const char* child_name) {
+int njsg_shell_nest_insert(int parent_id, const char* child_name) {
     if (parent_id < 0 || parent_id >= sn_count) return -1;
     if (sn_count >= NJSG_MAX_NEST) return -1;
     shell_nest_t* parent = &sn_nodes[parent_id];
@@ -220,7 +220,7 @@ typedef struct {
     float   final_angle;    /* 五元最终角度 */
 } verdict_result_t;
 
-static verdict_result_t mqf_verdict_engine(verdict_request_t* req) {
+static verdict_result_t njsg_verdict_engine(verdict_request_t* req) {
     verdict_result_t res;
     memset(&res, 0, sizeof(res));
 
@@ -302,15 +302,15 @@ int main(void) {
     json_parse_float(pv, &req.angle);
 
     /* 执行裁定 */
-    verdict_result_t res = mqf_verdict_engine(&req);
+    verdict_result_t res = njsg_verdict_engine(&req);
 
     /* 生成 JSON 输出 */
     snprintf(output, sizeof(output),
         "{\n"
         "  \"ok\": true,\n"
-        "  \"version\": \"" MQF_WASM_VERSION "\",\n"
+        "  \"version\": \"" NJSG_WASM_VERSION "\",\n"
         "  \"entity\": \"%s\",\n"
-        "  \"mqf_verdict\": {\n"
+        "  \"njsg_verdict\": {\n"
         "    \"trust\": \"%s\",\n"
         "    \"confidence\": %.3f,\n"
         "    \"mirror_alignment\": \"%s\",\n"
@@ -380,16 +380,16 @@ int njsg_verdict_json(const char* in_json, char* out_buf, int out_cap) {
     json_parse_float(pv, &req.angle);
 
     /* 执行裁定 */
-    verdict_result_t res = mqf_verdict_engine(&req);
+    verdict_result_t res = njsg_verdict_engine(&req);
 
     /* 生成输出 JSON */
     char tmp[NJSG_MAX_OUTPUT];
     snprintf(tmp, sizeof(tmp),
         "{"
         "\"ok\":true,"
-        "\"version\":\"" MQF_WASM_VERSION "\","
+        "\"version\":\"" NJSG_WASM_VERSION "\","
         "\"entity\":\"%s\","
-        "\"mqf_verdict\":{"
+        "\"njsg_verdict\":{"
             "\"trust\":\"%s\","
             "\"confidence\":%.3f,"
             "\"mirror_alignment\":\"%s\","

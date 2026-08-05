@@ -1,5 +1,5 @@
 # 囡囝共生 · 飞书 Bot 对接指南
-> ManQuanFa · Feishu Bot Integration Manual
+> YinYangOS · Feishu Bot Integration Manual
 
 ## 概述
 
@@ -17,7 +17,7 @@
 | 一台服务器 / Cloudflare Worker | ✅ | 跑 Node.js 或 Workers |
 | 飞书 App ID + Secret | ✅ | 飞书开放平台申请 |
 | Qwen Key(可选,v0.8 升级前) | ✅ | 临时 LLM,未来换三元裁判者自研裁定 |
-| 囡囝共生内核 | ✅ | 见 `hunyuan-os/cloudflare/mqf-web.js` |
+| 囡囝共生内核 | ✅ | 见 `hunyuan-os/cloudflare/njsg-web.js` |
 
 ---
 
@@ -37,9 +37,9 @@
 ### 第二步:部署 Cloudflare Worker
 
 ```bash
-# 1. 上传 mqf-web.js 到 Workers
+# 1. 上传 njsg-web.js 到 Workers
 cd hunyuan-os
-npx wrangler deploy cloudflare/mqf-web.js
+npx wrangler deploy cloudflare/njsg-web.js
 
 # 2. 配置 Worker Secret
 npx wrangler secret put FEISHU_APP_ID

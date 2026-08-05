@@ -25,7 +25,7 @@
 - 共生编码系统为它生成**唯一真正的身份标识:auth_code** → 这是它唯一的通行证
 - 此后所有权限判定、关系绑定、锥份额分配,一律以 auth_code 为准,**显示名仅供人类肉眼参考**
 
-实现:已在 `mqf_encode(text) → auth_code**(v0.1起)——原代码保留但让其成为核心。
+实现:已在 `njsg_encode(text) → auth_code**(v0.1起)——原代码保留但让其成为核心。
 
 ### 公理 2:镜像代理(Back-to-Back Mirror)
 
@@ -146,7 +146,7 @@ external_call → [壳内: original code]
 **哲学锚**: 零离俩(0内部的俩不离),零厘里(最小精度丈量内部),零劳累(最小代价推进),萝莉兰(阴的柔性美学)。
 
 **实现**: 
-- `kernel/wasm/mqf_wasm.c` 中的 `nj_trusted/nj_aligned/nj_eternal` = 阳的裁定输出
+- `kernel/wasm/njsg_wasm.c` 中的 `nj_trusted/nj_aligned/nj_eternal` = 阳的裁定输出
 - 五元旋钮 wrap 0-360° = 残差周期容器(不溢出不丢失)
 - 六元信任交集 = 两节点间的残差(overlap=共识,差额=分歧)
 - 集装箱 = 囡囧共生的"金壳"(权限边界)

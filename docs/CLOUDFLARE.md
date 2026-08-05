@@ -1,8 +1,8 @@
 # 囡囝共生 · Cloudflare 部署记录
 
 > 部署时间: 2026-08-03T04:42:43Z
-> 部署脚本: `cloudflare/mqf-web.js` 单文件 Worker (ES module)
-> 主域名: `https://mqf-web.lolict.workers.dev`
+> 部署脚本: `cloudflare/njsg-web.js` 单文件 Worker (ES module)
+> 主域名: `https://njsg-web.lolict.workers.dev`
 
 ---
 
@@ -10,8 +10,8 @@
 
 | 组件 | 状态 | 说明 |
 |------|------|------|
-| Workers: `mqf-web` | **已部署 + 公网可达** | 19 个 API + 1 个 HTML 主面板 + 飞书回调 |
-| Workers KV `mqf-backup` | **已创建 + 已绑定** | 免费 1GB / 10k写/100k读每天，无需银行卡 |
+| Workers: `njsg-web` | **已部署 + 公网可达** | 19 个 API + 1 个 HTML 主面板 + 飞书回调 |
+| Workers KV `njsg-backup` | **已创建 + 已绑定** | 免费 1GB / 10k写/100k读每天，无需银行卡 |
 | workers.dev 子域 `lolict` | **待用户在 Dashboard 注册** | 免费操作 |
 | 飞书机器人 `cli_aae37ced6a785bdb` | **已配置后端** | 菜单「控惗编程」+ 消息回调 + Qwen 对接 |
 
@@ -21,19 +21,19 @@
 
 ```bash
 # 1. PUT Worker 脚本
-curl -X PUT "https://api.cloudflare.com/client/v4/accounts/{ACCT}/workers/scripts/mqf-web" \
+curl -X PUT "https://api.cloudflare.com/client/v4/accounts/{ACCT}/workers/scripts/njsg-web" \
   -H "Authorization: Bearer {CF_TOKEN}" \
-  -F "metadata={\"main_module\":\"mqf-web.js\",\"compatibility_date\":\"2026-08-03\",\"bindings\":[],\"usage_model\":\"unbound\"};type=application/json" \
-  -F "mqf-web.js=@cloudflare/mqf-web.js;type=application/javascript+module"
+  -F "metadata={\"main_module\":\"njsg-web.js\",\"compatibility_date\":\"2026-08-03\",\"bindings\":[],\"usage_model\":\"unbound\"};type=application/json" \
+  -F "njsg-web.js=@cloudflare/njsg-web.js;type=application/javascript+module"
 
 # 2. 启用 workers.dev 子域
-curl -X POST "https://api.cloudflare.com/client/v4/accounts/{ACCT}/workers/scripts/mqf-web/subdomain" \
+curl -X POST "https://api.cloudflare.com/client/v4/accounts/{ACCT}/workers/scripts/njsg-web/subdomain" \
   -H "Authorization: Bearer {CF_TOKEN}" \
   -H "Content-Type: application/json" \
   -d "{\"enabled\":true,\"prefer_common\":false}"
 
 # 3. 查看已部署的版本
-curl "https://api.cloudflare.com/client/v4/accounts/{ACCT}/workers/scripts/mqf-web/deployments?per_page=3" \
+curl "https://api.cloudflare.com/client/v4/accounts/{ACCT}/workers/scripts/njsg-web/deployments?per_page=3" \
   -H "Authorization: Bearer {CF_TOKEN}"
 ```
 
@@ -41,7 +41,7 @@ curl "https://api.cloudflare.com/client/v4/accounts/{ACCT}/workers/scripts/mqf-w
 
 ## API 清单 (公网终结点)
 
-全部路径前缀 `https://mqf-web.lolict.workers.dev/`:
+全部路径前缀 `https://njsg-web.lolict.workers.dev/`:
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
@@ -76,9 +76,9 @@ curl "https://api.cloudflare.com/client/v4/accounts/{ACCT}/workers/scripts/mqf-w
 
 ## R2 备份 — 待激活
 
-存储桶 `mqf-backup` 必须经过 Cloudflare Dashboard UI 激活订阅。激活后:
+存储桶 `njsg-backup` 必须经过 Cloudflare Dashboard UI 激活订阅。激活后:
 
-1. 创建 Bucket: `PUT /accounts/{ACCT}/r2/buckets/mqf-backup`
+1. 创建 Bucket: `PUT /accounts/{ACCT}/r2/buckets/njsg-backup`
 2. Worker 绑定 env `BUCKET` + `R2Bucket`
 3. 任务: 定时把 workspace 三个仓库差分 tar 上传到 R2 (7 天保留, 周轮转)
 
@@ -90,5 +90,5 @@ curl "https://api.cloudflare.com/client/v4/accounts/{ACCT}/workers/scripts/mqf-w
 
 - 11 个 Cloudflare 令牌身份验签已通过; IP 过滤为空 (无白名单) = 从任何公网 IP 可用
 - Workers 是按需计量的 `standard` 使用模型 (免费层 100k 请求/天 够用)
-- 要更新 Worker: 直接再 `PUT /scripts/mqf-web` 即可; 新版本自动部署 (percentage rollout)
+- 要更新 Worker: 直接再 `PUT /scripts/njsg-web` 即可; 新版本自动部署 (percentage rollout)
 - Account ID: `19365628481173551c10b69dadaa2dd5`

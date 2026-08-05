@@ -1,5 +1,5 @@
 {
-  "name": "民联浏览器 · MQF Shell",
+  "name": "民联浏览器 · NJSG Shell",
   "version": "v2.0-beta",
   "codename": "民联公开Beta",
   "release_date": "2026-08-05",
@@ -11,8 +11,8 @@
   },
   "files": {
     "index.html": "入口 HTML",
-    "mqf-shell.js": "裁定引擎 + UI 控制器",
-    "mqf-storage.js": "持久化存储 (IndexedDB/localStorage)",
+    "njsg-shell.js": "裁定引擎 + UI 控制器",
+    "njsg-storage.js": "持久化存储 (IndexedDB/localStorage)",
     "mobile-bridge.js": "移动端桥 (Android/iOS/浏览器)",
     "shell.css": "暗色主题样式"
   },

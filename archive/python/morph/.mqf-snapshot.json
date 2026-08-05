@@ -8,12 +8,12 @@
       "full_name": "lolict/hunyuan-universe",
       "sha": null
     },
-    "manquanfa-enc": {
-      "full_name": "lolict/manquanfa-encoding",
+    "njsg-enc": {
+      "full_name": "lolict/njsg-encoding",
       "sha": null
     },
-    "manquanfa-dict": {
-      "full_name": "lolict/manquanfa-dict",
+    "njsg-dict": {
+      "full_name": "lolict/njsg-dict",
       "sha": null
     },
     "sacred-cov": {
@@ -21,7 +21,7 @@
       "sha": null
     },
     "license": {
-      "full_name": "lolict/manquanfa-license",
+      "full_name": "lolict/njsg-license",
       "sha": null
     }
   },

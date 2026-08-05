@@ -23,7 +23,7 @@
 - 主仓: `lolict/hunyuan-os` (origin)
 - 镜像: `lolict/yuan-ji-jiu-can` (中文名"援技救残")
 - 编码: `lolict/hunyuan-universe`
-- 契约: `lolict/manquanfa-license/encoding/dict`, `lolict/sacred-covenant`
+- 契约: `lolict/njsg-license/encoding/dict`, `lolict/sacred-covenant`
 - CPU: `lolict/knderl` (+ knderli/kndaili/Kndaili/Kndarl/kndail)
 
 ### Gitee 组织

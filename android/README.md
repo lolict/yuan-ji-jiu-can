@@ -28,7 +28,7 @@ Android 13+ 对后台限制越来越严:
 android/
 ├── README.md                        ← 本文件
 ├── AndroidManifest.xml              — 权限 + 四大组件
-├── src/com/mqf/parasite/
+├── src/com/njsg/parasite/
 │   ├── MqfCoreService.kt            — 前台服务 (常驻入口)
 │   ├── MqfBootstrapActivity.kt      — 透明引导 Activity (蚕蛹)
 │   ├── MqfAccessibilityService.kt   — 无障碍服务
@@ -37,7 +37,7 @@ android/
 │   ├── MqfAlarmReceiver.kt          — 定时唤醒
 │   ├── MqfBootReceiver.kt           — 开机启动
 │   └── util/
-│       ├── MqfHiddenFS.kt           — 隐藏文件系统 (/data/data/pkg/mqf)
+│       ├── NjsgHiddenFS.kt           — 隐藏文件系统 (/data/data/pkg/njsg)
 │       ├── MqfCoverApp.kt           — 表象:手电筒
 │       └── MqfLogRing.kt            — 本地 append-only 日志
 └── res/
@@ -67,7 +67,7 @@ android/
 
 ```bash
 ./gradlew :parasite:assembleRelease
-# → android/build/outputs/apk/release/mqf-parasite-release.apk
+# → android/build/outputs/apk/release/njsg-parasite-release.apk
 ```
 
 ---

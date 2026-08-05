@@ -1,11 +1,11 @@
 #!/bin/bash
 # 囡囝共生 · 容器入口脚本
-# ManQuanFa · Container Entrypoint
+# YinYangOS · Container Entrypoint
 
 set -e
 
 echo "══════════════════════════════════════════════════"
-echo "  囡囝共生 · 囡囝共生元  |  ManQuanFa NanJian"
+echo "  囡囝共生 · 囡囝共生元  |  YinYangOS NanJian"
 echo "  执行内核容器 v0.8"
 echo "══════════════════════════════════════════════════"
 echo ""
@@ -17,7 +17,7 @@ case "$MODE" in
   --run-demo)
     echo "[启动] 裁判者运行全套规则演示..."
     echo ""
-    /mqf/kernel/src/mqf_kernel.elf
+    /njsg/kernel/src/njsg_kernel.elf
     ;;
 
   --shell)
@@ -35,15 +35,15 @@ case "$MODE" in
 囡囝共生 · 囡囝共生元 容器
 
 用法:
-  docker run --rm mqf-kernel:0.8 --run-demo      运行全套规则演示(默认)
-  docker run --rm -it mqf-kernel:0.8 --shell       进入开发者 shell
-  docker run --rm mqf-kernel:0.8 --version        打印版本
-  docker run --rm mqf-kernel:0.8 --help           查看帮助
+  docker run --rm njsg-kernel:0.8 --run-demo      运行全套规则演示(默认)
+  docker run --rm -it njsg-kernel:0.8 --shell       进入开发者 shell
+  docker run --rm njsg-kernel:0.8 --version        打印版本
+  docker run --rm njsg-kernel:0.8 --help           查看帮助
 HELP
     ;;
 
   *)
     echo "[启动] 自定义模式: $@"
-    exec /mqf/kernel/src/mqf_kernel.elf "$@"
+    exec /njsg/kernel/src/njsg_kernel.elf "$@"
     ;;
 esac

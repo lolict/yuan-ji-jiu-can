@@ -15,7 +15,7 @@
 核心组件:
 - `kernel/src/njsg_kernel.c` — C 三元→七元核心 (3500+ 行,v2.0.0)
 - `kernel/wasm/njsg_wasm.c` — WASI 裁决核心 (307 行,v2.0.0)
-- `cloudflare/mqf-web.js` — Worker + 盟机合 + 同步 (970+ 行)
+- `cloudflare/njsg-web.js` — Worker + 盟机合 + 同步 (970+ 行)
 - `cloudflare/sync-protocol.js` — Gossip 多节点同步 (417 行)
 - `shell/browser/` — 民联浏览器壳 v2.0 (5 文件)
 - `shell/native/` — Android/iOS/Electron/Tauri/pywebview
@@ -189,7 +189,7 @@
 ### v1.4 生态扩展 ← 已完成
 **目标**: 囡囝共生核心引擎对外输出 - 飞书机器人公网部署 + 公开文档 + 合作伙伴接入
 
-- Cloudflare Workers 部署 (mqf-web.js 970+ 行)
+- Cloudflare Workers 部署 (njsg-web.js 970+ 行)
 - 裁决 API: `/api/v1/verdict`, `/api/v1/qimei`, `/api/v1/health`
 - 裁定请求/响应 JSON 标准化
 - 飞书 Bot Webhook 接入

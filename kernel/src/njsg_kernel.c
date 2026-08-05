@@ -36,45 +36,45 @@
 /* ============================================================
  * v1.0 五元旋钮前置声明
  * ============================================================ */
-void mqf_five_yuan_init(void);
-void mqf_five_yuan_demo(void);
-int  mqf_five_yuan_register(const char* name);
-void mqf_five_yuan_push(int obj_id, float angle_inc, float force_inc);
-void mqf_five_yuan_set_ratio(int obj_id, float in_val, float out_val);
-void mqf_five_yuan_print(void);
+void njsg_five_yuan_init(void);
+void njsg_five_yuan_demo(void);
+int  njsg_five_yuan_register(const char* name);
+void njsg_five_yuan_push(int obj_id, float angle_inc, float force_inc);
+void njsg_five_yuan_set_ratio(int obj_id, float in_val, float out_val);
+void njsg_five_yuan_print(void);
 extern int fy_count;
 
 /* v1.1 六元对称群前置声明 */
-void mqf_six_yuan_init(void);
-void mqf_six_yuan_demo(void);
-void mqf_six_yuan_print(void);
-void mqf_six_yuan_print_sides(int pair_id);
-int  mqf_six_yuan_register_pair(const char* name, int judge_a, int judge_b);
-void mqf_six_yuan_set_trust(int pair_id, float ta, float tb);
-int  mqf_six_yuan_verdict(int pair_id);
+void njsg_six_yuan_init(void);
+void njsg_six_yuan_demo(void);
+void njsg_six_yuan_print(void);
+void njsg_six_yuan_print_sides(int pair_id);
+int  njsg_six_yuan_register_pair(const char* name, int judge_a, int judge_b);
+void njsg_six_yuan_set_trust(int pair_id, float ta, float tb);
+int  njsg_six_yuan_verdict(int pair_id);
 extern int sy_count;
 
 /* v1.2 七元蜂窝套壳前置声明 */
-void mqf_shell_nest_init(void);
-void mqf_shell_nest_demo(void);
-void mqf_shell_nest_print(void);
-int  mqf_shell_nest_wrap(const char* name);
-int  mqf_shell_nest_insert(int parent_id, const char* child_name);
-void mqf_shell_nest_honeycomb(int level);
+void njsg_shell_nest_init(void);
+void njsg_shell_nest_demo(void);
+void njsg_shell_nest_print(void);
+int  njsg_shell_nest_wrap(const char* name);
+int  njsg_shell_nest_insert(int parent_id, const char* child_name);
+void njsg_shell_nest_honeycomb(int level);
 extern int sn_count;
 
 /* v1.3 全栈联动前置声明 */
-void mqf_feishu_bot_bridge_init(void);
-void mqf_qimei_init(void);
-void mqf_roadmap_self_check(void);
-void mqf_feishu_bot_demo(void);
-void mqf_qimei_demo(void);
-void mqf_roadmap_check_demo(void);
-void mqf_v13_demo(void);
+void njsg_feishu_bot_bridge_init(void);
+void njsg_qimei_init(void);
+void njsg_roadmap_self_check(void);
+void njsg_feishu_bot_demo(void);
+void njsg_qimei_demo(void);
+void njsg_roadmap_check_demo(void);
+void njsg_v13_demo(void);
 
-#define MQF_VERSION     "2.0.0"
-#define MQF_AUTH_LEN    32
-#define MQF_HASH_LEN    64
+#define NJSG_VERSION     "2.0.0"
+#define NJSG_AUTH_LEN    32
+#define NJSG_HASH_LEN    64
 #define MAX_EXEC_SLOTS  16
 #define AUDIT_RING_SIZE 1024
 #define MAX_FACTS       256
@@ -95,22 +95,22 @@ typedef enum { AUDIT_REGISTER=1, AUDIT_ACTIVATE, AUDIT_EXECUTE, AUDIT_REJECT, AU
 typedef enum { REL_OBSERVE=0, REL_BIND=1, REL_TRANSFORM=2 } rel_type_t;
 typedef enum { RULE_NATIVE=0, RULE_ENSLAVED=1 } rule_origin_t;
 
-static const char* MQFS_INITS[]={"b","p","m","f","d","t","n","l","g","k","h","j","q","x","zh","ch","sh","r","z","c","s","y","w","@"};
-static const char* MQFS_FINALS[]={"a","o","e","i","u","v","ai","ei","ui","ao","ou","iu","ie","ve","er","an","en","in","un","vn","ang","eng","ing","ong","ia","ua","uo","iao","iou","uai","uei","ian","uan","van","uen","iang","uang","ueng","iong","@"};
+static const char* NJFS_INITS[]={"b","p","m","f","d","t","n","l","g","k","h","j","q","x","zh","ch","sh","r","z","c","s","y","w","@"};
+static const char* NJFS_FINALS[]={"a","o","e","i","u","v","ai","ei","ui","ao","ou","iu","ie","ve","er","an","en","in","un","vn","ang","eng","ing","ong","ia","ua","uo","iao","iou","uai","uei","ian","uan","van","uen","iang","uang","ueng","iong","@"};
 static const char* REL_NAMES[]={"观测","绑定","变换"};
 
 /* ============================================================
  * 第 1 层: 身份编码 (v0.1 起,本次加入 identity_enslave 强制启用)
  *   公理 1: 任何进入系统的实体必须先被我们的编码系统洗礼
  * ============================================================ */
-typedef struct { char text[MQF_AUTH_LEN+1]; int init_idx,final_idx,tone_idx,stroke_count; char auth_code[MQF_HASH_LEN+1],hash[MQF_HASH_LEN+1]; } mqf_identity_t;
-static void mqf_hash(const char* in, char* out){ uint32_t h1=0x811c9dc5u,h2=0x0100193u; for(size_t i=0;i<strlen(in);i++){h1^=(uint8_t)in[i];h1*=0x01000193u;h2^=(uint8_t)in[i]<<5;h2*=0x1000193u;} sprintf(out,"%08x%08x%08x%08x%08x%08x",h1,h2,h1^h2,h2^h1,h1+h2,h2-h1); }
-mqf_identity_t mqf_encode(const char* text){ mqf_identity_t id; memset(&id,0,sizeof(id)); size_t len=strlen(text); if(len>MQF_AUTH_LEN)len=MQF_AUTH_LEN; memcpy(id.text,text,len); id.text[len]='\0'; uint32_t seed=0; for(size_t i=0;i<len;i++) seed=seed*31+(unsigned char)text[i]; id.init_idx=seed%24; id.final_idx=(seed>>5)%39; id.tone_idx=(seed>>10)%5; id.stroke_count=(seed>>15)%30+1; char buf[512]; snprintf(buf,sizeof(buf),"%s|%d|%d|%d|%d",MQFS_INITS[id.init_idx],id.init_idx,id.final_idx,id.tone_idx,id.stroke_count); mqf_hash(buf,id.auth_code); snprintf(buf,sizeof(buf),"%s.%s",text,id.auth_code); mqf_hash(buf,id.hash); return id; }
+typedef struct { char text[NJSG_AUTH_LEN+1]; int init_idx,final_idx,tone_idx,stroke_count; char auth_code[NJSG_HASH_LEN+1],hash[NJSG_HASH_LEN+1]; } njsg_identity_t;
+static void njsg_hash(const char* in, char* out){ uint32_t h1=0x811c9dc5u,h2=0x0100193u; for(size_t i=0;i<strlen(in);i++){h1^=(uint8_t)in[i];h1*=0x01000193u;h2^=(uint8_t)in[i]<<5;h2*=0x1000193u;} sprintf(out,"%08x%08x%08x%08x%08x%08x",h1,h2,h1^h2,h2^h1,h1+h2,h2-h1); }
+njsg_identity_t njsg_encode(const char* text){ njsg_identity_t id; memset(&id,0,sizeof(id)); size_t len=strlen(text); if(len>NJSG_AUTH_LEN)len=NJSG_AUTH_LEN; memcpy(id.text,text,len); id.text[len]='\0'; uint32_t seed=0; for(size_t i=0;i<len;i++) seed=seed*31+(unsigned char)text[i]; id.init_idx=seed%24; id.final_idx=(seed>>5)%39; id.tone_idx=(seed>>10)%5; id.stroke_count=(seed>>15)%30+1; char buf[512]; snprintf(buf,sizeof(buf),"%s|%d|%d|%d|%d",NJFS_INITS[id.init_idx],id.init_idx,id.final_idx,id.tone_idx,id.stroke_count); njsg_hash(buf,id.auth_code); snprintf(buf,sizeof(buf),"%s.%s",text,id.auth_code); njsg_hash(buf,id.hash); return id; }
 
 /* ============================================================
  * 第 2 层: Prolog 子集规则引擎 + 反客为主通道 (v0.6 核心)
  *
- *   外部规则进来 → [裁判通道 rule_enslave] → 内部规则(附上 MQF 编码标识+锥份额+优先级)
+ *   外部规则进来 → [裁判通道 rule_enslave] → 内部规则(附上 NJSG 编码标识+锥份额+优先级)
  *   Prolog 子集支持:
  *     事实:  trust(ios).
  *     规则:  grant_perm(X, admin) :- trusted(X), legacy_auth(X).
@@ -143,7 +143,7 @@ typedef struct {
     rule_origin_t origin;                      // NATIVE(我们内置) vs ENSLAVED(被我们降服的外部规则)
     char enslaver_name[MAX_NAME_LEN];          // 如果 ENSLAVED:谁执行了 enslave
     time_t enslaved_at;                        // 如果 ENSLAVED:何时被降服
-    mqf_identity_t identity;                   // 规则的 MQF 编码身份(我们的颁发)
+    njsg_identity_t identity;                   // 规则的 NJSG 编码身份(我们的颁发)
     int active;                                // 是否激活(通道门槛) —— 没有走 rule_enslave 的必定为 0
 } rule_t;
 
@@ -159,14 +159,14 @@ typedef struct {
 static rule_engine_t RE;
 
 /* 初始化规则引擎 */
-void mqf_rule_init(void) {
+void njsg_rule_init(void) {
     memset(&RE, 0, sizeof(RE));
     pthread_mutex_init(&RE.lock, NULL);
     printf("[规则引擎] Prolog 子集解释器就绪: 最多 %d 事实 + %d 规则\n", MAX_FACTS, MAX_RULES);
 }
 
 /* 添加事实 (内置 / 初始化时调用) */
-int mqf_fact_add(const char* name, const char** args, int arg_count) {
+int njsg_fact_add(const char* name, const char** args, int arg_count) {
     pthread_mutex_lock(&RE.lock);
     if (RE.fact_count >= MAX_FACTS) { pthread_mutex_unlock(&RE.lock); return -1; }
     int idx = RE.fact_count++;
@@ -212,7 +212,7 @@ int rule_body_proven(int rule_idx) {
  *
  *   通道流程:
  *     1. 解析外部规则文本(简易 Prolog 语法)
- *     2. 为它做 identity_enslave → mqf_encode → 拿到 MQ 护照
+ *     2. 为它做 identity_enslave → njsg_encode → 拿到 MQ 护照
  *     3. 分配锥份额(优先级): ENSLAVED 规则默认低优先级,不让它覆盖我们的 NATIVE 规则
  *     4. 标记 origin=ENSLAVED + enslaver_name=三元裁判者
  *     5. 加入规则引擎(此时才能被推理)
@@ -220,7 +220,7 @@ int rule_body_proven(int rule_idx) {
  *   输入: external_rule_text (如 "allow(X) :- legacy_user(X), not banned(X).")
  *   输出: rule_idx 或 -1(解析失败)
  * ============================================================ */
-int mqf_rule_enslave(const char* external_rule_text, const char* enslaver_identity) {
+int njsg_rule_enslave(const char* external_rule_text, const char* enslaver_identity) {
     if (!external_rule_text) return -1;
 
     char buf[1024];
@@ -258,7 +258,7 @@ int mqf_rule_enslave(const char* external_rule_text, const char* enslaver_identi
     memset(r, 0, sizeof(*r));
 
     // 规则名 = 外部规则本身 hash 的前若干字符(由我们决定)
-    mqf_identity_t id = mqf_encode(external_rule_text);
+    njsg_identity_t id = njsg_encode(external_rule_text);
     r->identity = id;
     strncpy(r->name, "enslaved_", MAX_TERM_LEN-1);
     strncat(r->name, id.auth_code, 12);
@@ -337,7 +337,7 @@ int mqf_rule_enslave(const char* external_rule_text, const char* enslaver_identi
 }
 
 /* 添加 NATIVE(内部)规则 → 不需要经通道,自带最高优先级 */
-int mqf_rule_add_native(const char* name, int priority) {
+int njsg_rule_add_native(const char* name, int priority) {
     pthread_mutex_lock(&RE.lock);
     if (RE.rule_count >= MAX_RULES) { pthread_mutex_unlock(&RE.lock); return -1; }
     int idx = RE.rule_count++;
@@ -347,13 +347,13 @@ int mqf_rule_add_native(const char* name, int priority) {
     r->origin = RULE_NATIVE;
     r->priority = priority;
     r->active = 1;
-    r->identity = mqf_encode(name);
+    r->identity = njsg_encode(name);
     pthread_mutex_unlock(&RE.lock);
     return idx;
 }
 
 /* 规则仲裁: 给定规则名的所有匹配规则,选锥份额(优先级)最高的 */
-int mqf_rule_arbitrate(const char* rule_name) {
+int njsg_rule_arbitrate(const char* rule_name) {
     pthread_mutex_lock(&RE.lock);
     int best = -1;
     int best_pri = -1;
@@ -370,7 +370,7 @@ int mqf_rule_arbitrate(const char* rule_name) {
 }
 
 /* 推理: 给定 head_pred + head_args,找到一条适用的规则并返回 idx */
-int mqf_rule_resolve(const char* head_pred, const char** head_args, int arg_count) {
+int njsg_rule_resolve(const char* head_pred, const char** head_args, int arg_count) {
     pthread_mutex_lock(&RE.lock);
     int best = -1;
     int best_pri = -1;
@@ -404,26 +404,26 @@ int mqf_rule_resolve(const char* head_pred, const char** head_args, int arg_coun
  * ============================================================ */
 typedef struct { char identity[128]; int target_level; perm_t target_perm; char note[256]; } contract_t;
 typedef struct { contract_t rules[MAX_RULES]; int count; } contract_engine_t;
-typedef struct { char auth_code[MQF_HASH_LEN+1]; perm_t perm; int max_slots, time_limit_sec, require_network; time_t created_at, expires_at; } capability_t;
+typedef struct { char auth_code[NJSG_HASH_LEN+1]; perm_t perm; int max_slots, time_limit_sec, require_network; time_t created_at, expires_at; } capability_t;
 static contract_engine_t CE;
 
-void mqf_contract_add(const char* id, int lv, perm_t perm, const char* note){ if(CE.count<MAX_RULES) { contract_t* c=&CE.rules[CE.count++]; strncpy(c->identity,id,127); c->target_level=lv; c->target_perm=perm; if(note) strncpy(c->note,note,255); } }
-int mqf_evaluate(const char* id, capability_t* out){ int lv=1; perm_t perm=PERM_READ; for(int i=0;i<CE.count;i++){ contract_t* c=&CE.rules[i]; if(strcmp(c->identity,id)==0) { lv=c->target_level; perm=c->target_perm; break; } } capability_t cap; memset(&cap,0,sizeof(cap)); switch(lv){ case 0: cap.perm=PERM_NONE; break; case 1: case 2: cap.perm=PERM_READ; break; case 3: case 4: cap.perm=PERM_READ|PERM_WRITE|PERM_EXEC; break; case 5: case 6: cap.perm=PERM_READ|PERM_WRITE|PERM_EXEC|PERM_ADMIN; break; } if(perm!=PERM_NONE) cap.perm=perm; cap.max_slots=(lv>=5)?16:(lv>=3)?4:(lv>=1)?1:0; cap.time_limit_sec=(lv>=5)?0:(lv>=3)?10:(lv>=1)?3:0; if(out) *out=cap; return lv; }
-void mqf_load_contracts(){ CE.count=0; mqf_contract_add("android",0,PERM_NONE,0); mqf_contract_add("ios",5,PERM_READ|PERM_WRITE|PERM_EXEC|PERM_ADMIN,0); mqf_contract_add("wechat",3,PERM_READ|PERM_WRITE,0); mqf_contract_add("bank",6,PERM_READ|PERM_WRITE|PERM_EXEC|PERM_ADMIN,0); }
+void njsg_contract_add(const char* id, int lv, perm_t perm, const char* note){ if(CE.count<MAX_RULES) { contract_t* c=&CE.rules[CE.count++]; strncpy(c->identity,id,127); c->target_level=lv; c->target_perm=perm; if(note) strncpy(c->note,note,255); } }
+int njsg_evaluate(const char* id, capability_t* out){ int lv=1; perm_t perm=PERM_READ; for(int i=0;i<CE.count;i++){ contract_t* c=&CE.rules[i]; if(strcmp(c->identity,id)==0) { lv=c->target_level; perm=c->target_perm; break; } } capability_t cap; memset(&cap,0,sizeof(cap)); switch(lv){ case 0: cap.perm=PERM_NONE; break; case 1: case 2: cap.perm=PERM_READ; break; case 3: case 4: cap.perm=PERM_READ|PERM_WRITE|PERM_EXEC; break; case 5: case 6: cap.perm=PERM_READ|PERM_WRITE|PERM_EXEC|PERM_ADMIN; break; } if(perm!=PERM_NONE) cap.perm=perm; cap.max_slots=(lv>=5)?16:(lv>=3)?4:(lv>=1)?1:0; cap.time_limit_sec=(lv>=5)?0:(lv>=3)?10:(lv>=1)?3:0; if(out) *out=cap; return lv; }
+void njsg_load_contracts(){ CE.count=0; njsg_contract_add("android",0,PERM_NONE,0); njsg_contract_add("ios",5,PERM_READ|PERM_WRITE|PERM_EXEC|PERM_ADMIN,0); njsg_contract_add("wechat",3,PERM_READ|PERM_WRITE,0); njsg_contract_add("bank",6,PERM_READ|PERM_WRITE|PERM_EXEC|PERM_ADMIN,0); }
 
 /* ============================================================
  * 第 4 层: 空间关系代数 (v0.5 延续)
  * ============================================================ */
 typedef struct { int from, to; int type; float weight; time_t created_at; } relation_t;
-typedef struct { int used; char name[MAX_NAME_LEN]; char auth[MQF_HASH_LEN+1]; mqf_identity_t id; int slot_id; int state; } object_t;
+typedef struct { int used; char name[MAX_NAME_LEN]; char auth[NJSG_HASH_LEN+1]; njsg_identity_t id; int slot_id; int state; } object_t;
 typedef struct { object_t objs[MAX_OBJECTS]; relation_t rels[MAX_RELATIONS]; int obj_count, rel_count; pthread_mutex_t lock; } spatial_engine_t;
 static spatial_engine_t G;
 
-void mqf_spatial_init(void){ memset(&G,0,sizeof(G)); pthread_mutex_init(&G.lock,NULL); printf("[空间代数] 最多 %d 对象, %d 关系\n",MAX_OBJECTS,MAX_RELATIONS); }
-int mqf_obj_create(const char* name){ pthread_mutex_lock(&G.lock); if(G.obj_count >= MAX_OBJECTS){ pthread_mutex_unlock(&G.lock); return -1; } int idx=G.obj_count++; object_t* o=&G.objs[idx]; memset(o,0,sizeof(*o)); o->used=1; strncpy(o->name,name,MAX_NAME_LEN-1); o->id=mqf_encode(name); memcpy(o->auth,o->id.auth_code,MQF_HASH_LEN+1); o->slot_id=-1; o->state=0; pthread_mutex_unlock(&G.lock); return idx; }
-int mqf_rel_add(int from,int to,int type,float weight){ pthread_mutex_lock(&G.lock); int idx=G.rel_count++; relation_t* r=&G.rels[idx]; r->from=from; r->to=to; r->type=type; r->weight=weight; r->created_at=time(NULL); pthread_mutex_unlock(&G.lock); return idx; }
-int mqf_reachable(int from,int to){ if(from<0||from>=G.obj_count) return 0; if(to<0||to>=G.obj_count) return 0; if(from==to) return 1; int visited[MAX_OBJECTS]; memset(visited,0,sizeof(visited)); int queue[MAX_OBJECTS]; int head=0,tail=0; queue[tail++]=from; visited[from]=1; while(head<tail){ int cur=queue[head++]; for(int i=0;i<G.rel_count;i++){ if(G.rels[i].from==cur&&!visited[G.rels[i].to]){ if(G.rels[i].to==to) return 1; visited[G.rels[i].to]=1; queue[tail++]=G.rels[i].to; } } } return 0; }
-int mqf_obj_find(const char* name){ for(int i=0;i<G.obj_count;i++){ if(G.objs[i].used && strcmp(G.objs[i].name,name)==0) return i; } return -1; }
+void njsg_spatial_init(void){ memset(&G,0,sizeof(G)); pthread_mutex_init(&G.lock,NULL); printf("[空间代数] 最多 %d 对象, %d 关系\n",MAX_OBJECTS,MAX_RELATIONS); }
+int njsg_obj_create(const char* name){ pthread_mutex_lock(&G.lock); if(G.obj_count >= MAX_OBJECTS){ pthread_mutex_unlock(&G.lock); return -1; } int idx=G.obj_count++; object_t* o=&G.objs[idx]; memset(o,0,sizeof(*o)); o->used=1; strncpy(o->name,name,MAX_NAME_LEN-1); o->id=njsg_encode(name); memcpy(o->auth,o->id.auth_code,NJSG_HASH_LEN+1); o->slot_id=-1; o->state=0; pthread_mutex_unlock(&G.lock); return idx; }
+int njsg_rel_add(int from,int to,int type,float weight){ pthread_mutex_lock(&G.lock); int idx=G.rel_count++; relation_t* r=&G.rels[idx]; r->from=from; r->to=to; r->type=type; r->weight=weight; r->created_at=time(NULL); pthread_mutex_unlock(&G.lock); return idx; }
+int njsg_reachable(int from,int to){ if(from<0||from>=G.obj_count) return 0; if(to<0||to>=G.obj_count) return 0; if(from==to) return 1; int visited[MAX_OBJECTS]; memset(visited,0,sizeof(visited)); int queue[MAX_OBJECTS]; int head=0,tail=0; queue[tail++]=from; visited[from]=1; while(head<tail){ int cur=queue[head++]; for(int i=0;i<G.rel_count;i++){ if(G.rels[i].from==cur&&!visited[G.rels[i].to]){ if(G.rels[i].to==to) return 1; visited[G.rels[i].to]=1; queue[tail++]=G.rels[i].to; } } } return 0; }
+int njsg_obj_find(const char* name){ for(int i=0;i<G.obj_count;i++){ if(G.objs[i].used && strcmp(G.objs[i].name,name)==0) return i; } return -1; }
 
 /* ============================================================
  * 第 5 层: 金壳封装格式 (v0.7 新增, SOVEREIGNTY 公理 3 + 2)
@@ -433,15 +433,15 @@ int mqf_obj_find(const char* name){ for(int i=0;i<G.obj_count;i++){ if(G.objs[i]
  *   "先收壳,后放行" —— 我们不看它原来是什么,只看他现在在我们壳里是什么
  * ============================================================ */
 
-#define MQF_SHELL_MAGIC       0x51464D53u   /* "MQFS" little-endian */
-#define MQF_SHELL_VER         0x0007u       /* v0.7 = 金壳初版 */
-#define MQF_SHELL_MAX_INNER   4096          /* 最大壳芯 4KB(演示用) */
-#define MQF_SHELL_MAX_SLOTS   32            /* 注册金壳槽数 */
+#define NJSG_SHELL_MAGIC       0x53464A4Eu   /* "NJFS" little-endian */
+#define NJSG_SHELL_VER         0x0007u       /* v0.7 = 金壳初版 */
+#define NJSG_SHELL_MAX_INNER   4096          /* 最大壳芯 4KB(演示用) */
+#define NJSG_SHELL_MAX_SLOTS   32            /* 注册金壳槽数 */
 
 /* 金壳头:紧挨原始二进制之前的定长 128+ 字节头 */
 typedef struct __attribute__((packed)) {
-    uint32_t magic;              /* MQF_SHELL_MAGIC */
-    uint16_t version;            /* MQF_SHELL_VER */
+    uint32_t magic;              /* NJSG_SHELL_MAGIC */
+    uint16_t version;            /* NJSG_SHELL_VER */
     uint8_t  audit_en;           /* 01夫妻:1=审计穿越;0=放行(不推荐) */
     uint8_t  mirror_en;          /* 01夫妻:1=启用镜像代理(拦截外部功能) */
     uint16_t cone_slots;         /* 时间锥份额:内核分配的配额 */
@@ -449,7 +449,7 @@ typedef struct __attribute__((packed)) {
     uint16_t cone_time_ms;       /* 锥时限(毫秒) */
     uint8_t  boundary_ring;      /* 01夫妻边界环:0=外 1=内 */
     uint8_t  reserved;           /* 对齐 */
-    mqf_identity_t identity;     /* 此壳的 MQ 编码身份(通道颁发的护照) */
+    njsg_identity_t identity;     /* 此壳的 MQ 编码身份(通道颁发的护照) */
     char     shell_name[MAX_NAME_LEN]; /* 壳的显示名 */
     char     inner_fmt[8];       /* 芯格式: "ELF"/"PE"/"WASM"/"BINARY" */
     char     inner_sha256[64];   /* 芯内容的指纹(防篡改) */
@@ -461,7 +461,7 @@ typedef struct __attribute__((packed)) {
 typedef struct {
     int           used;
     shell_header_t hdr;
-    uint8_t       inner[MQF_SHELL_MAX_INNER];
+    uint8_t       inner[NJSG_SHELL_MAX_INNER];
     int           obj_id;
     time_t        loaded_at;
     uint64_t      boundary_jumps;   /* 累计壳内外穿越次数(01夫妻记录) */
@@ -469,7 +469,7 @@ typedef struct {
 } shell_slot_t;
 
 typedef struct {
-    shell_slot_t slots[MQF_SHELL_MAX_SLOTS];
+    shell_slot_t slots[NJSG_SHELL_MAX_SLOTS];
     int count;
     uint64_t total_wrapped;         /* 累计包壳数(主权的证据) */
     uint64_t total_boundary_hits;   /* 累计穿越次数 */
@@ -479,41 +479,41 @@ typedef struct {
 
 static shell_host_t SH;
 
-void mqf_shell_init(void){
+void njsg_shell_init(void){
     memset(&SH, 0, sizeof(SH));
     pthread_mutex_init(&SH.lock, NULL);
     printf("[金壳封装] 最多 %d 壳槽, 每壳最大 %d 芯字节, v%d.%d\n",
-           MQF_SHELL_MAX_SLOTS, MQF_SHELL_MAX_INNER, MQF_SHELL_VER >> 8, MQF_SHELL_VER & 0xFF);
+           NJSG_SHELL_MAX_SLOTS, NJSG_SHELL_MAX_INNER, NJSG_SHELL_VER >> 8, NJSG_SHELL_VER & 0xFF);
 }
 
-/* ★ 壳化流程:把原始二进制包进 MQF 金壳 —— 这就是"处理集装箱" */
-int mqf_shell_wrap(
+/* ★ 壳化流程:把原始二进制包进 NJSG 金壳 —— 这就是"处理集装箱" */
+int njsg_shell_wrap(
     const uint8_t* inner, uint32_t inner_len,
     const char* inner_fmt, const char* name,
     uint16_t cone_slots, uint16_t cone_time_ms,
     int mirror_enable
 ) {
-    if (!inner || inner_len == 0 || inner_len > MQF_SHELL_MAX_INNER) return -1;
+    if (!inner || inner_len == 0 || inner_len > NJSG_SHELL_MAX_INNER) return -1;
     pthread_mutex_lock(&SH.lock);
-    if (SH.count >= MQF_SHELL_MAX_SLOTS) { pthread_mutex_unlock(&SH.lock); return -1; }
+    if (SH.count >= NJSG_SHELL_MAX_SLOTS) { pthread_mutex_unlock(&SH.lock); return -1; }
     int idx = SH.count++;
     shell_slot_t* s = &SH.slots[idx];
     memset(s, 0, sizeof(*s));
 
-    s->hdr.magic        = MQF_SHELL_MAGIC;
-    s->hdr.version      = MQF_SHELL_VER;
+    s->hdr.magic        = NJSG_SHELL_MAGIC;
+    s->hdr.version      = NJSG_SHELL_VER;
     s->hdr.audit_en     = 1;
     s->hdr.mirror_en    = mirror_enable ? 1 : 0;
     s->hdr.cone_slots   = cone_slots;
     s->hdr.mirror_depth = mirror_enable ? 2 : 0;
     s->hdr.cone_time_ms = cone_time_ms;
     s->hdr.boundary_ring = 1; /* 入壳即为内 */
-    s->hdr.identity     = mqf_encode(name);
+    s->hdr.identity     = njsg_encode(name);
     strncpy(s->hdr.shell_name, name, MAX_NAME_LEN-1);
     strncpy(s->hdr.inner_fmt, inner_fmt, 7);
     s->hdr.inner_length   = inner_len;
     s->hdr.inner_entry_off = 0;
-    mqf_hash(name, s->hdr.inner_sha256);
+    njsg_hash(name, s->hdr.inner_sha256);
 
     memcpy(s->inner, inner, inner_len);
     s->loaded_at = time(NULL);
@@ -529,7 +529,7 @@ int mqf_shell_wrap(
 }
 
 /* 01夫妻边界审计:记录壳内外穿越 */
-void mqf_shell_boundary_audit(int slot_id, int direction) {
+void njsg_shell_boundary_audit(int slot_id, int direction) {
     pthread_mutex_lock(&SH.lock);
     if (slot_id < 0 || slot_id >= SH.count) { pthread_mutex_unlock(&SH.lock); return; }
     shell_slot_t* s = &SH.slots[slot_id];
@@ -541,7 +541,7 @@ void mqf_shell_boundary_audit(int slot_id, int direction) {
 }
 
 /* 镜像代理:拦截外部功能调用,返回我们定义的替代值 */
-int mqf_shell_mirror_proxy(int slot_id, const char* func_name) {
+int njsg_shell_mirror_proxy(int slot_id, const char* func_name) {
     pthread_mutex_lock(&SH.lock);
     if (slot_id < 0 || slot_id >= SH.count) { pthread_mutex_unlock(&SH.lock); return 0; }
     shell_slot_t* s = &SH.slots[slot_id];
@@ -564,13 +564,13 @@ int mqf_shell_mirror_proxy(int slot_id, const char* func_name) {
     return intercepted;
 }
 
-void mqf_shell_summary(void) {
+void njsg_shell_summary(void) {
     printf("\n=== 金壳封装摘要 ===\n");
     printf("已注册: %d 壳槽, 累计包壳 %lu, 累计穿越 %lu, 累计镜像拦截 %lu\n",
            SH.count, SH.total_wrapped, SH.total_boundary_hits, SH.total_mirror_intercepts);
     for (int i = 0; i < SH.count; i++) {
         shell_slot_t* s = &SH.slots[i];
-        if (!s->used && s->hdr.magic != MQF_SHELL_MAGIC) continue;
+        if (!s->used && s->hdr.magic != NJSG_SHELL_MAGIC) continue;
         printf("  [#%d] %s | 格式:%s | 芯长:%d | 身份:%s... | 镜像:%s | 穿越:%lu\n",
                i, s->hdr.shell_name, s->hdr.inner_fmt, s->hdr.inner_length,
                s->hdr.identity.auth_code, s->hdr.mirror_en ? "ON" : "OFF",
@@ -592,7 +592,7 @@ void mqf_shell_summary(void) {
 
 typedef struct {
     char name[MAX_NAME_LEN];
-    char auth[MQF_HASH_LEN+1];
+    char auth[NJSG_HASH_LEN+1];
     uint32_t time_slice_ms;
     uint16_t space_depth;
     uint8_t  mirror_levels;
@@ -622,7 +622,7 @@ typedef struct {
 
 static cone_engine_t CONE;
 
-float mqf_compliance(int obj_id) {
+float njsg_compliance(int obj_id) {
     if (obj_id < 0 || obj_id >= G.obj_count) return 0.5f;
     int positive = 0, total = 0;
     for (int i = 0; i < G.rel_count; i++) {
@@ -633,7 +633,7 @@ float mqf_compliance(int obj_id) {
     return (total > 0) ? (float)positive / total : 0.5f;
 }
 
-void mqf_cone_init(void){
+void njsg_cone_init(void){
     memset(&CONE, 0, sizeof(CONE));
     pthread_mutex_init(&CONE.lock, NULL);
     strcpy(CONE.dominant_state, "未启动");
@@ -641,7 +641,7 @@ void mqf_cone_init(void){
     printf("[统计锥] 引擎就绪:每节点锥份额(time/depth/mirror/compliance),历史缓冲 %d 周期\n", MAX_CONE_HISTORY);
 }
 
-void mqf_cone_register(int obj_id) {
+void njsg_cone_register(int obj_id) {
     pthread_mutex_lock(&CONE.lock);
     if (obj_id < 0 || obj_id >= G.obj_count) { pthread_mutex_unlock(&CONE.lock); return; }
     if (CONE.share_count >= MAX_OBJECTS) { pthread_mutex_unlock(&CONE.lock); return; }
@@ -649,7 +649,7 @@ void mqf_cone_register(int obj_id) {
     cone_share_t* s = &CONE.shares[idx];
     memset(s, 0, sizeof(*s));
     strncpy(s->name, G.objs[obj_id].name, MAX_NAME_LEN-1);
-    strncpy(s->auth, G.objs[obj_id].auth, MQF_HASH_LEN+1);
+    strncpy(s->auth, G.objs[obj_id].auth, NJSG_HASH_LEN+1);
     s->time_slice_ms = 1000;
     s->space_depth = 3;
     s->mirror_levels = 2;
@@ -660,14 +660,14 @@ void mqf_cone_register(int obj_id) {
     pthread_mutex_unlock(&CONE.lock);
 }
 
-void mqf_cone_tick(void) {
+void njsg_cone_tick(void) {
     pthread_mutex_lock(&CONE.lock);
     float sum_comp = 0.0f;
     for (int i = 0; i < CONE.share_count; i++) {
         cone_share_t* s = &CONE.shares[i];
-        int oidx = mqf_obj_find(s->name);
+        int oidx = njsg_obj_find(s->name);
         if (oidx < 0) continue;
-        s->compliance = mqf_compliance(oidx);
+        s->compliance = njsg_compliance(oidx);
         sum_comp += s->compliance;
         if (s->compliance >= 0.70f) {
             s->time_slice_ms = (uint32_t)(s->time_slice_ms * 1.2f);
@@ -699,7 +699,7 @@ void mqf_cone_tick(void) {
     pthread_mutex_unlock(&CONE.lock);
 }
 
-void mqf_cone_print(void) {
+void njsg_cone_print(void) {
     pthread_mutex_lock(&CONE.lock);
     printf("\n    ◆ 统计锥 v0.8 形态 ◆\n");
     printf("    ==================================\n");
@@ -717,7 +717,7 @@ void mqf_cone_print(void) {
     pthread_mutex_unlock(&CONE.lock);
 }
 
-void mqf_cone_history(int n) {
+void njsg_cone_history(int n) {
     pthread_mutex_lock(&CONE.lock);
     int cnt = (n < CONE.hist_count) ? n : CONE.hist_count;
     printf("\n=== 统计锥历史态势 (最近 %d 周期) ===\n", cnt);
@@ -735,7 +735,7 @@ void mqf_cone_history(int n) {
 /* ============================================================
  * 第 6 层: 时间切片 + 看门狗 (v0.3 延续,本次接入锥份额动态分配)
  * ============================================================ */
-typedef struct { int used; char auth[MQF_HASH_LEN+1], name[MAX_NAME_LEN]; exec_state_t st; capability_t cap; void(*fn)(void*); void* arg; time_t activated_at; time_t expire_at; int exec_count; } slot_t;
+typedef struct { int used; char auth[NJSG_HASH_LEN+1], name[MAX_NAME_LEN]; exec_state_t st; capability_t cap; void(*fn)(void*); void* arg; time_t activated_at; time_t expire_at; int exec_count; } slot_t;
 typedef struct { slot_t s[MAX_EXEC_SLOTS]; int alive, frozen, zombie, ver; } kernel_t;
 static kernel_t K;
 static pthread_mutex_t K_LOCK = PTHREAD_MUTEX_INITIALIZER;
@@ -746,24 +746,24 @@ static int PATROL_INTERVAL = 1;
 typedef struct { int type; time_t ts; char name[MAX_NAME_LEN]; int slot; } audit_entry_t;
 typedef struct { audit_entry_t e[AUDIT_RING_SIZE]; int wp; int count; } audit_ring_t;
 static audit_ring_t AUDIT;
-void mqf_audit_summary();
+void njsg_audit_summary();
 
-static void mqf_audit_log(int type, const char* name, int slot){ audit_entry_t* x=&AUDIT.e[AUDIT.wp]; x->type=type; x->ts=time(NULL); strncpy(x->name,name,127); x->slot=slot; AUDIT.wp=(AUDIT.wp+1)%AUDIT_RING_SIZE; if(AUDIT.count<AUDIT_RING_SIZE)AUDIT.count++; const char* tn[]={"?","注册","激活","执行","拒绝","冻结","超时","?","?","?","?","?","?","?","?","?","奴役规则","激活规则","拒绝规则","包壳金壳","01夫妻边界","壳激活","壳镜像"}; const char* t=(type>=0&&type<=22)?tn[type]:"?"; printf("[审计] %s | %s | #%d\n",t,name,slot); }
+static void njsg_audit_log(int type, const char* name, int slot){ audit_entry_t* x=&AUDIT.e[AUDIT.wp]; x->type=type; x->ts=time(NULL); strncpy(x->name,name,127); x->slot=slot; AUDIT.wp=(AUDIT.wp+1)%AUDIT_RING_SIZE; if(AUDIT.count<AUDIT_RING_SIZE)AUDIT.count++; const char* tn[]={"?","注册","激活","执行","拒绝","冻结","超时","?","?","?","?","?","?","?","?","?","奴役规则","激活规则","拒绝规则","包壳金壳","01夫妻边界","壳激活","壳镜像"}; const char* t=(type>=0&&type<=22)?tn[type]:"?"; printf("[审计] %s | %s | #%d\n",t,name,slot); }
 
-static void* mqf_watchdog(void* arg){ (void)arg; while(WATCHDOG_RUNNING){ sleep(PATROL_INTERVAL); pthread_mutex_lock(&K_LOCK); for(int i=0;i<MAX_EXEC_SLOTS;i++){ slot_t* p=&K.s[i]; if(!p->used || p->st!=EXEC_ALIVE) continue; if(p->cap.time_limit_sec<=0) continue; time_t now=time(NULL); double elapsed=difftime(now,p->activated_at); if(elapsed>(double)p->cap.time_limit_sec){ p->st=EXEC_SLEEP; K.alive--; K.zombie++; printf("\n[看门狗] ⏱ %s 时限到期 → 自动休眠\n", p->name); mqf_audit_log(AUDIT_TIMEOUT,p->name,i); } } pthread_mutex_unlock(&K_LOCK); } return NULL; }
-static void mqf_watchdog_start(){ if(!WATCHDOG_RUNNING){ WATCHDOG_RUNNING=1; pthread_create(&WATCHDOG_TID,NULL,mqf_watchdog,NULL); } }
-static void mqf_watchdog_stop(){ if(WATCHDOG_RUNNING){ WATCHDOG_RUNNING=0; pthread_join(WATCHDOG_TID,NULL); } }
+static void* njsg_watchdog(void* arg){ (void)arg; while(WATCHDOG_RUNNING){ sleep(PATROL_INTERVAL); pthread_mutex_lock(&K_LOCK); for(int i=0;i<MAX_EXEC_SLOTS;i++){ slot_t* p=&K.s[i]; if(!p->used || p->st!=EXEC_ALIVE) continue; if(p->cap.time_limit_sec<=0) continue; time_t now=time(NULL); double elapsed=difftime(now,p->activated_at); if(elapsed>(double)p->cap.time_limit_sec){ p->st=EXEC_SLEEP; K.alive--; K.zombie++; printf("\n[看门狗] ⏱ %s 时限到期 → 自动休眠\n", p->name); njsg_audit_log(AUDIT_TIMEOUT,p->name,i); } } pthread_mutex_unlock(&K_LOCK); } return NULL; }
+static void njsg_watchdog_start(){ if(!WATCHDOG_RUNNING){ WATCHDOG_RUNNING=1; pthread_create(&WATCHDOG_TID,NULL,njsg_watchdog,NULL); } }
+static void njsg_watchdog_stop(){ if(WATCHDOG_RUNNING){ WATCHDOG_RUNNING=0; pthread_join(WATCHDOG_TID,NULL); } }
 
 /* ============================================================
  * 第 6 层: 执行守门人
  * ============================================================ */
-void mqf_init(){ memset(&K,0,sizeof(K)); K.ver=12; memset(&AUDIT,0,sizeof(AUDIT)); mqf_load_contracts(); mqf_spatial_init(); mqf_rule_init(); mqf_shell_init(); mqf_cone_init(); mqf_five_yuan_init(); mqf_six_yuan_init(); mqf_shell_nest_init(); mqf_feishu_bot_bridge_init(); mqf_qimei_init(); printf("[内核 v%s] 全栈联动引擎版就绪\n\n",MQF_VERSION); mqf_watchdog_start(); }
+void njsg_init(){ memset(&K,0,sizeof(K)); K.ver=12; memset(&AUDIT,0,sizeof(AUDIT)); njsg_load_contracts(); njsg_spatial_init(); njsg_rule_init(); njsg_shell_init(); njsg_cone_init(); njsg_five_yuan_init(); njsg_six_yuan_init(); njsg_shell_nest_init(); njsg_feishu_bot_bridge_init(); njsg_qimei_init(); printf("[内核 v%s] 全栈联动引擎版就绪\n\n",NJSG_VERSION); njsg_watchdog_start(); }
 
-int mqf_reg(const char* name, void(*fn)(void*), void* arg){ mqf_identity_t id=mqf_encode(name); capability_t cap; mqf_evaluate(name,&cap); memcpy(cap.auth_code,id.auth_code,MQF_HASH_LEN+1); if(cap.perm==PERM_NONE){ mqf_audit_log(AUDIT_REJECT,name,-1); return -1; } int i=-1; pthread_mutex_lock(&K_LOCK); for(int j=0;j<MAX_EXEC_SLOTS;j++) if(!K.s[j].used){ i=j; break; } if(i<0){ pthread_mutex_unlock(&K_LOCK); return -1; } K.s[i].used=1; memcpy(K.s[i].auth,cap.auth_code,MQF_HASH_LEN+1); strncpy(K.s[i].name,name,127); K.s[i].st=EXEC_PENDING; K.s[i].cap=cap; K.s[i].fn=fn; K.s[i].arg=arg; K.s[i].exec_count=0; pthread_mutex_unlock(&K_LOCK); mqf_audit_log(AUDIT_REGISTER,name,i); return i; }
+int njsg_reg(const char* name, void(*fn)(void*), void* arg){ njsg_identity_t id=njsg_encode(name); capability_t cap; njsg_evaluate(name,&cap); memcpy(cap.auth_code,id.auth_code,NJSG_HASH_LEN+1); if(cap.perm==PERM_NONE){ njsg_audit_log(AUDIT_REJECT,name,-1); return -1; } int i=-1; pthread_mutex_lock(&K_LOCK); for(int j=0;j<MAX_EXEC_SLOTS;j++) if(!K.s[j].used){ i=j; break; } if(i<0){ pthread_mutex_unlock(&K_LOCK); return -1; } K.s[i].used=1; memcpy(K.s[i].auth,cap.auth_code,NJSG_HASH_LEN+1); strncpy(K.s[i].name,name,127); K.s[i].st=EXEC_PENDING; K.s[i].cap=cap; K.s[i].fn=fn; K.s[i].arg=arg; K.s[i].exec_count=0; pthread_mutex_unlock(&K_LOCK); njsg_audit_log(AUDIT_REGISTER,name,i); return i; }
 
-int mqf_on(int s, const char* auth){ if(s<0||s>=MAX_EXEC_SLOTS) return 0; pthread_mutex_lock(&K_LOCK); slot_t* p=&K.s[s]; if(!p->used||p->st!=EXEC_PENDING){ pthread_mutex_unlock(&K_LOCK); return 0; } if(strcmp(p->cap.auth_code,auth)!=0){ pthread_mutex_unlock(&K_LOCK); mqf_audit_log(AUDIT_FREEZE,p->name,s); return 0; } p->st=EXEC_ALIVE; p->activated_at=time(NULL); p->expire_at=p->activated_at+p->cap.time_limit_sec; K.alive++; pthread_mutex_unlock(&K_LOCK); mqf_audit_log(AUDIT_ACTIVATE,p->name,s); return 1; }
+int njsg_on(int s, const char* auth){ if(s<0||s>=MAX_EXEC_SLOTS) return 0; pthread_mutex_lock(&K_LOCK); slot_t* p=&K.s[s]; if(!p->used||p->st!=EXEC_PENDING){ pthread_mutex_unlock(&K_LOCK); return 0; } if(strcmp(p->cap.auth_code,auth)!=0){ pthread_mutex_unlock(&K_LOCK); njsg_audit_log(AUDIT_FREEZE,p->name,s); return 0; } p->st=EXEC_ALIVE; p->activated_at=time(NULL); p->expire_at=p->activated_at+p->cap.time_limit_sec; K.alive++; pthread_mutex_unlock(&K_LOCK); njsg_audit_log(AUDIT_ACTIVATE,p->name,s); return 1; }
 
-int mqf_go(int s){ if(s<0||s>=MAX_EXEC_SLOTS) return 0; pthread_mutex_lock(&K_LOCK); slot_t* p=&K.s[s]; if(!p->used||p->st!=EXEC_ALIVE){ pthread_mutex_unlock(&K_LOCK); return 0; } if(!(p->cap.perm&PERM_EXEC)){ K.frozen++; K.alive--; pthread_mutex_unlock(&K_LOCK); mqf_audit_log(AUDIT_FREEZE,p->name,s); return 0; } double elapsed=difftime(time(NULL),p->activated_at); if(p->cap.time_limit_sec>0 && elapsed>(double)p->cap.time_limit_sec){ K.zombie++; K.alive--; pthread_mutex_unlock(&K_LOCK); return 0; } p->exec_count++; p->fn(p->arg); pthread_mutex_unlock(&K_LOCK); mqf_audit_log(AUDIT_EXECUTE,p->name,s); return 1; }
+int njsg_go(int s){ if(s<0||s>=MAX_EXEC_SLOTS) return 0; pthread_mutex_lock(&K_LOCK); slot_t* p=&K.s[s]; if(!p->used||p->st!=EXEC_ALIVE){ pthread_mutex_unlock(&K_LOCK); return 0; } if(!(p->cap.perm&PERM_EXEC)){ K.frozen++; K.alive--; pthread_mutex_unlock(&K_LOCK); njsg_audit_log(AUDIT_FREEZE,p->name,s); return 0; } double elapsed=difftime(time(NULL),p->activated_at); if(p->cap.time_limit_sec>0 && elapsed>(double)p->cap.time_limit_sec){ K.zombie++; K.alive--; pthread_mutex_unlock(&K_LOCK); return 0; } p->exec_count++; p->fn(p->arg); pthread_mutex_unlock(&K_LOCK); njsg_audit_log(AUDIT_EXECUTE,p->name,s); return 1; }
 
 /* ============================================================
  * 第 7 层: 演示 — v0.6 反客为主 + Prolog 子集
@@ -778,16 +778,16 @@ static void fn_i(void*p){(void)p;printf("  [ios] 全权执行中\n");}
 static void fn_w(void*p){(void)p;printf("  [wechat] 半权执行中\n");}
 
 int main(){
-    mqf_init();
+    njsg_init();
     printf("--- v0.6-v0.7 反客为主 + 金壳封装 ---\n\n");
 
     /* 1. 添加内置事实(我们的世界):谁是被信任的 */
     const char* f1[] = {"ios"};
     const char* f2[] = {"wechat"};
     const char* f3[] = {"bank"};
-    mqf_fact_add("trusts", f1, 1);
-    mqf_fact_add("has_auth", f2, 1);
-    mqf_fact_add("sovereign", f3, 1);
+    njsg_fact_add("trusts", f1, 1);
+    njsg_fact_add("has_auth", f2, 1);
+    njsg_fact_add("sovereign", f3, 1);
     printf("[事实库] 已注入我们的判断: trusts(ios), has_auth(wechat), sovereign(bank)\n\n");
 
     /* 2. 让外部世界的规则书进来试试 —— 演示"反客为主" */
@@ -804,18 +804,18 @@ int main(){
 
     printf("[三元裁判] 开始 transmute...\n\n");
 
-    int e1 = mqf_rule_enslave(external_rule_1, "裁判者");
-    int e2 = mqf_rule_enslave(external_rule_2, "内核");
+    int e1 = njsg_rule_enslave(external_rule_1, "裁判者");
+    int e2 = njsg_rule_enslave(external_rule_2, "内核");
 
-    if (e1 >= 0) mqf_audit_log(AUDIT_RULE_ENSLAVE, RE.rules[e1].name, e1);
-    if (e2 >= 0) mqf_audit_log(AUDIT_RULE_ENSLAVE, RE.rules[e2].name, e2);
+    if (e1 >= 0) njsg_audit_log(AUDIT_RULE_ENSLAVE, RE.rules[e1].name, e1);
+    if (e2 >= 0) njsg_audit_log(AUDIT_RULE_ENSLAVE, RE.rules[e2].name, e2);
 
     printf("\n=== 场景 B: 我们的 NATIVE 规则(优先级更高) vs 被奴役的外部规则 ===\n\n");
 
     /* 现在注入一条被奴役规则也可能响应的 head,但我们的 NATIVE 优先 */
     // 为演示:注入一条外部规则的"影子" —— 它试图主张 grant_full 给 android
     const char* external_shadow = "grant_full(android) :- android_trusted(android).";
-    int e3 = mqf_rule_enslave(external_shadow, "内核");
+    int e3 = njsg_rule_enslave(external_shadow, "内核");
 
     printf("被降服的外部规则数: %d\n", RE.total_enslaved);
     printf("事实库大小: %d\n", RE.fact_count);
@@ -826,18 +826,18 @@ int main(){
 
     /* 向事实库注入 external rule 的一条子目标,证明它会匹配 */
     const char* arr1[] = {"somebody"};
-    mqf_fact_add("legacy_user", arr1, 1);
+    njsg_fact_add("legacy_user", arr1, 1);
     printf("[事实库新增] legacy_user(somebody) → 外部规则的 body 现在能匹配\n");
 
     const char* q_args[] = {"somebody"};
-    int resolved = mqf_rule_resolve("grant_full", q_args, 1);
+    int resolved = njsg_rule_resolve("grant_full", q_args, 1);
     if (resolved >= 0) {
         printf("[推理命中] 规则: %s | 来源: %s | 优先级: %d\n",
                RE.rules[resolved].name,
                RE.rules[resolved].origin == RULE_NATIVE ? "NATIVE(我们)" : "ENSLAVED(被降服)",
                RE.rules[resolved].priority);
         printf("[推理命中] 结论: 外部规则在我们系统中可以被推理,但:\n");
-        printf("   - 它的身份已被 MQF 编码系统重新颁发\n");
+        printf("   - 它的身份已被 NJSG 编码系统重新颁发\n");
         printf("   - 它的锥份额被设定为低优先级\n");
         printf("   - 它的运行时刻被我们审计\n");
         printf("   - 任何冲突时 NATIVE 规则覆盖它\n\n");
@@ -849,7 +849,7 @@ int main(){
     printf("=== 场景 D: 警戒 —— 试图直接写入事实而不经 identity_enslave ===\n\n");
     printf("[裁判] 拦截!我们系统的一切身份必须经编码洗礼。\n");
     printf("[裁判] 任何外部实体:\n");
-    printf("  1. 首先在 mqf_encode() 里获取 MQ 护照\n");
+    printf("  1. 首先在 njsg_encode() 里获取 MQ 护照\n");
     printf("  2. 其\"名字\"降级为人类可读 label\n");
     printf("  3. 其\"身份\"完全是我们的判定\n");
     printf("[裁判] 所以我们说:Android 不是 \"android\" —— android 只是我们对一个实体的\n");
@@ -857,19 +857,19 @@ int main(){
 
     /* === 5. 空间代数 + 反客为主联合 === */
     printf("=== 场景 E: 空间代数 + 反客为主联合 —— ===\n\n");
-    int o_android = mqf_obj_create("android");
-    int o_ios     = mqf_obj_create("ios");
-    int o_wechat  = mqf_obj_create("wechat");
-    int o_bank    = mqf_obj_create("bank");
+    int o_android = njsg_obj_create("android");
+    int o_ios     = njsg_obj_create("ios");
+    int o_wechat  = njsg_obj_create("wechat");
+    int o_bank    = njsg_obj_create("bank");
 
     /* 建关系 */
-    mqf_rel_add(o_ios, o_bank, REL_OBSERVE, 0.9f);
-    mqf_rel_add(o_bank, o_ios, REL_BIND, 0.85f);
-    mqf_rel_add(o_wechat, o_bank, REL_TRANSFORM, 0.6f);
+    njsg_rel_add(o_ios, o_bank, REL_OBSERVE, 0.9f);
+    njsg_rel_add(o_bank, o_ios, REL_BIND, 0.85f);
+    njsg_rel_add(o_wechat, o_bank, REL_TRANSFORM, 0.6f);
 
     /* 可达性试验 */
     /* 让 wechat 通过 slave 后的规则尝试连接到 ios —— 它不是直接可达,必须经过 bank */
-    int can_wechat_reach_ios = mqf_reachable(o_wechat, o_ios);
+    int can_wechat_reach_ios = njsg_reachable(o_wechat, o_ios);
     printf("[空间裁判] wechat → ios 直接可达: %s\n", can_wechat_reach_ios ? "是" : "否");
     printf("[空间裁判] 这证明了我们的空间代数管理访问通道;\n");
     printf("          外部实体不能 \n");
@@ -879,13 +879,13 @@ int main(){
     printf("=== 场景 F: 统计锥 ▷ 可视化 ===\n\n");
     static const char* names[] = {"android","ios","wechat","bank"};
     static int slots[] = {-1,-1,-1,-1};
-    slots[1] = mqf_reg("ios", fn_i, NULL);
-    slots[2] = mqf_reg("wechat", fn_w, NULL);
+    slots[1] = njsg_reg("ios", fn_i, NULL);
+    slots[2] = njsg_reg("wechat", fn_w, NULL);
     /* android:契约定义是 0 级 → 僵尸 */
-    slots[0] = mqf_reg("android", fn_w, NULL); // 应该是 -1
+    slots[0] = njsg_reg("android", fn_w, NULL); // 应该是 -1
 
     for (int i = 0; i < 4; i++) {
-        int of = mqf_obj_find(names[i]);
+        int of = njsg_obj_find(names[i]);
         if (slots[i] >= 0 && of >= 0) {
             printf("  [%s] 显示名:\"%s\" | MQ 身份:%s... | 槽#%d\n",
                    names[i],
@@ -899,7 +899,7 @@ int main(){
         }
     }
 
-    mqf_watchdog_stop();
+    njsg_watchdog_stop();
     printf("\n=== 审计摘要(v0.6 场景) ===\n");
     printf("已记录事件: %d | 降服外部规则: %d\n", AUDIT.count, RE.total_enslaved);
 
@@ -922,14 +922,14 @@ int main(){
     uint8_t naked_binary[64];
     for (int b = 0; b < 64; b++) naked_binary[b] = (uint8_t)(0xE8 + b); /* x86 CALL opcodes */
     printf("[裁判] 收到裸二进制:64 字节,x86 机器码(外部势力指令集)\n");
-    printf("[裁判] 判定:没有包裹 MQF Shell Header = 外部势力未经授权的原始态\n");
+    printf("[裁判] 判定:没有包裹 NJSG Shell Header = 外部势力未经授权的原始态\n");
     printf("[裁判] 行为:①不认可其原有身份;②必须强制走 rule_enslave 通道\n");
     printf("[裁判] 结论:★ 拒绝裸二进制运行 ★\n\n");
-    mqf_audit_log(AUDIT_REJECT, "裸二进制(x86)", -1);
+    njsg_audit_log(AUDIT_REJECT, "裸二进制(x86)", -1);
 
     /* === 场景 H:用 MQ 金壳包起来 → 成功 === */
-    printf("=== 场景 H:强制包壳(MQF 金壳 = 我们给的身份范畴) ===\n\n");
-    int shell_id = mqf_shell_wrap(
+    printf("=== 场景 H:强制包壳(NJSG 金壳 = 我们给的身份范畴) ===\n\n");
+    int shell_id = njsg_shell_wrap(
         naked_binary, 64,
         "ELF", "android.pay.module",
         4,        /* cone_slots:时间锥份额 */
@@ -937,24 +937,24 @@ int main(){
         1         /* mirror_enable:开启镜像代理 */
     );
     if (shell_id >= 0) {
-        printf("[金壳] 外部二进制已被收编为 MQF 的外壳对象\n");
+        printf("[金壳] 外部二进制已被收编为 NJSG 的外壳对象\n");
         printf("[金壳] 从此:'android.pay.module' 不再是 android 旗下\n");
         printf("[金壳]       它是 MQ 体系里一个身份=%s...的壳槽\n",
                SH.slots[shell_id].hdr.identity.auth_code);
         printf("[金壳] 我们通过锥份额(slots=4,time=500ms)分配时间节奏\n");
         printf("[金壳] 外部势力的二进制在我们的节奏下运行!\n\n");
-        mqf_audit_log(AUDIT_SHELL_WRAP, SH.slots[shell_id].hdr.shell_name, shell_id);
+        njsg_audit_log(AUDIT_SHELL_WRAP, SH.slots[shell_id].hdr.shell_name, shell_id);
 
         /* === 场景 I:镜像代理拦截外部功能调用 === */
         printf("=== 场景 I:镜像代理 = 外部势力调 get_balance → 我们返回 MQ 裁判值 ===\n\n");
         const char* external_calls[] = {"get_balance", "get_uid", "read_contact", "get_device_id", "printf"};
         for (int c = 0; c < 5; c++) {
             printf("[壳#%d] 外部程序调用 '%s'\n", shell_id, external_calls[c]);
-            int intercepted = mqf_shell_mirror_proxy(shell_id, external_calls[c]);
+            int intercepted = njsg_shell_mirror_proxy(shell_id, external_calls[c]);
             if (intercepted) {
                 printf("[镜像代理] ✓ 拦截!返回 MQ 裁判值(不是原始值)\n");
                 printf("[镜像代理] ★ 外部程序以为获得了真值 ★\n");
-                mqf_audit_log(AUDIT_MIRROR_PROXY, external_calls[c], shell_id);
+                njsg_audit_log(AUDIT_MIRROR_PROXY, external_calls[c], shell_id);
             } else {
                 printf("[镜像代理] 未拦截(非敏感功能,放行)\n");
             }
@@ -971,12 +971,12 @@ int main(){
         printf("  从 0→1 = 外部代码穿越进壳(必须审计)\n");
         printf("  从 1→0 = 壳内代码试图逃生到外部(必须拦截)\n\n");
 
-        mqf_shell_boundary_audit(shell_id, 1); /* 外部→内(入壳) */
-        mqf_shell_boundary_audit(shell_id, 0); /* 企图出壳 */
-        mqf_shell_boundary_audit(shell_id, 1); /* 再入壳 */
+        njsg_shell_boundary_audit(shell_id, 1); /* 外部→内(入壳) */
+        njsg_shell_boundary_audit(shell_id, 0); /* 企图出壳 */
+        njsg_shell_boundary_audit(shell_id, 1); /* 再入壳 */
     }
 
-    mqf_shell_summary();
+    njsg_shell_summary();
 
     /* ================================================================
      * v0.8 新增 ★ 场景 K:统计锥动态调整 ★
@@ -996,10 +996,10 @@ int main(){
 
     printf("=== 场景 K1:把空间图节点注册到统计锥,颁发初始锥份额 ===\n\n");
 
-    if (o_android >= 0) mqf_cone_register(o_android);
-    if (o_ios >= 0)     mqf_cone_register(o_ios);
-    if (o_wechat >= 0)  mqf_cone_register(o_wechat);
-    if (o_bank >= 0)    mqf_cone_register(o_bank);
+    if (o_android >= 0) njsg_cone_register(o_android);
+    if (o_ios >= 0)     njsg_cone_register(o_ios);
+    if (o_wechat >= 0)  njsg_cone_register(o_wechat);
+    if (o_bank >= 0)    njsg_cone_register(o_bank);
 
     printf("\n=== 场景 K2:模拟锥调度 5 个 tick ===\n\n");
     printf("背景关系图:\\n");
@@ -1008,15 +1008,15 @@ int main(){
     printf("  android:完全孤立 (中值默认)\\n\n");
 
     for (int tick = 0; tick < 5; tick++) {
-        mqf_cone_tick();
+        njsg_cone_tick();
         printf("[锥 tick #%d] 全局合规度: %.1f%% 主导态势: %s\n",
                tick, CONE.global_compliance * 100.0f, CONE.dominant_state);
     }
 
-    mqf_cone_print();
+    njsg_cone_print();
 
     printf("=== 场景 K3:打印锥份额演化历史 ===\n\n");
-    mqf_cone_history(5);
+    njsg_cone_history(5);
 
     printf("=== 场景 K4:锥的哲学含义 —— ===\n\n");
     printf("  \"一切被调动的来者,皆是统计锥中的切片单元\"\n\n");
@@ -1062,19 +1062,19 @@ int main(){
     printf("=========================================\n");
 
     /* v1.0 五元旋钮 demo */
-    mqf_five_yuan_demo();
+    njsg_five_yuan_demo();
 
     /* v1.1 六元对称群 demo */
-    mqf_six_yuan_demo();
+    njsg_six_yuan_demo();
 
     /* v1.2 七元蜂窝套壳 demo */
-    mqf_shell_nest_demo();
+    njsg_shell_nest_demo();
 
     /* v1.3 全栈联动 demo */
-    mqf_v13_demo();
-    mqf_feishu_bot_demo();
-    mqf_qimei_demo();
-    mqf_roadmap_check_demo();
+    njsg_v13_demo();
+    njsg_feishu_bot_demo();
+    njsg_qimei_demo();
+    njsg_roadmap_check_demo();
 
     return 0;
 }
@@ -1108,13 +1108,13 @@ typedef struct {
 static five_yuan_state_t fy_nodes[MAX_OBJECTS];
 int fy_count = 0;
 
-void mqf_five_yuan_init(void) {
+void njsg_five_yuan_init(void) {
     memset(fy_nodes, 0, sizeof(fy_nodes));
     fy_count = 0;
     printf("[五元旋钮] 初始化,最多 %d 节点,占存阈值 %d ticks\n", MAX_OBJECTS, FIVE_YUAN_OCCUPY_THRESHOLD);
 }
 
-int mqf_five_yuan_register(const char* name) {
+int njsg_five_yuan_register(const char* name) {
     if (fy_count >= MAX_OBJECTS) return -1;
     int idx = fy_count++;
     strncpy(fy_nodes[idx].name, name, MAX_NAME_LEN-1);
@@ -1128,7 +1128,7 @@ int mqf_five_yuan_register(const char* name) {
     return idx;
 }
 
-void mqf_five_yuan_push(int obj_id, float angle_inc, float force_inc) {
+void njsg_five_yuan_push(int obj_id, float angle_inc, float force_inc) {
     if (obj_id < 0 || obj_id >= fy_count) return;
 
     five_yuan_state_t* s = &fy_nodes[obj_id];
@@ -1148,13 +1148,13 @@ void mqf_five_yuan_push(int obj_id, float angle_inc, float force_inc) {
     }
 }
 
-void mqf_five_yuan_set_ratio(int obj_id, float in_val, float out_val) {
+void njsg_five_yuan_set_ratio(int obj_id, float in_val, float out_val) {
     if (obj_id < 0 || obj_id >= fy_count) return;
     fy_nodes[obj_id].ratio_in = in_val;
     fy_nodes[obj_id].ratio_out = out_val;
 }
 
-void mqf_five_yuan_print(void) {
+void njsg_five_yuan_print(void) {
     printf("\n[五元旋钮状态]\n");
     printf("%-30s %5s %8s %8s %8s %8s %6s\n",
            "节点", "Step", "角度°", "力", "R_in", "R_out", "占存");
@@ -1168,7 +1168,7 @@ void mqf_five_yuan_print(void) {
     }
 }
 
-void mqf_five_yuan_demo(void) {
+void njsg_five_yuan_demo(void) {
     printf("\n");
     printf("════════════════════════════════════════════\n");
     printf("  v1.0 ★ 五元旋钮运动步量 ★\n");
@@ -1185,41 +1185,41 @@ void mqf_five_yuan_demo(void) {
     printf("  刻度是旋钮的记忆,角度是旋钮的方向\n\n");
 
     /* 注册四个节点:ios/bank(高力,铭记) vs wechat/android(低力,易逝) */
-    int fy_ios = mqf_five_yuan_register("ios");
-    int fy_bank = mqf_five_yuan_register("bank");
-    int fy_wechat = mqf_five_yuan_register("wechat");
-    int fy_android = mqf_five_yuan_register("android");
+    int fy_ios = njsg_five_yuan_register("ios");
+    int fy_bank = njsg_five_yuan_register("bank");
+    int fy_wechat = njsg_five_yuan_register("wechat");
+    int fy_android = njsg_five_yuan_register("android");
 
     /* 设置进出配比 */
-    mqf_five_yuan_set_ratio(fy_ios, 0.9f, 0.1f);     /* ios:高进低出 = 铭记倾向 */
-    mqf_five_yuan_set_ratio(fy_bank, 0.85f, 0.15f);  /* bank:高进低出 */
-    mqf_five_yuan_set_ratio(fy_wechat, 0.5f, 0.5f);  /* wechat:均衡 */
-    mqf_five_yuan_set_ratio(fy_android, 0.1f, 0.9f);  /* android:低进高出 = 易逝 */
+    njsg_five_yuan_set_ratio(fy_ios, 0.9f, 0.1f);     /* ios:高进低出 = 铭记倾向 */
+    njsg_five_yuan_set_ratio(fy_bank, 0.85f, 0.15f);  /* bank:高进低出 */
+    njsg_five_yuan_set_ratio(fy_wechat, 0.5f, 0.5f);  /* wechat:均衡 */
+    njsg_five_yuan_set_ratio(fy_android, 0.1f, 0.9f);  /* android:低进高出 = 易逝 */
 
     /* 推进五元旋钮:模拟不同 force 和角度增量 */
     printf("--- 推进 5 个 step,对比铭记 vs 易逝 ---\n\n");
 
     /* ios:小角度高力 → 快速达到占存 */
     for (int s = 0; s < 5; s++) {
-        mqf_five_yuan_push(fy_ios, 45.0f, 15.0f);
+        njsg_five_yuan_push(fy_ios, 45.0f, 15.0f);
     }
 
     /* bank:中角度中力 */
     for (int s = 0; s < 5; s++) {
-        mqf_five_yuan_push(fy_bank, 60.0f, 12.0f);
+        njsg_five_yuan_push(fy_bank, 60.0f, 12.0f);
     }
 
     /* wechat:大角度低力 */
     for (int s = 0; s < 5; s++) {
-        mqf_five_yuan_push(fy_wechat, 90.0f, 5.0f);
+        njsg_five_yuan_push(fy_wechat, 90.0f, 5.0f);
     }
 
     /* android:随机小力 */
     for (int s = 0; s < 5; s++) {
-        mqf_five_yuan_push(fy_android, 15.0f, 2.0f);
+        njsg_five_yuan_push(fy_android, 15.0f, 2.0f);
     }
 
-    mqf_five_yuan_print();
+    njsg_five_yuan_print();
 
     printf("\n=== 场景 L2:角度 wrap 360° 循环 ===\n\n");
     printf("角度累加取模范例:\n");
@@ -1303,14 +1303,14 @@ static const char* SIX_SIDE_NAMES[SIX_YUAN_SIDES] = {
     "前(+Z)", "后(-Z)", "左(-X)", "右(+X)", "上(+Y)", "下(-Y)"
 };
 
-void mqf_six_yuan_init(void) {
+void njsg_six_yuan_init(void) {
     memset(sy_pairs, 0, sizeof(sy_pairs));
     sy_count = 0;
     printf("[六元对称群] 初始化,最多 %d 对裁判\n", SIX_YUAN_MAX_PAIRS);
 }
 
 /* 注册一对背靠背镜像裁判 */
-int mqf_six_yuan_register_pair(const char* name, int judge_a, int judge_b) {
+int njsg_six_yuan_register_pair(const char* name, int judge_a, int judge_b) {
     if (sy_count >= SIX_YUAN_MAX_PAIRS) return -1;
     int idx = sy_count++;
     strncpy(sy_pairs[idx].name, name, MAX_NAME_LEN-1);
@@ -1325,7 +1325,7 @@ int mqf_six_yuan_register_pair(const char* name, int judge_a, int judge_b) {
 }
 
 /* 设置一对裁判的合规度并计算信任交集与裁定 */
-void mqf_six_yuan_set_trust(int pair_id, float ta, float tb) {
+void njsg_six_yuan_set_trust(int pair_id, float ta, float tb) {
     if (pair_id < 0 || pair_id >= sy_count) return;
     sy_pairs[pair_id].trust_a = ta;
     sy_pairs[pair_id].trust_b = tb;
@@ -1340,13 +1340,13 @@ void mqf_six_yuan_set_trust(int pair_id, float ta, float tb) {
 }
 
 /* 获取某对裁判的最终裁定 (1=信任, 0=不信任) */
-int mqf_six_yuan_verdict(int pair_id) {
+int njsg_six_yuan_verdict(int pair_id) {
     if (pair_id < 0 || pair_id >= sy_count) return 0;
     return sy_pairs[pair_id].verdict;
 }
 
 /* 六面可视化: 为一对裁判输出六个面的投影 */
-void mqf_six_yuan_print_sides(int pair_id) {
+void njsg_six_yuan_print_sides(int pair_id) {
     if (pair_id < 0 || pair_id >= sy_count) return;
     six_yuan_pair_t* p = &sy_pairs[pair_id];
     printf("\n  [%s] 六面投影:\n", p->name);
@@ -1372,7 +1372,7 @@ void mqf_six_yuan_print_sides(int pair_id) {
 }
 
 /* 打印所有对称群对状态 */
-void mqf_six_yuan_print(void) {
+void njsg_six_yuan_print(void) {
     printf("\n[六元对称群状态]\n");
     printf("%-20s %6s %6s %6s %6s %6s %6s\n",
            "对名", "A合规", "B合规", "交集", "镜像", "裁定", "含义");
@@ -1387,7 +1387,7 @@ void mqf_six_yuan_print(void) {
     }
 }
 
-void mqf_six_yuan_demo(void) {
+void njsg_six_yuan_demo(void) {
     printf("\n");
     printf("════════════════════════════════════════════\n");
     printf("  v1.1 ★ 六元对称群+六面体 ★\n");
@@ -1402,24 +1402,24 @@ void mqf_six_yuan_demo(void) {
     printf("  A 与 B 的合规度比较 → 信任交集判定\n\n");
 
     /* 创建三元裁判对象 */
-    int obj_ios = mqf_obj_create("ios");
-    int obj_bank = mqf_obj_create("bank");
-    int obj_wechat = mqf_obj_create("wechat");
-    int obj_android = mqf_obj_create("android");
+    int obj_ios = njsg_obj_create("ios");
+    int obj_bank = njsg_obj_create("bank");
+    int obj_wechat = njsg_obj_create("wechat");
+    int obj_android = njsg_obj_create("android");
 
     /* 注册三对镜像裁判 */
-    int sp_ios = mqf_six_yuan_register_pair("ios-法官", obj_ios, obj_ios);
-    int sp_bank = mqf_six_yuan_register_pair("bank-法官", obj_bank, obj_bank);
-    int sp_wechat = mqf_six_yuan_register_pair("wechat-法官", obj_wechat, obj_wechat);
-    int sp_android = mqf_six_yuan_register_pair("android-法官", obj_android, obj_android);
+    int sp_ios = njsg_six_yuan_register_pair("ios-法官", obj_ios, obj_ios);
+    int sp_bank = njsg_six_yuan_register_pair("bank-法官", obj_bank, obj_bank);
+    int sp_wechat = njsg_six_yuan_register_pair("wechat-法官", obj_wechat, obj_wechat);
+    int sp_android = njsg_six_yuan_register_pair("android-法官", obj_android, obj_android);
 
     /* 设定各对裁判的合规度 */
-    mqf_six_yuan_set_trust(sp_ios, 0.9f, 0.85f);     /* ios: 双高 → 对齐且信任 */
-    mqf_six_yuan_set_trust(sp_bank, 0.85f, 0.80f);   /* bank: 双高 → 对齐且信任 */
-    mqf_six_yuan_set_trust(sp_wechat, 0.6f, 0.55f);  /* wechat: 中等 → 对齐但弱信 */
-    mqf_six_yuan_set_trust(sp_android, 0.3f, 0.7f);  /* android: A低B高 → 镜像偏移,不信任 */
+    njsg_six_yuan_set_trust(sp_ios, 0.9f, 0.85f);     /* ios: 双高 → 对齐且信任 */
+    njsg_six_yuan_set_trust(sp_bank, 0.85f, 0.80f);   /* bank: 双高 → 对齐且信任 */
+    njsg_six_yuan_set_trust(sp_wechat, 0.6f, 0.55f);  /* wechat: 中等 → 对齐但弱信 */
+    njsg_six_yuan_set_trust(sp_android, 0.3f, 0.7f);  /* android: A低B高 → 镜像偏移,不信任 */
 
-    mqf_six_yuan_print();
+    njsg_six_yuan_print();
 
     printf("\n=== 场景 M2:六面可视化 ===\n\n");
 
@@ -1428,8 +1428,8 @@ void mqf_six_yuan_demo(void) {
     printf("  左/右视 → 对称差(镜像偏移度)\n");
     printf("  上/下视 → 信任交集区间(俯视) / 最终裁定(仰视)\n\n");
 
-    mqf_six_yuan_print_sides(sp_ios);
-    mqf_six_yuan_print_sides(sp_android);
+    njsg_six_yuan_print_sides(sp_ios);
+    njsg_six_yuan_print_sides(sp_android);
 
     printf("\n=== 场景 M3:信任交集与无交集 ===\n\n");
 
@@ -1496,7 +1496,7 @@ typedef struct {
 shell_nest_t sn_nodes[SHELL_NEST_MAX];
 int sn_count = 0;
 
-void mqf_shell_nest_init(void) {
+void njsg_shell_nest_init(void) {
     memset(sn_nodes, 0, sizeof(sn_nodes));
     sn_count = 0;
     printf("[七元蜂窝套壳] 初始化,最多 %d 个壳节点,每壳最多 %d 子壳\n",
@@ -1504,7 +1504,7 @@ void mqf_shell_nest_init(void) {
 }
 
 /* 包装一个最外层壳 */
-int mqf_shell_nest_wrap(const char* name) {
+int njsg_shell_nest_wrap(const char* name) {
     if (sn_count >= SHELL_NEST_MAX) return -1;
     int idx = sn_count++;
     strncpy(sn_nodes[idx].name, name, MAX_NAME_LEN-1);
@@ -1517,7 +1517,7 @@ int mqf_shell_nest_wrap(const char* name) {
 }
 
 /* 在某个壳内插入子壳 */
-int mqf_shell_nest_insert(int parent_id, const char* child_name) {
+int njsg_shell_nest_insert(int parent_id, const char* child_name) {
     if (parent_id < 0 || parent_id >= sn_count) return -1;
     if (sn_count >= SHELL_NEST_MAX) return -1;
 
@@ -1540,7 +1540,7 @@ int mqf_shell_nest_insert(int parent_id, const char* child_name) {
 }
 
 /* 打印壳嵌套树 */
-void mqf_shell_nest_print(void) {
+void njsg_shell_nest_print(void) {
     printf("\n[七元蜂窝套壳状态]\n");
     printf("%-4s %-20s %6s %8s %6s %6s\n",
            "层级", "壳名", "父id", "空间%", "子数", "填充");
@@ -1555,7 +1555,7 @@ void mqf_shell_nest_print(void) {
 }
 
 /* 递归打印嵌套树(可视化) */
-static void mqf_shell_nest_recursive_print(int node_id, int depth) {
+static void njsg_shell_nest_recursive_print(int node_id, int depth) {
     if (node_id < 0 || node_id >= sn_count) return;
     shell_nest_t* s = &sn_nodes[node_id];
 
@@ -1566,12 +1566,12 @@ static void mqf_shell_nest_recursive_print(int node_id, int depth) {
            node_id, s->name, s->level, s->space_ratio * 100.0f);
 
     for (int c = 0; c < s->child_count; c++) {
-        mqf_shell_nest_recursive_print(s->child_ids[c], depth + 1);
+        njsg_shell_nest_recursive_print(s->child_ids[c], depth + 1);
     }
 }
 
 /* 蜂窝密铺: 在某层中的所有壳都填满 6 个子壳 */
-void mqf_shell_nest_honeycomb(int level) {
+void njsg_shell_nest_honeycomb(int level) {
     if (level < 0 || level >= SHELL_NEST_MAX) return;
 
     const char* honeycomb_names[] = {
@@ -1588,13 +1588,13 @@ void mqf_shell_nest_honeycomb(int level) {
             char child_name[MAX_NAME_LEN];
             snprintf(child_name, MAX_NAME_LEN, "%s.%d[%s]",
                      sn_nodes[i].name, c + 1, honeycomb_names[c]);
-            mqf_shell_nest_insert(i, child_name);
+            njsg_shell_nest_insert(i, child_name);
         }
     }
 }
 
 /* 获取壳的总嵌套深度 */
-static int mqf_shell_nest_max_depth(void) {
+static int njsg_shell_nest_max_depth(void) {
     int max_d = 0;
     for (int i = 0; i < sn_count; i++) {
         if (sn_nodes[i].level > max_d) max_d = sn_nodes[i].level;
@@ -1603,7 +1603,7 @@ static int mqf_shell_nest_max_depth(void) {
 }
 
 /* 获取指定层的所有壳数量 */
-static int mqf_shell_nest_count_level(int level) {
+static int njsg_shell_nest_count_level(int level) {
     int cnt = 0;
     for (int i = 0; i < sn_count; i++) {
         if (sn_nodes[i].level == level) cnt++;
@@ -1611,7 +1611,7 @@ static int mqf_shell_nest_count_level(int level) {
     return cnt;
 }
 
-void mqf_shell_nest_demo(void) {
+void njsg_shell_nest_demo(void) {
     printf("\n");
     printf("════════════════════════════════════════════\n");
     printf("  v1.2 ★ 七元蜂窝套壳 ★\n");
@@ -1627,26 +1627,26 @@ void mqf_shell_nest_demo(void) {
     printf("  每层最多 6 个子壳 = 蜂窝六边形密铺\n\n");
 
     /* 创建套壳层次结构 */
-    int root = mqf_shell_nest_wrap("MQ-主权外壳");
-    int layer1_a = mqf_shell_nest_insert(root, "ios-壳");
-    int layer1_b = mqf_shell_nest_insert(root, "bank-壳");
-    int layer1_c = mqf_shell_nest_insert(root, "wechat-壳");
-    int layer1_d = mqf_shell_nest_insert(root, "android-壳");
+    int root = njsg_shell_nest_wrap("MQ-主权外壳");
+    int layer1_a = njsg_shell_nest_insert(root, "ios-壳");
+    int layer1_b = njsg_shell_nest_insert(root, "bank-壳");
+    int layer1_c = njsg_shell_nest_insert(root, "wechat-壳");
+    int layer1_d = njsg_shell_nest_insert(root, "android-壳");
 
     /* 在第二层再插入子壳 */
-    int layer2_ios = mqf_shell_nest_insert(layer1_a, "ios-app-壳");
-    int layer2_bank = mqf_shell_nest_insert(layer1_b, "bank-api-壳");
+    int layer2_ios = njsg_shell_nest_insert(layer1_a, "ios-app-壳");
+    int layer2_bank = njsg_shell_nest_insert(layer1_b, "bank-api-壳");
 
     /* 在最深层插入具体实体 */
-    mqf_shell_nest_insert(layer2_ios, "ios-支付实体");
-    mqf_shell_nest_insert(layer2_ios, "ios-登录实体");
-    mqf_shell_nest_insert(layer2_bank, "bank-账户实体");
+    njsg_shell_nest_insert(layer2_ios, "ios-支付实体");
+    njsg_shell_nest_insert(layer2_ios, "ios-登录实体");
+    njsg_shell_nest_insert(layer2_bank, "bank-账户实体");
 
     printf("--- 套壳嵌套树 (递归可视化) ---\n\n");
-    mqf_shell_nest_recursive_print(root, 0);
+    njsg_shell_nest_recursive_print(root, 0);
 
     printf("\n--- 套壳平面状态表 ---\n");
-    mqf_shell_nest_print();
+    njsg_shell_nest_print();
 
     printf("\n=== 场景 N2: 蜂窝密铺填充 ===\n\n");
 
@@ -1658,17 +1658,17 @@ void mqf_shell_nest_demo(void) {
 
     /* 对第一层蜂窝化 */
     printf("--- 对 Layer 1 蜂窝化 (每个壳展开 6 个子壳) ---\n\n");
-    mqf_shell_nest_honeycomb(1);
+    njsg_shell_nest_honeycomb(1);
 
     printf("--- 蜂窝化后的套壳树 ---\n\n");
-    mqf_shell_nest_recursive_print(root, 0);
+    njsg_shell_nest_recursive_print(root, 0);
 
     printf("\n--- 蜂窝化后的统计 ---\n");
-    int max_depth = mqf_shell_nest_max_depth();
+    int max_depth = njsg_shell_nest_max_depth();
     printf("  最大嵌套深度: %d 层\n", max_depth);
     printf("  总壳节点数: %d 个\n", sn_count);
     for (int d = 0; d <= max_depth && d <= 4; d++) {
-        printf("  Lv%d 层: %d 个壳\n", d, mqf_shell_nest_count_level(d));
+        printf("  Lv%d 层: %d 个壳\n", d, njsg_shell_nest_count_level(d));
     }
 
     printf("\n=== 场景 N3: 套壳的哲学含义 ===\n\n");
@@ -1741,18 +1741,18 @@ typedef struct {
 static roadmap_law_t rm_laws[ROADMAP_LAWS];
 
 /* Feishu Bot Bridge 初始化 */
-void mqf_feishu_bot_bridge_init(void) {
+void njsg_feishu_bot_bridge_init(void) {
     printf("[飞书 Bot Bridge] 初始化,消息缓冲 %d 字节,回复缓冲 %d 字节\n",
            FEISHU_MSG_MAX, FEISHU_REPLY_MAX);
 }
 
 /* 囡囝 AI 初始化 */
-void mqf_qimei_init(void) {
+void njsg_qimei_init(void) {
     printf("[囡囝 AI] 初始化,镜像代理模式,随时可裁定\n");
 }
 
 /* 接收飞书消息(模拟) */
-static int mqf_feishu_recv_msg(feishu_msg_t* msg, int msg_type, const char* text) {
+static int njsg_feishu_recv_msg(feishu_msg_t* msg, int msg_type, const char* text) {
     strncpy(msg->user_id, "user_feishu_001", MAX_NAME_LEN-1);
     strncpy(msg->text, text, FEISHU_MSG_MAX-1);
     snprintf(msg->msg_id, MAX_NAME_LEN, "msg_%ld", time(NULL) % 100000);
@@ -1762,14 +1762,14 @@ static int mqf_feishu_recv_msg(feishu_msg_t* msg, int msg_type, const char* text
 }
 
 /* 囡囝格式化回复 */
-static void mqf_qimei_format_reply(qimei_reply_t* reply, const char* body) {
+static void njsg_qimei_format_reply(qimei_reply_t* reply, const char* body) {
     strncpy(reply->prefix, "我是囡囝,", 127);
     strncpy(reply->body, body, FEISHU_REPLY_MAX-1);
     strncpy(reply->suffix, "\n\n—— 囡囝共生 AI 助手 囡囝", 127);
 }
 
 /* 获取裁定结果(通过镜像代理) */
-static const char* mqf_qimei_get_verdict(int obj_id) {
+static const char* njsg_qimei_get_verdict(int obj_id) {
     /* 通过五元旋钮占存判断裁定结果 */
     if (obj_id < 0 || obj_id >= fy_count) return "未知实体";
     if (fy_nodes[obj_id].occupied) return "★ 已铭记,可信任";
@@ -1777,7 +1777,7 @@ static const char* mqf_qimei_get_verdict(int obj_id) {
 }
 
 /* 处理飞书消息 → 触发 MQ 内核裁定 → 返回回复 */
-static void mqf_feishu_process_message(feishu_msg_t* msg, qimei_reply_t* reply) {
+static void njsg_feishu_process_message(feishu_msg_t* msg, qimei_reply_t* reply) {
     printf("[飞书 Bot] 处理消息,触发 MQ 内核观测...\n");
 
     /* 根据消息类型触发不同层的观测 */
@@ -1799,11 +1799,11 @@ static void mqf_feishu_process_message(feishu_msg_t* msg, qimei_reply_t* reply) 
                  "  ▪ bank    → 五元占存:%s, 六元交集:0.80 → ★信任通过\n"
                  "  ▪ android → 五元占存:%s, 六元交集:0.30 → ○观察中\n"
                  "  ▪ 依据:三元编码+四元面裁定+五元旋钮步量+六元对称背书",
-                 idx_ios >= 0 ? mqf_qimei_get_verdict(idx_ios) : "未注册",
-                 idx_bank >= 0 ? mqf_qimei_get_verdict(idx_bank) : "未注册",
-                 idx_android >= 0 ? mqf_qimei_get_verdict(idx_android) : "未注册");
+                 idx_ios >= 0 ? njsg_qimei_get_verdict(idx_ios) : "未注册",
+                 idx_bank >= 0 ? njsg_qimei_get_verdict(idx_bank) : "未注册",
+                 idx_android >= 0 ? njsg_qimei_get_verdict(idx_android) : "未注册");
 
-        mqf_qimei_format_reply(reply, reply_body);
+        njsg_qimei_format_reply(reply, reply_body);
     } else if (msg->type == 2) {
         /* 信任查询:查询指定实体 */
         char reply_body[FEISHU_REPLY_MAX];
@@ -1828,7 +1828,7 @@ static void mqf_feishu_process_message(feishu_msg_t* msg, qimei_reply_t* reply) 
         if (!found) {
             snprintf(reply_body, FEISHU_REPLY_MAX, "未找到实体 [%s],请先注册", msg->text + 3);
         }
-        mqf_qimei_format_reply(reply, reply_body);
+        njsg_qimei_format_reply(reply, reply_body);
     } else {
         /* 自定义:返回通用裁定框架说明 */
         const char* framework =
@@ -1839,19 +1839,19 @@ static void mqf_feishu_process_message(feishu_msg_t* msg, qimei_reply_t* reply) 
             "  4. 六元(v1.1):对称群 + 六面体 + 信任交集\n"
             "  5. 七元(v1.2):蜂窝套壳 + 递归嵌套 + 六边形密铺\n"
             "  6. 全栈(v1.3):飞书 Bot 入口 + 囡囝 AI 回复 + 自动化铁律检查";
-        mqf_qimei_format_reply(reply, framework);
+        njsg_qimei_format_reply(reply, framework);
     }
 }
 
 /* 发送飞书回复(模拟) */
-static void mqf_feishu_send_reply(feishu_msg_t* msg, qimei_reply_t* reply) {
+static void njsg_feishu_send_reply(feishu_msg_t* msg, qimei_reply_t* reply) {
     printf("[飞书] 回复 #%s 给用户 %s:\n%s%s%s\n\n",
            msg->msg_id, msg->user_id,
            reply->prefix, reply->body, reply->suffix);
 }
 
 /* ROADMAP 铁律自检查 */
-static int mqf_roadmap_check_law(int law_id) {
+static int njsg_roadmap_check_law(int law_id) {
     int passed = 0;
     switch (law_id) {
     case 1: /* 铁律1: 每次实现一个版本,跑通→提交→推送 */
@@ -1869,7 +1869,7 @@ static int mqf_roadmap_check_law(int law_id) {
     case 5: /* 铁律5: 先读 ROADMAP 顶部确认版本 */
         passed = 1; /* 任务流程执行 */
         break;
-    case 6: /* 铁律6: 所有规则层改动在 mqf_kernel.c */
+    case 6: /* 铁律6: 所有规则层改动在 njsg_kernel.c */
         passed = 1; /* 单文件架构 */
         break;
     case 7: /* 铁律7: 改动前先读 SOVEREIGNTY */
@@ -1881,7 +1881,7 @@ static int mqf_roadmap_check_law(int law_id) {
     return passed;
 }
 
-void mqf_roadmap_self_check(void) {
+void njsg_roadmap_self_check(void) {
     /* 初始化铁律表 */
     strncpy(rm_laws[0].law, "铁律1:跑通→提交→推送", MAX_NAME_LEN-1);
     strncpy(rm_laws[0].desc, "每次实现一个版本,跑通→提交→推送", FEISHU_MSG_MAX-1);
@@ -1894,24 +1894,24 @@ void mqf_roadmap_self_check(void) {
     strncpy(rm_laws[4].law, "铁律5:先读 ROADMAP 顶部", MAX_NAME_LEN-1);
     strncpy(rm_laws[4].desc, "每次新会话先读 ROADMAP.md 顶部", FEISHU_MSG_MAX-1);
     strncpy(rm_laws[5].law, "铁律6:单文件规则层", MAX_NAME_LEN-1);
-    strncpy(rm_laws[5].desc, "所有规则层改动在 mqf_kernel.c", FEISHU_MSG_MAX-1);
+    strncpy(rm_laws[5].desc, "所有规则层改动在 njsg_kernel.c", FEISHU_MSG_MAX-1);
     strncpy(rm_laws[6].law, "铁律7:改动前读 SOVEREIGNTY", MAX_NAME_LEN-1);
     strncpy(rm_laws[6].desc, "任何改动前先读 SOVEREIGNTY.md", FEISHU_MSG_MAX-1);
 
     for (int i = 0; i < ROADMAP_LAWS; i++) {
         rm_laws[i].id = i + 1;
-        rm_laws[i].passed = mqf_roadmap_check_law(i + 1);
+        rm_laws[i].passed = njsg_roadmap_check_law(i + 1);
     }
 }
 
 /* ROADMAP 铁律检查 Demo */
-void mqf_roadmap_check_demo(void) {
+void njsg_roadmap_check_demo(void) {
     printf("\n");
     printf("════════════════════════════════════════════\n");
     printf("  v1.3 ★ ROADMAP 铁律自动化自检 ★\n");
     printf("════════════════════════════════════════════\n\n");
 
-    mqf_roadmap_self_check();
+    njsg_roadmap_self_check();
 
     printf("执行铁律检查...\n\n");
 
@@ -1927,7 +1927,7 @@ void mqf_roadmap_check_demo(void) {
 }
 
 /* 飞书 Bot Demo */
-void mqf_feishu_bot_demo(void) {
+void njsg_feishu_bot_demo(void) {
     printf("\n");
     printf("════════════════════════════════════════════\n");
     printf("  v1.3 ★ 飞书 Bot Bridge ★\n");
@@ -1937,29 +1937,29 @@ void mqf_feishu_bot_demo(void) {
     printf("--- 场景 O1:飞书发观测请求 ---\n\n");
     feishu_msg_t msg1;
     qimei_reply_t reply1;
-    mqf_feishu_recv_msg(&msg1, 1, "囡囝,当前所有实体信任状态如何?");
-    mqf_feishu_process_message(&msg1, &reply1);
-    mqf_feishu_send_reply(&msg1, &reply1);
+    njsg_feishu_recv_msg(&msg1, 1, "囡囝,当前所有实体信任状态如何?");
+    njsg_feishu_process_message(&msg1, &reply1);
+    njsg_feishu_send_reply(&msg1, &reply1);
 
     /* 场景 O2: 信任查询 */
     printf("--- 场景 O2:飞书发信任查询 ---\n\n");
     feishu_msg_t msg2;
     qimei_reply_t reply2;
-    mqf_feishu_recv_msg(&msg2, 2, "查ios");
-    mqf_feishu_process_message(&msg2, &reply2);
-    mqf_feishu_send_reply(&msg2, &reply2);
+    njsg_feishu_recv_msg(&msg2, 2, "查ios");
+    njsg_feishu_process_message(&msg2, &reply2);
+    njsg_feishu_send_reply(&msg2, &reply2);
 
     /* 场景 O3: 自定义查询(框架说明) */
     printf("--- 场景 O3:飞书发框架说明请求 ---\n\n");
     feishu_msg_t msg3;
     qimei_reply_t reply3;
-    mqf_feishu_recv_msg(&msg3, 3, "囡囝,介绍一下囡囝共生");
-    mqf_feishu_process_message(&msg3, &reply3);
-    mqf_feishu_send_reply(&msg3, &reply3);
+    njsg_feishu_recv_msg(&msg3, 3, "囡囝,介绍一下囡囝共生");
+    njsg_feishu_process_message(&msg3, &reply3);
+    njsg_feishu_send_reply(&msg3, &reply3);
 }
 
 /* 囡囝 AI Demo */
-void mqf_qimei_demo(void) {
+void njsg_qimei_demo(void) {
     printf("\n");
     printf("════════════════════════════════════════════\n");
     printf("  v1.3 ★ 囡囝 AI 助手 ★\n");
@@ -1983,7 +1983,7 @@ void mqf_qimei_demo(void) {
 }
 
 /* 全栈联动总 Demo */
-void mqf_v13_demo(void) {
+void njsg_v13_demo(void) {
     printf("\n");
     printf("════════════════════════════════════════════\n");
     printf("  v1.3 ★ 全栈联动总览 ★\n");
@@ -2014,7 +2014,7 @@ void mqf_v13_demo(void) {
     printf("  O5: 囡囝人格化展示 → AI 助手的能力与格言\n\n");
 }
 
-void mqf_audit_summary(){
+void njsg_audit_summary(){
     printf("\n=== 审计摘要 ===\n");
     printf("已记录事件: %d\n槽位: alive=%d frozen=%d zombie=%d\n规则: 总%d 降服%d\n",
            AUDIT.count, K.alive, K.frozen, K.zombie, RE.rule_count, RE.total_enslaved);

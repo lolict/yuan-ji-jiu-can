@@ -3,7 +3,7 @@
 # 囡囝共生 · 自由寄生壳 · 最小自举器 (bootstrap.sh)
 # ============================================================
 set -e
-MQF_VERSION="0.1.0"
+NJSG_VERSION="0.1.0"
 SHRINE_DIR=""
 LOG_FD=2
 
@@ -24,13 +24,13 @@ banner() {
     cat <<'BANNER_EOF'
 
       囡囝共生  ·  自由寄生壳  ·  最小自举器
-      ManQuanFa  ·  Bootstrap
+      YinYangOS  ·  Bootstrap
 
       chrysalis  ->  molt  ->  wear  ->  work
 
 BANNER_EOF
     printf "${C_RST}"
-    log_info "version ${MQF_VERSION}"
+    log_info "version ${NJSG_VERSION}"
 }
 
 probe_env() {
@@ -56,7 +56,7 @@ probe_env() {
 find_shrine() {
     for cand in /dev/shm "${TMPDIR:-}" /tmp ~; do
         if [ -d "${cand}" ] && [ -w "${cand}" ]; then
-            SHRINE_DIR="${cand}/.mqf-shrine-$$"
+            SHRINE_DIR="${cand}/.njsg-shrine-$$"
             mkdir -p "${SHRINE_DIR}"
             log_ok "memory shrine: ${SHRINE_DIR}"
             return 0
@@ -98,9 +98,9 @@ generate_run_sh() {
 DIR="$(cd "$(dirname "$0")" && pwd)"
 log() { printf "[%s] %s\n" "$(date +%H:%M:%S)" "$*"; }
 trap 'log "exit"; exit' INT TERM
-log "ManQuanFa parasitic shell running"
+log "YinYangOS parasitic shell running"
 while true; do
-    if [ ! -f "${DIR}/.manquanfa-shell.json" ]; then
+    if [ ! -f "${DIR}/.njsg-shell.json" ]; then
         log "anchor gone -- dissolving"
         break
     fi
@@ -119,11 +119,11 @@ wear_shell() {
     else
         hash=$(printf '%s' "${anchor_input}" | cksum | cut -d' ' -f1)
     fi
-    ANCHOR="mqf-${hash}"
+    ANCHOR="njsg-${hash}"
     log_ok "anchor: ${ANCHOR}"
-    cat > "${SHRINE_DIR}/.manquanfa-shell.json" <<SHELLEOF
+    cat > "${SHRINE_DIR}/.njsg-shell.json" <<SHELLEOF
 {
-  "version": "${MQF_VERSION}",
+  "version": "${NJSG_VERSION}",
   "shell": "${CHOSEN_SHELL}",
   "os": "${OS}",
   "anchor": "${ANCHOR}",
@@ -131,15 +131,15 @@ wear_shell() {
 }
 SHELLEOF
     if [ -w "." ]; then
-        cp "${SHRINE_DIR}/.manquanfa-shell.json" . 2>/dev/null || true
+        cp "${SHRINE_DIR}/.njsg-shell.json" . 2>/dev/null || true
     fi
     generate_run_sh
     case "${CHOSEN_SHELL}" in
         linux_systemd)
             mkdir -p ~/.config/systemd/user
-            cat > ~/.config/systemd/user/manquanfa.service <<SVCEOF
+            cat > ~/.config/systemd/user/njsg.service <<SVCEOF
 [Unit]
-Description=ManQuanFa Parasitic Shell
+Description=YinYangOS Parasitic Shell
 After=network.target
 
 [Service]
@@ -166,7 +166,7 @@ main() {
     choose_shell
     wear_shell
     log_ok ""
-    log_ok "ManQuanFa is parasitic on ${OS}/${CHOSEN_SHELL}"
+    log_ok "YinYangOS is parasitic on ${OS}/${CHOSEN_SHELL}"
     log_ok "anchor: ${ANCHOR}"
     log_ok "no installation required. self-booting complete."
     log_ok ""

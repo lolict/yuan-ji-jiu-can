@@ -5,13 +5,13 @@
  * 纯 JS 模块，无 UI、无网络、无暴露
  * 
  * 导出:
- *   MQF.encode     编码系统
- *   MQF.scale      天平裁判
- *   MQF.algebra    关系代数
- *   MQF.situation  态势逻辑
+ *   NJSG.encode     编码系统
+ *   NJSG.scale      天平裁判
+ *   NJSG.algebra    关系代数
+ *   NJSG.situation  态势逻辑
  */
 
-const MQF = {};
+const NJSG = {};
 
 /* ============================================================
  * 0. 基础数据表
@@ -59,7 +59,7 @@ const STROKES_DB = {
 /* ============================================================
  * 1. 编码系统 — 汉字 → 多层向量
  * ============================================================ */
-MQF.encode = {
+NJSG.encode = {
   // 单字编码：{ 声母, 韵母, 声调, 笔画, 声母号, 韵母号, 声调号, 笔画号 }
   char(ch) {
     const r = PINYIN_DB[ch];
@@ -140,11 +140,11 @@ MQF.encode = {
 /* ============================================================
  * 2. 天平裁判 — 对偶观测与裁决
  * ============================================================ */
-MQF.scale = {
+NJSG.scale = {
   // 单维度评分：观测量 vs 被观测量 → 偏差
   weigh(observed, observer, axis = "tone") {
-    const a = MQF.encode.char(observed);
-    const b = MQF.encode.char(observer);
+    const a = NJSG.encode.char(observed);
+    const b = NJSG.encode.char(observer);
     const axes = {
       tone: [a.tone_idx, b.tone_idx],
       init: [a.init_idx, b.init_idx],
@@ -160,8 +160,8 @@ MQF.scale = {
 
   // 全维度裁决
   judge(textA, textB) {
-    const encA = MQF.encode.text(textA).chars;
-    const encB = MQF.encode.text(textB).chars;
+    const encA = NJSG.encode.text(textA).chars;
+    const encB = NJSG.encode.text(textB).chars;
     const len = Math.min(encA.length, encB.length);
     const verdicts = [];
     let totalScore = 0;
@@ -199,13 +199,13 @@ MQF.scale = {
 /* ============================================================
  * 3. 关系代数 — 对象 × 关系 × 交互 × 迭代
  * ============================================================ */
-MQF.algebra = {
+NJSG.algebra = {
   // 对象: { id, encoding, relations: [] }
   createObject(id, text) {
     return {
       id,
-      encoding: MQF.encode.text(text),
-      dragon: MQF.encode.dragonChain(text),
+      encoding: NJSG.encode.text(text),
+      dragon: NJSG.encode.dragonChain(text),
       createdAt: Date.now(),
       relations: [],
       state: "being" // being / non-being
@@ -233,7 +233,7 @@ MQF.algebra = {
             if (target) {
               // 观测/绑定 → 关系权重按编码距离调整
               const dist = obj.encoding.chars.length > 0 && target.encoding.chars.length > 0
-                ? MQF.encode.distance(obj.encoding.chars[0].ch, target.encoding.chars[0].ch)
+                ? NJSG.encode.distance(obj.encoding.chars[0].ch, target.encoding.chars[0].ch)
                 : 10;
               rel.weight = rel.weight * 0.9 + (1 / (1 + dist)) * 0.1;
             }
@@ -290,7 +290,7 @@ MQF.algebra = {
 /* ============================================================
  * 4. 态势逻辑 — 有无/间接传递/空间感应
  * ============================================================ */
-MQF.situation = {
+NJSG.situation = {
   // 有↔无 中介状态：两对象之间的间接连接强度
   indirectForce(objA, objB, objects, hops = 1) {
     let strength = 0;
@@ -331,7 +331,7 @@ MQF.situation = {
 
   // 态势判断：给定一组当前关系，判断整体处于什么态势
   assess(objects) {
-    const snap = MQF.algebra.snapshot(objects);
+    const snap = NJSG.algebra.snapshot(objects);
     const edges = snap.edges;
     const positive = edges.filter(e => e.type === "observe" || e.type === "bind").length;
     const transform = edges.filter(e => e.type === "transform").length;
@@ -345,28 +345,28 @@ MQF.situation = {
 /* ============================================================
  * 5. 全量入口 — 对一个文本世界做完整推演
  * ============================================================ */
-MQF.world = {
+NJSG.world = {
   // 从一个文本库构建完整对象世界
   build(texts) {
     // texts: [{ id, content }]
-    const objects = texts.map(t => MQF.algebra.createObject(t.id, t.content));
+    const objects = texts.map(t => NJSG.algebra.createObject(t.id, t.content));
     
     // 互相关系：每个对象观测其他所有对象
     for (let i = 0; i < objects.length; i++) {
       for (let j = 0; j < objects.length; j++) {
         if (i === j) continue;
-        const verdict = MQF.scale.judge(
+        const verdict = NJSG.scale.judge(
           objects[i].encoding.text, 
           objects[j].encoding.text
         );
-        MQF.algebra.addRelation(objects[i], 
-          MQF.algebra.createRelation(objects[i].id, objects[j].id, "observe", verdict.ratio)
+        NJSG.algebra.addRelation(objects[i], 
+          NJSG.algebra.createRelation(objects[i].id, objects[j].id, "observe", verdict.ratio)
         );
       }
     }
     
     // 迭代三次
-    MQF.algebra.step(objects, 3);
+    NJSG.algebra.step(objects, 3);
     
     return {
       objects: objects.map(o => ({
@@ -377,8 +377,8 @@ MQF.world = {
           ? o.relations.reduce((a,b) => a+b.weight, 0) / o.relations.length 
           : 0
       })),
-      assessment: MQF.situation.assess(objects),
-      relations: MQF.algebra.snapshot(objects)
+      assessment: NJSG.situation.assess(objects),
+      relations: NJSG.algebra.snapshot(objects)
     };
   }
 };
@@ -386,5 +386,5 @@ MQF.world = {
 /* ============================================================
  * EXPORT
  * ============================================================ */
-if (typeof module !== 'undefined') module.exports = MQF;
-if (typeof window !== 'undefined') window.MQF = MQF;
+if (typeof module !== 'undefined') module.exports = NJSG;
+if (typeof window !== 'undefined') window.NJSG = NJSG;

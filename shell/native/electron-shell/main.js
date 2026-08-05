@@ -12,7 +12,7 @@ function createWindow() {
     height: 860,
     minWidth: 900,
     minHeight: 600,
-    title: '民联浏览器 · MQF Shell v1.7',
+    title: '民联浏览器 · NJSG Shell v1.7',
     backgroundColor: '#0a0e1a',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),

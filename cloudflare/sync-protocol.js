@@ -26,8 +26,8 @@
  *   merkle_root:   ""                         // 当前默克尔根
  * }
  * 
- * 对于 Cloudflare Worker,存储在 KV (MQF_SYNC_KV)
- * 对于民联浏览器,存储在 localStorage (mqf_sync_state)
+ * 对于 Cloudflare Worker,存储在 KV (NJSG_SYNC_KV)
+ * 对于民联浏览器,存储在 localStorage (njsg_sync_state)
  */
 
 // ============== 裁定日志条目 ==============
@@ -38,9 +38,9 @@ function makeVerdictEntry(verdictResult, sender) {
     ts: Date.now(),
     sender: sender || 'self',
     entity: verdictResult.entity || 'unknown',
-    verdict: verdictResult.mqf_verdict?.trust || 'UNKNOWN',
-    confidence: verdictResult.mqf_verdict?.confidence || 0,
-    ticks: verdictResult.mqf_verdict?.five_yuan?.ticks || 0,
+    verdict: verdictResult.njsg_verdict?.trust || 'UNKNOWN',
+    confidence: verdictResult.njsg_verdict?.confidence || 0,
+    ticks: verdictResult.njsg_verdict?.five_yuan?.ticks || 0,
     hash: null             // SHA-256(JSON.stringify(entry_without_hash))
   };
   return entry;
@@ -90,14 +90,14 @@ class MqfSyncEngine {
 
   // 获取/初始化状态
   async getState() {
-    const state = await this.storage.get('mqf_sync_state');
+    const state = await this.storage.get('njsg_sync_state');
     if (state) return state;
     return { known_peers: {}, local_seq: 0, verdict_log: [], merkle_root: '00000000' };
   }
 
   // 保存状态
   async saveState(state) {
-    await this.storage.set('mqf_sync_state', state);
+    await this.storage.set('njsg_sync_state', state);
   }
 
   // 添加本地裁定
@@ -319,7 +319,7 @@ class LocalStorageAdapter {
 
 /** 解析 JSON 时自动还原 */
 async function getStateFromStorage(storage) {
-  const raw = await storage.get('mqf_sync_state');
+  const raw = await storage.get('njsg_sync_state');
   if (!raw) return null;
   try { return typeof raw === 'string' ? JSON.parse(raw) : raw; }
   catch(e) { return null; }
@@ -341,7 +341,7 @@ function newEntities(newEntries, existingEntries) {
 // ============== Cloudflare Worker 端适配器 ==============
 
 /**
- * 在 mqf-web.js 中调用:
+ * 在 njsg-web.js 中调用:
  * 
  *   import { WorkerSyncHandler } from './sync-protocol.js';
  *   
@@ -352,7 +352,7 @@ function newEntities(newEntries, existingEntries) {
  *   }
  */
 async function handleWorkerSync(request, env) {
-  const SYNC_STORAGE_KEY = 'mqf_sync_state_v1';
+  const SYNC_STORAGE_KEY = 'njsg_sync_state_v1';
   
   if (request.method !== 'POST') {
     return { error: 'POST only' };
@@ -362,7 +362,7 @@ async function handleWorkerSync(request, env) {
   try { msg = await request.json(); } catch(e) { return { error: 'invalid json' }; }
   
   // 读取 state
-  let state = await env?.MQF_SYNC_KV?.get(SYNC_STORAGE_KEY, 'json');
+  let state = await env?.NJSG_SYNC_KV?.get(SYNC_STORAGE_KEY, 'json');
   if (!state) {
     state = { known_peers: {}, local_seq: 0, verdict_log: [], merkle_root: '00000000' };
   }
@@ -385,7 +385,7 @@ async function handleWorkerSync(request, env) {
       if (msg.from) {
         state.known_peers[msg.from] = msg.seq || 0;
       }
-      await env?.MQF_SYNC_KV?.put(SYNC_STORAGE_KEY, JSON.stringify(state));
+      await env?.NJSG_SYNC_KV?.put(SYNC_STORAGE_KEY, JSON.stringify(state));
     }
     return { ok: true, added, merkle_root: state.merkle_root };
   }
@@ -395,7 +395,7 @@ async function handleWorkerSync(request, env) {
     const entries = state.verdict_log.filter(e => e.seq > since);
     return {
       type: 'resp',
-      from: 'mqf-worker',
+      from: 'njsg-worker',
       entries,
       latest_seq: state.local_seq,
       merkle_root: state.merkle_root,

@@ -1,5 +1,5 @@
 # 囡囝共生 · 技术白皮书
-> ManQuanFa NanJian Symbiosis · Technical Whitepaper
+> YinYangOS NanJian Symbiosis · Technical Whitepaper
 
 ## 一句话总结
 
@@ -39,7 +39,7 @@
 
 ## 五大核心能力
 
-### 1. MQF 编码(Identity Enslavement)
+### 1. NJSG 编码(Identity Enslavement)
 
 不存在"未经编码的身份"。任何进入囡囝共生体系的实体,先被定义 passport:
 
@@ -144,7 +144,7 @@ enslave(ExternalRule) :- parse(ExternalRule, MQHead, MQBody), assert(MQHead :- M
 
 ## 三步接入
 
-1. **跑容器** — `docker run --rm mqf-kernel:0.8 --run-demo`
+1. **跑容器** — `docker run --rm njsg-kernel:0.8 --run-demo`
 2. **接飞书 Bot** — 参考 `deploy/FEISHU.md`
 3. **写你自己的规则** — 编辑 `rules.prolog`(v0.9 将支持)
 4. **发布金壳 SDK** — 套壳工具给外部开发者(v0.9 将支持)

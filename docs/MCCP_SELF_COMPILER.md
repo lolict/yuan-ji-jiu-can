@@ -143,7 +143,7 @@ IO      := "print" 表达式 | "printc" 表达式
 ### 3.4 编译 API
 
 ```rust
-use mqf::compile_l0;
+use njsg::njsg_compile_l0;
 
 let code = compile_l0(r#"
 n = 5

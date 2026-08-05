@@ -425,9 +425,9 @@ full name anchor 把中文姓名直接映射到 256 位 SHA-256 锚。
 ```python
 from kernel.name_anchor import name_to_anchor, joint_anchor
 
-anchor_a = name_to_anchor("刘楚恬")          # → "mqf_name_a5de8919..."
-anchor_b = name_to_anchor("lolict")          # → "mqf_name_4f4993b7..."
-joint    = joint_anchor("刘楚恬", "lolict")  # → "mqf_joint_2cd664a9..."
+anchor_a = name_to_anchor("刘楚恬")          # → "njsg_name_a5de8919..."
+anchor_b = name_to_anchor("lolict")          # → "njsg_name_4f4993b7..."
+joint    = joint_anchor("刘楚恬", "lolict")  # → "njsg_joint_2cd664a9..."
 ```
 
 算法:
@@ -437,10 +437,10 @@ Input:    中文姓名
 Chain:    六十四进制编码链
     ↓ SHA-256
 Digest:   256-bit digest
-    ↓ 前缀 "mqf_" + 首 32 位 hex
-Output:   mqf_name_XXXX...
+    ↓ 前缀 "njsg_" + 首 32 位 hex
+Output:   njsg_name_XXXX...
 
-Joint:    anchor_a ⊕ anchor_b → SHA-256 → mqf_joint_...
+Joint:    anchor_a ⊕ anchor_b → SHA-256 → njsg_joint_...
 ```
 
 为什么保留 v1 (创世锚 hash % 10000):
@@ -694,7 +694,7 @@ CapabilityToken = { cap_id, scope, resource, allowed, issued_by, expires_at, pro
     |
 穿衣 (wear):选中的外壳形态包装到外层
     |
-工作 (work):目标环境上的 full mqf-os 实例
+工作 (work):目标环境上的 full njsg-os 实例
 ```
 
 ### 10.2 三层蚕蛹

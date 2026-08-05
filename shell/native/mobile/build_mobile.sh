@@ -13,8 +13,8 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$(dirname "$SCRIPT_DIR")")"
 BROWSER_DIR="${PROJECT_DIR}/browser"
-ANDROID_ASSETS="${SCRIPT_DIR}/android/app/src/main/assets/mqf_shell"
-IOS_RESOURCES="${SCRIPT_DIR}/ios/MqfShell/mqf_shell"
+ANDROID_ASSETS="${SCRIPT_DIR}/android/app/src/main/assets/njsg_shell"
+IOS_RESOURCES="${SCRIPT_DIR}/ios/MqfShell/njsg_shell"
 
 echo "=== 民联浏览器壳 v1.10 移动端构建 ==="
 echo "源: ${BROWSER_DIR}"
@@ -24,14 +24,14 @@ echo ">> 复制到 Android assets/"
 rm -rf "$ANDROID_ASSETS"
 mkdir -p "$ANDROID_ASSETS"
 cp "${BROWSER_DIR}/index.html" "$ANDROID_ASSETS/"
-cp "${BROWSER_DIR}/mqf-shell.js" "$ANDROID_ASSETS/"
+cp "${BROWSER_DIR}/njsg-shell.js" "$ANDROID_ASSETS/"
 cp "${BROWSER_DIR}/shell.css" "$ANDROID_ASSETS/"
 cp "${SCRIPT_DIR}/mobile-bridge.js" "$ANDROID_ASSETS/"
 
-# 如果存在 mqf_core.wasm,也复制过去
-if [ -f "${BROWSER_DIR}/mqf_core.wasm" ]; then
-  cp "${BROWSER_DIR}/mqf_core.wasm" "$ANDROID_ASSETS/"
-  echo "  + mqf_core.wasm 已复制"
+# 如果存在 njsg_core.wasm,也复制过去
+if [ -f "${BROWSER_DIR}/njsg_core.wasm" ]; then
+  cp "${BROWSER_DIR}/njsg_core.wasm" "$ANDROID_ASSETS/"
+  echo "  + njsg_core.wasm 已复制"
 fi
 
 echo "✅ Android assets: ${ANDROID_ASSETS}"
@@ -42,20 +42,20 @@ echo ">> 复制到 iOS Bundle Resources/"
 rm -rf "$IOS_RESOURCES"
 mkdir -p "$IOS_RESOURCES"
 cp "${BROWSER_DIR}/index.html" "$IOS_RESOURCES/"
-cp "${BROWSER_DIR}/mqf-shell.js" "$IOS_RESOURCES/"
+cp "${BROWSER_DIR}/njsg-shell.js" "$IOS_RESOURCES/"
 cp "${BROWSER_DIR}/shell.css" "$IOS_RESOURCES/"
 cp "${SCRIPT_DIR}/mobile-bridge.js" "$IOS_RESOURCES/"
 
-if [ -f "${BROWSER_DIR}/mqf_core.wasm" ]; then
-  cp "${BROWSER_DIR}/mqf_core.wasm" "$IOS_RESOURCES/"
-  echo "  + mqf_core.wasm 已复制"
+if [ -f "${BROWSER_DIR}/njsg_core.wasm" ]; then
+  cp "${BROWSER_DIR}/njsg_core.wasm" "$IOS_RESOURCES/"
+  echo "  + njsg_core.wasm 已复制"
 fi
 
 echo "✅ iOS Resources: ${IOS_RESOURCES}"
 ls -lh "$IOS_RESOURCES"
 
 # ─── 3. 获取平台信息注入 ────────────────────────────────────
-BROWSER_VERSION=$(grep 'MQF_SHELL_VERSION' "${BROWSER_DIR}/mqf-shell.js" | head -1 | sed 's/.*= *["'"'"'"]\([^"'"'"'"]*\).*/\1/')
+BROWSER_VERSION=$(grep 'NJSG_SHELL_VERSION' "${BROWSER_DIR}/njsg-shell.js" | head -1 | sed 's/.*= *["'"'"'"]\([^"'"'"'"]*\).*/\1/')
 echo ""
 echo "=== 构建完成 ==="
 echo "浏览器壳版本: ${BROWSER_VERSION}"

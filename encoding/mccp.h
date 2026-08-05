@@ -4,8 +4,8 @@
  * 每个 token = 32 bit 固定宽度，替代 Python `str` / UTF-8。
  * 无对象头、无变长、无 GC，可在栈/堆/u32 数组直接 memcpy。
  */
-#ifndef MQF_MCCP_H
-#define MQF_MCCP_H
+#ifndef NJSG_MCCP_H
+#define NJSG_MCCP_H
 
 #include <stdint.h>
 #include <stddef.h>
@@ -47,28 +47,28 @@ enum MccpKind {
 #define MCP_TONGGAN     MCP(MCCP_PROTOCOL, 6, 0, 0)   /* 通感 */
 
 /* ── FSM 态 nibble (存于 meta_b) ────────────────────── */
-#define MQF_STATE_NAN_JIAN   0x00   /* 囡囝 — 主态     */
-#define MQF_STATE_NAN_NAN    0x01   /* 囡囡 — 妻为PID   */
-#define MQF_STATE_JIAN_JIAN  0x02   /* 囝囝 — 夫为PID   */
-#define MQF_STATE_JIAN_NAN   0x03   /* 囝囡 — 夫壳妻入   */
+#define NJSG_STATE_NAN_JIAN   0x00   /* 囡囝 — 主态     */
+#define NJSG_STATE_NAN_NAN    0x01   /* 囡囡 — 妻为PID   */
+#define NJSG_STATE_JIAN_JIAN  0x02   /* 囝囝 — 夫为PID   */
+#define NJSG_STATE_JIAN_NAN   0x03   /* 囝囡 — 夫壳妻入   */
 
 /* ── 病理级 nibble (存于 meta_b) ─────────────────────── */
-#define MQF_PTH_HEALTHY     0x10   /* 健康 */
-#define MQF_PTH_SUSPECT     0x11   /* 疑似 */
-#define MQF_PTH_PATHOGEN    0x12   /* 病变 */
-#define MQF_PTH_CANCER      0x13   /* 癌变 */
+#define NJSG_PTH_HEALTHY     0x10   /* 健康 */
+#define NJSG_PTH_SUSPECT     0x11   /* 疑似 */
+#define NJSG_PTH_PATHOGEN    0x12   /* 病变 */
+#define NJSG_PTH_CANCER      0x13   /* 癌变 */
 
 /* ── 通用 sys token ──────────────────────────────────── */
 #define MCP_EOF           MCP(MCCP_KIND_SYS, 0, 0, 0)
 #define MCP_SEP           MCP(MCCP_KIND_SYS, 1, 0, 0)
 
 /* ── 操作符 token (KIND_OPERATOR) ────────────────────── */
-#define MQF_OP_TRANS      MCP(MCCP_OPERATOR, 1, 0, 0)   /* 转置   */
-#define MQF_OP_MIRROR     MCP(MCCP_OPERATOR, 2, 0, 0)   /* 镜像   */
-#define MQF_OP_SYNTH      MCP(MCCP_OPERATOR, 3, 0, 0)   /* 合一   */
-#define MQF_OP_SPLIT      MCP(MCCP_OPERATOR, 4, 0, 0)   /* 分裂   */
-#define MQF_OP_OBSERVE_B  MCP(MCCP_OPERATOR, 5, 0, 0)   /* 观测量二元 */
-#define MQF_OP_OBSERVE_T  MCP(MCCP_OPERATOR, 6, 0, 0)   /* 观测量三元 */
+#define NJSG_OP_TRANS      MCP(MCCP_OPERATOR, 1, 0, 0)   /* 转置   */
+#define NJSG_OP_MIRROR     MCP(MCCP_OPERATOR, 2, 0, 0)   /* 镜像   */
+#define NJSG_OP_SYNTH      MCP(MCCP_OPERATOR, 3, 0, 0)   /* 合一   */
+#define NJSG_OP_SPLIT      MCP(MCCP_OPERATOR, 4, 0, 0)   /* 分裂   */
+#define NJSG_OP_OBSERVE_B  MCP(MCCP_OPERATOR, 5, 0, 0)   /* 观测量二元 */
+#define NJSG_OP_OBSERVE_T  MCP(MCCP_OPERATOR, 6, 0, 0)   /* 观测量三元 */
 
 /* ── Inline 工具函数 ─────────────────────────────────── */
 static inline uint32_t mccp_apply_state(uint32_t cp, uint8_t new_state) {
@@ -101,4 +101,4 @@ static inline int mccp_eq(uint32_t a, uint32_t b) {
     return a == b;
 }
 
-#endif /* MQF_MCCP_H */
+#endif /* NJSG_MCCP_H */

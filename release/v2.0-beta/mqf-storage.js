@@ -13,7 +13,7 @@
 'use strict';
 
 (function () {
-  const DB_NAME = 'mqf_shell_db';
+  const DB_NAME = 'njsg_shell_db';
   const DB_VERSION = 1;
   const STORES = ['verdict_history', 'sync_state', 'settings', 'shell_cache'];
 
@@ -80,7 +80,7 @@
       }
       // localStorage 回退
       try {
-        localStorage.setItem(`mqf_${storeName}_${key}`, JSON.stringify({ key, value, ts: Date.now() }));
+        localStorage.setItem(`njsg_${storeName}_${key}`, JSON.stringify({ key, value, ts: Date.now() }));
         return true;
       } catch(e2) { return false; }
     },
@@ -97,7 +97,7 @@
         } catch(e) { /* fallback below */ }
       }
       try {
-        const raw = localStorage.getItem(`mqf_${storeName}_${key}`);
+        const raw = localStorage.getItem(`njsg_${storeName}_${key}`);
         if (!raw) return null;
         return JSON.parse(raw).value;
       } catch(e2) { return null; }
@@ -111,7 +111,7 @@
           return true;
         } catch(e) {}
       }
-      try { localStorage.removeItem(`mqf_${storeName}_${key}`); return true; } catch(e) { return false; }
+      try { localStorage.removeItem(`njsg_${storeName}_${key}`); return true; } catch(e) { return false; }
     },
 
     /** 列出 store 内所有键 */
@@ -123,7 +123,7 @@
         } catch(e) {}
       }
       // localStorage 回退:扫描前缀
-      const prefix = `mqf_${storeName}_`;
+      const prefix = `njsg_${storeName}_`;
       const keys = [];
       for (let i = 0; i < localStorage.length; i++) {
         const k = localStorage.key(i);
@@ -140,7 +140,7 @@
           return true;
         } catch(e) {}
       }
-      const prefix = `mqf_${storeName}_`;
+      const prefix = `njsg_${storeName}_`;
       Object.keys(localStorage)
         .filter(k => k.startsWith(prefix))
         .forEach(k => localStorage.removeItem(k));

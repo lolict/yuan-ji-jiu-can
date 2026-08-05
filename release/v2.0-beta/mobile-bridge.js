@@ -39,18 +39,18 @@
   window.mqfNative = {
     save: function (key, value) {
       try {
-        localStorage.setItem('mqf_' + key, value);
+        localStorage.setItem('njsg_' + key, value);
         return true;
       } catch (e) { return false; }
     },
     load: function (key) {
-      return localStorage.getItem('mqf_' + key);
+      return localStorage.getItem('njsg_' + key);
     },
     clear: function (key) {
-      if (key) localStorage.removeItem('mqf_' + key);
+      if (key) localStorage.removeItem('njsg_' + key);
       else {
         Object.keys(localStorage)
-          .filter(k => k.startsWith('mqf_'))
+          .filter(k => k.startsWith('njsg_'))
           .forEach(k => localStorage.removeItem(k));
       }
       return true;

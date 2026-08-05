@@ -20,8 +20,8 @@ mkdir -p "$OUT_DIR"
 # ─── 核心文件 ────────────────────────────────────────
 echo ">> 复制浏览器壳核心文件"
 cp "${SRC_DIR}/index.html" "$OUT_DIR/"
-cp "${SRC_DIR}/mqf-shell.js" "$OUT_DIR/"
-cp "${SRC_DIR}/mqf-storage.js" "$OUT_DIR/"
+cp "${SRC_DIR}/njsg-shell.js" "$OUT_DIR/"
+cp "${SRC_DIR}/njsg-storage.js" "$OUT_DIR/"
 cp "${SRC_DIR}/mobile-bridge.js" "$OUT_DIR/"
 cp "${SRC_DIR}/shell.css" "$OUT_DIR/"
 
@@ -36,7 +36,7 @@ cp "${PROJECT_DIR}/docs/WASM_CORE_v17.md" "$OUT_DIR/docs/" 2>/dev/null || true
 echo ">> 生成 manifest"
 cat > "$OUT_DIR/MANIFEST.json" << EOF
 {
-  "name": "民联浏览器 · MQF Shell",
+  "name": "民联浏览器 · NJSG Shell",
   "version": "v2.0-beta",
   "codename": "民联公开Beta",
   "release_date": "$(date +%Y-%m-%d)",
@@ -48,8 +48,8 @@ cat > "$OUT_DIR/MANIFEST.json" << EOF
   },
   "files": {
     "index.html": "入口 HTML",
-    "mqf-shell.js": "裁定引擎 + UI 控制器",
-    "mqf-storage.js": "持久化存储 (IndexedDB/localStorage)",
+    "njsg-shell.js": "裁定引擎 + UI 控制器",
+    "njsg-storage.js": "持久化存储 (IndexedDB/localStorage)",
     "mobile-bridge.js": "移动端桥 (Android/iOS/浏览器)",
     "shell.css": "暗色主题样式"
   },
@@ -118,16 +118,16 @@ cargo tauri dev
 ### 方式 5: Python WebView
 ```bash
 pip install pywebview
-python3 shell/native/mqf_webview.py
+python3 shell/native/njsg_webview.py
 ```
 
 ## WASM 内核 (可选)
 
-将 mqf_core.wasm 放置于 index.html 旁边,浏览器会自动检测并使用。
+将 njsg_core.wasm 放置于 index.html 旁边,浏览器会自动检测并使用。
 
 ```bash
 # 编译
-/opt/wasi-sdk/bin/clang --target=wasm32-wasi -O2 -o index.html.dir/mqf_core.wasm kernel/wasm/mqf_c
+/opt/wasi-sdk/bin/clang --target=wasm32-wasi -O2 -o index.html.dir/njsg_core.wasm kernel/wasm/njsg_c
 ```
 
 ## 裁定 API
@@ -144,7 +144,7 @@ const result = mqfVerdictEngine({
   force: 15,
   angle: 45
 });
-// → { mqf_verdict: { trust: 'TRUSTED', confidence: 0.85, ... } }
+// → { njsg_verdict: { trust: 'TRUSTED', confidence: 0.85, ... } }
 ```
 
 ## 多节点同步
