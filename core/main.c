@@ -1,5 +1,5 @@
 /**
- * main.c — 满全法 C 内核
+ * main.c — 囡囝共生 C 内核
  *
  * 第一个真正用 C 写、无 Python 依赖的可执行目标。
  * 编译: clang -O2 -std=c17 -I. core/main.c core/mqf_kernel.c -o mqf.elf
@@ -216,7 +216,7 @@ static void test_memory_footprint(void) {
 /* ── 主入口 ───────────────────────────────────────────── */
 int main(void) {
     printf("╔══════════════════════════════════════════════════╗\n");
-    printf("║    满全法 · 囡囝共生元 · C 核心 v0.3 (proto)    ║\n");
+    printf("║    囡囝共生 · 囡囝共生元 · C 核心 v0.3 (proto)    ║\n");
     printf("║    语言: C (clang -O2 -std=c17)                 ║\n");
     printf("║    无 Python, 无 GC, 无运行时                    ║\n");
     printf("╚══════════════════════════════════════════════════╝\n");

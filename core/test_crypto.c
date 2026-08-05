@@ -1,5 +1,5 @@
 /**
- * test_crypto.c — 满全法 C 加密层测试
+ * test_crypto.c — 囡囝共生 C 加密层测试
  *
  * 编译:
  *   clang -O2 -std=c17 -Wall -Wextra -Werror -I. \
@@ -178,7 +178,7 @@ static void test_full_handshake(void) {
 
 int main(void) {
     printf("╔══════════════════════════════════════════════════╗\n");
-    printf("║    满全法 · 加密层 C 测试 (libcrypto + libsodium)║\n");
+    printf("║    囡囝共生 · 加密层 C 测试 (libcrypto + libsodium)║\n");
     printf("║    无 Python, 无 MIT/Apache                     ║\n");
     printf("╚══════════════════════════════════════════════════╝\n");
 

@@ -1,4 +1,4 @@
-# MCCP — 满全法紧凑码点 (MǎnQuánFǎ Compact Codepoint)
+# MCCP — 囡囝共生紧凑码点 (Nǎnjìnggòngshēng Compact Codepoint)
 
 > 替代 UTF-8 / Python `str` 的内置编码方案。
 > 每个字符 = 32 bit (4 Byte) 固定宽度，无对象头、无变长、无 GC。

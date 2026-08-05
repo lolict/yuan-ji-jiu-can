@@ -1,5 +1,5 @@
 /**
- * mqf_kernel.c — 满全法 C 内核实现
+ * mqf_kernel.c — 囡囝共生 C 内核实现
  *
  * 直接替代 Python 版 kernel.py。
  * 编译: clang -O2 -Wall -std=c17 core/mqf_kernel.c core/main.c -o mqf.elf

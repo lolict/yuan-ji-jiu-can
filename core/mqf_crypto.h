@@ -1,5 +1,5 @@
 /**
- * mqf_crypto.h — 满全法加密层
+ * mqf_crypto.h — 囡囝共生加密层
  *
  * 提供:
  *   - X25519 ECDH (via libsodium 或 libcrypto EVP)

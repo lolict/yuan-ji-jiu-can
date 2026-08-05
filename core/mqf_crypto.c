@@ -1,5 +1,5 @@
 /**
- * mqf_crypto.c — 满全法加密层 (C 实现)
+ * mqf_crypto.c — 囡囝共生加密层 (C 实现)
  *
  * 编译: clang -O2 -std=c17 core/mqf_crypto.c core/test_crypto.c \
  *            -o core/mqf_crypto_test.elf -lsodium -lcrypto

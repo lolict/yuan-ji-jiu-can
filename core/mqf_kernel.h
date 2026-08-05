@@ -1,5 +1,5 @@
 /**
- * mqf_kernel.h — 满全法内核公共类型 + FSM
+ * mqf_kernel.h — 囡囝共生内核公共类型 + FSM
  *
  * 所有数据都是 u32/u8 栈数组或手动 malloc，没有 Python 对象。
  * 这意味着可以编译为裸机固件、WebAssembly、或 Android NDK 共享库。
