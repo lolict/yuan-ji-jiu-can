@@ -1,0 +1,4 @@
+# 编译产物(不含入仓库)
+*.o
+test_yy
+_yy_out_temp.js

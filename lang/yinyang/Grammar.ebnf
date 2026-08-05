@@ -1,0 +1,57 @@
+# 阴阳三进制语言文法(EBNF)
+# 囡囧共生 v2.0 的编程语言层面
+
+# === 基础 ===
+letter    = 'a'..'z' | 'A'..'Z' | '_' ;
+digit     = '0'..'9' ;
+symchar   = letter | digit | '-' | '?' | '!' ;
+symbol    = letter , { symchar } ;
+number    = [ '-' ] , digit , { digit } , [ '.' , digit , { digit } ] ;
+
+# === 3D 容器 ===
+program         = { expr } ;
+expr            = number | symbol | string | container | operation ;
+container       = '(' , tag , { expr } , ')' ;
+tag             = '0' | '1' | symbol ;   (* 0=阴/容器,1=阳/被含,其他=命名容器 *)
+operation       = '(' , op_keyword , { expr } , ')' ;
+op_keyword      = "评" | "判" | "变" | "含" | "释" | "接" | "闭" | "命名" | "引用"
+                | "judge" | "verdict" | "mirror" | "hold" | "release" | "link" | "loopback"
+                | "def" | "quote" ;
+string          = '"' , { char - '"' } , '"' ;
+comment         = ';' , { char } , '\n' ;
+
+# === 语义约束 ===
+#
+# container 的 tag:
+#   0  → 阴开启(outer=0 闭锁,inner=0 空)
+#   1  → 阳填充(outer=1 开放,inner=1 有物)
+#   符号 → 命名容器
+#
+# depth 计算:嵌套容器 depth+1,最大 64 层
+# flow 初始 0(静止),有子 1(含内容),含 verdict 2(闭环)
+#
+# === 示例 ===
+#
+# ;; 示例 1:基础裁决
+# (0 0.85 0.90 15 45
+#    (评)
+#    (判)
+# )
+#
+# ;; 示例 2:3D 嵌套
+# (0
+#    (req 0.85 0.90 15 45)
+#    (变)
+#    (0 (评) (判))
+#    (闭)
+# )
+#
+# ;; 示例 3:时间因果链
+# (0
+#    (def n 0)
+#    (loop (< n 10)
+#      (:= n (+ n 1))
+#      (评 0.5 0.5 1 0)
+#    )
+#    (判)
+# )
