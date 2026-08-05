@@ -1,4 +1,4 @@
-// 满全法 WASM 执行槽 v0.4
+// 囡囝共生 WASM 执行槽 v0.4
 // Zig 加载器 + 字节码执行 + 守门人桥接
 
 const std = @import("std");
