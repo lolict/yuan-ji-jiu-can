@@ -10,7 +10,7 @@
  *   - window.mqfNative 统一接口 (save/load/clear/getPlatform)
  * 
  * 功能:
- *   1. 优先加载 mqf_core.wasm (WASI 裁定内核)
+ *   1. 优先加载 njsg_core.wasm (WASI 裁定内核)
  *   2. 如 WASM 不可用,自动回退到 JS 实现
  *   3. 提供裁定台 UI 控制器 / 旋钮可视化 / 蜂窝嵌套视图
  *   4. 移动端原生持久化 (优先) / localStorage (回退)
@@ -110,7 +110,7 @@ function mqfVerdictEngine(request) {
 // ============== WASM 加载器 ==============
 
 /**
- * 尝试加载 mqf_core.wasm
+ * 尝试加载 njsg_core.wasm
  * 如可用,使用 WASI 接口; 如不可用,回退到 JS 实现
  */
 const MqfCore = {
@@ -122,7 +122,7 @@ const MqfCore = {
     // 尝试加载 wasm
     try {
       if (typeof WebAssembly !== 'undefined') {
-        const response = await fetch('./mqf_core.wasm', { method: 'GET' });
+        const response = await fetch('./njsg_core.wasm', { method: 'GET' });
         if (response.ok) {
           const buf = await response.arrayBuffer();
           this.wasmModule = await WebAssembly.instantiate(buf, {

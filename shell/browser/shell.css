@@ -157,7 +157,7 @@ body {
 }
 .mqf-verdict-icon.trusted { color: var(--mqf-ok); filter: drop-shadow(0 0 12px #4ade8066); }
 .mqf-verdict-icon.rejected { color: var(--mqf-danger); filter: drop-shadow(0 0 12px #f8717166); }
-.mvf-verdict-label {
+.mqf-verdict-label {
   font-size: 1.5rem;
   font-weight: 700;
   letter-spacing: 0.15em;

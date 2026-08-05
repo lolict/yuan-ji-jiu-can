@@ -1,14 +1,14 @@
 #!/bin/bash
 # 民联浏览器壳 · WASM 内核编译脚本 v1.7
 # ====================================
-# 编译 mqf_wasm.c → mqf_core.wasm (供浏览器壳使用)
+# 编译 mqf_wasm.c → njsg_core.wasm (供浏览器壳使用)
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")/.."
 SRC="${PROJECT_DIR}/../kernel/wasm/mqf_wasm.c"
-OUT="${PROJECT_DIR}/browser/mqf_core.wasm"
+OUT="${PROJECT_DIR}/browser/njsg_core.wasm"
 
 echo "=== 民联浏览器壳 WASM 编译 ==="
 echo "源文件: ${SRC}"
@@ -49,6 +49,6 @@ ls -lh "$OUT"
 
 # 验证
 if command -v wasmtime &> /dev/null; then
-  echo ">> 运行测试: wasmtime mqf_core.wasm"
+  echo ">> 运行测试: wasmtime njsg_core.wasm"
   echo '{"entity":"ios","compliance_a":0.9,"compliance_b":0.85,"force":15,"angle":45}' | wasmtime "$OUT" 2>/dev/null || echo "WASI stdin 测试失败,但这不影响浏览器壳回退到 JS"
 fi

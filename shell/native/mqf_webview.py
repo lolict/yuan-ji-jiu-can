@@ -53,7 +53,7 @@ def launch_webview():
 # ─── 方案 B: WASM 直接调用 (wasmtime) ───────────────────────────
 
 def run_wasm_verdict(wasm_path, entity, compliance_a, compliance_b, force, angle):
-    """直接调用 mqf_core.wasm"""
+    """直接调用 njsg_core.wasm"""
     request = json.dumps({
         'entity': entity,
         'compliance_a': float(compliance_a),
@@ -80,7 +80,7 @@ def run_wasm_verdict(wasm_path, entity, compliance_a, compliance_b, force, angle
 if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == '--wasm':
         # 命令行直接裁定
-        wasm = sys.argv[2] if len(sys.argv) > 2 else '../kernel/wasm/mqf_core.wasm'
+        wasm = sys.argv[2] if len(sys.argv) > 2 else '../kernel/wasm/njsg_core.wasm'
         entity = input('实体名: ') or 'test'
         a = input('合规度 A [0.85]: ') or '0.85'
         b = input('合规度 B [0.80]: ') or '0.80'

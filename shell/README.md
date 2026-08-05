@@ -79,7 +79,7 @@ cargo tauri build            # 打包发布
 
 ## WASM 内核集成
 
-当 `mqf_core.wasm` 文件放置于 `shell/browser/` 目录下时,
+当 `njsg_core.wasm` 文件放置于 `shell/browser/` 目录下时,
 壳会自动检测并使用 WASI 接口调用裁定引擎。
 
 ```bash
@@ -87,7 +87,7 @@ cargo tauri build            # 打包发布
 /opt/wasi-sdk/bin/clang \
   --target=wasm32-wasi \
   -O2 \
-  -o shell/browser/mqf_core.wasm \
+  -o shell/browser/njsg_core.wasm \
   kernel/wasm/mqf_wasm.c
 ```
 
