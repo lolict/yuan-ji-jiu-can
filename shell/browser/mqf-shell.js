@@ -81,9 +81,10 @@ function mqfVerdictEngine(request) {
   // 六元: 信任交集 + 镜像对齐
   const { intersection, mirrorAligned, verdict } = sixYuanVerdict(complianceA, complianceB);
 
+  // 与 C 端 mqf_wasm.c 中 NJ_PHRASE_TRUSTED/REJECTED 保持文字一致(共生赔伴律)
   const philosophy = verdict === VerdictState.TRUSTED
-    ? '已被铭记 — 双重背书,可信任'
-    : '仍在观察 — 单方或双方否决';
+    ? '已被铭记 — 双重背书,可共生'
+    : '仍在观察 — 单方或双方否决,待共首源';
 
   return {
     ok: true,
