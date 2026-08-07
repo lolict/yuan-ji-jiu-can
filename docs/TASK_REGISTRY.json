@@ -1,0 +1,129 @@
+{
+  "project": "囡囝共生 (NJSG)",
+  "repository": "github.com/lolict/hunyuan-os",
+  "version": "v2.0-swarm",
+  "last_sync": "2026-08-07",
+  "tasks": [
+    {
+      "id": "v0.1-v0.8",
+      "version": "v0.8",
+      "name": "反客为主+金壳封装+统计锥",
+      "status": "completed",
+      "priority": 3,
+      "entry_file": "kernel/src/njsg_kernel.c",
+      "description": "身份让渡/镜像代理/集装箱/统计锥切片/反客为主。场景A-K全部编译通过",
+      "assignee": null,
+      "progress": 100,
+      "dependencies": []
+    },
+    {
+      "id": "v1.0-five-yuan",
+      "version": "v1.0",
+      "name": "五元旋钮运动步量",
+      "status": "completed",
+      "priority": 3,
+      "entry_file": "kernel/src/njsg_kernel.c",
+      "description": "njsg_five_yuan_push/register/set_ratio/print + L1-L4四场景。step累加+角度wrap360+占存判定(accumulated_ticks>阈值=铭记)",
+      "assignee": null,
+      "progress": 100,
+      "dependencies": []
+    },
+    {
+      "id": "v1.1-six-yuan",
+      "version": "v1.1",
+      "name": "六元对称群+六面体",
+      "status": "completed",
+      "priority": 3,
+      "entry_file": "kernel/src/njsg_kernel.c",
+      "description": "njsg_six_yuan_register_pair/set_trust/verdict/print_sides。信任交集=min(ta,tb)+镜像对齐|ta-tb|<0.2+六面体投影",
+      "assignee": null,
+      "progress": 100,
+      "dependencies": []
+    },
+    {
+      "id": "v1.2-seven-yuan",
+      "version": "v1.2",
+      "name": "七元蜂窝套壳",
+      "status": "completed",
+      "priority": 3,
+      "entry_file": "kernel/src/njsg_kernel.c",
+      "description": "njsg_shell_nest_wrap/insert/honeycomb/print。壳中壳递归嵌套+6子壳蜂窝密铺+三方场景N1-N3",
+      "assignee": null,
+      "progress": 100,
+      "dependencies": []
+    },
+    {
+      "id": "v1.3-full-stack",
+      "version": "v1.3",
+      "name": "全栈联动+飞书Bot+囡囝AI",
+      "status": "completed",
+      "priority": 3,
+      "entry_file": "kernel/src/njsg_kernel.c",
+      "description": "飞书Bot Bridge+囡囝AI助手+ROADMAP铁律自动化自检+全栈联动总览",
+      "assignee": null,
+      "progress": 100,
+      "dependencies": ["v1.0-five-yuan", "v1.1-six-yuan", "v1.2-seven-yuan"]
+    },
+    {
+      "id": "wasm-kernel",
+      "version": "v2.0-ladder",
+      "name": "WASM阶梯制 C 源码（32/64位同源码）",
+      "status": "source_ready",
+      "priority": 2,
+      "entry_file": "kernel/wasm/njsg_wasm.c",
+      "description": "阶梯制·双向公约已实现C源码。移植了五/六/七元裁定逻辑+JSON stdin输入+trust/verdict/eternal输出。沙箱缺wasm-ld，wasm二进制未产出",
+      "assignee": null,
+      "progress": 85,
+      "dependencies": ["v1.0-five-yuan", "v1.1-six-yuan", "v1.2-seven-yuan"]
+    },
+    {
+      "id": "bootstrap-self-compiler",
+      "version": "v2.0",
+      "name": "自举编译器 Rust 源码",
+      "status": "source_ready",
+      "priority": 2,
+      "entry_file": "hunyuan-rs/src/self_bootstrap.rs",
+      "description": "consciousness_bootstrap.rs + self_bootstrap.rs 源码存在。固定点证明链路(encode→MCCP→64bit→聚类→decode)已定义。沙箱缺rustc/cargo，未编译验证",
+      "assignee": null,
+      "progress": 60,
+      "dependencies": ["v1.0-five-yuan", "v1.1-six-yuan", "v1.2-seven-yuan"]
+    },
+    {
+      "id": "meta-ime",
+      "version": "v2.0",
+      "name": "元输入法 MetaIME (Android)",
+      "status": "skeleton",
+      "priority": 2,
+      "entry_file": "android/src/",
+      "description": "Android IME Kotlin+Rust 七层编码驱动骨架目录存在，无实质代码",
+      "assignee": null,
+      "progress": 5,
+      "dependencies": []
+    },
+    {
+      "id": "mengji-network",
+      "version": "v1.4-v1.6",
+      "name": "盟机合网络+多节点同步",
+      "status": "not_started",
+      "priority": 3,
+      "entry_file": "kernel/src/njsg_kernel.c",
+      "description": "盟机合掌/盟机场/Gossip风格去中心化裁定同步+v1.4-v1.6合伙人协议。仅有规划文档，未实现",
+      "assignee": null,
+      "progress": 0,
+      "dependencies": ["v1.3-full-stack"]
+    }
+  ],
+  "agents": {
+    "max_concurrent": 4,
+    "heartbeat_interval_ms": 30000,
+    "sync_strategy": "gossip_push_pull"
+  },
+  "sandbox_tools": {
+    "clang": true,
+    "rustc": false,
+    "cargo": false,
+    "wasm_ld": false,
+    "make": true
+  },
+  "last_verified": "2026-08-14T06:00:00Z"
+}
