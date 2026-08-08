@@ -22,6 +22,7 @@ typedef enum {
     SYM_RADICAL,        /* 部首 */
     SYM_COLOR,          /* 颜色 */
     SYM_PHASE,          /* 相位角度 */
+    SYM_STROKE,         /* 笔画数 */
     SYM_DIMENSION_COUNT /* 维度计数 */
 } symbol_dim_t;
 
@@ -210,6 +211,20 @@ static void mlll_enumerate_colors(void) {
     }
 }
 
+/* === 维度6：笔画数枚举（1-64画，汉字骨骼密度）=== */
+static void mlll_enumerate_strokes(void) {
+    for (int s = 1; s <= 64; s++) {
+        if (REG.count >= MLLL_SYMBOLS_MAX) return;
+        mlll_symbol_t *e = &REG.entries[REG.count];
+        e->id          = symbol_hash(SYM_STROKE, s, 0);
+        e->dim         = SYM_STROKE;
+        e->property_a  = s;          /* 笔画数本体 */
+        e->property_b  = s * s;      /* 笔画数平方（结构复杂度代理） */
+        snprintf(e->name, sizeof(e->name), "stroke_%d", s);
+        REG.count++;
+    }
+}
+
 /* === 第二步：时间排队 + 分配偏移 === */
 static void mlll_assign_offsets(double delta) {
     for (uint32_t i = 0; i < REG.count; i++) {
@@ -254,6 +269,8 @@ void mlll_init(double delta) {
     mlll_enumerate_phases(30);
     /* 颜色维度：380-780nm，每 20nm 一个符号 */
     mlll_enumerate_colors();
+    /* 笔画维度：1-64 画，覆盖全部汉字骨骼范围 */
+    mlll_enumerate_strokes();
     mlll_assign_offsets(delta);
 }
 
@@ -277,7 +294,7 @@ void mlll_print_stats(void) {
         if (REG.entries[i].dim < SYM_DIMENSION_COUNT) dim_counts[REG.entries[i].dim]++;
     }
     printf("\nDimension breakdown:\n");
-    const char* dim_names[] = {"Geometry", "Tone", "Radical", "Color", "Phase"};
+    const char* dim_names[] = {"Geometry", "Tone", "Radical", "Color", "Phase", "Stroke"};
     for (int d = 0; d < SYM_DIMENSION_COUNT; d++) {
         printf("  %s: %u symbols\n", dim_names[d], dim_counts[d]);
     }
