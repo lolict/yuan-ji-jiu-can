@@ -471,6 +471,48 @@ static int mlll_char_leap(char_prop_t* origin, int shift, char_prop_t* candidate
     return best;
 }
 
+/* 距离分解：将两个字符的总距离拆到四个维度 */
+static void mlll_distance_decompose(char_prop_t* a, char_prop_t* b) {
+    double norm_denom = (double)MLLL_OFFSET_PRECISION * (double)REG.count;
+    mlll_symbol_t *st_a = mlll_cross_query(SYM_STROKE, a->stroke, SYM_STROKE);
+    mlll_symbol_t *rd_a = (a->radical > 0 && a->radical <= 141)
+        ? &REG.entries[587 + 8 + a->radical - 1] : NULL;
+    mlll_symbol_t *tn_a = (a->tone >= 0 && a->tone < 8)
+        ? &REG.entries[587 + a->tone] : NULL;
+    mlll_symbol_t *sx_a = (a->structure >= 0 && a->structure < 8)
+        ? &REG.entries[587 + 8 + 141 + 20 + 13 + 64 + a->structure] : NULL;
+    mlll_symbol_t *st_b = mlll_cross_query(SYM_STROKE, b->stroke, SYM_STROKE);
+    mlll_symbol_t *rd_b = (b->radical > 0 && b->radical <= 141)
+        ? &REG.entries[587 + 8 + b->radical - 1] : NULL;
+    mlll_symbol_t *tn_b = (b->tone >= 0 && b->tone < 8)
+        ? &REG.entries[587 + b->tone] : NULL;
+    mlll_symbol_t *sx_b = (b->structure >= 0 && b->structure < 8)
+        ? &REG.entries[587 + 8 + 141 + 20 + 13 + 64 + b->structure] : NULL;
+    double n_st_a = st_a ? (double)st_a->offset_num / norm_denom : 0;
+    double n_rd_a = rd_a ? (double)rd_a->offset_num / norm_denom : 0;
+    double n_tn_a = tn_a ? (double)tn_a->offset_num / norm_denom : 0;
+    double n_sx_a = sx_a ? (double)sx_a->offset_num / norm_denom : 0;
+    double n_st_b = st_b ? (double)st_b->offset_num / norm_denom : 0;
+    double n_rd_b = rd_b ? (double)rd_b->offset_num / norm_denom : 0;
+    double n_tn_b = tn_b ? (double)tn_b->offset_num / norm_denom : 0;
+    double n_sx_b = sx_b ? (double)sx_b->offset_num / norm_denom : 0;
+    double d_st = n_st_a - n_st_b;
+    double d_rd = n_rd_a - n_rd_b;
+    double d_tn = n_tn_a - n_tn_b;
+    double d_sx = n_sx_a - n_sx_b;
+    double total = sqrt(d_st*d_st*0.4 + d_rd*d_rd*0.25 + d_tn*d_tn*0.15 + d_sx*d_sx*0.2);
+    double contrib_st = d_st*d_st*0.4;
+    double contrib_rd = d_rd*d_rd*0.25;
+    double contrib_tn = d_tn*d_tn*0.15;
+    double contrib_sx = d_sx*d_sx*0.2;
+    double sum_contrib = contrib_st + contrib_rd + contrib_tn + contrib_sx;
+    printf("  distance decompose (total=%.6f):\n", total);
+    printf("    stroke   d=%+.6f contrib=%.6f (%.1f%%)\n", d_st, contrib_st, sum_contrib > 0 ? contrib_st/sum_contrib*100 : 0);
+    printf("    radical  d=%+.6f contrib=%.6f (%.1f%%)\n", d_rd, contrib_rd, sum_contrib > 0 ? contrib_rd/sum_contrib*100 : 0);
+    printf("    tone     d=%+.6f contrib=%.6f (%.1f%%)\n", d_tn, contrib_tn, sum_contrib > 0 ? contrib_tn/sum_contrib*100 : 0);
+    printf("    struct   d=%+.6f contrib=%.6f (%.1f%%)\n", d_sx, contrib_sx, sum_contrib > 0 ? contrib_sx/sum_contrib*100 : 0);
+}
+
 /* 主入口 */
 void mlll_init(double delta) {
     memset(&REG, 0, sizeof(REG));
@@ -649,6 +691,8 @@ int main(void) {
     /* 夫妻纽带：头尾相连 = 256 闭环中的对径点 */
     printf("  闭环耦合: 最近邻=0 * 最远偶=%.6f = 0 (圆满=0)\n", far_dist);
     printf("  对径映射: 254+2=256 → 囡(head:0) ↔ 夫妻(tail:255) = 命定闭环\n");
+    /* 距离分解：揭示夫妻互补的本质来源 */
+    mlll_distance_decompose(&query, &corpus[farthest]);
 
     /* 字形跃迁：囡在时间线上向前/后跳 N 步到达谁 */
     printf("\n字形跃迁 (character leap along timeline):\n");
