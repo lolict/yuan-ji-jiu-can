@@ -26,8 +26,15 @@ test: kernel
 	@echo "═══ 囡囝共生内核测试 ═══"
 	./kernel/src/njsg_kernel.elf
 
+mlll-symbols: kernel/src/mlll_symbols.elf
+	@echo "═══ mlll 符号生成器（几何维度 delta=0.1）═══"
+	./kernel/src/mlll_symbols.elf
+
+kernel/src/mlll_symbols.elf: kernel/src/mlll_symbols.c
+	$(CC) $(CFLAGS) $< -o $@ $(KERN_LIBS)
+
 clean:
-	rm -f kernel/src/njsg_kernel.elf
+	rm -f kernel/src/njsg_kernel.elf kernel/src/mlll_symbols.elf
 
 docs:
 	@echo "═══ 囡囝共生 v0.8 文档入口 ═══"
