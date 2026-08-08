@@ -23,6 +23,7 @@ typedef enum {
     SYM_COLOR,          /* 颜色 */
     SYM_PHASE,          /* 相位角度 */
     SYM_STROKE,         /* 笔画数 */
+    SYM_STRUCTURE,      /* 字形结构 */
     SYM_DIMENSION_COUNT /* 维度计数 */
 } symbol_dim_t;
 
@@ -225,6 +226,33 @@ static void mlll_enumerate_strokes(void) {
     }
 }
 
+/* === 维度7：字形结构枚举 ===
+ * 汉字的组件空间排布方式——独体/左右/上下/半包围/全包围/品字/左中右/上中下
+ */
+static void mlll_enumerate_structures(void) {
+    static const char* struct_names[] = {
+        "single",       /* 独体 */
+        "leftright",    /* 左右 */
+        "topbottom",    /* 上下 */
+        "halfwrap",     /* 半包围 */
+        "fullwrap",     /* 全包围 */
+        "pin",          /* 品字 */
+        "lcr",          /* 左中右 */
+        "tcb"           /* 上中下 */
+    };
+    int n = sizeof(struct_names) / sizeof(struct_names[0]);
+    for (int i = 0; i < n; i++) {
+        if (REG.count >= MLLL_SYMBOLS_MAX) return;
+        mlll_symbol_t *e = &REG.entries[REG.count];
+        e->id          = symbol_hash(SYM_STRUCTURE, i, 0);
+        e->dim         = SYM_STRUCTURE;
+        e->property_a  = i;   /* 结构类型号 */
+        e->property_b  = (int64_t)(i + 1) * (i + 1);  /* 结构复杂度代理 */
+        snprintf(e->name, sizeof(e->name), "struct_%s", struct_names[i]);
+        REG.count++;
+    }
+}
+
 /* === 第二步：时间排队 + 分配偏移 === */
 static void mlll_assign_offsets(double delta) {
     for (uint32_t i = 0; i < REG.count; i++) {
@@ -331,6 +359,7 @@ typedef struct {
     int stroke;
     int tone;
     int radical;
+    int structure; /* 0=独体 1=左右 2=上下 3=半包围 4=全包围 5=品字 6=左中右 7=上中下 */
 } char_prop_t;
 
 static void mlll_string_encode(const char* name, char_prop_t* chars, int len) {
@@ -356,30 +385,37 @@ static void mlll_string_encode(const char* name, char_prop_t* chars, int len) {
            first_offset, last_offset, last_offset - first_offset);
 }
 
-/* 字符距离：六维空间中的相似度（归一化到 [0,1]） */
+/* 字符距离：七维空间中的相似度（归一化到 [0,1]） */
 static double mlll_char_distance(char_prop_t* a, char_prop_t* b) {
     mlll_symbol_t *st_a = mlll_cross_query(SYM_STROKE, a->stroke, SYM_STROKE);
     mlll_symbol_t *rd_a = (a->radical > 0 && a->radical <= 141)
         ? &REG.entries[587 + 8 + a->radical - 1] : NULL;
     mlll_symbol_t *tn_a = (a->tone >= 0 && a->tone < 8)
         ? &REG.entries[587 + a->tone] : NULL;
+    mlll_symbol_t *sx_a = (a->structure >= 0 && a->structure < 8)
+        ? &REG.entries[587 + 8 + 141 + 20 + 13 + 64 + a->structure] : NULL;
     mlll_symbol_t *st_b = mlll_cross_query(SYM_STROKE, b->stroke, SYM_STROKE);
     mlll_symbol_t *rd_b = (b->radical > 0 && b->radical <= 141)
         ? &REG.entries[587 + 8 + b->radical - 1] : NULL;
     mlll_symbol_t *tn_b = (b->tone >= 0 && b->tone < 8)
         ? &REG.entries[587 + b->tone] : NULL;
+    mlll_symbol_t *sx_b = (b->structure >= 0 && b->structure < 8)
+        ? &REG.entries[587 + 8 + 141 + 20 + 13 + 64 + b->structure] : NULL;
     /* 归一化到 [0,1] */
     double norm_denom = (double)MLLL_OFFSET_PRECISION * (double)REG.count;
     double n_st_a = st_a ? (double)st_a->offset_num / norm_denom : 0;
     double n_rd_a = rd_a ? (double)rd_a->offset_num / norm_denom : 0;
     double n_tn_a = tn_a ? (double)tn_a->offset_num / norm_denom : 0;
+    double n_sx_a = sx_a ? (double)sx_a->offset_num / norm_denom : 0;
     double n_st_b = st_b ? (double)st_b->offset_num / norm_denom : 0;
     double n_rd_b = rd_b ? (double)rd_b->offset_num / norm_denom : 0;
     double n_tn_b = tn_b ? (double)tn_b->offset_num / norm_denom : 0;
+    double n_sx_b = sx_b ? (double)sx_b->offset_num / norm_denom : 0;
     double d_st = n_st_a - n_st_b;
     double d_rd = n_rd_a - n_rd_b;
     double d_tn = n_tn_a - n_tn_b;
-    return sqrt(d_st*d_st*0.5 + d_rd*d_rd*0.3 + d_tn*d_tn*0.2);
+    double d_sx = n_sx_a - n_sx_b;
+    return sqrt(d_st*d_st*0.4 + d_rd*d_rd*0.25 + d_tn*d_tn*0.15 + d_sx*d_sx*0.2);
 }
 
 /* 距离矩阵 */
@@ -430,6 +466,8 @@ void mlll_init(double delta) {
     mlll_enumerate_colors();
     /* 笔画维度：1-64 画，覆盖全部汉字骨骼范围 */
     mlll_enumerate_strokes();
+    /* 字形结构维度：8 种结构类型 */
+    mlll_enumerate_structures();
     mlll_assign_offsets(delta);
 }
 
@@ -453,7 +491,7 @@ void mlll_print_stats(void) {
         if (REG.entries[i].dim < SYM_DIMENSION_COUNT) dim_counts[REG.entries[i].dim]++;
     }
     printf("\nDimension breakdown:\n");
-    const char* dim_names[] = {"Geometry", "Tone", "Radical", "Color", "Phase", "Stroke"};
+    const char* dim_names[] = {"Geometry", "Tone", "Radical", "Color", "Phase", "Stroke", "Structure"};
     for (int d = 0; d < SYM_DIMENSION_COUNT; d++) {
         printf("  %s: %u symbols\n", dim_names[d], dim_counts[d]);
     }
@@ -531,29 +569,29 @@ int main(void) {
     mlll_character_demo(6, 0, 31);
 
     /* === 字符串编码：囡囝共生 === */
-    /* 囡(6画/囗部31/阴平0) 囝(6画/囗部31/阴平0) 共(6画/八部17/去声3) 生(5画/生部107/阴平0) */
+    /* 囡(6画/囗部31/阴平0/全包围4) 囝(6/31/0/4) 共(6/17/3/上下2) 生(5/107/0/独体0) */
     char_prop_t njsg[] = {
-        {6, 0, 31},  /* 囡 */
-        {6, 0, 31},  /* 囝 */
-        {6, 3, 17},  /* 共 */
-        {5, 0, 107}, /* 生 */
+        {6, 0, 31, 4},  /* 囡 全包围 */
+        {6, 0, 31, 4},  /* 囝 全包围 */
+        {6, 3, 17, 2},  /* 共 上下 */
+        {5, 0, 107, 0}, /* 生 独体 */
     };
     mlll_string_encode("nan_jian_gong_sheng", njsg, 4);
     mlll_string_distance_matrix("nan_jian_gong_sheng", njsg, 4);
 
     /* 扩展字符集：含囡囝共生+ 额外字符，验证最邻近检索 */
     char_prop_t corpus[] = {
-        {6, 0, 31},   /* [0] 囡 */
-        {6, 0, 31},   /* [1] 囝 */
-        {6, 3, 17},   /* [2] 共 */
-        {5, 0, 107},  /* [3] 生 */
-        {4, 0, 32},   /* [4] 元 */
-        {8, 1, 64},   /* [5] 和 */
-        {1, 0, 1},    /* [6] 一 */
-        {9, 2, 77},   /* [7] 秋 */
+        {6, 0, 31, 4},   /* [0] 囡 全包围 */
+        {6, 0, 31, 4},   /* [1] 囝 全包围 */
+        {6, 3, 17, 2},   /* [2] 共 上下 */
+        {5, 0, 107, 0},  /* [3] 生 独体 */
+        {4, 0, 32, 0},   /* [4] 元 独体 */
+        {8, 1, 64, 1},   /* [5] 和 左右 */
+        {1, 0, 1, 0},    /* [6] 一 独体 */
+        {9, 2, 77, 1},   /* [7] 秋 左右 */
     };
     int corpus_len = 8;
-    char_prop_t query = {6, 0, 31}; /* 查询：囡 */
+    char_prop_t query = {6, 0, 31, 4}; /* 查询：囡 全包围 */
 
     /* top-3 最邻近 */
     typedef struct { int idx; double dist; } neighbor_t;
