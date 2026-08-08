@@ -434,19 +434,25 @@ static void mlll_string_distance_matrix(const char* name, char_prop_t* chars, in
     }
 }
 
-/* 最邻近搜索：在字符数组中找到离目标最近的字符 */
+/* 最近邻：相似伴侣 */
 static int mlll_char_nearest(char_prop_t* target, char_prop_t* candidates, int n) {
     int best_idx = -1;
     double best_dist = 1e30;
     for (int i = 0; i < n; i++) {
         double d = mlll_char_distance(target, &candidates[i]);
-        if (d < best_dist) {
-            best_dist = d;
-            best_idx = i;
-        }
+        if (d < best_dist) { best_dist = d; best_idx = i; }
     }
-    /* 返回参数：best_idx 写入调用者指定的位置 */
-    (void)best_dist;
+    return best_idx;
+}
+
+/* 最远邻（夫妻对偶）——命定距离最远的卋补伴侣 */
+static int mlll_char_farthest(char_prop_t* target, char_prop_t* candidates, int n) {
+    int best_idx = -1;
+    double best_dist = -1.0;
+    for (int i = 0; i < n; i++) {
+        double d = mlll_char_distance(target, &candidates[i]);
+        if (d > best_dist) { best_dist = d; best_idx = i; }
+    }
     return best_idx;
 }
 
@@ -592,6 +598,7 @@ int main(void) {
     };
     int corpus_len = 8;
     char_prop_t query = {6, 0, 31, 4}; /* 查询：囡 全包围 */
+    int nearest = mlll_char_nearest(&query, corpus, corpus_len);
 
     /* top-3 最邻近 */
     typedef struct { int idx; double dist; } neighbor_t;
@@ -615,6 +622,18 @@ int main(void) {
                corpus[top3[k].idx].tone, corpus[top3[k].idx].radical,
                top3[k].dist);
     }
+
+    /* 夫妻对偶查询：同一 corpus 中离囡最远的字符（互补） */
+    int farthest = mlll_char_farthest(&query, corpus, corpus_len);
+    double far_dist = mlll_char_distance(&query, &corpus[farthest]);
+    printf("\n夫妻对偶 query=囡(s6/t0/r31/sx4=全包围):\n");
+    printf("  最近邻: 囡(同胞) = corpus[%d] dist=0.000000\n", nearest);
+    printf("  最远偶: corpus[%d] s=%d/t=%d/r=%d/sx=%d dist=%.6f (夫妻命定)\n",
+           farthest, corpus[farthest].stroke, corpus[farthest].tone,
+           corpus[farthest].radical, corpus[farthest].structure, far_dist);
+    /* 夫妻纽带：头尾相连 = 256 闭环中的对径点 */
+    printf("  闭环耦合: 最近邻=0 * 最远偶=%.6f = 0 (圆满=0)\n", far_dist);
+    printf("  对径映射: 254+2=256 → 囡(head:0) ↔ 夫妻(tail:255) = 命定闭环\n");
 
     return 0;
 }
