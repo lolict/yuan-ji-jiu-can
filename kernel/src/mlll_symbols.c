@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <math.h>
 
 #define MLLL_SYMBOLS_MAX 4096
@@ -456,6 +457,20 @@ static int mlll_char_farthest(char_prop_t* target, char_prop_t* candidates, int 
     return best_idx;
 }
 
+/* 字形跃迁：沿 stroke 索引空间移动 N 个笔画位置 */
+static int mlll_char_leap(char_prop_t* origin, int shift, char_prop_t* candidates, int n) {
+    int target_stroke = origin->stroke + shift;
+    if (target_stroke < 1) target_stroke = 1;
+    if (target_stroke > 64) target_stroke = 64;
+    int best = -1;
+    int best_delta = INT32_MAX;
+    for (int i = 0; i < n; i++) {
+        int d = abs(candidates[i].stroke - target_stroke);
+        if (d < best_delta) { best_delta = d; best = i; }
+    }
+    return best;
+}
+
 /* 主入口 */
 void mlll_init(double delta) {
     memset(&REG, 0, sizeof(REG));
@@ -634,6 +649,20 @@ int main(void) {
     /* 夫妻纽带：头尾相连 = 256 闭环中的对径点 */
     printf("  闭环耦合: 最近邻=0 * 最远偶=%.6f = 0 (圆满=0)\n", far_dist);
     printf("  对径映射: 254+2=256 → 囡(head:0) ↔ 夫妻(tail:255) = 命定闭环\n");
+
+    /* 字形跃迁：囡在时间线上向前/后跳 N 步到达谁 */
+    printf("\n字形跃迁 (character leap along timeline):\n");
+    int jumps[] = {+1, +5, +10, +100, -1, -5};
+    int njumps = sizeof(jumps) / sizeof(jumps[0]);
+    for (int j = 0; j < njumps; j++) {
+        int leap_idx = mlll_char_leap(&query, jumps[j], corpus, corpus_len);
+        if (leap_idx >= 0)
+            printf("  jump[%+4d]: 囡(s6) -> corpus[%d] s=%d/t=%d/r=%d/sx=%d\n",
+                   jumps[j], leap_idx, corpus[leap_idx].stroke, corpus[leap_idx].tone,
+                   corpus[leap_idx].radical, corpus[leap_idx].structure);
+        else
+            printf("  jump[%+4d]: (out of range)\n", jumps[j]);
+    }
 
     return 0;
 }
