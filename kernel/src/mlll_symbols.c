@@ -137,6 +137,40 @@ static void mlll_enumerate_tones(void) {
     }
 }
 
+/* === 维度4：康熙部首枚举（141 个代表性部首）=== */
+static void mlll_enumerate_radicals(void) {
+    static const char* demo_radicals[] = {
+        "一","丶","丨","丿","乙","亅","二","亠","人","儿",
+        "入","八","冂","冖","冫","几","凵","刀","刃","力",
+        "勹","匕","匚","十","卜","卩","厂","又","口","囗",
+        "土","夂","夕","女","子","宀","寸","小","山","川",
+        "工","己","已","巾","干","广","弋","弓","彐","彡",
+        "彳","心","戸","扌","攴","斤","方","无","日","曰",
+        "月","木","欠","止","歹","毋","比","毛","氏","气",
+        "水","火","爪","片","牙","牛","犬","玄","玉","瓜",
+        "瓦","甘","生","用","田","疋","目","矛","矢","石",
+        "示","禾","穴","立","竹","米","糸","网","羊","羽",
+        "老","而","耳","聿","肉","臣","自","至","臼","舌",
+        "舟","艮","色","虫","血","行","衣","見","角","言",
+        "谷","豕","貝","赤","走","足","身","車","辛","辰",
+        "邑","酉","里","金","長","門","阜","隹","雨","非",
+        "面","革","韋","韭","音","頁","風","飛","食","首",
+        "香","馬","骨","高","鬥","鬼","魚","鳥","鹿","麥",
+        "麻","黃","黍","黑","鼎","鼓","鼠","鼻","齊","齒",
+        "龍","龜"
+    };
+    for (int i = 0; i < 141; i++) {
+        if (REG.count >= MLLL_SYMBOLS_MAX) return;
+        mlll_symbol_t *e = &REG.entries[REG.count];
+        e->id          = symbol_hash(SYM_RADICAL, i + 1, 0);
+        e->dim         = SYM_RADICAL;
+        e->property_a  = i + 1; /* 部首序号 */
+        e->property_b  = (int64_t)strlen(demo_radicals[i]); /* UTF-8 字节长 */
+        snprintf(e->name, sizeof(e->name), "rad_%s", demo_radicals[i]);
+        REG.count++;
+    }
+}
+
 /* === 维度3：相位角度枚举（0-360，步长1°）=== */
 static void mlll_enumerate_phases(int step) {
     int angle = 0;
@@ -192,6 +226,8 @@ void mlll_init(double delta) {
     mlll_enumerate_geometry(100, 100, 200, 200);
     /* 声调维度：8 个声调 */
     mlll_enumerate_tones();
+    /* 康熙部首维度（141 个代表性部首） */
+    mlll_enumerate_radicals();
     /* 相位维度：0-360 每 30° 一个符号 */
     mlll_enumerate_phases(30);
     mlll_assign_offsets(delta);
