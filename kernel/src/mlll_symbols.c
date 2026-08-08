@@ -21,6 +21,7 @@ typedef enum {
     SYM_TONE,           /* 声调 */
     SYM_RADICAL,        /* 部首 */
     SYM_COLOR,          /* 颜色 */
+    SYM_PHASE,          /* 相位角度 */
     SYM_DIMENSION_COUNT /* 维度计数 */
 } symbol_dim_t;
 
@@ -59,12 +60,8 @@ static uint32_t symbol_hash(symbol_dim_t dim, int64_t a, int64_t b) {
     return h;
 }
 
-/* === 维度1：几何边角面枚举 === */
-/* 统计几何维度的枚举容量 */
-static int geometry_count_sides(int max_sides) { return max_sides - 2; }
-static int geometry_count_faces(int max_faces) { return max_faces - 3; }
-static int geometry_count_ridges(int max_ridges) { return max_ridges - 5; }
-static int geometry_count_internal_ridges(int max_internal) { return max_internal - 3; }
+/* === 各维度辅助函数 === */
+static int tone_return_frequency(int tone_idx, int level) { return (tone_idx + 1) * (level + 1); }
 
 static void mlll_enumerate_geometry(int max_sides, int max_faces, int max_ridges, int max_internal) {
     int idx = 0;
@@ -116,6 +113,47 @@ static void mlll_enumerate_geometry(int max_sides, int max_faces, int max_ridges
     }
 }
 
+/* === 维度2：声调符号枚举 === */
+static void mlll_enumerate_tones(void) {
+    static const char* tone_names[8] = {
+        "tone_yin_ping",   /* 阴平 */
+        "tone_yang_ping",  /* 阳平 */
+        "tone_shang",      /* 上声 */
+        "tone_qu",         /* 去声 */
+        "tone_yin_ru",     /* 阴入 */
+        "tone_yang_ru",    /* 阳入 */
+        "tone_zhong_yin",  /* 中阴 */
+        "tone_zhong_yang",  /* 中阳 */
+    };
+    for (int i = 0; i < 8; i++) {
+        if (REG.count >= MLLL_SYMBOLS_MAX) return;
+        mlll_symbol_t *e = &REG.entries[REG.count];
+        e->id          = symbol_hash(SYM_TONE, i + 1, 0);
+        e->dim         = SYM_TONE;
+        e->property_a  = i + 1; /* 声调级数 */
+        e->property_b  = tone_return_frequency(i, 0); /* 基础频率 */
+        snprintf(e->name, sizeof(e->name), "%s", tone_names[i]);
+        REG.count++;
+    }
+}
+
+/* === 维度3：相位角度枚举（0-360，步长1°）=== */
+static void mlll_enumerate_phases(int step) {
+    int angle = 0;
+    while (angle <= 360 && REG.count < MLLL_SYMBOLS_MAX) {
+        if (angle == 0 || angle == 90 || angle == 180 || angle == 270 || angle == 360 || angle % step == 0) {
+            mlll_symbol_t *e = &REG.entries[REG.count];
+            e->id          = symbol_hash(SYM_PHASE, angle, 0);
+            e->dim         = SYM_PHASE;
+            e->property_a  = angle;
+            e->property_b  = angle % 360;
+            snprintf(e->name, sizeof(e->name), "phase_%d", angle);
+            REG.count++;
+        }
+        angle++;
+    }
+}
+
 /* === 第二步：时间排队 + 分配偏移 === */
 static void mlll_assign_offsets(double delta) {
     for (uint32_t i = 0; i < REG.count; i++) {
@@ -151,32 +189,60 @@ void mlll_init(double delta) {
     memset(&REG, 0, sizeof(REG));
     mlll_init_tones();
     /* 几何维度：3-200 边，4-200 面，6-400 脊，4-400 内部脊 */
-    mlll_enumerate_geometry(200, 200, 400, 400);
+    mlll_enumerate_geometry(100, 100, 200, 200);
+    /* 声调维度：8 个声调 */
+    mlll_enumerate_tones();
+    /* 相位维度：0-360 每 30° 一个符号 */
+    mlll_enumerate_phases(30);
     mlll_assign_offsets(delta);
 }
 
-/* 导出统计 */
 void mlll_print_stats(void) {
     printf("=== mlll Symbol Registry ===\n");
     printf("Total symbols: %u\n", REG.count);
-    printf("First 20 symbols (head of timeline):\n");
-    for (uint32_t i = 0; i < 20 && i < REG.count; i++) {
+    printf("First 10 symbols (head of timeline):\n");
+    for (uint32_t i = 0; i < 10 && i < REG.count; i++) {
         mlll_symbol_t *e = &REG.entries[i];
         double offset = (double)e->offset_num / (double)MLLL_OFFSET_PRECISION;
-        double static_val = mlll_static_regression(i, offset, MLLL_OFFSET_PRECISION);
-        printf("  [%u] id=%08x dim=%d a=%lld b=%lld | offset=%.4f | static_regression=%.4f | %s\n",
+        printf("  [%u] id=%08x dim=%d a=%lld b=%lld | offset=%.4f | %s\n",
                i, e->id, e->dim,
                (long long)e->property_a, (long long)e->property_b,
-               offset, static_val, e->name);
+               offset, e->name);
     }
+
+    /* 按维度统计 */
+    uint32_t dim_counts[SYM_DIMENSION_COUNT];
+    memset(dim_counts, 0, sizeof(dim_counts));
+    for (uint32_t i = 0; i < REG.count; i++) {
+        if (REG.entries[i].dim < SYM_DIMENSION_COUNT) dim_counts[REG.entries[i].dim]++;
+    }
+    printf("\nDimension breakdown:\n");
+    const char* dim_names[] = {"Geometry", "Tone", "Radical", "Color", "Phase"};
+    for (int d = 0; d < SYM_DIMENSION_COUNT; d++) {
+        printf("  %s: %u symbols\n", dim_names[d], dim_counts[d]);
+    }
+
+    /* 打印最后 20 个符号（包含声调和相位） */
+    printf("\nLast 20 symbols (tail of timeline, includes tones+phases):\n");
+    uint32_t start = REG.count > 20 ? REG.count - 20 : 0;
+    for (uint32_t i = start; i < REG.count; i++) {
+        mlll_symbol_t *e = &REG.entries[i];
+        double offset = (double)e->offset_num / (double)MLLL_OFFSET_PRECISION;
+        printf("  [%u] id=%08x dim=%d a=%lld b=%lld | offset=%.4f | %s\n",
+               i, e->id, e->dim,
+               (long long)e->property_a, (long long)e->property_b,
+               offset, e->name);
+    }
+
     printf("\nTone frequency table (level=0):\n");
     for (int t = 0; t < 8; t++) {
-        printf("  tone[%d] frequency=%lld\n", t, (long long)mlll_tone_frequency(t, 0));
+        printf("  tone[%d] freq=%lld", t, (long long)mlll_tone_frequency(t, 0));
     }
     printf("\nTone frequency table (level=1):\n");
     for (int t = 0; t < 8; t++) {
-        printf("  tone[%d] frequency=%lld\n", t, (long long)mlll_tone_frequency(t, 1));
+        printf("  tone[%d] freq=%lld", t, (long long)mlll_tone_frequency(t, 1));
     }
+    printf("\n");
 }
 
 /* 演示 */
