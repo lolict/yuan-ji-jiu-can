@@ -84,4 +84,8 @@ int    mlll_char_leap(char_prop_t* origin, int shift, char_prop_t* cands, int n)
 void   mlll_distance_decompose(char_prop_t* a, char_prop_t* b);
 void   mlll_string_distance_matrix(const char* name, char_prop_t* chars, int len);
 
+/* ── RGB 时分复用编码：文本 ↔ 像素矩阵 ── */
+int  mlll_rgb_encode_text(const char *text, int text_len, uint8_t *rgb_buf, int buf_size);
+int  mlll_rgb_decode_text(const uint8_t *rgb_buf, int pixel_pairs, char *text_out, int out_size);
+
 #endif /* MLLL_SYMBOLS_H */

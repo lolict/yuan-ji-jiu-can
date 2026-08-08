@@ -1112,6 +1112,28 @@ int main(){
     /* MLLL ↔ 内核编码桥接对照 */
     mlll_print_encoding_bridge("囡囝共生");
     mlll_print_encoding_bridge("刘楚恬");
+
+    /* RGB 时分复用演示：把文本穿进像素矩阵 */
+    printf("\n════════════════════════════════════════════\n");
+    printf("  RGB 时分复用：文本穿上像素外衣 (v2.0)\n");
+    printf("════════════════════════════════════════════\n");
+    {
+        const char *sample = "囡囝共生";
+        uint8_t rgb[128];
+        char    restored[128];
+        int n = mlll_rgb_encode_text(sample, (int)strlen(sample), rgb, 128);
+        printf("原文: %s (%d 字符 → %d 像素对)\n",
+               sample, (int)strlen(sample) / 3, n);
+        for (int i = 0; i < n; i++) {
+            printf("  像素[%d] A=(%3d,%3d,%3d) 码点=U+%04X  B=(%3d,%3d,%3d)\n", i,
+                   rgb[i*6+0], rgb[i*6+1], rgb[i*6+2],
+                   ((uint32_t)rgb[i*6+0]<<8)|rgb[i*6+1],
+                   rgb[i*6+3], rgb[i*6+4], rgb[i*6+5]);
+        }
+        int rlen = mlll_rgb_decode_text(rgb, n, restored, 128);
+        printf("还原: %s (%d 字节)  [%s]\n", restored, rlen,
+               strcmp(sample, restored) == 0 ? "往返一致" : "有损");
+    }
 #endif
 
     return 0;
