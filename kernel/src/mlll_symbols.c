@@ -364,33 +364,44 @@ int main(void) {
     /* 初始偏移率 delta = 0.1（二次起源代数） */
     mlll_init(0.1);
     mlll_print_stats();
+
     printf("\nTimeline lookup test:\n");
     mlll_symbol_t *s = mlll_get_by_sequence(254);
     if (s) {
-        printf("  Symbol at position 254: %s (id=%08x)\n", s->name, s->id);
+        printf("  pos254=%s id=%08x\n", s->name, s->id);
     }
 
-    /* 跨维度共振查询：从某一维度出发，找到其他维度的对齐符号 */
-    printf("\nCross-dimension resonance queries:\n");
+    printf("\nCross-dimension resonance:\n");
+    mlll_symbol_t *phase_match = mlll_cross_query(SYM_STROKE, 8, SYM_PHASE);
+    mlll_symbol_t *tone_match  = mlll_cross_query(SYM_STROKE, 8, SYM_TONE);
+    mlll_symbol_t *geom_match  = mlll_cross_query(SYM_STROKE, 8, SYM_GEOMETRY);
+    printf("  stroke=%d -> phase=%ld tone=%ld geom=%ld\n", 8,
+           phase_match ? (long)phase_match->property_a : -1,
+           tone_match  ? (long)tone_match->property_a  : -1,
+           geom_match  ? (long)geom_match->property_a  : -1);
 
-    /* stroke=8 的汉字笔画，对应哪个角度？什么音调？哪种几何形状？ */
-    int test_strokes = 8;
-    printf("  stroke_%d → resonance → ", test_strokes);
-    mlll_symbol_t *phase_match = mlll_cross_query(SYM_STROKE, test_strokes, SYM_PHASE);
-    mlll_symbol_t *tone_match  = mlll_cross_query(SYM_STROKE, test_strokes, SYM_TONE);
-    mlll_symbol_t *geom_match  = mlll_cross_query(SYM_STROKE, test_strokes, SYM_GEOMETRY);
-    if (phase_match) printf("phase=%d° ", phase_match->property_a);
-    if (tone_match)  printf("tone=%d ", tone_match->property_a);
-    if (geom_match)  printf("geom_edges=%d ", geom_match->property_a);
-    printf("\n");
+    mlll_symbol_t *tone90   = mlll_cross_query(SYM_PHASE, 90, SYM_TONE);
+    mlll_symbol_t *stroke90 = mlll_cross_query(SYM_PHASE, 90, SYM_STROKE);
+    printf("  phase=90 -> tone=%ld stroke=%ld\n",
+           tone90   ? (long)tone90->property_a   : -1,
+           stroke90 ? (long)stroke90->property_a : -1);
 
-    /* 直角90° 对应什么声调？什么笔画数？*/
-    printf("  phase_90 → resonance → ");
-    mlll_symbol_t *tone_from_phase = mlll_cross_query(SYM_PHASE, 90, SYM_TONE);
-    mlll_symbol_t *stroke_from_phase = mlll_cross_query(SYM_PHASE, 90, SYM_STROKE);
-    if (tone_from_phase)   printf("tone=%d ", tone_from_phase->property_a);
-    if (stroke_from_phase) printf("stroke=%d ", stroke_from_phase->property_a);
-    printf("\n");
+    printf("\nStatic regression (offset-rate compression):\n");
+    uint64_t original_value = (uint64_t)-1;
+    uint64_t stored_pos    = (uint64_t)((double)original_value / 1.1);
+    uint64_t recovered     = (uint64_t)((double)stored_pos * 1.1);
+    printf("  original  = %llu\n", (unsigned long long)original_value);
+    printf("  stored_pos = %llu\n", (unsigned long long)stored_pos);
+    printf("  recovered = %llu (delta-reconstructs absolute from pos+rate)\n",
+           (unsigned long long)recovered);
+
+    printf("\nParallel-world offset gradient (0..9, base delta=0.1):\n");
+    for (int world = 0; world < 10; world++) {
+        double wd   = 0.1 * (double)world;
+        double rate = 1.0 + wd;
+        printf("  world[%d] delta=%.1f -> pos=254 = abs=%.1f (+%.0f%%)\n",
+               world, wd, 254.0 * rate, wd * 100.0);
+    }
 
     return 0;
 }
