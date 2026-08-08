@@ -33,9 +33,10 @@
 #include <pthread.h>
 #include <math.h>
 
-/* MLLL 七维符号编码（仅 -DMLLL_LIBRARY 时引入） */
+/* MLLL 七维符号编码 + 桥接（仅 -DMLLL_LIBRARY 时引入） */
 #ifdef MLLL_LIBRARY
 #include "mlll_symbols.h"
+#include "mlll_kernel_bridge.h"
 #endif
 
 /* ============================================================
@@ -1108,6 +1109,9 @@ int main(){
            mlll_char_distance(&corpus[0],&corpus[2]) +
            mlll_char_distance(&corpus[0],&corpus[3]));
     printf("=========================================\n");
+    /* MLLL ↔ 内核编码桥接对照 */
+    mlll_print_encoding_bridge("囡囝共生");
+    mlll_print_encoding_bridge("刘楚恬");
 #endif
 
     return 0;

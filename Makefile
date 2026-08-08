@@ -21,8 +21,8 @@ mlll-symbols: kernel/src/mlll_symbols.c
 	./kernel/src/mlll_symbols.elf
 
 # 内核 + mlll 库联合编译（-DMLLL_LIBRARY 排除 mlll 的 main）
-kernel: kernel/src/njsg_kernel.c kernel/src/mlll_symbols.c
-	$(CC) $(CFLAGS) -DMLLL_LIBRARY $< kernel/src/mlll_symbols.c -o kernel/src/njsg_kernel.elf $(KERN_LIBS)
+kernel: kernel/src/njsg_kernel.c kernel/src/mlll_symbols.c kernel/src/mlll_kernel_bridge.c
+	$(CC) $(CFLAGS) -DMLLL_LIBRARY $< kernel/src/mlll_symbols.c kernel/src/mlll_kernel_bridge.c -o kernel/src/njsg_kernel.elf $(KERN_LIBS)
 
 test: kernel
 	@echo "═══ 囡囝共生内核测试 ═══"
