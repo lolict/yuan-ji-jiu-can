@@ -398,6 +398,22 @@ static void mlll_string_distance_matrix(const char* name, char_prop_t* chars, in
     }
 }
 
+/* 最邻近搜索：在字符数组中找到离目标最近的字符 */
+static int mlll_char_nearest(char_prop_t* target, char_prop_t* candidates, int n) {
+    int best_idx = -1;
+    double best_dist = 1e30;
+    for (int i = 0; i < n; i++) {
+        double d = mlll_char_distance(target, &candidates[i]);
+        if (d < best_dist) {
+            best_dist = d;
+            best_idx = i;
+        }
+    }
+    /* 返回参数：best_idx 写入调用者指定的位置 */
+    (void)best_dist;
+    return best_idx;
+}
+
 /* 主入口 */
 void mlll_init(double delta) {
     memset(&REG, 0, sizeof(REG));
@@ -524,6 +540,43 @@ int main(void) {
     };
     mlll_string_encode("nan_jian_gong_sheng", njsg, 4);
     mlll_string_distance_matrix("nan_jian_gong_sheng", njsg, 4);
+
+    /* 扩展字符集：含囡囝共生+ 额外字符，验证最邻近检索 */
+    char_prop_t corpus[] = {
+        {6, 0, 31},   /* [0] 囡 */
+        {6, 0, 31},   /* [1] 囝 */
+        {6, 3, 17},   /* [2] 共 */
+        {5, 0, 107},  /* [3] 生 */
+        {4, 0, 32},   /* [4] 元 */
+        {8, 1, 64},   /* [5] 和 */
+        {1, 0, 1},    /* [6] 一 */
+        {9, 2, 77},   /* [7] 秋 */
+    };
+    int corpus_len = 8;
+    char_prop_t query = {6, 0, 31}; /* 查询：囡 */
+
+    /* top-3 最邻近 */
+    typedef struct { int idx; double dist; } neighbor_t;
+    neighbor_t top3[3];
+    for (int k = 0; k < 3; k++) { top3[k].idx = -1; top3[k].dist = 1e30; }
+    for (int i = 0; i < corpus_len; i++) {
+        double d = mlll_char_distance(&query, &corpus[i]);
+        /* 插入排序到 top3 */
+        for (int k = 0; k < 3; k++) {
+            if (d < top3[k].dist) {
+                for (int m = 2; m > k; m--) top3[m] = top3[m-1];
+                top3[k].idx = i; top3[k].dist = d;
+                break;
+            }
+        }
+    }
+    printf("\nTop-3 nearest to query(stroke=6,tone=0,rad=31) = 囡:\n");
+    for (int k = 0; k < 3; k++) {
+        printf("  #%d: corpus[%d] s=%d/t=%d/r=%d dist=%.6f\n", k+1,
+               top3[k].idx, corpus[top3[k].idx].stroke,
+               corpus[top3[k].idx].tone, corpus[top3[k].idx].radical,
+               top3[k].dist);
+    }
 
     return 0;
 }
