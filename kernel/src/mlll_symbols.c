@@ -323,6 +323,39 @@ static void mlll_character_demo(int stroke, int tone_idx, int radical_idx) {
     printf("  Unified timeline encodes all 6 dims simultaneously\n");
 }
 
+/* === 字符串级编码：汉字串 → 时间线坐标序列 ===
+ * 每个汉字是六维空间中的一个点，字符串就是点的轨迹。
+ * 编码输出序列：轨迹 = 沿时间线排列的四维坐标链。
+ */
+typedef struct {
+    int stroke;
+    int tone;
+    int radical;
+} char_prop_t;
+
+static void mlll_string_encode(const char* name, char_prop_t* chars, int len) {
+    printf("\nString encoding: %s (%d chars)\n", name, len);
+    double first_offset = 0, last_offset = 0;
+    for (int i = 0; i < len; i++) {
+        mlll_symbol_t *st = mlll_cross_query(SYM_STROKE, chars[i].stroke, SYM_STROKE);
+        mlll_symbol_t *rd = (chars[i].radical > 0 && chars[i].radical <= 141)
+            ? &REG.entries[587 + 8 + chars[i].radical - 1] : NULL;
+        mlll_symbol_t *tn = (chars[i].tone >= 0 && chars[i].tone < 8)
+            ? &REG.entries[587 + chars[i].tone] : NULL;
+        double offset_st = st ? (double)st->offset_num / MLLL_OFFSET_PRECISION : 0;
+        double offset_rd = rd ? (double)rd->offset_num / MLLL_OFFSET_PRECISION : 0;
+        double offset_tn = tn ? (double)tn->offset_num / MLLL_OFFSET_PRECISION : 0;
+        printf("  char[%d] s=%d t=%d r=%d | offsets st=%.1f/rd=%.1f/tn=%.1f | flow=%.2f\n",
+               i, chars[i].stroke, chars[i].tone, chars[i].radical,
+               offset_st, offset_rd, offset_tn,
+               offset_st * 0.5 + offset_rd * 0.3 + offset_tn * 0.2);
+        if (i == 0) first_offset = offset_st;
+        if (i == len - 1) last_offset = offset_st;
+    }
+    printf("  Trajectory span: %.1f -> %.1f (flow length = %.1f)\n",
+           first_offset, last_offset, last_offset - first_offset);
+}
+
 /* 主入口 */
 void mlll_init(double delta) {
     memset(&REG, 0, sizeof(REG));
@@ -438,6 +471,16 @@ int main(void) {
     /* === 汉字编码演示：囡（囡囝共生的首字，NJSG 核心符号）=== */
     /* 囡 = 6画 / 囗部(31) / 阴平(0) */
     mlll_character_demo(6, 0, 31);
+
+    /* === 字符串编码：囡囝共生 === */
+    /* 囡(6画/囗部31/阴平0) 囝(6画/囗部31/阴平0) 共(6画/八部17/去声3) 生(5画/生部107/阴平0) */
+    char_prop_t njsg[] = {
+        {6, 0, 31},  /* 囡 */
+        {6, 0, 31},  /* 囝 */
+        {6, 3, 17},  /* 共 */
+        {5, 0, 107}, /* 生 */
+    };
+    mlll_string_encode("nan_jian_gong_sheng", njsg, 4);
 
     return 0;
 }
