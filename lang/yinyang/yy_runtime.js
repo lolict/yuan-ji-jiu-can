@@ -1,5 +1,5 @@
 /**
- * 囡囧共生 · YinYang 运行时 · 共享库(Stage 0 / Stage 2 共用)
+ * 囡囝共生 · YinYang 运行时 · 共享库(Stage 0 / Stage 2 共用)
  *
  * 提供 tokenize + parse + select-dispatch 等编译器内建原语。
  * Stage 0 编译器产出 auto.js 时,这些原语既嵌入 auto.js,

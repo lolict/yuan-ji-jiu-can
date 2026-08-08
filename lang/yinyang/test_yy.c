@@ -10,7 +10,7 @@ int main(void) {
     yy_env_t env;
     yy_init(&env);
 
-    printf("囡囧共生 阴阳三进制解释器测试\n");
+    printf("囡囝共生 阴阳三进制解释器测试\n");
     printf("============================\n\n");
 
     /* 测试 1:裁定 ios 高信任 */

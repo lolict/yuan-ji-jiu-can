@@ -12,41 +12,13 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <math.h>
+#include "mlll_symbols.h"
 
 #define MLLL_SYMBOLS_MAX 4096
 #define MLLL_OFFSET_PRECISION 10000  /* 偏移率精度：万分之一 */
 
-/* 符号类型——扩展时在此追加 */
-typedef enum {
-    SYM_GEOMETRY = 0,   /* 几何边角面 */
-    SYM_TONE,           /* 声调 */
-    SYM_RADICAL,        /* 部首 */
-    SYM_COLOR,          /* 颜色 */
-    SYM_PHASE,          /* 相位角度 */
-    SYM_STROKE,         /* 笔画数 */
-    SYM_STRUCTURE,      /* 字形结构 */
-    SYM_DIMENSION_COUNT /* 维度计数 */
-} symbol_dim_t;
 
-/* 单个符号定义 */
-typedef struct {
-    uint32_t    id;             /* 唯一标识 */
-    symbol_dim_t dim;           /* 所属维度 */
-    int64_t     property_a;     /* 主要属性（如边数） */
-    int64_t     property_b;     /* 次要属性（如面数） */
-    uint32_t    sequence_pos;   /* 时间线上的位置 */
-    uint32_t    offset_num;     /* 偏移率分子（除以 MLLL_OFFSET_PRECISION） */
-    char        name[64];       /* 可读名（调试用，不进入编码） */
-} mlll_symbol_t;
-
-/* 符号库 */
-typedef struct {
-    mlll_symbol_t entries[MLLL_SYMBOLS_MAX];
-    uint32_t      count;
-    uint32_t      tone_table[8]; /* 声调坐标表，用于计算渐变频率根 */
-} mlll_registry_t;
-
-static mlll_registry_t REG;
+mlll_registry_t REG;
 
 /* 声调初始化——8个声调坐标映射 */
 static void mlll_init_tones(void) {
@@ -264,7 +236,7 @@ static void mlll_assign_offsets(double delta) {
 }
 
 /* === 第三步：解码——通过位置获取符号 === */
-static mlll_symbol_t* mlll_get_by_sequence(uint32_t pos) {
+mlll_symbol_t* mlll_get_by_sequence(uint32_t pos) {
     if (pos >= REG.count) return NULL;
     return &REG.entries[pos];
 }
@@ -291,7 +263,7 @@ static int64_t mlll_tone_frequency(int tone_index, int level) {
  *       target_dim 目标维度
  * 返回：目标维度中偏移率最接近的符号指针
  */
-static mlll_symbol_t* mlll_cross_query(symbol_dim_t source_dim, int64_t property, symbol_dim_t target_dim) {
+mlll_symbol_t* mlll_cross_query(symbol_dim_t source_dim, int64_t property, symbol_dim_t target_dim) {
     /* 先找到源维度指定属性的符号，取得偏移率 */
     mlll_symbol_t *src = NULL;
     for (uint32_t i = 0; i < REG.count; i++) {
@@ -325,7 +297,7 @@ static mlll_symbol_t* mlll_cross_query(symbol_dim_t source_dim, int64_t property
  * 输入：stroke=笔画数 t=声调序号(0=阴平,1=阳平,...)
  *        radical_idx=部首序号(1=一,2=丶,...141=龜)
  */
-static void mlll_character_demo(int stroke, int tone_idx, int radical_idx) {
+void mlll_character_demo(int stroke, int tone_idx, int radical_idx) {
     printf("\nCharacter encoding (stroke=%d, tone=%d, radical_idx=%d):\n",
            stroke, tone_idx, radical_idx);
     mlll_symbol_t *stroke_s = mlll_cross_query(SYM_STROKE, stroke, SYM_STROKE);
@@ -356,14 +328,8 @@ static void mlll_character_demo(int stroke, int tone_idx, int radical_idx) {
  * 每个汉字是六维空间中的一个点，字符串就是点的轨迹。
  * 编码输出序列：轨迹 = 沿时间线排列的四维坐标链。
  */
-typedef struct {
-    int stroke;
-    int tone;
-    int radical;
-    int structure; /* 0=独体 1=左右 2=上下 3=半包围 4=全包围 5=品字 6=左中右 7=上中下 */
-} char_prop_t;
 
-static void mlll_string_encode(const char* name, char_prop_t* chars, int len) {
+void mlll_string_encode(const char* name, char_prop_t* chars, int len) {
     printf("\nString encoding: %s (%d chars)\n", name, len);
     double first_offset = 0, last_offset = 0;
     for (int i = 0; i < len; i++) {
@@ -387,7 +353,7 @@ static void mlll_string_encode(const char* name, char_prop_t* chars, int len) {
 }
 
 /* 字符距离：七维空间中的相似度（归一化到 [0,1]） */
-static double mlll_char_distance(char_prop_t* a, char_prop_t* b) {
+double mlll_char_distance(char_prop_t* a, char_prop_t* b) {
     mlll_symbol_t *st_a = mlll_cross_query(SYM_STROKE, a->stroke, SYM_STROKE);
     mlll_symbol_t *rd_a = (a->radical > 0 && a->radical <= 141)
         ? &REG.entries[587 + 8 + a->radical - 1] : NULL;
@@ -420,7 +386,7 @@ static double mlll_char_distance(char_prop_t* a, char_prop_t* b) {
 }
 
 /* 距离矩阵 */
-static void mlll_string_distance_matrix(const char* name, char_prop_t* chars, int len) {
+void mlll_string_distance_matrix(const char* name, char_prop_t* chars, int len) {
     printf("\nDistance matrix: %s (%d chars)\n", name, len);
     printf("       ");
     for (int j = 0; j < len; j++) printf("   [%d]   ", j);
@@ -436,7 +402,7 @@ static void mlll_string_distance_matrix(const char* name, char_prop_t* chars, in
 }
 
 /* 最近邻：相似伴侣 */
-static int mlll_char_nearest(char_prop_t* target, char_prop_t* candidates, int n) {
+int mlll_char_nearest(char_prop_t* target, char_prop_t* candidates, int n) {
     int best_idx = -1;
     double best_dist = 1e30;
     for (int i = 0; i < n; i++) {
@@ -447,7 +413,7 @@ static int mlll_char_nearest(char_prop_t* target, char_prop_t* candidates, int n
 }
 
 /* 最远邻（夫妻对偶）——命定距离最远的卋补伴侣 */
-static int mlll_char_farthest(char_prop_t* target, char_prop_t* candidates, int n) {
+int mlll_char_farthest(char_prop_t* target, char_prop_t* candidates, int n) {
     int best_idx = -1;
     double best_dist = -1.0;
     for (int i = 0; i < n; i++) {
@@ -458,7 +424,7 @@ static int mlll_char_farthest(char_prop_t* target, char_prop_t* candidates, int 
 }
 
 /* 字形跃迁：沿 stroke 索引空间移动 N 个笔画位置 */
-static int mlll_char_leap(char_prop_t* origin, int shift, char_prop_t* candidates, int n) {
+int mlll_char_leap(char_prop_t* origin, int shift, char_prop_t* candidates, int n) {
     int target_stroke = origin->stroke + shift;
     if (target_stroke < 1) target_stroke = 1;
     if (target_stroke > 64) target_stroke = 64;
@@ -472,7 +438,7 @@ static int mlll_char_leap(char_prop_t* origin, int shift, char_prop_t* candidate
 }
 
 /* 距离分解：将两个字符的总距离拆到四个维度 */
-static void mlll_distance_decompose(char_prop_t* a, char_prop_t* b) {
+void mlll_distance_decompose(char_prop_t* a, char_prop_t* b) {
     double norm_denom = (double)MLLL_OFFSET_PRECISION * (double)REG.count;
     mlll_symbol_t *st_a = mlll_cross_query(SYM_STROKE, a->stroke, SYM_STROKE);
     mlll_symbol_t *rd_a = (a->radical > 0 && a->radical <= 141)
@@ -518,14 +484,14 @@ static void mlll_distance_decompose(char_prop_t* a, char_prop_t* b) {
  * 每个字节(8bit) 用 1 个符号承载（实际只需要 1024 个编码位置）
  * 这是一种非压缩编码演示：把数据流映射到符号，再映射回数据
  */
-static uint32_t mlll_encode_bytes(const uint8_t* data, int len, uint16_t* out_symbols, int max_out) {
+uint32_t mlll_encode_bytes(const uint8_t* data, int len, uint16_t* out_symbols, int max_out) {
     int n = 0;
     for (int i = 0; i < len && n < max_out; i++) {
         out_symbols[n++] = (uint16_t)(data[i] % REG.count);
     }
     return (uint32_t)n;
 }
-static uint32_t mlll_decode_bytes(const uint16_t* symbols, int n, uint8_t* out_data, int max_out) {
+uint32_t mlll_decode_bytes(const uint16_t* symbols, int n, uint8_t* out_data, int max_out) {
     int cnt = 0;
     for (int i = 0; i < n && cnt < max_out; i++) {
         out_data[cnt++] = (uint8_t)(symbols[i] & 0xFF);

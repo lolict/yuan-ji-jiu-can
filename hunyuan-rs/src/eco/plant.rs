@@ -273,6 +273,28 @@ impl Plant {
         v.extend_from_slice(&self.age_days.to_be_bytes());
         v
     }
+
+    /// 编码为 64 位生态细胞 — 供感知器官 ingest
+    pub fn to_cell(&self) -> u64 {
+        use crate::mirror::{self, Sovereignty};
+        let d0 = if matches!(self.kind, PlantKind::Woody { .. }) {
+            0
+        } else if matches!(self.kind, PlantKind::Herb { .. }) {
+            1
+        } else {
+            2
+        };
+        let d1 = (self.stem_g + self.root_g).min(255.0) as u64;
+        let d2 = self.fruit_count().min(255) as u64;
+        let polarity = if self.fruit_count() > 0 { 0 } else { 1 };
+        let sov = if self.height_m() > 2.0 {
+            Sovereignty::Active
+        } else {
+            Sovereignty::Passive
+        };
+        let value = self.biomass_g().min(255.0) as u64;
+        mirror::encode_cell(d0, d1, d2, polarity, sov.encode(), 0, value)
+    }
 }
 
 // ── Atmosphere 暴露 co2 (小 helper) ───────────────────────────────

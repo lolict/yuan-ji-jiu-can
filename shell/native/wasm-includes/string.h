@@ -1,4 +1,4 @@
-/* 囡囧共生:freestanding string.h stub for syntax check */
+/* 囡囝共生:freestanding string.h stub for syntax check */
 #ifndef NJFG_STRING_H
 #define NJFG_STRING_H
 #include <stddef.h>

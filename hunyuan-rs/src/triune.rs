@@ -19,6 +19,8 @@
 //
 // 这三元逻辑是囡囝共生所有后续模块的基础判读单元.
 
+use crate::mirror::{self, WitnessVerdict};
+
 // ────────────────────────────────────────────────────────────
 // 有无 (Being / Non-Being)
 // ────────────────────────────────────────────────────────────
@@ -71,6 +73,16 @@ impl TriuneVerdict {
             (1.0 - crooked).max(0.3)
         };
         TriuneVerdict { being: actual, flow, alignment, confidence }
+    }
+
+    /// 桥接: 三元裁判结果 → 镜像见证裁决（供元裁判 MetaJudgeEngine 使用）
+    pub fn to_witness_verdict(&self, pair_id: u64, value_diff: f64) -> WitnessVerdict {
+        WitnessVerdict {
+            pair_id,
+            surplus: value_diff,
+            aligned: self.alignment,
+            confidence: self.confidence,
+        }
     }
 }
 

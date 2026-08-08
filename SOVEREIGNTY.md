@@ -149,4 +149,4 @@ external_call → [壳内: original code]
 - `kernel/wasm/njsg_wasm.c` 中的 `nj_trusted/nj_aligned/nj_eternal` = 阳的裁定输出
 - 五元旋钮 wrap 0-360° = 残差周期容器(不溢出不丢失)
 - 六元信任交集 = 两节点间的残差(overlap=共识,差额=分歧)
-- 集装箱 = 囡囧共生的"金壳"(权限边界)
+- 集装箱 = 囡囝共生的"金壳"(权限边界)

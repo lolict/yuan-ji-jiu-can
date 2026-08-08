@@ -1,5 +1,5 @@
 /**
- * 囡囧共生 · 阴阳三进制解释器 · JavaScript 桥
+ * 囡囝共生 · 阴阳三进制解释器 · JavaScript 桥
  *
  * 这份 JS 代码是 C 解释器(yinyang_interp.c)的等价 JS 实现,
  * 让浏览器壳(mqf-shell.js)直接调用,无需 WASM。

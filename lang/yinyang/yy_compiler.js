@@ -1,5 +1,5 @@
 /**
- * 囡囧共生 阴阳三进制 → JS 编译器 (Stage 0)
+ * 囡囝共生 阴阳三进制 → JS 编译器 (Stage 0)
  *
  * YinYang 源是 s-expr 列表:
  *   (= NAME EXPR)        → JS const 定义
@@ -316,7 +316,7 @@ const YY_PRIMITIVES = {
 function compileProgram(ast) {
     const stmts = [];
     const exportsList = [];
-    stmts.push(`/** 囡囧共生 阴阳三进制 · 自动编译输出 (Stage 1) */`);
+    stmts.push(`/** 囡囝共生 阴阳三进制 · 自动编译输出 (Stage 1) */`);
     stmts.push(`'use strict';`);
     stmts.push(`const YY = require('./yinyang_bridge.js');`);
     stmts.push(`const TRL = (o,i,f) => ({outer:o, inner:i, flow:f});`);

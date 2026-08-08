@@ -23,6 +23,38 @@ pub mod time_node;
 pub mod stats;
 pub mod router;
 
+// ── v0.6 谐音协议 + 形义双通道 + 感知服务器 + 范畴引擎 ──
+pub mod gtt;
+pub mod gtt_perception;
+pub mod gtt_category;
+
+// ── v0.7 感知器官 · 聚类思维 ──
+pub mod mind_organ;
+
+// ── v0.8 反馈学习 · 感知可调节自身 ──
+pub mod gtt_learn;
+
+// ── v0.9 自主运行环 · 感知器官闭环迭代 ──
+pub mod autonomous_loop;
+
+// ── v0.10 自举模块 · 意识编程最小可运行单元 ──
+pub mod self_bootstrap;
+
+// ── v0.10 三层分别器 ──
+pub mod distinguisher;
+
+// ── v0.10 预加载流属性位图 ──
+pub mod flow_properties;
+
+// ── v0.10 流代数 ──
+pub mod flow_algebra;
+
+// ── v0.10 一体化统一层 ──
+pub mod unified_flow;
+
+pub use self_bootstrap::{ConsciousnessCommand, encode_to_cell, decode_from_cell,
+                         fixed_point_proof, bootstrap_cycle};
+
 // ── 囡囝共生底层舞台 (v0.5 · 自举骨架) ──
 // 五个子树自己可以独立 bootstrap:
 //   triune   — 三元裁判机 (有无推演 / 流动方向 / 等效对齐)
@@ -39,6 +71,9 @@ pub mod pleasure;
 
 // ── 活生态系统 v0.5 (弃用方向: 以后只保留 eco 作为 metaphor 验证) ──
 pub mod eco;
+pub mod mirror;
+pub mod memory;
+pub mod swarm;
 
 // ── 对外 re-export ──
 
@@ -87,3 +122,38 @@ pub use pleasure::{Pleasure, ExternalEntity, Attractor, SimplificationReport,
                    PleasureChain, ChainSummary};
 pub use couple::{XiYaoProtocol, ManQuanFa, EclipseError, ManQuanFaStatus,
                  CoupleSoul, SoulState};
+
+// v0.6 谐音协议
+pub use gtt::{GttDomain, HomophoneAnchor, AnchorPolarity, GlyphGeometry, ResonanceEngine, ResonanceHit, SymbiosisSequence};
+
+// v0.6 感知服务器
+pub use gtt_perception::{PerceptionServer, PerceptionEvent, PerceptionSeverity, GlyphTopology};
+
+// v0.6 范畴引擎
+pub use gtt_category::{CategoryRegistry, CategoryCorrector, SensoryChannel, IsomorphismCheck, CorrectionAdvice, IsomorphismSuggestion};
+
+// v0.7 感知器官
+pub use mind_organ::{MindOrgan, DistanceCalculator, DistanceVector, ClusterEngine, EntityCluster, Punctuation, ThinkingMode, ThinkingState, PerceptionReport};
+
+// v0.8 反馈学习
+pub use gtt_learn::{LearningEngine, LearningMode, LearnableWeights, Feedback, LearningReport};
+
+// v0.9 自主运行环
+pub use autonomous_loop::{AutonomousAgent, Action, Drive, StepReport};
+
+// v0.6 镜像几何
+pub use mirror::{MirrorOrder, Sovereignty, WitnessVerdict, SurplusPair,
+                 ContainmentChain, SelfRefLoop, ConsciousnessJudge,
+                 PerceptionTrace, VerdictSurplus, EncodedCell,
+                 encode_cell, get_d0, get_d1, get_d2,
+                 get_polarity, get_sovereignty, get_witness, get_value,
+                 set_witness, inc_value, dec_value};
+
+// v0.7 层级记忆
+pub use memory::{MemoryEntry, CoordMemory, LayeredMemory,
+                 JudgeQuality, AdaptiveParams, MetaJudgeEngine,
+                 Coord};
+
+// v0.8 多智能体寄生壳
+pub use swarm::{CocoonAgent, AgentRole, Relationship, RelType,
+                NegotiationSession, ParasiteShell, ShellGenome};

@@ -24,6 +24,7 @@
 
 use crate::relational::{Actor, Identity, Weight, FlowRight, Priority};
 use crate::pleasure::Pleasure;
+use crate::mirror::{self, Sovereignty};
 
 // ────────────────────────────────────────────────────────────
 // 夕瑶协议 (XiYao Protocol)
@@ -174,6 +175,32 @@ pub enum SoulState {
     FullCouple,      // 满耦合 (合法: 经夕瑶协议 → 囡囝共生)
     Eclipse,         // 月全食状态 (非法: 囡囝共生=丈夫)
     BoyikaoHalfWane, // 伯邑考半亏 (损失一半)
+}
+
+impl SoulState {
+    /// 桥接: 夫妻灵状态 → 镜像 64 位编码（供感知器官 ingest）
+    pub fn to_cell(&self) -> u64 {
+        let (d0, d2, polarity) = match self {
+            SoulState::Separation => (0, 0, 1),      // 阳=分离
+            SoulState::SemiCoupled => (1, 1, 0),      // 阴=半融
+            SoulState::FullCouple => (1, 1, 0),       // 阴=合法共生
+            SoulState::Eclipse => (0, 0, 1),          // 阳=月全食(非法)
+            SoulState::BoyikaoHalfWane => (0, 1, 1),  // 阳=半亏
+        };
+        // FullCouple 与 SemiCouple 的区别通过 value 字段区分
+        let value = match self {
+            SoulState::FullCouple => 2u64,
+            _ => 1,
+        };
+        let sov = if matches!(self, SoulState::FullCouple | SoulState::SemiCoupled) {
+            Sovereignty::ActiveSub
+        } else {
+            Sovereignty::Passive
+        };
+        mirror::encode_cell(
+            d0, d2, 0, polarity, sov.encode(), 0, value,
+        )
+    }
 }
 
 impl CoupleSoul {

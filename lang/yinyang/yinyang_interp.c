@@ -1,5 +1,5 @@
 /**
- * 囡囧共生 · 阴阳三进制解释器核心
+ * 囡囝共生 · 阴阳三进制解释器核心
  * Yinyang Tri-base Interpreter Core
  *
  * 实现三维进制语义:
@@ -296,7 +296,7 @@ yy_val_t* yy_mirror(yy_env_t *env, double a, double b, double force, double angl
 
 /* ===== dump API ===== */
 void yy_dump(yy_env_t *env) {
-    printf("==== 囡囧共生 阴阳三进制运行时状态 ====\n");
+    printf("==== 囡囝共生 阴阳三进制运行时状态 ====\n");
     printf("深度=%d 时序=%d 符号数=%d\n",
         env->current ? env->current->depth : -1,
         env->root.tid,

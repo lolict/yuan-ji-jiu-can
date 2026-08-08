@@ -1,4 +1,4 @@
-/* 囡囧共生:freestanding stdio.h stub for syntax check */
+/* 囡囝共生:freestanding stdio.h stub for syntax check */
 #ifndef NJFG_STDIO_H
 #define NJFG_STDIO_H
 #include <stddef.h>

@@ -1,5 +1,5 @@
 /**
- * 囡囧共生 · 阴阳三进制解释器 API
+ * 囡囝共生 · 阴阳三进制解释器 API
  * Yinyang Tri-base Interpreter for NJSG OS
  *
  * 三维进制:

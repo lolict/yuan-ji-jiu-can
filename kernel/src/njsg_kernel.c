@@ -33,6 +33,11 @@
 #include <pthread.h>
 #include <math.h>
 
+/* MLLL 七维符号编码（仅 -DMLLL_LIBRARY 时引入） */
+#ifdef MLLL_LIBRARY
+#include "mlll_symbols.h"
+#endif
+
 /* ============================================================
  * v1.0 五元旋钮前置声明
  * ============================================================ */
@@ -1075,6 +1080,35 @@ int main(){
     njsg_feishu_bot_demo();
     njsg_qimei_demo();
     njsg_roadmap_check_demo();
+
+#ifdef MLLL_LIBRARY
+    /* === MLLL 七维符号编码桥接（仅内核+mlll联合编译时启用）=== */
+    printf("\n════════════════════════════════════════════\n");
+    printf("  MLLL 七维符号 → 内核编码桥接 (v2.0)\n");
+    printf("════════════════════════════════════════════\n");
+    mlll_init(0.1);
+    /* 跨维度共振：囡(6画·全包围·囗部·阴平) 在相位维对径 360° */
+    mlll_symbol_t *phase = mlll_cross_query(SYM_STROKE, 6, SYM_PHASE);
+    printf("[桥接] 囡(6画) 相位跨维共振: %s\n", phase ? phase->name : "(null)");
+    /* 8 字 corpus：囡囝共生 + 元和一秋 */
+    char_prop_t corpus[] = {
+        {6,0,31,4},{6,0,31,4},{6,3,17,2},{5,0,107,0},
+        {4,0,32,0},{8,1,64,1},{1,0,1,0},{9,2,77,1}
+    };
+    char_prop_t query = {6,0,31,4};
+    int far = mlll_char_farthest(&query, corpus, 8);
+    int near = mlll_char_nearest(&query, corpus, 8);
+    double d_far = mlll_char_distance(&query, &corpus[far]);
+    double d_near = mlll_char_distance(&query, &corpus[near]);
+    printf("[桥接] 夫妻对偶: 囡→最远 corpus[%d] 距%.6f ‖ 最近 corpus[%d] 距%.6f\n",
+           far, d_far, near, d_near);
+    /* 时序闭环 */
+    printf("[桥接] 囡囝共生 闭环: Σ距离=%.6f (近零=圆满)\n",
+           mlll_char_distance(&corpus[0],&corpus[1]) +
+           mlll_char_distance(&corpus[0],&corpus[2]) +
+           mlll_char_distance(&corpus[0],&corpus[3]));
+    printf("=========================================\n");
+#endif
 
     return 0;
 }

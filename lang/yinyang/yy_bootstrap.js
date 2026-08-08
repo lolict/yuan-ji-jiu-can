@@ -1,5 +1,5 @@
 /**
- * 囡囧共生 · 自举加载器 (Stage 1 + Stage 2)
+ * 囡囝共生 · 自举加载器 (Stage 1 + Stage 2)
  * Bootstrap Loader
  *
  * Stage 1: yy_compiler.self.yy(YinYang 编译器源码)
@@ -25,7 +25,7 @@ const SELF_SRC = path.join(__dirname, 'yy_compiler.self.yy');
 const AUTO1 = path.join(__dirname, '_yy_compiler.auto.js');
 const AUTO2 = path.join(__dirname, '_yy_compiler.auto2.js');
 
-console.log('=== 囡囧共生 自举加载器 (Stage 1 + 2) ===\n');
+console.log('=== 囡囝共生 自举加载器 (Stage 1 + 2) ===\n');
 
 // --- Stage 1 ---
 const src = fs.readFileSync(SELF_SRC, 'utf8');

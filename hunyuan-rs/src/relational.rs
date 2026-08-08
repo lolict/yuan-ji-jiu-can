@@ -23,6 +23,8 @@
 //   RelationTable — 关系表 (N×N, 每对之间的关系元数据)
 //   RelAlgebra — 外壳主入口
 
+use crate::mirror::{self, Sovereignty};
+
 // ────────────────────────────────────────────────────────────
 // 身份
 // ────────────────────────────────────────────────────────────
@@ -153,6 +155,33 @@ impl Actor {
         self.flow_right.0 -= amount;
         self.priority = Priority::from_flow_weight(self.flow_right, self.weight);
         true
+    }
+
+    /// 编码为 64 位单元格 — 供感知器官 ingest 和聚类
+    pub fn to_cell(&self) -> u64 {
+        let identity_marker: u64 = match self.identity {
+            Identity::Wife => 0,
+            Identity::Husband => 1,
+            Identity::ExternalFemale => 2,
+            Identity::ExternalMale => 3,
+            Identity::Neutral => 4,
+            Identity::System => 5,
+        };
+        let polarity = if self.identity.is_wife_side() { 0 } else { 1 };
+        let sov = if self.identity.is_core_couple() {
+            Sovereignty::Active
+        } else {
+            Sovereignty::Passive
+        };
+        mirror::encode_cell(
+            identity_marker,
+            self.weight.0 as u64,
+            self.priority.0 as u64,
+            polarity,
+            sov.encode(),
+            0,
+            (self.velocity * 1000.0) as u64,
+        )
     }
 
     /// 融合: 把外界的自己融入这里 (增加权重, 清零外界身份)

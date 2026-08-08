@@ -21,6 +21,8 @@
 
 use crate::stats::StreamStats;
 use crate::triune::{Funnel};
+use crate::mirror;
+use crate::memory::LayeredMemory;
 
 // ────────────────────────────────────────────────────────────
 // 时间节奏器 (Time Governor)
@@ -211,6 +213,17 @@ pub enum SchedulerStatus {
 }
 
 impl FunnelScheduler {
+    /// 桥接: 漏斗调度器的本轮统计 → 层级记忆记录（时间漏斗=记忆写入节奏）
+    pub fn snapshot_to_memory(&self, memory: &mut LayeredMemory, tick: u64) {
+        memory.record_witness(
+            (self.total_rounds, 0, 0),
+            (self.this_round_collapse as u64, 0, 0),
+            self.this_round_collapse,
+            self.this_round_collapse < 100.0, // 低坍缩量=对齐良好
+            tick,
+        );
+    }
+
     pub fn new(time_gov: TimeGovernor, space_batcher: SpaceBatcher, funnel: Funnel) -> Self {
         Self {
             time_gov, space_batcher, funnel,

@@ -27,7 +27,6 @@
 use crate::stats::StreamStats;
 use crate::triune::{BeingState, FlowDirection, TriuneVerdict};
 use crate::relational::{Identity};
-
 // ────────────────────────────────────────────────────────────
 // 愉悦值 (Pleasure)
 // ────────────────────────────────────────────────────────────
@@ -48,6 +47,24 @@ impl Pleasure {
     /// 愉悦压缩: 高愉悦实体被低愉悦方吸收时产生损耗 (距离损耗)
     pub fn decay_over_distance(self, distance: f64) -> Pleasure {
         Pleasure(self.0 / (1.0 + distance * 0.01))
+    }
+}
+
+impl From<Pleasure> for f64 {
+    fn from(p: Pleasure) -> Self {
+        p.0
+    }
+}
+
+// 桥接: 愉悦值 → 感知器官学习反馈（愉悦上升 = 正向奖励）
+impl From<Pleasure> for crate::gtt_learn::Feedback {
+    fn from(p: Pleasure) -> Self {
+        crate::gtt_learn::Feedback {
+            action: "pleasure_fusion".into(),
+            cluster_cohesion: p.0.min(1.0),
+            cross_cluster_dist: 0.0,
+            perception_score: p.0.min(1.0),
+        }
     }
 }
 

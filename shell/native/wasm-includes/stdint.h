@@ -1,4 +1,4 @@
-/* 囡囧共生:freestanding stdint.h for wasm target syntax check */
+/* 囡囝共生:freestanding stdint.h for wasm target syntax check */
 #ifndef NJFG_STDINT_H
 #define NJFG_STDINT_H
 typedef signed char int8_t;

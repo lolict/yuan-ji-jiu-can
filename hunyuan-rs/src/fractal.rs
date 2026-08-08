@@ -31,6 +31,7 @@
 
 use crate::stats::StreamStats;
 use crate::triune::{BeingState, TriuneVerdict};
+use crate::mirror;
 
 // ────────────────────────────────────────────────────────────
 // 单个分形节点
@@ -77,6 +78,28 @@ impl FractalNode {
             residual,
             non_residual: residual.abs() < 0.5,
         }
+    }
+
+    /// 桥接: 分形节点 → 镜像 64 位编码（供感知器官 ingest）
+    pub fn to_cell(&self) -> u64 {
+        let polarity = match self.being {
+            BeingState::Being(_) => 1,
+            BeingState::NonBeing => 0,
+        };
+        let sov = if self.active {
+            mirror::Sovereignty::Active
+        } else {
+            mirror::Sovereignty::Passive
+        };
+        mirror::encode_cell(
+            self.id,
+            self.level as u64,
+            (self.residual_deviation * 1000.0) as u64,
+            polarity,
+            sov.encode(),
+            0,
+            self.coord.x as u64,
+        )
     }
 
     /// 核心分形哈希 (所有节点用同一种函数, 只 id 不同)

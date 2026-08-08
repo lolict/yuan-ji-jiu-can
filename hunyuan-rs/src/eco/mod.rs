@@ -113,6 +113,19 @@ impl Ecosystem {
     }
 }
 
+/// 生态系统编码为 64 位细胞 — 供感知器官 ingest
+/// d0=day, d1=LAI, d2=生物量, polarity=是否健康(阴=结果期)
+pub fn ecosystem_cell(eco: &Ecosystem) -> u64 {
+    use crate::mirror;
+    let lai = eco.plants.iter().map(|p| p.leaf_area_index()).sum::<f64>();
+    let biomass: f64 = eco.plants.iter().map(|p| p.biomass_g()).sum();
+    let d0 = eco.day.min(255) as u64;
+    let d1 = lai.min(255.0) as u64;
+    let d2 = biomass.min(255.0) as u64;
+    let polarity = if eco.plants.iter().any(|p| p.fruit_count() > 0) { 0 } else { 1 };
+    mirror::encode_cell(d0, d1, d2, polarity, 0, 0, biomass as u64)
+}
+
 /// "意识快照" = 当前状态哈希 (可用于跨节点同步 / 防篡改)
 pub fn snapshot_hash(eco: &Ecosystem) -> [u8; 32] {
     let mut buf = Vec::with_capacity(8 * 16);
@@ -147,5 +160,27 @@ mod tests {
         eco.tick();
         let h2 = snapshot_hash(&eco);
         assert_ne!(h1, h2);
+    }
+
+    #[test]
+    fn eco_cells_bridge_to_mind() {
+        let mut eco = Ecosystem::new(30.0, 42);
+        eco.plant(plant::PlantKind::Woody { name: "树".into() }, 0);
+        eco.plant(plant::PlantKind::Herb { name: "草".into() }, 0);
+        for _ in 0..100 { eco.tick(); }
+        let plant_cells: Vec<(u64, u64)> = eco.plants.iter().enumerate()
+            .map(|(i, p)| (i as u64, p.to_cell())).collect();
+        let mut mind = crate::mind_organ::MindOrgan::new(100.0);
+        mind.ingest(&plant_cells);
+        let report = mind.perceive_cluster_format();
+        assert!(!report.clusters.is_empty(), "聚类失败: 感知器官未能 ingest 生态细胞");
+        assert!(!report.formatted.is_empty());
+    }
+
+    #[test]
+    fn ecosystem_encoding_valid() {
+        let eco = Ecosystem::new(30.0, 1);
+        let cell = ecosystem_cell(&eco);
+        assert_ne!(cell, 0, "生态细胞编码不应为 0");
     }
 }
