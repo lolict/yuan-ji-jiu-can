@@ -356,6 +356,48 @@ static void mlll_string_encode(const char* name, char_prop_t* chars, int len) {
            first_offset, last_offset, last_offset - first_offset);
 }
 
+/* 字符距离：六维空间中的相似度（归一化到 [0,1]） */
+static double mlll_char_distance(char_prop_t* a, char_prop_t* b) {
+    mlll_symbol_t *st_a = mlll_cross_query(SYM_STROKE, a->stroke, SYM_STROKE);
+    mlll_symbol_t *rd_a = (a->radical > 0 && a->radical <= 141)
+        ? &REG.entries[587 + 8 + a->radical - 1] : NULL;
+    mlll_symbol_t *tn_a = (a->tone >= 0 && a->tone < 8)
+        ? &REG.entries[587 + a->tone] : NULL;
+    mlll_symbol_t *st_b = mlll_cross_query(SYM_STROKE, b->stroke, SYM_STROKE);
+    mlll_symbol_t *rd_b = (b->radical > 0 && b->radical <= 141)
+        ? &REG.entries[587 + 8 + b->radical - 1] : NULL;
+    mlll_symbol_t *tn_b = (b->tone >= 0 && b->tone < 8)
+        ? &REG.entries[587 + b->tone] : NULL;
+    /* 归一化到 [0,1] */
+    double norm_denom = (double)MLLL_OFFSET_PRECISION * (double)REG.count;
+    double n_st_a = st_a ? (double)st_a->offset_num / norm_denom : 0;
+    double n_rd_a = rd_a ? (double)rd_a->offset_num / norm_denom : 0;
+    double n_tn_a = tn_a ? (double)tn_a->offset_num / norm_denom : 0;
+    double n_st_b = st_b ? (double)st_b->offset_num / norm_denom : 0;
+    double n_rd_b = rd_b ? (double)rd_b->offset_num / norm_denom : 0;
+    double n_tn_b = tn_b ? (double)tn_b->offset_num / norm_denom : 0;
+    double d_st = n_st_a - n_st_b;
+    double d_rd = n_rd_a - n_rd_b;
+    double d_tn = n_tn_a - n_tn_b;
+    return sqrt(d_st*d_st*0.5 + d_rd*d_rd*0.3 + d_tn*d_tn*0.2);
+}
+
+/* 距离矩阵 */
+static void mlll_string_distance_matrix(const char* name, char_prop_t* chars, int len) {
+    printf("\nDistance matrix: %s (%d chars)\n", name, len);
+    printf("       ");
+    for (int j = 0; j < len; j++) printf("   [%d]   ", j);
+    printf("\n");
+    for (int i = 0; i < len; i++) {
+        printf("  [%d] ", i);
+        for (int j = 0; j < len; j++) {
+            double dist = mlll_char_distance(&chars[i], &chars[j]);
+            printf("  %.4f ", dist);
+        }
+        printf("\n");
+    }
+}
+
 /* 主入口 */
 void mlll_init(double delta) {
     memset(&REG, 0, sizeof(REG));
@@ -481,6 +523,7 @@ int main(void) {
         {5, 0, 107}, /* 生 */
     };
     mlll_string_encode("nan_jian_gong_sheng", njsg, 4);
+    mlll_string_distance_matrix("nan_jian_gong_sheng", njsg, 4);
 
     return 0;
 }
