@@ -129,10 +129,10 @@ static void mlll_enumerate_tones(void) {
     for (int i = 0; i < 8; i++) {
         if (REG.count >= MLLL_SYMBOLS_MAX) return;
         mlll_symbol_t *e = &REG.entries[REG.count];
-        e->id          = symbol_hash(SYM_TONE, i + 1, 0);
+        e->id          = symbol_hash(SYM_TONE, i, 0);
         e->dim         = SYM_TONE;
-        e->property_a  = i + 1; /* 声调级数 */
-        e->property_b  = tone_return_frequency(i, 0); /* 基础频率 */
+        e->property_a  = i; /* 声调索引 0=阴平, 1=阳平, ... */
+        e->property_b  = tone_return_frequency(i, 0);
         snprintf(e->name, sizeof(e->name), "%s", tone_names[i]);
         REG.count++;
     }
@@ -248,7 +248,6 @@ static double mlll_static_regression(uint32_t pos, double delta, uint32_t precis
     return (pos + 1) * offset_rate;
 }
 
-/* === 声调坐标运算 === */
 /* 计算渐变频率的根——频率 = 声调坐标 × 层级 */
 static int64_t mlll_tone_frequency(int tone_index, int level) {
     if (tone_index < 0 || tone_index >= 8) return -1;
@@ -289,6 +288,39 @@ static mlll_symbol_t* mlll_cross_query(symbol_dim_t source_dim, int64_t property
         }
     }
     return best;
+}
+
+/* === 汉字编码演示：将汉字属性映射到全部六维坐标 ===
+ * 任何汉字都可在时间线上找到唯一六维坐标。
+ *
+ * 输入：stroke=笔画数 t=声调序号(0=阴平,1=阳平,...)
+ *        radical_idx=部首序号(1=一,2=丶,...141=龜)
+ */
+static void mlll_character_demo(int stroke, int tone_idx, int radical_idx) {
+    printf("\nCharacter encoding (stroke=%d, tone=%d, radical_idx=%d):\n",
+           stroke, tone_idx, radical_idx);
+    mlll_symbol_t *stroke_s = mlll_cross_query(SYM_STROKE, stroke, SYM_STROKE);
+    mlll_symbol_t *radical_s = (radical_idx > 0 && radical_idx <= 141)
+        ? &REG.entries[587 + 8 + radical_idx - 1] : NULL;
+    mlll_symbol_t *tone_s    = (tone_idx >= 0 && tone_idx < 8)
+        ? &REG.entries[587 + tone_idx] : NULL;
+    printf("  Stroke : stroke_%d (offset=%.1f)\n", stroke,
+           stroke_s ? (double)stroke_s->offset_num / MLLL_OFFSET_PRECISION : 0.0);
+    printf("  Radical: %s (offset=%.1f)\n",
+           radical_s ? radical_s->name : "null",
+           radical_s ? (double)radical_s->offset_num / MLLL_OFFSET_PRECISION : 0.0);
+    printf("  Tone   : %s (offset=%.1f)\n",
+           tone_s ? tone_s->name : "null",
+           tone_s ? (double)tone_s->offset_num / MLLL_OFFSET_PRECISION : 0.0);
+    mlll_symbol_t *phase_v = mlll_cross_query(SYM_STROKE, stroke, SYM_PHASE);
+    mlll_symbol_t *color_v = mlll_cross_query(SYM_STROKE, stroke, SYM_COLOR);
+    mlll_symbol_t *geom_v  = mlll_cross_query(SYM_TONE, tone_idx, SYM_GEOMETRY);
+    mlll_symbol_t *stroke_v = mlll_cross_query(SYM_RADICAL, radical_idx, SYM_STROKE);
+    printf("  Phase (via stroke): %s\n", phase_v ? phase_v->name : "null");
+    printf("  Color (via stroke): %s\n", color_v ? color_v->name : "null");
+    printf("  Geom  (via tone)  : %s\n", geom_v ? geom_v->name : "null");
+    printf("  Stroke (via rad)  : %s\n", stroke_v ? stroke_v->name : "null");
+    printf("  Unified timeline encodes all 6 dims simultaneously\n");
 }
 
 /* 主入口 */
@@ -402,6 +434,10 @@ int main(void) {
         printf("  world[%d] delta=%.1f -> pos=254 = abs=%.1f (+%.0f%%)\n",
                world, wd, 254.0 * rate, wd * 100.0);
     }
+
+    /* === 汉字编码演示：囡（囡囝共生的首字，NJSG 核心符号）=== */
+    /* 囡 = 6画 / 囗部(31) / 阴平(0) */
+    mlll_character_demo(6, 0, 31);
 
     return 0;
 }
