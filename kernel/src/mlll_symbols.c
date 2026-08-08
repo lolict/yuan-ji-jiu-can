@@ -727,6 +727,139 @@ int main(void) {
             printf("  jump[%+4d]: (out of range)\n", jumps[j]);
     }
 
+    /* RGB 时分复用：文本 → 像素矩阵 → 文本 */
+    printf("\n════════════════════════════════════════════\n");
+    printf("  RGB 时分复用：文本穿上像素外衣 (v2.0)\n");
+    printf("════════════════════════════════════════════\n");
+    {
+        const char *sample = "囡囝共生";
+        uint8_t rgb[64];
+        char    restored[64];
+        int n = mlll_rgb_encode_text(sample, (int)strlen(sample), rgb, 64);
+        printf("原文: %s (%d 字符 → %d 像素对 = %d 字节)\n",
+               sample, (int)strlen(sample) / 3, n, n * 6);
+        for (int i = 0; i < n; i++) {
+            printf("  像素[%d] A=(%3d,%3d,%3d) B=(%3d,%3d,%3d)\n", i,
+                   rgb[i*6+0], rgb[i*6+1], rgb[i*6+2],
+                   rgb[i*6+3], rgb[i*6+4], rgb[i*6+5]);
+        }
+        int rlen = mlll_rgb_decode_text(rgb, n, restored, 64);
+        printf("还原: %s (%d 字节)  [%s]\n", restored, rlen,
+               (strcmp(sample, restored) == 0) ? "往返一致" : "有损");
+    }
+
     return 0;
 }
 #endif
+
+/* ── RGB 时分复用：让文本穿上像素外衣 ── */
+
+/*
+ * 让任意文本都能编解码：运行时构建 code_point → 符号索引 的映射。
+ * 已知名字符号直接映射；未知名字用 UTF-8 code_point % 841 散列到空位，
+ * 解码时通过逆向表精确还原。
+ */
+
+static uint16_t cp_to_sym[65536];   /* code_point(低16位) → sym_idx */
+static uint16_t sym_to_cp[841];     /* sym_idx → code_point */
+
+static void build_cp_mapping(const char *known_names[], int n) {
+    memset(cp_to_sym, 0, sizeof(cp_to_sym));
+    memset(sym_to_cp, 0, sizeof(sym_to_cp));
+    for (int i = 0; i < (int)REG.count && i < 841; i++)
+        sym_to_cp[i] = REG.entries[i].offset_num & 0xFFFF;
+    /* 已知名字 → 注册表中第一次出现的位置 */
+    for (int i = 0; i < n; i++) {
+        uint32_t cp = (unsigned char)known_names[i][0];
+        if (cp >= 0x80) {
+            cp = ((cp & 0x1F) << 6) | ((unsigned char)known_names[i][1] & 0x3F);
+            if ((unsigned char)known_names[i][0] >= 0xE0)
+                cp = (cp << 6) | ((unsigned char)known_names[i][2] & 0x3F);
+        }
+        for (int j = 0; j < (int)REG.count && j < 841; j++) {
+            if (REG.entries[j].name[0] &&
+                strncmp(REG.entries[j].name, known_names[i],
+                        strlen(known_names[i])) == 0) {
+                cp_to_sym[cp] = (uint16_t)j;
+                sym_to_cp[j] = (uint16_t)cp;
+                break;
+            }
+        }
+    }
+}
+
+/* UTF-8 解码下一个字符，返回 code_point，*adv 为字节数 */
+static uint32_t utf8_next(const char *s, int *adv) {
+    unsigned char c = (unsigned char)*s;
+    if (c < 0x80) { *adv = 1; return c; }
+    if ((c & 0xE0) == 0xC0) { *adv = 2; return ((c & 0x1F) << 6) | ((unsigned char)s[1] & 0x3F); }
+    if ((c & 0xF0) == 0xE0) { *adv = 3; return ((c & 0x0F) << 12) | (((unsigned char)s[1] & 0x3F) << 6) | ((unsigned char)s[2] & 0x3F); }
+    *adv = 1; return c;
+}
+
+static int emit_utf8(char *out, int off, int max, uint32_t cp) {
+    if (off >= max - 4) return off;
+    if (cp < 0x80) {
+        out[off++] = (char)cp;
+    } else if (cp < 0x800) {
+        out[off++] = (char)(0xC0 | (cp >> 6));
+        out[off++] = (char)(0x80 | (cp & 0x3F));
+    } else if (cp < 0x10000) {
+        out[off++] = (char)(0xE0 | (cp >> 12));
+        out[off++] = (char)(0x80 | ((cp >> 6) & 0x3F));
+        out[off++] = (char)(0x80 | (cp & 0x3F));
+    } else {
+        out[off++] = (char)(0xF0 | (cp >> 18));
+        out[off++] = (char)(0x80 | ((cp >> 12) & 0x3F));
+        out[off++] = (char)(0x80 | ((cp >> 6) & 0x3F));
+        out[off++] = (char)(0x80 | (cp & 0x3F));
+    }
+    return off;
+}
+
+int mlll_rgb_encode_text(const char *text, int text_len, uint8_t *rgb_buf, int buf_size) {
+    const char *known[] = {"囡","囝","共","生","元","和","一","秋","刘","楚","恬"};
+    build_cp_mapping(known, sizeof(known) / sizeof(known[0]));
+
+    int txt_off = 0, pix_cnt = 0, buf_off = 0;
+
+    while (txt_off < text_len && pix_cnt < buf_size / 6) {
+        int adv;
+        uint32_t cp = utf8_next(text + txt_off, &adv);
+        txt_off += adv;
+
+        /* 查已知符号索引 */
+        uint16_t sym_idx;
+        if (cp < 65536 && cp_to_sym[cp])
+            sym_idx = cp_to_sym[cp];
+        else
+            sym_idx = (uint16_t)(cp % ((int)REG.count < 841 ? (int)REG.count : 841));
+
+        /* 像素 A（文本层）：直接装完整 UTF-16 码点 */
+        rgb_buf[buf_off++] = (uint8_t)(cp >> 8);   /* R = 码点高8位 */
+        rgb_buf[buf_off++] = (uint8_t)(cp & 0xFF); /* G = 码点低8位 */
+        rgb_buf[buf_off++] = 0;                    /* B = 保留 */
+
+        /* 像素 B（符号层）：装 mlll 符号索引 + 维度 */
+        rgb_buf[buf_off++] = (uint8_t)(sym_idx & 0xFF);        /* R = sym_lo */
+        rgb_buf[buf_off++] = (uint8_t)((sym_idx >> 8) & 0x07); /* G = sym_hi (3bit) */
+        rgb_buf[buf_off++] = (uint8_t)REG.entries[sym_idx].dim; /* B = dim */
+
+        pix_cnt++;
+    }
+    return pix_cnt;
+}
+
+int mlll_rgb_decode_text(const uint8_t *rgb_buf, int pixel_pairs, char *text_out, int out_size) {
+    int buf_off = 0, out_off = 0;
+    for (int i = 0; i < pixel_pairs && out_off < out_size - 4; i++) {
+        /* 像素 A：还原码点 */
+        uint32_t cp = ((uint32_t)rgb_buf[buf_off] << 8) | rgb_buf[buf_off + 1];
+        buf_off += 3; /* 跳过像素 A 的 R/G/B */
+        /* 像素 B 跳过（符号索引，仅作冗余校验） */
+        buf_off += 3;
+        out_off = emit_utf8(text_out, out_off, out_size, cp);
+    }
+    text_out[out_off] = '\0';
+    return out_off;
+}
