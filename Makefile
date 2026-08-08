@@ -20,6 +20,11 @@ mlll-symbols: kernel/src/mlll_symbols.c
 	$(CC) $(CFLAGS) $< -o kernel/src/mlll_symbols.elf -lm
 	./kernel/src/mlll_symbols.elf
 
+# 满全法身份卡
+mlll-profile: kernel/src/mlll_profile.c kernel/src/mlll_symbols.c kernel/src/mlll_kernel_bridge.c
+	$(CC) $(CFLAGS) -DMLLL_LIBRARY $^ -o kernel/src/mlll_profile.elf -lm
+	./kernel/src/mlll_profile.elf 囡囝共生
+
 # 内核 + mlll 库联合编译（-DMLLL_LIBRARY 排除 mlll 的 main）
 kernel: kernel/src/njsg_kernel.c kernel/src/mlll_symbols.c kernel/src/mlll_kernel_bridge.c
 	$(CC) $(CFLAGS) -DMLLL_LIBRARY $< kernel/src/mlll_symbols.c kernel/src/mlll_kernel_bridge.c -o kernel/src/njsg_kernel.elf $(KERN_LIBS)
