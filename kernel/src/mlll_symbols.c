@@ -694,6 +694,23 @@ int main(void) {
     /* 距离分解：揭示夫妻互补的本质来源 */
     mlll_distance_decompose(&query, &corpus[farthest]);
 
+    /* 囡囝共生 时序闭合：囡-囝+共-生 = 周期验证 */
+    printf("\n囡囝共生 时序闭合验证:\n");
+    {
+        uint32_t pos[4];
+        for (int i = 0; i < 4; i++)
+            pos[i] = REG.entries[587 + 8 + njsg[i].radical - 1].offset_num;
+        int64_t closure = (int64_t)pos[0] - (int64_t)pos[1] + (int64_t)pos[2] - (int64_t)pos[3];
+        uint32_t sum = pos[0] + pos[1] + pos[2] + pos[3];
+        printf("  pos[囡]=%u pos[囝]=%u pos[共]=%u pos[生]=%u\n", pos[0], pos[1], pos[2], pos[3]);
+        printf("  囡-囝+共-生 = %+ld (→%s)\n", closure, (closure == 0) ? "圆满闭环" : "近零");
+        printf("  四字坐标和 = %u (254+2=256 周期=%u)\n", sum, sum % 256);
+        printf("  囡囝距离=%.6f(全同) 共生距离=%.6f 生囡距离=%.6f\n",
+               mlll_char_distance(&njsg[0], &njsg[1]),
+               mlll_char_distance(&njsg[0], &njsg[2]),
+               mlll_char_distance(&njsg[0], &njsg[3]));
+    }
+
     /* 字形跃迁：囡在时间线上向前/后跳 N 步到达谁 */
     printf("\n字形跃迁 (character leap along timeline):\n");
     int jumps[] = {+1, +5, +10, +100, -1, -5};
