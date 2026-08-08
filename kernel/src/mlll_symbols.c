@@ -255,6 +255,42 @@ static int64_t mlll_tone_frequency(int tone_index, int level) {
     return REG.tone_table[tone_index] * (level + 1);
 }
 
+/* === 跨维度查询：给定某维度的属性值，找到其他维度偏移率最近的符号 ===
+ * 原理：所有维度共享同一条时间线，偏移率统一编码。
+ *       当两个符号值在时间线上的偏移率接近，它们就是跨维度共振。
+ *
+ * 输入：source_dim 源维度，property 源属性值
+ *       target_dim 目标维度
+ * 返回：目标维度中偏移率最接近的符号指针
+ */
+static mlll_symbol_t* mlll_cross_query(symbol_dim_t source_dim, int64_t property, symbol_dim_t target_dim) {
+    /* 先找到源维度指定属性的符号，取得偏移率 */
+    mlll_symbol_t *src = NULL;
+    for (uint32_t i = 0; i < REG.count; i++) {
+        if (REG.entries[i].dim == source_dim && REG.entries[i].property_a == property) {
+            src = &REG.entries[i];
+            break;
+        }
+    }
+    if (!src) return NULL;
+
+    uint32_t src_offset = src->offset_num;
+    /* 在目标维度中线性扫描，差值最小者即共振符号 */
+    mlll_symbol_t *best = NULL;
+    uint32_t best_delta = UINT32_MAX;
+    for (uint32_t i = 0; i < REG.count; i++) {
+        if (REG.entries[i].dim != target_dim) continue;
+        uint32_t d = (REG.entries[i].offset_num > src_offset)
+                   ? REG.entries[i].offset_num - src_offset
+                   : src_offset - REG.entries[i].offset_num;
+        if (d < best_delta) {
+            best_delta = d;
+            best = &REG.entries[i];
+        }
+    }
+    return best;
+}
+
 /* 主入口 */
 void mlll_init(double delta) {
     memset(&REG, 0, sizeof(REG));
@@ -333,6 +369,29 @@ int main(void) {
     if (s) {
         printf("  Symbol at position 254: %s (id=%08x)\n", s->name, s->id);
     }
+
+    /* 跨维度共振查询：从某一维度出发，找到其他维度的对齐符号 */
+    printf("\nCross-dimension resonance queries:\n");
+
+    /* stroke=8 的汉字笔画，对应哪个角度？什么音调？哪种几何形状？ */
+    int test_strokes = 8;
+    printf("  stroke_%d → resonance → ", test_strokes);
+    mlll_symbol_t *phase_match = mlll_cross_query(SYM_STROKE, test_strokes, SYM_PHASE);
+    mlll_symbol_t *tone_match  = mlll_cross_query(SYM_STROKE, test_strokes, SYM_TONE);
+    mlll_symbol_t *geom_match  = mlll_cross_query(SYM_STROKE, test_strokes, SYM_GEOMETRY);
+    if (phase_match) printf("phase=%d° ", phase_match->property_a);
+    if (tone_match)  printf("tone=%d ", tone_match->property_a);
+    if (geom_match)  printf("geom_edges=%d ", geom_match->property_a);
+    printf("\n");
+
+    /* 直角90° 对应什么声调？什么笔画数？*/
+    printf("  phase_90 → resonance → ");
+    mlll_symbol_t *tone_from_phase = mlll_cross_query(SYM_PHASE, 90, SYM_TONE);
+    mlll_symbol_t *stroke_from_phase = mlll_cross_query(SYM_PHASE, 90, SYM_STROKE);
+    if (tone_from_phase)   printf("tone=%d ", tone_from_phase->property_a);
+    if (stroke_from_phase) printf("stroke=%d ", stroke_from_phase->property_a);
+    printf("\n");
+
     return 0;
 }
 #endif
