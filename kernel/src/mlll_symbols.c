@@ -188,6 +188,28 @@ static void mlll_enumerate_phases(int step) {
     }
 }
 
+/* === 维度5：颜色光谱枚举（380-780nm，每20nm一个符号）=== */
+static void mlll_enumerate_colors(void) {
+    static const char* color_range_names[] = {
+        "380nm", "400nm_violet", "420nm_indigo", "440nm_blue",
+        "460nm_blue", "480nm_cyan", "490nm_cyan", "500nm_green_cyan",
+        "510nm_green", "520nm_green", "530nm_green_yellow", "540nm_yellow_green",
+        "550nm_yellow", "560nm_yellow_orange", "570nm_orange", "580nm_orange",
+        "590nm_red_orange", "600nm_red", "620nm_red", "640nm_deep_red"
+    };
+    for (int i = 0; i < 20; i++) {
+        if (REG.count >= MLLL_SYMBOLS_MAX) return;
+        int wavelength = 380 + i * 20;
+        mlll_symbol_t *e = &REG.entries[REG.count];
+        e->id          = symbol_hash(SYM_COLOR, wavelength, 0);
+        e->dim         = SYM_COLOR;
+        e->property_a  = wavelength;
+        e->property_b  = (int64_t)(wavelength >= 380 && wavelength <= 780);
+        snprintf(e->name, sizeof(e->name), "col_%dnm_%s", wavelength, color_range_names[i]);
+        REG.count++;
+    }
+}
+
 /* === 第二步：时间排队 + 分配偏移 === */
 static void mlll_assign_offsets(double delta) {
     for (uint32_t i = 0; i < REG.count; i++) {
@@ -230,6 +252,8 @@ void mlll_init(double delta) {
     mlll_enumerate_radicals();
     /* 相位维度：0-360 每 30° 一个符号 */
     mlll_enumerate_phases(30);
+    /* 颜色维度：380-780nm，每 20nm 一个符号 */
+    mlll_enumerate_colors();
     mlll_assign_offsets(delta);
 }
 
