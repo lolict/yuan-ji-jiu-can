@@ -1,11 +1,11 @@
 /*
  * mlll_symbols.h — 七维符号系统公共头文件
  *
- * 七维编码：几何(边角面脊) × 声调(阴阳平上去入) × 部首(康熙) ×
- *          颜色(可见光谱) × 相位(360°) × 笔画(1-64) × 结构(8 种拓扑)
+ * 八维编码：几何(边角面脊) × 声调(阴阳平上去入) × 部首(康熙) ×
+ *          颜色(可见光谱) × 相位(360°) × 笔画(1-64) × 结构(8 种拓扑) × 韵母(39 元音)
  *
- * 总符号数：841
- * 提供：跨维度共振、字符编码、距离度量、字形跃迁、字节 round-trip
+ * 总符号数：~880
+ * 提供：跨维度共振、字符编码、距离度量、字形跃迁、字节 round-trip、RGB 像素
  *
  * 用法：
  *   1. 独立运行：kernel/src/mlll_symbols.c 含 main()
@@ -19,7 +19,7 @@
 
 #define MLLL_SYMBOLS_MAX       4096
 #define MLLL_OFFSET_PRECISION  10000
-#define MLLL_TOTAL_SYMBOLS     841  /* 七维当前总数 */
+#define MLLL_TOTAL_SYMBOLS     880  /* 八维当前总数 */
 
 /* 符号类型 */
 typedef enum {
@@ -30,6 +30,7 @@ typedef enum {
     SYM_PHASE,          /* 相位角度 */
     SYM_STROKE,         /* 笔画数 */
     SYM_STRUCTURE,      /* 字形结构 */
+    SYM_VOWEL,          /* 韵母（39 元音） */
     SYM_DIMENSION_COUNT /* 维度计数 */
 } symbol_dim_t;
 
@@ -57,6 +58,7 @@ typedef struct {
     int tone;
     int radical;
     int structure; /* 0=独体 1=左右 2=上下 3=半包围 4=全包围 5=品字 6=左中右 7=上中下 */
+    int vowel;     /* 韵母索引 0-38（对应 39 个标准韵母）*/
 } char_prop_t;
 
 /* ── 全局状态 ── */
@@ -71,7 +73,7 @@ mlll_symbol_t* mlll_get_by_sequence(uint32_t pos);
 mlll_symbol_t* mlll_cross_query(symbol_dim_t src_dim, int64_t prop, symbol_dim_t tgt_dim);
 
 /* ── 编码 ── */
-void     mlll_character_demo(int stroke, int tone, int radical_idx);
+void     mlll_character_demo(int stroke, int tone, int radical_idx, int vowel_idx);
 void     mlll_string_encode(const char* name, char_prop_t* chars, int len);
 uint32_t mlll_encode_bytes(const uint8_t* data, int len, uint16_t* out_sym, int max_out);
 uint32_t mlll_decode_bytes(const uint16_t* symbols, int n, uint8_t* out_data, int max_out);

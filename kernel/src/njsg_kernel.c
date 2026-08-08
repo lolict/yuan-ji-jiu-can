@@ -1091,12 +1091,12 @@ int main(){
     /* 跨维度共振：囡(6画·全包围·囗部·阴平) 在相位维对径 360° */
     mlll_symbol_t *phase = mlll_cross_query(SYM_STROKE, 6, SYM_PHASE);
     printf("[桥接] 囡(6画) 相位跨维共振: %s\n", phase ? phase->name : "(null)");
-    /* 8 字 corpus：囡囝共生 + 元和一秋 */
+    /* 8 字 corpus：囡囝共生 + 元和一秋 (最后字段=韵母) */
     char_prop_t corpus[] = {
-        {6,0,31,4},{6,0,31,4},{6,3,17,2},{5,0,107,0},
-        {4,0,32,0},{8,1,64,1},{1,0,1,0},{9,2,77,1}
+        {6,0,31,4,15},{6,0,31,4,15},{6,3,17,2,27},{5,0,107,0,25},
+        {4,0,32,0,20},{8,1,64,1,2},{1,0,1,0,3},{9,2,77,1,12}
     };
-    char_prop_t query = {6,0,31,4};
+    char_prop_t query = {6,0,31,4,15};
     int far = mlll_char_farthest(&query, corpus, 8);
     int near = mlll_char_nearest(&query, corpus, 8);
     double d_far = mlll_char_distance(&query, &corpus[far]);
@@ -1133,6 +1133,31 @@ int main(){
         int rlen = mlll_rgb_decode_text(rgb, n, restored, 128);
         printf("还原: %s (%d 字节)  [%s]\n", restored, rlen,
                strcmp(sample, restored) == 0 ? "往返一致" : "有损");
+    }
+
+    /* 韵母维度 Demo：39 元音时间线定位 + 浊音清音跨维共振 */
+    printf("\n════════════════════════════════════════════\n");
+    printf("  韵母第 8 维：39 元音时间线定位 (v2.0)\n");
+    printf("════════════════════════════════════════════\n");
+    {
+        /* 取内核韵母典型值：a=0(浊) i=3(清) an=15(前鼻) ang=24(后鼻) */
+        const char* v_names[] = {"a(浊)","i(清)","an(前鼻)","ang(后鼻)"};
+        int v_idx[] = {0, 3, 15, 24};
+        for (int k = 0; k < 4; k++) {
+            mlll_symbol_t *vw = &REG.entries[833 + v_idx[k]];
+            mlll_symbol_t *rd = mlll_cross_query(SYM_VOWEL, v_idx[k], SYM_RADICAL);
+            mlll_symbol_t *ph = mlll_cross_query(SYM_VOWEL, v_idx[k], SYM_PHASE);
+            printf("  vowel[%d]%-10s pos=%-5u 跨维: rad=%-12s phase=%-10s\n",
+                   v_idx[k], v_names[k], vw->offset_num,
+                   rd ? rd->name : "(null)", ph ? ph->name : "(null)");
+        }
+        mlll_symbol_t *a_v = &REG.entries[833 + 0];
+        mlll_symbol_t *i_v = &REG.entries[833 + 3];
+        printf("\n  浊音a vs 清音i 跨维距离=%.6f(8维)\n",
+               mlll_char_distance(
+                   &(char_prop_t){.stroke=6,.tone=0,.radical=60,.structure=4,.vowel=0},
+                   &(char_prop_t){.stroke=6,.tone=0,.radical=60,.structure=4,.vowel=3}));
+        printf("  → 声母/笔画/部首/结构完全相同，仅韵母差异就能在 8 维空间生成可量化的阴阳间距\n");
     }
 #endif
 

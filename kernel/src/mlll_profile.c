@@ -21,16 +21,16 @@
 #include "../include/mlll_symbols.h"
 #include "../include/mlll_kernel_bridge.h"
 
-/* 扩展字符集（满全法八字符 benchmark） */
+/* 扩展字符集（满全法八字符 benchmark）— 八维 (stroke/tone/radical/structure/vowel) */
 static char_prop_t corpus[] = {
-    {6,0,31,4},  /* 囡 全包围 */
-    {6,0,31,4},  /* 囝 全包围 */
-    {6,3,17,2},  /* 共 上下 */
-    {5,0,107,0}, /* 生 独体 */
-    {4,0,32,0},  /* 元 独体 */
-    {8,1,64,1},  /* 和 左右 */
-    {1,0,1,0},   /* 一 独体 */
-    {9,2,77,1},  /* 秋 左右 */
+    {6,0,31,4,15},  /* 囡 全包围 an(15) */
+    {6,0,31,4,15},  /* 囝 全包围 an(15) */
+    {6,3,17,2,27},  /* 共 上下 ong(27) */
+    {5,0,107,0,25}, /* 生 独体 eng(25) */
+    {4,0,32,0,20},  /* 元 独体 an(20=uan首) */
+    {8,1,64,1,2},   /* 和 左右 e(2) */
+    {1,0,1,0,3},    /* 一 独体 i(3) */
+    {9,2,77,1,12},  /* 秋 左右 iu(12) */
 };
 static const char* corpus_names[] = {"囡","囝","共","生","元","和","一","秋"};
 #define CORPUS_LEN 8
@@ -58,6 +58,7 @@ int main(int argc, char** argv) {
     me.tone      = tone_idx;
     me.radical   = (seed % 24) % 141 + 1;
     me.structure = ((seed >> 5) % 39) % 8;
+    me.vowel     = ((seed >> 5) % 39) % 46;
 
     /* 3. 在 benchmark 中的关系 */
     double min_d = 1e30, max_d = -1;
