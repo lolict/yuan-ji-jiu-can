@@ -513,6 +513,26 @@ static void mlll_distance_decompose(char_prop_t* a, char_prop_t* b) {
     printf("    struct   d=%+.6f contrib=%.6f (%.1f%%)\n", d_sx, contrib_sx, sum_contrib > 0 ? contrib_sx/sum_contrib*100 : 0);
 }
 
+/* 字节编码：任意字节流 ←→ mlll 符号序列
+ * 把841个符号当作 10-bit 编码空间（2^10=1024 > 841）
+ * 每个字节(8bit) 用 1 个符号承载（实际只需要 1024 个编码位置）
+ * 这是一种非压缩编码演示：把数据流映射到符号，再映射回数据
+ */
+static uint32_t mlll_encode_bytes(const uint8_t* data, int len, uint16_t* out_symbols, int max_out) {
+    int n = 0;
+    for (int i = 0; i < len && n < max_out; i++) {
+        out_symbols[n++] = (uint16_t)(data[i] % REG.count);
+    }
+    return (uint32_t)n;
+}
+static uint32_t mlll_decode_bytes(const uint16_t* symbols, int n, uint8_t* out_data, int max_out) {
+    int cnt = 0;
+    for (int i = 0; i < n && cnt < max_out; i++) {
+        out_data[cnt++] = (uint8_t)(symbols[i] & 0xFF);
+    }
+    return (uint32_t)n;
+}
+
 /* 主入口 */
 void mlll_init(double delta) {
     memset(&REG, 0, sizeof(REG));
@@ -641,6 +661,22 @@ int main(void) {
     };
     mlll_string_encode("nan_jian_gong_sheng", njsg, 4);
     mlll_string_distance_matrix("nan_jian_gong_sheng", njsg, 4);
+
+    /* 字节编码测试：把字符串当作字节流编码→解码 */
+    {
+        const char* msg = "NJSG-256";
+        int msg_len = (int)strlen(msg);
+        uint16_t sym_buf[256];
+        uint8_t dec_buf[256];
+        uint32_t n_sym = mlll_encode_bytes((const uint8_t*)msg, msg_len, sym_buf, 256);
+        uint32_t n_dec = mlll_decode_bytes(sym_buf, (int)n_sym, dec_buf, 256);
+        dec_buf[n_dec] = '\0';
+        printf("\n字节 encode/decode ('%s', %d bytes):\n", msg, msg_len);
+        printf("  encode: ");
+        for (uint32_t i = 0; i < n_sym; i++) printf("%d ", sym_buf[i]);
+        printf("\n  decode: '%s'\n", (char*)dec_buf);
+        printf("  round-trip %s\n", strcmp(msg, (char*)dec_buf) == 0 ? "OK ✓" : "FAIL ✗");
+    }
 
     /* 扩展字符集：含囡囝共生+ 额外字符，验证最邻近检索 */
     char_prop_t corpus[] = {
