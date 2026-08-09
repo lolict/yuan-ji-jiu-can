@@ -13,6 +13,8 @@
 // 权级(level) 表示谁压谁:权威 level 高的可以覆盖 level 低的。
 // 默认层 = 0(普通系统观察者), 越高越全局。
 
+use crate::angle::{Angle, AngleRelation};
+use crate::topo::Symbol;
 use crate::triune::{BeingState, TriuneVerdict};
 
 // ────────────────────────────────────────────────────────────
@@ -122,6 +124,45 @@ impl SmrlEngine {
         }
     }
 
+    /// 角度裁判: 通过两个 Symbol 的空间角关系做裁决
+    ///
+    /// 角度关系的奖惩语义 (满全法式):
+    ///   · 重叠(Overlap)  → Plus  (同体共振:完美对齐,奖励)
+    ///   · 对齐(Aligned)  → Plus  (方向一致:协调,奖励)
+    ///   · 对角(Diagonal) → Zero  (正交独立:不增不减,中性)
+    ///   · 对冲(Opposite) → Minus (反向相消:惩罚)
+    ///   · 错位(Off)      → Minus (不相关噪音:惩罚)
+    pub fn judge_angular(&self, a: Symbol, b: Symbol) -> SmrlVerdict {
+        let angle_a = Angle::from_symbol(a);
+        let angle_b = Angle::from_symbol(b);
+        let rel = AngleRelation::between(angle_a, angle_b);
+
+        let reward = match rel {
+            AngleRelation::Overlap  => Reward::Plus,
+            AngleRelation::Aligned  => Reward::Plus,
+            AngleRelation::Diagonal => Reward::Zero,
+            AngleRelation::Opposite => Reward::Minus,
+            AngleRelation::Off      => Reward::Minus,
+        };
+
+        // closeness = cos(θ差的弧度) — 越近越自信, 越远越不自信
+        let arc = angle_a.arc_distance(angle_b);
+        let confidence = if arc == 0 {
+            1.0
+        } else {
+            let radians = (arc as f64).to_radians();
+            radians.cos().max(0.0)
+        };
+
+        SmrlVerdict {
+            symbol: a.as_u8(),
+            reward,
+            level: self.level,
+            confidence,
+            crooked: self.crooked,
+        }
+    }
+
     /// 批量观察 → 多裁决,按权威级别从高到低排序
     pub fn judge_batch(&self, obs_list: &[Observation]) -> Vec<SmrlVerdict> {
         let mut out: Vec<SmrlVerdict> = obs_list.iter()
@@ -193,5 +234,35 @@ mod tests {
         let v_c = crooked.judge(Observation::new(5, true, false));
         assert!(v_c.confidence < v_s.confidence);
         assert_eq!(v_c.reward, Reward::Minus);  // 仍然是惩罚,只是不那么自信
+    }
+
+    // ── 角度裁判测试 ──
+
+    #[test]
+    fn angular_same_symbol_is_rewarded() {
+        let e = SmrlEngine::new(0);
+        let s = Symbol::new(7).unwrap();
+        let v = e.judge_angular(s, s); // 同 Symbol → 重叠
+        assert_eq!(v.reward, Reward::Plus);
+    }
+
+    #[test]
+    fn angular_opposite_symbols_penalized() {
+        // #0=0°, #32=192° 是对冲 (在384°制式中正好对面)
+        let e = SmrlEngine::new(0);
+        let a = Symbol::new(0).unwrap();
+        let b = Symbol::new(32).unwrap();
+        let v = e.judge_angular(a, b);
+        assert_eq!(v.reward, Reward::Minus);
+    }
+
+    #[test]
+    fn angular_diagonal_symbols_neutral() {
+        // #0=0°, #16=96° 是对角
+        let e = SmrlEngine::new(0);
+        let a = Symbol::new(0).unwrap();
+        let b = Symbol::new(16).unwrap();
+        let v = e.judge_angular(a, b);
+        assert_eq!(v.reward, Reward::Zero);
     }
 }

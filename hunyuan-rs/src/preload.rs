@@ -205,6 +205,13 @@ impl PreloadFlow {
         SmrlEngine::new(level).judge(obs)
     }
 
+    /// 调用角度裁判契约 — 通过空间角关系裁决两 Symbol。
+    pub fn call_judge_angular(&self, a: Symbol, b: Symbol) -> SmrlVerdict {
+        let _c = self.use_contract(ContainerKind::Judge, "judge")
+            .expect("Judge 容器应暴露 judge 契约");
+        SmrlEngine::new(0).judge_angular(a, b)
+    }
+
     /// 调用时序溯源契约 — 走"容器+契约"统一入口。
     pub fn call_temporal_origin(&self, n: u8) -> Vec<(unified_flow::TimeStage, u8)> {
         // 验证容器确实暴露了这个契约,然后调用
