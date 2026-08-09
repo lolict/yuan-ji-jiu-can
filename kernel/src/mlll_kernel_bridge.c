@@ -21,7 +21,7 @@
 #include "../include/mlll_symbols.h"
 #include "../include/mlll_kernel_bridge.h"
 
-/* 提取内核身份中的 MLLL 可映射字段（完整 8 维） */
+/* 提取内核身份中的 MLLL 可映射字段（完整 9 维） */
 void mlll_from_kernel_identity(const void* kernel_id, char_prop_t* out) {
     const uint8_t* p = (const uint8_t*)kernel_id;
     const int* fields = (const int*)(p + 128);
@@ -33,18 +33,19 @@ void mlll_from_kernel_identity(const void* kernel_id, char_prop_t* out) {
     out->tone      = _tone % 8;
     out->radical   = (_init % 141) + 1;
     out->structure = _final % 8;
-    out->vowel     = _final % 46;  /* 韵母直接映射到 SYM_VOWEL */
+    out->vowel     = _final % 46;
+    out->initial   = _init % 24;  /* 声母直接映射到 SYM_INITIAL */
 }
 
-/* 反向：MLLL 八维坐标推算回内核身份字段 */
+/* 反向：MLLL 九维坐标推算回内核身份字段 */
 void mlll_to_kernel_identity(const char_prop_t* cp, int* init_idx, int* final_idx, int* tone_idx, int* stroke_count) {
     *stroke_count = (cp->stroke < 1) ? 1 : (cp->stroke > 30 ? 30 : cp->stroke);
     *tone_idx     = cp->tone % 5;
-    *init_idx     = (cp->radical - 1) % 24;
-    *final_idx    = cp->vowel % 39;  /* 韵母由 vowel 字段还原 */
+    *init_idx     = cp->initial % 24;  /* 声母由 initial 字段直接还原 */
+    *final_idx    = cp->vowel % 39;
 }
 
-/* 打印完整的编码对照（8维） */
+/* 打印完整的编码对照（9维） */
 void mlll_print_encoding_bridge(const char* text) {
     uint32_t seed = 0;
     for (size_t i = 0; text[i]; i++)
@@ -56,31 +57,31 @@ void mlll_print_encoding_bridge(const char* text) {
     printf("\n编码桥接: '%s' → 内核身份\n", text);
     printf("  内核4维: init_idx=%d final_idx=%d tone_idx=%d stroke=%d\n",
            init_idx, final_idx, tone_idx, stroke_cnt);
-    /* MLLL 八维坐标 */
     char_prop_t cp;
     cp.stroke    = stroke_cnt;
     cp.tone      = tone_idx;
     cp.radical   = (init_idx % 141) + 1;
     cp.structure = final_idx % 8;
     cp.vowel     = final_idx % 46;
-    printf("  MLLL八维: stroke=%d tone=%d radical=%d structure=%d vowel=%d\n",
-           cp.stroke, cp.tone, cp.radical, cp.structure, cp.vowel);
-    /* 韵母符号 */
+    cp.initial   = init_idx % 24;
+    printf("  MLLL九维: stroke=%d tone=%d radical=%d structure=%d vowel=%d initial=%d\n",
+           cp.stroke, cp.tone, cp.radical, cp.structure, cp.vowel, cp.initial);
     mlll_init(0.1);
-    mlll_symbol_t *vw_sym = NULL;
-    if (cp.vowel >= 0 && cp.vowel < 46)
-        vw_sym = &REG.entries[833 + cp.vowel];
-    printf("  韵母符号: %s (vowel_%d)\n",
-           vw_sym ? vw_sym->name : "(null)", cp.vowel);
-    /* 时间线定位 */
     mlll_symbol_t *st_sym = mlll_cross_query(SYM_STROKE, cp.stroke, SYM_STROKE);
     mlll_symbol_t *tn_sym = mlll_cross_query(SYM_TONE, cp.tone, SYM_TONE);
+    mlll_symbol_t *vw_sym = (cp.vowel >= 0 && cp.vowel < 46) ? &REG.entries[833 + cp.vowel] : NULL;
+    mlll_symbol_t *it_sym = (cp.initial >= 0 && cp.initial < 24) ? &REG.entries[872 + cp.initial] : NULL;
+    printf("  声母符号: %s (initial_%d)\n",
+           it_sym ? it_sym->name : "(null)", cp.initial);
+    printf("  韵母符号: %s (vowel_%d)\n",
+           vw_sym ? vw_sym->name : "(null)", cp.vowel);
     uint32_t timeline_pos = 587 + 8 + cp.tone;
     uint32_t opposite = (timeline_pos + (REG.count / 2)) % REG.count;
-    printf("  时间线: stroke=%s tone=%s vowel=%s\n",
+    printf("  时间线: stroke=%s tone=%s vowel=%s initial=%s\n",
            st_sym ? st_sym->name : "(null)",
            tn_sym ? tn_sym->name : "(null)",
-           vw_sym ? vw_sym->name : "(null)");
+           vw_sym ? vw_sym->name : "(null)",
+           it_sym ? it_sym->name : "(null)");
     printf("  对径点(夫妻命定): pos_%u ↔ pos_%u (共%u符号,半圆%u)\n",
            timeline_pos, opposite, REG.count, REG.count / 2);
 }
