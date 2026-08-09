@@ -35,7 +35,7 @@ use crate::mccp_vm::{
     OP_AND, OP_OR, OP_XOR, OP_NOT, OP_SHL, OP_SHR,
     OP_EQ, OP_NE, OP_LT, OP_GT, OP_LE, OP_GE,
     OP_PUSH, OP_POP, OP_JMP, OP_JZ, OP_JNZ, OP_CALL, OP_RET,
-    OP_LOAD, OP_STORE, OP_PRINT, OP_PRINTC, OP_HALT,
+    OP_LOAD, OP_STORE, OP_PRINT, OP_PRINTC, OP_SYSCALL, OP_HALT,
 };
 
 // ────────────────────────────────────────────────────────────
@@ -77,6 +77,7 @@ enum Tok {
     While, Do,
     Print, Printc,
     Jmp, Jz, JzN, Call, Ret,
+    Input,           // 读一个字符
     Semicolon,
     Newline,
     Eof,
@@ -171,6 +172,7 @@ impl Lexer {
                     let tok = match upper.as_str() {
                         "PRINT" => Tok::Print,
                         "PRINTC" => Tok::Printc,
+                        "INPUT" => Tok::Input,
                         "IF" => Tok::If,
                         "THEN" => Tok::Then,
                         "ELSE" => Tok::Else,
@@ -202,14 +204,15 @@ impl Lexer {
                     }
                     let upper = s.to_uppercase();
                     let tok = match upper.as_str() {
-                        "THEN" | "IF" if upper == "THEN" => Tok::Then,
-                        "IF" => panic!("should not happen"),
+                        "THEN" => Tok::Then,
+                        "IF" => Tok::If,
                         "ELSE" => Tok::Else,
                         "END" => Tok::End,
                         "WHILE" => Tok::While,
                         "DO" => Tok::Do,
                         "PRINT" => Tok::Print,
                         "PRINTC" => Tok::Printc,
+                        "INPUT" => Tok::Input,
                         "JMP" => Tok::Jmp,
                         "JZ" => Tok::Jz,
                         "JNZ" => Tok::JzN,
@@ -289,6 +292,7 @@ enum Stmt {
     While(Expr, Vec<Stmt>),
     Print(Expr),
     PrintC(Expr),
+    Input(String),                    // input var - 从输入缓冲读一个字符到变量
     Label(String),
     Jmp(String),
     Jz(String, Expr),
@@ -404,6 +408,11 @@ impl Parser {
                 self.advance();
                 let expr = self.parse_expr()?;
                 Ok(Stmt::PrintC(expr))
+            }
+            Tok::Input => {
+                self.advance();
+                let var = self.parse_input_var()?;
+                Ok(Stmt::Input(var))
             }
             Tok::Jmp => {
                 let line = self.peek_line();
@@ -547,6 +556,17 @@ impl Parser {
 
     fn parse_expr(&mut self) -> Result<Expr, CompileError> {
         self.parse_comparison()
+    }
+
+    /// 解析 input 后的变量名
+    fn parse_input_var(&mut self) -> Result<String, CompileError> {
+        let line = self.peek_line();
+        match self.peek_tok().clone() {
+            Tok::Var(c) => { self.advance(); Ok(c.to_string()) }
+            Tok::Ident(name) => { self.advance(); Ok(name) }
+            _ => Err(CompileError::ParseError(
+                format!("input 后期望变量名"), line)),
+        }
     }
 
     fn parse_comparison(&mut self) -> Result<Expr, CompileError> {
@@ -787,6 +807,13 @@ impl CodeGen {
                 self.emit_op(OP_PRINTC);
                 Ok(())
             }
+            Stmt::Input(name) => {
+                // syscall 2 = READ_CHAR
+                self.emit_imm(OP_SYSCALL, 2);
+                let addr = self.var_addr(name);
+                self.emit_imm(OP_STORE, addr as i16);
+                Ok(())
+            }
             Stmt::If(cond, then_body, else_body) => {
                 self.gen_expr(cond)?;
                 let jz_idx = self.code.len();
@@ -865,11 +892,18 @@ pub fn compile_l0(source: &str) -> Result<Vec<Mccp>, CompileError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::mccp_vm::Vm;
+    use crate::mccp_vm::{Vm, VmConfig};
 
     fn run_l0(source: &str) -> Result<(String, u64), CompileError> {
         let code = compile_l0(source)?;
         let mut vm = Vm::new(code);
+        vm.run().map_err(|e| CompileError::ParseError(format!("VM error: {:?}", e), 0))?;
+        Ok((vm.output.clone(), vm.steps))
+    }
+
+    fn run_l0_with_input(source: &str, input: &str) -> Result<(String, u64), CompileError> {
+        let code = compile_l0(source)?;
+        let mut vm = Vm::with_input(code, VmConfig::default(), input.into());
         vm.run().map_err(|e| CompileError::ParseError(format!("VM error: {:?}", e), 0))?;
         Ok((vm.output.clone(), vm.steps))
     }
@@ -1150,5 +1184,32 @@ print b";
     fn l0_error_syntax() {
         let src = "if print 1";
         assert!(compile_l0(src).is_err());
+    }
+
+    // ── 输入/自举: 用 L0 读取输入 ──
+
+    #[test]
+    fn l0_input_read_chars() {
+        // L0 程序从输入缓冲读三个字符
+        let src = "input a\ninput b\ninput c\nprintc a\nprintc b\nprintc c";
+        let (out, _) = run_l0_with_input(src, "ABC").unwrap();
+        assert_eq!(out, "ABC");
+    }
+
+    #[test]
+    fn l0_input_eof_is_minus1() {
+        // 读完所有字符后再 input 会得到 -1
+        let src = "input a\ninput b\ninput c\nprint a\nprint b\nprint c";
+        let (out, _) = run_l0_with_input(src, "AB").unwrap();
+        assert_eq!(out, "6566-1"); // A=65 B=66 EOF=-1
+    }
+
+    #[test]
+    fn l0_input_echo_until_eof() {
+        // L0 cat 程序: 逐字符回显直到 EOF (-1)
+        // Simplified: just read 1 char and echo
+        let simple_src = "input c\nif c == -1 then\n  print 0\nelse\n  printc c\nend";
+        let (out, _) = run_l0_with_input(simple_src, "X").unwrap();
+        assert_eq!(out, "X");
     }
 }

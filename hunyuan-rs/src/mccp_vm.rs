@@ -160,6 +160,8 @@ pub struct Vm {
     pub reg_b: i32,
     pub halted: bool,
     pub output: String,       // PRINT / PRINTC 累积输出
+    pub input: String,        // 输入缓冲 (用于自编译读取源码)
+    pub input_pos: usize,     // 输入游标
     pub steps: u64,           // 已执行的指令数
     config: VmConfig,
 }
@@ -183,6 +185,10 @@ impl Vm {
     }
 
     pub fn with_config(code: Vec<Mccp>, config: VmConfig) -> Self {
+        Self::with_input(code, config, String::new())
+    }
+
+    pub fn with_input(code: Vec<Mccp>, config: VmConfig, input: String) -> Self {
         Self {
             pc: 0,
             code,
@@ -193,6 +199,8 @@ impl Vm {
             reg_b: 0,
             halted: false,
             output: String::new(),
+            input,
+            input_pos: 0,
             steps: 0,
             config,
         }
@@ -468,6 +476,9 @@ impl Vm {
             OP_SYSCALL => {
                 // syscall: (id=operand, a=meta_a, b=meta_b)
                 // Built-in: 0=print-stack-top-no-pop, 1=print-registers
+                //           2=READ_CHAR (从 input buffer 读一个字符, EOF=-1)
+                //           3=PEEK_CHAR (不移动游标)
+                //           4=INPUT_REMAINING (剩余输入长度)
                 match imm {
                     0 => {
                         let v = self.peek()?;
@@ -475,6 +486,35 @@ impl Vm {
                     }
                     1 => {
                         self.output.push_str(&format!("A={} B={}", self.reg_a, self.reg_b));
+                    }
+                    2 => {
+                        // READ_CHAR: 读下一个字符
+                        let ch = if self.input_pos < self.input.len() {
+                            let c = self.input[self.input_pos..].chars().next().unwrap();
+                            self.input_pos += c.len_utf8();
+                            c as i32
+                        } else {
+                            -1
+                        };
+                        self.push(ch)?;
+                    }
+                    3 => {
+                        // PEEK_CHAR: 看但不读
+                        let ch = if self.input_pos < self.input.len() {
+                            self.input[self.input_pos..].chars().next().unwrap() as i32
+                        } else {
+                            -1
+                        };
+                        self.push(ch)?;
+                    }
+                    4 => {
+                        // INPUT_REMAINING: 剩余可读取的字符数
+                        let remaining = if self.input_pos < self.input.len() {
+                            self.input[self.input_pos..].chars().count() as i32
+                        } else {
+                            0
+                        };
+                        self.push(remaining)?;
                     }
                     _ => {} // unknown syscall = NOP
                 }
@@ -791,6 +831,57 @@ mod tests {
     fn is_instruction_checks_kind() {
         assert!(is_instruction(op(OP_ADD)));
         assert!(!is_instruction(crate::mccp::Mccp::new(Kind::Hanzi as u8, 0, 0, 0)));
+    }
+
+    // ── 输入/自举 ──────────────────────────────────────────
+
+    #[test]
+    fn vm_read_char_from_input() {
+        // SYSCALL 2 (READ_CHAR) 从 input buffer 读一个字符
+        let code = vec![op_imm(OP_SYSCALL, 2), op(OP_PRINT), op(OP_HALT)];
+        let mut vm = Vm::with_input(code, VmConfig::default(), "Hi".into());
+        vm.run().unwrap();
+        assert_eq!(vm.output, "72"); // 'H' = 72
+    }
+
+    #[test]
+    fn vm_read_char_multiple() {
+        // 连续读两个字符 (用数值打印避免 UTF-8 编码问题)
+        let code = vec![
+            op_imm(OP_SYSCALL, 2), op(OP_PRINT), op_imm(OP_PUSH, 32), op(OP_PRINTC), // 'A' + space
+            op_imm(OP_SYSCALL, 2), op(OP_PRINT),                                     // 'B'
+            op(OP_HALT),
+        ];
+        let mut vm = Vm::with_input(code, VmConfig::default(), "AB".into());
+        vm.run().unwrap();
+        assert_eq!(vm.output, "65 66");
+    }
+
+    #[test]
+    fn vm_read_char_eof() {
+        // SYSCALL 2 在 EOF 时返回 -1
+        let code = vec![op_imm(OP_SYSCALL, 2), op(OP_PRINT), op(OP_HALT)];
+        let mut vm = Vm::with_input(code, VmConfig::default(), "".into());
+        vm.run().unwrap();
+        assert_eq!(vm.output, "-1");
+    }
+
+    #[test]
+    fn vm_peek_char_no_advance() {
+        // SYSCALL 3 (PEEK_CHAR) 看但不读
+        // SYSCALL 4 (INPUT_REMAINING) 剩余字符数
+        let code = vec![
+            op_imm(OP_SYSCALL, 4), op(OP_PRINT),  // remaining = 2
+            op_imm(OP_SYSCALL, 3), op(OP_PRINT),  // peek = 'H'
+            op_imm(OP_SYSCALL, 3), op(OP_PRINT),  // peek again = 'H'
+            op_imm(OP_SYSCALL, 2), op(OP_PRINT),  // now read 'H'
+            op_imm(OP_SYSCALL, 4), op(OP_PRINT),  // remaining = 1
+            op(OP_HALT),
+        ];
+        let mut vm = Vm::with_input(code, VmConfig::default(), "Hi".into());
+        vm.run().unwrap();
+        // 2 remaining, peek H(72), peek H(72), read H(72), 1 remaining → "27272721"
+        assert_eq!(vm.output, "27272721");
     }
 
     // ── 简单 VM 执行 ──────────────────────────────────────
