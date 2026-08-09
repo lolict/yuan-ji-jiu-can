@@ -8,8 +8,7 @@ license = "Proprietary"
 repository = "https://github.com/lolict/hunyuan-os"
 
 [dependencies]
-# 零依赖设计: 仅用 std, 如需加密则上 curve25519-dalek + aes-gcm
-# 现在阶段: 纯 std
+bitflags = "2"
 
 [lib]
 name = "mqf"

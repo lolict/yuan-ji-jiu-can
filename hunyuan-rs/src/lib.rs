@@ -52,6 +52,9 @@ pub mod flow_algebra;
 // ── v0.10 一体化统一层 ──
 pub mod unified_flow;
 
+// ── v0.10 拓扑描述子系统 ──
+pub mod topo;
+
 pub use self_bootstrap::{ConsciousnessCommand, encode_to_cell, decode_from_cell,
                          fixed_point_proof, bootstrap_cycle};
 
