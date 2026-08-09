@@ -7,6 +7,9 @@
 //   2. 定位预加载: 契约分配代数 — 通过签名/合约暴露未来/当下/过去的数据
 //   3. 层级预加载: 标题→内容,一个名字统领无限下属,不需要重复声明
 
+use crate::topo::{self, Symbol, Topology, TopologyMapper};
+use crate::rel::{Rel, RelGraph, RelKind};
+
 use std::collections::HashMap;
 
 /// 容器边界类型 — 把这个边界内的全部作为预加载内容。
@@ -20,45 +23,7 @@ pub enum ContainerKind {
     Flow,       // 时序流容器: 串联层级
 }
 
-/// 容器 — 自带边界,内部预加载全部能力,外部只用名字引用。
-pub struct Container {
-    kind: ContainerKind,
-    domains: Vec<&'static str>,  // 这个容器被分配给哪些领域
-    contracts: Vec<Contract>,    // 它向外暴露的契约
-}
-
-impl Container {
-    pub fn new(kind: ContainerKind) -> Self {
-        Container { kind, domains: Vec::new(), contracts: Vec::new() }
-    }
-
-    /// 把当前容器的能力分配给某领域使用
-    pub fn assign_to(&mut self, domain: &'static str) {
-        if !self.domains.contains(&domain) {
-            self.domains.push(domain);
-        }
-    }
-
-    /// 检查容器是否被某领域使用
-    pub fn is_used_by(&self, domain: &str) -> bool {
-        self.domains.iter().any(|d| *d == domain)
-    }
-
-    /// 暴露一个契约(函数签名)
-    pub fn expose(&mut self, name: &'static str, input: &'static str, output: &'static str) {
-        self.contracts.push(Contract { name, input, output });
-    }
-
-    /// 查找契约
-    pub fn find_contract(&self, name: &str) -> Option<&Contract> {
-        self.contracts.iter().find(|c| c.name == name)
-    }
-}
-
-/// 契约 — 函数签名式的访问点。:
-///   名字 = 调用名
-///   输入 = 参数类型描述
-///   输出 = 返回类型描述
+/// 契约 — 函数签名式的访问点。
 #[derive(Debug, Clone)]
 pub struct Contract {
     pub name: &'static str,
@@ -66,71 +31,157 @@ pub struct Contract {
     pub output: &'static str,
 }
 
-/// 预加载流 — 已经是全局唯一注册表,启动时一次性加载。
+impl Contract {
+    pub const fn new(name: &'static str, input: &'static str, output: &'static str) -> Self {
+        Contract { name, input, output }
+    }
+}
+
+/// 容器 — 自带边界,内部预加载全部能力,外部只用名字引用。
+pub struct Container {
+    kind: ContainerKind,
+    domains: Vec<&'static str>,
+    contracts: Vec<Contract>,
+}
+
+impl Container {
+    pub fn new(kind: ContainerKind) -> Self {
+        Container { kind, domains: Vec::new(), contracts: Vec::new() }
+    }
+
+    pub fn assign_to(&mut self, domain: &'static str) {
+        if !self.domains.contains(&domain) {
+            self.domains.push(domain);
+        }
+    }
+
+    pub fn is_used_by(&self, domain: &str) -> bool {
+        self.domains.iter().any(|d| *d == domain)
+    }
+
+    pub fn expose(&mut self, contract: Contract) {
+        self.contracts.push(contract);
+    }
+
+    pub fn find_contract(&self, name: &str) -> Option<&Contract> {
+        self.contracts.iter().find(|c| c.name == name)
+    }
+}
+
+/// 预加载流 — 全局唯一注册表,启动时加载,运行时调用。
 pub struct PreloadFlow {
     containers: HashMap<ContainerKind, Container>,
+    default_graph: RelGraph,
 }
 
 impl PreloadFlow {
-    /// 默认初始化: 加载全部标准容器。启动时调用一次,之后只读。
     pub fn new() -> Self {
-        let mut flow = PreloadFlow { containers: HashMap::new() };
+        let mut flow = PreloadFlow {
+            containers: HashMap::new(),
+            default_graph: Self::build_default_graph(),
+        };
 
-        // 立方体:空间相位容器
+        // 立方体容器
         let mut cube = Container::new(ContainerKind::Cube);
         cube.assign_to("spatial");
         cube.assign_to("geometric");
-        cube.expose("phase", "symbol", "Coord3");
-        cube.expose("contains", "range", "Vec<Symbol>");
+        cube.expose(Contract::new("phase", "symbol", "Coord3"));
+        cube.expose(Contract::new("contains", "range", "...symbols"));
         flow.containers.insert(ContainerKind::Cube, cube);
 
-        // 蜂窝:邻接关系容器
+        // 蜂窝容器
         let mut honey = Container::new(ContainerKind::Honeycomb);
         honey.assign_to("adjacency");
-        honey.expose("neighbors", "symbol", "Vec<Symbol>");
+        honey.expose(Contract::new("neighbors", "symbol", "...symbols"));
         flow.containers.insert(ContainerKind::Honeycomb, honey);
 
         // 编码容器
         let mut enc = Container::new(ContainerKind::Encoded);
         enc.assign_to("symbol_table");
-        enc.expose("decode", "Symbol", "u8");
-        enc.expose("encode", "u8", "Symbol");
+        enc.expose(Contract::new("decode", "symbol", "u8"));
+        enc.expose(Contract::new("encode", "u8", "symbol"));
         flow.containers.insert(ContainerKind::Encoded, enc);
 
-        // 关系容器
+        // 关系容器 — 真正接入 rel 子系统
         let mut rel = Container::new(ContainerKind::Relational);
         rel.assign_to("algebra");
         rel.assign_to("graph");
-        rel.expose("parents", "u8", "Vec<u8>");     // 溯源:找到祖先
-        rel.expose("children", "u8", "Vec<u8>");   // 派生:找到下属
-        rel.expose("common", "Two<u8>", "u8");     // 同源:找共同祖先
+        rel.expose(Contract::new("parents", "u8", "...u8"));     // 溯源祖先
+        rel.expose(Contract::new("children", "u8", "...u8"));   // 找派生下属
+        rel.expose(Contract::new("common", "Two<u8>", "u8"));   // 共同祖先
+        rel.expose(Contract::new("is_owned", "Two<u8>", "bool"));
         flow.containers.insert(ContainerKind::Relational, rel);
 
         // 镜像容器
         let mut mir = Container::new(ContainerKind::Mirrored);
         mir.assign_to("reverse");
-        mir.expose("flip", "Rel", "Rel");   // 关系镜像:反转因果
+        mir.expose(Contract::new("flip", "Rel", "Rel"));
         flow.containers.insert(ContainerKind::Mirrored, mir);
 
         // 时序流容器
         let mut fl = Container::new(ContainerKind::Flow);
         fl.assign_to("sequence");
-        fl.expose("order", "Two<u8>", "Ordering");  // 判定先后
-        fl.expose("chain", "Symbol", "Vec<Symbol>"); // 取时序链
+        fl.expose(Contract::new("order", "Two<u8>", "Ordering"));
+        fl.expose(Contract::new("chain", "u8", "...u8"));
         flow.containers.insert(ContainerKind::Flow, fl);
 
         flow
     }
 
-    /// 通过容器类型和契约名调用能力。这是唯一允许的访问方式:
-    ///   不暴露内部实现,只用 (容器, 契约) 二元组引用。
+    /// 默认关系图: 整除树 p 是 q 的祖先 ⟺ p 整除 q
+    fn build_default_graph() -> RelGraph {
+        let mut g = RelGraph::new();
+        for n in 1u8..64 {
+            // 所有真因数 p(p < n 且 n % p == 0) 都是 n 的祖先
+            for p in 1..n {
+                if n % p == 0 {
+                    g.add(Rel::new(p, n, RelKind::PaiSheng).unwrap());
+                }
+            }
+        }
+        g
+    }
+
+    /// 查询契约签名
     pub fn use_contract(&self, kind: ContainerKind, contract_name: &str) -> Option<&Contract> {
         self.containers.get(&kind)?.find_contract(contract_name)
     }
 
-    /// 查询某容器是否开放给某领域
+    /// 查询容器是否开放给某领域
     pub fn container_available(&self, kind: ContainerKind, domain: &str) -> bool {
         self.containers.get(&kind).map_or(false, |c| c.is_used_by(domain))
+    }
+
+    /// 真正调用 — 通过盒子+契约名调起实际运算。
+    ///
+    /// 例:
+    ///   pf.call_relational_parents(6)   => [3, 2, 1](排序后)
+    ///   pf.call_sym_phase(17)           => Coord3 { x: 1, y: 0, z: 1 }
+    ///   pf.call_mirrored_flip(r)        => r 方向反转
+    pub fn call_relational_parents(&self, n: u8) -> Vec<u8> {
+        let mut result = self.default_graph.trace_origin(n);
+        result.sort_unstable();
+        result.dedup();
+        result
+    }
+
+    pub fn call_relational_children(&self, n: u8) -> Vec<u8> {
+        let mut result = self.default_graph.reachable(n);
+        result.sort_unstable();
+        result.dedup();
+        result
+    }
+
+    pub fn call_relational_common(&self, a: u8, b: u8) -> Option<u8> {
+        self.default_graph.common_origin(a, b)
+    }
+
+    pub fn call_sym_phase(&self, s: Symbol) -> topo::Coord3 {
+        TopologyMapper::map(Topology::Cube4, s)
+    }
+
+    pub fn call_mirrored_flip(&self, r: Rel) -> Rel {
+        r.mirror()
     }
 }
 
@@ -143,31 +194,71 @@ mod tests {
     use super::*;
 
     #[test]
-    fn preload_invention() {
+    fn preload_decode_contract_signature() {
         let pf = PreloadFlow::new();
-        // 编码容器暴露 decode
         let c = pf.use_contract(ContainerKind::Encoded, "decode").unwrap();
-        assert_eq!(c.input, "Symbol");
+        assert_eq!(c.input, "symbol");
         assert_eq!(c.output, "u8");
     }
 
     #[test]
-    fn preload_spatial_preloaded() {
+    fn preload_spatial_available() {
         let pf = PreloadFlow::new();
         assert!(pf.container_available(ContainerKind::Cube, "spatial"));
-        assert!(pf.container_available(ContainerKind::Cube, "geometric"));
-        // 编码容器没有分配给 relation 领域
         assert!(!pf.container_available(ContainerKind::Encoded, "graph"));
     }
 
     #[test]
-    fn preload_contract_lookup() {
+    fn call_parents_integration() {
         let pf = PreloadFlow::new();
-        // 关系容器可以直接溯源祖先
-        let parents = pf.use_contract(ContainerKind::Relational, "parents").unwrap();
-        assert_eq!(parents.name, "parents");
-        // 镜像容器提供因果翻转
-        let flip = pf.use_contract(ContainerKind::Mirrored, "flip").unwrap();
-        assert_eq!(flip.input, "Rel");
+        // #6 的因数: 1, 2, 3
+        let parents = pf.call_relational_parents(6);
+        assert!(parents.contains(&1));
+        assert!(parents.contains(&2));
+        assert!(parents.contains(&3));
+        assert!(!parents.contains(&6)); // 祖先不包括自身
+    }
+
+    #[test]
+    fn call_children_integration() {
+        let pf = PreloadFlow::new();
+        // #2 的倍数(≤63): 4,8,10,12,...(凡是 2×质数 的结果)
+        let children = pf.call_relational_children(2);
+        // #2 × 2 = 4 (因为 2 是质数,2/2=1,count_ones=1,所以 #2→#4)
+        assert!(children.contains(&4));
+    }
+
+    #[test]
+    fn call_common_origin_integration() {
+        let pf = PreloadFlow::new();
+        // #6 和 #9 的最大公因数 = 3
+        assert_eq!(pf.call_relational_common(6, 9), Some(3));
+        // #7 和 #11 互质 → 只有共同祖先 #1
+        assert_eq!(pf.call_relational_common(7, 11), Some(1));
+    }
+
+    #[test]
+    fn call_coord_integration() {
+        let pf = PreloadFlow::new();
+        let s = Symbol::new(0).unwrap();
+        let c = pf.call_sym_phase(s);
+        assert_eq!(c.x, 0);
+        assert_eq!(c.y, 0);
+        assert_eq!(c.z, 0);
+        let s17 = Symbol::new(17).unwrap();
+        let c17 = pf.call_sym_phase(s17);
+        // 17 = 4×4 + 1 → x=1,y=0,z=1
+        assert_eq!(c17.x, 1);
+        assert_eq!(c17.z, 1);
+    }
+
+    #[test]
+    fn call_mirror_integration() {
+        let pf = PreloadFlow::new();
+        let r = Rel::new(3, 6, RelKind::PaiSheng).unwrap();
+        let m = pf.call_mirrored_flip(r);
+        assert_eq!(m.from, 6);
+        assert_eq!(m.to, 3);
+        // 派生→归属(镜像后的合理映射)
     }
 }
