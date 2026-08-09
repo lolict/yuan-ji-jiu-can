@@ -1321,4 +1321,121 @@ print count"#;
         // 验证: count == own_source.len()
         assert_eq!(count, own_source.len() as i32);
     }
+
+    // ── L0 Lexer 雏形: 用 L0 程序识别关键字 "print" ──
+
+    #[test]
+    fn l0_lexer_recognizes_print_keyword() {
+        // 状态机识别 "print" 五个字母 (p-r-i-n-t)
+        // 识别成功输出 1, 失败输出 0
+        //
+        // 这就是编译器的"词法分析器"(Lexer)用 L0 自身写成!
+        // Lexer 的本质是一个有限状态机器:
+        //   状态0 读'p'→状态1, 读其他→失败
+        //   状态1 读'r'→状态2, 读其他→失败
+        //   ...直到读完 5 个字母到达接受状态
+
+        let lexer = r#"
+; 读第一个字符, 必须是 'p' (ASCII 112)
+input c
+if c == 112 then
+  ; 读第二个字符, 必须是 'r' (ASCII 114)
+  input c
+  if c == 114 then
+    ; 读第三个字符, 必须是 'i' (ASCII 105)
+    input c
+    if c == 105 then
+      ; 读第四个字符, 必须是 'n' (ASCII 110)
+      input c
+      if c == 110 then
+        ; 读第五个字符, 必须是 't' (ASCII 116)
+        input c
+        if c == 116 then
+          print 1
+          jmp done
+        end
+      end
+    end
+  end
+end
+; 任何一步不匹配, 走到这里
+print 0
+done:"#;
+
+        // 输入 "print" → 应识别成功
+        let (out, _) = run_l0_with_input(lexer, "print").unwrap();
+        assert_eq!(out, "1");
+
+        // 输入 "prin" (缺末字母) → 失败
+        let (out, _) = run_l0_with_input(lexer, "prin").unwrap();
+        assert_eq!(out, "0");
+
+        // 输入 "pront" (错字母) → 失败
+        let (out, _) = run_l0_with_input(lexer, "pront").unwrap();
+        assert_eq!(out, "0");
+    }
+
+    #[test]
+    fn l0_lexer_two_keywords_dispatcher() {
+        // 调度器: 根据首字符分发到不同的关键字识别
+        // 'p' → 尝试 print, 'i' → 尝试 if/input
+        //
+        // 这是真实编译器的 Lexer 入口:
+        //   next_token() {
+        //     c = peek_char()
+        //     if c == 'p': return try_match_print()
+        //     if c == 'i': return try_match_if_or_input()
+        //     ...
+        //   }
+
+        let dispatcher = r#"
+ ; peek first char
+input a
+
+ ; a == 112 ('p') === check print?
+if a == 112 then
+  input b
+  if b == 114 then
+    print 1
+    jmp done
+  end
+  print 0
+  jmp done
+end
+
+ ; a == 105 ('i') === check if or input
+if a == 105 then
+  input b
+  if b == 102 then
+    print 2
+    jmp done
+  end
+  if b == 110 then
+    print 3
+    jmp done
+  end
+  print 0
+  jmp done
+end
+
+; 不认识的首字符
+print 0
+done:"#;
+
+        // 'p' 'r' → print (token 1)
+        let (out, _) = run_l0_with_input(dispatcher, "pr").unwrap();
+        assert_eq!(out, "1");
+
+        // 'i' 'f' → if (token 2)
+        let (out, _) = run_l0_with_input(dispatcher, "if").unwrap();
+        assert_eq!(out, "2");
+
+        // 'i' 'n' → input (token 3)
+        let (out, _) = run_l0_with_input(dispatcher, "in").unwrap();
+        assert_eq!(out, "3");
+
+        // 不认识的关键字
+        let (out, _) = run_l0_with_input(dispatcher, "xy").unwrap();
+        assert_eq!(out, "0");
+    }
 }
