@@ -150,17 +150,15 @@ impl RelGraph {
         self.reachable(owner).contains(&a)
     }
 
-    /// 共享祖先: 两个节点的最早共同源点(判断分支归属)
+    /// 共享祖先: 两个节点的最大共同源点(判断分支归属)。
+    /// 返回数值最大的共同祖先(在整个整除偏序中这就是 GCD)。
     pub fn common_origin(&self, a: u8, b: u8) -> Option<u8> {
         let ancestors_a: std::collections::HashSet<u8> =
             self.trace_origin(a).into_iter().collect();
-        let ancestors_b = self.trace_origin(b);
-        for anc in ancestors_b {
-            if ancestors_a.contains(&anc) {
-                return Some(anc);
-            }
-        }
-        None
+        self.trace_origin(b)
+            .into_iter()
+            .filter(|x| ancestors_a.contains(x))
+            .max()
     }
 }
 
