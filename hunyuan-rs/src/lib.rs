@@ -55,6 +55,9 @@ pub mod unified_flow;
 // ── v0.10 拓扑描述子系统 ──
 pub mod topo;
 
+// ── v0.11 关系代数子系统 ──
+pub mod rel;
+
 pub use self_bootstrap::{ConsciousnessCommand, encode_to_cell, decode_from_cell,
                          fixed_point_proof, bootstrap_cycle};
 
