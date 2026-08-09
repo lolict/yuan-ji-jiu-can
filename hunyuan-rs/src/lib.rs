@@ -55,6 +55,9 @@ pub mod unified_flow;
 // ── v0.10 拓扑描述子系统 ──
 pub mod topo;
 
+// ── v0.10.5 预加载流 — 满全核心运行时机制 ──
+pub mod preload;
+
 // ── v0.11 关系代数子系统 ──
 pub mod rel;
 
