@@ -64,6 +64,9 @@ pub mod rel;
 // ── v0.12 角度子系统 (384° 满圆制式) ──
 pub mod angle;
 
+// ── v0.13 符号表 (Symbol Table, 自举字形载体) ──
+pub mod symbol_table;
+
 pub use self_bootstrap::{ConsciousnessCommand, encode_to_cell, decode_from_cell,
                          fixed_point_proof, bootstrap_cycle};
 
