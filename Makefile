@@ -49,7 +49,13 @@ docs:
 	@echo "路线图:    ROADMAP.md"
 
 # MLLL 九维符号综合测拭 (独立 main, 不依赖内核)
-test-mlll: kernel/src/mlll_test.c kernel/src/mlll_symbols.c kernel/src/mlll_kernel_bridge.c
+test-mlll: kernel/src/mlll_test.c kernel/src/mlll_symbols.c kernel/src/mlll_kernel_bridge.c kernel/src/mlll_pinyin.c
 	$(CC) $(CFLAGS) -DMLLL_LIBRARY $^ -o kernel/src/mlll_test.elf -lm
 	@echo "═══ MLLL 九维测拭启动 ═══"
 	./kernel/src/mlll_test.elf
+
+# MLLL 汉字拼音知识库 demo + 夫妻对偶查询
+mlll-pinyin: kernel/src/mlll_pinyin_demo.c kernel/src/mlll_pinyin.c kernel/src/mlll_symbols.c
+	$(CC) $(CFLAGS) -DMLLL_LIBRARY $^ -o kernel/src/mlll_pinyin_demo.elf -lm
+	@echo "═══ MLLL 拼音知识库 + 夫妻对偶查询 ═══"
+	./kernel/src/mlll_pinyin_demo.elf

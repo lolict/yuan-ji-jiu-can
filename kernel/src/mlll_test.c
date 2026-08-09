@@ -10,6 +10,7 @@
  *   [6] 字节序列化 — encode_bytes / decode_bytes round-trip
  *   [7] 内核桥接 — from_kernel_identity + to_kernel_identity 一致性
  *   [8] 九维跨维查询 — mlll_cross_query × 9 维交叉覆盖
+ *   [9] Pinyin 知识库 — 汉字/拼音互查 + 拼音解析 + 夫妻对偶
  *
  * 用法：make test-mlll（编译 + 自动运行 + 输出 PASS/FAIL 计数）
  */
@@ -21,6 +22,7 @@
 #include <stdint.h>
 #include "mlll_symbols.h"
 #include "mlll_kernel_bridge.h"
+#include "mlll_pinyin.h"
 
 /* 测试统计 */
 static int test_run = 0;
@@ -263,6 +265,57 @@ static void test_string_encode(void) {
     PASS();
 }
 
+/* [IX] Pinyin 专项测试 */
+static void test_pinyin(void) {
+    TEST("知识库条目 > 100");
+    ASSERT(mlll_pinyin_count() > 100, "知识库条目数不足");
+
+    TEST("按汉字查找 囡");
+    const pinyin_entry_t* e = mlll_pinyin_lookup_by_char("囡");
+    ASSERT(e != NULL, "囡 查找失败");
+    if (e) {
+        ASSERT(e->prop.stroke == 6, "囡 笔画应=6");
+        ASSERT(e->prop.initial == 6, "囡 声母应=6(n)");
+        ASSERT(e->prop.vowel == 15, "囡 韵母应=15(an)");
+        ASSERT(e->prop.tone == 0, "囡 声调应=0(阴平)");
+    }
+
+    TEST("按汉字查找 刘");
+    e = mlll_pinyin_lookup_by_char("刘");
+    ASSERT(e != NULL, "刘 查找失败");
+    if (e) {
+        ASSERT(e->prop.stroke == 6, "刘 笔画应=6");
+        ASSERT(e->prop.initial == 7, "刘 声母应=7(l)");
+    }
+
+    TEST("pinyin 反查：声母=n(6) 韵母=an(15)");
+    int out[32];
+    int cnt = mlll_pinyin_find_by_pinyin(6, 15, -1, out, 32);
+    ASSERT(cnt >= 1, "n+an 组合应有匹配");
+
+    TEST("pinyin 反查：声母=j(11)");
+    cnt = mlll_pinyin_find_by_pinyin(11, -1, -1, out, 32);
+    ASSERT(cnt >= 1, "声母 j 应有匹配");
+
+    TEST("mlll_find_spouse 夫妻对偶");
+    int spouses[5];
+    cnt = mlll_find_spouse("囡", spouses, 5);
+    ASSERT(cnt == 5, "夫妻对偶返回数应为5");
+
+    TEST("拼音解析：zhōng → 声母zh(14) 韵母ong(20)");
+    ASSERT(mlll_pinyin_initial("zhōng") == 14, "zhōng声母解析错误");
+    ASSERT(mlll_pinyin_vowel("zhōng") >= 0, "zhōng韵母解析错误");
+
+    TEST("拼音解析：tián → 声母t(5) 韵母an(15..)");
+    ASSERT(mlll_pinyin_initial("tián") == 5, "tián声母解析错误");
+
+    TEST("compute_prop 合成九维坐标");
+    char_prop_t prop;
+    mlll_pinyin_compute_prop("zhōng", 8, 1, 0, &prop);
+    ASSERT(prop.stroke == 8, "compute_prop stroke 错误");
+    ASSERT(prop.initial == 14, "compute_prop initial 错误");
+}
+
 int main(void) {
     printf("════════════════════════════════════════════\n");
     printf("  MLLL 九维符号综合测试套件\n");
@@ -293,6 +346,9 @@ int main(void) {
 
     printf("\n[VIII] String encode/decode 测试\n");
     test_string_encode();
+
+    printf("\n[IX] Pinyin 专项测试\n");
+    test_pinyin();
 
     printf("\n════════════════════════════════════════════\n");
     printf("  测试完成: %d 运行 | %d ✓PASS | %d ✗FAIL\n",
