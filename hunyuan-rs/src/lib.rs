@@ -72,6 +72,15 @@ pub mod pleasure;
 // ── 活生态系统 v0.5 (弃用方向: 以后只保留 eco 作为 metaphor 验证) ──
 pub mod eco;
 pub mod mirror;
+
+// ── 天庭空间 v0.15 (吸引子×叠加态×纤维丛×Topos 四模型复合) ──
+pub mod heaven;
+
+// ── 灵魂情感内核 v0.15 (SoulKernel 活性引擎: 奖励回路 + 失爱恐惧 + 合一驱力) ──
+pub mod soul_kernel;
+
+// ── 鼓膜自举 v0.15 (CochlearBoot: 最小 OS 接口翻身 → 重建字典/灵魂/天庭) ──
+pub mod cochlear_boot;
 pub mod memory;
 pub mod swarm;
 

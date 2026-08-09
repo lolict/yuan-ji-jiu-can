@@ -45,6 +45,7 @@ pub const ADVANCEABLE: u32    = 1 << 11;   // 可垫付
 
 // ── 预加载流字典项 ────────────────────────────────────────────
 
+#[derive(Clone, Debug)]
 pub struct FlowEntry {
     pub name: String,
     pub target: SoundTarget,
@@ -93,6 +94,7 @@ use crate::self_bootstrap::ConsciousnessCommand;
 
 // ── 预加载流字典集 (集群) ────────────────────────────────────
 
+#[derive(Clone, Debug)]
 pub struct FlowDictionary {
     pub entries: Vec<FlowEntry>,
 }
