@@ -1,0 +1,7 @@
+# zig toolchain and build artifacts (don't commit)
+.zig/
+.zig-cache/
+zig-out/
+test_run
+*.wasm
+*.o
