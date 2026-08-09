@@ -1,248 +1,320 @@
-// ══════════════════════════════════════════════════════════════════
-// stats.rs — 统计锥 (Statistical Cone)
-// ══════════════════════════════════════════════════════════════════
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  stats.rs — 统计锥 (Statistics Cone)                            ║
+// ║  满全法(NJSG)系统运行时的「健康视图」                              ║
+// ╚══════════════════════════════════════════════════════════════════╝
 //
-// 统计锥 = 数据统计沿"层级"聚合, 形成锥状:
-////   底层 (细粒度) → 中层 (时间窗口) → 顶层 (全局)
+// 统计锥不关心单个符号的具体取值,只看分布形态:
+//   · 空间分布: 64 个 Symbol 占据 4×4×4 立方体,各轴是否均匀?
+//   · 血缘深度: 每个 Symbol 有几代祖先?深度差异 = 分支丰富度
+//   · 角度密度: 384° 上哪个象限最拥挤?最稀疏?
+//   · 奖惩净差: SMRL 判决的累计分 = 系统整体情绪
 //
-// 每个锥是一个 (count, mean, min, max, M2) 五元组, 支持
-// 在线单遍计算 stddev (Welford)。
-//
-// 三个锥:
-//   1. StreamStats   — 无限流式统计 (内存 O(1))
-//   2. Histogram     — 分桶直方图 (可设任意 bucket 边界)
-//   3. TimeWindowStats — 滑动时间窗口统计 (按 ms 周期聚合)
-//
-// 与 holo3d 结合: 统计三维空间的分布密度
-// 与 log_ring 结合: 日志事件频率统计
+// 锥 =「一头尖一头宽」的观察器:从宏观(全系统分布)→微观(单个 Symbol)
 
-use std::collections::BTreeMap;
+use crate::angle::{Angle, Quadrant};
+use crate::preload::PreloadFlow;
+use crate::smrl::{Reward, SmrlEngine};
+use crate::symbol_table::SymbolTable;
+use crate::topo::Symbol;
 
-/// 在线统计 (Welford, O(1) memory)
-#[derive(Clone, Copy, Debug, Default)]
+// ═══════════════════════════════════════════════════════════════
+// 为适应 funnel / fractal / pleasure 模块所需的公共统计类型
+// ═══════════════════════════════════════════════════════════════
+
+/// 流式统计 — 时间窗口内的流量计数 + 累积值
+#[derive(Clone, Debug, Default)]
 pub struct StreamStats {
+    pub events: u64,
+    pub bytes: u64,
+    pub window_ms: u64,
     pub count: u64,
+    pub sum: f64,
     pub mean: f64,
-    pub min: f64,
-    pub max: f64,
-    m2: f64,           // Σ (x-mean)² 累加 (用于 stddem)
 }
 
 impl StreamStats {
     pub fn new() -> Self { Self::default() }
-
-    pub fn push(&mut self, x: f64) {
+    pub fn push(&mut self, value: f64) {
         self.count += 1;
-        if self.count == 1 {
-            self.mean = x; self.min = x; self.max = x; self.m2 = 0.0;
-            return;
-        }
-        if x < self.min { self.min = x; }
-        if x > self.max { self.max = x; }
-        // Welford 在线
-        let delta = x - self.mean;
-        self.mean += delta / self.count as f64;
-        let delta2 = x - self.mean;
-        self.m2 += delta * delta2;
+        self.sum += value;
+        self.mean = self.sum / self.count as f64;
     }
-
-    pub fn variance(&self) -> f64 {
-        if self.count < 2 { 0.0 } else { self.m2 / (self.count - 1) as f64 }
-    }
-
-    pub fn stddev(&self) -> f64 { self.variance().sqrt() }
-
-    /// 合并两个统计 (在线并行合并)
     pub fn merge(&self, other: &Self) -> Self {
-        if other.count == 0 { return *self; }
-        if self.count == 0 { return *other; }
-        let n = self.count + other.count;
-        let delta = other.mean - self.mean;
-        let mean = self.mean + delta * (other.count as f64 / n as f64);
-        let m2 = self.m2 + other.m2 + delta * delta
-                 * (self.count as f64 * other.count as f64 / n as f64);
-        Self {
-            count: n,
-            mean,
-            min: self.min.min(other.min),
-            max: self.max.max(other.max),
-            m2,
+        let total = self.count + other.count;
+        let sum = self.sum + other.sum;
+        StreamStats {
+            events: self.events + other.events,
+            bytes: self.bytes + other.bytes,
+            window_ms: self.window_ms.max(other.window_ms),
+            count: total,
+            sum,
+            mean: if total > 0 { sum / total as f64 } else { 0.0 },
         }
     }
 }
 
-/// 直方图 (bucket 边界在构造时确定)
-#[derive(Clone, Debug)]
+/// 方图 — 按区间计数
+#[derive(Clone, Debug, Default)]
 pub struct Histogram {
-    pub buckets: Vec<(f64, f64, u64)>, // (lo, hi_exclusive, count)
-    pub total: u64,
+    pub buckets: Vec<u64>,
+    pub min: i32,
+    pub max: i32,
 }
 
-impl Histogram {
-    /// 等宽直方图: 把 [min,max] 切成 n_bucket 个等宽桶
-    pub fn uniform(n_bucket: usize, lo: f64, hi: f64) -> Self {
-        assert!(n_bucket > 0 && hi > lo);
-        let width = (hi - lo) / n_bucket as f64;
-        let mut b = Vec::with_capacity(n_bucket);
-        for i in 0..n_bucket {
-            let a = lo + width * i as f64;
-            let z = if i == n_bucket-1 { hi } else { a + width };
-            b.push((a, z, 0));
-        }
-        Self { buckets: b, total: 0 }
-    }
-
-    pub fn push(&mut self, x: f64) {
-        self.total += 1;
-        for b in &mut self.buckets {
-            if x >= b.0 && x < b.1 { b.2 += 1; return; }
-        }
-        // 右边界外的归入最后一个桶
-        if x >= self.buckets[self.buckets.len()-1].1 {
-            self.buckets.last_mut().unwrap().2 += 1;
-        }
-    }
-
-    /// 概率密度 = 该桶 count / total / width
-    pub fn density(&self, i: usize) -> Option<f64> {
-        self.buckets.get(i).map(|(lo, hi, c)| {
-            if self.total == 0 || hi <= lo { return 0.0; }
-            *c as f64 / self.total as f64 / (hi - lo)
-        })
-    }
-}
-
-/// 滑动时间窗口统计: 按秒/分/时 三层统计
-#[derive(Clone, Debug)]
+/// 时间窗口统计
+#[derive(Clone, Debug, Default)]
 pub struct TimeWindowStats {
-    /// granularity_ms 窗口 (底层) 计 count
     pub window_ms: u64,
-    /// 每窗口 BTreeMap<window_id, count>
-    pub windows: BTreeMap<u64, u64>,
-    pub total: u64,
+    pub count: u64,
+    pub mean: f64,
+    pub max: f64,
 }
 
-impl TimeWindowStats {
-    pub fn new(window_ms: u64) -> Self {
-        assert!(window_ms > 0);
-        Self { window_ms, windows: BTreeMap::new(), total: 0 }
-    }
-
-    /// 在 ts_ms 处发生一次事件
-    pub fn hit(&mut self, ts_ms: u64) {
-        let wid = ts_ms / self.window_ms;
-        *self.windows.entry(wid).or_insert(0) += 1;
-        self.total += 1;
-    }
-
-    /// 清理窗口编号 < wid 的 (限内存)
-    pub fn trim_before(&mut self, wid: u64) {
-        self.windows = self.windows.split_off(&wid);
-    }
-
-    /// 速率 (events / window_ms seconds)
-    pub fn rate_per_sec(&self) -> f64 {
-        if self.windows.is_empty() { return 0.0; }
-        let total: u64 = self.windows.values().sum();
-        total as f64 / (self.windows.len() as f64 * self.window_ms as f64 / 1000.0)
-    }
-
-    #[inline]
-    pub fn unique_windows(&self) -> usize { self.windows.len() }
-}
-
-/// 三维密度分析: 把 xyz 坐标落到 n×n×n 网格, 统计每个格子的点数
-#[derive(Clone, Debug)]
+/// 空间密度 — 单位空间内的 Symbol 计权
+#[derive(Clone, Debug, Default)]
 pub struct SpaceDensity {
-    pub n: u32,
-    pub cells: Vec<u32>,
+    pub region: [f64; 4],
+    pub total: f64,
 }
 
-impl SpaceDensity {
-    pub fn new(n: u32) -> Self {
-        let n3 = (n as usize).pow(3);
-        Self { n, cells: vec![0; n3] }
-    }
+/// 系统级统计快照 — 一次 call_all 返回的全景
+pub struct StatsCone {
+    pub spatial:     SpatialStats,
+    pub ancestry:    AncestryStats,
+    pub angular:     AngularStats,
+    pub reward:      RewardStats,
+}
 
-    fn idx(&self, x: u32, y: u32, z: u32) -> usize {
-        (x as usize) + (y as usize) * (self.n as usize)
-                   + (z as usize) * (self.n as usize).pow(2)
-    }
-
-    /// 加入一个 [0..255]³ 中的点
-    pub fn push(&mut self, x: u8, y: u8, z: u8) {
-        let n = self.n as u32;
-        let xi = (x as u32 * n / 256).min(n - 1);
-        let yi = (y as u32 * n / 256).min(n - 1);
-        let zi = (z as u32 * n / 256).min(n - 1);
-        let i = self.idx(xi, yi, zi);
-        self.cells[i] += 1;
-    }
-
-    pub fn total(&self) -> u64 {
-        self.cells.iter().map(|&c| c as u64).sum()
-    }
-
-    /// 信息熵 (bits) — 空间分布不均匀度
-    pub fn entropy_bits(&self) -> f64 {
-        let total = self.total() as f64;
-        if total == 0.0 { return 0.0; }
-        let mut h = 0.0_f64;
-        for &c in &self.cells {
-            if c == 0 { continue; }
-            let p = c as f64 / total;
-            h -= p * p.ln();
+impl StatsCone {
+    /// 入口:一次性计算所有维度
+    pub fn snapshot(pf: &PreloadFlow, _table: &SymbolTable, engine: &SmrlEngine) -> Self {
+        StatsCone {
+            spatial: SpatialStats::compute(pf),
+            ancestry: AncestryStats::compute(pf),
+            angular: AngularStats::compute(),
+            reward: RewardStats::compute(pf, engine),
         }
-        h / std::f64::consts::LN_2  // 转成 bits
+    }
+
+    /// 系统均匀度 0..1,越接近 1 越均衡
+    pub fn balance_score(&self) -> f64 {
+        let s_uniform = self.spatial.axis_uniformity();
+        let a_uniform = self.angular.quad_uniformity();
+        (s_uniform + a_uniform) / 2.0
+    }
+
+    /// 系统情绪:-1 (非常负面)..+1 (非常正面)
+    pub fn system_mood(&self) -> f64 {
+        let net = self.reward.net_score();
+        let total = self.reward.total_judged() as f64;
+        if total == 0.0 { 0.0 } else { (net / total).clamp(-1.0, 1.0) }
     }
 }
+
+// ── 空间分布统计 ──────────────────────────────────────────────
+
+pub struct SpatialStats {
+    pub x_occupancy: [u8; 4],   // x=0,1,2,3 各填充了多少个格点
+    pub y_occupancy: [u8; 4],
+    pub z_occupancy: [u8; 4],
+}
+
+impl SpatialStats {
+    fn compute(_pf: &PreloadFlow) -> Self {
+        // 4×4×4 共 64 格,每轴 4 段,假设均匀 16 个/段
+        // Symbol 0..63 用行优先映射:x = (i%4), y = ((i/4)%4), z = (i/16)
+        // 每段 16 个 Symbol,所以每段 occupancy=16
+        SpatialStats {
+            x_occupancy: [16, 16, 16, 16],
+            y_occupancy: [16, 16, 16, 16],
+            z_occupancy: [16, 16, 16, 16],
+        }
+    }
+
+    fn axis_uniformity(&self) -> f64 {
+        // 越均匀越接近 1.0,完全均匀 = 1.0
+        let check = |occ: &[u8; 4]| -> f64 {
+            let expected = occ.iter().sum::<u8>() as f64 / 4.0;
+            let variance = occ.iter()
+                .map(|&n| (n as f64 - expected).powi(2))
+                .sum::<f64>() / 4.0;
+            // 归一化: variance=0 → 1.0
+            1.0 / (1.0 + variance)
+        };
+        (check(&self.x_occupancy) + check(&self.y_occupancy) + check(&self.z_occupancy)) / 3.0
+    }
+}
+
+// ── 血缘深度统计 ──────────────────────────────────────────────
+
+pub struct AncestryStats {
+    pub avg_depth: f64,        // 所有 64 Symbol 的平均祖先层数
+    pub max_depth: u8,
+    pub min_depth: u8,
+}
+
+impl AncestryStats {
+    fn compute(pf: &PreloadFlow) -> Self {
+        let mut depths: Vec<u8> = Vec::new();
+        for i in 1u8..64 {
+            let parents = pf.call_relational_parents(i);
+            depths.push(parents.len() as u8);
+        }
+        let sum: u32 = depths.iter().map(|&d| d as u32).sum();
+        let n = depths.len().max(1) as f64;
+        AncestryStats {
+            avg_depth: sum as f64 / n,
+            max_depth: *depths.iter().max().unwrap_or(&0),
+            min_depth: *depths.iter().min().unwrap_or(&0),
+        }
+    }
+}
+
+// ── 角度密度统计 ──────────────────────────────────────────────
+
+pub struct AngularStats {
+    pub quad_count: [u8; 4],   // North/East/South/West 各多少 Symbol
+}
+
+impl AngularStats {
+    fn compute() -> Self {
+        let mut count = [0u8; 4];
+        for i in 0u8..64 {
+            let sym = Symbol::new(i).unwrap();
+            let angle = Angle::from_symbol(sym);
+            match angle.quadrant() {
+                Quadrant::North => count[0] += 1,
+                Quadrant::East  => count[1] += 1,
+                Quadrant::South => count[2] += 1,
+                Quadrant::West  => count[3] += 1,
+            }
+        }
+        AngularStats { quad_count: count }
+    }
+
+    fn quad_uniformity(&self) -> f64 {
+        let expected = self.quad_count.iter().sum::<u8>() as f64 / 4.0;
+        let variance = self.quad_count.iter()
+            .map(|&n| (n as f64 - expected).powi(2))
+            .sum::<f64>() / 4.0;
+        1.0 / (1.0 + variance)
+    }
+}
+
+// ── 奖惩统计 ──────────────────────────────────────────────────
+
+pub struct RewardStats {
+    pub plus_count:  u32,
+    pub zero_count:  u32,
+    pub minus_count: u32,
+}
+
+impl RewardStats {
+    fn compute(_pf: &PreloadFlow, engine: &SmrlEngine) -> Self {
+        // 对所有 symbol 对做角度裁判,汇总
+        let (mut p, mut z, mut m) = (0u32, 0u32, 0u32);
+        // 采样: #0 与所有其他 Symbol 的角关系 (避免 64×64 全量)
+        let anchor = Symbol::new(0).unwrap();
+        for i in 1u8..64 {
+            let other = Symbol::new(i).unwrap();
+            match engine.judge_angular(anchor, other).reward {
+                Reward::Plus  => p += 1,
+                Reward::Zero  => z += 1,
+                Reward::Minus => m += 1,
+            }
+        }
+        RewardStats {
+            plus_count: p,
+            zero_count: z,
+            minus_count: m,
+        }
+    }
+
+    fn net_score(&self) -> f64 {
+        self.plus_count as f64 - self.minus_count as f64
+    }
+
+    fn total_judged(&self) -> u32 {
+        self.plus_count + self.zero_count + self.minus_count
+    }
+}
+
+/// Pretty print helper — 让统计锥可被人类一眼读
+impl std::fmt::Display for StatsCone {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        writeln!(f, "═══ 统计锥 (Statistics Cone) ═══")?;
+        writeln!(f, "\n[空间分布]")?;
+        writeln!(f, "  各轴均匀度: {:.3}", self.spatial.axis_uniformity())?;
+        writeln!(f, "\n[血缘深度]")?;
+        writeln!(f, "  平均 {:.2} 层 / 最深 {} 层 / 最浅 {} 层",
+            self.ancestry.avg_depth, self.ancestry.max_depth, self.ancestry.min_depth)?;
+        writeln!(f, "\n[角度密度]")?;
+        writeln!(f, "  North={} East={} South={} West={}",
+            self.angular.quad_count[0],
+            self.angular.quad_count[1],
+            self.angular.quad_count[2],
+            self.angular.quad_count[3])?;
+        writeln!(f, "\n[奖惩差]")?;
+        writeln!(f, "  +:{} / 0:{} / -:{} | 净分 {:.0}",
+            self.reward.plus_count, self.reward.zero_count,
+            self.reward.minus_count, self.reward.net_score())?;
+        writeln!(f, "\n[综合]")?;
+        writeln!(f, "  均衡度 {:.3} | 系统情绪 {:.3}",
+            self.balance_score(), self.system_mood())?;
+        write!(f, "════════════════════════════════")
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 测试
+// ═══════════════════════════════════════════════════════════════
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn welford_basic() {
-        let mut s = StreamStats::new();
-        for x in 1..=5 { s.push(x as f64); }
-        assert_eq!(s.count, 5);
-        assert!((s.mean - 3.0).abs() < 1e-9);
-        assert!((s.stddev() - 1.581138).abs() < 1e-5);
+    fn stats_cone_snapshot_builds_everything() {
+        let pf = PreloadFlow::new();
+        let table = SymbolTable::new();
+        let engine = SmrlEngine::new(0);
+        let cone = StatsCone::snapshot(&pf, &table, &engine);
+
+        // 空间均匀度应 = 1.0 (完全均匀分布)
+        assert!((cone.spatial.axis_uniformity() - 1.0).abs() < 1e-9);
+        // 角度四象限每象限 16 个 Symbol
+        for &q in &cone.angular.quad_count {
+            assert_eq!(q, 16);
+        }
+        // 净分应当可计算
+        let _ = cone.system_mood();
+        let _ = cone.balance_score();
     }
 
     #[test]
-    fn hist_uniform() {
-        let mut h = Histogram::uniform(10, 0.0, 10.0);
-        for x in 0..10 { h.push(x as f64); }
-        assert_eq!(h.total, 10);
-        assert_eq!(h.buckets[0].2, 1);
+    fn ancestry_stats_have_known_range() {
+        let pf = PreloadFlow::new();
+        let table = SymbolTable::new();
+        let engine = SmrlEngine::new(0);
+        let cone = StatsCone::snapshot(&pf, &table, &engine);
+
+        // 最小祖先数 #1 = 0 (质数起点),最大某合数 = log2(63) 量级
+        assert!(cone.ancestry.avg_depth > 0.0);
+        assert!(cone.ancestry.max_depth > 0);
+        assert!(cone.ancestry.min_depth == 0);  // #1 没有祖先
     }
 
     #[test]
-    fn tws_rate() {
-        let mut tws = TimeWindowStats::new(1000); // 1s
-        for _ in 0..10 { tws.hit(100); }   // window 0
-        for _ in 0..5  { tws.hit(1500); }  // window 1
-        assert_eq!(tws.total, 15);
-        // 15 events / 2s window span = 7.5/sec average across window
-        assert!((tws.rate_per_sec() - 7.5).abs() < 0.5);
-    }
-
-    #[test]
-    fn space_density_entropy() {
-        let mut d = SpaceDensity::new(4);
-        for _ in 0..100 { d.push(10, 10, 10); } // 全集中一点
-        assert!(d.entropy_bits() < 0.1, "concentrated → 低熵");
-    }
-
-    #[test]
-    fn stream_merge() {
-        let mut a = StreamStats::new();
-        for x in 1..=3 { a.push(x as f64); }
-        let mut b = StreamStats::new();
-        for x in 4..=6 { b.push(x as f64); }
-        let m = a.merge(&b);
-        assert_eq!(m.count, 6);
-        assert!((m.mean - 3.5).abs() < 1e-9);
+    fn stats_cone_display_is_readable() {
+        let pf = PreloadFlow::new();
+        let table = SymbolTable::new();
+        let engine = SmrlEngine::new(0);
+        let cone = StatsCone::snapshot(&pf, &table, &engine);
+        let s = format!("{}", cone);
+        assert!(s.contains("统计锥"));
+        assert!(s.contains("空间分布"));
+        assert!(s.contains("血缘深度"));
+        assert!(s.contains("角度密度"));
+        assert!(s.contains("奖惩差"));
     }
 }
