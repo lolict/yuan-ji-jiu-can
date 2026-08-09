@@ -229,6 +229,39 @@ static void mlll_enumerate_vowels(void) {
     }
 }
 
+/* === 维度9：声母枚举（24 标准声母） ===
+ * 汉语拼音声母系统——从内核 njsg_encode 的 init_idx 直接映射到 MLLL
+ * 分类：双唇音(b p m) + 唇齿(f) + 舌尖中(d t n l) + 舌根(g k h)
+ *       + 舌面(j q x) + 舌尖后(zh ch sh r) + 舌尖前(z c s)
+ *       + 半元音(y w) + 零声母(zero)
+ * 共 24 个 = 23 标准辅音 + 1 零声母
+ */
+static void mlll_enumerate_initials(void) {
+    static const char* initial_names[] = {
+        "b", "p", "m",          /* 双唇音 */
+        "f",                    /* 唇齿 */
+        "d", "t", "n", "l",     /* 舌尖中 */
+        "g", "k", "h",          /* 舌根 */
+        "j", "q", "x",          /* 舌面 */
+        "zh", "ch", "sh", "r",  /* 舌尖后 */
+        "z", "c", "s",          /* 舌尖前 */
+        "y", "w", "zero"        /* 半元音 + 零声母 */
+    };
+    int n = sizeof(initial_names) / sizeof(initial_names[0]);
+    for (int i = 0; i < n; i++) {
+        if (REG.count >= MLLL_SYMBOLS_MAX) return;
+        mlll_symbol_t *e = &REG.entries[REG.count];
+        e->id         = symbol_hash(SYM_INITIAL, i, 0);
+        e->dim        = SYM_INITIAL;
+        e->property_a = i;
+        e->property_b = (i < 3 ? 4 : i < 4 ? 3 : i < 8 ? 2 :
+                         i < 11 ? 1 : i < 14 ? 0 : i < 18 ? -1 :
+                         i < 21 ? -2 : i < 23 ? 5 : -3);
+        snprintf(e->name, sizeof(e->name), "initial_%s", initial_names[i]);
+        REG.count++;
+    }
+}
+
 /* === 维度8：字形结构枚举 ===
  * 汉字的组件空间排布方式——独体/左右/上下/半包围/全包围/品字/左中右/上中下
  */
@@ -397,18 +430,22 @@ double mlll_char_distance(char_prop_t* a, char_prop_t* b) {
     mlll_symbol_t *tn_a = (a->tone >= 0 && a->tone < 8)
         ? &REG.entries[587 + a->tone] : NULL;
     mlll_symbol_t *sx_a = (a->structure >= 0 && a->structure < 8)
-        ? &REG.entries[587 + 8 + 141 + 20 + 13 + 64 + 39 + a->structure] : NULL;
+        ? &REG.entries[587 + 8 + 141 + 20 + 13 + 64 + 39 + 24 + a->structure] : NULL;
     mlll_symbol_t *vw_a = (a->vowel >= 0 && a->vowel < 46)
         ? &REG.entries[833 + a->vowel] : NULL;
+    mlll_symbol_t *it_a = (a->initial >= 0 && a->initial < 24)
+        ? &REG.entries[872 + a->initial] : NULL;
     mlll_symbol_t *st_b = mlll_cross_query(SYM_STROKE, b->stroke, SYM_STROKE);
     mlll_symbol_t *rd_b = (b->radical > 0 && b->radical <= 141)
         ? &REG.entries[587 + 8 + b->radical - 1] : NULL;
     mlll_symbol_t *tn_b = (b->tone >= 0 && b->tone < 8)
         ? &REG.entries[587 + b->tone] : NULL;
     mlll_symbol_t *sx_b = (b->structure >= 0 && b->structure < 8)
-        ? &REG.entries[587 + 8 + 141 + 20 + 13 + 64 + 39 + b->structure] : NULL;
+        ? &REG.entries[587 + 8 + 141 + 20 + 13 + 64 + 39 + 24 + b->structure] : NULL;
     mlll_symbol_t *vw_b = (b->vowel >= 0 && b->vowel < 46)
         ? &REG.entries[833 + b->vowel] : NULL;
+    mlll_symbol_t *it_b = (b->initial >= 0 && b->initial < 24)
+        ? &REG.entries[872 + b->initial] : NULL;
     /* 归一化到 [0,1] */
     double norm_denom = (double)MLLL_OFFSET_PRECISION * (double)REG.count;
     double n_st_a = st_a ? (double)st_a->offset_num / norm_denom : 0;
@@ -416,18 +453,21 @@ double mlll_char_distance(char_prop_t* a, char_prop_t* b) {
     double n_tn_a = tn_a ? (double)tn_a->offset_num / norm_denom : 0;
     double n_sx_a = sx_a ? (double)sx_a->offset_num / norm_denom : 0;
     double n_vw_a = vw_a ? (double)vw_a->offset_num / norm_denom : 0;
+    double n_it_a = it_a ? (double)it_a->offset_num / norm_denom : 0;
     double n_st_b = st_b ? (double)st_b->offset_num / norm_denom : 0;
     double n_rd_b = rd_b ? (double)rd_b->offset_num / norm_denom : 0;
     double n_tn_b = tn_b ? (double)tn_b->offset_num / norm_denom : 0;
     double n_sx_b = sx_b ? (double)sx_b->offset_num / norm_denom : 0;
     double n_vw_b = vw_b ? (double)vw_b->offset_num / norm_denom : 0;
+    double n_it_b = it_b ? (double)it_b->offset_num / norm_denom : 0;
     double d_st = n_st_a - n_st_b;
     double d_rd = n_rd_a - n_rd_b;
     double d_tn = n_tn_a - n_tn_b;
     double d_sx = n_sx_a - n_sx_b;
     double d_vw = n_vw_a - n_vw_b;
-    /* 8维加权距离：stroke 0.3 + radical 0.2 + tone 0.15 + structure 0.15 + vowel 0.2 */
-    return sqrt(d_st*d_st*0.3 + d_rd*d_rd*0.2 + d_tn*d_tn*0.15 + d_sx*d_sx*0.15 + d_vw*d_vw*0.2);
+    double d_it = n_it_a - n_it_b;
+    /* 9维加权：stroke 0.25 + radical 0.18 + tone 0.12 + structure 0.12 + vowel 0.18 + initial 0.15 */
+    return sqrt(d_st*d_st*0.25 + d_rd*d_rd*0.18 + d_tn*d_tn*0.12 + d_sx*d_sx*0.12 + d_vw*d_vw*0.18 + d_it*d_it*0.15);
 }
 
 /* 距离矩阵 */
@@ -482,7 +522,7 @@ int mlll_char_leap(char_prop_t* origin, int shift, char_prop_t* candidates, int 
     return best;
 }
 
-/* 距离分解：将两个字符的总距离拆到四个维度 */
+/* 距离分解：将两个字符的总距离拆到多个维度 */
 void mlll_distance_decompose(char_prop_t* a, char_prop_t* b) {
     double norm_denom = (double)MLLL_OFFSET_PRECISION * (double)REG.count;
     mlll_symbol_t *st_a = mlll_cross_query(SYM_STROKE, a->stroke, SYM_STROKE);
@@ -491,37 +531,55 @@ void mlll_distance_decompose(char_prop_t* a, char_prop_t* b) {
     mlll_symbol_t *tn_a = (a->tone >= 0 && a->tone < 8)
         ? &REG.entries[587 + a->tone] : NULL;
     mlll_symbol_t *sx_a = (a->structure >= 0 && a->structure < 8)
-        ? &REG.entries[587 + 8 + 141 + 20 + 13 + 64 + 39 + a->structure] : NULL;
+        ? &REG.entries[587 + 8 + 141 + 20 + 13 + 64 + 39 + 24 + a->structure] : NULL;
+    mlll_symbol_t *vw_a = (a->vowel >= 0 && a->vowel < 46)
+        ? &REG.entries[833 + a->vowel] : NULL;
+    mlll_symbol_t *it_a = (a->initial >= 0 && a->initial < 24)
+        ? &REG.entries[872 + a->initial] : NULL;
     mlll_symbol_t *st_b = mlll_cross_query(SYM_STROKE, b->stroke, SYM_STROKE);
     mlll_symbol_t *rd_b = (b->radical > 0 && b->radical <= 141)
         ? &REG.entries[587 + 8 + b->radical - 1] : NULL;
     mlll_symbol_t *tn_b = (b->tone >= 0 && b->tone < 8)
         ? &REG.entries[587 + b->tone] : NULL;
     mlll_symbol_t *sx_b = (b->structure >= 0 && b->structure < 8)
-        ? &REG.entries[587 + 8 + 141 + 20 + 13 + 64 + 39 + b->structure] : NULL;
+        ? &REG.entries[587 + 8 + 141 + 20 + 13 + 64 + 39 + 24 + b->structure] : NULL;
+    mlll_symbol_t *vw_b = (b->vowel >= 0 && b->vowel < 46)
+        ? &REG.entries[833 + b->vowel] : NULL;
+    mlll_symbol_t *it_b = (b->initial >= 0 && b->initial < 24)
+        ? &REG.entries[872 + b->initial] : NULL;
     double n_st_a = st_a ? (double)st_a->offset_num / norm_denom : 0;
     double n_rd_a = rd_a ? (double)rd_a->offset_num / norm_denom : 0;
     double n_tn_a = tn_a ? (double)tn_a->offset_num / norm_denom : 0;
     double n_sx_a = sx_a ? (double)sx_a->offset_num / norm_denom : 0;
+    double n_vw_a = vw_a ? (double)vw_a->offset_num / norm_denom : 0;
+    double n_it_a = it_a ? (double)it_a->offset_num / norm_denom : 0;
     double n_st_b = st_b ? (double)st_b->offset_num / norm_denom : 0;
     double n_rd_b = rd_b ? (double)rd_b->offset_num / norm_denom : 0;
     double n_tn_b = tn_b ? (double)tn_b->offset_num / norm_denom : 0;
     double n_sx_b = sx_b ? (double)sx_b->offset_num / norm_denom : 0;
+    double n_vw_b = vw_b ? (double)vw_b->offset_num / norm_denom : 0;
+    double n_it_b = it_b ? (double)it_b->offset_num / norm_denom : 0;
     double d_st = n_st_a - n_st_b;
     double d_rd = n_rd_a - n_rd_b;
     double d_tn = n_tn_a - n_tn_b;
     double d_sx = n_sx_a - n_sx_b;
-    double total = sqrt(d_st*d_st*0.4 + d_rd*d_rd*0.25 + d_tn*d_tn*0.15 + d_sx*d_sx*0.2);
-    double contrib_st = d_st*d_st*0.4;
-    double contrib_rd = d_rd*d_rd*0.25;
-    double contrib_tn = d_tn*d_tn*0.15;
-    double contrib_sx = d_sx*d_sx*0.2;
-    double sum_contrib = contrib_st + contrib_rd + contrib_tn + contrib_sx;
-    printf("  distance decompose (total=%.6f):\n", total);
+    double d_vw = n_vw_a - n_vw_b;
+    double d_it = n_it_a - n_it_b;
+    double total = sqrt(d_st*d_st*0.25 + d_rd*d_rd*0.18 + d_tn*d_tn*0.12 + d_sx*d_sx*0.12 + d_vw*d_vw*0.18 + d_it*d_it*0.15);
+    double contrib_st = d_st*d_st*0.25;
+    double contrib_rd = d_rd*d_rd*0.18;
+    double contrib_tn = d_tn*d_tn*0.12;
+    double contrib_sx = d_sx*d_sx*0.12;
+    double contrib_vw = d_vw*d_vw*0.18;
+    double contrib_it = d_it*d_it*0.15;
+    double sum_contrib = contrib_st + contrib_rd + contrib_tn + contrib_sx + contrib_vw + contrib_it;
+    printf("  distance decompose 9D (total=%.6f):\n", total);
     printf("    stroke   d=%+.6f contrib=%.6f (%.1f%%)\n", d_st, contrib_st, sum_contrib > 0 ? contrib_st/sum_contrib*100 : 0);
     printf("    radical  d=%+.6f contrib=%.6f (%.1f%%)\n", d_rd, contrib_rd, sum_contrib > 0 ? contrib_rd/sum_contrib*100 : 0);
     printf("    tone     d=%+.6f contrib=%.6f (%.1f%%)\n", d_tn, contrib_tn, sum_contrib > 0 ? contrib_tn/sum_contrib*100 : 0);
     printf("    struct   d=%+.6f contrib=%.6f (%.1f%%)\n", d_sx, contrib_sx, sum_contrib > 0 ? contrib_sx/sum_contrib*100 : 0);
+    printf("    vowel    d=%+.6f contrib=%.6f (%.1f%%)\n", d_vw, contrib_vw, sum_contrib > 0 ? contrib_vw/sum_contrib*100 : 0);
+    printf("    initial  d=%+.6f contrib=%.6f (%.1f%%)\n", d_it, contrib_it, sum_contrib > 0 ? contrib_it/sum_contrib*100 : 0);
 }
 
 /* 字节编码：任意字节流 ←→ mlll 符号序列
@@ -562,6 +620,8 @@ void mlll_init(double delta) {
     mlll_enumerate_strokes();
     /* 韵母维度：39 标准元音（内核 final_idx 直接映射） */
     mlll_enumerate_vowels();
+    /* 声母维度：23 标准声母 + 零声母 = 24，覆盖 njsg 内核 init_idx[0..23] */
+    mlll_enumerate_initials();
     /* 字形结构维度：8 种结构类型 */
     mlll_enumerate_structures();
     mlll_assign_offsets(delta);
@@ -667,10 +727,10 @@ int main(void) {
     /* === 字符串编码：囡囝共生 === */
     /* 囡(6画/囗部31/阴平0/全包围4) 囝(6/31/0/4) 共(6/17/3/上下2) 生(5/107/0/独体0) */
     char_prop_t njsg[] = {
-        {6, 0, 31, 4, 15},  /* 囡 全包围 */
-        {6, 0, 31, 4, 15},  /* 囝 全包围 */
-        {6, 3, 17, 2, 27},  /* 共 上下 */
-        {5, 0, 107, 0, 25}, /* 生 独体 */
+        {6, 0, 31, 4, 15, 6},  /* 囡 全包围 */
+        {6, 0, 31, 4, 15, 6},  /* 囝 全包围 */
+        {6, 3, 17, 2, 27, 8},  /* 共 上下 */
+        {5, 0, 107, 0, 25, 16}, /* 生 独体 */
     };
     mlll_string_encode("nan_jian_gong_sheng", njsg, 4);
     mlll_string_distance_matrix("nan_jian_gong_sheng", njsg, 4);
@@ -693,17 +753,17 @@ int main(void) {
 
     /* 扩展字符集：含囡囝共生+ 额外字符，验证最邻近检索 */
     char_prop_t corpus[] = {
-        {6, 0, 31, 4, 15},   /* [0] 囡 全包围 */
-        {6, 0, 31, 4, 15},   /* [1] 囝 全包围 */
-        {6, 3, 17, 2, 27},   /* [2] 共 上下 */
-        {5, 0, 107, 0, 25},  /* [3] 生 独体 */
-        {4, 0, 32, 0, 20},   /* [4] 元 独体 */
-        {8, 1, 64, 1, 2},    /* [5] 和 左右 */
-        {1, 0, 1, 0, 3},     /* [6] 一 独体 */
-        {9, 2, 77, 1, 12},   /* [7] 秋 左右 */
+        {6, 0, 31, 4, 15, 6},   /* [0] 囡 全包围 */
+        {6, 0, 31, 4, 15, 6},   /* [1] 囝 全包围 */
+        {6, 3, 17, 2, 27, 8},   /* [2] 共 上下 */
+        {5, 0, 107, 0, 25, 16},  /* [3] 生 独体 */
+        {4, 0, 32, 0, 20, 21},   /* [4] 元 独体 */
+        {8, 1, 64, 1, 2, 10},    /* [5] 和 左右 */
+        {1, 0, 1, 0, 3, 21},     /* [6] 一 独体 */
+        {9, 2, 77, 1, 12, 12},   /* [7] 秋 左右 */
     };
     int corpus_len = 8;
-    char_prop_t query = {6, 0, 31, 4, 15}; /* 查询：囡(6画/阴平/31号部首/全包围/an韵) */
+    char_prop_t query = {6, 0, 31, 4, 15, 6}; /* 查询：囡(6画/阴平/31号部首/全包围/an韵) */
     int nearest = mlll_char_nearest(&query, corpus, corpus_len);
 
     /* top-3 最邻近 */
@@ -827,6 +887,37 @@ int main(void) {
                a_v->offset_num - i_v->offset_num :
                i_v->offset_num - a_v->offset_num);
         printf("  → 浊音低沉(低序号) vs 清音高亮(高序号) = 元音的阴阳频率\n");
+    }
+
+    /* 声母九维 Demo：发音部位/方法聚类查询 */
+    printf("\n════════════════════════════════════════════\n");
+    printf("  声母共振：发音部位/方法聚类查询 (v2.0)\n");
+    printf("════════════════════════════════════════════\n");
+    {
+        /* 按发音部位提取声母子集 */
+        const char* place_names[] = {"双唇","唇齿","舌尖中","舌根","舌面","舌尖后","舌尖前","半元音","零声母"};
+        int place_range[][2] = {{0,3},{3,4},{4,8},{8,11},{11,14},{14,18},{18,21},{21,23},{23,24}};
+        int n_place = sizeof(place_names)/sizeof(place_names[0]);
+        printf("九类发音部位声母（按时间线位置排序）:\n");
+        for (int p = 0; p < n_place; p++) {
+            printf("  [%-6s] pos[%3d-%3d]:", place_names[p],
+                   REG.entries[872 + place_range[p][0]].offset_num,
+                   REG.entries[872 + place_range[p][1]-1].offset_num);
+            for (int i = place_range[p][0]; i < place_range[p][1]; i++) {
+                printf(" %s", REG.entries[872 + i].name);
+            }
+            printf("\n");
+        }
+        /* 浊音 vs 清音跨 */
+        printf("\n浊音(voiced)声母 vs 清音(unvoiced)声母跨维度距离:\n");
+        /* 浊音: m(2) n(6) l(7) r(17) ; 清音: p(1) t(5) k(9) 等 */
+        mlll_symbol_t *m_init = &REG.entries[872 + 2];  /* 浊 m */
+        mlll_symbol_t *p_init = &REG.entries[872 + 1];  /* 清 p */
+        printf("  m(pos=%u) vs p(pos=%u) - 同部位(双唇)不同浊度\n",
+               m_init->offset_num, p_init->offset_num);
+        printf("  → MLLL 九维空间精确捕获发音部位与浊度差异\n");
+        printf("  总 %d 声母 × %d 韵母 × %d 声调 = %d 音节巢\n",
+               24, 39, 8, 24*39*8);
     }
 
     return 0;

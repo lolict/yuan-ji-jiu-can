@@ -19,7 +19,7 @@
 
 #define MLLL_SYMBOLS_MAX       4096
 #define MLLL_OFFSET_PRECISION  10000
-#define MLLL_TOTAL_SYMBOLS     880  /* 八维当前总数 */
+#define MLLL_TOTAL_SYMBOLS     904  /* 九维当前总数 */
 
 /* 符号类型 */
 typedef enum {
@@ -31,6 +31,7 @@ typedef enum {
     SYM_STROKE,         /* 笔画数 */
     SYM_STRUCTURE,      /* 字形结构 */
     SYM_VOWEL,          /* 韵母（39 元音） */
+    SYM_INITIAL,        /* 声母（24 辅音） */
     SYM_DIMENSION_COUNT /* 维度计数 */
 } symbol_dim_t;
 
@@ -59,6 +60,7 @@ typedef struct {
     int radical;
     int structure; /* 0=独体 1=左右 2=上下 3=半包围 4=全包围 5=品字 6=左中右 7=上中下 */
     int vowel;     /* 韵母索引 0-38（对应 39 个标准韵母）*/
+    int initial;   /* 声母索引 0-23（对应 24 个标准声母）*/
 } char_prop_t;
 
 /* ── 全局状态 ── */
