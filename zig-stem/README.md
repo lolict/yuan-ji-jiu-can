@@ -41,8 +41,13 @@ zig-stem/
 cd hunyuan-os/zig-stem
 ./bootstrap.sh
 # 产出:
-#   zig-out/wasm32/release/mqf.wasm
-#   zig-out/wasm64/release/mqf.wasm
+#   zig-out/wasm32/release/mqf32.wasm
+#   zig-out/wasm64/release/mqf64.wasm
+```
+
+如果 zig 已安装:
+```bash
+bash build.sh   # 直接编译双目标
 ```
 
 ## 导出的 wasm 函数
