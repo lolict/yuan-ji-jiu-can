@@ -67,11 +67,13 @@ pub use self_bootstrap::{ConsciousnessCommand, encode_to_cell, decode_from_cell,
 // ── 囡囝共生底层舞台 (v0.5 · 自举骨架) ──
 // 五个子树自己可以独立 bootstrap:
 //   triune   — 三元裁判机 (有无推演 / 流动方向 / 等效对齐)
+//   smrl     — 三元观察·裁判·奖励层 (SMRL 运行时权威仲裁)
 //   funnel   — 漏斗控制器 (时间火候 + 空间切片 + 层级调度)
 //   fractal  — 22亿节点分形调度器 (非残差/残差 + 收缩坍缩)
 //   relational — 关系代数外壳 (身份→权重→流动权→优先级)
 //   pleasure  — 愉悦值动力引擎 (吸引子 / 外界融合 / 唯一中心)
 pub mod triune;
+pub mod smrl;
 pub mod funnel;
 pub mod fractal;
 pub mod relational;

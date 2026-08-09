@@ -67,6 +67,20 @@ impl TimeNode {
         self.reachable && self.continuable && self.trustable
     }
 
+    /// 固定时间阶段序列 — 完整因果推进路径
+    pub fn stages() -> &'static [TimeStage] {
+        &[
+            TimeStage::Input,
+            TimeStage::Perception,
+            TimeStage::Distinguish,
+            TimeStage::Lookup,
+            TimeStage::Traverse,
+            TimeStage::Cluster,
+            TimeStage::Attention,
+            TimeStage::Arrival,
+        ]
+    }
+
     /// 把下一环节链接到当前节点末尾
     pub fn link(mut self, next: TimeNode) -> Self {
         let mut tail = &mut self.next;

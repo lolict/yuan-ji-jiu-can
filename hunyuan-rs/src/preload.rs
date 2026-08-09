@@ -9,6 +9,8 @@
 
 use crate::topo::{self, Symbol, Topology, TopologyMapper};
 use crate::rel::{Rel, RelGraph, RelKind};
+use crate::unified_flow;
+use crate::smrl::{Observation, SmrlEngine, SmrlVerdict, Reward};
 
 use std::collections::HashMap;
 
@@ -20,6 +22,7 @@ pub enum ContainerKind {
     Encoded,    // 编码容器: 64 进制符号表 0..63
     Relational, // 关系容器: 二元/多分派生树
     Mirrored,   // 镜像容器: 因果反转
+    Judge,      // SMRL 裁判容器: 观察·裁决·奖励
     Flow,       // 时序流容器: 串联层级
 }
 
@@ -118,11 +121,22 @@ impl PreloadFlow {
         mir.expose(Contract::new("flip", "Rel", "Rel"));
         flow.containers.insert(ContainerKind::Mirrored, mir);
 
+        // SMRL 容器 — 观察·裁判·奖励
+        let mut smrl = Container::new(ContainerKind::Judge);
+        smrl.assign_to("authority");
+        smrl.assign_to("reward");
+        smrl.expose(Contract::new("judge", "Observation", "SmrlVerdict"));
+        smrl.expose(Contract::new("judge_batch", "...Observation", "...SmrlVerdict"));
+        smrl.expose(Contract::new("resolve_authority", "...SmrlVerdict", "SmrlVerdict"));
+        flow.containers.insert(ContainerKind::Judge, smrl);
+
         // 时序流容器
         let mut fl = Container::new(ContainerKind::Flow);
         fl.assign_to("sequence");
+        fl.assign_to("temporal");
         fl.expose(Contract::new("order", "Two<u8>", "Ordering"));
         fl.expose(Contract::new("chain", "u8", "...u8"));
+        fl.expose(Contract::new("temporal_origin", "u8", "...(TimeStage, u8)"));
         flow.containers.insert(ContainerKind::Flow, fl);
 
         flow
@@ -182,6 +196,67 @@ impl PreloadFlow {
 
     pub fn call_mirrored_flip(&self, r: Rel) -> Rel {
         r.mirror()
+    }
+
+    /// 调用 SMRL 裁判契约 — 走"容器+契约"统一入口。
+    pub fn call_judge(&self, level: u8, obs: Observation) -> SmrlVerdict {
+        let _c = self.use_contract(ContainerKind::Judge, "judge")
+            .expect("Judge 容器应暴露 judge 契约");
+        SmrlEngine::new(level).judge(obs)
+    }
+
+    /// 调用时序溯源契约 — 走"容器+契约"统一入口。
+    pub fn call_temporal_origin(&self, n: u8) -> Vec<(unified_flow::TimeStage, u8)> {
+        // 验证容器确实暴露了这个契约,然后调用
+        let _c = self.use_contract(ContainerKind::Flow, "temporal_origin")
+            .expect("Flow 容器应暴露 temporal_origin 契约");
+        self.trace_temporal_origin(n)
+    }
+
+    /// 溯源时间化: 把血缘发现与 TimeStage 绑定。
+    ///
+    /// 遍历过程即因果推进:沿着时间阶段依次发现祖先,
+    /// 阶段越推进 = 溯源越深 = 越本质的起源。
+    ///
+    ///   [阶段0] Input:       自身 #n
+    ///   [阶段1] Perception:  最浅一层祖先 (因式链: 除以最大因数后的父节点)
+    ///   [阶段2] Distinguish: 更深一层
+    ///   [阶段3] Lookup:      再深一层
+    ///   ...直到 Arrival: 抵达 #1(最小公分母 = 同源之地)
+    ///
+    /// 策略: 从 n 开始,每一步取最大因数链 n → n/p → n/q → ...  其中每一步
+    /// 选一个大于 1 的因数 p 除下去,直到 1。这形成一条线性因果链。
+    pub fn trace_temporal_origin(&self, n: u8) -> Vec<(unified_flow::TimeStage, u8)> {
+        let stages = unified_flow::TimeNode::stages();
+
+        // 1. 构建最大因数链 (从自身到根)
+        let chain = self.longest_factor_chain(n);
+
+        // 2. 因果阶段与深度绑定
+        let mut result = Vec::new();
+        for (depth, &symbol) in chain.iter().enumerate() {
+            let stage = stages[depth.min(stages.len() - 1)];
+            result.push((stage, symbol));
+        }
+        result
+    }
+
+    /// 最长因数链: 从 n 递减到 1 的最大路径
+    ///   每一步 n → n/p 其中 p 是最大真因数 (等价于除以最小质因数)
+    ///   例: 12 → 6 → 3 → 1    (12/2=6, 6/2=3, 3/3=1)
+    ///   例: 60 → 30 → 15 → 5 → 1  (60/2=30, 30/2=15, 15/3=5, 5/5=1)
+    fn longest_factor_chain(&self, n: u8) -> Vec<u8> {
+        if n == 0 { return vec![0]; }
+        let mut chain = vec![n];
+        let mut cur = n;
+        while cur > 1 {
+            // 找最小质因数 (即大于 1 的最小因数)
+            let spf = (2..=cur).find(|&p| cur % p == 0).unwrap_or(1);
+            if spf == 1 { break; }
+            cur /= spf;
+            chain.push(cur);
+        }
+        chain
     }
 }
 
@@ -260,5 +335,32 @@ mod tests {
         assert_eq!(m.from, 6);
         assert_eq!(m.to, 3);
         // 派生→归属(镜像后的合理映射)
+    }
+
+    #[test]
+    fn trace_temporal_origin_depth() {
+        use crate::unified_flow::TimeStage;
+        let pf = PreloadFlow::new();
+        // #12 的最长因数链: 12 → 6 → 3 → 1
+        //   阶段0=Input:12, 阶段1=Perception:6, 阶段2=Distinguish:3, 阶段3=Lookup:1
+        let trace = pf.trace_temporal_origin(12);
+        assert!(trace.len() >= 4, "链长至少 4 层");
+        assert_eq!(trace[0], (TimeStage::Input, 12));
+        assert_eq!(trace[1], (TimeStage::Perception, 6));
+        assert_eq!(trace[2], (TimeStage::Distinguish, 3));
+        assert_eq!(trace[3], (TimeStage::Lookup, 1));
+        // 后续阶段全部 停留在 Arrival = 1 (已经抵达根)
+        for i in 4..trace.len() {
+            assert_eq!(trace[i].1, 1);
+        }
+    }
+
+    #[test]
+    fn trace_temporal_origin_prime_chain() {
+        let pf = PreloadFlow::new();
+        // #7 是质数: 链 = [7, 1]
+        let trace = pf.trace_temporal_origin(7);
+        assert_eq!(trace[0].1, 7);
+        assert_eq!(trace[1].1, 1);
     }
 }
