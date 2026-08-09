@@ -1212,4 +1212,113 @@ print b";
         let (out, _) = run_l0_with_input(simple_src, "X").unwrap();
         assert_eq!(out, "X");
     }
+
+    // ── 自举雏形: 用 L0 处理 L0 ──
+
+    #[test]
+    fn l0_self_hosting_char_counter() {
+        // L0 字符计数程序: 逐字符读取直到 EOF, 计数并打印
+        // 这是编译器雏形——读取源码字符流, 统计 (编译器的第一件事就是 read source)
+        let counter_src = r#"
+count = 0
+loop:
+input c
+if c == -1 then
+  jmp done
+end
+count = count + 1
+jmp loop
+done:
+print count"#;
+        // 输入 5 字符 "hello" → 计数 = 5
+        let (out, _) = run_l0_with_input(counter_src, "hello").unwrap();
+        assert_eq!(out, "5");
+    }
+
+    #[test]
+    fn l0_self_hosting_char_counter_empty() {
+        // 空输入 → 计数 = 0
+        let counter_src = r#"
+count = 0
+loop:
+input c
+if c == -1 then
+  jmp done
+end
+count = count + 1
+jmp loop
+done:
+print count"#;
+        let (out, _) = run_l0_with_input(counter_src, "").unwrap();
+        assert_eq!(out, "0");
+    }
+
+    #[test]
+    fn l0_self_hosting_echo_program() {
+        // L0 echo 直到 EOF: 读取并回显所有字符
+        // 演示 L0 能处理和转发任意输入流
+        let echo_src = r#"
+loop:
+input c
+if c == -1 then
+  jmp done
+end
+printc c
+jmp loop
+done:
+printc 33"#; // '!' = 33 结束标记
+
+        let (out, _) = run_l0_with_input(echo_src, "NJSG").unwrap();
+        assert_eq!(out, "NJSG!");
+    }
+
+    #[test]
+    fn l0_self_hosting_read_and_compile_markers() {
+        // 证明: L0 程序能吞吃 L0 源码并解析关键标记
+        // 读入一串 "print" 关键字并计数出现多少次 "print" 的 p 字符
+        // 这只是 token counting, 但已经是 "compiler frontend" 的雏形
+
+        let tokenizer_demo = r#"
+p_count = 0
+loop:
+input c
+if c == -1 then
+  jmp done
+end
+if c == 112 then
+  p_count = p_count + 1
+end
+jmp loop
+done:
+print p_count"#;
+
+        // "print print" 有 2 个 'p' (实际上 print 有 1 个 p, "printprint" 有 2 个)
+        let (out, _) = run_l0_with_input(tokenizer_demo, "printprint").unwrap();
+        assert_eq!(out, "2");
+    }
+
+    #[test]
+    fn l0_self_hosting_can_read_own_source() {
+        // 关键: L0 程序读取自己的源码, 验证编译和自读的闭环
+        let own_source = r#"count = 0
+loop:
+input c
+if c == -1 then
+  jmp done
+end
+count = count + 1
+jmp loop
+done:
+print count"#;
+
+        // 编译 own_source (确认它是合法 L0)
+        let _ = compile_l0(own_source).expect("own_source 应被编译");
+
+        // 运行 own_source, 把 own_source 自身作为输入
+        let (out, _) = run_l0_with_input(own_source, own_source).unwrap();
+        let count: i32 = out.parse().unwrap();
+
+        // 验证: count == own_source.len()
+        assert_eq!(count, own_source.len() as i32);
+    }
 }
