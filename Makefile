@@ -11,7 +11,7 @@ CC       = clang
 CFLAGS   = -O2 -std=c17 -Wall -Wextra -Wno-unused-variable -I. -Ikernel/include
 KERN_LIBS = -pthread -lm
 
-.PHONY: all test clean docs mlll-symbols kernel
+.PHONY: all test clean docs mlll-symbols kernel mlll-profile test-mlll
 
 all: mlll-symbols
 
@@ -39,9 +39,17 @@ clean:
 docs:
 	@echo "═══ 囡囝共生 v2.0 文档入口 ═══"
 	@echo ""
+	@echo "测试套件:  make test-mlll"
+	@echo "维度升级:  MLLL九维 (841→904)"
 	@echo "代数基础:  docs/MLLL-ALGEBRAFOUNDATION.md"
 	@echo "符号头文件: kernel/include/mlll_symbols.h"
-	@echo "符号源文件: kernel/src/mlll_symbols.c (841 symbols)"
+	@echo "符号源文件: kernel/src/mlll_symbols.c (904 symbols)"
 	@echo "白皮书:    docs/WHITEPAPER.md"
 	@echo "架构文档:  docs/ARCHITECTURE.md"
 	@echo "路线图:    ROADMAP.md"
+
+# MLLL 九维符号综合测拭 (独立 main, 不依赖内核)
+test-mlll: kernel/src/mlll_test.c kernel/src/mlll_symbols.c kernel/src/mlll_kernel_bridge.c
+	$(CC) $(CFLAGS) -DMLLL_LIBRARY $^ -o kernel/src/mlll_test.elf -lm
+	@echo "═══ MLLL 九维测拭启动 ═══"
+	./kernel/src/mlll_test.elf
