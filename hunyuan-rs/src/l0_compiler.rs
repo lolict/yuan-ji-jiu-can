@@ -76,7 +76,7 @@ enum Tok {
     If, Then, Else, End,
     While, Do,
     Print, Printc,
-    Jmp, Jz, JzN, Call, Ret,
+    Jmp, Jz, JzN, Call, Ret, Halt,
     Input,           // 读一个字符
     Semicolon,
     Newline,
@@ -173,6 +173,7 @@ impl Lexer {
                         "PRINT" => Tok::Print,
                         "PRINTC" => Tok::Printc,
                         "INPUT" => Tok::Input,
+                        "HALT" => Tok::Halt,
                         "IF" => Tok::If,
                         "THEN" => Tok::Then,
                         "ELSE" => Tok::Else,
@@ -213,6 +214,7 @@ impl Lexer {
                         "PRINT" => Tok::Print,
                         "PRINTC" => Tok::Printc,
                         "INPUT" => Tok::Input,
+                        "HALT" => Tok::Halt,
                         "JMP" => Tok::Jmp,
                         "JZ" => Tok::Jz,
                         "JNZ" => Tok::JzN,
@@ -299,7 +301,7 @@ enum Stmt {
     Jnz(String, Expr),
     Call(String),
     Ret,
-    Nop,
+    Nop, Halt,
 }
 
 // ────────────────────────────────────────────────────────────
@@ -449,6 +451,10 @@ impl Parser {
             Tok::Ret => {
                 self.advance();
                 Ok(Stmt::Ret)
+            }
+            Tok::Halt => {
+                self.advance();
+                Ok(Stmt::Halt)
             }
             Tok::While => {
                 self.advance();
@@ -789,6 +795,10 @@ impl CodeGen {
             }
             Stmt::Ret => {
                 self.emit_op(OP_RET);
+                Ok(())
+            }
+            Stmt::Halt => {
+                self.emit_op(OP_HALT);
                 Ok(())
             }
             Stmt::Assign(name, expr) => {

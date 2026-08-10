@@ -79,6 +79,7 @@ pub use self_bootstrap::{ConsciousnessCommand, encode_to_cell, decode_from_cell,
 //   relational — 关系代数外壳 (身份→权重→流动权→优先级)
 //   pleasure  — 愉悦值动力引擎 (吸引子 / 外界融合 / 唯一中心)
 pub mod triune;
+pub mod mlil;
 pub mod smrl;
 pub mod funnel;
 pub mod fractal;
@@ -100,6 +101,10 @@ pub mod soul_kernel;
 pub mod cochlear_boot;
 pub mod memory;
 pub mod swarm;
+
+// ── v0.10 自举编译器 v2 (Ouroboros) ──
+pub mod l0_self_hosting;
+pub use l0_self_hosting::{compile_ir_v2, classify_output_to_ir};
 
 // ── 对外 re-export ──
 
