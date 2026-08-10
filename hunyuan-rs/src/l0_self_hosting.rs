@@ -925,6 +925,30 @@ mod tests {
         assert!(vm2.output.contains("100"), "应 print 100, 实际: '{}'", vm2.output);
     }
 
+    /// 关键自测: Rust compile_l0 能编译 L0 分类器源码自身 (L0 classifier self-compile)
+    #[test]
+    fn test_compile_l0_classifier_self() {
+        let result = crate::l0_compiler::compile_l0(L0_CLASSIFIER_SRC);
+        assert!(result.is_ok(), "compile_l0 应能编译 L0 分类器源码自身: {:?}", result.err());
+        let bytecode = result.unwrap();
+        assert!(!bytecode.is_empty(), "编译结果不应为空");
+        println!("L0 classifier compiled to {} instructions", bytecode.len());
+
+        // 用编译后的字节码运行分类器, 喂入一段 L0 源码, 看是否能正确分类
+        let test_src = "print 42";
+        let mut vm = Vm::with_input(bytecode, Default::default(), test_src.into());
+        vm.run().unwrap();
+        println!("Classifier output for 'print 42': {:?}", vm.output);
+
+        // 分类器应输出 (mark, char) 对: p,r,i,n,t, ,4,2
+        assert!(!vm.output.is_empty(), "分类器应产生输出");
+        // 检查是否包含 'L' (lowercase letter) 和 'D' (digit) 标记
+        let has_lowercase = vm.output.bytes().any(|b| b == b'L');
+        let has_digit = vm.output.bytes().any(|b| b == b'D');
+        assert!(has_lowercase, "应识别出 lowercase 字母");
+        assert!(has_digit, "应识别出 digit");
+    }
+
     /// Ouroboros v2: while 循环
     #[test]
     fn test_ouroboros_while_loop() {
