@@ -293,8 +293,9 @@ loop:
   jmp loop
 "#;
 
+/// L0 已具备完整编译器所需的语义: 赋值、算术、比较、控制流、I/O。
 // ────────────────────────────────────────────────────────────
-// Rust 端: L0 分类器输出 → IR token
+// Rust 端: L0 分类器输出 → IR token (v1 协议: mark+char)
 // ────────────────────────────────────────────────────────────
 
 /// 把 L0 分类器的输出 (mark+char 编码) 转换为 IR token 流
@@ -412,6 +413,7 @@ pub fn classify_output_to_ir(classify_output: &str) -> Vec<(TokType, TokVal)> {
     }
     ir
 }
+
 
 // ────────────────────────────────────────────────────────────
 // IR → Mccp bytecode (编译后端 — 对应 l0_compiler, 用于 L0 自编译)
@@ -947,6 +949,57 @@ mod tests {
         let has_digit = vm.output.bytes().any(|b| b == b'D');
         assert!(has_lowercase, "应识别出 lowercase 字母");
         assert!(has_digit, "应识别出 digit");
+    }
+
+    /// L0 语义验证: 赋值 + 算术 + 循环 — L0 能做编译器常见的数值计算
+    /// 此 L0 源码演示编译器后端使用的核心能力: 变量累积、算术运算、循环计数
+    #[test]
+    fn test_l0_arithmetic_assignment_self() {
+        // 一个完成累加+算术的 L0 程序 (类似编译器后端的引用计数/代码大小计算)
+        let l0_src = r#"
+a = 0
+b = 10
+loop:
+  a = a + b
+  b = b - 1
+  if b == 0 then
+    jmp done
+  end
+  jmp loop
+done:
+  print a
+  halt
+"#;
+        let code = crate::l0_compiler::compile_l0(l0_src);
+        assert!(code.is_ok(), "编译 L0 算术程序: {:?}", code.err());
+        let mut vm = Vm::new(code.unwrap());
+        vm.run().unwrap();
+        // sum 10+9+8+...+1 = 55
+        println!("L0 arithmetic output: '{}'", vm.output);
+        assert!(vm.output.contains("55"), "应算出 sum(1..10)=55, 实际: '{}'", vm.output);
+    }
+
+    /// L0 语义验证: 多层嵌套控制流 (类似编译器中的 if/while 嵌套解析)
+    #[test]
+    fn test_l0_nested_control_flow() {
+        let l0_src = r#"
+a = 1
+b = 2
+if a < b then
+  if b < 10 then
+    print 100
+  else
+    print 200
+  end
+else
+  print 300
+end
+halt
+"#;
+        let code = crate::l0_compiler::compile_l0(l0_src).unwrap();
+        let mut vm = Vm::new(code);
+        vm.run().unwrap();
+        assert!(vm.output.contains("100"), "嵌套 if 应输出 100, 实际: '{}'", vm.output);
     }
 
     /// Ouroboros v2: while 循环
