@@ -105,6 +105,9 @@ pub mod swarm;
 // ── v0.16 位置进制基础 · 打米机 (Positional Base, 进制脱糠) ──
 pub mod positional_base;
 
+// ── v0.18 公约坐标张量 · 预加载共享容器 (CoordTensor) ──
+pub mod coord_tensor;
+
 // ── v0.17 脉息系统 · 心跳节律 × 行走流速 ──
 pub mod pulse;
 
