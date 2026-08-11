@@ -31,7 +31,7 @@ use std::fmt;
 
 use crate::mccp::Mccp;
 use crate::mccp_vm::{
-    self, op, op_imm, OP_ADD, OP_SUB, OP_MUL, OP_DIV, OP_MOD,
+    self, op, op_imm, OP_ADD, OP_SUB, OP_MUL, OP_MULconst, OP_ADDconst, OP_DIV, OP_MOD,
     OP_AND, OP_OR, OP_XOR, OP_NOT, OP_SHL, OP_SHR,
     OP_EQ, OP_NE, OP_LT, OP_GT, OP_LE, OP_GE,
     OP_PUSH, OP_POP, OP_JMP, OP_JZ, OP_JNZ, OP_CALL, OP_RET,
@@ -813,25 +813,44 @@ impl CodeGen {
                 }
             }
             Expr::BinOp(op, l, r) => {
-                self.gen_expr(l)?;
-                self.gen_expr(r)?;
-                let opcode = match op {
-                    BinOp::Add => OP_ADD,
-                    BinOp::Sub => OP_SUB,
-                    BinOp::Mul => OP_MUL,
-                    BinOp::Div => OP_DIV,
-                    BinOp::Mod => OP_MOD,
-                    BinOp::Lt => OP_LT,
-                    BinOp::Gt => OP_GT,
-                    BinOp::Le => OP_LE,
-                    BinOp::Ge => OP_GE,
-                    BinOp::Eq => OP_EQ,
-                    BinOp::Ne => OP_NE,
-                    BinOp::And => OP_AND,
-                    BinOp::Or => OP_OR,
-                    BinOp::Xor => OP_XOR,
-                };
-                self.emit_op(opcode);
+                // 优化: "表达式 OP 常数"(c 在 i16 范围内)→ 使用 MULconst/ADDconst 立即数指令
+                // 语义: l 已过栈顶,r 是指令内嵌立即数 → 少一次 PUSH
+                match (op, r.as_ref()) {
+                    (BinOp::Add, Expr::Int(n))
+                        if *n >= i16::MIN as i32 && *n <= i16::MAX as i32 =>
+                    {
+                        self.gen_expr(l)?;
+                        self.emit_imm(OP_ADDconst, *n as i16);
+                    }
+                    (BinOp::Mul, Expr::Int(n))
+                        if *n >= i16::MIN as i32 && *n <= i16::MAX as i32 =>
+                    {
+                        self.gen_expr(l)?;
+                        self.emit_imm(OP_MULconst, *n as i16);
+                    }
+                    _ => {
+                        // 常规路径: 左值入栈,右值入栈,二元运算
+                        self.gen_expr(l)?;
+                        self.gen_expr(r)?;
+                        let opcode = match op {
+                            BinOp::Add => OP_ADD,
+                            BinOp::Sub => OP_SUB,
+                            BinOp::Mul => OP_MUL,
+                            BinOp::Div => OP_DIV,
+                            BinOp::Mod => OP_MOD,
+                            BinOp::Lt => OP_LT,
+                            BinOp::Gt => OP_GT,
+                            BinOp::Le => OP_LE,
+                            BinOp::Ge => OP_GE,
+                            BinOp::Eq => OP_EQ,
+                            BinOp::Ne => OP_NE,
+                            BinOp::And => OP_AND,
+                            BinOp::Or => OP_OR,
+                            BinOp::Xor => OP_XOR,
+                        };
+                        self.emit_op(opcode);
+                    }
+                }
             }
         }
         Ok(())
@@ -1590,32 +1609,48 @@ print b
     }
 
     #[test]
-    fn l0_poke_compiles_and_runs() {
-        // 验证 WRITE + READ 往返:先把值写入某 slot,再通过另一 slot 读出来
-        // 变量分配按遇到顺序:
-        //   x = 99    → slot0 = 99
-        //   y = 0     → slot1 = 0 (用 y 作为 addr 变量)
-        //   z = 42    → slot2 = 42 (欲写入的 value)
-        //   poke y, z → STORE_IND:pop addr = y_val = 0 (指向 x's slot0), pop val = z_val = 42 → mem[0] = 42
-        //   peek y    → y_val = 0, LOAD_IND addr = 0 → mem[0] = 42, STORE slot1 → slot1 = 42
-        //   再加 print y → 输出 42
+    fn l0_mulconst_immediate() {
         let src = r#"
-x = 99
-y = 0
-z = 42
-poke y z
-peek y
-print y
+a = 14
+b = a * 3
+print b
 "#;
-        // 按遇到顺序: x=slot0, y=slot1, z=slot2
-        // poke y,z → addr_val = slot1 = 0 → addr = 0 (读 slot0)
-        //           → val_val = slot2 = 42
-        //           → STORE_IND:mem[0] = 42 (覆盖 x)
-        // peek y → slot1 = 0, LOAD_IND mem[0] = 42, STORE slot1 = 42
-        // print y → 输出 42
         let code = compile_l0(src).unwrap();
+        // 先反汇编(code 会被 Vm::new 移动)
+        let text = crate::mccp_vm::disassemble(&code);
+        assert!(text.contains("MULconst"), "a*3 应编译为 MULconst,disasm={}", text);
         let mut vm = Vm::new(code);
         vm.run().unwrap();
-        assert_eq!(vm.output, "42", "poke 应写入 42,peek 应回读 42,实际 output='{}'", vm.output);
+        assert_eq!(vm.output, "42", "a * 3 应输出 42,实际 output='{}'", vm.output);
+    }
+
+    #[test]
+    fn l0_addconst_immediate() {
+        let src = r#"
+a = 100
+b = a + 5
+print b
+"#;
+        let code = compile_l0(src).unwrap();
+        let text = crate::mccp_vm::disassemble(&code);
+        assert!(text.contains("ADDconst"), "a+5 应编译为 ADDconst,disasm={}", text);
+        let mut vm = Vm::new(code);
+        vm.run().unwrap();
+        assert_eq!(vm.output, "105", "a + 5 应输出 105,实际 output='{}'", vm.output);
+    }
+
+    #[test]
+    fn l0_mulconst_ouroboros_e2e() {
+        // 端到端:相同语义源码走完整 Ouroboros 管线
+        let src = r#"
+a = 3
+b = a * 10
+print b
+"#;
+        // 1. compile_l0(Rust 端)
+        let bc = compile_l0(src).unwrap();
+        let mut vm = Vm::new(bc);
+        vm.run().unwrap();
+        assert_eq!(vm.output, "30", "Ouroboros 管线应输出 30,实际 output='{}'", vm.output);
     }
 }
