@@ -117,6 +117,10 @@ pub mod five_dimensional;
 pub use five_dimensional::{couple_spawn, is_couple, rho_decay, angle,
                          witness_triangle, can_merge, is_superposition, FULLNESS_MASK};
 
+// ── 鸳鸯谐韵协议 · 独立通道编码 ──────────────────────────────────────
+pub mod yinyang_codec;
+pub use yinyang_codec::{YUYANG_MARK, FrameMode, Frame, YuYangCodec};
+
 // ── 对外 re-export ──
 
 // v0.4 基础层

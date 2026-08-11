@@ -1,0 +1,869 @@
+{
+  "snapshot": {
+    "generated_at": "2026-08-10T12:00:00Z",
+    "total_items": 12,
+    "alive_items": 12,
+    "dead_items": 0,
+    "balance": 1.0,
+    "mood": "稳定"
+  },
+  "items": [
+    {
+      "id": 0,
+      "symbol_index": 0,
+      "coord": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "title": "弥勒佛·共生·OS 隐喻 — 古文散句",
+      "url": "https://chat.deepseek.com/share/xkn9h436aktrkl2wsc",
+      "source": "deepseek-share",
+      "layer": 1,
+      "summary": "弥勒佛=未来佛=共生 OS; 燃灯古灯=当代热点引擎; 如来=现世日历翻; 弥勒佛说: 我弥补世界的操作系统漏洞, 你勒紧世界的窟窿欲望眼",
+      "keywords": [
+        "弥勒佛",
+        "共生",
+        "OS",
+        "隐喻",
+        "古文",
+        "燃灯",
+        "如来",
+        "漏洞"
+      ],
+      "link_alive": true,
+      "mlil_primary": "毛利兰",
+      "mlil_primary_activation": 0.42,
+      "mlil_roles": [
+        {
+          "role": "Maori",
+          "activation": 0.42,
+          "note": "承载体"
+        },
+        {
+          "role": "Kudo",
+          "activation": 0.42,
+          "note": "抽取/折叠/索引"
+        },
+        {
+          "role": "Haibara",
+          "activation": 0.09,
+          "note": "平铺统计排列"
+        },
+        {
+          "role": "Kndl",
+          "activation": 0.07,
+          "note": "面向用户/外壳"
+        }
+      ],
+      "mlil_summary": "主角色: 毛利兰(承载体) 42% · 毛利兰 42% · kndl 7% · 工藤新一 42% · 灰原哀 9%"
+    },
+    {
+      "id": 1,
+      "symbol_index": 1,
+      "coord": {
+        "x": 1,
+        "y": 0,
+        "z": 0
+      },
+      "title": "古文情绪散句·通诊互动",
+      "url": "https://chat.deepseek.com/share/dphie2xw8oedmbnjjx",
+      "source": "deepseek-share",
+      "layer": 1,
+      "summary": "AI(DeepSeek)对用户古文散句的四轮诊断: 哪些通、哪些不通、情绪乱码区段、建议把口语金句单独保留",
+      "keywords": [
+        "古文",
+        "情绪",
+        "诊断",
+        "乱码",
+        "弥陀",
+        "通诊",
+        "金句"
+      ],
+      "link_alive": true,
+      "mlil_primary": "工藤新一",
+      "mlil_primary_activation": 0.54,
+      "mlil_roles": [
+        {
+          "role": "Kudo",
+          "activation": 0.54,
+          "note": "抽取/折叠/索引"
+        },
+        {
+          "role": "Maori",
+          "activation": 0.3,
+          "note": "承载体"
+        },
+        {
+          "role": "Haibara",
+          "activation": 0.09,
+          "note": "平铺统计排列"
+        },
+        {
+          "role": "Kndl",
+          "activation": 0.07,
+          "note": "面向用户/外壳"
+        }
+      ],
+      "mlil_summary": "主角色: 工藤新一(抽取/折叠/索引) 54% · 毛利兰 30% · kndl 7% · 工藤新一 54% · 灰原哀 9%"
+    },
+    {
+      "id": 2,
+      "symbol_index": 2,
+      "coord": {
+        "x": 2,
+        "y": 0,
+        "z": 0
+      },
+      "title": "谷歌安卓控制论·AOSP/GMS",
+      "url": "https://chat.deepseek.com/share/jz5s060ppcbj92a5gj",
+      "source": "deepseek-share",
+      "layer": 1,
+      "summary": "AOSP 地基 + GMS 钥匙; 国内大厂国内市场暂不受影响但出海必守谷歌规; 华为鸿蒙 = 被卡脖子后的求生系统",
+      "keywords": [
+        "谷歌",
+        "安卓",
+        "AOSP",
+        "GMS",
+        "华为",
+        "鸿蒙",
+        "出海"
+      ],
+      "link_alive": true,
+      "mlil_primary": "毛利兰",
+      "mlil_primary_activation": 0.47,
+      "mlil_roles": [
+        {
+          "role": "Maori",
+          "activation": 0.47,
+          "note": "承载体"
+        },
+        {
+          "role": "Kudo",
+          "activation": 0.28,
+          "note": "抽取/折叠/索引"
+        },
+        {
+          "role": "Haibara",
+          "activation": 0.14,
+          "note": "平铺统计排列"
+        },
+        {
+          "role": "Kndl",
+          "activation": 0.12,
+          "note": "面向用户/外壳"
+        }
+      ],
+      "mlil_summary": "主角色: 毛利兰(承载体) 47% · 毛利兰 47% · kndl 12% · 工藤新一 28% · 灰原哀 14%"
+    },
+    {
+      "id": 3,
+      "symbol_index": 3,
+      "coord": {
+        "x": 3,
+        "y": 0,
+        "z": 0
+      },
+      "title": "数字红军·红色标签体系",
+      "url": "https://chat.deepseek.com/share/jz5s060ppcbj92a5gj",
+      "source": "deepseek-share",
+      "layer": 2,
+      "summary": "用户提出: 数字红军首长/红字示警(既得利益者的红 vs 自救的红); 序列包含红科红工红机红编红媒红捐红法红车红电红店红递红飞红乡红航红程红城红T红宿红房红饮红购红学红教红AI红政红婚红债红时红空红孤红能红源红光红歌红版红权红职红金红令",
+      "keywords": [
+        "红军",
+        "红字",
+        "红色",
+        "示警",
+        "自救",
+        "共生",
+        "数字"
+      ],
+      "link_alive": true,
+      "mlil_primary": "毛利兰",
+      "mlil_primary_activation": 0.39,
+      "mlil_roles": [
+        {
+          "role": "Maori",
+          "activation": 0.39,
+          "note": "承载体"
+        },
+        {
+          "role": "Kudo",
+          "activation": 0.34,
+          "note": "抽取/折叠/索引"
+        },
+        {
+          "role": "Kndl",
+          "activation": 0.17,
+          "note": "面向用户/外壳"
+        },
+        {
+          "role": "Haibara",
+          "activation": 0.1,
+          "note": "平铺统计排列"
+        }
+      ],
+      "mlil_summary": "主角色: 毛利兰(承载体) 39% · 毛利兰 39% · kndl 17% · 工藤新一 34% · 灰原哀 10%"
+    },
+    {
+      "id": 4,
+      "symbol_index": 4,
+      "coord": {
+        "x": 0,
+        "y": 1,
+        "z": 0
+      },
+      "title": "刘楚恬 & 凝灯拍摄时序",
+      "url": "feishu://docx/abc123",
+      "source": "feishu-doc",
+      "layer": 2,
+      "summary": "刘楚恬本人凝灯拍摄记录, 时序上下层索引到弥勒佛散句创作日期; 私人链接不保证公网可达",
+      "keywords": [
+        "刘楚恬",
+        "凝灯",
+        "拍摄",
+        "时序",
+        "共生"
+      ],
+      "link_alive": true,
+      "mlil_primary": "毛利兰",
+      "mlil_primary_activation": 0.42,
+      "mlil_roles": [
+        {
+          "role": "Maori",
+          "activation": 0.42,
+          "note": "承载体"
+        },
+        {
+          "role": "Kudo",
+          "activation": 0.22,
+          "note": "抽取/折叠/索引"
+        },
+        {
+          "role": "Kndl",
+          "activation": 0.18,
+          "note": "面向用户/外壳"
+        },
+        {
+          "role": "Haibara",
+          "activation": 0.18,
+          "note": "平铺统计排列"
+        }
+      ],
+      "mlil_summary": "主角色: 毛利兰(承载体) 42% · 毛利兰 42% · kndl 18% · 工藤新一 22% · 灰原哀 18%"
+    },
+    {
+      "id": 5,
+      "symbol_index": 5,
+      "coord": {
+        "x": 1,
+        "y": 1,
+        "z": 0
+      },
+      "title": "快手符号排版优化",
+      "url": "feishu://topic/kuaishou-typeset",
+      "source": "feishu-topic",
+      "layer": 2,
+      "summary": "短视频字幕/符号/排版走型的跨平台保真问题; 私有设备附加符号集的显示一致性",
+      "keywords": [
+        "快手",
+        "符号",
+        "排版",
+        "视频",
+        "跨平台"
+      ],
+      "link_alive": true,
+      "mlil_primary": "毛利兰",
+      "mlil_primary_activation": 0.38,
+      "mlil_roles": [
+        {
+          "role": "Maori",
+          "activation": 0.38,
+          "note": "承载体"
+        },
+        {
+          "role": "Kndl",
+          "activation": 0.25,
+          "note": "面向用户/外壳"
+        },
+        {
+          "role": "Haibara",
+          "activation": 0.25,
+          "note": "平铺统计排列"
+        },
+        {
+          "role": "Kudo",
+          "activation": 0.13,
+          "note": "抽取/折叠/索引"
+        }
+      ],
+      "mlil_summary": "主角色: 毛利兰(承载体) 38% · 毛利兰 38% · kndl 25% · 工藤新一 12% · 灰原哀 25%"
+    },
+    {
+      "id": 6,
+      "symbol_index": 6,
+      "coord": {
+        "x": 2,
+        "y": 1,
+        "z": 0
+      },
+      "title": "MHT → TXT/DOCX/PDF 容器",
+      "url": "feishu://topic/mht-container",
+      "source": "feishu-topic",
+      "layer": 0,
+      "summary": "邮件网页存档(MHT)拆解重组为目标容器格式(TXT/DOCX/PDF); 保留层级化锚点",
+      "keywords": [
+        "MHT",
+        "格式",
+        "容器",
+        "转换",
+        "锚点"
+      ],
+      "link_alive": true,
+      "mlil_primary": "毛利兰",
+      "mlil_primary_activation": 0.44,
+      "mlil_roles": [
+        {
+          "role": "Maori",
+          "activation": 0.44,
+          "note": "承载体"
+        },
+        {
+          "role": "Kndl",
+          "activation": 0.22,
+          "note": "面向用户/外壳"
+        },
+        {
+          "role": "Haibara",
+          "activation": 0.22,
+          "note": "平铺统计排列"
+        },
+        {
+          "role": "Kudo",
+          "activation": 0.11,
+          "note": "抽取/折叠/索引"
+        }
+      ],
+      "mlil_summary": "主角色: 毛利兰(承载体) 44% · 毛利兰 44% · kndl 22% · 工藤新一 11% · 灰原哀 22%"
+    },
+    {
+      "id": 7,
+      "symbol_index": 7,
+      "coord": {
+        "x": 3,
+        "y": 1,
+        "z": 0
+      },
+      "title": "创业资源 & 入局路径",
+      "url": "feishu://docx/ent2025",
+      "source": "feishu-doc",
+      "layer": 2,
+      "summary": "外部创业资源盘点 + 满全法视角下的入局路径与共生联盟; 借力他人服务器/域名/资金",
+      "keywords": [
+        "创业",
+        "资源",
+        "入局",
+        "共生",
+        "满全法"
+      ],
+      "link_alive": true,
+      "mlil_primary": "毛利兰",
+      "mlil_primary_activation": 0.42,
+      "mlil_roles": [
+        {
+          "role": "Maori",
+          "activation": 0.42,
+          "note": "承载体"
+        },
+        {
+          "role": "Kudo",
+          "activation": 0.22,
+          "note": "抽取/折叠/索引"
+        },
+        {
+          "role": "Kndl",
+          "activation": 0.18,
+          "note": "面向用户/外壳"
+        },
+        {
+          "role": "Haibara",
+          "activation": 0.18,
+          "note": "平铺统计排列"
+        }
+      ],
+      "mlil_summary": "主角色: 毛利兰(承载体) 42% · 毛利兰 42% · kndl 18% · 工藤新一 22% · 灰原哀 18%"
+    },
+    {
+      "id": 8,
+      "symbol_index": 8,
+      "coord": {
+        "x": 0,
+        "y": 2,
+        "z": 0
+      },
+      "title": "本地 AI vs 云端大模型",
+      "url": "feishu://topic/local-ai",
+      "source": "feishu-topic",
+      "layer": 0,
+      "summary": "本地推理(手机芯片)能力边界 vs 云端积分制商业模式; 元输入法作为本地智能载体",
+      "keywords": [
+        "本地",
+        "云端",
+        "AI",
+        "推理",
+        "积分",
+        "元输入法"
+      ],
+      "link_alive": true,
+      "mlil_primary": "毛利兰",
+      "mlil_primary_activation": 0.45,
+      "mlil_roles": [
+        {
+          "role": "Maori",
+          "activation": 0.45,
+          "note": "承载体"
+        },
+        {
+          "role": "Haibara",
+          "activation": 0.32,
+          "note": "平铺统计排列"
+        },
+        {
+          "role": "Kndl",
+          "activation": 0.11,
+          "note": "面向用户/外壳"
+        },
+        {
+          "role": "Kudo",
+          "activation": 0.11,
+          "note": "抽取/折叠/索引"
+        }
+      ],
+      "mlil_summary": "主角色: 毛利兰(承载体) 45% · 毛利兰 45% · kndl 11% · 工藤新一 11% · 灰原哀 32%"
+    },
+    {
+      "id": 9,
+      "symbol_index": 9,
+      "coord": {
+        "x": 1,
+        "y": 2,
+        "z": 0
+      },
+      "title": "范畴论·智能电路构建",
+      "url": "feishu://topic/catgr-build",
+      "source": "feishu-topic",
+      "layer": 1,
+      "summary": "满全法底层范畴引擎: 智能即电路, 通道即吸引子; 空间几何范畴论实现关系归属与身份准入",
+      "keywords": [
+        "范畴论",
+        "电路",
+        "吸引子",
+        "智能",
+        "几何"
+      ],
+      "link_alive": true,
+      "mlil_primary": "毛利兰",
+      "mlil_primary_activation": 0.45,
+      "mlil_roles": [
+        {
+          "role": "Maori",
+          "activation": 0.45,
+          "note": "承载体"
+        },
+        {
+          "role": "Haibara",
+          "activation": 0.32,
+          "note": "平铺统计排列"
+        },
+        {
+          "role": "Kndl",
+          "activation": 0.11,
+          "note": "面向用户/外壳"
+        },
+        {
+          "role": "Kudo",
+          "activation": 0.11,
+          "note": "抽取/折叠/索引"
+        }
+      ],
+      "mlil_summary": "主角色: 毛利兰(承载体) 45% · 毛利兰 45% · kndl 11% · 工藤新一 11% · 灰原哀 32%"
+    },
+    {
+      "id": 10,
+      "symbol_index": 10,
+      "coord": {
+        "x": 2,
+        "y": 2,
+        "z": 0
+      },
+      "title": "民联浏览器·对外通道",
+      "url": "https://minlian.example/njsg",
+      "source": "minlian",
+      "layer": 0,
+      "summary": "民联浏览器作为聚合对外域名; 不暴露满全法内核; 仅输出统计文档聚合视图",
+      "keywords": [
+        "民联",
+        "浏览器",
+        "NJSG",
+        "满全法",
+        "通道",
+        "统计"
+      ],
+      "link_alive": true,
+      "mlil_primary": "kndl",
+      "mlil_primary_activation": 0.52,
+      "mlil_roles": [
+        {
+          "role": "Kndl",
+          "activation": 0.52,
+          "note": "面向用户/外壳"
+        },
+        {
+          "role": "Maori",
+          "activation": 0.25,
+          "note": "承载体"
+        },
+        {
+          "role": "Haibara",
+          "activation": 0.17,
+          "note": "平铺统计排列"
+        },
+        {
+          "role": "Kudo",
+          "activation": 0.06,
+          "note": "抽取/折叠/索引"
+        }
+      ],
+      "mlil_summary": "主角色: kndl(面向用户/外壳) 52% · 毛利兰 25% · kndl 52% · 工藤新一 6% · 灰原哀 17%"
+    },
+    {
+      "id": 11,
+      "symbol_index": 11,
+      "coord": {
+        "x": 3,
+        "y": 2,
+        "z": 0
+      },
+      "title": "模型制作教程资源(毛利兰/kndl/灰原哀)",
+      "url": "feishu://model/make2026",
+      "source": "feishu-doc",
+      "layer": 2,
+      "summary": "3D/概念模型制作教程/资源索引; 毛利兰=模/立体, kndl=外壳, 工藤新一=旋翼, 灰原哀=横/行",
+      "keywords": [
+        "模型",
+        "教程",
+        "毛利兰",
+        "kndl",
+        "3D",
+        "工藤新一",
+        "灰原哀"
+      ],
+      "link_alive": true,
+      "mlil_primary": "kndl",
+      "mlil_primary_activation": 0.41,
+      "mlil_roles": [
+        {
+          "role": "Kndl",
+          "activation": 0.41,
+          "note": "面向用户/外壳"
+        },
+        {
+          "role": "Maori",
+          "activation": 0.26,
+          "note": "承载体"
+        },
+        {
+          "role": "Haibara",
+          "activation": 0.24,
+          "note": "平铺统计排列"
+        },
+        {
+          "role": "Kudo",
+          "activation": 0.09,
+          "note": "抽取/折叠/索引"
+        }
+      ],
+      "mlil_summary": "主角色: kndl(面向用户/外壳) 41% · 毛利兰 26% · kndl 41% · 工藤新一 9% · 灰原哀 24%"
+    }
+  ],
+  "neighbors": [
+    {
+      "a": 0,
+      "b": 1,
+      "manhattan": 1,
+      "chebyshev": 1,
+      "src_to_dst_deg": 0.0,
+      "dst_to_src_deg": 180.0
+    },
+    {
+      "a": 0,
+      "b": 4,
+      "manhattan": 1,
+      "chebyshev": 1,
+      "src_to_dst_deg": 90.0,
+      "dst_to_src_deg": 270.0
+    },
+    {
+      "a": 0,
+      "b": 5,
+      "manhattan": 2,
+      "chebyshev": 1,
+      "src_to_dst_deg": 45.0,
+      "dst_to_src_deg": 225.0
+    },
+    {
+      "a": 1,
+      "b": 2,
+      "manhattan": 1,
+      "chebyshev": 1,
+      "src_to_dst_deg": 0.0,
+      "dst_to_src_deg": 180.0
+    },
+    {
+      "a": 1,
+      "b": 4,
+      "manhattan": 2,
+      "chebyshev": 1,
+      "src_to_dst_deg": 135.0,
+      "dst_to_src_deg": 315.0
+    },
+    {
+      "a": 1,
+      "b": 5,
+      "manhattan": 1,
+      "chebyshev": 1,
+      "src_to_dst_deg": 90.0,
+      "dst_to_src_deg": 270.0
+    },
+    {
+      "a": 1,
+      "b": 6,
+      "manhattan": 2,
+      "chebyshev": 1,
+      "src_to_dst_deg": 45.0,
+      "dst_to_src_deg": 225.0
+    },
+    {
+      "a": 2,
+      "b": 3,
+      "manhattan": 1,
+      "chebyshev": 1,
+      "src_to_dst_deg": 0.0,
+      "dst_to_src_deg": 180.0
+    },
+    {
+      "a": 2,
+      "b": 5,
+      "manhattan": 2,
+      "chebyshev": 1,
+      "src_to_dst_deg": 135.0,
+      "dst_to_src_deg": 315.0
+    },
+    {
+      "a": 2,
+      "b": 6,
+      "manhattan": 1,
+      "chebyshev": 1,
+      "src_to_dst_deg": 90.0,
+      "dst_to_src_deg": 270.0
+    },
+    {
+      "a": 2,
+      "b": 7,
+      "manhattan": 2,
+      "chebyshev": 1,
+      "src_to_dst_deg": 45.0,
+      "dst_to_src_deg": 225.0
+    },
+    {
+      "a": 3,
+      "b": 6,
+      "manhattan": 2,
+      "chebyshev": 1,
+      "src_to_dst_deg": 135.0,
+      "dst_to_src_deg": 315.0
+    },
+    {
+      "a": 3,
+      "b": 7,
+      "manhattan": 1,
+      "chebyshev": 1,
+      "src_to_dst_deg": 90.0,
+      "dst_to_src_deg": 270.0
+    },
+    {
+      "a": 4,
+      "b": 5,
+      "manhattan": 1,
+      "chebyshev": 1,
+      "src_to_dst_deg": 0.0,
+      "dst_to_src_deg": 180.0
+    },
+    {
+      "a": 4,
+      "b": 8,
+      "manhattan": 1,
+      "chebyshev": 1,
+      "src_to_dst_deg": 90.0,
+      "dst_to_src_deg": 270.0
+    },
+    {
+      "a": 4,
+      "b": 9,
+      "manhattan": 2,
+      "chebyshev": 1,
+      "src_to_dst_deg": 45.0,
+      "dst_to_src_deg": 225.0
+    },
+    {
+      "a": 5,
+      "b": 6,
+      "manhattan": 1,
+      "chebyshev": 1,
+      "src_to_dst_deg": 0.0,
+      "dst_to_src_deg": 180.0
+    },
+    {
+      "a": 5,
+      "b": 8,
+      "manhattan": 2,
+      "chebyshev": 1,
+      "src_to_dst_deg": 135.0,
+      "dst_to_src_deg": 315.0
+    },
+    {
+      "a": 5,
+      "b": 9,
+      "manhattan": 1,
+      "chebyshev": 1,
+      "src_to_dst_deg": 90.0,
+      "dst_to_src_deg": 270.0
+    },
+    {
+      "a": 5,
+      "b": 10,
+      "manhattan": 2,
+      "chebyshev": 1,
+      "src_to_dst_deg": 45.0,
+      "dst_to_src_deg": 225.0
+    },
+    {
+      "a": 6,
+      "b": 7,
+      "manhattan": 1,
+      "chebyshev": 1,
+      "src_to_dst_deg": 0.0,
+      "dst_to_src_deg": 180.0
+    },
+    {
+      "a": 6,
+      "b": 9,
+      "manhattan": 2,
+      "chebyshev": 1,
+      "src_to_dst_deg": 135.0,
+      "dst_to_src_deg": 315.0
+    },
+    {
+      "a": 6,
+      "b": 10,
+      "manhattan": 1,
+      "chebyshev": 1,
+      "src_to_dst_deg": 90.0,
+      "dst_to_src_deg": 270.0
+    },
+    {
+      "a": 6,
+      "b": 11,
+      "manhattan": 2,
+      "chebyshev": 1,
+      "src_to_dst_deg": 45.0,
+      "dst_to_src_deg": 225.0
+    },
+    {
+      "a": 7,
+      "b": 10,
+      "manhattan": 2,
+      "chebyshev": 1,
+      "src_to_dst_deg": 135.0,
+      "dst_to_src_deg": 315.0
+    },
+    {
+      "a": 7,
+      "b": 11,
+      "manhattan": 1,
+      "chebyshev": 1,
+      "src_to_dst_deg": 90.0,
+      "dst_to_src_deg": 270.0
+    },
+    {
+      "a": 8,
+      "b": 9,
+      "manhattan": 1,
+      "chebyshev": 1,
+      "src_to_dst_deg": 0.0,
+      "dst_to_src_deg": 180.0
+    },
+    {
+      "a": 9,
+      "b": 10,
+      "manhattan": 1,
+      "chebyshev": 1,
+      "src_to_dst_deg": 0.0,
+      "dst_to_src_deg": 180.0
+    },
+    {
+      "a": 10,
+      "b": 11,
+      "manhattan": 1,
+      "chebyshev": 1,
+      "src_to_dst_deg": 0.0,
+      "dst_to_src_deg": 180.0
+    }
+  ],
+  "packages": [
+    {
+      "center_id": 0,
+      "member_ids": [
+        0,
+        1,
+        4
+      ]
+    },
+    {
+      "center_id": 1,
+      "member_ids": [
+        0,
+        1
+      ]
+    },
+    {
+      "center_id": 3,
+      "member_ids": [
+        3,
+        7
+      ]
+    },
+    {
+      "center_id": 4,
+      "member_ids": [
+        0,
+        4
+      ]
+    },
+    {
+      "center_id": 7,
+      "member_ids": [
+        3,
+        7,
+        10
+      ]
+    },
+    {
+      "center_id": 10,
+      "member_ids": [
+        7,
+        10
+      ]
+    }
+  ]
+}
