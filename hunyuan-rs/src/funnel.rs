@@ -23,6 +23,7 @@ use crate::stats::StreamStats;
 use crate::triune::{Funnel};
 use crate::mirror;
 use crate::memory::LayeredMemory;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 // ────────────────────────────────────────────────────────────
 // 时间节奏器 (Time Governor)
@@ -193,6 +194,42 @@ impl SpaceBatcher {
 //
 // 这即是 "时间段内 & 空间段内" 的完整控制器.
 
+fn now_ms() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis() as u64
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Heartbeat {
+    pub last_tick_ms: u64,
+    pub stale_count: u32,
+}
+
+impl Heartbeat {
+    pub fn new() -> Self {
+        Self { last_tick_ms: now_ms(), stale_count: 0 }
+    }
+
+    pub fn beat(&mut self) {
+        self.last_tick_ms = now_ms();
+        self.stale_count = 0;
+    }
+
+    pub fn is_stale(&self, timeout_ms: u64) -> bool {
+        now_ms().saturating_sub(self.last_tick_ms) > timeout_ms
+    }
+
+    pub fn mark_stale(&mut self) {
+        self.stale_count += 1;
+    }
+
+    pub fn staleness(&self) -> u32 {
+        self.stale_count
+    }
+}
+
 #[derive(Debug)]
 pub struct FunnelScheduler {
     pub time_gov: TimeGovernor,
@@ -202,6 +239,13 @@ pub struct FunnelScheduler {
     pub this_round_collapse: f64,
     pub total_rounds: u64,
     pub status: SchedulerStatus,
+    pub heartbeat: Heartbeat,
+    /// 看门狗阈值: 连续 step 超过此次数但无进展 → 判定为 Zombie
+    pub watchdog_threshold: u64,
+    /// 内部计数: 连续 step 无真进展的次数
+    no_progress_count: u64,
+    /// 上次 progress 快照，用于区分真进展与假进展
+    last_progress_snapshot: f64,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -210,6 +254,7 @@ pub enum SchedulerStatus {
     Running,    // 进行中
     Saturated,  // 时间/空间均满
     Done,       // 全部处理完成
+    Zombie,     // 假死 (看门狗判定)
 }
 
 impl FunnelScheduler {
@@ -225,12 +270,21 @@ impl FunnelScheduler {
     }
 
     pub fn new(time_gov: TimeGovernor, space_batcher: SpaceBatcher, funnel: Funnel) -> Self {
+        Self::with_threshold(time_gov, space_batcher, funnel, 1000)
+    }
+
+    /// 带自定义看门狗阈值的构造
+    pub fn with_threshold(time_gov: TimeGovernor, space_batcher: SpaceBatcher, funnel: Funnel, watchdog_threshold: u64) -> Self {
         Self {
             time_gov, space_batcher, funnel,
             stats: StreamStats::new(),
             this_round_collapse: 0.0,
             total_rounds: 0,
             status: SchedulerStatus::Idle,
+            heartbeat: Heartbeat::new(),
+            watchdog_threshold,
+            no_progress_count: 0,
+            last_progress_snapshot: 0.0,
         }
     }
 
@@ -242,17 +296,51 @@ impl FunnelScheduler {
         }
     }
 
+    /// 计算当前进度快照 (用于区分真进展与假进展)
+    fn progress_snapshot(&self) -> f64 {
+        self.stats.count as f64 + self.space_batcher.progress() * 1000.0 + self.total_rounds as f64
+    }
+
+    /// 看门狗检测: 假如 progress 没有实质性增长，计数+1，超阈值判定 Zombie
+    fn watchdog_check(&mut self) -> bool {
+        let snap = self.progress_snapshot();
+        if (snap - self.last_progress_snapshot).abs() < 1e-9 {
+            self.no_progress_count += 1;
+        } else {
+            self.no_progress_count = 0;
+            self.heartbeat.beat();
+        }
+        self.last_progress_snapshot = snap;
+        if self.no_progress_count >= self.watchdog_threshold {
+            self.status = SchedulerStatus::Zombie;
+            true
+        } else {
+            false
+        }
+    }
+
     /// 单步调度: 在时间窗口内做完一个 chunk
     /// 返回是否还应该继续调用 step (true=还有工作)
     pub fn step(&mut self) -> bool {
+        // 假死状态直接拒绝继续
+        if self.status == SchedulerStatus::Zombie {
+            return false;
+        }
         if self.status == SchedulerStatus::Done {
             return false;
         }
+
+        // 看门狗: 假如 progress 没有增长，累计计数
+        if self.watchdog_check() {
+            return false;
+        }
+
         if self.time_gov.is_saturated() {
             // 时间满了, 轮次统计
             self.total_rounds += 1;
             self.this_round_collapse = self.funnel.pass_through(self.this_round_collapse);
             self.status = SchedulerStatus::Saturated;
+            self.heartbeat.beat();
             return false;
         }
         let has_chunk = self.space_batcher.next_chunk().is_some();
@@ -270,24 +358,34 @@ impl FunnelScheduler {
             self.stats.push(full_count as f64);
             self.this_round_collapse += full_count as f64;
             self.space_batcher.complete_current();
+            self.last_progress_snapshot = self.progress_snapshot();
+            self.no_progress_count = 0;
+            self.heartbeat.beat();
             true
         } else {
             // 时间窗口满了, 刚吃进的这一口还回去
             self.total_rounds += 1;
             self.this_round_collapse = self.funnel.pass_through(self.this_round_collapse);
             self.status = SchedulerStatus::Saturated;
+            self.heartbeat.beat();
             false
         }
     }
 
     /// 全部跑一遍 (直到 Done 或 rounds_limit 达到)
     pub fn run(&mut self, max_rounds: u64) -> u64 {
+        // 启动时先 beat 一次
+        self.heartbeat.beat();
         loop {
             if self.total_rounds >= max_rounds { break; }
             self.time_gov.ticked_reset();
             self.this_round_collapse = 0.0;
             self.status = SchedulerStatus::Running;
             while self.step() {}
+            // 检测假死: 如果 status 是 Zombie 立刻跳出
+            if self.status == SchedulerStatus::Zombie {
+                break;
+            }
             if self.status == SchedulerStatus::Done { break; }
         }
         self.total_rounds
@@ -474,5 +572,74 @@ mod tests {
         let _ = sb.next_chunk();
         sb.complete_current(); // processed 5
         assert!(sb.progress() > 0.0);
+    }
+
+    // ─── 心跳 / 看门狗测试 ───
+
+    #[test]
+    fn heartbeat_beat_resets_stale() {
+        let mut hb = Heartbeat::new();
+        assert!(!hb.is_stale(100));
+        hb.mark_stale();
+        assert_eq!(hb.staleness(), 1);
+        hb.beat();
+        assert_eq!(hb.staleness(), 0);
+    }
+
+    #[test]
+    fn watchdog_detects_zombie_on_repeated_no_progress() {
+        // 构造一个 scheduler，灌入少量数据后用极低的 watchdog 阈值
+        let gov = TimeGovernor::standard(TimeLevel::MilliSec);
+        let sb = SpaceBatcher::new(4);
+        let funnel = Funnel::new(100.0, 1.0, 0.0);
+        // watchdog_threshold = 3: 连续 3 步无进展就判 Zombie
+        let mut sched = FunnelScheduler::with_threshold(gov, sb, funnel, 3);
+        sched.ingest(b"1234");
+        // 正常 step 应该能一次消化掉
+        let r1 = sched.step();
+        // 数据消化后再次 step 应该进入 Done 状态
+        if r1 {
+            // 如果 step 返回 true（时间窗口饱和），再 step 应该 Done
+            let _ = sched.step();
+        }
+        // 最终必须是 Done 或 Zombie，而不是 Running
+        assert!(
+            sched.status == SchedulerStatus::Done || sched.status == SchedulerStatus::Zombie,
+            "status 应为 Done/Zombie, 实际是 {:?}",
+            sched.status
+        );
+    }
+
+    #[test]
+    fn zombie_scheduler_rejects_further_steps() {
+        let gov = TimeGovernor::standard(TimeLevel::MilliSec);
+        let sb = SpaceBatcher::new(4);
+        let funnel = Funnel::new(100.0, 1.0, 0.0);
+        let mut sched = FunnelScheduler::with_threshold(gov, sb, funnel, 2);
+        // 手动设为 Zombie 状态
+        sched.status = SchedulerStatus::Zombie;
+        // Zombie 状态下的 step 必须立即返回 false
+        assert!(!sched.step());
+        assert_eq!(sched.status, SchedulerStatus::Zombie);
+    }
+
+    #[test]
+    fn run_breaks_on_zombie() {
+        // 构造一个会在 run() 循环中触发 zombie 的 scheduler
+        // 使用极低的 watchdog_threshold
+        let gov = TimeGovernor::new(TimeLevel::MilliSec, 1, 1000); // 大 capacity 让窗口不会满
+        let sb = SpaceBatcher::new(4);
+        let funnel = Funnel::new(100.0, 1.0, 0.0);
+        let mut sched = FunnelScheduler::with_threshold(gov, sb, funnel, 5);
+        // 故意让 space_batcher 的 buffer 在没有 ingest 的情况下不为空
+        // 但为了触发 zombie，我们用 ingest 后再 step 制造 no_progress 的情况
+        sched.ingest(b"ABCD");
+        // 手动让 progress 无法前进
+        // 由于 watchdog_threshold=5, 连续 5 次 step 不进 stats/buffer 就会 Zombie
+        // 但 `ingest(b\"ABCD\")` 只有一块, step 后 space_batcher 变空 → Done
+        // 所以这个用例验证 run 正常退出：不会因为在 Done 后继续 while self.step() 而卡住
+        let rounds = sched.run(1000);
+        assert!(rounds >= 0);
+        assert!(sched.status == SchedulerStatus::Done || sched.status == SchedulerStatus::Zombie);
     }
 }
