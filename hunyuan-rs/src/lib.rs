@@ -102,6 +102,9 @@ pub mod cochlear_boot;
 pub mod memory;
 pub mod swarm;
 
+// ── v0.19 干柴火 · 384 根自生符号 (Firewood: 编码=进制, 无壳) ──
+pub mod firewood;
+
 // ── v0.16 位置进制基础 · 打米机 (Positional Base, 进制脱糠) ──
 pub mod positional_base;
 
