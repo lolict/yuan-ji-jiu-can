@@ -102,6 +102,9 @@ pub mod cochlear_boot;
 pub mod memory;
 pub mod swarm;
 
+// ── v0.20 范畴论符号 · 满全法态射 (Symbols: 384 morphisms) ──
+pub mod symbols;
+
 // ── v0.19 干柴火 · 384 根自生符号 (Firewood: 编码=进制, 无壳) ──
 pub mod firewood;
 
