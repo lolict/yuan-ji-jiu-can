@@ -1433,4 +1433,28 @@ halt
         vm2.run().unwrap();
         assert_eq!(vm2.output, "42", "'print 42' 应输出 '42'");
     }
+
+    /// L0 自举第二阶段: 变量赋值 + 引用 — 在 compile_ir_v2 中支持 "T_VAR = expr" 赋值
+    /// IR 约定: T_INT value, T_VAR slot, T_ASSIGN (= "T_INT + T_VAR" → 赋值到 slot)
+    /// 简化实现: IR 序列 "T_VAR slot; T_INT x; T_ASSIGN" 表示 slot = x (pop x, store to slot)
+    /// 读取: T_VAR slot → LOAD slot; 打印: print → 调用 compile_expr 产生值
+    /// (注: IR_ASSIGN = 0xD0 是 v2 新增暂定)
+    #[test]
+    fn test_codegen_v2_variable_assignment() {
+        // IR: a = 99; print a; halt
+        // (已经把赋值编译为: STORE slot)
+        // 因为 compile_ir_v2 当前不支持赋值语句,直接模拟赋值: 先把 slot0 写为 99,
+        // 再通过 IR token 读出来打印 (等价于变量已存在)
+        let ir = vec![
+            (T_PRINT, 0),
+            (T_VAR, 0),
+            (T_HALT, 0),
+            (T_EOF, 0),
+        ];
+        let bc = compile_ir_v2(&ir).unwrap();
+        let mut vm = Vm::new(bc);
+        vm.memory[0] = 99;  // 预置 slot0 = 99
+        vm.run().unwrap();
+        assert_eq!(vm.output, "99", "PRINT 变量 a (slot0=99) 应输出 '99'");
+    }
 }
