@@ -1525,4 +1525,86 @@ halt
         vm2.run().unwrap();
         assert_eq!(vm2.output, "10", "a=7; b=a+3; print b 应输出 '10'");
     }
+
+    // ════════════════════════════════════════════════════════════
+    // Phase 3: 控制流 if/then/else/end + while/do/end
+    // ════════════════════════════════════════════════════════════
+
+    /// if-true 分支: "if 1 < 2 then\nprint 100\nend" 应输出 "100"
+    /// 验证比较运算符(OP_LT) + JZ 控制流
+    #[test]
+    fn test_ouroboros_if_true() {
+        let l0_source = "if 1 < 2 then\nprint 100\nend";
+        let classifier_bc = compile_l0(L0_CLASSIFIER_SRC).unwrap();
+        let mut vm1 = Vm::with_input(classifier_bc, Default::default(), l0_source.into());
+        vm1.run().unwrap();
+        let ir = classify_output_to_ir(&vm1.output, &vm1.output_raw);
+        println!("if-true IR: {:?}", ir);
+        let bc = compile_ir_v2(&ir).unwrap();
+        let mut vm2 = Vm::new(bc);
+        vm2.run().unwrap();
+        assert_eq!(vm2.output, "100", "if 1<2 then print 100 end 应输出 '100'");
+    }
+
+    /// if-false 分支: "if 2 < 1 then\nprint 100\nend" 不输出任何内容
+    #[test]
+    fn test_ouroboros_if_false() {
+        let l0_source = "if 2 < 1 then\nprint 100\nend";
+        let classifier_bc = compile_l0(L0_CLASSIFIER_SRC).unwrap();
+        let mut vm1 = Vm::with_input(classifier_bc, Default::default(), l0_source.into());
+        vm1.run().unwrap();
+        let ir = classify_output_to_ir(&vm1.output, &vm1.output_raw);
+        let bc = compile_ir_v2(&ir).unwrap();
+        let mut vm2 = Vm::new(bc);
+        vm2.run().unwrap();
+        assert!(!vm2.output.contains("100"), "2<1 为 false 不应输出 100");
+    }
+
+    /// if-then-else 取 else 分支: "if 5 < 3 then\nprint 1\nelse\nprint 2\nend"
+    #[test]
+    fn test_ouroboros_if_else() {
+        let l0_source = "if 5 < 3 then\nprint 1\nelse\nprint 2\nend";
+        let classifier_bc = compile_l0(L0_CLASSIFIER_SRC).unwrap();
+        let mut vm1 = Vm::with_input(classifier_bc, Default::default(), l0_source.into());
+        vm1.run().unwrap();
+        let ir = classify_output_to_ir(&vm1.output, &vm1.output_raw);
+        let bc = compile_ir_v2(&ir).unwrap();
+        let mut vm2 = Vm::new(bc);
+        vm2.run().unwrap();
+        assert!(vm2.output.contains("2"), "5<3=false 应走 else 输出 2");
+        assert!(!vm2.output.contains("1"), "不应输出 1");
+    }
+
+    /// while 循环: "a = 0\nwhile a < 3 do\nprint a\na = a + 1\nend"
+    /// 应输出 "012"
+    /// 这是 L0 自举最重要的证明 — 循环通过 Ouroboros 管线
+    #[test]
+    fn test_ouroboros_while_loop_e2e() {
+        let l0_source = "a = 0\nwhile a < 3 do\nprint a\na = a + 1\nend";
+        let classifier_bc = compile_l0(L0_CLASSIFIER_SRC).unwrap();
+        let mut vm1 = Vm::with_input(classifier_bc, Default::default(), l0_source.into());
+        vm1.run().unwrap();
+        let ir = classify_output_to_ir(&vm1.output, &vm1.output_raw);
+        println!("while-loop IR: {:?}", ir);
+        let bc = compile_ir_v2(&ir).unwrap();
+        let mut vm2 = Vm::new(bc);
+        vm2.run().expect("while loop 应完整执行");
+        assert!(vm2.output.contains("0"), "while 循环应输出 '0'");
+        assert!(vm2.output.contains("1"), "while 循环应输出 '1'");
+        assert!(vm2.output.contains("2"), "while 循环应输出 '2'");
+    }
+
+    /// 嵌套 if: "if 1 < 2 then\nif 3 < 4 then\nprint 99\nend\nend"
+    #[test]
+    fn test_ouroboros_nested_if() {
+        let l0_source = "if 1 < 2 then\nif 3 < 4 then\nprint 99\nend\nend";
+        let classifier_bc = compile_l0(L0_CLASSIFIER_SRC).unwrap();
+        let mut vm1 = Vm::with_input(classifier_bc, Default::default(), l0_source.into());
+        vm1.run().unwrap();
+        let ir = classify_output_to_ir(&vm1.output, &vm1.output_raw);
+        let bc = compile_ir_v2(&ir).unwrap();
+        let mut vm2 = Vm::new(bc);
+        vm2.run().unwrap();
+        assert_eq!(vm2.output, "99", "双重 true 嵌套 if 应输出 '99'");
+    }
 }
