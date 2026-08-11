@@ -106,6 +106,12 @@ pub mod swarm;
 pub mod l0_self_hosting;
 pub use l0_self_hosting::{compile_ir_v2, classify_output_to_ir};
 
+// ── ENTITY_IDENTITY_PROTOCOL v0.1 · 指纹身份 (解决"名字=身份"死锁) ──
+pub mod entity_identity;
+pub use entity_identity::{Fingerprint, Cooperativity, EntityMeta, register_entity,
+                         lookup_by_fingerprint, can_cooperate, judge, Registration,
+                         THRESHOLD_SAME_ENTITY, THRESHOLD_FAMILY, THRESHOLD_WEAK};
+
 // ── 对外 re-export ──
 
 // v0.4 基础层
