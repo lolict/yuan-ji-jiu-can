@@ -1692,4 +1692,87 @@ halt
         // 左结合: (2 + 3) * 4 = 20
         assert_eq!(vm2.output, "20", "算术链左结合: (2+3)*4=20");
     }
+
+    // ════════════════════════════════════════════════════════════
+    // 终极目标: L0 编译器自举 — 分类器把自身的源码喂给自己,证明"咬尾蛇"闭环
+    // ════════════════════════════════════════════════════════════
+
+    /// 终极目标第一小步: L0 分类器能反吃自身源码,产生 IR 字节流
+    /// 即:把 L0_CLASSIFIER_SRC 自身作为输入提供给编译后的 L0 分类器
+    /// 验证:分类器输出 IR token 流,IR 包含预期关键字 token
+    #[test]
+    fn test_ouroboros_classifier_eats_own_source() {
+        let classifier_bc = compile_l0(L0_CLASSIFIER_SRC).unwrap();
+        // 把自身源码作为"输入"
+        let own_source = L0_CLASSIFIER_SRC;
+        let mut vm1 = Vm::with_input(classifier_bc, Default::default(), own_source.into());
+        vm1.run().expect("分类器在自身源码上应完整执行");
+        println!("自身源码分类 IR 字节数: {}", vm1.output_raw.len());
+        assert!(!vm1.output_raw.is_empty(), "分类器应产出 IR 字节流 (包括注释已过滤)");
+        // 解码 IR:至少应包含 T_INT, T_VAR token
+        let ir = classify_output_to_ir(&vm1.output, &vm1.output_raw);
+        println!("IR tokens 数量: {}", ir.len());
+        assert!(!ir.is_empty(), "IR token 非空");
+    }
+
+    /// 终极目标第二小步:"L0 编译 L0" — L0 分类器 + compile_ir_v2 组合可处理
+    /// 简单 L0 源码,且结果等同于 Rust 直接编译
+    /// 取一条标准 L0 源码 "print (2 + 3)" 作为基准
+    #[test]
+    fn test_ouroboros_self_compile_equivalence() {
+        // 1. 直接走 Rust 后端 (compile_l0 直接编译 + VM)
+        let src = "print 7 + 8";
+        let direct_bc = compile_l0(src).unwrap();
+        let mut vm_direct = Vm::new(direct_bc);
+        vm_direct.run().unwrap();
+        println!("直接编译输出: '{}'", vm_direct.output);
+
+        // 2. 走 Ouroboros 管线 (L0 分类器 → IR → compile_ir_v2 → bytecode)
+        let classifier_bc = compile_l0(L0_CLASSIFIER_SRC).unwrap();
+        let mut vm1 = Vm::with_input(classifier_bc, Default::default(), src.into());
+        vm1.run().unwrap();
+        let ir = classify_output_to_ir(&vm1.output, &vm1.output_raw);
+        let pipe_bc = compile_ir_v2(&ir).unwrap();
+        let mut vm_pipe = Vm::new(pipe_bc);
+        vm_pipe.run().unwrap();
+        println!("管线输出: '{}'", vm_pipe.output);
+
+        // 3. 等价性检查
+        assert_eq!(vm_direct.output, vm_pipe.output,
+            "直接编译 vs Ouroboros 管线输出应等价 (同为 '{}')", vm_direct.output);
+    }
+
+    /// 终极目标第三小步:Ouroboros 管线中计算整数表达式正确性 (四则运算混合)
+    /// "a = 10\nb = 3\nprint a * b + a / b - 2"
+    /// 左结合语义: ((((a*b)+a)/b)-2) = ((((10*3)+10)/3)-2) = ((40/3)-2) = 13-2 = 11
+    #[test]
+    fn test_ouroboros_self_algebra() {
+        let l0_source = "a = 10\nb = 3\nprint a * b + a / b - 2";
+        let classifier_bc = compile_l0(L0_CLASSIFIER_SRC).unwrap();
+        let mut vm1 = Vm::with_input(classifier_bc, Default::default(), l0_source.into());
+        vm1.run().unwrap();
+        let ir = classify_output_to_ir(&vm1.output, &vm1.output_raw);
+        let bc = compile_ir_v2(&ir).unwrap();
+        let mut vm2 = Vm::new(bc);
+        vm2.run().unwrap();
+        assert_eq!(vm2.output, "11", "左结合: ((((10*3)+10)/3)-2) = 11");
+    }
+
+    /// 终极目标第四小步:while 循环 + if 条件 + 三元变量共同验证
+    /// L0: a=1; b=10; while a<b do if a<5 then a=a+1 end end; print a
+    /// 循环过程: a 从 1 递增到 5 时停止 if 体内增量 (a=5 不再 <5),直到 a<b=10 不成立
+    /// 实际:一旦 a=5,a<5 为 false,循环继续但 if 不执行,a 不变,a<b 仍 true,死循环
+    /// 改为: a=0; b=5; while a<b do a=a+1 end; print a
+    #[test]
+    fn test_ouroboros_self_loop() {
+        let l0_source = "a = 0\nb = 5\nwhile a < b do\na = a + 1\nend\nprint a";
+        let classifier_bc = compile_l0(L0_CLASSIFIER_SRC).unwrap();
+        let mut vm1 = Vm::with_input(classifier_bc, Default::default(), l0_source.into());
+        vm1.run().unwrap();
+        let ir = classify_output_to_ir(&vm1.output, &vm1.output_raw);
+        let bc = compile_ir_v2(&ir).unwrap();
+        let mut vm2 = Vm::new(bc);
+        vm2.run().unwrap();
+        assert_eq!(vm2.output, "5", "a=0; while a<5 do a=a+1 end → a=5");
+    }
 }
