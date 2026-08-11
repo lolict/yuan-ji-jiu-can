@@ -102,6 +102,9 @@ pub mod cochlear_boot;
 pub mod memory;
 pub mod swarm;
 
+// ── v0.16 位置进制基础 · 打米机 (Positional Base, 进制脱糠) ──
+pub mod positional_base;
+
 // ── v0.10 自举编译器 v2 (Ouroboros) ──
 pub mod l0_self_hosting;
 pub use l0_self_hosting::{compile_ir_v2, classify_output_to_ir};
