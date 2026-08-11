@@ -1607,4 +1607,89 @@ halt
         vm2.run().unwrap();
         assert_eq!(vm2.output, "99", "双重 true 嵌套 if 应输出 '99'");
     }
+
+    // ════════════════════════════════════════════════════════════
+    // 更复杂程序证明: 阶乘、累加器 — 证明 Ouroboros 管线不仅 token 化,
+    // 还能正确编译执行具实际语义的 L0 代码
+    // ════════════════════════════════════════════════════════════
+
+    /// 阶乘计算 (n=5 → 120)
+    /// L0: n=5; m=1; while n>1 do m=m*n; n=n-1 end; print m
+    /// (注:多用字母变量名会被拆成多个 T_VAR 令牌,当前仅单字母变量在赋值中可靠)
+    #[test]
+    fn test_ouroboros_factorial_5() {
+        let l0_source = "n = 5\nm = 1\nwhile n > 1 do\nm = m * n\nn = n - 1\nend\nprint m";
+        let classifier_bc = compile_l0(L0_CLASSIFIER_SRC).unwrap();
+        let mut vm1 = Vm::with_input(classifier_bc, Default::default(), l0_source.into());
+        vm1.run().unwrap();
+        let ir = classify_output_to_ir(&vm1.output, &vm1.output_raw);
+        println!("阶乘 IR: {:?}", ir);
+        let bc = compile_ir_v2(&ir).unwrap();
+        let mut vm2 = Vm::new(bc);
+        vm2.run().expect("阶乘程序应完整执行");
+        assert_eq!(vm2.output, "120", "5! = 120");
+    }
+
+    /// 累加和: 1+2+...+10 = 55
+    /// L0: s=0; i=1; while i<11 do s=s+i; i=i+1 end; print s
+    /// (仅单字母变量,多字母名会被拆为多个 T_VAR token)
+    #[test]
+    fn test_ouroboros_sum_1_to_10() {
+        let l0_source = "s = 0\ni = 1\nwhile i < 11 do\ns = s + i\ni = i + 1\nend\nprint s";
+        let classifier_bc = compile_l0(L0_CLASSIFIER_SRC).unwrap();
+        let mut vm1 = Vm::with_input(classifier_bc, Default::default(), l0_source.into());
+        vm1.run().unwrap();
+        let ir = classify_output_to_ir(&vm1.output, &vm1.output_raw);
+        let bc = compile_ir_v2(&ir).unwrap();
+        let mut vm2 = Vm::new(bc);
+        vm2.run().unwrap();
+        assert_eq!(vm2.output, "55", "Sum(1..10) = 55");
+    }
+
+    /// 嵌套 if + 变量综合: 取较大值
+    /// L0: a=20; b=35; if a > b then print a else print b end
+    #[test]
+    fn test_ouroboros_max_of_two() {
+        let l0_source = "a = 20\nb = 35\nif a > b then\nprint a\nelse\nprint b\nend";
+        let classifier_bc = compile_l0(L0_CLASSIFIER_SRC).unwrap();
+        let mut vm1 = Vm::with_input(classifier_bc, Default::default(), l0_source.into());
+        vm1.run().unwrap();
+        let ir = classify_output_to_ir(&vm1.output, &vm1.output_raw);
+        let bc = compile_ir_v2(&ir).unwrap();
+        let mut vm2 = Vm::new(bc);
+        vm2.run().unwrap();
+        assert!(vm2.output.contains("35"), "应输出较大值 35");
+    }
+
+    /// 多重 if 与比较: 三元比较
+    /// 使用嵌套 if 求三个数最大值
+    /// L0: a=7; b=15; c=10; if b > a then if b > c then print b else print c end else if a > c then print a else print c end end
+    #[test]
+    fn test_ouroboros_max_of_three() {
+        let l0_source = "a = 7\nb = 15\nc = 10\nif b > a then\nif b > c then\nprint b\nelse\nprint c\nend\nelse\nif a > c then\nprint a\nelse\nprint c\nend\nend";
+        let classifier_bc = compile_l0(L0_CLASSIFIER_SRC).unwrap();
+        let mut vm1 = Vm::with_input(classifier_bc, Default::default(), l0_source.into());
+        vm1.run().unwrap();
+        let ir = classify_output_to_ir(&vm1.output, &vm1.output_raw);
+        let bc = compile_ir_v2(&ir).unwrap();
+        let mut vm2 = Vm::new(bc);
+        vm2.run().unwrap();
+        assert!(vm2.output.contains("15"), "max(7,15,10)=15");
+    }
+
+    /// 算术链: 2+3*4 — 测试运算符优先级 (当前规则: 左结合链, 所以结果是 (2+3)*4=20)
+    /// 验证算术结合律在 Ouroboros 管线中的行为
+    #[test]
+    fn test_ouroboros_compound_expr() {
+        let l0_source = "print 2 + 3 * 4";
+        let classifier_bc = compile_l0(L0_CLASSIFIER_SRC).unwrap();
+        let mut vm1 = Vm::with_input(classifier_bc, Default::default(), l0_source.into());
+        vm1.run().unwrap();
+        let ir = classify_output_to_ir(&vm1.output, &vm1.output_raw);
+        let bc = compile_ir_v2(&ir).unwrap();
+        let mut vm2 = Vm::new(bc);
+        vm2.run().unwrap();
+        // 左结合: (2 + 3) * 4 = 20
+        assert_eq!(vm2.output, "20", "算术链左结合: (2+3)*4=20");
+    }
 }
