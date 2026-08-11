@@ -112,6 +112,11 @@ pub use entity_identity::{Fingerprint, Cooperativity, EntityMeta, register_entit
                          lookup_by_fingerprint, can_cooperate, judge, Registration,
                          THRESHOLD_SAME_ENTITY, THRESHOLD_FAMILY, THRESHOLD_WEAK};
 
+// ── five_dimensional · 囡囝共生五维语义运行时 ─────────────────────────
+pub mod five_dimensional;
+pub use five_dimensional::{couple_spawn, is_couple, rho_decay, angle,
+                         witness_triangle, can_merge, is_superposition, FULLNESS_MASK};
+
 // ── 对外 re-export ──
 
 // v0.4 基础层
