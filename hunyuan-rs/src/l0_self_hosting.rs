@@ -1333,4 +1333,104 @@ halt
         println!("while(false) output: '{}'", vm.output);
         assert!(!vm.output.contains("7"), "1<1 应为 false, 不应输出 7");
     }
+
+    /// 关键演示: L0 源码 "print 3 + 4" 经过完整 Ouroboros 管线后应输出 "7"
+    /// 这是 L0 自举编译器 v2 最小可工作的端到端证据:
+    ///   1. Rust "compile_l0" 编译 L0 分类器源码 (Rust 端寄生)
+    ///   2. VM 运行分类器, 对 L0 源码进行分类, 输出 IR token 字节流 (WRITERAW 通道)
+    ///   3. Rust "classify_output_to_ir" 解析字节流为 IR token
+    ///   4. Rust "compile_ir_v2" 把 IR 编译为可执行 Mccp bytecode
+    ///   5. VM 执行最终 bytecode → 输出 "7"
+    #[test]
+    fn test_ouroboros_arithmetic_end_to_end() {
+        let l0_source = "print 3 + 4";
+
+        // Step 1: 编译 L0 分类器 (Rust → L0 源码 → bytecode)
+        let classifier_bc = compile_l0(L0_CLASSIFIER_SRC).unwrap();
+
+        // Step 2: VM 运行分类器, 喂入 L0 源码文本
+        let mut vm1 = Vm::with_input(classifier_bc, Default::default(), l0_source.into());
+        vm1.run().expect("分类器应完整执行");
+        assert!(!vm1.output_raw.is_empty(), "分类器应产出 IR token 字节流");
+
+        // Step 3: 解码 IR
+        let ir = classify_output_to_ir(&vm1.output, &vm1.output_raw);
+        println!("IR tokens: {:?}", ir);
+        // 期望看到: T_PRINT, T_INT 3, OP_ADD, T_INT 4, ...
+        let has_print = ir.iter().any(|(t, _)| *t == T_PRINT);
+        let has_add = ir.iter().any(|(t, _)| *t == OP_ADD);
+        let has_3 = ir.iter().any(|(t, v)| *t == T_INT && *v == 3);
+        let has_4 = ir.iter().any(|(t, v)| *t == T_INT && *v == 4);
+        assert!(has_print, "应识别出 print 关键字, ir={:?}", ir);
+        assert!(has_add, "应识别出 + 运算符, ir={:?}", ir);
+        assert!(has_3, "应识别出整数 3, ir={:?}", ir);
+        assert!(has_4, "应识别出整数 4, ir={:?}", ir);
+
+        // Step 4: IR → Mccp bytecode
+        let bc = compile_ir_v2(&ir).expect("IR 应能被编译为 bytecode");
+
+        // Step 5: VM 执行最终 bytecode
+        let mut vm2 = Vm::new(bc);
+        vm2.run().expect("编译后的 bytecode 应完整执行");
+        println!("最终输出: '{}'", vm2.output);
+
+        // 断言算术正确: 3 + 4 = 7
+        assert_eq!(vm2.output, "7", "Ouroboros 管线 'print 3 + 4' 应输出 '7'");
+    }
+
+    /// 演示更复杂的算术: (10 - 3) 经过 Ouroboros 管线应输出 "7"
+    #[test]
+    fn test_ouroboros_subtract() {
+        let l0_source = "print 10 - 3";
+        let classifier_bc = compile_l0(L0_CLASSIFIER_SRC).unwrap();
+        let mut vm1 = Vm::with_input(classifier_bc, Default::default(), l0_source.into());
+        vm1.run().unwrap();
+        let ir = classify_output_to_ir(&vm1.output, &vm1.output_raw);
+        let bc = compile_ir_v2(&ir).unwrap();
+        let mut vm2 = Vm::new(bc);
+        vm2.run().unwrap();
+        assert_eq!(vm2.output, "7", "'print 10 - 3' 应输出 '7'");
+    }
+
+    /// 乘法: 6 * 7 → 42
+    #[test]
+    fn test_ouroboros_multiply() {
+        let l0_source = "print 6 * 7";
+        let classifier_bc = compile_l0(L0_CLASSIFIER_SRC).unwrap();
+        let mut vm1 = Vm::with_input(classifier_bc, Default::default(), l0_source.into());
+        vm1.run().unwrap();
+        let ir = classify_output_to_ir(&vm1.output, &vm1.output_raw);
+        let bc = compile_ir_v2(&ir).unwrap();
+        let mut vm2 = Vm::new(bc);
+        vm2.run().unwrap();
+        assert_eq!(vm2.output, "42", "'print 6 * 7' 应输出 '42'");
+    }
+
+    /// 复合算术链: 1 + 2 + 3 → 6 (左结合, (1+2)+3=6)
+    #[test]
+    fn test_ouroboros_arithmetic_chain() {
+        let l0_source = "print 1 + 2 + 3";
+        let classifier_bc = compile_l0(L0_CLASSIFIER_SRC).unwrap();
+        let mut vm1 = Vm::with_input(classifier_bc, Default::default(), l0_source.into());
+        vm1.run().unwrap();
+        let ir = classify_output_to_ir(&vm1.output, &vm1.output_raw);
+        let bc = compile_ir_v2(&ir).unwrap();
+        let mut vm2 = Vm::new(bc);
+        vm2.run().unwrap();
+        assert_eq!(vm2.output, "6", "'print 1 + 2 + 3' 应输出 '6'");
+    }
+
+    /// 回归: "print 42" 的直接 Ouroboros 端到端
+    #[test]
+    fn test_ouroboros_print_literal_42() {
+        let l0_source = "print 42";
+        let classifier_bc = compile_l0(L0_CLASSIFIER_SRC).unwrap();
+        let mut vm1 = Vm::with_input(classifier_bc, Default::default(), l0_source.into());
+        vm1.run().unwrap();
+        let ir = classify_output_to_ir(&vm1.output, &vm1.output_raw);
+        let bc = compile_ir_v2(&ir).unwrap();
+        let mut vm2 = Vm::new(bc);
+        vm2.run().unwrap();
+        assert_eq!(vm2.output, "42", "'print 42' 应输出 '42'");
+    }
 }
