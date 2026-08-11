@@ -910,8 +910,27 @@ impl<'a> Codegen<'a> {
             }
             T_VAR => {
                 let slot = self.peek_v();
-                self.advance();
-                self.emit(op_imm(OP_LOAD, slot as i16));
+                self.advance(); // consume T_VAR
+                if self.peek_t() == OP_EQ {
+                    // 赋值: slot = compile_expr
+                    self.advance(); // consume OP_EQ
+                    self.compile_expr();
+                    self.emit(op_imm(OP_STORE, slot as i16));
+                } else {
+                    // 变量引用: 作为表达式起点, 生成 LOAD + 可能的二元链
+                    self.emit(op_imm(OP_LOAD, slot as i16));
+                    loop {
+                        let t = self.peek_t();
+                        match t {
+                            OP_ADD | OP_SUB | OP_MUL | OP_DIV | OP_MOD | OP_LT | OP_GT | OP_EQ | OP_NE | OP_LE | OP_GE => {
+                                self.advance();
+                                self.compile_atom();
+                                self.emit(op(t));
+                            }
+                            _ => break,
+                        }
+                    }
+                }
             }
             OP_ADD | OP_SUB | OP_MUL | OP_DIV | OP_MOD | OP_LT | OP_GT | OP_EQ | OP_NE | OP_LE | OP_GE => {
                 self.advance();
@@ -1434,27 +1453,76 @@ halt
         assert_eq!(vm2.output, "42", "'print 42' 应输出 '42'");
     }
 
-    /// L0 自举第二阶段: 变量赋值 + 引用 — 在 compile_ir_v2 中支持 "T_VAR = expr" 赋值
-    /// IR 约定: T_INT value, T_VAR slot, T_ASSIGN (= "T_INT + T_VAR" → 赋值到 slot)
-    /// 简化实现: IR 序列 "T_VAR slot; T_INT x; T_ASSIGN" 表示 slot = x (pop x, store to slot)
-    /// 读取: T_VAR slot → LOAD slot; 打印: print → 调用 compile_expr 产生值
-    /// (注: IR_ASSIGN = 0xD0 是 v2 新增暂定)
+    /// L0 自举第二阶段完整: "a = 3\nprint a + 4" 经过整个 Ouroboros 管线应输出 "7"
+    /// 这是 L0 编译器第二里程碑: 变量赋值 (T_VAR slot + OP_EQ + compile_expr → STORE slot)
+    /// 和变量引用 (T_VAR slot → LOAD slot) 在端到端管线中协同工作.
     #[test]
-    fn test_codegen_v2_variable_assignment() {
-        // IR: a = 99; print a; halt
-        // (已经把赋值编译为: STORE slot)
-        // 因为 compile_ir_v2 当前不支持赋值语句,直接模拟赋值: 先把 slot0 写为 99,
-        // 再通过 IR token 读出来打印 (等价于变量已存在)
-        let ir = vec![
-            (T_PRINT, 0),
-            (T_VAR, 0),
-            (T_HALT, 0),
-            (T_EOF, 0),
-        ];
+    fn test_ouroboros_variable_assignment_e2e() {
+        let l0_source = "a = 3\nprint a + 4";
+        let classifier_bc = compile_l0(L0_CLASSIFIER_SRC).unwrap();
+        let mut vm1 = Vm::with_input(classifier_bc, Default::default(), l0_source.into());
+        vm1.run().unwrap();
+        let ir = classify_output_to_ir(&vm1.output, &vm1.output_raw);
+        println!("变量赋值 IR: {:?}", ir);
         let bc = compile_ir_v2(&ir).unwrap();
-        let mut vm = Vm::new(bc);
-        vm.memory[0] = 99;  // 预置 slot0 = 99
-        vm.run().unwrap();
-        assert_eq!(vm.output, "99", "PRINT 变量 a (slot0=99) 应输出 '99'");
+        let mut vm2 = Vm::new(bc);
+        vm2.run().unwrap();
+        assert_eq!(vm2.output, "7", "'a = 3; print a + 4' 应输出 '7'");
+    }
+
+    /// 双变量赋值链: "a = 5\nb = 10\nprint a + b" 应输出 "15"
+    #[test]
+    fn test_ouroboros_two_variables() {
+        let l0_source = "a = 5\nb = 10\nprint a + b";
+        let classifier_bc = compile_l0(L0_CLASSIFIER_SRC).unwrap();
+        let mut vm1 = Vm::with_input(classifier_bc, Default::default(), l0_source.into());
+        vm1.run().unwrap();
+        let ir = classify_output_to_ir(&vm1.output, &vm1.output_raw);
+        let bc = compile_ir_v2(&ir).unwrap();
+        let mut vm2 = Vm::new(bc);
+        vm2.run().unwrap();
+        assert_eq!(vm2.output, "15", "a=5; b=10; print a+b 应输出 '15'");
+    }
+
+    /// 变量用于减法: "a = 10\nprint a - 3" 应输出 "7"
+    #[test]
+    fn test_ouroboros_var_minus_literal() {
+        let l0_source = "a = 10\nprint a - 3";
+        let classifier_bc = compile_l0(L0_CLASSIFIER_SRC).unwrap();
+        let mut vm1 = Vm::with_input(classifier_bc, Default::default(), l0_source.into());
+        vm1.run().unwrap();
+        let ir = classify_output_to_ir(&vm1.output, &vm1.output_raw);
+        let bc = compile_ir_v2(&ir).unwrap();
+        let mut vm2 = Vm::new(bc);
+        vm2.run().unwrap();
+        assert_eq!(vm2.output, "7", "a=10; print a-3 应输出 '7'");
+    }
+
+    /// 变量赋值表达式含算术: "x = 2 + 3\nprint x" 应输出 "5"
+    #[test]
+    fn test_ouroboros_var_expr() {
+        let l0_source = "x = 2 + 3\nprint x";
+        let classifier_bc = compile_l0(L0_CLASSIFIER_SRC).unwrap();
+        let mut vm1 = Vm::with_input(classifier_bc, Default::default(), l0_source.into());
+        vm1.run().unwrap();
+        let ir = classify_output_to_ir(&vm1.output, &vm1.output_raw);
+        let bc = compile_ir_v2(&ir).unwrap();
+        let mut vm2 = Vm::new(bc);
+        vm2.run().unwrap();
+        assert_eq!(vm2.output, "5", "x=2+3; print x 应输出 '5'");
+    }
+
+    /// 多重赋值复用: "a = 7\nb = a + 3\nprint b" 应输出 "10"
+    #[test]
+    fn test_ouroboros_cascade_assignment() {
+        let l0_source = "a = 7\nb = a + 3\nprint b";
+        let classifier_bc = compile_l0(L0_CLASSIFIER_SRC).unwrap();
+        let mut vm1 = Vm::with_input(classifier_bc, Default::default(), l0_source.into());
+        vm1.run().unwrap();
+        let ir = classify_output_to_ir(&vm1.output, &vm1.output_raw);
+        let bc = compile_ir_v2(&ir).unwrap();
+        let mut vm2 = Vm::new(bc);
+        vm2.run().unwrap();
+        assert_eq!(vm2.output, "10", "a=7; b=a+3; print b 应输出 '10'");
     }
 }
