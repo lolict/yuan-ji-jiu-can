@@ -1,0 +1,14 @@
+# 囡囝共生 hunyuan-rs · Cargo 本地配置
+# 固化链接搜索路径,免去每次 export RUSTFLAGS
+#
+# 注意:路径为个人 workspace 绝对路径。
+# 若其他人 clone 进不同目录,需相应修改 "native=..." 部分,
+# 或临时用 RUSTFLAGS 环境变量覆盖。
+
+[target.x86_64-unknown-linux-gnu]
+rustflags = [
+    "-L", "native=/mnt/data/catpaw/home/.meituan-catpaw/desk_default_workspace/hunyuan-os/hunyuan-rs/lib",
+]
+
+[build]
+jobs = 4
