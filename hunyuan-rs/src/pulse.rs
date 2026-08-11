@@ -168,12 +168,39 @@ pub enum VelocityDanger {
 
 pub struct PulseBody {
     pub pos: Pos,                  // 当前位置 (米)
-    pub heart: Heartbeat,          // 心跳
-    pub phase: BreathPhase,        // 当前节律态
-    pub velocity: Velocity,        // 行走流速
+    heart: Heartbeat,              // 心跳
+    phase: BreathPhase,            // 当前节律态
+    velocity: Velocity,            // 行走流速
     phase_ticks: u64,              // 当前态持续 tick
     total_steps: u64,              // 总行走步数 (生命值/历史)
     beat_count: u64,               // 总心跳次数
+}
+
+// 自定义 Debug: 不暴露坐标 (防糠泄漏)
+impl std::fmt::Debug for PulseBody {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PulseBody")
+            .field("phase", &self.phase)
+            .field("danger", &self.velocity.in_danger())
+            .field("steps", &self.total_steps)
+            .field("beats", &self.beat_count)
+            .field("unpack", &self.pos.unpack())
+            .finish()
+    }
+}
+
+impl Clone for PulseBody {
+    fn clone(&self) -> Self {
+        PulseBody {
+            pos: Pos::origin(),  // 克隆时位置归零 (克隆体是新生,不是坐标复制)
+            heart: Heartbeat::new(),
+            phase: self.phase,
+            velocity: self.velocity,
+            phase_ticks: 0,
+            total_steps: 0,
+            beat_count: 0,
+        }
+    }
 }
 
 impl PulseBody {
