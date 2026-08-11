@@ -80,11 +80,14 @@ pub const OP_LOAD: u16 = 0x050;   // push memory[addr]
 pub const OP_STORE: u16 = 0x051;  // pop value, store to memory[addr]
 pub const OP_LDREG: u16 = 0x052;  // 加载 A 或 B 寄存器 (operand: 0=A, 1=B)
 pub const OP_STREG: u16 = 0x053;  // pop -> A 或 B
+pub const OP_LOAD_IND: u16 = 0x054;  // 间接寻址: pop addr, push memory[addr]
+pub const OP_STORE_IND: u16 = 0x055; // 间接寻址: pop value, pop addr, mem_write(addr, value)
 
 // I/O
 pub const OP_PRINT: u16 = 0x060;   // pop and print as number
-pub const OP_PRINTC: u16 = 0x061;  // pop and print as ASCII char
-pub const OP_SYSCALL: u16 = 0x062; // 调用宿主 syscall (operand = id)
+pub const OP_PRINTC: u16 = 0x061;  // pop and print as ASCII char (UTF-8 编码,值>127 膨胀为多字节)
+pub const OP_WRITERAW: u16 = 0x062; // 弹出栈顶 u8,写入 output_raw (无编码膨胀,一字节=一值)
+pub const OP_SYSCALL: u16 = 0x063; // 调用宿主 syscall (operand = id)
 
 // 调试
 pub const OP_DEBUG: u16 = 0x070;   // 打印 VM 状态快照
@@ -160,6 +163,7 @@ pub struct Vm {
     pub reg_b: i32,
     pub halted: bool,
     pub output: String,       // PRINT / PRINTC 累积输出
+    pub output_raw: Vec<u8>,  // WRITERAW 累积原始字节 (无 UTF-8 编码膨胀)
     pub input: String,        // 输入缓冲 (用于自编译读取源码)
     pub input_pos: usize,     // 输入游标
     pub steps: u64,           // 已执行的指令数
@@ -199,6 +203,7 @@ impl Vm {
             reg_b: 0,
             halted: false,
             output: String::new(),
+            output_raw: Vec::new(),
             input,
             input_pos: 0,
             steps: 0,
@@ -462,6 +467,19 @@ impl Vm {
                 let v = self.pop()?;
                 if imm & 1 == 0 { self.reg_a = v; } else { self.reg_b = v; }
             }
+            OP_LOAD_IND => {
+                // 间接寻址读: pop 栈顶作地址,把 memory[addr] 压栈
+                let addr = self.pop()? as usize;
+                let v = self.mem_read(addr as u16)?;
+                self.push(v)?;
+            }
+            OP_STORE_IND => {
+                // 间接寻址写: 栈顶 = addr,次栈顶 = value
+                // 语义: addr value STORE_IND  (Forth 风格)
+                let addr = self.pop()? as usize;
+                let value = self.pop()?;
+                self.mem_write(addr as u16, value)?;
+            }
 
             // I/O
             OP_PRINT => {
@@ -472,6 +490,10 @@ impl Vm {
                 let v = self.pop()?;
                 let c = (v as u8) as char;
                 self.output.push(c);
+            }
+            OP_WRITERAW => {
+                let v = self.pop()?;
+                self.output_raw.push(v as u8);
             }
             OP_SYSCALL => {
                 // syscall: (id=operand, a=meta_a, b=meta_b)
@@ -600,10 +622,13 @@ static ASM_TOKENS: &[(&str, u16)] = &[
     ("RET", OP_RET),
     ("LOAD", OP_LOAD),
     ("STORE", OP_STORE),
+    ("LOAD_IND", OP_LOAD_IND),
+    ("STORE_IND", OP_STORE_IND),
     ("LDREG", OP_LDREG),
     ("STREG", OP_STREG),
     ("PRINT", OP_PRINT),
     ("PRINTC", OP_PRINTC),
+    ("WRITERAW", OP_WRITERAW),
     ("SYSCALL", OP_SYSCALL),
     ("DEBUG", OP_DEBUG),
 ];
@@ -752,10 +777,13 @@ static ASM_NAMES: &[(u16, &str)] = &[
     (OP_RET, "RET"),
     (OP_LOAD, "LOAD"),
     (OP_STORE, "STORE"),
+    (OP_LOAD_IND, "LOAD_IND"),
+    (OP_STORE_IND, "STORE_IND"),
     (OP_LDREG, "LDREG"),
     (OP_STREG, "STREG"),
     (OP_PRINT, "PRINT"),
     (OP_PRINTC, "PRINTC"),
+    (OP_WRITERAW, "WRITERAW"),
     (OP_SYSCALL, "SYSCALL"),
     (OP_DEBUG, "DEBUG"),
 ];
@@ -1153,6 +1181,27 @@ mod tests {
         assert_eq!(vm.output, "Hi");
     }
 
+    #[test]
+    fn vm_writeraw_escapes_utf8_trap() {
+        // 核心测试: WRITERAW 输出 0xE0 (224),不经 UTF-8 编码膨胀
+        // 如果用 PRINTC: (224 as u8) as char → 编码为多字节字符 → output.len()>1
+        // 用 WRITERAW: 直接写入 1 字节 → output_raw.len()==1
+        let code = vec![
+            op_imm(OP_PUSH, 0xE0),
+            op(OP_WRITERAW),
+            op_imm(OP_PUSH, 0xFF),
+            op(OP_WRITERAW),
+            op_imm(OP_PUSH, 0x80),
+            op(OP_WRITERAW),
+            op(OP_HALT),
+        ];
+        let mut vm = Vm::new(code);
+        vm.run().unwrap();
+        assert_eq!(vm.output_raw, vec![0xE0, 0xFF, 0x80]);
+        // output (PRINT/PRINTC 通道) 应为空
+        assert_eq!(vm.output, "");
+    }
+
     // ── 内存操作 ──────────────────────────────────────────
 
     #[test]
@@ -1169,6 +1218,50 @@ mod tests {
         vm.run().unwrap();
         assert_eq!(vm.output, "99");
         assert_eq!(vm.memory[100], 99);
+    }
+
+    #[test]
+    fn vm_load_store_indirect() {
+        // 间接寻址:栈顶 = addr,次栈顶 = value
+        //  store 42 to mem[200] via STORE_IND, load back via LOAD_IND
+        //  push value(42), push addr(200), STORE_IND → mem[200] = 42
+        let code = vec![
+            op_imm(OP_PUSH, 42),     // value
+            op_imm(OP_PUSH, 200),    // addr (栈顶)
+            op(OP_STORE_IND),        // mem[200] = 42
+            op_imm(OP_PUSH, 200),
+            op(OP_LOAD_IND),         // push mem[200]
+            op(OP_PRINT),
+            op(OP_HALT),
+        ];
+        let mut vm = Vm::new(code);
+        vm.run().unwrap();
+        assert_eq!(vm.output, "42");
+        assert_eq!(vm.memory[200], 42);
+    }
+
+    #[test]
+    fn vm_load_store_indirect_dynamic_addr() {
+        // 地址由变量决定:addr=150间接写入 777,再读回
+        let dynamic_addr: i16 = 150;
+        let code = vec![
+            // addr_var = 150
+            op_imm(OP_PUSH, dynamic_addr),
+            op_imm(OP_STORE, 10),         // mem[10] = 150
+            // value = 777
+            op_imm(OP_PUSH, 777),         // value
+            op_imm(OP_LOAD, 10),          // push addr (mem[10]=150)
+            op(OP_STORE_IND),             // mem[150] = 777
+            // 读回
+            op_imm(OP_LOAD, 10),          // push 150
+            op(OP_LOAD_IND),              // push mem[150]
+            op(OP_PRINT),
+            op(OP_HALT),
+        ];
+        let mut vm = Vm::new(code);
+        vm.run().unwrap();
+        assert_eq!(vm.output, "777");
+        assert_eq!(vm.memory[150], 777);
     }
 
     #[test]

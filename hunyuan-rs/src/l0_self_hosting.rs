@@ -130,285 +130,525 @@ done:
 "#;
 
 /// 阶段 1.5: L0 分类器 (用 L0 写) — 读取字符, 打印分类结果
-/// 每个字符输出一个分类码:
-///   # = #t#e#x#t:
-///   D = digit (0-9)
+/// 每个字符输出一个分类码 (mark 走 PRINTC channel, 数值走 WRITERAW channel):
+///   I = integer (多位整数累积, 值在 output_raw 以 2 字节大端 i16)
 ///   L = lowercase (a-z, variable)
 ///   U = uppercase (A-Z, label)
 ///   O = operator (+ - * /)
 ///   N = newline (LF)
 ///   S = space
 ///   P = punctuation ( : ; ( ) = < > )
+///   K = keyword (关键字, +keyid)
 ///   ? = unknown
 pub const L0_CLASSIFIER_SRC: &str = r#"
 ; ═══════════════════════════════════════════════════════
-; L0 编译器 phase 1: 字符分类器 (用 L0 写成)
-; 逐字符读取 L0 源码, 输出分类标记到 output buffer
+; L0 编译器 phase 2c: 分类器直接发射 IR token 扁平字节流 (WRITERAW 通道)
 ; ═══════════════════════════════════════════════════════
 ;
-; 分类标记 (PRINTC 单字节):
-;   'D' = digit      (0-9)
-;   'L' = lowercase  (a-z,  变量/关键字)
-;   'U' = uppercase  (A-Z,   label)
-;   'O' = operator   (+ - * / % < >)
-;   'N' = newline    (LF)
-;   'S' = space
-;   'P' = punctuation( : ; ( ) =)
-;   '?' = unknown
+; 输出编码 (每 N 字节 = 1 IR token):
+;   0xE0(224) + hi + lo  → T_INT   (后跟 2 字节大端 i16 值)
+;   0xE1(225) + slot      → T_VAR   (后跟 1 字节槽地址 0-25)
+;   0xE2(226) + chr       → T_LABEL (后跟 1 字节字符码用作标签哈希)
+;   0xE3(227)             → T_NEWLINE
+;   0xEF(239)             → T_EOF (终止)
+;   0xF0(240)             → T_PRINT
+;   0xF1(241)             → T_PRINTC
+;   0xF2(242)             → T_IF
+;   0xF3(243)             → T_THEN
+;   0xF4(244)             → T_ELSE
+;   0xF5(245)             → T_END
+;   0xF6(246)             → T_WHILE
+;   0xF7(247)             → T_DO
+;   0xF8(248)             → T_JMP
+;   0xF9(249)             → T_JZ
+;   0xFA(250)             → T_JNZ
+;   0xFB(251)             → T_CALL
+;   0xFC(252)             → T_RET
+;   0xFD(253)             → T_INPUT
+;   0xFE(254)             → T_HALT
+;   运算符: 16='+', 17='-', 18='*', 19='/', 20='%',
+;           48='=', 50='<', 51='>'
 ;
-; 对于每个被分类的字符, 紧接着 PRINTC 原字符码。
-; Rust 侧读取每两个字节 (mark, char), 拼装出 IR token,
-; 包括识别多字符关键字(如 print, halt, if, while)。
+; 这步彻底消除 classify_output_to_ir 的 mark+char 翻译层:
+; L0 输出即是 IR token,WRITERAW 通道即是 IR 流.
+
+; 状态: wl=缓冲字母数; ba..bf=字母 ASCII 码缓冲
+;         nu=整数累加器; nf=整數累积中标记; ng=临时
+wl = 0
+ba = 0
+bb = 0
+bc = 0
+bd = 0
+be = 0
+bf = 0
+nu = 0
+nf = 0
+ng = 0
 
 loop:
   input c
+
   if c == -1 then
-    printc 80          ; 'P' = EOF 标记
-    printc 255         ; 终止字节
+    jmp flush
+  end
+
+  ; ═══ 整数累积: 加法链统治 nu = nu * 10 + digit ═══
+  if c >= 48 then
+    if c <= 57 then
+      if nf == 0 then
+        nf = 1
+        nu = c
+        nu = nu - 48
+        jmp loop
+      end
+      nu = nu * 10
+      nu = nu + c
+      nu = nu - 48
+      jmp loop
+    end
+  end
+
+  ; ═══ 数字序列终结: 冲刷整數 token (224 + h + l) ═══
+  if nf == 1 then
+    writeraw 224
+    ng = nu
+    ng = ng / 256
+    writeraw ng
+    ng = nu
+    ng = ng % 256
+    writeraw ng
+    nf = 0
+    nu = 0
+  end
+
+  ; 小写字母: 累积到缓冲
+  if c >= 97 then
+    if c <= 122 then
+      if wl == 0 then
+        ba = c
+        wl = 1
+        jmp loop
+      end
+      if wl == 1 then
+        bb = c
+        wl = 2
+        jmp loop
+      end
+      if wl == 2 then
+        bc = c
+        wl = 3
+        jmp loop
+      end
+      if wl == 3 then
+        bd = c
+        wl = 4
+        jmp loop
+      end
+      if wl == 4 then
+        be = c
+        wl = 5
+        jmp loop
+      end
+      if wl == 5 then
+        bf = c
+        wl = 6
+        jmp loop
+      end
+      jmp loop
+    end
+  end
+
+; --- flush 缓冲 ---
+flush:
+  ; EOF 或间隔冲刷: 整數先、字母后,终结于 EOF
+  if nf == 1 then
+    writeraw 224
+    ng = nu
+    ng = ng / 256
+    writeraw ng
+    ng = nu
+    ng = ng % 256
+    writeraw ng
+    nf = 0
+    nu = 0
+  end
+
+  if wl > 0 then
+    if wl == 1 then
+      ; 单字母变量: T_VAR + 槽
+      ng = ba
+      ng = ng - 97
+      writeraw 225
+      writeraw ng
+      jmp flush_done
+    end
+
+    ; wl >= 2: 关键字字符码序列匹配 → 发射 token 字节
+    ; 长度2: if(i=105,f=102), do(d=100,o=111), jz(j=106,z=122)
+    if wl == 2 then
+      if ba == 105 then
+        if bb == 102 then
+          writeraw 242
+          jmp flush_done
+        end
+      end
+      if ba == 100 then
+        if bb == 111 then
+          writeraw 247
+          jmp flush_done
+        end
+      end
+      if ba == 106 then
+        if bb == 122 then
+          writeraw 249
+          jmp flush_done
+        end
+      end
+    end
+
+    ; 长度3: end(e=101,n=110,d=100), ret(r=114,e=101,t=116),
+    ;        jmp(j=106,m=109,p=112), jnz(j=106,n=110,z=122)
+    if wl == 3 then
+      if ba == 101 then
+        if bb == 110 then
+          if bc == 100 then
+            writeraw 245
+            jmp flush_done
+          end
+        end
+      end
+      if ba == 114 then
+        if bb == 101 then
+          if bc == 116 then
+            writeraw 252
+            jmp flush_done
+          end
+        end
+      end
+      if ba == 106 then
+        if bb == 109 then
+          if bc == 112 then
+            writeraw 248
+            jmp flush_done
+          end
+        end
+        if bb == 110 then
+          if bc == 122 then
+            writeraw 250
+            jmp flush_done
+          end
+        end
+      end
+    end
+
+    ; 长度4: call(c=99, a=97, l=108, l=108),
+    ;        halt(h=104, a=97, l=108, t=116),
+    ;        then(t=116, h=104, e=101, n=110),
+    ;        else(e=101, l=108, s=115, e=101)
+    if wl == 4 then
+      if ba == 99 then
+        if bb == 97 then
+          if bc == 108 then
+            if bd == 108 then
+              writeraw 251
+              jmp flush_done
+            end
+          end
+        end
+      end
+      if ba == 104 then
+        if bb == 97 then
+          if bc == 108 then
+            if bd == 116 then
+              writeraw 254
+              jmp flush_done
+            end
+          end
+        end
+      end
+      if ba == 116 then
+        if bb == 104 then
+          if bc == 101 then
+            if bd == 110 then
+              writeraw 243
+              jmp flush_done
+            end
+          end
+        end
+      end
+      if ba == 101 then
+        if bb == 108 then
+          if bc == 115 then
+            if bd == 101 then
+              writeraw 244
+              jmp flush_done
+            end
+          end
+        end
+      end
+    end
+
+    ; 长度5: print(p=112,r=114,i=105,n=110,t=116),
+    ;        input(i=105,n=110,p=112,u=117,t=116),
+    ;        while(w=119,h=104,i=105,l=108,e=101)
+    if wl == 5 then
+      if ba == 112 then
+        if bb == 114 then
+          if bc == 105 then
+            if bd == 110 then
+              if be == 116 then
+                writeraw 240
+                jmp flush_done
+              end
+            end
+          end
+        end
+      end
+      if ba == 105 then
+        if bb == 110 then
+          if bc == 112 then
+            if bd == 117 then
+              if be == 116 then
+                writeraw 253
+                jmp flush_done
+              end
+            end
+          end
+        end
+      end
+      if ba == 119 then
+        if bb == 104 then
+          if bc == 105 then
+            if bd == 108 then
+              if be == 101 then
+                writeraw 246
+                jmp flush_done
+              end
+            end
+          end
+        end
+      end
+    end
+
+    ; 长度6: printc(p=112,r=114,i=105,n=110,t=116,c=99)
+    if wl == 6 then
+      if ba == 112 then
+        if bb == 114 then
+          if bc == 105 then
+            if bd == 110 then
+              if be == 116 then
+                if bf == 99 then
+                  writeraw 241
+                  jmp flush_done
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+
+    ; fallback: 非关键字多字 → 拆为多个 T_VAR token
+    ng = ba
+    ng = ng - 97
+    writeraw 225
+    writeraw ng
+    if wl >= 2 then
+      ng = bb
+      ng = ng - 97
+      writeraw 225
+      writeraw ng
+    end
+    if wl >= 3 then
+      ng = bc
+      ng = ng - 97
+      writeraw 225
+      writeraw ng
+    end
+    if wl >= 4 then
+      ng = bd
+      ng = ng - 97
+      writeraw 225
+      writeraw ng
+    end
+    if wl >= 5 then
+      ng = be
+      ng = ng - 97
+      writeraw 225
+      writeraw ng
+    end
+    if wl >= 6 then
+      ng = bf
+      ng = ng - 97
+      writeraw 225
+      writeraw ng
+    end
+
+flush_done:
+    wl = 0
+  end
+
+  ; --- EOF (input 时 c == -1 flush 后落回) ---
+  if c == -1 then
+    writeraw 239
     halt
   end
 
+  ; --- 非字母/非数字原样分类 (newline/运算符/标点) ---
   if c == 10 then
-    printc 78          ; 'N'
-    printc 10
+    writeraw 227
     jmp loop
   end
 
   if c == 32 then
-    printc 83          ; 'S'
-    printc 32
     jmp loop
   end
 
   if c == 9 then
-    printc 83
-    printc 9
     jmp loop
-  end
-
-  if c >= 48 then
-    if c <= 57 then
-      printc 68        ; 'D'
-      printc c
-      jmp loop
-    end
-  end
-
-  if c >= 97 then
-    if c <= 122 then
-      printc 76        ; 'L'
-      printc c
-      jmp loop
-    end
   end
 
   if c >= 65 then
     if c <= 90 then
-      printc 85        ; 'U'
-      printc c
+      writeraw 226
+      writeraw c
       jmp loop
     end
   end
 
   if c == 95 then
-    printc 85
-    printc c
+    writeraw 226
+    writeraw c
     jmp loop
   end
 
-  if c == 43 then      ; '+'
-    printc 79          ; 'O'
-    printc c
+  if c == 43 then
+    writeraw 16
     jmp loop
   end
-  if c == 45 then      ; '-'
-    printc 79
-    printc c
+  if c == 45 then
+    writeraw 17
     jmp loop
   end
-  if c == 42 then      ; '*'
-    printc 79
-    printc c
+  if c == 42 then
+    writeraw 18
     jmp loop
   end
-  if c == 47 then      ; '/'
-    printc 79
-    printc c
+  if c == 47 then
+    writeraw 19
     jmp loop
   end
-  if c == 37 then      ; '%'
-    printc 79
-    printc c
+  if c == 37 then
+    writeraw 20
     jmp loop
   end
-  if c == 60 then      ; '<'
-    printc 79
-    printc c
+  if c == 60 then
+    writeraw 50
     jmp loop
   end
-  if c == 62 then      ; '>'
-    printc 79
-    printc c
+  if c == 62 then
+    writeraw 51
+    jmp loop
+  end
+  if c == 61 then
+    writeraw 48
     jmp loop
   end
 
-  if c == 61 then      ; '='
-    printc 80          ; 'P'
-    printc c
+  ; 其余标点 (: ; ( )) 跳过
+  if c == 58 then
     jmp loop
   end
-  if c == 58 then      ; ':'
-    printc 80
-    printc c
-    jmp loop
-  end
-  if c == 59 then      ; ';' 注释 (消费到行尾)
+  if c == 59 then
     comment_skip:
     input cc
     if cc == -1 then
-      printc 80
-      printc 255
+      writeraw 239
       halt
     end
     if cc == 10 then
-      printc 78
-      printc 10
+      writeraw 227
       jmp loop
     end
     jmp comment_skip
   end
-  if c == 40 then      ; '('
-    printc 80
-    printc c
+  if c == 40 then
     jmp loop
   end
-  if c == 41 then      ; ')'
-    printc 80
-    printc c
+  if c == 41 then
     jmp loop
   end
 
-  printc 63            ; '?'
-  printc c
   jmp loop
 "#;
 
 /// L0 已具备完整编译器所需的语义: 赋值、算术、比较、控制流、I/O。
 // ────────────────────────────────────────────────────────────
-// Rust 端: L0 分类器输出 → IR token (v1 协议: mark+char)
+// Rust 端: L0 分类器输出 → IR token (v2 协议: writeraw 扁平字节流)
 // ────────────────────────────────────────────────────────────
 
-/// 把 L0 分类器的输出 (mark+char 编码) 转换为 IR token 流
-///
-/// 编码: 每两个字节 = (mark, char)
-///   mark=D  + char='0'..'9'    → T_INT (数字转为 i32)
-///   mark=L  + char='a'..'z'    → T_VAR (槽地址 = char - 'a')
-///   mark=U  + char='A'..'Z'    → T_LABEL
-///   mark=O  + char=操作符      → 对应 opcode
-///   mark=N  + char=10          → T_NEWLINE
-///   mark=P  + char=0xFF        → T_EOF (终止)
-pub fn classify_output_to_ir(classify_output: &str) -> Vec<(TokType, TokVal)> {
-    // 阶段 1: 读取 (mark, char) 对
-    let bytes = classify_output.as_bytes();
-    let mut chars: Vec<(u8, i32)> = Vec::new();
-    let mut i = 0;
-    while i + 1 < bytes.len() {
-        let mark = bytes[i];
-        let ch = bytes[i + 1] as i32;
-        if mark == b'P' && ch == 255 {
-            chars.push((b'P', -1)); // EOF
-            break;
-        }
-        chars.push((mark, ch));
-        i += 2;
-    }
-
-    // 阶段 2: 组装 IR token — 识别多字符序列
+/// 把 L0 分类器通过 WRITERAW 输出到 output_raw 的 IR token 扁平字节流解码为 IR token 数组.
+/// L0 分类器源码 (L0_CLASSIFIER_SRC) 描述具体编码规则.
+/// 第一个参数 _classify_output (PRINTC 通道输出) 在 Phase2c 不再需要,忽略.
+pub fn classify_output_to_ir(_classify_output: &str, output_raw: &[u8]) -> Vec<(TokType, TokVal)> {
+    // Phase 2c: L0 classifier 直接通过 WRITERAW 发射 IR token 扁平字节流.
+    // classify_output (PRINTC 通道) 不再使用.
+    // 编码见 L0_CLASSIFIER_SRC 头部注释.
     let mut ir: Vec<(TokType, TokVal)> = Vec::new();
-    let mut n = 0;
-
-    while n < chars.len() {
-        let (mark, ch) = chars[n];
-
-        match mark {
-            b'P' if ch == -1 => {
-                ir.push((T_EOF, 0));
-                break;
-            }
-            b'S' => { n += 1; continue; } // skip space
-            b'N' => { ir.push((T_NEWLINE, 0)); n += 1; }
-
-            b'O' => {
-                let opcode = match ch {
-                    43 => OP_ADD,
-                    45 => OP_SUB,
-                    42 => OP_MUL,
-                    47 => OP_DIV,
-                    37 => OP_MOD,
-                    60 => OP_LT,
-                    62 => OP_GT,
-                    61 => OP_EQ,
-                    _ => 0,
-                };
-                if opcode != 0 { ir.push((opcode, 0)); }
-                n += 1;
-            }
-
-            b'P' => { n += 1; } // punctuation: skip for now (simplified)
-
-            b'U' => { ir.push((T_LABEL, ch)); n += 1; }
-
-            b'D' => {
-                // 读连续的数字字符组成整数
-                let mut val = (ch - 48) as i32;
-                n += 1;
-                // 向前看更多数字 (mark=D 的字符)
-                while n < chars.len() && chars[n].0 == b'D' {
-                    val = val * 10 + (chars[n].1 - 48) as i32;
-                    n += 1;
+    let mut i = 0usize;
+    while i < output_raw.len() {
+        let t = output_raw[i];
+        i += 1;
+        match t {
+            224 => { // T_INT + 2 字节大端 i16
+                let mut val = 0i32;
+                if i + 1 < output_raw.len() {
+                    val = (output_raw[i] as i32) * 256 + (output_raw[i + 1] as i32);
+                    i += 2;
                 }
                 ir.push((T_INT, val));
             }
-
-            b'L' => {
-                // 小写 = 变量 或 关键字
-                // 向前看: 收集连续 L chars 组成字符序列
-                let mut word = String::new();
-                word.push(ch as u8 as char);
-                n += 1;
-                while n < chars.len() && chars[n].0 == b'L' {
-                    word.push(chars[n].1 as u8 as char);
-                    n += 1;
-                }
-                match word.as_str() {
-                    "print" => ir.push((T_PRINT, 0)),
-                    "printc" => ir.push((T_PRINTC, 0)),
-                    "halt" => ir.push((T_HALT, 0)), // halt as pseudo-keyword
-                    "if" => ir.push((T_IF, 0)),
-                    "then" => ir.push((T_THEN, 0)),
-                    "else" => ir.push((T_ELSE, 0)),
-                    "end" => ir.push((T_END, 0)),
-                    "while" => ir.push((T_WHILE, 0)),
-                    "do" => ir.push((T_DO, 0)),
-                    "jmp" => ir.push((T_JMP, 0)),
-                    "jz" => ir.push((T_JZ, 0)),
-                    "jnz" => ir.push((T_JNZ, 0)),
-                    "call" => ir.push((T_CALL, 0)),
-                    "ret" => ir.push((T_RET, 0)),
-                    "input" => ir.push((T_INPUT, 0)),
-                    s if s.len() == 1 => {
-                        // 单字符变量
-                        let slot = (s.as_bytes()[0] - 97) as i32;
-                        ir.push((T_VAR, slot));
-                    }
-                    _ => {
-                        // 其他标识符 (label ref?)
-                        ir.push((T_LABEL, ch));
-                    }
-                }
+            225 => { // T_VAR + 1 字节槽
+                let slot = if i < output_raw.len() { output_raw[i] as i32 } else { 0 };
+                i += 1;
+                ir.push((T_VAR, slot));
             }
+            226 => { // T_LABEL + 1 字节字符码
+                let ch = if i < output_raw.len() { output_raw[i] as i32 } else { 0 };
+                i += 1;
+                ir.push((T_LABEL, ch));
+            }
+            227 => ir.push((T_NEWLINE, 0)),
+            239 => { ir.push((T_EOF, 0)); break; }
 
-            _ => { n += 1; }
+            // 运算符
+            16 => ir.push((OP_ADD, 0)),
+            17 => ir.push((OP_SUB, 0)),
+            18 => ir.push((OP_MUL, 0)),
+            19 => ir.push((OP_DIV, 0)),
+            20 => ir.push((OP_MOD, 0)),
+            48 => ir.push((OP_EQ, 0)),
+            50 => ir.push((OP_LT, 0)),
+            51 => ir.push((OP_GT, 0)),
+
+            // 关键字 (>= 240)
+            240 => ir.push((T_PRINT, 0)),
+            241 => ir.push((T_PRINTC, 0)),
+            242 => ir.push((T_IF, 0)),
+            243 => ir.push((T_THEN, 0)),
+            244 => ir.push((T_ELSE, 0)),
+            245 => ir.push((T_END, 0)),
+            246 => ir.push((T_WHILE, 0)),
+            247 => ir.push((T_DO, 0)),
+            248 => ir.push((T_JMP, 0)),
+            249 => ir.push((T_JZ, 0)),
+            250 => ir.push((T_JNZ, 0)),
+            251 => ir.push((T_CALL, 0)),
+            252 => ir.push((T_RET, 0)),
+            253 => ir.push((T_INPUT, 0)),
+            254 => ir.push((T_HALT, 0)),
+
+            _ => {} // 未知字节 — 跳过
         }
     }
     ir
@@ -792,22 +1032,25 @@ mod tests {
     use super::*;
     use crate::l0_compiler::compile_l0;
 
-    /// 阶段 1: L0 分类器读取 L0 源码, 输出分类标记
+    /// 阶段 1: L0 分类器读取 L0 源码, 通过 WRITERAW 输出 IR token 字节流
     #[test]
     fn test_l0_classifier_output() {
-        // 用 compile_l0 编译 L0 分类器
         let code = compile_l0(L0_CLASSIFIER_SRC).expect("L0 classifier should compile");
-        // 运行分类器, 输入 = 一段 L0 源码
         let input = "print 42";
         let mut vm = Vm::with_input(code, Default::default(), input.into());
         vm.run().expect("classifier should run");
 
-        // 验证输出不为空
-        println!("L0 classifier output: {:?}", vm.output);
-        println!("L0 classifier output bytes: {:?}", vm.output.as_bytes());
+        // Phase2c: token 走 output_raw (WRITERAW),PRINTC output 为空
+        println!("L0 classifier output_raw: {:?}", vm.output_raw);
+        assert!(!vm.output_raw.is_empty(), "分类器应产生 IR token 字节流, 实际: {:?}", vm.output_raw);
 
-        // 输出的每个字符都是 "分类标记+字符" 对
-        assert!(!vm.output.is_empty());
+        let ir = classify_output_to_ir(&vm.output, &vm.output_raw);
+        println!("L0 classifier IR: {:?}", ir);
+        assert!(!ir.is_empty(), "IR 不应为空");
+        let has_print_kw = ir.iter().any(|(t, _)| *t == T_PRINT);
+        let has_int = ir.iter().any(|(t, _)| *t == T_INT);
+        assert!(has_print_kw, "应识别出 print 关键字 token, 实际 IR: {:?}", ir);
+        assert!(has_int, "应识别出 integer token, 实际 IR: {:?}", ir);
     }
 
     /// 阶段 2: L0 分类器输出 → IR → Mccp bytecode
@@ -820,7 +1063,7 @@ mod tests {
         vm.run().unwrap();
 
         // 步骤 2: 从 output 提取 IR
-        let ir = classify_output_to_ir(&vm.output);
+        let ir = classify_output_to_ir(&vm.output, &vm.output_raw);
         println!("IR tokens: {:?}", ir);
 
         // 步骤 3: IR → bytecode
@@ -850,7 +1093,7 @@ mod tests {
         vm1.run().unwrap();
 
         // 步骤 3: 提取 IR
-        let ir = classify_output_to_ir(&vm1.output);
+        let ir = classify_output_to_ir(&vm1.output, &vm1.output_raw);
 
         // 步骤 4: IR → Mccp bytecode
         let bc = ir_compile_to_bytecode(&ir).unwrap();
@@ -915,7 +1158,7 @@ mod tests {
         vm1.run().unwrap();
         println!("classifier output: {:?}", vm1.output);
 
-        let ir = classify_output_to_ir(&vm1.output);
+        let ir = classify_output_to_ir(&vm1.output, &vm1.output_raw);
         println!("IR: {:?}", ir);
 
         let bc = compile_ir_v2(&ir).unwrap();
@@ -925,6 +1168,33 @@ mod tests {
         vm2.run().unwrap();
         println!("final output: '{}'", vm2.output);
         assert!(vm2.output.contains("100"), "应 print 100, 实际: '{}'", vm2.output);
+    }
+
+    /// Phase 2c 回归: L0 分类器 writeraw 关键字 token 直接发射
+    #[test]
+    fn test_l0_keyword_poly_identifiers() {
+        let code = compile_l0(L0_CLASSIFIER_SRC).unwrap();
+
+        // 格式: (源文本, 期望的 T_* token 常量)
+        let cases: &[&[(&str, TokType)]] = &[
+            &[("if", T_IF), ("do", T_DO), ("jz", T_JZ)],                    // len=2
+            &[("end", T_END), ("ret", T_RET), ("jmp", T_JMP), ("jnz", T_JNZ)], // len=3
+            &[("call", T_CALL), ("halt", T_HALT), ("then", T_THEN), ("else", T_ELSE)], // len=4
+            &[("print", T_PRINT), ("while", T_WHILE), ("input", T_INPUT)],    // len=5
+            &[("printc", T_PRINTC)],                                          // len=6
+        ];
+
+        for group in cases {
+            for &(src, expected_tok) in *group {
+                let mut vm = Vm::with_input(code.clone(), Default::default(), src.into());
+                vm.run().unwrap();
+                let ir = classify_output_to_ir(&vm.output, &vm.output_raw);
+
+                let has_kw = ir.iter().any(|(t, _)| *t == expected_tok);
+                assert!(has_kw, "输入 '{}' 应识别为 {:?} token, 实际 IR: {:?}",
+                    src, expected_tok, ir);
+            }
+        }
     }
 
     /// 关键自测: Rust compile_l0 能编译 L0 分类器源码自身 (L0 classifier self-compile)
@@ -942,13 +1212,14 @@ mod tests {
         vm.run().unwrap();
         println!("Classifier output for 'print 42': {:?}", vm.output);
 
-        // 分类器应输出 (mark, char) 对: p,r,i,n,t, ,4,2
-        assert!(!vm.output.is_empty(), "分类器应产生输出");
-        // 检查是否包含 'L' (lowercase letter) 和 'D' (digit) 标记
-        let has_lowercase = vm.output.bytes().any(|b| b == b'L');
-        let has_digit = vm.output.bytes().any(|b| b == b'D');
-        assert!(has_lowercase, "应识别出 lowercase 字母");
-        assert!(has_digit, "应识别出 digit");
+        // Phase2c: 分类器走 WRITERAW (output_raw),PRINTC output 为空
+        assert!(!vm.output_raw.is_empty(), "分类器应产生 IR token 字节流");
+        let ir = classify_output_to_ir(&vm.output, &vm.output_raw);
+        println!("IR for 'print 42': {:?}", ir);
+        let has_print_kw = ir.iter().any(|(t, _)| *t == T_PRINT);
+        let has_int = ir.iter().any(|(t, v)| *t == T_INT && v == &42);
+        assert!(has_print_kw, "应识别出 print 关键字 token, 实际 IR: {:?}", ir);
+        assert!(has_int, "应识别出整数值 42, 实际 IR: {:?}", ir);
     }
 
     /// Ouroboros 终极验证: L0 分类器编译后处理自身源码
@@ -959,21 +1230,19 @@ mod tests {
         // 把分类器源码自身作为输入
         let mut vm = Vm::with_input(classifier_bytecode, Default::default(), L0_CLASSIFIER_SRC.into());
         vm.run().unwrap();
-        assert!(!vm.output.is_empty(), "分类器处理自身源码应产生输出");
+        assert!(!vm.output_raw.is_empty(), "分类器处理自身源码应产生 output_raw IR 字节流");
 
         // 解码输出为 IR
-        let ir = classify_output_to_ir(&vm.output);
+        let ir = classify_output_to_ir(&vm.output, &vm.output_raw);
         println!("L0 classifier processing itself, IR tokens: {}", ir.len());
 
-        // IR 应包含 halt/then/end 等关键字 token (分类器源码用 printc/halt/then)
+        // IR 应包含 halt/then/end 关键字 token (分类器源码正文中直接出现)
         let has_halt_kw = ir.iter().any(|(t, _)| *t == T_HALT);
         let has_then_kw = ir.iter().any(|(t, _)| *t == T_THEN);
         let has_end_kw = ir.iter().any(|(t, _)| *t == T_END);
-        let has_printc_kw = ir.iter().any(|(t, _)| *t == T_PRINTC);
-        assert!(has_halt_kw, "分类器源码含 halt, IR 应能识别");
-        assert!(has_then_kw, "分类器源码含 then, IR 应能识别");
-        assert!(has_end_kw, "分类器源码含 end, IR 应能识别");
-        assert!(has_printc_kw, "分类器源码含 printc, IR 应能识别");
+        assert!(has_halt_kw, "分类器源码含 halt, IR 应能识别, 实际: {:?}", ir.iter().filter(|(t,_)| *t==T_HALT).count());
+        assert!(has_then_kw, "分类器源码含 then, IR 应能识别, 实际: {:?}", ir.iter().filter(|(t,_)| *t==T_THEN).count());
+        assert!(has_end_kw, "分类器源码含 end, IR 应能识别, 实际: {:?}", ir.iter().filter(|(t,_)| *t==T_END).count());
 
         // 将 IR 编译为可执行 bytecode 并运行 (不崩溃即证明 IR 结构合法)
         let result = compile_ir_v2(&ir);

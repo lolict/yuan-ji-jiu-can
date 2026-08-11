@@ -35,7 +35,8 @@ use crate::mccp_vm::{
     OP_AND, OP_OR, OP_XOR, OP_NOT, OP_SHL, OP_SHR,
     OP_EQ, OP_NE, OP_LT, OP_GT, OP_LE, OP_GE,
     OP_PUSH, OP_POP, OP_JMP, OP_JZ, OP_JNZ, OP_CALL, OP_RET,
-    OP_LOAD, OP_STORE, OP_PRINT, OP_PRINTC, OP_SYSCALL, OP_HALT,
+    OP_LOAD, OP_STORE, OP_LOAD_IND, OP_STORE_IND,
+    OP_PRINT, OP_PRINTC, OP_WRITERAW, OP_SYSCALL, OP_HALT,
 };
 
 // ────────────────────────────────────────────────────────────
@@ -76,8 +77,11 @@ enum Tok {
     If, Then, Else, End,
     While, Do,
     Print, Printc,
+    WriteRaw,         // 写原始字节到 output_raw (逃逸 UTF-8 膨胀)
     Jmp, Jz, JzN, Call, Ret, Halt,
     Input,           // 读一个字符
+    Peek,            // 间接寻址读: peek var → var = memory[var_value]
+Poke,            // 间接寻址写: poke addr_var val_var → memory[addr] = val
     Semicolon,
     Newline,
     Eof,
@@ -172,7 +176,10 @@ impl Lexer {
                     let tok = match upper.as_str() {
                         "PRINT" => Tok::Print,
                         "PRINTC" => Tok::Printc,
+                        "WRITERAW" => Tok::WriteRaw,
                         "INPUT" => Tok::Input,
+                        "PEEK" => Tok::Peek,
+                        "POKE" => Tok::Poke,
                         "HALT" => Tok::Halt,
                         "IF" => Tok::If,
                         "THEN" => Tok::Then,
@@ -213,7 +220,10 @@ impl Lexer {
                         "DO" => Tok::Do,
                         "PRINT" => Tok::Print,
                         "PRINTC" => Tok::Printc,
+                        "WRITERAW" => Tok::WriteRaw,
                         "INPUT" => Tok::Input,
+                        "PEEK" => Tok::Peek,
+                        "POKE" => Tok::Poke,
                         "HALT" => Tok::Halt,
                         "JMP" => Tok::Jmp,
                         "JZ" => Tok::Jz,
@@ -292,16 +302,20 @@ enum Stmt {
     Assign(String, Expr),
     If(Expr, Vec<Stmt>, Vec<Stmt>),    // if cond then-body else-body
     While(Expr, Vec<Stmt>),
+    Nop,
     Print(Expr),
     PrintC(Expr),
+    WriteRaw(Expr),                   // writeraw expr - 写原始字节到 output_raw
     Input(String),                    // input var - 从输入缓冲读一个字符到变量
+    Peek(String),                     // peek var → var = memory[var_value]
+Poke(String, String),              // poke addr_var val_var → memory[addr] = val
     Label(String),
     Jmp(String),
     Jz(String, Expr),
     Jnz(String, Expr),
     Call(String),
     Ret,
-    Nop, Halt,
+    Halt,
 }
 
 // ────────────────────────────────────────────────────────────
@@ -411,10 +425,35 @@ impl Parser {
                 let expr = self.parse_expr()?;
                 Ok(Stmt::PrintC(expr))
             }
+            Tok::WriteRaw => {
+                self.advance();
+                let expr = self.parse_expr()?;
+                Ok(Stmt::WriteRaw(expr))
+            }
             Tok::Input => {
                 self.advance();
                 let var = self.parse_input_var()?;
                 Ok(Stmt::Input(var))
+            }
+            Tok::Peek => {
+                // peek var → var = memory[var_value]
+                self.advance();
+                let var = self.parse_input_var()?;
+                Ok(Stmt::Peek(var))
+            }
+            Tok::Poke => {
+                // poke addr_var val_var → memory[addr] = val
+                let line = self.peek_line();
+                self.advance();
+                let addr_var = self.parse_input_var()?;
+                let val_var = self.parse_input_var()?;
+                if addr_var.len() != 1 || val_var.len() != 1 {
+                    return Err(CompileError::ParseError(
+                        format!("POKE 要求单字符变量 (got {}, {})", addr_var, val_var),
+                        line,
+                    ));
+                }
+                Ok(Stmt::Poke(addr_var, val_var))
             }
             Tok::Jmp => {
                 let line = self.peek_line();
@@ -550,6 +589,7 @@ impl Parser {
             Tok::If => { self.advance(); Ok("if".into()) }
             Tok::Print => { self.advance(); Ok("print".into()) }
             Tok::Printc => { self.advance(); Ok("printc".into()) }
+            Tok::WriteRaw => { self.advance(); Ok("writeraw".into()) }
             Tok::Ret => { self.advance(); Ok("ret".into()) }
             Tok::Jmp => { self.advance(); Ok("jmp".into()) }
             Tok::Jz => { self.advance(); Ok("jz".into()) }
@@ -697,6 +737,32 @@ impl CodeGen {
         self.emit(op_imm(opcode, imm));
     }
 
+    /// 推送任意 i32 常数到栈。若超出 i16 范围,拆分为
+    ///   PUSH(hi_adj) PUSH(16) SHL PUSH(lo_signed) ADD
+    /// 其中 hi_adj = n>>16 (+1 若 lo 半字为负),lo_signed = 低 16 位有符号解释。
+    /// 适用于 i16::MAX+1 .. 0x7FFF_7FFF(约 21 亿)范围内的正数及对应的负数。
+    fn emit_push_i32(&mut self, n: i32) {
+        const I16_MIN: i32 = i16::MIN as i32;
+        const I16_MAX: i32 = i16::MAX as i32;
+        if n >= I16_MIN && n <= I16_MAX {
+            self.emit_imm(OP_PUSH, n as i16);
+            return;
+        }
+        let hi_raw = n >> 16;
+        let lo_unsigned = (n as u32) & 0xFFFF;
+        let lo_signed = lo_unsigned as i16;
+        let hi_adj = if lo_signed < 0 {
+            hi_raw.wrapping_add(1)
+        } else {
+            hi_raw
+        };
+        self.emit_imm(OP_PUSH, hi_adj as i16);
+        self.emit_imm(OP_PUSH, 16);
+        self.emit_op(OP_SHL);
+        self.emit_imm(OP_PUSH, lo_signed);
+        self.emit_op(OP_ADD);
+    }
+
     fn define_label(&mut self, name: &str) -> Result<(), CompileError> {
         if self.labels.contains_key(name) {
             return Err(CompileError::DupLabel(name.to_string()));
@@ -734,7 +800,7 @@ impl CodeGen {
 
     fn gen_expr(&mut self, e: &Expr) -> Result<(), CompileError> {
         match e {
-            Expr::Int(n) => self.emit_imm(OP_PUSH, *n as i16),
+            Expr::Int(n) => self.emit_push_i32(*n),
             Expr::Var(name) => {
                 let addr = self.var_addr(name);
                 self.emit_imm(OP_LOAD, addr as i16);
@@ -797,6 +863,25 @@ impl CodeGen {
                 self.emit_op(OP_RET);
                 Ok(())
             }
+            Stmt::Peek(addr_var) => {
+                // peek x → x = memory[x]
+                // 汇编: LOAD x, LOAD_IND, STORE x
+                let slot = self.var_addr(addr_var);
+                self.emit_imm(OP_LOAD, slot as i16);
+                self.emit_op(OP_LOAD_IND);
+                self.emit_imm(OP_STORE, slot as i16);
+                Ok(())
+            }
+            Stmt::Poke(addr_var, val_var) => {
+                // poke A B → memory[A] = B
+                // 汇编: LOAD B, LOAD A, STORE_IND (addr value STORE_IND)
+                let a_slot = self.var_addr(addr_var);
+                let v_slot = self.var_addr(val_var);
+                self.emit_imm(OP_LOAD, v_slot as i16);
+                self.emit_imm(OP_LOAD, a_slot as i16);
+                self.emit_op(OP_STORE_IND);
+                Ok(())
+            }
             Stmt::Halt => {
                 self.emit_op(OP_HALT);
                 Ok(())
@@ -815,6 +900,11 @@ impl CodeGen {
             Stmt::PrintC(expr) => {
                 self.gen_expr(expr)?;
                 self.emit_op(OP_PRINTC);
+                Ok(())
+            }
+            Stmt::WriteRaw(expr) => {
+                self.gen_expr(expr)?;
+                self.emit_op(OP_WRITERAW);
                 Ok(())
             }
             Stmt::Input(name) => {
@@ -1386,6 +1476,37 @@ done:"#;
     }
 
     #[test]
+    fn l0_large_i32_constant() {
+        // 验证 emit_push_i32 把 >i16::MAX 的常数拆分为 hi:16,lo:16
+        // 然后用 PUSH(hi) PUSH(16) SHL PUSH(lo) ADD 装箱回 i32。
+        // 注:L0 的 ; 是注释,语句必须用 \n 分隔。
+
+        // 40000 = 0x0000_9C40
+        let (out, _) = run_l0("n = 40000\nprint n").unwrap();
+        assert_eq!(out, "40000");
+
+        // 100_000 = 0x0001_86A0(hi_adj=2,lo_signed=-31072,SHL+ADD 重组)
+        let (out, _) = run_l0("n = 100000\nprint n").unwrap();
+        assert_eq!(out, "100000");
+
+        // 32768 = 0x0000_8000(刚好超出 i16::MAX 一字节,hi=0,lo 溢出为负)
+        let (out, _) = run_l0("n = 32768\nprint n").unwrap();
+        assert_eq!(out, "32768");
+
+        // 32767 = 0x0000_7FFF(i16::MAX 仍走 fast path)
+        let (out, _) = run_l0("n = 32767\nprint n").unwrap();
+        assert_eq!(out, "32767");
+
+        // 0x0001_0000 = 65536(边界,hi=1,lo=0)
+        let (out, _) = run_l0("n = 65536\nprint n").unwrap();
+        assert_eq!(out, "65536");
+
+        // 2_000_000 = 0x001E_8480(hi>0,lo>0)
+        let (out, _) = run_l0("n = 2000000\nprint n").unwrap();
+        assert_eq!(out, "2000000");
+    }
+
+    #[test]
     fn l0_lexer_two_keywords_dispatcher() {
         // 调度器: 根据首字符分发到不同的关键字识别
         // 'p' → 尝试 print, 'i' → 尝试 if/input
@@ -1447,5 +1568,54 @@ done:"#;
         // 不认识的关键字
         let (out, _) = run_l0_with_input(dispatcher, "xy").unwrap();
         assert_eq!(out, "0");
+    }
+
+    /// peek/poke 间接寻址 — 通过 compile_l0 跑通整条管线
+    #[test]
+    fn l0_peek_compiles_and_runs() {
+        // slot 分配按遇到顺序:a=slot0, b=slot1
+        // a=99 → mem[0]=99; b=0 → mem[1]=0 (用作 addr 指向 slot a)
+        // peek b: LOAD b(slot1)=0, LOAD_IND addr=0 → push mem[0]=99, STORE slot1 → slot1=99
+        let src = r#"
+a = 99
+b = 0
+peek b
+print b
+"#;
+        let code = compile_l0(src).unwrap();
+        assert!(code.len() > 4, "bytecode 应含 LOAD_IND 指令");
+        let mut vm = Vm::new(code);
+        vm.run().unwrap();
+        assert_eq!(vm.output, "99", "peek 应间接读回 99,实际 output='{}'", vm.output);
+    }
+
+    #[test]
+    fn l0_poke_compiles_and_runs() {
+        // 验证 WRITE + READ 往返:先把值写入某 slot,再通过另一 slot 读出来
+        // 变量分配按遇到顺序:
+        //   x = 99    → slot0 = 99
+        //   y = 0     → slot1 = 0 (用 y 作为 addr 变量)
+        //   z = 42    → slot2 = 42 (欲写入的 value)
+        //   poke y, z → STORE_IND:pop addr = y_val = 0 (指向 x's slot0), pop val = z_val = 42 → mem[0] = 42
+        //   peek y    → y_val = 0, LOAD_IND addr = 0 → mem[0] = 42, STORE slot1 → slot1 = 42
+        //   再加 print y → 输出 42
+        let src = r#"
+x = 99
+y = 0
+z = 42
+poke y z
+peek y
+print y
+"#;
+        // 按遇到顺序: x=slot0, y=slot1, z=slot2
+        // poke y,z → addr_val = slot1 = 0 → addr = 0 (读 slot0)
+        //           → val_val = slot2 = 42
+        //           → STORE_IND:mem[0] = 42 (覆盖 x)
+        // peek y → slot1 = 0, LOAD_IND mem[0] = 42, STORE slot1 = 42
+        // print y → 输出 42
+        let code = compile_l0(src).unwrap();
+        let mut vm = Vm::new(code);
+        vm.run().unwrap();
+        assert_eq!(vm.output, "42", "poke 应写入 42,peek 应回读 42,实际 output='{}'", vm.output);
     }
 }

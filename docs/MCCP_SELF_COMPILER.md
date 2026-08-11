@@ -1,8 +1,10 @@
-# MCCP 自举编译器 v1 设计文档
+# MCCP 自举编译器 v2 设计文档
 
 > 囡囝共生 (囡囝共生元) · MCCP (Machine Code Couple Protocol) 自举编译器
 > 
-> 日期: 2026-08-03 · 状态: ✅ 实现完成并通过 32 项测试
+> 日期: 2026-08-11 · 状态: v2 Phase 2c 完成 (439/439 测试通过)
+>
+> 关系代数协议栈见 `docs/RELATION_ALGEBRA.md`
 
 ---
 
@@ -19,10 +21,33 @@ L0 源码 → [Lexer → Parser → CodeGen] → MCCP 字节码 → [VM] → 执
 | 阶段 | 状态 | 说明 |
 |------|------|------|
 | v0: 汇编器 + VM | ✅ 完成 | 手写汇编文本 → MCCP → VM 执行 |
-| v1: L0 语言编译器 | ✅ 完成 | 类 ALGOL 高层语言 → MCCP 字节码 |
-| v2: 完整汇编器+链接器 | ⏳ 待做 | 完整汇编语言 → 可重定位对象 |
-| v3: L0 自编译 (Ouroboros) | ⏳ 待做 | L0 编译器用 L0 自身编写并自编译 |
-| v4: 运行时自修改 | ⏳ 待做 | 运行中的程序能读取/重写自身的 MCCP 编码 |
+| v1: L0 语言编译器(Rust 端) | ✅ 完成 | 类 ALGOL 高层语言 → MCCP 字节码 |
+| v2 Phase 2a | ✅ 完成 | L0 端多字符关键字识别(状态机) |
+| v2 Phase 2b | ✅ 完成 | L0 端多位整数累积(加法链统治乘法) |
+| v2 Phase 2b+ | ✅ 完成 | OP_WRITERAW 原始字节输出通道(脱离 UTF-8 枷锁) |
+| v2 Phase 2c | ✅ 完成 | L0 直接发射 IR token 扁平字节流(消除 mark+char 中间层) |
+| v2 Ouroboros v2 闭环 | ✅ 完成 | compile_l0 编译 L0 classifier → 自身运行 → IR → compile_ir_v2 → 执行 |
+| v2 Phase 3 | ⏳ 待做 | 纯 L0 自举:把 `compile_l0`(Rust)移植到 L0 自身,脱离 Rust 寄生 |
+| v3 运行时自修改 | ⏳ 待做 | 运行中的程序能读取/重写自身的 MCCP 编码 |
+
+### Phase 2c 管线(当前)
+
+```
+L0_CLASSIFIER_SRC
+    ↓ compile_l0 (Rust 端,最终将消除)
+Mccp 字节码
+    ↓ VM 运行,L0_CLASSIFIER_SRC 自身作为输入(StringIO 已废弃,直接 WRITERAW)
+output_raw 扁平 IR token 字节流
+    ↓ classify_output_to_ir(仅 read output_raw)
+[(TokType, TokVal)] IR 令牌
+    ↓ compile_ir_v2 (Rust)
+Mccp 字节码'
+    ↓ VM 执行
+结果
+```
+
+Token 编码(5 字节 = `print 42` 的 2 个 token + EOF):
+`[240, 224, 0, 42, 239]` = T_PRINT + T_INT(hi=0,lo=42) + T_EOF
 
 ---
 
