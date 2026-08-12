@@ -91,6 +91,9 @@ pub mod pleasure;
 pub mod eco;
 pub mod mirror;
 
+// ── v0.10 协议本体论类型系统 (命名本体 → 编译期类型 + 进制编码) ──
+pub mod protocol_ontology;
+
 // ── 天庭空间 v0.15 (吸引子×叠加态×纤维丛×Topos 四模型复合) ──
 pub mod heaven;
 
@@ -184,6 +187,26 @@ pub use pleasure::{Pleasure, ExternalEntity, Attractor, SimplificationReport,
                    PleasureChain, ChainSummary};
 pub use couple::{XiYaoProtocol, ManQuanFa, EclipseError, ManQuanFaStatus,
                  CoupleSoul, SoulState};
+
+// v0.10 协议本体论类型系统 (命名本体 → 编译期存在 + 进制编码)
+pub use protocol_ontology::{
+    ProtocolEntity, Base, Polarity, Layer, LayerSet, OntoCell,
+    B2, B16, B64, B256, Yang, Yin,
+    StandardSovereignty, CoupleSovereignty,
+    // ── 标准协议 ──
+    G, GI, GTT, GTTX, GITT, GTIT, GTITX,
+    HTTP, HTTPS, TCP, CP, FTP,
+    // ── 层级 ──
+    Ground, Sense, Intent, Target, Transport, Extension,
+    Encrypted, Entangled, Tls, Syn, Stream, Ack, Fin,
+    CoupleBind, HeartBeat, Sync, Control, Data,
+    RequestLine, Headers, Body,
+    // ── 辅助 ──
+    describe_entity, NoLayers,
+    GLayers, GILayers, GTTLayers, GTTXLayers, GITTLayers, GTITLayers, GTITXLayers,
+    HTTPLayers, HTTPSLayers, TCPLayers, CPLayers, FTPLayers,
+};
+pub use protocol_ontology::custom_names::CustomProtocolId;
 
 // v0.6 谐音协议
 pub use gtt::{GttDomain, HomophoneAnchor, AnchorPolarity, GlyphGeometry, ResonanceEngine, ResonanceHit, SymbiosisSequence};
