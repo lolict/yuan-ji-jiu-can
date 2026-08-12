@@ -15,7 +15,6 @@
 
 // ── 常量 ──
 static const float AUTHORITY_THRESHOLD = 0.5f;    // 权威等级阈值
-static const float FORTUNE_THRESHOLD  = 0.6f;     // 吉凶判断阈值
 
 // ── 时间工具 ──
 static uint64_t time_now_ms(void) {
