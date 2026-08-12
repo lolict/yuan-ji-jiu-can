@@ -51,8 +51,85 @@ typedef enum {
 #define MQF_PER_SYMBOL  6      // 384 / 64
 
 // ══════════════════════════════════════════════════════════════════
-// 导出函数 (供宿主/wasm runtime 调用)
+// 阶梯进制运算 — 加法主权, 乘法补偿, 螺旋不重叠
 // ══════════════════════════════════════════════════════════════════
+//
+// 阶梯进制数: (sheet, symbol)
+//   sheet  — 螺旋圈数 (层级, 从 0 开始)
+//   symbol — 该圈内的符号位置 (0..63)
+//
+// 绝对角度 = sheet × 24 + symbol × 6
+//   · 每圈 64 个符号, 每符号 6°
+//   · 每圈偏移 24° (螺距), 保证螺旋永不重叠
+//   · 绝对角度可以任意大, 不模 384 (保留层级信息)
+
+typedef struct {
+    mqf_u32 sheet;      // 螺旋圈数
+    mqf_u8  symbol;     // 圈内符号位置 (0..63)
+} mqf_stride;
+
+// ── 传统 u64 → 阶梯进制 ──
+// 传统数字 N 的绝对角度 = N × 6 (每单位 6°)
+// 转换为 (sheet, symbol):
+//   total_degrees = N × 6
+//   sheet = total_degrees / 384
+//   symbol = (total_degrees % 384) / 6
+mqf_stride mqf_stride_from_u64(mqf_u64 n) {
+    mqf_stride r;
+    mqf_u64 total_degrees = n * 6;
+    r.sheet = (mqf_u32)(total_degrees / 384);
+    r.symbol = (mqf_u8)((total_degrees % 384) / 6);
+    return r;
+}
+
+// ── 阶梯进制 → 传统 u64 ──
+mqf_u64 mqf_stride_to_u64(mqf_stride s) {
+    mqf_u64 total_degrees = (mqf_u64)s.sheet * 384 + (mqf_u64)s.symbol * 6;
+    return total_degrees / 6;
+}
+
+// ── 阶梯加法 (主权运算) ──
+// 阶梯进制加法 = u64 加法 (保持一一对应, zero 是单位元)
+// 等价于 64 进制加法: 低位 symbol 相加, 进位到高位 sheet
+mqf_stride mqf_stride_add(mqf_stride a, mqf_stride b) {
+    mqf_stride r;
+    mqf_u16 sym_sum = (mqf_u16)a.symbol + (mqf_u16)b.symbol;
+    r.sheet = a.sheet + b.sheet + (mqf_u32)(sym_sum >> 6);  // sym_sum / 64 进位
+    r.symbol = (mqf_u8)(sym_sum & 0x3F);                     // sym_sum % 64
+    return r;
+}
+
+// ── 阶梯乘法 (补偿运算) ──
+// a × b: 转 u64, 相乘, 再转回阶梯进制
+// 乘法作为加法的补偿: 用 u64 乘法的高效替代 O(b) 的连加
+mqf_stride mqf_stride_mul(mqf_stride a, mqf_stride b) {
+    mqf_u64 na = mqf_stride_to_u64(a);
+    mqf_u64 nb = mqf_stride_to_u64(b);
+    mqf_u64 product;
+    
+    // 检测溢出: 如果 na > UMAX/nb, 乘积会溢出
+    if (na != 0 && nb > 0xFFFFFFFFFFFFFFFFULL / na) {
+        product = 0xFFFFFFFFFFFFFFFFULL;  // 饱和到最大值
+    } else {
+        product = na * nb;
+    }
+    return mqf_stride_from_u64(product);
+}
+
+// ── 阶梯比较 ──
+// 先比 sheet, 再比 symbol
+mqf_i32 mqf_stride_compare(mqf_stride a, mqf_stride b) {
+    if (a.sheet < b.sheet) return -1;
+    if (a.sheet > b.sheet) return 1;
+    if (a.symbol < b.symbol) return -1;
+    if (a.symbol > b.symbol) return 1;
+    return 0;
+}
+
+// ── 绝对角度 (用于调试和验证) ──
+mqf_u64 mqf_stride_absolute(mqf_stride s) {
+    return (mqf_u64)s.sheet * 24 + (mqf_u64)s.symbol * 6;
+}
 
 // 符号 → 角 (符号 N 占 N*6°)
 mqf_u32 mqf_symbol_angle(mqf_u8 sym) {

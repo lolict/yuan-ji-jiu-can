@@ -46,4 +46,19 @@ pub fn build(b: *std.Build) void {
     s_all.dependOn(&wasm32.step);
     s_all.dependOn(&wasm64.step);
     b.default_step = s_all;
+
+    // ── 阶梯进制测试 (原生编译,非 wasm) ──
+    const test_exe = b.addExecutable(.{
+        .name = "test_stride",
+        .root_source_file = .{ .src_path = .{ .owner = b, .sub_path = "test_stride.c" } },
+        .target = b.resolveTargetQuery(.{ .cpu_arch = .x86_64, .os_tag = .linux }),
+        .optimize = .Debug,
+    });
+    test_exe.addCSourceFile(.{ .file = .{ .src_path = .{ .owner = b, .sub_path = "main.c" } }, .flags = &[_][]const u8{ "-Wall", "--std=c11", "-DTEST_MODE" } });
+    test_exe.linkLibC();
+    b.installArtifact(test_exe);
+
+    const test_step = b.step("test", "Run stride base tests");
+    const run_test = b.addRunArtifact(test_exe);
+    test_step.dependOn(&run_test.step);
 }

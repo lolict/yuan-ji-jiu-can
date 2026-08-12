@@ -1,0 +1,15 @@
+// hello.mlil — mlil 语言示例
+
+import "core"
+
+// 定义表面: 一个 Cell 占据 64 位
+surface Cell {
+    coord: coord,
+    symbol: symbol,
+    angle: angle,
+}
+
+// 导出函数: 宿主可以调用
+export fn add(a: angle, b: angle) -> angle {
+    return a + b
+}
