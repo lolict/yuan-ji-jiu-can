@@ -468,8 +468,9 @@ impl OntoCell for GI {
 // GTTX 幔组 — 十二种具体辐射形态 (子类型在 custom_names 中以变体注册)
 // ══════════════════════════════════════════════════════════════════════
 
-/// GTTX 幔组子类型码 (4-bit, 编码到 SMRL 单元 D5[19..16])
-/// 同一 GTITX 基类型下,以不同"幔"字组区分具体行脚几何
+/// GTTX 幔组子类型码 (编码到 SMRL 单元 D5[19..16])
+/// 同一 GTITX 基类型下,以不同"幔"字组区分共同体中心显示法:
+/// 即以共同体中心为轴心,向外/螺旋/环绕/包裹的显示几何
 pub mod man_group {
     /// 辐圈幔: 由辐射构成的圈层幔 (辐射为骨,圈层包裹)
     pub const FU_QUAN: u8 = 0x0;
@@ -561,6 +562,56 @@ pub struct ManParams {
     pub polarity: i8,     // 极化方向
     pub core_ratio: f64,  // 核心半径比 (0=从中心开始,0.5=从半半径开始)
     pub desc: &'static str,
+}
+
+/// GTTX 共同体中心显示法 (5 种核心显示模式)
+/// 每个模式代表"以共同体中心为轴心,向外辐射"的不同几何
+pub mod display_method {
+    /// 同心圆辐射: 以共同体中心为圆心,一圈一圈向外
+    pub const CONCENTRIC: u8   = 0x0;
+    /// 螺旋向前: 从起点向前方螺旋辐射 (χ+ 方向,内容向前展开)
+    pub const SPIRAL_FWD: u8    = 0x1;
+    /// 螺旋向后: 向后方螺旋辐射 (χ- 方向,内容收缩回顾)
+    pub const SPIRAL_BWD: u8    = 0x2;
+    /// 水平面螺旋: 在平面内螺旋辐射 (一般状况)
+    pub const SPIRAL_FLAT: u8   = 0x3;
+    /// 包裹层辐射: 逐层包裹,每层覆盖前一层 (幔组专属,与 man_group 对应)
+    pub const WRAPPER_LAYER: u8 = 0x4;
+
+    /// 共 5 种,占用 3-bit (D5[18..16])
+    pub fn describe(sub: u8) -> &'static str {
+        match sub {
+            CONCENTRIC    => "同心圆辐射显示法",
+            SPIRAL_FWD    => "螺旋向前显示法",
+            SPIRAL_BWD    => "螺旋向后显示法",
+            SPIRAL_FLAT   => "水平面螺旋显示法",
+            WRAPPER_LAYER => "包裹层辐射显示法",
+            _             => "未知显示法",
+        }
+    }
+
+    pub fn label(sub: u8) -> &'static str {
+        match sub {
+            CONCENTRIC    => "同心圆辐射",
+            SPIRAL_FWD    => "螺旋向前",
+            SPIRAL_BWD    => "螺旋向后",
+            SPIRAL_FLAT   => "水平面螺旋",
+            WRAPPER_LAYER => "包裹层辐射",
+            _             => "未知",
+        }
+    }
+
+    /// 该显示法对应的视线/阅读路径:
+    pub fn reading_path(sub: u8) -> &'static str {
+        match sub {
+            CONCENTRIC    => "视线: 从圆心沿半径向外逐层扫描",
+            SPIRAL_FWD    => "视线: 从核心出发,顺时针(或逆时针)向外展开",
+            SPIRAL_BWD    => "视线: 从外侧螺旋向内回顾,最终汇聚到中心",
+            SPIRAL_FLAT   => "视线: 水平面内,以中心为起点的平面螺旋路径",
+            WRAPPER_LAYER => "视线: 切向移动,逐层包裹,每层覆盖前一层",
+            _             => "未知",
+        }
+    }
 }
 
 /// HTTP 行业行角子类型 (para-row 下的具体段落几何)
@@ -738,5 +789,25 @@ mod tests {
         let p = man_group::params(0x7);
         assert_eq!(p.turns, 3);
         assert_eq!(p.polarity, -1);
+    }
+
+    #[test]
+    fn test_display_method_describe() {
+        assert_eq!(display_method::describe(0x0), "同心圆辐射显示法");
+        assert_eq!(display_method::describe(0x1), "螺旋向前显示法");
+        assert_eq!(display_method::describe(0x4), "包裹层辐射显示法");
+    }
+
+    #[test]
+    fn test_display_method_label() {
+        assert_eq!(display_method::label(0x0), "同心圆辐射");
+        assert_eq!(display_method::label(0x1), "螺旋向前");
+        assert_eq!(display_method::label(0x2), "螺旋向后");
+    }
+
+    #[test]
+    fn test_display_method_reading_path() {
+        assert_eq!(display_method::reading_path(0x0), "视线: 从圆心沿半径向外逐层扫描");
+        assert_eq!(display_method::reading_path(0x1), "视线: 从核心出发,顺时针(或逆时针)向外展开");
     }
 }

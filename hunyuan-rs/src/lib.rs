@@ -211,6 +211,7 @@ pub use protocol_ontology::custom_names::CustomProtocolId;
 pub use protocol_ontology::man_group;
 pub use protocol_ontology::hang_corner;
 pub use protocol_ontology::ManParams;
+pub use protocol_ontology::display_method;
 
 // v0.6 谐音协议
 pub use gtt::{GttDomain, HomophoneAnchor, AnchorPolarity, GlyphGeometry, ResonanceEngine, ResonanceHit, SymbiosisSequence};
