@@ -28,6 +28,8 @@ membrane_demo
 membrane_valve
 test_membrane_valve
 valve_demo
+arbiter
+test_arbiter
 *.o
 
 # IDE
