@@ -9,6 +9,11 @@ zig-out/
 .DS_Store
 Thumbs.db
 
+# 编译产物
+superposition
+test_superposition
+*.o
+
 # IDE
 .vscode/
 .idea/
