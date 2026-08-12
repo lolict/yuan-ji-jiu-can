@@ -1,0 +1,5 @@
+/mnt/data/catpaw/home/.meituan-catpaw/desk_default_workspace/hunyuan-os/hunyuan-rs/target/debug/build/proc-macro2-77886c590a8fe761/build_script_build-77886c590a8fe761.d: /mnt/data/catpaw/home/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proc-macro2-1.0.107/build.rs
+
+/mnt/data/catpaw/home/.meituan-catpaw/desk_default_workspace/hunyuan-os/hunyuan-rs/target/debug/build/proc-macro2-77886c590a8fe761/build_script_build-77886c590a8fe761: /mnt/data/catpaw/home/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proc-macro2-1.0.107/build.rs
+
+/mnt/data/catpaw/home/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proc-macro2-1.0.107/build.rs:
