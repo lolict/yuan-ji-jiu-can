@@ -1,29 +1,16 @@
-# Python
-__pycache__/
-*.py[cod]
-*.egg-info/
+# Zig 编译缓存
+.zig-cache/
+zig-out/
 
-# Env
-venv/
-.env
+# WASM 输出
+*.wasm
 
-# OS
+# 系统文件
 .DS_Store
 Thumbs.db
 
 # IDE
 .vscode/
 .idea/
-
-# Rust
-**/target/
-Cargo.lock
-zig/
-kernel/src/mqf_kernel
-kernel/src/mqf_kernel.elf
-target/
-*.key
-*.pem
-.env
-.zig/
-zig-out/
+*.swp
+*.swo
