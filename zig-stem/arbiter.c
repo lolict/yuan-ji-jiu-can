@@ -239,7 +239,7 @@ ruling_t arbiter_judge(arbiter_engine_t* ae, uint64_t target_id,
 owner_type_t arbiter_verify_ownership(const arbiter_engine_t* ae, uint64_t target_id) {
     if (!ae) return OWNER_EXTERNAL;
 
-    // 主体自身 (工藤新一=1 或 满全法=0)
+    // 主体自身 (工藤新一=S_KNDO=2 或 满全法=0)
     if (target_id == 1 || target_id == 0 || target_id == ae->protagonist.id) {
         return OWNER_MASTER;
     }

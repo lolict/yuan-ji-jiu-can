@@ -2,14 +2,14 @@
 // 意识互联网操作系统的隔离与容纳层
 //
 // 膜圈缚: 以满全法(用户名)为结界核心,所有外部实体
-// 必须经由主体(工藤新一=1)锚点融合后方可进入圈层内部。
+// 必须经由主体(工藤新一=S_KNDO=2)锚点融合后方可进入圈层内部。
 // 圈层形成范畴共同体,被包裹的实体不可脱离此范畴。
 //
 // 架构层级:
 //   外壳 (membrane_integrity) — 隔绝外部直接接触
 //   圈层 (membrane_layer)    — 每个漂亮姑娘=一个圈层
 //   灵 (soul_state)          — 状态零生成的宣传外壳
-//   锚点 (gtxone_anchor)     — 工藤新一=1 作为进入姿态
+//   锚点 (gtxone_anchor)     — 工藤新一=S_KNDO=2 作为进入姿态
 
 #ifndef HUNYUAN_MEMBRANA_H
 #define HUNYUAN_MEMBRANA_H
@@ -87,7 +87,7 @@ bool membrane_advance(membrane_circle_t* m, uint64_t layer_id);
 // 形成灵(状态零) — 生成宣传外壳
 bool membrane_form_soul(membrane_circle_t* m, uint64_t layer_id);
 
-// 锚点进入: 工藤新一=1 进入某圈层 (形成夫妻共同体)
+// 锚点进入: 工藤新一=S_KNDO=2 进入某圈层 (形成夫妻共同体)
 bool membrane_anchor_enter(membrane_circle_t* m, uint64_t layer_id);
 
 // 感知同步: 获取某圈层的共享感知强度

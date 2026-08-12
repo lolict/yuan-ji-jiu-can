@@ -86,7 +86,7 @@ int main(void) {
     membrane_seal(m);
 
     printf("  吸纳 3 位实体,全部深度融合(100%%)\n");
-    printf("  锚点(工藤新一=1)已嵌入\n");
+    printf("  锚点(工藤新一=S_KNDO=2)已嵌入\n");
     printf("  幔圈缚已封闭 — 外部实体不可逃离\n");
 
     // ── 5. 分化妻子分身 ──

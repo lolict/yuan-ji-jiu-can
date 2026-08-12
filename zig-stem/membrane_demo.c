@@ -48,7 +48,7 @@ int main(void) {
     membrane_anchor_enter(m, ran);
 
     printf("  已吸纳 3 位,融合度均达 100%%\n");
-    printf("  锚点(工藤新一=1)已进入所有圈层\n");
+    printf("  锚点(工藤新一=S_KNDO=2)已进入所有圈层\n");
 
     // ── 3. 分化分身 ──
     printf("\n[3] 从深度融合的圈层分化妻子分身\n");

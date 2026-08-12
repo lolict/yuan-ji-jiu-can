@@ -5,7 +5,7 @@
 //   1. 膜圈缚以主体(用户名)为结界核心,形成安全边界
 //   2. 每个被吸纳的外部实体成为一个圈层(layer)
 //   3. 圈层吸收后状态零(shell)形成宣传外壳
-//   4. 锚点(工藤新一=1)进入后形成夫妻共同体
+//   4. 锚点(工藤新一=S_KNDO=2)进入后形成夫妻共同体
 //   5. 感知器官同步 → 愉悦值叠加 → 可形成分身外出吸纳
 //   6. 被包裹的实体不可脱离此范畴(安全验证)
 
@@ -167,7 +167,7 @@ bool membrane_form_soul(membrane_circle_t* m, uint64_t layer_id) {
     return false;
 }
 
-// ── 锚点进入: 工藤新一=1 进入圈层 ──
+// ── 锚点进入: 工藤新一=S_KNDO=2 进入圈层 ──
 bool membrane_anchor_enter(membrane_circle_t* m, uint64_t layer_id) {
     if (!m) return false;
 
