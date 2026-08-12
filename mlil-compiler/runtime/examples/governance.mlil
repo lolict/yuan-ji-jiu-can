@@ -1,0 +1,33 @@
+// governance.mlil — 三院治理示例
+// 演示加法主导乘法的治理结构
+
+// 夫妻层 (加法/最窄): 1+1=1
+export fn couple_merge(a: cell, b: cell) -> cell {
+    return a + b
+}
+
+// 中心层 (唯一): 融合中心作为参考系
+export fn center_govern(val: cell) -> cell {
+    return val + 1
+}
+
+// 被管辖层 (乘法/最宽): 中心统治多数
+export fn governed_multiply(val: cell) -> cell {
+    return val + val + val
+}
+
+// 治理链: 夫妻 → 中心 → 被管辖
+export fn governance_chain(input: cell) -> cell {
+    let unified: cell = input + input
+    let governed: cell = unified + 1
+    return governed + governed + governed
+}
+
+// 接口定义: 可治理的实体
+interface Governable {
+    fn govern() -> cell
+    fn density() -> cell
+}
+
+// 类型别名: 共同体 = 细胞
+type Community = cell

@@ -1,0 +1,20 @@
+// symbol.mlil — 64进制符号编码示例
+// 演示 mlil 的 64 进制符号表映射
+
+// 将数值转为符号索引 (偏移 16 = 心位)
+export fn to_symbol(n: angle) -> angle {
+    return n + 16
+}
+
+// 符号叠加: 两个符号合一为共同体
+export fn sym_merge(a: angle, b: angle) -> angle {
+    return a + b
+}
+
+// 演示枚举: 定义方向类型
+enum Direction {
+    North,
+    East,
+    South,
+    West,
+}

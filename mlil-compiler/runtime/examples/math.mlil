@@ -1,0 +1,28 @@
+// math.mlil — 角度运算示例
+// 毛利兰编程语言 (mlil) 演示
+// 64进制角度系统: 完整圆周 = 384° = 64 单位
+
+// 角度加倍: a + a
+export fn double(a: angle) -> angle {
+    return a + a
+}
+
+// 半角: 完整圆周的一半 = 12 单位 (72°)
+export fn half_circle() -> angle {
+    return 12
+}
+
+// 四分之一圆周 = 6 单位 (36°)
+export fn quarter_circle() -> angle {
+    return 6
+}
+
+// 加 16 单位 (96° — 一个标准偏移)
+export fn add_offset(a: angle) -> angle {
+    return a + 16
+}
+
+// 叠加耦合: 两个视角合一
+export fn merge(angle1: angle, angle2: angle) -> angle {
+    return angle1 + angle2
+}

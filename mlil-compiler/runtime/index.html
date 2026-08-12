@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>mlil 运行时 — 毛利兰编程语言</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Courier New', monospace;
+      background: #0a0a14;
+      color: #c8d0e0;
+      min-height: 100vh;
+      padding: 24px;
+    }
+    h1 {
+      font-size: 20px;
+      color: #7eb8da;
+      margin-bottom: 8px;
+      font-weight: normal;
+    }
+    .subtitle {
+      font-size: 12px;
+      color: #5a6a7a;
+      margin-bottom: 24px;
+    }
+    .container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      max-width: 1200px;
+    }
+    .panel {
+      background: #12121e;
+      border: 1px solid #1e2a3a;
+      border-radius: 4px;
+      padding: 16px;
+    }
+    .panel h2 {
+      font-size: 13px;
+      color: #6a8a5a;
+      margin-bottom: 12px;
+      font-weight: normal;
+      border-bottom: 1px solid #1e2a3a;
+      padding-bottom: 6px;
+    }
+    textarea {
+      width: 100%;
+      height: 200px;
+      background: #0a0a14;
+      border: 1px solid #1e2a3a;
+      color: #c8d0e0;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      padding: 10px;
+      resize: vertical;
+    }
+    button {
+      background: #1a2a3a;
+      border: 1px solid #2a3a4a;
+      color: #7eb8da;
+      padding: 8px 16px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      cursor: pointer;
+      margin-top: 8px;
+      margin-right: 8px;
+    }
+    button:hover {
+      background: #2a3a4a;
+      border-color: #3a5a6a;
+    }
+    button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    #console {
+      width: 100%;
+      height: 280px;
+      background: #0a0a14;
+      border: 1px solid #1e2a3a;
+      color: #8a9aaa;
+      font-size: 12px;
+      padding: 10px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+    .log-info { color: #6a8a5a; }
+    .log-result { color: #daa520; }
+    .log-error { color: #aa4a4a; }
+    select {
+      background: #0a0a14;
+      border: 1px solid #1e2a3a;
+      color: #c8d0e0;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      padding: 6px 10px;
+      margin-right: 8px;
+    }
+    .exports-list {
+      font-size: 12px;
+      color: #6a8a5a;
+      padding: 8px 0;
+    }
+    .exports-list span {
+      display: inline-block;
+      background: #1a2a3a;
+      padding: 2px 8px;
+      margin: 2px 4px;
+      border-radius: 2px;
+    }
+    .input-area {
+      margin-top: 12px;
+    }
+    .input-area label {
+      font-size: 11px;
+      color: #5a6a7a;
+      display: block;
+      margin-bottom: 4px;
+    }
+    .input-area input {
+      background: #0a0a14;
+      border: 1px solid #1e2a3a;
+      color: #c8d0e0;
+      padding: 4px 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      width: 100px;
+    }
+  </style>
+</head>
+<body>
+  <h1>mlil — 毛利兰编程语言</h1>
+  <div class="subtitle">表面/界面语言 → WASM → 浏览器执行 | 满全法 · 囡囝共生</div>
+
+  <div class="container">
+    <div class="panel">
+      <h2>① 加载 WASM 模块</h2>
+      <select id="exampleSelect">
+        <option value="math">math.mlil (角度运算)</option>
+        <option value="symbol">symbol.mlil (64进制符号)</option>
+        <option value="governance">governance.mlil (治理层)</option>
+      </select>
+      <button id="btnLoad" onclick="loadExample()">加载示例</button>
+      <div style="margin-top:14px">
+        <label style="font-size:11px;color:#5a6a7a">或从文件加载 .wasm:</label>
+        <input type="file" id="wasmFile" accept=".wasm" onchange="loadFile(event)" style="color:#6a8a5a;font-size:11px;margin-top:4px">
+      </div>
+      <div class="exports-list" id="exportsList"></div>
+    </div>
+
+    <div class="panel">
+      <h2>② 调用导出函数</h2>
+      <div id="callControls">
+        <p style="font-size:12px;color:#4a5a6a">请先加载模块...</p>
+      </div>
+    </div>
+
+    <div class="panel" style="grid-column: 1 / -1;">
+      <h2>控制台</h2>
+      <div id="console"></div>
+      <button onclick="clearConsole()">清除</button>
+    </div>
+  </div>
+
+  <script src="mlil-runtime.js"></script>
+  <script>
+    const runtime = new MLILRuntime();
+    let currentModule = null;
+
+    function log(msg, type = 'info') {
+      const el = document.getElementById('console');
+      const cls = type === 'error' ? 'log-error' : type === 'result' ? 'log-result' : 'log-info';
+      el.innerHTML += `<span class="${cls}">${msg}</span>\n`;
+      el.scrollTop = el.scrollHeight;
+    }
+
+    function clearConsole() {
+      document.getElementById('console').innerHTML = '';
+    }
+
+    // 预编译的 WASM 模块 (base64 编码)
+    const EXAMPLES = {
+      math: generateMathWasm(),
+      symbol: generateSymbolWasm(),
+      governance: generateGovernanceWasm(),
+    };
+
+    async function loadExample() {
+      const name = document.getElementById('exampleSelect').value;
+      log('加载模块: ' + name);
+      try {
+        const wasmBytes = EXAMPLES[name];
+        currentModule = await runtime.load(wasmBytes, name);
+        showModuleInfo();
+        log('✓ 模块加载成功', 'result');
+      } catch (e) {
+        log('✗ 错误: ' + e.message, 'error');
+      }
+    }
+
+    async function loadFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      log('加载文件: ' + file.name);
+      try {
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        currentModule = await runtime.load(bytes, file.name.replace('.wasm', ''));
+        showModuleInfo();
+        log('✓ 文件加载成功', 'result');
+      } catch (e) {
+        log('✗ 错误: ' + e.message, 'error');
+      }
+    }
+
+    function showModuleInfo() {
+      const fns = currentModule.getExportedFunctions();
+      const list = document.getElementById('exportsList');
+      list.innerHTML = '<span style="color:#5a6a7a">导出函数:</span> ' +
+        fns.map(f => `<span>${f}</span>`).join('');
+
+      const controls = document.getElementById('callControls');
+      controls.innerHTML = '';
+
+      fns.forEach(fnName => {
+        const div = document.createElement('div');
+        div.className = 'input-area';
+        div.innerHTML = `
+          <label>${fnName}():</label>
+          <input type="number" id="arg_${fnName}" placeholder="参数 (数字)">
+          <button onclick="callFunc('${fnName}')">调用</button>
+        `;
+        controls.appendChild(div);
+      });
+    }
+
+    function callFunc(fnName) {
+      const input = document.getElementById('arg_' + fnName);
+      const argVal = input ? parseInt(input.value) || 0 : 0;
+      try {
+        const result = currentModule.call(fnName, argVal);
+        if (result !== undefined) {
+          const angle = runtime.angleToDegrees(result);
+          log(`${fnName}(${argVal}) = ${result} (十进制) = ${runtime.toBase64(result)} (64进制) = ${angle}°`, 'result');
+        } else {
+          log(`${fnName}(${argVal}) — 执行完成`, 'result');
+        }
+      } catch (e) {
+        log('✗ ' + e.message, 'error');
+      }
+    }
+
+    // ── 预编译 WASM 模块 (内嵌 base64，用于演示) ──
+
+    function generateMathWasm() {
+      // 生成一个简单的 WASM 模块: double(a) = a + a (角度加倍)
+      // 手写 WASM 二进制 (简化)
+      const bytes = new Uint8Array([
+        0x00, 0x61, 0x73, 0x6D,  // magic: \0asm
+        0x01, 0x00, 0x00, 0x00,  // version: 1
+        // Type section (id=1)
+        0x01, 0x07,              // section id=1, length=7
+        0x01,                    // 1 function type
+        0x60,                    // func type
+        0x01, 0x7F,              // 1 param: i32
+        0x01, 0x7F,              // 1 result: i32
+        // Function section (id=3)
+        0x03, 0x02,              // section id=3, length=2
+        0x01,                    // 1 function
+        0x00,                    // type index 0
+        // Export section (id=7)
+        0x07, 0x08,              // section id=7, length=8
+        0x01,                    // 1 export
+        0x03, 0x64, 0x6F, 0x75, 0x62, 0x6C, 0x65,  // name: "double"
+        0x00,                    // kind: func
+        0x00,                    // func index: 0
+        // Code section (id=10)
+        0x0A, 0x08,              // section id=10, length=8
+        0x01,                    // 1 body
+        0x06,                    // body length=6
+        0x00,                    // 0 locals
+        0x20, 0x00,              // local.get 0
+        0x20, 0x00,              // local.get 0
+        0x6A,                    // i32.add
+        0x0B,                    // end
+      ]);
+      return bytes;
+    }
+
+    function generateSymbolWasm() {
+      // 生成: to_symbol(n) = n + 16 (将数字转为偏移16的符号索引)
+      const nameBytes = [0x74, 0x6F, 0x5F, 0x73, 0x79, 0x6D, 0x62, 0x6F, 0x6C]; // "to_symbol"
+      const exportLen = 2 + 1 + nameBytes.length + 1 + 1;
+      const bytes = new Uint8Array([
+        0x00, 0x61, 0x73, 0x6D, 0x01, 0x00, 0x00, 0x00,
+        0x01, 0x07, 0x01, 0x60, 0x01, 0x7F, 0x01, 0x7F,
+        0x03, 0x02, 0x01, 0x00,
+        0x07, exportLen, 0x01,
+        ...nameBytes, 0x00, 0x00,
+        0x0A, 0x0B, 0x01, 0x09, 0x00,
+        0x20, 0x00,        // local.get 0
+        0x41, 0x10,        // i32.const 16
+        0x6A,              // i32.add
+        0x0B,
+      ]);
+      return bytes;
+    }
+
+    function generateGovernanceWasm() {
+      // 生成: govern(val) = val * 3 (治理放大系数)
+      const nameBytes = [0x67, 0x6F, 0x76, 0x65, 0x72, 0x6E]; // "govern"
+      const exportLen = 2 + 1 + nameBytes.length + 1 + 1;
+      const bytes = new Uint8Array([
+        0x00, 0x61, 0x73, 0x6D, 0x01, 0x00, 0x00, 0x00,
+        0x01, 0x07, 0x01, 0x60, 0x01, 0x7F, 0x01, 0x7F,
+        0x03, 0x02, 0x01, 0x00,
+        0x07, exportLen, 0x01,
+        ...nameBytes, 0x00, 0x00,
+        0x0A, 0x0B, 0x01, 0x09, 0x00,
+        0x20, 0x00,        // local.get 0
+        0x41, 0x03,        // i32.const 3
+        0x6C,              // i32.mul
+        0x0B,
+      ]);
+      return bytes;
+    }
+
+    // 自动加载第一个示例
+    window.addEventListener('load', () => {
+      log('mlil 运行时初始化完成');
+      log('64进制符号表已加载: ' + SYMBOL_TABLE.length + ' 个符号');
+      loadExample();
+    });
+  </script>
+</body>
+</html>
