@@ -18,6 +18,13 @@ heyair
 test_heyair
 governance
 test_governance
+membrana
+test_membrana
+clone_agents
+test_clone_agents
+pleasure_ledger
+test_pleasure_ledger
+membrane_demo
 *.o
 
 # IDE
