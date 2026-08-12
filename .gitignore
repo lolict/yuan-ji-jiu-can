@@ -25,6 +25,9 @@ test_clone_agents
 pleasure_ledger
 test_pleasure_ledger
 membrane_demo
+membrane_valve
+test_membrane_valve
+valve_demo
 *.o
 
 # IDE
