@@ -101,8 +101,8 @@ static int test_create_packet(void) {
     mv_packet_header_t* pkt = mv_create_packet(mv, MV_VARIANT_FU_QI, 100,
         payload, strlen(payload) + 1);
     if (!pkt) return 0;
-    if (pkt->magic != 0x4D565146) return 0;
-    if (pkt->source_id != 1) return 0;  // 工藤新一=1
+    if (pkt->magic != 0x404040) return 0;
+    if (pkt->source_id != 2) return 0;  // 工藤新一=2 (S_KNDO)
     if (pkt->target_id != 100) return 0;
     if (pkt->variant != MV_VARIANT_FU_QI) return 0;
 

@@ -24,7 +24,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define ARBITER_VERSION         0x03
+#define ARBITER_VERSION         0x40    // 版本 = 64 (十进制)
 #define ARBITER_MAX_EVENTS      4096    // 最大事件数 (64×64)
 #define ARBITER_MAX_TOOLS       64      // 最大工具数 (64进制对齐)
 #define ARBITER_HASH_LEN        32      // 哈希链长度

@@ -28,8 +28,8 @@ static int test_create(void) {
 // 测试: 设置主人公
 static int test_protagonist(void) {
     arbiter_engine_t* ae = arbiter_create("裁决引擎");
-    if (!arbiter_set_protagonist(ae, 1, "工藤新一")) return 0;
-    if (ae->protagonist.id != 1) return 0;
+    if (!arbiter_set_protagonist(ae, 2, "工藤新一")) return 0;
+    if (ae->protagonist.id != 2) return 0;
     if (!ae->protagonist.is_authenticated) return 0;
     if (ae->protagonist.authority_level != 1.0f) return 0;
     if (strcmp(ae->protagonist.name, "工藤新一") != 0) return 0;
@@ -86,7 +86,7 @@ static int test_dependency(void) {
 // 测试: 记录事件
 static int test_record_event(void) {
     arbiter_engine_t* ae = arbiter_create("裁决引擎");
-    arbiter_set_protagonist(ae, 1, "工藤新一");
+    arbiter_set_protagonist(ae, 2, "工藤新一");
 
     uint64_t seq = arbiter_record_event(ae, EVENT_COMMIT, 100, OWNER_MASTER, "提交代码");
     if (seq != 1) return 0;
@@ -105,7 +105,7 @@ static int test_record_event(void) {
 // 测试: 裁决
 static int test_judge(void) {
     arbiter_engine_t* ae = arbiter_create("裁决引擎");
-    arbiter_set_protagonist(ae, 1, "工藤新一");
+    arbiter_set_protagonist(ae, 2, "工藤新一");
 
     fortune_type_t fortune;
 
@@ -146,7 +146,7 @@ static int test_judge_unauth(void) {
 // 测试: 归属权确认
 static int test_ownership(void) {
     arbiter_engine_t* ae = arbiter_create("裁决引擎");
-    arbiter_set_protagonist(ae, 1, "工藤新一");
+    arbiter_set_protagonist(ae, 2, "工藤新一");
 
     // 记录事件: 目标200被妻子吸纳
     arbiter_record_event(ae, EVENT_ABSORB, 200, OWNER_WIFE, "吸纳妻子");
@@ -196,7 +196,7 @@ static int test_can_execute(void) {
 // 测试: 时间回溯
 static int test_backtrack(void) {
     arbiter_engine_t* ae = arbiter_create("裁决引擎");
-    arbiter_set_protagonist(ae, 1, "工藤新一");
+    arbiter_set_protagonist(ae, 2, "工藤新一");
 
     arbiter_record_event(ae, EVENT_COMMIT, 100, OWNER_MASTER, "事件1");
     arbiter_record_event(ae, EVENT_PUSH, 0, OWNER_MASTER, "事件2");
@@ -221,7 +221,7 @@ static int test_backtrack(void) {
 // 测试: 未来预测
 static int test_predict(void) {
     arbiter_engine_t* ae = arbiter_create("裁决引擎");
-    arbiter_set_protagonist(ae, 1, "工藤新一");
+    arbiter_set_protagonist(ae, 2, "工藤新一");
 
     // 空时间线预测 = 中性
     fortune_type_t f = arbiter_predict(ae, EVENT_COMMIT);
@@ -240,7 +240,7 @@ static int test_predict(void) {
 // 测试: 时间线完整性
 static int test_chain_integrity(void) {
     arbiter_engine_t* ae = arbiter_create("裁决引擎");
-    arbiter_set_protagonist(ae, 1, "工藤新一");
+    arbiter_set_protagonist(ae, 2, "工藤新一");
 
     // 空链 = 完整
     if (!arbiter_verify_chain(ae)) return 0;
@@ -261,7 +261,7 @@ static int test_chain_integrity(void) {
 // 测试: 推送计划
 static int test_schedule_push(void) {
     arbiter_engine_t* ae = arbiter_create("裁决引擎");
-    arbiter_set_protagonist(ae, 1, "工藤新一");
+    arbiter_set_protagonist(ae, 2, "工藤新一");
 
     uint64_t ev1 = arbiter_record_event(ae, EVENT_COMMIT, 100, OWNER_MASTER, "提交");
 

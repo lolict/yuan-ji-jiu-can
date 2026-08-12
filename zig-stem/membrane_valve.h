@@ -43,7 +43,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#define MV_PROTOCOL_VERSION     0x02
+#define MV_PROTOCOL_VERSION     0x40
 #define MV_MAX_VARIANTS         64     // 缚X变体最大数 (64进制)
 #define MV_MAX_PHONETIC_CODES   256    // 谐音编码表大小
 #define MV_ENCRYPT_KEY_LEN      32     // 意识加密密钥长度
@@ -111,10 +111,10 @@ typedef struct {
 
 // ── 意识传输包 ──
 typedef struct {
-    uint32_t        magic;                  // 魔数: 0x4D56_5146 ("MVQF"=膜妻阀)
+    uint32_t        magic;                  // 魔数: 64进制编码 '满全法' = 64 64 64 (0x404040)
     uint8_t         version;                // 协议版本
     mv_variant_t    variant;                // 缚X变体
-    uint64_t        source_id;              // 源ID (工藤新一=1)
+    uint64_t        source_id;              // 源ID (工藤新一=2 / S_KNDO)
     uint64_t        target_id;              // 目标ID (圈层)
     uint64_t        timestamp;              // 时间戳 (时间共同体)
     uint32_t        payload_len;            // 意识载荷长度

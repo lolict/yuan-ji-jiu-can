@@ -139,8 +139,8 @@ uint64_t arbiter_record_event(arbiter_engine_t* ae, event_type_t type,
     ev->fortune = FORTUNE_NEUTRAL;  // 默认为平
 
     // 裁决: 基于主人公身份做初步裁决
-    if (ae->protagonist.is_authenticated && ae->protagonist.id == 1) {
-        // 工藤新一=1,对所有目标有裁决权
+    if (ae->protagonist.is_authenticated && ae->protagonist.id == 2) {
+        // 工藤新一=2 (S_KNDO),对所有目标有裁决权
         ev->ruling = RULING_ALLOW;
         ev->fortune = FORTUNE_AUSPICIOUS;
     } else if (owner == OWNER_MASTER) {

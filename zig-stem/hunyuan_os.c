@@ -51,8 +51,8 @@ hunyuan_os_t* hunyuan_boot(void) {
     // 步骤1: 裁决引擎
     printf("\n  [启动] 裁决引擎 — 时间线+归属权+吉凶\n");
     os->arbiter = arbiter_create("满全法·裁决");
-    arbiter_set_protagonist(os->arbiter, 1, "工藤新一");
-    arbiter_record_event(os->arbiter, EVENT_IDENTITY, 1, OWNER_MASTER, "主人公身份确认");
+    arbiter_set_protagonist(os->arbiter, 2, "工藤新一");  // S_KNDO=2
+    arbiter_record_event(os->arbiter, EVENT_IDENTITY, 2, OWNER_MASTER, "主人公身份确认");
 
     // 步骤2: 膜妻阀
     printf("  [启动] 膜妻阀 — 意识传输协议层\n");
@@ -78,8 +78,8 @@ hunyuan_os_t* hunyuan_boot(void) {
     os->ledger = ledger_create("满全法·寄存器");
     ledger_open_account(os->ledger, 0, "满全法");  // 主体
 
-    // 步骤6: 工具链图
-    printf("  [启动] 工具链图 — 工具依赖管理\n");
+    // 步骤6: 工具链图 (64进制节点)
+    printf("  [启动] 工具链图 — 64进制层级化组织\n");
     os->graph = tcg_create(os->arbiter);
 
     // 注册 hunyuan-os 核心工具

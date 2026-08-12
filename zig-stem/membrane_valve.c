@@ -201,10 +201,10 @@ mv_packet_header_t* mv_create_packet(membrane_valve_t* mv, mv_variant_t var,
     if (!buf) return NULL;
 
     mv_packet_header_t* pkt = (mv_packet_header_t*)buf;
-    pkt->magic       = 0x4D565146;  // "MVQF"
+    pkt->magic       = 0x404040;  // 64进制魔数: 满全法 = 64-64-64
     pkt->version     = MV_PROTOCOL_VERSION;
     pkt->variant     = var;
-    pkt->source_id   = 1;           // 工藤新一=1
+    pkt->source_id   = 2;           // 工藤新一=2 (S_KNDO 64进制符号)
     pkt->target_id   = target;
     pkt->timestamp   = time_now();
     pkt->payload_len = len;

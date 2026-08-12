@@ -116,8 +116,8 @@ int main(void) {
         (uint64_t)xiaolan, consciousness, strlen(consciousness) + 1);
 
     printf("  意识包创建: %u 字节载荷\n", pkt->payload_len);
-    printf("  协议魔数: 0x%08X ('MVQF'=膜妻阀)\n", pkt->magic);
-    printf("  源ID: %lu (工藤新一=1)\n", (unsigned long)pkt->source_id);
+    printf("  协议魔数: 0x%06X (64进制: 满全法=64-64-64)\n", pkt->magic);
+    printf("  源ID: %lu (工藤新一=S_KNDO=2, 64进制)\n", (unsigned long)pkt->source_id);
 
     mv_send(mv, pkt);  // 自动加密并发送
     printf("  加密传输: 完成 (XOR + 派生密钥)\n");
