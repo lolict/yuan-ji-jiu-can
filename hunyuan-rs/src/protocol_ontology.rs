@@ -465,6 +465,139 @@ impl OntoCell for GI {
 }
 
 // ══════════════════════════════════════════════════════════════════════
+// GTTX 幔组 — 十二种具体辐射形态 (子类型在 custom_names 中以变体注册)
+// ══════════════════════════════════════════════════════════════════════
+
+/// GTTX 幔组子类型码 (4-bit, 编码到 SMRL 单元 D5[19..16])
+/// 同一 GTITX 基类型下,以不同"幔"字组区分具体行脚几何
+pub mod man_group {
+    /// 辐圈幔: 由辐射构成的圈层幔 (辐射为骨,圈层包裹)
+    pub const FU_QUAN: u8 = 0x0;
+    /// 幔圈辐射: 幔圈向外辐射 (幔为主壳,向外射出)
+    pub const MAN_QUAN: u8 = 0x1;
+    /// 幔球辐射: 球形的幔向外辐射 (完整球壳,均匀辐射)
+    pub const MAN_QIU: u8 = 0x2;
+    /// 幔裙辐射: 裙状的幔 (扇形展开,底部宽口)
+    pub const MAN_QUN: u8 = 0x3;
+    /// 幔壳辐射: 壳状包裹 (硬壳几何,曲面反射)
+    pub const MAN_KE: u8 = 0x4;
+    /// 幔全辐射: 全包裹辐射 (360° 无死角包裹)
+    pub const MAN_QUAN_ALL: u8 = 0x5;
+    /// 幔群辐射: 群簇状 (多点簇状辐射,非单核心)
+    pub const MAN_QUN_GROUP: u8 = 0x6;
+    /// 幔曲辐射: 曲线型 (陈漫以星球为圈层的螺旋展开) ★ 默认/原始形态
+    pub const MAN_QU: u8 = 0x7;
+    /// 幔妻辐射: 妻/伴侣缠绕形态 (耦合双螺旋,彼此包裹)
+    pub const MAN_QI: u8 = 0x8;
+    /// 幔穹辐射: 穹顶状 (半球形,顶部汇聚)
+    pub const MAN_QIONG: u8 = 0x9;
+    /// 幔躯辐射: 躯干状 (人体工学,沿躯干包覆)
+    pub const MAN_QU_SHEN: u8 = 0xA;
+    /// 幔枪辐射: 枪/刺状 (定向辐射,尖锐指向)
+    pub const MAN_QIANG: u8 = 0xB;
+
+    /// 根据子类型ID返回其描述
+    pub fn describe(sub: u8) -> &'static str {
+        match sub {
+            FU_QUAN      => "辐圈幔:辐射为骨,圈层包裹",
+            MAN_QUAN     => "幔圈辐射:幔壳为主,向外射出",
+            MAN_QIU      => "幔球辐射:完整球壳,均匀辐射",
+            MAN_QUN      => "幔裙辐射:扇形展开,底部宽口",
+            MAN_KE       => "幔壳辐射:硬壳几何,曲面反射",
+            MAN_QUAN_ALL => "幔全辐射:360° 全包裹",
+            MAN_QUN_GROUP=> "幔群辐射:多点簇状,非单核心",
+            MAN_QU       => "幔曲辐射:陈漫螺旋曲线 (原始形态)",
+            MAN_QI       => "幔妻辐射:伴侣双螺旋缠绕",
+            MAN_QIONG    => "幔穹辐射:半球形,顶部汇聚",
+            MAN_QU_SHEN  => "幔躯辐射:躯干状包覆",
+            MAN_QIANG    => "幔枪辐射:定向尖锐辐射",
+            _            => "未知子类型",
+        }
+    }
+
+    /// 返回对应的汉字幔形标签
+    pub fn label(sub: u8) -> &'static str {
+        match sub {
+            FU_QUAN      => "辐圈幔",
+            MAN_QUAN     => "幔圈辐射",
+            MAN_QIU      => "幔球辐射",
+            MAN_QUN      => "幔裙辐射",
+            MAN_KE       => "幔壳辐射",
+            MAN_QUAN_ALL => "幔全辐射",
+            MAN_QUN_GROUP=> "幔群辐射",
+            MAN_QU       => "幔曲辐射",
+            MAN_QI       => "幔妻辐射",
+            MAN_QIONG    => "幔穹辐射",
+            MAN_QU_SHEN  => "幔躯辐射",
+            MAN_QIANG    => "幔枪辐射",
+            _            => "未知",
+        }
+    }
+
+    /// 该子类型的行脚轨迹参数 (影响可视化时的半径曲线/层数/极性)
+    pub fn params(sub: u8) -> super::ManParams {
+        match sub {
+            FU_QUAN      => super::ManParams { turns: 4, polarity: -1, core_ratio: 0.2, desc: "辐射骨,圈层紧裹" },
+            MAN_QUAN     => super::ManParams { turns: 3, polarity:  1, core_ratio: 0.3, desc: "幔壳向外射出" },
+            MAN_QIU      => super::ManParams { turns: 2, polarity:  1, core_ratio: 0.0, desc: "完整球壳均匀" },
+            MAN_QUN      => super::ManParams { turns: 1, polarity:  1, core_ratio: 0.5, desc: "扇面展开" },
+            MAN_KE       => super::ManParams { turns: 2, polarity: -1, core_ratio: 0.1, desc: "硬壳反射" },
+            MAN_QUAN_ALL => super::ManParams { turns: 5, polarity:  1, core_ratio: 0.0, desc: "无死角包裹" },
+            MAN_QUN_GROUP=> super::ManParams { turns: 3, polarity: -1, core_ratio: 0.4, desc: "多点簇状" },
+            MAN_QU       => super::ManParams { turns: 3, polarity: -1, core_ratio: 0.3, desc: "陈默曲线螺旋" },
+            MAN_QI       => super::ManParams { turns: 4, polarity:  1, core_ratio: 0.2, desc: "双螺旋缠绕" },
+            MAN_QIONG    => super::ManParams { turns: 2, polarity:  1, core_ratio: 0.4, desc: "穹顶汇聚" },
+            MAN_QU_SHEN  => super::ManParams { turns: 2, polarity: -1, core_ratio: 0.3, desc: "躯干包覆" },
+            MAN_QIANG    => super::ManParams { turns: 1, polarity:  1, core_ratio: 0.7, desc: "尖锐指向" },
+            _            => super::ManParams { turns: 3, polarity: -1, core_ratio: 0.3, desc: "默认" },
+        }
+    }
+}
+
+/// 幔组行脚参数 (影响可视化)
+#[derive(Clone, Copy, Debug)]
+pub struct ManParams {
+    pub turns: u8,        // 螺旋圈数
+    pub polarity: i8,     // 极化方向
+    pub core_ratio: f64,  // 核心半径比 (0=从中心开始,0.5=从半半径开始)
+    pub desc: &'static str,
+}
+
+/// HTTP 行业行角子类型 (para-row 下的具体段落几何)
+pub mod hang_corner {
+    pub const DEFAULT: u8 = 0x0;   // 通用段落
+    pub const API: u8 = 0x1;       // API 风格 (请求/响应缩进)
+    pub const HTML: u8 = 0x2;      // HTML 标签嵌套
+    pub const JSON: u8 = 0x3;      // JSON 嵌套
+    pub const MARKDOWN: u8 = 0x4;  // Markdown 标题段落
+    pub const TEXT_PLAIN: u8 = 0x5;// 纯文本平铺
+
+    pub fn describe(sub: u8) -> &'static str {
+        match sub {
+            DEFAULT    => "通用段落行角",
+            API        => "API段落 (req/resp 缩进)",
+            HTML       => "HTML标签嵌套段落",
+            JSON       => "JSON嵌套段落",
+            MARKDOWN   => "Markdown标题层级",
+            TEXT_PLAIN => "纯文本平铺段落",
+            _          => "未知行业段落",
+        }
+    }
+
+    pub fn label(sub: u8) -> &'static str {
+        match sub {
+            DEFAULT    => "通用",
+            API        => "API",
+            HTML       => "HTML",
+            JSON       => "JSON",
+            MARKDOWN   => "Markdown",
+            TEXT_PLAIN => "纯文本",
+            _          => "未知",
+        }
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════════
 // 编码辅助函数
 // ══════════════════════════════════════════════════════════════════════
 
@@ -586,5 +719,24 @@ mod tests {
         assert_eq!(<GLayers as LayerSet>::CODES, &[0x00]);
         assert_eq!(<CPLayers as LayerSet>::COUNT, 3);
         assert_eq!(<GTITXLayers as LayerSet>::COUNT, 4);
+    }
+
+    #[test]
+    fn test_man_group_all() {
+        for sub in 0u8..12 {
+            let label = man_group::label(sub);
+            let desc = man_group::describe(sub);
+            let _p = man_group::params(sub);
+            assert!(!label.is_empty());
+            assert!(!desc.is_empty());
+            assert_ne!(label, "未知");
+        }
+    }
+
+    #[test]
+    fn test_man_qu_defaults() {
+        let p = man_group::params(0x7);
+        assert_eq!(p.turns, 3);
+        assert_eq!(p.polarity, -1);
     }
 }

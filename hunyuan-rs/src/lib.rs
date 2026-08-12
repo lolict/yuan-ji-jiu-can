@@ -207,6 +207,10 @@ pub use protocol_ontology::{
     HTTPLayers, HTTPSLayers, TCPLayers, CPLayers, FTPLayers,
 };
 pub use protocol_ontology::custom_names::CustomProtocolId;
+// v0.10 幔组子类型 (GTTX 十二种辐射形态 + HTTP 行业行角)
+pub use protocol_ontology::man_group;
+pub use protocol_ontology::hang_corner;
+pub use protocol_ontology::ManParams;
 
 // v0.6 谐音协议
 pub use gtt::{GttDomain, HomophoneAnchor, AnchorPolarity, GlyphGeometry, ResonanceEngine, ResonanceHit, SymbiosisSequence};
