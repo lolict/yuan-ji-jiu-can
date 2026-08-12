@@ -262,6 +262,22 @@ pub const WasmGen = struct {
                 try self.emitExpression(buf, ia.object);
                 try self.emitExpression(buf, ia.index);
             },
+            .match_expr => |m| {
+                // 简化：只生成 target 的代码和第一个 arm 的 body
+                try self.emitExpression(buf, m.target);
+                if (m.arms.len > 0) {
+                    try self.emitExpression(buf, m.arms[0].body);
+                }
+            },
+            .cast_expr => |c| {
+                // 类型转换：生成操作数代码
+                try self.emitExpression(buf, c.operand);
+            },
+            .variant_access => {
+                // 枚举变体访问：用 i32.const + 索引（简化）
+                try buf.append(0x41); // i32.const
+                try emitLEB128(buf, 0); // 占位索引
+            },
         }
     }
 
@@ -293,6 +309,8 @@ fn typeToWasm(typ: Ast.Type) !u8 {
         .void => 0x40,
         .cell, .coord, .symbol, .angle, .stride => 0x7F, // i32
         .surface, .scene => 0x7F, // i32 (引用)
+        .enumerated, .interfaced => 0x7F, // i32 (标签索引)
+        .generic => 0x7F, // i32 (泛型实例化)
         .function => 0x7F,
     };
 }

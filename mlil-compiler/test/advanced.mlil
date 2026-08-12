@@ -1,0 +1,66 @@
+// advanced.mlil — 测试 mlil 编译器的新特性
+// 枚举、接口、impl、match、类型别名
+
+// —— 枚举定义 ——
+enum Color {
+    Red = 0,
+    Green = 1,
+    Blue = 2,
+}
+
+enum State {
+    Idle,
+    Running,
+    Done,
+}
+
+// —— 接口定义 ——
+interface Printable {
+    fn print() -> void,
+    fn to_string() -> cell,
+}
+
+interface Serializable {
+    fn serialize() -> cell,
+}
+
+// —— 类型别名 ——
+type Int = cell;
+type Handler = cell;
+
+// —— Surface 定义 ——
+surface Pixel {
+    x: cell,
+    y: cell,
+    color: cell,
+}
+
+// —— 实现 impl 块 ——
+impl Pixel for Printable {
+    fn print() -> void {
+        return
+    }
+    fn to_string() -> cell {
+        return 42
+    }
+}
+
+// —— 导出函数（使用 enum/match） ——
+export fn match_color(c: cell) -> cell {
+    match c {
+        0 => 100,
+        1 => 200,
+        _ => 0,
+    }
+}
+
+export fn main() -> cell {
+    let x: cell = 10
+    let y: cell = 20
+    let result: cell = add(x, y)
+    return result
+}
+
+fn add(a: cell, b: cell) -> cell {
+    return a + b
+}

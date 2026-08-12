@@ -1,0 +1,87 @@
+// stdlib.mlil — mlil 标准库
+// 提供基本的类型定义和内置函数
+
+// —— 基础类型别名 ——
+type cell = cell;
+type void = void;
+type angle = angle;
+type coord = coord;
+type symbol = symbol;
+type stride = stride;
+
+// —— 单元类型（类似 None/null） ——
+enum Option {
+    None,
+    Some,
+}
+
+// —— Result 类型 ——
+enum Result {
+    Ok,
+    Err,
+}
+
+// —— 内置接口 ——
+interface Default {
+    fn default() -> cell,
+}
+
+interface Clone {
+    fn clone() -> cell,
+}
+
+interface Eq {
+    fn eq(other: cell) -> cell,
+}
+
+interface Ord {
+    fn cmp(other: cell) -> cell,
+}
+
+// —— 输出函数 ——
+export fn print(x: cell) -> void {
+    return
+}
+
+export fn print_char(c: cell) -> void {
+    return
+}
+
+// —— 数学函数 ——
+export fn abs(x: cell) -> cell {
+    return x
+}
+
+export fn min(a: cell, b: cell) -> cell {
+    return a
+}
+
+export fn max(a: cell, b: cell) -> cell {
+    return a
+}
+
+// —— 转换函数 ——
+export fn to_angle(degrees: cell) -> angle {
+    return 60°
+}
+
+export fn to_cell(x: angle) -> cell {
+    return 1
+}
+
+export fn to_coord(x: cell, y: cell, z: cell) -> coord {
+    return [0, 0, 0]
+}
+
+// —— 内存函数 ——
+export fn alloc(size: cell) -> cell {
+    return 0
+}
+
+export fn free(ptr: cell) -> void {
+    return
+}
+
+export fn copy(dest: cell, src: cell, len: cell) -> void {
+    return
+}

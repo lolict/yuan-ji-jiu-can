@@ -8,16 +8,18 @@ const Allocator = std.mem.Allocator;
 /// 每种类型都映射到满全法的某个"表面属性"
 pub const Type = enum(u8) {
     void,           // 无返回
-    cell,           // 64 位单元格 — 满全法基本单位
-    coord,          // 坐标 (x,y,z)
-    symbol,         // 64 符号 (0..63)
-    angle,          // 角度 (0..378, 每 6° 一档)
-    stride,         // 阶梯进制数 (sheet, symbol)
+    cell,           // 64 位单元格
+    coord,          // 坐标
+    symbol,         // 64 符号
+    angle,          // 角度
+    stride,         // 阶梯进制数
     surface,        // 表面 (结构体实例)
-    scene,          // 场景 (可执行界面)
-    function,       // 函数类型 (参数 → 返回)
+    scene,          // 场景
+    function,       // 函数类型
+    enumerated,     // 枚举类型
+    interfaced,     // 接口
+    generic,        // 泛型参数
 
-    /// 类型名称 (用于调试和错误信息)
     pub fn name(self: Type) []const u8 {
         return switch (self) {
             .void => "void",
@@ -29,6 +31,9 @@ pub const Type = enum(u8) {
             .surface => "surface",
             .scene => "scene",
             .function => "fn",
+            .enumerated => "enum",
+            .interfaced => "interface",
+            .generic => "generic",
         };
     }
 };
@@ -113,6 +118,18 @@ pub const Expr = union(enum) {
         object: *Expr,
         index: *Expr,
     },
+    match_expr: struct {
+        target: *Expr,
+        arms: []*MatchArm,
+    },
+    cast_expr: struct {
+        operand: *Expr,
+        target_type: Type,
+    },
+    variant_access: struct {
+        enum_name: []const u8,
+        variant: []const u8,
+    },
 
     /// 释放表达式内存
     pub fn deinit(self: *Expr, alloc: Allocator) void {
@@ -143,6 +160,22 @@ pub const Expr = union(enum) {
                 alloc.destroy(a.object);
                 a.index.deinit(alloc);
                 alloc.destroy(a.index);
+            },
+            .match_expr => |m| {
+                m.target.deinit(alloc);
+                alloc.destroy(m.target);
+                for (m.arms) |arm| {
+                    arm.pattern.deinit(alloc);
+                    alloc.destroy(arm.pattern);
+                    arm.body.deinit(alloc);
+                    alloc.destroy(arm.body);
+                    alloc.destroy(arm);
+                }
+                alloc.free(m.arms);
+            },
+            .cast_expr => |c| {
+                c.operand.deinit(alloc);
+                alloc.destroy(c.operand);
             },
             else => {},
         }
@@ -189,6 +222,25 @@ pub const Stmt = union(enum) {
     scene_def: struct {
         name: []const u8,
         entries: []*Stmt,
+    },
+    enum_def: struct {
+        name: []const u8,
+        variants: []Variant,
+        generics: []GenericParam,
+    },
+    interface_def: struct {
+        name: []const u8,
+        methods: []InterfaceMethod,
+        generics: []GenericParam,
+    },
+    impl_block: struct {
+        type_name: []const u8,
+        interface_name: ?[]const u8,
+        methods: []*Stmt,  // export_fn 语句
+    },
+    type_alias: struct {
+        name: []const u8,
+        target_type: Type,
     },
 
     /// 释放语句内存
@@ -259,6 +311,27 @@ pub const Stmt = union(enum) {
                 }
                 alloc.free(sc.entries);
             },
+            .enum_def => |e| {
+                alloc.free(e.variants);
+                alloc.free(e.generics);
+            },
+            .interface_def => |i| {
+                for (i.methods) |m| {
+                    alloc.free(m.params);
+                }
+                alloc.free(i.methods);
+                alloc.free(i.generics);
+            },
+            .impl_block => |imp| {
+                for (imp.methods) |s| {
+                    s.deinit(alloc);
+                    alloc.destroy(s);
+                }
+                alloc.free(imp.methods);
+            },
+            .type_alias => {
+                // 无堆分配字段
+            },
         }
     }
 };
@@ -273,6 +346,31 @@ pub const Param = struct {
 pub const Field = struct {
     name: []const u8,
     typ: Type,
+};
+
+/// 枚举变体
+pub const Variant = struct {
+    name: []const u8,
+    value: ?i64,  // 可选显式值
+};
+
+/// 接口方法签名
+pub const InterfaceMethod = struct {
+    name: []const u8,
+    params: []Param,
+    return_type: Type,
+};
+
+/// 泛型参数
+pub const GenericParam = struct {
+    name: []const u8,
+    constraint: ?[]const u8,  // 可选接口约束
+};
+
+/// 匹配臂 (for match expressions)
+pub const MatchArm = struct {
+    pattern: *Expr,      // 匹配模式
+    body: *Expr,         // 执行体
 };
 
 /// 完整的 mlil 模块 (顶层 AST)

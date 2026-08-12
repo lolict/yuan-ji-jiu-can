@@ -179,6 +179,11 @@ pub const Lexer = struct {
                     self.col += 1;
                     break :blk .op_eq;
                 }
+                if (self.pos < self.source.len and self.source[self.pos] == '>') {
+                    self.pos += 1;
+                    self.col += 1;
+                    break :blk .op_fat_arrow;
+                }
                 break :blk .op_assign;
             },
             '!' => blk: {

@@ -37,6 +37,13 @@ pub const TokenType = enum(u8) {
     kw_in,            // in — 迭代
     kw_return,        // return — 返回
     kw_self,          // self — 自身引用
+    kw_enum,          // enum — 枚举类型
+    kw_interface,     // interface — 接口
+    kw_impl,          // impl — 实现
+    kw_type,          // type — 类型别名
+    kw_match,         // match — 模式匹配
+    kw_as,            // as — 类型转换
+    kw_struct,        // struct — 结构体（surface 的别名）
 
     // ── 运算符 ──
     op_plus,          // +
@@ -45,6 +52,7 @@ pub const TokenType = enum(u8) {
     op_slash,         // /
     op_percent,       // %
     op_arrow,         // ->
+    op_fat_arrow,     // => (for match arms)
     op_assign,        // =
     op_eq,            // ==
     op_ne,            // !=
@@ -78,6 +86,8 @@ pub const TokenType = enum(u8) {
             .kw_module, .kw_import, .kw_surface, .kw_scene,
             .kw_fn, .kw_export, .kw_let, .kw_mut,
             .kw_if, .kw_else, .kw_for, .kw_in, .kw_return, .kw_self,
+            .kw_enum, .kw_interface, .kw_impl, .kw_type, .kw_match,
+            .kw_as, .kw_struct,
             => true,
             else => false,
         };
@@ -114,6 +124,13 @@ pub fn initKeywords() !std.StringHashMap(TokenType) {
     try map.put("in", .kw_in);
     try map.put("return", .kw_return);
     try map.put("self", .kw_self);
+    try map.put("enum", .kw_enum);
+    try map.put("interface", .kw_interface);
+    try map.put("impl", .kw_impl);
+    try map.put("type", .kw_type);
+    try map.put("match", .kw_match);
+    try map.put("as", .kw_as);
+    try map.put("struct", .kw_struct);
     try map.put("and", .op_and);
     try map.put("or", .op_or);
     try map.put("not", .op_not);

@@ -168,3 +168,163 @@ test "end-to-end compile angle function" {
     try testing.expect(bytes.len > 8);
     try testing.expectEqual(@as(u8, 0x6D), bytes[3]); // 'm' in \0asm
 }
+
+// ── 新特性测试 ──
+
+test "parse enum definition" {
+    const source =
+        \\enum Color {
+        \\    Red = 0,
+        \\    Green = 1,
+        \\    Blue = 2,
+        \\}
+    ;
+    var alloc = testing.allocator;
+
+    var lexer = try Lexer.init(alloc, source);
+    defer lexer.deinit();
+
+    var parser = try Parser.init(alloc, &lexer);
+    const module = try parser.parseModule("test_enum");
+    defer {
+        module.deinit();
+        alloc.destroy(module);
+    }
+
+    try testing.expectEqual(@as(usize, 1), module.stmts.len);
+    try testing.expectEqualStrings("Color", module.stmts[0].enum_def.name);
+    try testing.expectEqual(@as(usize, 3), module.stmts[0].enum_def.variants.len);
+}
+
+test "parse interface definition" {
+    const source =
+        \\interface Printable {
+        \\    fn print() -> void
+        \\    fn to_string() -> cell
+        \\}
+    ;
+    var alloc = testing.allocator;
+
+    var lexer = try Lexer.init(alloc, source);
+    defer lexer.deinit();
+
+    var parser = try Parser.init(alloc, &lexer);
+    const module = try parser.parseModule("test_iface");
+    defer {
+        module.deinit();
+        alloc.destroy(module);
+    }
+
+    try testing.expectEqual(@as(usize, 1), module.stmts.len);
+    try testing.expectEqualStrings("Printable", module.stmts[0].interface_def.name);
+    try testing.expectEqual(@as(usize, 2), module.stmts[0].interface_def.methods.len);
+}
+
+test "parse impl block" {
+    const source =
+        \\impl Pixel for Printable {
+        \\    fn print() -> void {
+        \\        return
+        \\    }
+        \\}
+    ;
+    var alloc = testing.allocator;
+
+    var lexer = try Lexer.init(alloc, source);
+    defer lexer.deinit();
+
+    var parser = try Parser.init(alloc, &lexer);
+    const module = try parser.parseModule("test_impl");
+    defer {
+        module.deinit();
+        alloc.destroy(module);
+    }
+
+    try testing.expectEqual(@as(usize, 1), module.stmts.len);
+    try testing.expectEqualStrings("Pixel", module.stmts[0].impl_block.type_name);
+}
+
+test "parse type alias" {
+    const source =
+        \\type Int = cell
+    ;
+    var alloc = testing.allocator;
+
+    var lexer = try Lexer.init(alloc, source);
+    defer lexer.deinit();
+
+    var parser = try Parser.init(alloc, &lexer);
+    const module = try parser.parseModule("test_type");
+    defer {
+        module.deinit();
+        alloc.destroy(module);
+    }
+
+    try testing.expectEqual(@as(usize, 1), module.stmts.len);
+    try testing.expectEqualStrings("Int", module.stmts[0].type_alias.name);
+}
+
+test "parse match expression" {
+    const source =
+        \\export fn classify(x: cell) -> cell {
+        \\    return match x {
+        \\        0 => 100,
+        \\        1 => 200,
+        \\    }
+        \\}
+    ;
+    var alloc = testing.allocator;
+
+    var lexer = try Lexer.init(alloc, source);
+    defer lexer.deinit();
+
+    var parser = try Parser.init(alloc, &lexer);
+    const module = try parser.parseModule("test_match");
+    defer {
+        module.deinit();
+        alloc.destroy(module);
+    }
+
+    try testing.expectEqual(@as(usize, 1), module.stmts.len);
+    try testing.expect(module.stmts[0].export_fn.body.len > 0);
+}
+
+test "advanced module with enum and impl" {
+    const source =
+        \\enum Color {
+        \\    Red,
+        \\    Green,
+        \\    Blue,
+        \\}
+        \\type Int = cell
+        \\export fn main() -> cell {
+        \\    let x: cell = 42
+        \\    return x
+        \\}
+    ;
+    var alloc = testing.allocator;
+
+    var lexer = try Lexer.init(alloc, source);
+    defer lexer.deinit();
+
+    var parser = try Parser.init(alloc, &lexer);
+    const module = try parser.parseModule("advanced");
+    defer {
+        module.deinit();
+        alloc.destroy(module);
+    }
+
+    var gen = WasmGen.init(alloc);
+    defer gen.deinit();
+
+    const bytes = try gen.generate(module);
+
+    // 验证 WASM 魔数
+    try testing.expectEqual(@as(u8, 0x00), bytes[0]);
+    try testing.expectEqual(@as(u8, 0x61), bytes[1]);
+    try testing.expectEqual(@as(u8, 0x73), bytes[2]);
+    try testing.expectEqual(@as(u8, 0x6D), bytes[3]);
+
+    // 3 个顶层语句: enum + type + export fn
+    try testing.expectEqual(@as(usize, 3), module.stmts.len);
+}

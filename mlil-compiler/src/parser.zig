@@ -85,10 +85,14 @@ pub const Parser = struct {
     /// 解析顶层语句
     fn parseTopLevel(self: *Parser) Error!*Ast.Stmt {
         switch (self.current.typ) {
-            .kw_surface => return self.parseSurface(),
+            .kw_surface, .kw_struct => return self.parseSurface(),
             .kw_scene => return self.parseScene(),
             .kw_export => return self.parseExportFn(),
             .kw_fn => return self.parseFn(),
+            .kw_enum => return self.parseEnum(),
+            .kw_interface => return self.parseInterface(),
+            .kw_impl => return self.parseImpl(),
+            .kw_type => return self.parseTypeAlias(),
             else => {
                 std.log.err("mlil parse error: unexpected top-level token {s} at line {}", .{
                     @tagName(self.current.typ), self.current.line,
@@ -252,6 +256,11 @@ pub const Parser = struct {
         defer body.deinit();
 
         while (self.current.typ != .rbrace) {
+            // 跳过语句间的换行
+            while (self.current.typ == .newline) {
+                try self.advance();
+            }
+            if (self.current.typ == .rbrace) break;
             const stmt = try self.parseStatement();
             try body.append(stmt);
         }
@@ -278,8 +287,10 @@ pub const Parser = struct {
         if (std.mem.eql(u8, name, "angle")) return .angle;
         if (std.mem.eql(u8, name, "stride")) return .stride;
         if (std.mem.eql(u8, name, "void")) return .void;
-        // 自定义类型
-        return .surface; // 默认为 surface 引用
+        if (std.mem.eql(u8, name, "enum")) return .enumerated;
+        if (std.mem.eql(u8, name, "interface")) return .interfaced;
+        // 自定义类型（包括枚举和接口的引用）
+        return .surface;
     }
 
     /// 解析语句
@@ -311,7 +322,7 @@ pub const Parser = struct {
         }
     }
 
-    /// 解析 let 绑定
+    /// 解析 let 绑定 (支持类型注解: let x: type = expr)
     fn parseLet(self: *Parser) Error!*Ast.Stmt {
         try self.expect(.kw_let);
 
@@ -322,6 +333,13 @@ pub const Parser = struct {
         }
 
         const name = try self.expectToken(.identifier);
+
+        // 可选的类型注解: : type
+        if (self.current.typ == .op_colon) {
+            try self.advance();
+            _ = try self.parseType();
+        }
+
         try self.expect(.op_assign);
         const init_expr = try self.parseExpression();
 
@@ -339,7 +357,8 @@ pub const Parser = struct {
         try self.expect(.kw_return);
         var return_expr: ?*Ast.Expr = null;
 
-        if (self.current.typ != .rbrace and self.current.typ != .newline) {
+        // 只在下一个 token 不是 } 或 newline 时才解析返回值
+        if (self.current.typ != .rbrace and self.current.typ != .newline and self.current.typ != .eof) {
             const expr = try self.parseExpression();
             return_expr = expr;
         }
@@ -611,6 +630,44 @@ pub const Parser = struct {
                 expr.* = .{ .ident = .{ .name = name } };
                 return expr;
             },
+            .kw_match => {
+                try self.advance();
+                const target = try self.parseExpression();
+                try self.expect(.lbrace);
+
+                var arms = std.ArrayList(*Ast.MatchArm).init(self.alloc);
+                defer arms.deinit();
+
+                while (self.current.typ == .newline) {
+                    try self.advance();
+                }
+
+                while (self.current.typ != .rbrace and self.current.typ != .eof) {
+                    const pattern = try self.parseExpression();
+                    try self.expect(.op_fat_arrow);
+                    const body = try self.parseExpression();
+
+                    const arm = try self.alloc.create(Ast.MatchArm);
+                    arm.* = .{ .pattern = pattern, .body = body };
+                    try arms.append(arm);
+
+                    if (self.current.typ == .op_comma) {
+                        try self.advance();
+                    }
+                    while (self.current.typ == .newline) {
+                        try self.advance();
+                    }
+                }
+
+                try self.expect(.rbrace);
+
+                const expr = try self.alloc.create(Ast.Expr);
+                expr.* = .{ .match_expr = .{
+                    .target = target,
+                    .arms = try arms.toOwnedSlice(),
+                } };
+                return expr;
+            },
             .lparen => {
                 try self.advance();
                 const expr = try self.parseExpression();
@@ -624,6 +681,194 @@ pub const Parser = struct {
                 return error.UnexpectedToken;
             },
         }
+    }
+
+    /// 解析枚举定义
+    fn parseEnum(self: *Parser) Error!*Ast.Stmt {
+        try self.expect(.kw_enum);
+        const name = try self.expectToken(.identifier);
+
+        // 泛型参数（简化：跳过 <...> ）
+        if (self.current.typ == .op_lt) {
+            try self.advance();
+            while (self.current.typ != .op_gt) {
+                try self.advance();
+            }
+            try self.expect(.op_gt);
+        }
+
+        try self.expect(.lbrace);
+
+        var variants = std.ArrayList(Ast.Variant).init(self.alloc);
+        defer variants.deinit();
+
+        while (self.current.typ == .newline) {
+            try self.advance();
+        }
+
+        while (self.current.typ != .rbrace) {
+            const vname = try self.expectToken(.identifier);
+            var value: ?i64 = null;
+            if (self.current.typ == .op_assign) {
+                try self.advance();
+                const vstr = try self.expectToken(.int_literal);
+                value = try std.fmt.parseInt(i64, vstr, 10);
+            }
+            try variants.append(.{ .name = vname, .value = value });
+
+            if (self.current.typ == .op_comma) {
+                try self.advance();
+            }
+            while (self.current.typ == .newline) {
+                try self.advance();
+            }
+        }
+
+        try self.expect(.rbrace);
+
+        const stmt = try self.alloc.create(Ast.Stmt);
+        stmt.* = .{ .enum_def = .{
+            .name = name,
+            .variants = try variants.toOwnedSlice(),
+            .generics = &[_]Ast.GenericParam{},
+        } };
+        return stmt;
+    }
+
+    /// 解析接口定义
+    fn parseInterface(self: *Parser) Error!*Ast.Stmt {
+        try self.expect(.kw_interface);
+        const name = try self.expectToken(.identifier);
+        try self.expect(.lbrace);
+
+        var methods = std.ArrayList(Ast.InterfaceMethod).init(self.alloc);
+        defer methods.deinit();
+
+        while (self.current.typ == .newline) {
+            try self.advance();
+        }
+
+        while (self.current.typ != .rbrace) {
+            // interface 方法: fn name(params) -> ret
+            if (self.current.typ == .kw_fn) {
+                try self.advance(); // 消耗 fn
+            }
+            const mname = try self.expectToken(.identifier);
+            try self.expect(.lparen);
+
+            var params = std.ArrayList(Ast.Param).init(self.alloc);
+            defer params.deinit();
+
+            while (self.current.typ != .rparen) {
+                const pname = try self.expectToken(.identifier);
+                try self.expect(.op_colon);
+                const ptyp = try self.parseType();
+                try params.append(.{ .name = pname, .typ = ptyp });
+                if (self.current.typ == .op_comma) {
+                    try self.advance();
+                }
+            }
+            try self.expect(.rparen);
+
+            var ret_type: Ast.Type = .void;
+            if (self.current.typ == .op_arrow) {
+                try self.advance();
+                ret_type = try self.parseType();
+            }
+
+            try methods.append(.{
+                .name = mname,
+                .params = try params.toOwnedSlice(),
+                .return_type = ret_type,
+            });
+
+            // 接口方法之间可能有逗号
+            if (self.current.typ == .op_comma) {
+                try self.advance();
+            }
+
+            while (self.current.typ == .newline) {
+                try self.advance();
+            }
+        }
+
+        try self.expect(.rbrace);
+
+        const stmt = try self.alloc.create(Ast.Stmt);
+        stmt.* = .{ .interface_def = .{
+            .name = name,
+            .methods = try methods.toOwnedSlice(),
+            .generics = &[_]Ast.GenericParam{},
+        } };
+        return stmt;
+    }
+
+    /// 解析 impl 块
+    fn parseImpl(self: *Parser) Error!*Ast.Stmt {
+        try self.expect(.kw_impl);
+        const type_name = try self.expectToken(.identifier);
+
+        var interface_name: ?[]const u8 = null;
+        if (self.current.typ == .kw_for) {
+            try self.advance();
+            interface_name = try self.expectToken(.identifier);
+        }
+
+        try self.expect(.lbrace);
+
+        var methods = std.ArrayList(*Ast.Stmt).init(self.alloc);
+        defer methods.deinit();
+
+        while (self.current.typ == .newline) {
+            try self.advance();
+        }
+
+        while (self.current.typ != .rbrace) {
+            // impl 块内是函数定义 (以 fn 或 export 开头)
+            const method = try self.parseImplMethod();
+            try methods.append(method);
+            while (self.current.typ == .newline) {
+                try self.advance();
+            }
+        }
+
+        try self.expect(.rbrace);
+
+        const stmt = try self.alloc.create(Ast.Stmt);
+        stmt.* = .{ .impl_block = .{
+            .type_name = type_name,
+            .interface_name = interface_name,
+            .methods = try methods.toOwnedSlice(),
+        } };
+        return stmt;
+    }
+
+    /// 解析 impl 块中的方法（fn 或 export fn）
+    fn parseImplMethod(self: *Parser) Error!*Ast.Stmt {
+        // impl 块内可能以 export 或 fn 开头
+        if (self.current.typ == .kw_export) {
+            return self.parseExportFn();
+        }
+        if (self.current.typ == .kw_fn) {
+            return self.parseFn();
+        }
+        // 默认尝试 fn
+        return self.parseFn();
+    }
+
+    /// 解析类型别名
+    fn parseTypeAlias(self: *Parser) Error!*Ast.Stmt {
+        try self.expect(.kw_type);
+        const name = try self.expectToken(.identifier);
+        try self.expect(.op_assign);
+        const target = try self.parseType();
+
+        const stmt = try self.alloc.create(Ast.Stmt);
+        stmt.* = .{ .type_alias = .{
+            .name = name,
+            .target_type = target,
+        } };
+        return stmt;
     }
 
     /// 期望特定 token 并返回其 lexeme
