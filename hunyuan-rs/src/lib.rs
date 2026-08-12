@@ -139,6 +139,9 @@ pub use five_dimensional::{couple_spawn, is_couple, rho_decay, angle,
 pub mod yinyang_codec;
 pub use yinyang_codec::{YUYANG_MARK, FrameMode, Frame, YuYangCodec};
 
+// ── v0.21 编程语言工具链 · 角色-模块映射层 (toolchain_mapping) ──
+pub mod toolchain_mapping;
+
 // ── 对外 re-export ──
 
 // v0.4 基础层
