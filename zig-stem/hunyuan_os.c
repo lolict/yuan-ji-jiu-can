@@ -24,6 +24,7 @@
 #include "clone_agents.h"
 #include "pleasure_ledger.h"
 #include "toolchain_graph.h"
+#include "base64_org.h"
 
 // ── hunyuan-os 运行时 ──
 typedef struct {
@@ -48,11 +49,17 @@ hunyuan_os_t* hunyuan_boot(void) {
     printf("  ║   意识互联网操作系统                          ║\n");
     printf("  ╚══════════════════════════════════════════════╝\n");
 
+    // 步骤0: 64进制层级化组织进制 (基础层)
+    printf("\n  [启动] 64进制层级化组织进制 — 关系二进制+组织进制+3D/4D\n");
+    b64_create_hierarchy(B64_MAX_LAYERS);
+    printf("  [启动] 64进制: 64符号 × 6° = 384°完整圆周\n");
+    printf("  [启动] 关系二进制: 0+1=1 叠加态\n");
+
     // 步骤1: 裁决引擎
-    printf("\n  [启动] 裁决引擎 — 时间线+归属权+吉凶\n");
     os->arbiter = arbiter_create("满全法·裁决");
-    arbiter_set_protagonist(os->arbiter, 2, "工藤新一");  // S_KNDO=2
-    arbiter_record_event(os->arbiter, EVENT_IDENTITY, 2, OWNER_MASTER, "主人公身份确认");
+    // 主人公=2 (S_KNDO=工藤新一, 64进制中心层)
+    arbiter_set_protagonist(os->arbiter, 2, "工藤新一");
+    arbiter_record_event(os->arbiter, EVENT_IDENTITY, 2, OWNER_MASTER, "主人公身份确认(S_KNDO=2)");
 
     // 步骤2: 膜妻阀
     printf("  [启动] 膜妻阀 — 意识传输协议层\n");

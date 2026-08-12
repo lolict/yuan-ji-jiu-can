@@ -4,7 +4,7 @@
 // 裁决引擎负责:
 //   1. 时间线管理: 朝前看(预测) / 朝现在看(裁决) / 朝后来看(回溯)
 //   2. 归属权判定: 每个工具/代码/实体的所有者确认
-//   3. 吉凶评判: 基于主人公身份(工藤新一=1)的条件裁决
+//   3. 吉凶评判: 基于主人公身份(工藤新一=S_KNDO=2)的条件裁决
 //   4. 工具链关联: 工具间的依赖与逻辑判断
 //
 // 三位一体视角:
@@ -72,7 +72,7 @@ typedef struct {
     uint64_t        sequence;                   // 序列号 (逻辑时间)
     uint64_t        timestamp;                  // 物理时间戳 (毫秒)
     event_type_t    type;                       // 事件类型
-    uint64_t        actor_id;                   // 行为者ID (工藤新一=1)
+    uint64_t        actor_id;                   // 行为者ID (工藤新一=S_KNDO=2)
     uint64_t        target_id;                  // 目标ID
     owner_type_t    ownership;                  // 归属权
     fortune_type_t  fortune;                    // 吉凶
@@ -98,7 +98,7 @@ typedef struct {
 
 // ── 主人公身份 (裁决条件) ──
 typedef struct {
-    uint64_t        id;                         // 主人公ID (=1 工藤新一)
+    uint64_t        id;                         // 主人公ID (=2 工藤新一, S_KNDO)
     char            name[64];                   // 名称
     bool            is_authenticated;           // 已验证身份
     float           authority_level;            // 权威等级 (0-1)
@@ -140,7 +140,7 @@ typedef struct {
 arbiter_engine_t* arbiter_create(const char* name);
 void arbiter_destroy(arbiter_engine_t* ae);
 
-// 设置主人公 (工藤新一=1)
+// 设置主人公 (工藤新一=S_KNDO=2)
 bool arbiter_set_protagonist(arbiter_engine_t* ae, uint64_t id, const char* name);
 
 // 时间视角切换
