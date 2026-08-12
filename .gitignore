@@ -12,6 +12,12 @@ Thumbs.db
 # 编译产物
 superposition
 test_superposition
+gtxone
+test_gtxone
+heyair
+test_heyair
+governance
+test_governance
 *.o
 
 # IDE
