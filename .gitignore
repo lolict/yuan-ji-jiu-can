@@ -25,3 +25,5 @@ target/
 *.key
 *.pem
 .env
+.zig/
+zig-out/

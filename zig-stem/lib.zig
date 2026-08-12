@@ -12,13 +12,15 @@
 
 // comptime 块:编译期验证,零运行时开销
 comptime {
-    const EXPECTED_SYMBOLS: u8 = 64;
+    const EXPECTED_SYMBOLS: u16 = 64;
     const FULL_CIRCLE:     u16 = 384;
-    const PER_SYMBOL:      u8  = FULL_CIRCLE / EXPECTED_SYMBOLS;
+    const PER_SYMBOL:      u16 = 6;   // 384 / 64 = 6
 
-    if (PER_SYMBOL != 6)  @compileError("angle constant broken");
+    const actual_div = FULL_CIRCLE / EXPECTED_SYMBOLS;
+    if (actual_div != 6) @compileError("angle constant broken: 384/64 != 6");
+    if (PER_SYMBOL != 6) @compileError("angle constant broken: PER_SYMBOL != 6");
     if (EXPECTED_SYMBOLS * PER_SYMBOL != FULL_CIRCLE) {
-        @compileError("angle constant broken");
+        @compileError("angle constant broken: 64*6 != 384");
     }
 }
 
