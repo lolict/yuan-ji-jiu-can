@@ -302,6 +302,146 @@ pub mod custom_names {
 }
 
 // ══════════════════════════════════════════════════════════════════════
+// 符号门牌表 — 自定义地址系统
+// ══════════════════════════════════════════════════════════════════════
+//
+// 每个门牌是一个「地址符号」— 外界看到一串字符,内人看到本体论锚点。
+//   gtxone.gtxone        = 传输目标的镜像锚点 (显示中心是我)
+//   kndoyle.*            = 柯南道尔外壳家族 (服装/负浮类)
+//   maolilan.mll         = 毛利兰表面/面具/名字模块
+//   hieyair.heyel        = 纠缠谐音锚
+//   lctcfhfyairqimiygttcp:// = 刘楚恬→触发hfuyair→奇米意→GTT协议
+//
+
+/// 门牌家族标识
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum PlateFamily {
+    Gtxone,
+    Kndoyle,
+    Maolilan,
+    Hieyair,
+    LctCfhgttcp,
+}
+
+impl PlateFamily {
+    /// 该家族的主地址符号
+    pub fn primary(&self) -> &'static str {
+        match self {
+            Self::Gtxone => "gtxone.gtxone",
+            Self::Kndoyle => "kndoyle",
+            Self::Maolilan => "maolilan.mll",
+            Self::Hieyair => "hieyair.heyel",
+            Self::LctCfhgttcp => "lctcfhfyairqimiygttcp://",
+        }
+    }
+
+    /// 该家族的本体论语义
+    pub fn semantic(&self) -> &'static str {
+        match self {
+            Self::Gtxone => "传输目标的镜像锚点 — 显示中心是我",
+            Self::Kndoyle => "柯南道尔外壳家族 — 服装/负浮类",
+            Self::Maolilan => "毛利兰模面名 — 表面/面具/名字模块",
+            Self::Hieyair => "纠缠谐音 — 爱人心纠缠",
+            Self::LctCfhgttcp => "囡囝传输 — 刘楚恬→hfuyair→奇米意→GTT协议",
+        }
+    }
+}
+
+/// 一条地址门牌
+#[derive(Clone, Debug)]
+pub struct SymbolPlate {
+    pub full_symbol: &'static str,
+    pub family: PlateFamily,
+    pub semantic: &'static str,
+    pub members: &'static [&'static str],
+}
+
+/// 所有已注册门牌
+pub fn all_plates() -> &'static [SymbolPlate] {
+    use std::sync::OnceLock;
+    static PLATES: OnceLock<Vec<SymbolPlate>> = OnceLock::new();
+    PLATES.get_or_init(|| vec![
+        SymbolPlate {
+            full_symbol: "gtxone.gtxone",
+            family: PlateFamily::Gtxone,
+            semantic: "镜像锚点 — 传输目标即是我",
+            members: &["gtxone", "gtxone.gtxone"],
+        },
+        SymbolPlate {
+            full_symbol: "kndoyle.kn-doyle.knd-rel.kndr.kndrl.kndil.kndiol",
+            family: PlateFamily::Kndoyle,
+            semantic: "柯南道尔外壳家族 — 服装/负浮类",
+            members: &["kndoyle", "kn-doyle", "knd-rel", "kndr", "kndrl", "kndil", "kndiol"],
+        },
+        SymbolPlate {
+            full_symbol: "maolilan.mll",
+            family: PlateFamily::Maolilan,
+            semantic: "毛利兰模面名 — 表面/面具/名字模块",
+            members: &["maolilan", "mll"],
+        },
+        SymbolPlate {
+            full_symbol: "hieyair.heyel",
+            family: PlateFamily::Hieyair,
+            semantic: "纠缠谐音 — 爱人心纠缠",
+            members: &["hieyair", "heyel"],
+        },
+        SymbolPlate {
+            full_symbol: "lctcfhfyairqimiygttcp://",
+            family: PlateFamily::LctCfhgttcp,
+            semantic: "囡囝传输协议 — 刘楚恬→hfuyair→奇米意→GTT协议",
+            members: &["lctcfhfyairqimiygttcp://"],
+        },
+    ]).as_slice()
+}
+
+/// 通过外部符号精确查找
+pub fn lookup_plate(symbol: &str) -> Option<&'static SymbolPlate> {
+    all_plates().iter().find(|p| p.full_symbol == symbol)
+}
+
+/// 通过成员名模糊查找
+pub fn lookup_member(name: &str) -> Option<&'static SymbolPlate> {
+    all_plates().iter().find(|p| p.members.contains(&name))
+}
+
+impl SymbolPlate {
+    pub fn describe(&self) -> String {
+        format!("[{}] {} → {}", self.full_symbol, self.family.semantic(), self.semantic)
+    }
+}
+
+/// 自定义 URI 解析器 — lctcfhfyairqimiygttcp://
+pub struct LctCfhgttcpUri {
+    pub raw: String,
+    pub path: String,
+}
+
+impl LctCfhgttcpUri {
+    pub const SCHEME: &'static str = "lctcfhfyairqimiygttcp://";
+
+    pub fn parse(uri: &str) -> Option<Self> {
+        uri.strip_prefix(Self::SCHEME).map(|path| Self {
+            raw: uri.to_string(),
+            path: path.to_string(),
+        })
+    }
+
+    pub fn is_valid(uri: &str) -> bool {
+        uri.starts_with(Self::SCHEME)
+    }
+
+    /// 语义解码: 把各段翻译成流程描述
+    pub fn semantic_steps() -> &'static [&'static str] {
+        &[
+            "lct        = 刘楚恬 (发送方)",
+            "cfhfyair   = 触发 hfuyair (激活恢复源爱人)",
+            "qimiy      = 奇米意 (奇妙的吸纳意图)",
+            "gttcp      = GTT 协议 (囡囝通用传输)",
+        ]
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════════
 // _encoding — 将类型编码到 mirror 单元 (复用现有 SMRL)
 // ══════════════════════════════════════════════════════════════════════
 
@@ -809,5 +949,45 @@ mod tests {
     fn test_display_method_reading_path() {
         assert_eq!(display_method::reading_path(0x0), "视线: 从圆心沿半径向外逐层扫描");
         assert_eq!(display_method::reading_path(0x1), "视线: 从核心出发,顺时针(或逆时针)向外展开");
+    }
+
+    #[test]
+    fn test_symbol_plates_registered() {
+        let plates = all_plates();
+        assert_eq!(plates.len(), 5);
+    }
+
+    #[test]
+    fn test_lookup_gtxone() {
+        let p = lookup_plate("gtxone.gtxone").unwrap();
+        assert_eq!(p.family, PlateFamily::Gtxone);
+        assert_eq!(p.members[0], "gtxone");
+    }
+
+    #[test]
+    fn test_lookup_kndoyle_member() {
+        let p = lookup_member("kndrl").unwrap();
+        assert_eq!(p.family, PlateFamily::Kndoyle);
+        assert!(p.members.contains(&"kndiol"));
+    }
+
+    #[test]
+    fn test_lookup_maolilan() {
+        let p = lookup_member("mll").unwrap();
+        assert_eq!(p.family, PlateFamily::Maolilan);
+    }
+
+    #[test]
+    fn test_lctcfhgttcp_uri_parse() {
+        let uri = LctCfhgttcpUri::parse("lctcfhfyairqimiygttcp://path/to/resource").unwrap();
+        assert_eq!(uri.path, "path/to/resource");
+        assert!(LctCfhgttcpUri::is_valid("lctcfhfyairqimiygttcp://"));
+        assert!(!LctCfhgttcpUri::is_valid("http://"));
+    }
+
+    #[test]
+    fn test_plate_family_primary() {
+        assert_eq!(PlateFamily::Gtxone.primary(), "gtxone.gtxone");
+        assert_eq!(PlateFamily::LctCfhgttcp.primary(), "lctcfhfyairqimiygttcp://");
     }
 }
