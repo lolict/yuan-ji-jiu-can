@@ -29,6 +29,7 @@
 #include "smrrll_voice.h"
 #include "l0_compiler.h"
 #include "color_custom.h"
+#include "color_quant.h"
 
 // ── hunyuan-os 运行时 ──
 typedef struct {
@@ -296,6 +297,51 @@ void hunyuan_shutdown(hunyuan_os_t* os) {
         smv_get_hanzi(61), smv_get_pinyin(61), cc_get_color_name(61),
         smv_get_hanzi(62), smv_get_pinyin(62), cc_get_color_name(62));
     printf("  色系: R=暖(红) Y=光(黄) G=生(绿) B=冷(蓝) S=石(泽) L=韵(光)\n");
+    printf("  ═════════════════════════════\n");
+
+    // ── 全量化辅助状态变化引擎演示 ──
+    printf("\n  ═══ 全量化辅助状态变化引擎 ═══\n");
+    printf("  量化维度: 位置→状态 | 声色叠加 | 加法管辖乘法 | 三距离 | 不变量\n\n");
+
+    // 夫妻层(第0层): 妃(R0) 的量化状态
+    cq_state_t qs_couple = cq_state_from_position(0, 0);
+    printf("  [夫妻层] 妃(R0): 色相=%.1f° 音质=%.1f° 谱=%.3f 不变量=%.5f\n",
+        qs_couple.hue_angle, qs_couple.voice_angle, qs_couple.spectral, qs_couple.invariant);
+
+    // 中心层(第1层): 缃(Y0)
+    cq_state_t qs_center = cq_state_from_position(1, 0);
+    printf("  [中心层] 缃(Y0): 色相=%.1f° 音质=%.1f° 谱=%.3f 不变量=%.5f\n",
+        qs_center.hue_angle, qs_center.voice_angle, qs_center.spectral, qs_center.invariant);
+
+    // 终点(第5层第6列): 黟(L6)
+    cq_state_t qs_end = cq_state_from_position(5, 6);
+    printf("  [终点]   黟(L6): 色相=%.1f° 音质=%.1f° 谱=%.3f 不变量=%.5f\n",
+        qs_end.hue_angle, qs_end.voice_angle, qs_end.spectral, qs_end.invariant);
+
+    printf("\n  ── 距离度量 ──\n");
+    printf("  最短(一衡量): 妃=%.4f  缃=%.4f  黟=%.4f (归一化)\n",
+        qs_couple.dist_shortest, qs_center.dist_shortest, qs_end.dist_shortest);
+    printf("  总量(终点):   妃→黟=%.4f  缃→黟=%.4f  黟→黟=%.4f\n",
+        qs_couple.dist_total, qs_center.dist_total, qs_end.dist_total);
+    printf("  长量(静态):   384.0° (不变的已知总长)\n");
+
+    printf("\n  ── 加法管辖乘法 (254缺2→256) ──\n");
+    printf("  夫妻(0层)管中心(1层): %.4f\n", cq_addition_governs_multiplication(0, 1));
+    printf("  夫妻(0层)管终点(5层): %.4f (指数衰减)\n", cq_addition_governs_multiplication(0, 5));
+    printf("  累加到254: 缺%u (男女待合)\n", cq_power_gap(254.0f));
+    printf("  累加到256: 缺%u (2^8 = 夫妻共同体完成)\n", cq_power_gap(256.0f));
+
+    printf("\n  ── 声色叠加 (声音×颜色→色调转换) ──\n");
+    float blend = cq_voice_color_blend(SMV_KNDO, C_R2);
+    printf("  工(机=2) × 彤(R2) → 叠加色相=%.1f°\n", blend);
+    float shift = cq_hue_shift(SMV_KNDO, C_R2);
+    printf("  色调变化量: %.1f° (正值=正向转换)\n", shift);
+
+    printf("\n  ── 镜像对数 + 偏导数 ──\n");
+    printf("  妃(0°) 的镜像: %.1f° (关于180°对称)\n", cq_mirror_angle(qs_couple.hue_angle));
+    printf("  彤(%.1f°) 的镜像: %.1f°\n", qs_center.hue_angle, cq_mirror_angle(qs_center.hue_angle));
+    printf("  ∂hue/∂layer = 1/6 ≈ %.4f\n", cq_partial_derivative_layer(&qs_couple));
+    printf("  ∂hue/∂col   = 1/42 ≈ %.4f\n", cq_partial_derivative_col(&qs_couple));
     printf("  ═════════════════════════════\n");
 
     // 销毁
