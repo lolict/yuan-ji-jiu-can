@@ -33,6 +33,7 @@ test_arbiter
 test_perception_array
 test_smrrll_voice
 test_l0_compiler
+test_color_custom
 toolchain_graph
 test_toolchain_graph
 hunyuan_os
