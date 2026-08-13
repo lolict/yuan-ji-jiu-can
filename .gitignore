@@ -30,6 +30,7 @@ test_membrane_valve
 valve_demo
 arbiter
 test_arbiter
+test_perception_array
 toolchain_graph
 test_toolchain_graph
 hunyuan_os
