@@ -70,10 +70,10 @@ hunyuan_os_t* hunyuan_boot(void) {
     printf("  [启动] 64音质符号全部可发音 ✓\n");
 
     // 步骤0.9: 颜色定制进制 (每个符号绑定颜色)
-    printf("\n  [启动] 颜色定制进制 — 声母→色相/韵母→饱和/声调→明度\n");
+    printf("\n  [启动] 颜色定制进制 — 六系42色: 暖/光/生/冷/石/韵\n");
     int color_ok = 0;
     for (int i = 0; i < 64; i++) {
-        if (cc_get_color(i) != NULL) color_ok++;
+        if (cc_get_symbol_color(i) != NULL) color_ok++;
     }
     if (color_ok == 64) printf("  [启动] 64颜色符号全部着色 ✓\n");
 
@@ -279,32 +279,23 @@ void hunyuan_shutdown(hunyuan_os_t* os) {
     tcg_report(os->graph);
     pa_report(os->perception);
 
-    // 音质进制+颜色定制报表 (带ANSI颜色)
-    printf("\n  ═══ 声韵调音质进制 + 颜色定制 ═══\n");
-    printf("  64符号 = 64音节 = 64颜色\n");
-    printf("  夫妻层: ");
-    cc_print_colored(0, "啊"); printf("(");
-    cc_print_colored(0, smv_get_pinyin(0)); printf(") ");
-    cc_print_colored(1, "哦"); printf("(");
-    cc_print_colored(1, smv_get_pinyin(1)); printf(")\n");
-    printf("  中心层: ");
-    cc_print_colored(2, "工"); printf("(");
-    cc_print_colored(2, smv_get_pinyin(2)); printf(") ");
-    cc_print_colored(3, "空"); printf("(");
-    cc_print_colored(3, smv_get_pinyin(3)); printf(")\n");
-    printf("  感知层: ");
-    cc_print_colored(4, "灰"); printf("(");
-    cc_print_colored(4, smv_get_pinyin(4)); printf(") ");
-    cc_print_colored(5, "开"); printf("(");
-    cc_print_colored(5, smv_get_pinyin(5)); printf(")\n");
-    printf("  高维层: ");
-    cc_print_colored(60, "灵"); printf("(");
-    cc_print_colored(60, smv_get_pinyin(60)); printf(") ");
-    cc_print_colored(61, "魂"); printf("(");
-    cc_print_colored(61, smv_get_pinyin(61)); printf(") ");
-    cc_print_colored(62, "心"); printf("(");
-    cc_print_colored(62, smv_get_pinyin(62)); printf(")\n");
-    printf("  颜色维度: 声母→色相/韵母→饱和度/声调→明度\n");
+    // 音质进制+颜色定制报表 (传统六系42色)
+    printf("\n  ═══ 声韵调音质进制 + 六系42色 ═══\n");
+    printf("  64符号 = 64音节 = 六系42色\n");
+    printf("  夫妻层: %s(%s,%s) %s(%s,%s)\n",
+        smv_get_hanzi(0), smv_get_pinyin(0), cc_get_color_name(0),
+        smv_get_hanzi(1), smv_get_pinyin(1), cc_get_color_name(1));
+    printf("  中心层: %s(%s,%s) %s(%s,%s)\n",
+        smv_get_hanzi(2), smv_get_pinyin(2), cc_get_color_name(2),
+        smv_get_hanzi(3), smv_get_pinyin(3), cc_get_color_name(3));
+    printf("  感知层: %s(%s,%s) %s(%s,%s)\n",
+        smv_get_hanzi(4), smv_get_pinyin(4), cc_get_color_name(4),
+        smv_get_hanzi(5), smv_get_pinyin(5), cc_get_color_name(5));
+    printf("  高维层: %s(%s,%s) %s(%s,%s) %s(%s,%s)\n",
+        smv_get_hanzi(60), smv_get_pinyin(60), cc_get_color_name(60),
+        smv_get_hanzi(61), smv_get_pinyin(61), cc_get_color_name(61),
+        smv_get_hanzi(62), smv_get_pinyin(62), cc_get_color_name(62));
+    printf("  六系品质: 暖(红)/光(黄)/生(绿)/冷(蓝)/石(泽)/韵(光)\n");
     printf("  ═════════════════════════════\n");
 
     // 销毁

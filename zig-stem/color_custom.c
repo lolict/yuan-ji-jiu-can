@@ -1,336 +1,252 @@
-// color_custom.c — 颜色定制进制实现
-// 每个进制符号绑定一个颜色: 声母→色相, 韵母→饱和度, 声调→明度
+// color_custom.c — 六系42色颜色定制实现
+// 以人类传统色彩体系为进制: 暖/光/生/冷/石/韵
 
 #include "color_custom.h"
 #include <stdio.h>
-#include <math.h>
 #include <string.h>
 
-// ── 声母→色相分区 (384°圆周分为7区) ──
-// 每区占 384/7 ≈ 54.86°, 按发音部位从唇到喉排列
-static float shengmu_hue_base(smv_shengmu_t sm) {
-    switch (sm) {
-        case SM_B: case SM_P: case SM_M: case SM_F:
-            return 0.0f;        // 唇音 → 红色系 (0°)
-        case SM_D: case SM_T: case SM_N: case SM_L:
-            return 55.0f;       // 舌尖中 → 黄色系 (55°)
-        case SM_G: case SM_K: case SM_H:
-            return 110.0f;      // 舌根/喉 → 绿色系 (110°)
-        case SM_J: case SM_Q: case SM_X:
-            return 165.0f;      // 舌面 → 青色系 (165°)
-        case SM_ZH: case SM_CH: case SM_SH: case SM_R:
-            return 220.0f;      // 舌尖后 → 蓝色系 (220°)
-        case SM_Z: case SM_C: case SM_S:
-            return 275.0f;      // 舌尖前 → 紫色系 (275°)
-        case SM_Y: case SM_W:
-            return 330.0f;      // 半元音 → 粉色系 (330°)
-        case SM_ZERO:
-            return 360.0f;      // 零声母 → 白色/中性 (360°)
-        default:
-            return 0.0f;
-    }
-}
+// ── 42色完整定义 (名称+拼音+特质) ──
+static const cc_color_info_t color_info[CC_TOTAL_COLORS] = {
+    // ═══════════════════════════════════════
+    // 第1行: 红系(暖) — 妃粉彤赤棕绛赭
+    // ═══════════════════════════════════════
+    {CC_FEI,   CS_RED,   "妃", "fēi",  "暖", 0, 0},
+    {CC_FEN,   CS_RED,   "粉", "fěn",  "暖", 0, 1},
+    {CC_TONG,  CS_RED,   "彤", "tóng", "暖", 0, 2},
+    {CC_CHI,   CS_RED,   "赤", "chì",  "暖", 0, 3},
+    {CC_ZONG,  CS_RED,   "棕", "zōng", "暖", 0, 4},
+    {CC_JIANG, CS_RED,   "绛", "jiàng","暖", 0, 5},
+    {CC_ZHE,   CS_RED,   "赭", "zhě",  "暖", 0, 6},
 
-// ── 声母→色相偏移 (同一分区内的细微差异) ──
-static float shengmu_hue_offset(smv_shengmu_t sm) {
-    switch (sm) {
-        case SM_B:  return 0.0f;
-        case SM_P:  return 8.0f;
-        case SM_M:  return 16.0f;
-        case SM_F:  return 24.0f;
-        case SM_D:  return 0.0f;
-        case SM_T:  return 8.0f;
-        case SM_N:  return 16.0f;
-        case SM_L:  return 24.0f;
-        case SM_G:  return 0.0f;
-        case SM_K:  return 16.0f;
-        case SM_H:  return 32.0f;
-        case SM_J:  return 0.0f;
-        case SM_Q:  return 16.0f;
-        case SM_X:  return 32.0f;
-        case SM_ZH: return 0.0f;
-        case SM_CH: return 12.0f;
-        case SM_SH: return 24.0f;
-        case SM_R:  return 36.0f;
-        case SM_Z:  return 0.0f;
-        case SM_C:  return 16.0f;
-        case SM_S:  return 32.0f;
-        case SM_Y:  return 0.0f;
-        case SM_W:  return 24.0f;
-        case SM_ZERO: return 0.0f;
-        default: return 0.0f;
-    }
-}
+    // ═══════════════════════════════════════
+    // 第2行: 黄系(光) — 缃金黄褐黧乌黑
+    // ═══════════════════════════════════════
+    {CC_XIANG, CS_YELLOW,"缃", "xiāng","光", 1, 0},
+    {CC_JIN,   CS_YELLOW,"金", "jīn",  "光", 1, 1},
+    {CC_HUANG, CS_YELLOW,"黄", "huáng","光", 1, 2},
+    {CC_HE,    CS_YELLOW,"褐", "hè",   "光", 1, 3},
+    {CC_LI,    CS_YELLOW,"黧", "lí",   "光", 1, 4},
+    {CC_WU,    CS_YELLOW,"乌", "wū",   "光", 1, 5},
+    {CC_HEI,   CS_YELLOW,"黑", "hēi",  "光", 1, 6},
 
-// ── 韵母→饱和度 ──
-// 开口韵(a/o/e) → 高饱和, 合口韵(u/ü) → 低饱和, 鼻韵母 → 中饱和
-static float yunmu_saturation(smv_yunmu_t ym) {
-    switch (ym) {
-        case YM_A:  case YM_O:  case YM_E:
-            return 0.95f;       // 开口韵 → 高饱和
-        case YM_AI: case YM_EI: case YM_AO: case YM_OU:
-            return 0.85f;       // 复韵母 → 中高饱和
-        case YM_AN: case YM_EN: case YM_ANG: case YM_ENG:
-            return 0.70f;       // 前鼻韵 → 中饱和
-        case YM_IN: case YM_UN: case YM_ING: case YM_ONG:
-            return 0.60f;       // 后鼻韵 → 中低饱和
-        case YM_I:  case YM_U:  case YM_V:
-            return 0.50f;       // 闭口韵 → 低饱和
-        default:
-            return 0.65f;       // 其他 → 中等
-    }
-}
+    // ═══════════════════════════════════════
+    // 第3行: 绿系(生) — 缥翠绿青苍黛玄
+    // ═══════════════════════════════════════
+    {CC_PIAO,  CS_GREEN, "缥", "piǎo", "生", 2, 0},
+    {CC_CUI,   CS_GREEN, "翠", "cuì",  "生", 2, 1},
+    {CC_LV,    CS_GREEN, "绿", "lǜ",   "生", 2, 2},
+    {CC_QING,  CS_GREEN, "青", "qīng", "生", 2, 3},
+    {CC_CANG,  CS_GREEN, "苍", "cāng", "生", 2, 4},
+    {CC_DAI,   CS_GREEN, "黛", "dài",  "生", 2, 5},
+    {CC_XUAN,  CS_GREEN, "玄", "xuán", "生", 2, 6},
 
-// ── 声调→明度 ──
-// 阴平(高平) → 最亮, 阳平(升) → 较亮, 上声(降升) → 较暗, 去声(全降) → 最暗, 轻声 → 中等
-static float tone_lightness(smv_tone_t t) {
-    switch (t) {
-        case TONE_1: return 0.75f;   // 阴平 → 最亮
-        case TONE_2: return 0.65f;   // 阳平 → 较亮
-        case TONE_3: return 0.45f;   // 上声 → 较暗
-        case TONE_4: return 0.35f;   // 去声 → 最暗
-        case TONE_0: return 0.55f;   // 轻声 → 中等
-        default:     return 0.50f;
-    }
-}
+    // ═══════════════════════════════════════
+    // 第4行: 蓝系(冷) — 素银蓝紫靛绀黯
+    // ═══════════════════════════════════════
+    {CC_SU,    CS_BLUE,  "素", "sù",   "冷", 3, 0},
+    {CC_YIN,   CS_BLUE,  "银", "yín",  "冷", 3, 1},
+    {CC_LAN,   CS_BLUE,  "蓝", "lán",  "冷", 3, 2},
+    {CC_ZI,    CS_BLUE,  "紫", "zǐ",   "冷", 3, 3},
+    {CC_DIAN,  CS_BLUE,  "靛", "diàn", "冷", 3, 4},
+    {CC_GAN,   CS_BLUE,  "绀", "gàn",  "冷", 3, 5},
+    {CC_AN,    CS_BLUE,  "黯", "àn",   "冷", 3, 6},
 
-// ── 颜色名称表 (按层级) ──
-static const char* color_names[SV_SYMBOL_COUNT] = {
-    // 夫妻层
-    "柔白", "暖橙",
-    // 中心层
-    "正绿", "墨绿",
-    // 感知层
-    "青蓝", "翠绿",
-    // 骨干层
-    "深蓝", "天蓝",
-    // 行页层
-    "靛蓝", "蓝紫",
-    // 交汇层
-    "紫色", "紫红",
-    // 价值层
-    "金色", "橙黄",
-    // 流通层
-    "土黄", "棕色",
-    // 连结层
-    "红色", "粉红",
-    // 空间层
-    "青色", "深青",
-    // 聚合层
-    "玫红", "浅紫",
-    // 管理层
-    "冷蓝", "纯白",
-    // 数字层
-    "纯白", "亮橙", "正绿", "深蓝", "紫色", "青色", "蓝绿", "红色",
-    // 组织扩展层
-    "金色", "橙色", "黄色", "米色",
-    // 层级编码层
-    "暗绿", "中绿", "亮绿", "深绿", "黄绿", "翠绿",
-    // 时间层
-    "暖黄", "冷绿", "深紫", "浅蓝",
-    // 关系层
-    "橙色", "粉色", "浅红", "深蓝",
-    // 吉凶层
-    "大红", "深灰", "中灰", "橙色",
-    // 主权层
-    "朱红", "浅橙", "灰白", "橙色",
-    // 高维层
-    "深紫", "蓝紫", "银白", "深紫", "浅粉", "浅蓝",
+    // ═══════════════════════════════════════
+    // 第5行: 泽系(石) — 玉琅晶璃珀瑙璧
+    // ═══════════════════════════════════════
+    {CC_YU,    CS_STONE, "玉", "yù",   "石", 4, 0},
+    {CC_LANG,  CS_STONE, "琅", "láng", "石", 4, 1},
+    {CC_JING,  CS_STONE, "晶", "jīng", "石", 4, 2},
+    {CC_LI_SHI,CS_STONE, "璃", "lí",   "石", 4, 3},
+    {CC_PO,    CS_STONE, "珀", "pò",   "石", 4, 4},
+    {CC_NAO,   CS_STONE, "瑙", "nǎo",  "石", 4, 5},
+    {CC_BI,    CS_STONE, "璧", "bì",   "石", 4, 6},
+
+    // ═══════════════════════════════════════
+    // 第6行: 光系(韵) — 曦辉霓旖靡暝黟
+    // ═══════════════════════════════════════
+    {CC_XI,    CS_LIGHT, "曦", "xī",   "韵", 5, 0},
+    {CC_HUI,   CS_LIGHT, "辉", "huī",  "韵", 5, 1},
+    {CC_NI,    CS_LIGHT, "霓", "ní",   "韵", 5, 2},
+    {CC_YI,    CS_LIGHT, "旖", "yǐ",   "韵", 5, 3},
+    {CC_MI,    CS_LIGHT, "靡", "mí",   "韵", 5, 4},
+    {CC_MING,  CS_LIGHT, "暝", "míng", "韵", 5, 5},
+    {CC_YI2,   CS_LIGHT, "黟", "yī",   "韵", 5, 6},
 };
 
-// ── 64颜色符号表 (运行时生成) ──
-static cc_color_symbol_t color_table[SV_SYMBOL_COUNT];
-static bool table_initialized = false;
+// ── 64符号→42色映射表 ──
+// 按层级关系分配颜色: 夫妻层→红系, 中心层→黄系, 感知层→绿系, ...
+// 42色覆盖64符号: 每系7色, 部分层级共享色系
+static const cc_color_symbol_t symbol_color_map[CC_SYMBOL_COUNT] = {
+    // 夫妻层(0-7): 红系(暖) + 重复最深2色
+    {SMV_YMBA,  CC_FEI,   "妃", CS_RED},    // 啊 → 妃 (妻=红系起点)
+    {SMV_CEIQ,  CC_FEN,   "粉", CS_RED},    // 哦 → 粉 (夫=红系次色)
+    {SMV_KNDO,  CC_TONG,  "彤", CS_RED},    // 工 → 彤
+    {SMV_NVFM,  CC_CHI,   "赤", CS_RED},    // 空 → 赤
+    {SMV_HIEY,  CC_ZONG,  "棕", CS_RED},    // 灰 → 棕
+    {SMV_QIDI,  CC_JIANG, "绛", CS_RED},    // 开 → 绛
+    {SMV_SHUF,  CC_ZHE,   "赭", CS_RED},    // 知 → 赭
+    {SMV_ZUJM,  CC_TONG,  "彤", CS_RED},    // 出 → 彤 (循环)
 
-// ── 初始化颜色表 ──
-static void init_color_table(void) {
-    if (table_initialized) return;
+    // 中心层(8-15): 黄系(光)
+    {SMV_XITA,  CC_XIANG, "缃", CS_YELLOW}, // 西 → 缃
+    {SMV_QITA,  CC_JIN,   "金", CS_YELLOW}, // 起 → 金
+    {SMV_JIQU,  CC_HUANG, "黄", CS_YELLOW}, // 机 → 黄
+    {SMV_GUAX,  CC_HE,    "褐", CS_YELLOW}, // 挂 → 褐
+    {SMV_FUHR,  CC_LI,    "黧", CS_YELLOW}, // 福 → 黧
+    {SMV_XUBI,  CC_WU,    "乌", CS_YELLOW}, // 序 → 乌
+    {SMV_WUHR,  CC_HEI,   "黑", CS_YELLOW}, // 物 → 黑
+    {SMV_TUDO,  CC_XIANG, "缃", CS_YELLOW}, // 土 → 缃
 
-    for (int i = 0; i < SV_SYMBOL_COUNT; i++) {
-        smv_symbol_t sym = (smv_symbol_t)i;
-        const smv_voice_t* v = smv_get_voice(sym);
-        if (!v) continue;
+    // 感知层(16-23): 绿系(生)
+    {SMV_LIDO,  CC_PIAO,  "缥", CS_GREEN},  // 力 → 缥
+    {SMV_QION,  CC_CUI,   "翠", CS_GREEN},  // 亲 → 翠
+    {SMV_LIAM,  CC_LV,    "绿", CS_GREEN},  // 量 → 绿
+    {SMV_DUEN,  CC_QING,  "青", CS_GREEN},  // 端 → 青
+    {SMV_SHOU,  CC_CANG,  "苍", CS_GREEN},  // 收 → 苍
+    {SMV_MIAN,  CC_DAI,   "黛", CS_GREEN},  // 面 → 黛
+    {SMV_LING,  CC_XUAN,  "玄", CS_GREEN},  // 令 → 玄
+    {SMV_YIGE,  CC_PIAO,  "缥", CS_GREEN},  // 一 → 缥
 
-        cc_color_symbol_t* cs = &color_table[i];
-        cs->symbol = sym;
-        cs->color_name = color_names[i];
-        cs->layer = (uint8_t)(i / 8);  // 每8个符号一层
+    // 骨干层(24-31): 蓝系(冷)
+    {SMV_YI,    CC_SU,    "素", CS_BLUE},   // 一 → 素
+    {SMV_ER,    CC_YIN,   "银", CS_BLUE},   // 二 → 银
+    {SMV_SAN,   CC_LAN,   "蓝", CS_BLUE},   // 三 → 蓝
+    {SMV_SI,    CC_ZI,    "紫", CS_BLUE},   // 四 → 紫
+    {SMV_WU,    CC_DIAN,  "靛", CS_BLUE},   // 五 → 靛
+    {SMV_LIU,   CC_GAN,   "绀", CS_BLUE},   // 六 → 绀
+    {SMV_QI,    CC_AN,    "黯", CS_BLUE},   // 七 → 黯
+    {SMV_BA,    CC_SU,    "素", CS_BLUE},   // 八 → 素
 
-        // 色相 = 声母分区 + 声母偏移
-        float hue = shengmu_hue_base(v->shengmu) + shengmu_hue_offset(v->shengmu);
-        if (hue >= 384.0f) hue -= 384.0f;
-        cs->hsl.hue = hue;
+    // 行页层(32-39): 泽系(石)
+    {SMV_SHI,   CC_YU,    "玉", CS_STONE},  // 十 → 玉
+    {SMV_BAI,   CC_LANG,  "琅", CS_STONE},  // 百 → 琅
+    {SMV_QIAN,  CC_JING,  "晶", CS_STONE},  // 千 → 晶
+    {SMV_WAN,   CC_LI_SHI,"璃", CS_STONE},  // 万 → 璃
+    {SMV_LAYER1,CC_PO,    "珀", CS_STONE},  // 层一 → 珀
+    {SMV_LAYER2,CC_NAO,   "瑙", CS_STONE},  // 层二 → 瑙
+    {SMV_LAYER3,CC_BI,    "璧", CS_STONE},  // 层三 → 璧
+    {SMV_LAYER4,CC_YU,    "玉", CS_STONE},  // 层四 → 玉
 
-        // 饱和度 = 韵母决定
-        cs->hsl.saturation = yunmu_saturation(v->yunmu);
+    // 交汇层+价值层+流通层(40-55): 光系(韵)
+    {SMV_LAYER5,CC_XI,    "曦", CS_LIGHT},  // 层五 → 曦
+    {SMV_LAYER6,CC_HUI,   "辉", CS_LIGHT},  // 层六 → 辉
+    {SMV_TIME,  CC_NI,    "霓", CS_LIGHT},  // 时 → 霓
+    {SMV_CYCLE, CC_YI,    "旖", CS_LIGHT},  // 季 → 旖
+    {SMV_MOMENT,CC_MI,    "靡", CS_LIGHT},  // 刻 → 靡
+    {SMV_FLOW,  CC_MING,  "暝", CS_LIGHT},  // 流 → 暝
+    {SMV_UNION, CC_YI2,   "黟", CS_LIGHT},  // 合 → 黟
+    {SMV_BIND,  CC_XI,    "曦", CS_LIGHT},  // 伴 → 曦
+    {SMV_SHARE, CC_HUI,   "辉", CS_LIGHT},  // 享 → 辉
+    {SMV_GOVERN,CC_NI,    "霓", CS_LIGHT},  // 治 → 霓
+    {SMV_LUCK,  CC_YI,    "旖", CS_LIGHT},  // 吉 → 旖
+    {SMV_DARK,  CC_MI,    "靡", CS_LIGHT},  // 凶 → 靡
+    {SMV_NEUTRAL,CC_MING, "暝", CS_LIGHT},  // 平 → 暝
+    {SMV_TURN,  CC_YI2,   "黟", CS_LIGHT},  // 转 → 黟
+    {SMV_SOVEREIGN,CC_XI, "曦", CS_LIGHT},  // 主 → 曦
+    {SMV_OWNER, CC_HUI,   "辉", CS_LIGHT},  // 有 → 辉
 
-        // 明度 = 声调决定
-        cs->hsl.lightness = tone_lightness(v->tone);
-
-        // HSL → RGB
-        cs->rgb = cc_hsl_to_rgb(cs->hsl);
-    }
-
-    table_initialized = true;
-}
+    // 高维层(56-63): 循环六系
+    {SMV_EXTERNAL,CC_LAN, "蓝", CS_BLUE},   // 外 → 蓝
+    {SMV_MERGED,CC_LV,    "绿", CS_GREEN},  // 同 → 绿
+    {SMV_3D,    CC_JING,  "晶", CS_STONE},  // 体 → 晶
+    {SMV_4D,    CC_XI,    "曦", CS_LIGHT},  // 周 → 曦
+    {SMV_SPIRIT,CC_CHI,   "赤", CS_RED},    // 灵 → 赤
+    {SMV_SOUL,  CC_HUANG,"黄", CS_YELLOW}, // 魂 → 黄
+    {SMV_HEART, CC_FEI,   "妃", CS_RED},    // 心 → 妃
+    {SMV_MIND,  CC_SU,    "素", CS_BLUE},   // 念 → 素
+};
 
 // ═══════════════════════════════════════
 // API 实现
 // ═══════════════════════════════════════
 
-const cc_color_symbol_t* cc_get_color(smv_symbol_t sym) {
-    init_color_table();
-    if (sym >= SV_SYMBOL_COUNT) return NULL;
-    return &color_table[sym];
+// 获取颜色信息
+const cc_color_info_t* cc_get_color_info(cc_color_t c) {
+    if (c >= CC_TOTAL_COLORS) return NULL;
+    return &color_info[c];
 }
 
-// HSL → RGB转换
-cc_rgb_t cc_hsl_to_rgb(cc_hsl_t hsl) {
-    cc_rgb_t rgb;
-    float h = hsl.hue / 60.0f;  // 将色相转为60°单位
-    float s = hsl.saturation;
-    float l = hsl.lightness;
-
-    float c = (1.0f - fabsf(2.0f * l - 1.0f)) * s;
-    float x = c * (1.0f - fabsf(fmodf(h, 2.0f) - 1.0f));
-    float m = l - c / 2.0f;
-
-    float r = 0, g = 0, b = 0;
-    if (h < 1)      { r = c; g = x; b = 0; }
-    else if (h < 2) { r = x; g = c; b = 0; }
-    else if (h < 3) { r = 0; g = c; b = x; }
-    else if (h < 4) { r = 0; g = x; b = c; }
-    else if (h < 5) { r = x; g = 0; b = c; }
-    else            { r = c; g = 0; b = x; }
-
-    rgb.r = (uint8_t)((r + m) * 255);
-    rgb.g = (uint8_t)((g + m) * 255);
-    rgb.b = (uint8_t)((b + m) * 255);
-    return rgb;
+// 获取符号绑定的颜色
+const cc_color_symbol_t* cc_get_symbol_color(smv_symbol_t sym) {
+    if (sym >= CC_SYMBOL_COUNT) return NULL;
+    return &symbol_color_map[sym];
 }
 
-// RGB → HSL转换
-cc_hsl_t cc_rgb_to_hsl(cc_rgb_t rgb) {
-    cc_hsl_t hsl;
-    float r = rgb.r / 255.0f;
-    float g = rgb.g / 255.0f;
-    float b = rgb.b / 255.0f;
-
-    float max = (r > g) ? ((r > b) ? r : b) : ((g > b) ? g : b);
-    float min = (r < g) ? ((r < b) ? r : b) : ((g < b) ? g : b);
-    float delta = max - min;
-
-    // 明度
-    hsl.lightness = (max + min) / 2.0f;
-
-    // 饱和度
-    if (delta < 0.001f) {
-        hsl.saturation = 0;
-        hsl.hue = 0;
-    } else {
-        hsl.saturation = (hsl.lightness < 0.5f) ?
-            delta / (max + min) : delta / (2.0f - max - min);
-
-        // 色相
-        float h;
-        if (r == max)      h = (g - b) / delta;
-        else if (g == max) h = 2.0f + (b - r) / delta;
-        else               h = 4.0f + (r - g) / delta;
-        h *= 60.0f;
-        if (h < 0) h += 360.0f;
-        hsl.hue = h;
-    }
-    return hsl;
-}
-
-// 颜色关系
-cc_color_relation_t cc_color_relation(smv_symbol_t a, smv_symbol_t b) {
-    init_color_table();
-    if (a >= SV_SYMBOL_COUNT || b >= SV_SYMBOL_COUNT) return CR_NEUTRAL;
-    if (a == b) return CR_SAME;
-
-    float hue_a = color_table[a].hsl.hue;
-    float hue_b = color_table[b].hsl.hue;
-    float diff = fabsf(hue_a - hue_b);
-    if (diff > 180.0f) diff = 384.0f - diff;
-
-    if (diff < 15.0f) return CR_ANALOGY;         // 类似色
-    if (fabsf(diff - 120.0f) < 15.0f) return CR_WITNESS;  // 三原色见证
-    if (fabsf(diff - 180.0f) < 15.0f) return CR_MIRROR;   // 互补镜像
-    return CR_NEUTRAL;
-}
-
-// 颜色距离
-float cc_color_distance(smv_symbol_t a, smv_symbol_t b) {
-    init_color_table();
-    if (a >= SV_SYMBOL_COUNT || b >= SV_SYMBOL_COUNT) return 384.0f;
-    float diff = fabsf(color_table[a].hsl.hue - color_table[b].hsl.hue);
-    if (diff > 180.0f) diff = 384.0f - diff;
-    return diff;
-}
-
-// 获取颜色名称
+// 获取符号的颜色名称
 const char* cc_get_color_name(smv_symbol_t sym) {
-    init_color_table();
-    if (sym >= SV_SYMBOL_COUNT) return "无色";
-    return color_table[sym].color_name;
+    if (sym >= CC_SYMBOL_COUNT) return "无色";
+    return symbol_color_map[sym].color_name;
+}
+
+// 获取符号的颜色拼音
+const char* cc_get_color_pinyin(smv_symbol_t sym) {
+    if (sym >= CC_SYMBOL_COUNT) return "wú sè";
+    cc_color_t c = symbol_color_map[sym].color;
+    if (c >= CC_TOTAL_COLORS) return "?";
+    return color_info[c].pinyin;
+}
+
+// 获取符号的色系
+cc_color_system_t cc_get_symbol_system(smv_symbol_t sym) {
+    if (sym >= CC_SYMBOL_COUNT) return CS_RED;
+    return symbol_color_map[sym].system;
+}
+
+// 色系名称
+const char* cc_system_name(cc_color_system_t sys) {
+    switch (sys) {
+        case CS_RED:    return "红系(暖)";
+        case CS_YELLOW: return "黄系(光)";
+        case CS_GREEN:  return "绿系(生)";
+        case CS_BLUE:   return "蓝系(冷)";
+        case CS_STONE:  return "泽系(石)";
+        case CS_LIGHT:  return "光系(韵)";
+        default:        return "?";
+    }
+}
+
+// 色系品质
+const char* cc_system_quality(cc_color_system_t sys) {
+    switch (sys) {
+        case CS_RED:    return "暖";
+        case CS_YELLOW: return "光";
+        case CS_GREEN:  return "生";
+        case CS_BLUE:   return "冷";
+        case CS_STONE:  return "石";
+        case CS_LIGHT:  return "韵";
+        default:        return "?";
+    }
 }
 
 // 层级颜色
-cc_rgb_t cc_get_layer_color(cc_color_layer_t layer) {
-    cc_hsl_t hsl;
-    switch (layer) {
-        case CL_WARM:  hsl.hue = 0;   hsl.saturation = 0.9f; hsl.lightness = 0.6f; break;
-        case CL_EARTH: hsl.hue = 55;  hsl.saturation = 0.8f; hsl.lightness = 0.5f; break;
-        case CL_COOL:  hsl.hue = 110; hsl.saturation = 0.7f; hsl.lightness = 0.5f; break;
-        case CL_LEAF:  hsl.hue = 165; hsl.saturation = 0.7f; hsl.lightness = 0.5f; break;
-        case CL_GOLD:  hsl.hue = 220; hsl.saturation = 0.8f; hsl.lightness = 0.5f; break;
-        case CL_SAND:  hsl.hue = 275; hsl.saturation = 0.6f; hsl.lightness = 0.6f; break;
-        case CL_AIR:   hsl.hue = 330; hsl.saturation = 0.5f; hsl.lightness = 0.7f; break;
-        default:       hsl.hue = 0;   hsl.saturation = 0;   hsl.lightness = 0.5f; break;
-    }
-    return cc_hsl_to_rgb(hsl);
+cc_color_t cc_layer_color(uint8_t layer, uint8_t position) {
+    if (layer >= 8 || position >= 7) return CC_FEI;
+    // 每层7色, 按层分配色系
+    static const cc_color_system_t layer_system[8] = {
+        CS_RED, CS_YELLOW, CS_GREEN, CS_BLUE,
+        CS_STONE, CS_LIGHT, CS_RED, CS_BLUE
+    };
+    cc_color_system_t sys = layer_system[layer];
+    return (cc_color_t)(sys * 7 + position);
 }
 
-// ANSI终端着色输出
-void cc_print_colored(smv_symbol_t sym, const char* text) {
-    init_color_table();
-    if (sym >= SV_SYMBOL_COUNT) {
-        printf("%s", text);
-        return;
-    }
-    cc_rgb_t rgb = color_table[sym].rgb;
-    // 使用24位真彩色ANSI转义
-    printf("\033[38;2;%d;%d;%dm%s\033[0m", rgb.r, rgb.g, rgb.b, text);
-}
-
-// 颜色报表
+// 报表
 void cc_report(void) {
-    init_color_table();
-    printf("\n  ═══ 颜色定制进制 ═══\n");
-    printf("  64符号 = 64种颜色\n");
-    printf("  声母→色相 | 韵母→饱和度 | 声调→明度\n");
+    printf("\n  ═══ 六系42色颜色定制 ═══\n");
+    printf("  42色 = 6系 × 7色\n");
     printf("  ─────────────────────────────\n");
 
-    // 按层级显示颜色
-    const char* layer_names[] = {
-        "夫妻层", "中心层", "感知层", "骨干层",
-        "行页层", "交汇层", "价值层", "流通层",
-        "连结层", "空间层", "聚合层", "管理层",
-        "数字层", "组织层", "层级层", "时间层",
-        "关系层", "吉凶层", "主权层", "高维层"
-    };
-
-    for (int layer = 0; layer < 8; layer++) {
-        printf("  [%s] ", layer_names[layer]);
-        for (int i = 0; i < 8; i++) {
-            int sym = layer * 8 + i;
-            cc_rgb_t rgb = color_table[sym].rgb;
-            printf("\033[38;2;%d;%d;%dm%s\033[0m ",
-                rgb.r, rgb.g, rgb.b,
-                smv_get_hanzi((smv_symbol_t)sym));
+    for (int sys = 0; sys < CC_SYSTEM_COUNT; sys++) {
+        printf("  %s[%s]: ", cc_system_name((cc_color_system_t)sys),
+            cc_system_quality((cc_color_system_t)sys));
+        for (int col = 0; col < CC_COLOR_PER_SYSTEM; col++) {
+            int idx = sys * 7 + col;
+            printf("%s(%s) ", color_info[idx].name, color_info[idx].pinyin);
         }
         printf("\n");
     }
+    printf("  ─────────────────────────────\n");
+    printf("  64符号→42色: 按层级分配红/黄/绿/蓝/泽/光\n");
     printf("  ═════════════════════════════\n");
 }

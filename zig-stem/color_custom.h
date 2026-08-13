@@ -1,26 +1,24 @@
-// color_custom.h — 颜色定制进制 (Color Customization Numeral System)
-// hunyuan-os 的颜色基础 — 以颜色为进制符号的可视化维度
+// color_custom.h — 六系42色颜色定制 (Six-System 42-Color Customization)
+// hunyuan-os 的颜色基础 — 以人类传统色彩体系为进制符号
 //
-// 哲学:
+// 核心哲学:
 //   颜色 = 进制符号的视觉身份
-//   每个进制符号不仅有声音(声韵调), 还有颜色
-//   颜色不是装饰, 是进制的一部分 — 用颜色区分层级/身份/量化
-//   颜色定制: 以人类视觉感知为基准的进制化
+//   进制以人类传统色彩为单位, 不是脱离语言的机械RGB角度
+//   六系42色覆盖暖/光/生/冷/石/韵六个维度
+//   每个颜色名称来自传统色彩体系, 可感知/可文化/可传承
 //
-// 颜色进制原理:
-//   色相(Hue): 映射到384°圆周 (与64进制对齐)
-//   饱和度(Saturation): 纯度/浓度 → 层级浓度
-//   明度(Lightness): 亮度 → 时间/因果的明暗
+// 六系42色 (6 systems × 7 colors = 42 colors):
+//   第1行 红系(暖): 妃 粉 彤 赤 棕 绛 赭  → 夫妻层/情感层
+//   第2行 黄系(光): 缃 金 黄 褐 黧 乌 黑  → 中心层/光照层
+//   第3行 绿系(生): 缥 翠 绿 青 苍 黛 玄  → 感知层/生长层
+//   第4行 蓝系(冷): 素 银 蓝 紫 靛 绀 黯  → 骨干层/结构层
+//   第5行 泽系(石): 玉 琅 晶 璃 珀 瑙 璧  → 物质层/载体层
+//   第6行 光系(韵): 曦 辉 霓 旖 靡 暝 黟  → 高维层/意识层
 //
-// 颜色与音质绑定:
-//   声母 → 色相分区 (唇音=红/舌尖=黄/舌根=蓝/舌面=绿)
-//   韵母 → 饱和度 (开口韵=高饱和/合口韵=低饱和)
-//   声调 → 明度 (阴平=亮/去声=暗)
-//
-// 正交关系:
-//   互补色(180°对立) = 对径符号 = 镜像关系
-//   三原色(120°间隔) = 见证关系
-//   类似色(30°内) = 同族关系
+// 64符号与42色的映射:
+//   每个进制符号绑定一个传统颜色
+//   42色不完全覆盖64符号, 部分符号同色系分级
+//   按层级关系分配: 夫妻→红系, 中心→黄系, 感知→绿系, ...
 
 #ifndef HUNYUAN_COLOR_CUSTOM_H
 #define HUNYUAN_COLOR_CUSTOM_H
@@ -30,78 +28,73 @@
 #include <stdbool.h>
 
 #define CC_VERSION          0x40
-#define CC_FULL_CIRCLE      384     // 色相圆周 = 音质圆周
-#define CC_SYMBOL_COUNT     64      // 64个颜色符号
-#define CC_DEGREE_UNIT      6       // 每颜色占6°
+#define CC_SYSTEM_COUNT     6       // 六个色彩系
+#define CC_COLOR_PER_SYSTEM 7       // 每系7色
+#define CC_TOTAL_COLORS     42      // 总共42色
+#define CC_SYMBOL_COUNT     64      // 64进制符号
 
-// ── HSL颜色 (与64进制对齐) ──
+// ── 色彩系 (6行) ──
+typedef enum {
+    CS_RED      = 0,    // 红系(暖): 妃粉彤赤棕绛赭
+    CS_YELLOW   = 1,    // 黄系(光): 缃金黄褐黧乌黑
+    CS_GREEN    = 2,    // 绿系(生): 缥翠绿青苍黛玄
+    CS_BLUE     = 3,    // 蓝系(冷): 素银蓝紫靛绀黯
+    CS_STONE    = 4,    // 泽系(石): 玉琅晶璃珀瑙璧
+    CS_LIGHT    = 5,    // 光系(韵): 曦辉霓旖靡暝黟
+} cc_color_system_t;
+
+// ── 传统颜色名称 (42色) ──
+typedef enum {
+    // 红系(暖)
+    CC_FEI = 0,   CC_FEN,   CC_TONG,  CC_CHI,   CC_ZONG,  CC_JIANG, CC_ZHE,
+    // 黄系(光)
+    CC_XIANG,     CC_JIN,   CC_HUANG, CC_HE,    CC_LI,    CC_WU,    CC_HEI,
+    // 绿系(生)
+    CC_PIAO,      CC_CUI,   CC_LV,    CC_QING,  CC_CANG,  CC_DAI,   CC_XUAN,
+    // 蓝系(冷)
+    CC_SU,        CC_YIN,   CC_LAN,   CC_ZI,    CC_DIAN,  CC_GAN,   CC_AN,
+    // 泽系(石)
+    CC_YU,        CC_LANG,  CC_JING,  CC_LI_SHI,CC_PO,    CC_NAO,   CC_BI,
+    // 光系(韵)
+    CC_XI,        CC_HUI,   CC_NI,    CC_YI,    CC_MI,    CC_MING,  CC_YI2,
+} cc_color_t;
+
+#define CC_COLOR_LI_STHI CC_LI_SHI  // 璃 (avoid name clash)
+
+// ── 颜色信息 ──
 typedef struct {
-    float       hue;            // 色相 0-384° (与音质圆周对齐)
-    float       saturation;     // 饱和度 0-1
-    float       lightness;      // 明度 0-1
-} cc_hsl_t;
+    cc_color_t      color;          // 颜色枚举
+    cc_color_system_t system;       // 所属色系
+    const char*     name;           // 颜色名称 (汉字)
+    const char*     pinyin;         // 拼音
+    const char*     quality;        // 特质 (暖/光/生/冷/石/韵)
+    uint8_t         row;            // 行号 (0-5)
+    uint8_t         col;            // 列号 (0-6)
+} cc_color_info_t;
 
-// ── RGB颜色 (显示用) ──
-typedef struct {
-    uint8_t     r, g, b;        // 红绿蓝 0-255
-} cc_rgb_t;
-
-// ── 颜色符号 (绑定音质+颜色) ──
+// ── 颜色符号绑定 (64符号→42色) ──
 typedef struct {
     smv_symbol_t    symbol;         // 音质符号
-    cc_hsl_t        hsl;            // HSL颜色
-    cc_rgb_t        rgb;            // RGB颜色
+    cc_color_t      color;          // 绑定颜色
     const char*     color_name;     // 颜色名称
-    uint8_t         layer;          // 所属层级
+    cc_color_system_t system;       // 所属色系
 } cc_color_symbol_t;
 
-// ── 颜色层级 (按声母分组) ──
-typedef enum {
-    CL_WARM     = 0,    // 暖色层 (唇音 b/p/m/f → 红橙)
-    CL_EARTH    = 1,    // 土色层 (舌尖中 d/t/n/l → 黄绿)
-    CL_COOL     = 2,    // 冷色层 (舌根/喉 g/k/h → 青蓝)
-    CL_LEAF    = 3,    // 叶色层 (舌面 j/q/x → 绿翠)
-    CL_GOLD    = 4,    // 金色层 (舌尖后 zh/ch/sh/r → 金橙)
-    CL_SAND    = 5,    // 沙色层 (舌尖前 z/c/s → 米黄)
-    CL_AIR     = 6,    // 气色层 (半元音 y/w + 零声母 → 浅紫)
-} cc_color_layer_t;
-
-// ── 颜色关系 ──
-typedef enum {
-    CR_SAME     = 0,    // 同色 (0°)
-    CR_ANALOGY  = 1,    // 类似色 (30°内)
-    CR_WITNESS  = 2,    // 见证色 (120°三原色)
-    CR_MIRROR   = 3,    // 镜像色 (180°互补)
-    CR_NEUTRAL  = 4,    // 中性 (无特定关系)
-} cc_color_relation_t;
-
 // ── API ──
-
-// 获取符号的颜色
-const cc_color_symbol_t* cc_get_color(smv_symbol_t sym);
-
-// HSL → RGB转换
-cc_rgb_t cc_hsl_to_rgb(cc_hsl_t hsl);
-
-// RGB → HSL转换
-cc_hsl_t cc_rgb_to_hsl(cc_rgb_t rgb);
-
-// 计算两个颜色的关系
-cc_color_relation_t cc_color_relation(smv_symbol_t a, smv_symbol_t b);
-
-// 计算颜色距离 (在384°色相圆周上)
-float cc_color_distance(smv_symbol_t a, smv_symbol_t b);
-
-// 获取颜色名称
+const cc_color_info_t* cc_get_color_info(cc_color_t c);
+const cc_color_symbol_t* cc_get_symbol_color(smv_symbol_t sym);
 const char* cc_get_color_name(smv_symbol_t sym);
+const char* cc_get_color_pinyin(smv_symbol_t sym);
+cc_color_system_t cc_get_symbol_system(smv_symbol_t sym);
 
-// 获取层级颜色
-cc_rgb_t cc_get_layer_color(cc_color_layer_t layer);
+// 色系名称/品质
+const char* cc_system_name(cc_color_system_t sys);
+const char* cc_system_quality(cc_color_system_t sys);
 
-// ANSI终端颜色输出
-void cc_print_colored(smv_symbol_t sym, const char* text);
+// 按层级获取颜色
+cc_color_t cc_layer_color(uint8_t layer, uint8_t position);
 
-// 颜色报表
+// 报表
 void cc_report(void);
 
 #endif // HUNYUAN_COLOR_CUSTOM_H
