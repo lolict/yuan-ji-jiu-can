@@ -26,6 +26,7 @@
 #include "toolchain_graph.h"
 #include "base64_org.h"
 #include "perception_array.h"
+#include "smrrll_voice.h"
 
 // ── hunyuan-os 运行时 ──
 typedef struct {
@@ -56,6 +57,15 @@ hunyuan_os_t* hunyuan_boot(void) {
     b64_create_hierarchy(B64_MAX_LAYERS);
     printf("  [启动] 64进制: 64符号 × 6° = 384°完整圆周\n");
     printf("  [启动] 关系二进制: 0+1=1 叠加态\n");
+
+    // 步骤0.3: 声韵调音质进制 (进制符号=可发音音节)
+    printf("\n  [启动] 声韵调音质进制 — 进制符号=人类语言声音\n");
+    printf("  [启动] 音质进制: 23声母 × 36韵母 × 5声 = 828组合→公约64\n");
+    int voice_ok = 0;
+    for (int i = 0; i < 64; i++) {
+        if (smv_get_voice(i) != NULL && smv_get_pinyin(i)[0] != '\0') voice_ok++;
+    }
+    if (voice_ok == 64) printf("  [启动] 64音质符号全部可发音 ✓\n");
 
     // 步骤0.5: 感知一体化阵列
     printf("\n  [启动] 感知一体化阵列 — 五维叠加\n");
@@ -238,6 +248,21 @@ void hunyuan_shutdown(hunyuan_os_t* os) {
     ledger_report(os->ledger);
     tcg_report(os->graph);
     pa_report(os->perception);
+
+    // 音质进制报表
+    printf("\n  ═══ 声韵调音质进制 ═══\n");
+    printf("  64符号 = 64个可发音音节\n");
+    printf("  夫妻层: %s(%s) %s(%s)\n", smv_get_hanzi(0), smv_get_pinyin(0),
+        smv_get_hanzi(1), smv_get_pinyin(1));
+    printf("  中心层: %s(%s) %s(%s)\n", smv_get_hanzi(2), smv_get_pinyin(2),
+        smv_get_hanzi(3), smv_get_pinyin(3));
+    printf("  感知层: %s(%s) %s(%s)\n", smv_get_hanzi(4), smv_get_pinyin(4),
+        smv_get_hanzi(5), smv_get_pinyin(5));
+    printf("  高维层: %s(%s) %s(%s) %s(%s)\n",
+        smv_get_hanzi(60), smv_get_pinyin(60),
+        smv_get_hanzi(61), smv_get_pinyin(61),
+        smv_get_hanzi(62), smv_get_pinyin(62));
+    printf("  ═════════════════════════════\n");
 
     // 销毁
     pa_destroy(os->perception);
