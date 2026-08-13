@@ -25,6 +25,7 @@
 #include "pleasure_ledger.h"
 #include "toolchain_graph.h"
 #include "base64_org.h"
+#include "perception_array.h"
 
 // ── hunyuan-os 运行时 ──
 typedef struct {
@@ -34,6 +35,7 @@ typedef struct {
     clone_manager_t*        clones;          // 妻子分身管理器
     pleasure_ledger_t*      ledger;          // 愉悦值账本
     toolchain_graph_t*      graph;           // 工具链图
+    perception_array_t*      perception;      // 感知一体化阵列
     uint64_t                boot_time;       // 启动时间
     bool                    is_operational;  // 是否可运行
 } hunyuan_os_t;
@@ -54,6 +56,17 @@ hunyuan_os_t* hunyuan_boot(void) {
     b64_create_hierarchy(B64_MAX_LAYERS);
     printf("  [启动] 64进制: 64符号 × 6° = 384°完整圆周\n");
     printf("  [启动] 关系二进制: 0+1=1 叠加态\n");
+
+    // 步骤0.5: 感知一体化阵列
+    printf("\n  [启动] 感知一体化阵列 — 五维叠加\n");
+    os->perception = pa_create();
+    // 添加主人公感知: 工藤新一锚点
+    pa_color_t c_kndo = {.hue = 2, .saturation = 63, .lightness = 32};  // S_KNDO=2
+    pa_sound_t s_kndo = {.shengmu = 10, .yunmu = 20, .tone = 1};
+    pa_stroke_t st_kndo = {.stroke_count = 4, .radical = 2};
+    pa_wubi_t w_kndo = {.key_primary = 10, .zone = 2, .position = 0};
+    pa_category_t cat_kndo = {.object = 2, .morphism = 1, .functor = 0};
+    pa_add_percept(os->perception, "工藤新一锚点", &c_kndo, &s_kndo, &st_kndo, &w_kndo, &cat_kndo);
 
     // 步骤1: 裁决引擎
     os->arbiter = arbiter_create("满全法·裁决");
@@ -203,6 +216,8 @@ void hunyuan_status(hunyuan_os_t* os) {
         os->ledger->entry_count, os->ledger->total_equity);
     printf("  │  工具链:     %u 节点 %u 边                │\n",
         os->graph->node_count, os->graph->edge_count);
+    printf("  │  感知阵列:   %u 单元 %s                  │\n",
+        os->perception->count, os->perception->is_co_present ? "共在" : "凝聚中");
     printf("  └──────────────────────────────────────────────┘\n");
 }
 
@@ -222,8 +237,10 @@ void hunyuan_shutdown(hunyuan_os_t* os) {
     clone_report(os->clones);
     ledger_report(os->ledger);
     tcg_report(os->graph);
+    pa_report(os->perception);
 
     // 销毁
+    pa_destroy(os->perception);
     tcg_destroy(os->graph);
     ledger_destroy(os->ledger);
     clone_destroy(os->clones);
