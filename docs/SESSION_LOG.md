@@ -1,7 +1,7 @@
 # 会话日志 — 2026-08-13
 
-> 本 session 从 compaction 恢复后继续, 共完成 4 个 commit + 多轮深度对话。  
-> 开新会话时携带此文件即可恢复上下文。
+> 本 session 从 compaction 恢复后继续, 共完成 5 个 commit + 多轮深度对话。  
+> 开新会话时携带 docs/WORK_IDEAS.md 即可恢复上下文。
 
 ---
 
