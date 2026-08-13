@@ -30,6 +30,7 @@
 #include "l0_compiler.h"
 #include "color_custom.h"
 #include "color_quant.h"
+#include "color_ontology.h"
 
 // ── hunyuan-os 运行时 ──
 typedef struct {
@@ -342,6 +343,64 @@ void hunyuan_shutdown(hunyuan_os_t* os) {
     printf("  彤(%.1f°) 的镜像: %.1f°\n", qs_center.hue_angle, cq_mirror_angle(qs_center.hue_angle));
     printf("  ∂hue/∂layer = 1/6 ≈ %.4f\n", cq_partial_derivative_layer(&qs_couple));
     printf("  ∂hue/∂col   = 1/42 ≈ %.4f\n", cq_partial_derivative_col(&qs_couple));
+    printf("  ═════════════════════════════\n");
+
+    // ── 本体论层: 正交中心/边界/二元切割/弧弦对偶 ──
+    printf("\n  ═══ 本体论层: 中心/边界/切割/对偶 ═══\n\n");
+
+    co_center_t center = co_center_compute();
+    const cc_color_info_t* ci_center = cc_get_color_info(center.center_color);
+    printf("  [正交中心] %s(R0): GCD=%.0f 不变量=%.6f 统摄半径=%.1f°\n",
+        ci_center ? ci_center->name : "?", center.gcd_value, center.invariant, center.radius_max);
+    printf("  → 中心 = 公约数 = 男人 = 静态不变性 = 唯一正交点\n");
+
+    co_boundary_t boundary = co_boundary_compute();
+    const cc_color_info_t* ci_bound = cc_get_color_info(boundary.boundary_color);
+    printf("\n  [统摄边界] %s(L6): LCM=%.0f 弧长=%.3f 弦长=%.3f 弧弦比=%.4f\n",
+        ci_bound ? ci_bound->name : "?", boundary.lcm_value, boundary.arc_length,
+        boundary.chord_length, boundary.arc_chord_ratio);
+    printf("  → 边界 = 公倍数 = 女人 = 动态包裹 = 曲线总范畴\n");
+
+    // 二元切割演示
+    co_split_t split0 = co_orthogonal_split(0);
+    co_split_t split90 = co_orthogonal_split(90);
+    printf("\n  ── 二元切割 (正交线分裂) ──\n");
+    printf("  0°轴: 正侧=%u 负侧=%u 平衡度=%.2f\n", split0.group_pos, split0.group_neg, split0.balance);
+    printf("  90°轴: 正侧=%u 负侧=%u 平衡度=%.2f\n", split90.group_pos, split90.group_neg, split90.balance);
+
+    // 弧弦对偶
+    float ac_ratio = co_arc_chord_ratio(C_R0, C_L6);
+    printf("\n  ── 弧弦对偶 ──\n");
+    printf("  妃→黟 弧长=%.3f 弦长=%.3f 弧弦比=%.3f (π=%.3f)\n",
+        co_arc_length(C_R0, C_L6), co_chord_length(C_R0, C_L6), ac_ratio, 3.14159f);
+
+    // 相对运动
+    co_relative_motion_t rm = co_relative_motion(C_G3, 0);
+    printf("\n  ── 相对运动对数偏移 ──\n");
+    printf("  青(G3)相对0°轴: 角差=%.1f° log偏移=%.3f 扇形=%u 摆动=%s\n",
+        rm.angle_diff, rm.log_offset, rm.sector, rm.is_swinging ? "是" : "否");
+
+    // 自相似圆周
+    co_self_similar_t ss = co_self_similar_compute();
+    printf("\n  ── 自相似圆周 ──\n");
+    printf("  %u层 基圆半径=%.3f 缩放因子=%.1f 总弧长=%.3f\n",
+        ss.level_count, ss.base_radius, ss.scale_factor, ss.total_arc);
+
+    // 状态机扩展
+    printf("\n  ── 状态机扩展 ──\n");
+    printf("  妃(R0): 吸收态=%s 可分叉=%s 可自反=%s\n",
+        co_is_absorbed(C_R0) ? "是" : "否",
+        co_can_bifurcate(C_R0, 0) ? "是" : "否",
+        co_can_self_reflect(C_R0) ? "是" : "否");
+    printf("  青(G3): 吸收态=%s 可自反=%s 与苍(G4)可聚合=%s\n",
+        co_is_absorbed(C_G3) ? "是" : "否",
+        co_can_self_reflect(C_G3) ? "是" : "否",
+        co_can_aggregate(C_G3, C_G4) ? "是" : "否");
+
+    // 常驻静态
+    printf("\n  ── 常驻静态约束 ──\n");
+    printf("  字典不变性: %s | 元素总数: %u (常量)\n",
+        co_dictionary_verify() ? "验证通过" : "被破坏", co_cardinality());
     printf("  ═════════════════════════════\n");
 
     // 销毁
