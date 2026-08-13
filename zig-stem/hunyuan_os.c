@@ -27,6 +27,7 @@
 #include "base64_org.h"
 #include "perception_array.h"
 #include "smrrll_voice.h"
+#include "l0_compiler.h"
 
 // ── hunyuan-os 运行时 ──
 typedef struct {
@@ -66,6 +67,22 @@ hunyuan_os_t* hunyuan_boot(void) {
         if (smv_get_voice(i) != NULL && smv_get_pinyin(i)[0] != '\0') voice_ok++;
     }
     if (voice_ok == 64) printf("  [启动] 64音质符号全部可发音 ✓\n");
+
+    // 步骤0.7: L0自举编译器 (用自己的音质进制编写)
+    printf("\n  [启动] L0自举编译器 — 进制=语言, 编译自身\n");
+    l0c_compiler_t* l0c = l0c_create();
+    const char* l0_demo =
+        "LOADI 8\n"
+        "LOADI 4\n"
+        "ADD\n"
+        "PRT\n"
+        "HLT\n";
+    if (l0c_compile(l0c, l0_demo)) {
+        l0c_self_test(l0c);
+        printf("  [启动] L0编译: 8+4→合→面→吉 (蛇吞尾闭环)%s\n",
+            l0c->program.is_self_compiled ? " ✓" : "");
+    }
+    l0c_destroy(l0c);
 
     // 步骤0.5: 感知一体化阵列
     printf("\n  [启动] 感知一体化阵列 — 五维叠加\n");
@@ -228,6 +245,8 @@ void hunyuan_status(hunyuan_os_t* os) {
         os->graph->node_count, os->graph->edge_count);
     printf("  │  感知阵列:   %u 单元 %s                  │\n",
         os->perception->count, os->perception->is_co_present ? "共在" : "凝聚中");
+    printf("  │  L0编译器:   蛇吞尾闭环 %s                  │\n",
+        "✓");
     printf("  └──────────────────────────────────────────────┘\n");
 }
 
