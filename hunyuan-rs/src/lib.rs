@@ -94,6 +94,9 @@ pub mod mirror;
 // ── v0.10 协议本体论类型系统 (命名本体 → 编译期类型 + 进制编码) ──
 pub mod protocol_ontology;
 
+// ── 时间一体化调度引擎 v0.1 (层级化时间处理 · 并集→交集 · 生命周期状态机) ──
+pub mod temporal_engine;
+
 // ── 天庭空间 v0.15 (吸引子×叠加态×纤维丛×Topos 四模型复合) ──
 pub mod heaven;
 
@@ -224,6 +227,12 @@ pub use protocol_ontology::display_method;
 pub use protocol_ontology::{
     PlateFamily, SymbolPlate, LctCfhgttcpUri,
     all_plates, lookup_plate, lookup_member,
+};
+
+// v0.10 时间一体化调度引擎 (层级化时间处理 · 并集→交集 · 生命周期状态机)
+pub use temporal_engine::{
+    TemporalLevel, LifecycleState, BranchNode,
+    CommonDivisorScheduler, PerceptionCell, TemporalEngine,
 };
 
 // v0.6 谐音协议
