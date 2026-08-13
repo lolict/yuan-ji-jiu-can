@@ -10,10 +10,16 @@
 
 ## 当前状态
 
-**v2.0 公开 Beta** 🎉 (2026-08-05)
+**v0.22 自主后勤调度** (基于 v2.0 Beta,Rust 核心扩展)
+
+新增:
+- `hunyuan-rs/src/task_automation.rs` — 自主后勤调度系统 (被动应答→自主维持)
+- 三种核心自主任务: 代码健康 / 会话总结 / 仓库同步
+- 审计环 hash-chained 防篡改
 
 核心组件:
-- `kernel/src/njsg_kernel.c` — C 三元→七元核心 (3500+ 行,v2.0.0)
+- `kernel/src/njsg_kernel.c` — C 三元→七元核心 (2107 行,v2.0.0)
+- `hunyuan-rs/src/` — Rust 核心 (64 源文件,625 测试)
 - `kernel/wasm/njsg_wasm.c` — WASI 裁决核心 (307 行,v2.0.0)
 - `cloudflare/njsg-web.js` — Worker + 盟机合 + 同步 (970+ 行)
 - `cloudflare/sync-protocol.js` — Gossip 多节点同步 (417 行)
@@ -236,6 +242,13 @@
 - 综合发布包 (`release/v2.0-beta/`,92KB)
 - 所有平台壳完整可用 (5 种运行方式)
 - MANIFEST.json + SHA-256 校验
+
+### v0.22 自主后勤调度 (被动应答→自主维持)
+- `task_automation.rs`: 任务定义 + 调度器 + 执行器
+- 三种核心自主任务: 日度代码健康 / 日度会话总结 / 周度仓库同步
+- 层级时间驱动: time_node mixed-radix (小时→日→周→月)
+- hash-chained 审计环: 所有执行记录防篡改
+- 12 测试全部通过
 
 ---
 

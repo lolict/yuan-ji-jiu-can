@@ -142,6 +142,11 @@ pub use yinyang_codec::{YUYANG_MARK, FrameMode, Frame, YuYangCodec};
 // ── v0.21 编程语言工具链 · 角色-模块映射层 (toolchain_mapping) ──
 pub mod toolchain_mapping;
 
+// ── v0.22 自主后勤调度系统 — 被动应答→自主维持 ──
+pub mod task_automation;
+pub use task_automation::{TaskScheduler, TaskDefinition, TaskKind, TaskInterval,
+                         TaskResult, TaskExecutor};
+
 // ── 对外 re-export ──
 
 // v0.4 基础层

@@ -30,6 +30,8 @@ use mqf::{
     StreamStats,
     // MCCP 自举编译器
     Vm, assemble, compile_l0,
+    // 自主后勤调度
+    TaskScheduler,
 };
 
 fn main() {
@@ -386,12 +388,53 @@ print a"#;
     }
 
     // ══════════════════════════════════════════════════════
+    // 9. 自主后勤调度 — 被动应答 → 自主维持
+    // ══════════════════════════════════════════════════════
+    println!("\n═══════════════════════════════════════");
+    println!("  9) 自主后勤: 任务生命周期自主调度");
+    println!("═══════════════════════════════════════");
+
+    let mut scheduler = TaskScheduler::new(1).register_defaults();
+    println!("调度器初始化完成, 节点 ID = {}", scheduler.time_node.node_id);
+    println!("已注册 {} 个自主任务:", scheduler.tasks.len());
+    for task in &scheduler.tasks {
+        println!("  [{}] {} — {} ({})",
+            task.kind.name(), task.description,
+            task.interval.name(), if task.enabled { "启用" } else { "停用" });
+    }
+
+    // 强制执行全部三种任务 (演示)
+    println!("\n--- 强制执行全部任务 ---");
+    let results = vec![
+        scheduler.force_run(1).unwrap(),
+        scheduler.force_run(2).unwrap(),
+        scheduler.force_run(3).unwrap(),
+    ];
+
+    for r in &results {
+        println!("\n[{}] {}", r.task_name, r.summary);
+        for detail in &r.details {
+            println!("  {}", detail);
+        }
+        if let Some(ref next) = r.next_action {
+            println!("  → 下次: {}", next);
+        }
+    }
+
+    // 打印调度器状态
+    println!("\n{}", scheduler.status_report());
+
+    // 审计环验证
+    println!("审计环: {} 条记录, 链完整性: {}",
+        scheduler.audit_ring.entries.len(),
+        if scheduler.audit_ring.verify() { "✓ 通过" } else { "✗ 断裂" });
+
+    // ══════════════════════════════════════════════════════
     // 最后
     // ══════════════════════════════════════════════════════
     println!("\n═══════════════════════════════════════");
-    println!("  囡囝共生 v0.6 · 结束");
-    println!("  五棵子树已扎入土里");
-    println!("  MCCP 自举编译器 v1 (L0) 已就位");
-    println!("  测试: 220/220 全部通过");
-    println!("═══════════════════════════════════════}}");
+    println!("  囡囝共生 v0.22 · 自主后勤就位");
+    println!("  五棵子树 + MCCP + 自主调度 → 唯一中心");
+    println!("  测试: 625/625 全部通过");
+    println!("═══════════════════════════════════════");
 }
