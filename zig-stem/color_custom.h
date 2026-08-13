@@ -1,7 +1,7 @@
 // color_custom.h — 六系42色颜色定制 (Six-System 42-Color Customization)
 // hunyuan-os 的颜色基础 — 以人类传统色彩体系为进制符号
 //
-// 核心哲学:
+// 哲学:
 //   颜色 = 进制符号的视觉身份
 //   进制以人类传统色彩为单位, 不是脱离语言的机械RGB角度
 //   六系42色覆盖暖/光/生/冷/石/韵六个维度
@@ -15,10 +15,11 @@
 //   第5行 泽系(石): 玉 琅 晶 璃 珀 瑙 璧  → 物质层/载体层
 //   第6行 光系(韵): 曦 辉 霓 旖 靡 暝 黟  → 高维层/意识层
 //
-// 64符号与42色的映射:
-//   每个进制符号绑定一个传统颜色
-//   42色不完全覆盖64符号, 部分符号同色系分级
-//   按层级关系分配: 夫妻→红系, 中心→黄系, 感知→绿系, ...
+// 编码原则:
+//   编码层使用纯数字 (C0-C41), 不含任何中文发音
+//   显示层使用汉字 (妃/粉/彤...)
+//   线索引使用字母+数字 (R0-R6 红系, Y0-Y6 黄系...)
+//   这样编码只是序号, 不会被人误解为有意义的中文词
 
 #ifndef HUNYUAN_COLOR_CUSTOM_H
 #define HUNYUAN_COLOR_CUSTOM_H
@@ -33,59 +34,55 @@
 #define CC_TOTAL_COLORS     42      // 总共42色
 #define CC_SYMBOL_COUNT     64      // 64进制符号
 
-// ── 色彩系 (6行) ──
+// ── 色彩系 (6行) — 纯序号编码, 无中文语义 ──
 typedef enum {
-    CS_RED      = 0,    // 红系(暖): 妃粉彤赤棕绛赭
-    CS_YELLOW   = 1,    // 黄系(光): 缃金黄褐黧乌黑
-    CS_GREEN    = 2,    // 绿系(生): 缥翠绿青苍黛玄
-    CS_BLUE     = 3,    // 蓝系(冷): 素银蓝紫靛绀黯
-    CS_STONE    = 4,    // 泽系(石): 玉琅晶璃珀瑙璧
-    CS_LIGHT    = 5,    // 光系(韵): 曦辉霓旖靡暝黟
+    CS_RED      = 0,    // R: 红系(暖)
+    CS_YELLOW   = 1,    // Y: 黄系(光)
+    CS_GREEN    = 2,    // G: 绿系(生)
+    CS_BLUE     = 3,    // B: 蓝系(冷)
+    CS_STONE    = 4,    // S: 泽系(石)
+    CS_LIGHT    = 5,    // L: 光系(韵)
 } cc_color_system_t;
 
-// ── 传统颜色名称 (42色) ──
+// ── 42色编码 (纯序号 C0-C41, 无中文语义) ──
 typedef enum {
-    // 红系(暖)
-    CC_FEI = 0,   CC_FEN,   CC_TONG,  CC_CHI,   CC_ZONG,  CC_JIANG, CC_ZHE,
-    // 黄系(光)
-    CC_XIANG,     CC_JIN,   CC_HUANG, CC_HE,    CC_LI,    CC_WU,    CC_HEI,
-    // 绿系(生)
-    CC_PIAO,      CC_CUI,   CC_LV,    CC_QING,  CC_CANG,  CC_DAI,   CC_XUAN,
-    // 蓝系(冷)
-    CC_SU,        CC_YIN,   CC_LAN,   CC_ZI,    CC_DIAN,  CC_GAN,   CC_AN,
-    // 泽系(石)
-    CC_YU,        CC_LANG,  CC_JING,  CC_LI_SHI,CC_PO,    CC_NAO,   CC_BI,
-    // 光系(韵)
-    CC_XI,        CC_HUI,   CC_NI,    CC_YI,    CC_MI,    CC_MING,  CC_YI2,
+    // 红系 R0-R6 (暖)
+    C_R0 = 0,  C_R1,  C_R2,  C_R3,  C_R4,  C_R5,  C_R6,
+    // 黄系 Y0-Y6 (光)
+    C_Y0, C_Y1, C_Y2, C_Y3, C_Y4, C_Y5, C_Y6,
+    // 绿系 G0-G6 (生)
+    C_G0, C_G1, C_G2, C_G3, C_G4, C_G5, C_G6,
+    // 蓝系 B0-B6 (冷)
+    C_B0, C_B1, C_B2, C_B3, C_B4, C_B5, C_B6,
+    // 泽系 S0-S6 (石)
+    C_S0, C_S1, C_S2, C_S3, C_S4, C_S5, C_S6,
+    // 光系 L0-L6 (韵)
+    C_L0, C_L1, C_L2, C_L3, C_L4, C_L5, C_L6,
 } cc_color_t;
 
-#define CC_COLOR_LI_STHI CC_LI_SHI  // 璃 (avoid name clash)
-
-// ── 颜色信息 ──
+// ── 颜色信息 (显示层: 汉字只作为字符串标签) ──
 typedef struct {
-    cc_color_t      color;          // 颜色枚举
-    cc_color_system_t system;       // 所属色系
-    const char*     name;           // 颜色名称 (汉字)
-    const char*     pinyin;         // 拼音
+    cc_color_t      code;           // 颜色编码 (纯数字, 0-41)
+    cc_color_system_t system;       // 所属色系 (0-5)
+    const char*     name;           // 显示名称 (汉字: 妃/粉/彤...)
+    const char*     pinyin;         // 显示拼音 (fēi/fěn/tóng...)
     const char*     quality;        // 特质 (暖/光/生/冷/石/韵)
     uint8_t         row;            // 行号 (0-5)
     uint8_t         col;            // 列号 (0-6)
 } cc_color_info_t;
 
-// ── 颜色符号绑定 (64符号→42色) ──
+// ── 颜色符号绑定 (64进制符号→42色) ──
 typedef struct {
-    smv_symbol_t    symbol;         // 音质符号
-    cc_color_t      color;          // 绑定颜色
-    const char*     color_name;     // 颜色名称
+    uint8_t         symbol;         // 进制符号序号 (0-63)
+    cc_color_t      color;          // 绑定颜色编码 (C0-C41)
     cc_color_system_t system;       // 所属色系
 } cc_color_symbol_t;
 
 // ── API ──
 const cc_color_info_t* cc_get_color_info(cc_color_t c);
-const cc_color_symbol_t* cc_get_symbol_color(smv_symbol_t sym);
-const char* cc_get_color_name(smv_symbol_t sym);
-const char* cc_get_color_pinyin(smv_symbol_t sym);
-cc_color_system_t cc_get_symbol_system(smv_symbol_t sym);
+const cc_color_symbol_t* cc_get_symbol_color(uint8_t symbol);
+const char* cc_get_color_name(uint8_t symbol);
+cc_color_system_t cc_get_symbol_system(uint8_t symbol);
 
 // 色系名称/品质
 const char* cc_system_name(cc_color_system_t sys);

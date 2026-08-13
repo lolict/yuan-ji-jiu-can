@@ -279,9 +279,9 @@ void hunyuan_shutdown(hunyuan_os_t* os) {
     tcg_report(os->graph);
     pa_report(os->perception);
 
-    // 音质进制+颜色定制报表 (传统六系42色)
+    // 音质进制+颜色定制报表 (编码=纯数字, 汉字=显示标签)
     printf("\n  ═══ 声韵调音质进制 + 六系42色 ═══\n");
-    printf("  64符号 = 64音节 = 六系42色\n");
+    printf("  64符号 = 64音节 = 六系42色 (编码=R0-Y0-G0-B0-S0-L6)\n");
     printf("  夫妻层: %s(%s,%s) %s(%s,%s)\n",
         smv_get_hanzi(0), smv_get_pinyin(0), cc_get_color_name(0),
         smv_get_hanzi(1), smv_get_pinyin(1), cc_get_color_name(1));
@@ -295,7 +295,7 @@ void hunyuan_shutdown(hunyuan_os_t* os) {
         smv_get_hanzi(60), smv_get_pinyin(60), cc_get_color_name(60),
         smv_get_hanzi(61), smv_get_pinyin(61), cc_get_color_name(61),
         smv_get_hanzi(62), smv_get_pinyin(62), cc_get_color_name(62));
-    printf("  六系品质: 暖(红)/光(黄)/生(绿)/冷(蓝)/石(泽)/韵(光)\n");
+    printf("  色系: R=暖(红) Y=光(黄) G=生(绿) B=冷(蓝) S=石(泽) L=韵(光)\n");
     printf("  ═════════════════════════════\n");
 
     // 销毁
