@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniCore - 数学规律探索器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #0d1b2a 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 30px 0;
+            border-bottom: 2px solid #2d3748;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            background: linear-gradient(135deg, #00d4ff, #00ff88);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
+        }
+
+        .subtitle {
+            color: #888;
+            margin-top: 10px;
+            font-size: 1.1em;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 1000px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: rgba(45, 55, 72, 0.5);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid #4a5568;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .panel-title {
+            font-size: 1.4em;
+            color: #00d4ff;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .panel-title::before {
+            content: '✨';
+            font-size: 1.2em;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            color: #00ff88;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        select, input[type="number"], input[type="text"] {
+            width: 100%;
+            padding: 12px 16px;
+            background: #1a202c;
+            border: 2px solid #4a5568;
+            border-radius: 10px;
+            color: #e0e0e0;
+            font-size: 1em;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        select:focus, input:focus {
+            border-color: #00d4ff;
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #00d4ff, #0077b6);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #00ff88, #00b894);
+            color: #1a1a2e;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #ffd93d, #f39c12);
+            color: #1a1a2e;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 212, 255, 0.4);
+        }
+
+        .sequence-display {
+            background: #1a202c;
+            border-radius: 10px;
+            padding: 20px;
+            min-height: 100px;
+            font-family: 'Consolas', monospace;
+            font-size: 1.1em;
+            line-height: 1.8;
+            border: 1px solid #4a5568;
+            word-break: break-all;
+        }
+
+        .sequence-item {
+            display: inline-block;
+            background: rgba(0, 212, 255, 0.1);
+            color: #00d4ff;
+            padding: 6px 12px;
+            margin: 4px;
+            border-radius: 6px;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+        }
+
+        .chart-container {
+            background: #1a202c;
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid #4a5568;
+            margin-top: 20px;
+        }
+
+        canvas {
+            width: 100%;
+            height: 300px;
+        }
+
+        .info-section {
+            background: rgba(0, 255, 136, 0.1);
+            border-left: 4px solid #00ff88;
+            padding: 15px 20px;
+            border-radius: 0 10px 10px 0;
+            margin-top: 20px;
+        }
+
+        .info-section h3 {
+            color: #00ff88;
+            margin-bottom: 10px;
+        }
+
+        .info-section p {
+            color: #a0aec0;
+            line-height: 1.6;
+        }
+
+        .preset-patterns {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .pattern-card {
+            background: rgba(0, 212, 255, 0.1);
+            border: 2px solid rgba(0, 212, 255, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .pattern-card:hover {
+            background: rgba(0, 212, 255, 0.2);
+            transform: translateY(-3px);
+            box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
+        }
+
+        .pattern-title {
+            color: #00d4ff;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .pattern-desc {
+            color: #888;
+            font-size: 0.9em;
+        }
+
+        footer {
+            text-align: center;
+            padding: 30px;
+            color: #666;
+            border-top: 1px solid #2d3748;
+            margin-top: 40px;
+        }
+
+        .formula-display {
+            background: #1a202c;
+            border: 1px solid #4a5568;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: 'Consolas', monospace;
+            color: #00ff88;
+        }
+
+        .initial-values {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .initial-value-input {
+            flex: 1;
+            min-width: 80px;
+        }
+
+        .export-section {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .export-btn {
+            padding: 10px 20px;
+            background: rgba(0, 255, 136, 0.2);
+            border: 1px solid #00ff88;
+            color: #00ff88;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .export-btn:hover {
+            background: rgba(0, 255, 136, 0.3);
+        }
+
+        .preset-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+        }
+
+        .preset-card {
+            background: rgba(0, 212, 255, 0.1);
+            border: 2px solid rgba(0, 212, 255, 0.3);
+            border-radius: 12px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .preset-card:hover {
+            background: rgba(0, 212, 255, 0.2;
+        }
+
+        .preset-name {
+            color: #00d4ff;
+            font-weight: 600;
+        }
+
+        .preset-formula {
+            color: #888;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔢 UniCore 数学规律探索器</h1>
+            <p class="subtitle">探索从斐波那契到任意k项、任意运算的数学序列</p>
+        </header>
+
+        <div class="main-grid">
+            <div class="left-column">
+                <div class="panel">
+                    <div class="panel-title">⚙️ 序列配置</div>
+                    
+                    <div class="form-group">
+                        <label>📐 前项数量 (k)</label>
+                        <select id="kSelect">
+                            <option value="2">2 项 (斐波那契)</option>
+                            <option value="3">3 项 (三角波)</option>
+                            <option value="4">4 项</option>
+                            <option value="5">5 项</option>
+                            <option value="6">6 项</option>
+                            <option value="7">7 项</option>
+                            <option value="8">8 项</option>
+                            <option value="9">9 项</option>
+                            <option value="10">10 项</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>🧮 运算方式</label>
+                        <select id="operationSelect">
+                            <option value="add">加法 (+)</option>
+                            <option value="multiply">乘法 (*)</option>
+                            <option value="subtract">减法 (-)</option>
+                            <option value="divide">除法 (/)</option>
+                            <option value="mixed">混合运算</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" id="mixedOpsContainer" style="display: none;">
+                        <label>🔀 混合运算表达式 (例如: 2*A + 3*B + C)</label>
+                        <input type="text" id="mixedOps" placeholder="2*A + 3*B + C" value="2*A + B">
+                    </div>
+
+                    <div class="form-group">
+                        <label>🚀 初始值</label>
+                        <div class="initial-values" id="initialValuesContainer">
+                            <input type="number" class="initial-value-input" value="0" data-index="0">
+                            <input type="number" class="initial-value-input" value="1" data-index="1">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>📊 生成项数</label>
+                        <input type="number" id="termCount" value="20" min="5" max="100">
+                    </div>
+
+                    <div class="btn-group">
+                        <button class="btn btn-success" onclick="generateSequence()">🚀 生成序列</button>
+                        <button class="btn btn-warning" onclick="randomize()">🎲 随机配置</button>
+                    </div>
+
+                    <div class="formula-display" id="formulaDisplay">
+                        F(n) = F(n-1) + F(n-2)
+                    </div>
+                </div>
+
+                <div class="panel" style="margin-top: 20px;">
+                    <div class="panel-title">💡 预设模式</div>
+                    <div class="preset-patterns" id="presetPatterns">
+                    </div>
+                </div>
+            </div>
+
+            <div class="right-column">
+                <div class="panel">
+                    <div class="panel-title">📈 生成的序列</div>
+                    <div class="sequence-display" id="sequenceDisplay">
+                        <span class="sequence-item">0</span>
+                        <span class="sequence-item">1</span>
+                        <span class="sequence-item">1</span>
+                        <span class="sequence-item">2</span>
+                        <span class="sequence-item">3</span>
+                        <span class="sequence-item">5</span>
+                        <span class="sequence-item">8</span>
+                        <span class="sequence-item">13</span>
+                        <span class="sequence-item">21</span>
+                        <span class="sequence-item">34</span>
+                    </div>
+                    
+                    <div class="export-section">
+                        <button class="export-btn" onclick="exportSequence()">💾 导出序列</button>
+                        <button class="export-btn" onclick="copyToClipboard()">📋 复制到剪贴板</button>
+                    </div>
+
+                    <div class="chart-container">
+                        <canvas id="sequenceChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="panel" style="margin-top: 20px;">
+                    <div class="panel-title">🌍 实际应用</div>
+                    <div class="info-section" id="applicationInfo">
+                        <h3>🌿 自然界</h3>
+                        <p>斐波那契序列在自然界中随处可见：向日葵的花瓣排列、松果的螺旋、叶子的生长顺序...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>UniCore - 数学规律探索器 | 探索无限可能的数学世界</p>
+            <p style="margin-top: 10px;">
+                <a href="unicore_web.html" style="color: #00d4ff; text-decoration: none;">🔙 返回 UniCore 虚拟机</a>
+            </p>
+        </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        let chart = null;
+
+        const presets = [
+            {
+                name: '斐波那契',
+                k: 2,
+                operation: 'add',
+                initial: [0, 1],
+                formula: 'F(n) = F(n-1) + F(n-2)',
+                application: '🌿 花瓣排列、叶序、金融分析、斐波那契堆'
+            },
+            {
+                name: '三角波 (Tribonacci)',
+                k: 3,
+                operation: 'add',
+                initial: [0, 1, 1],
+                formula: 'T(n) = T(n-1) + T(n-2) + T(n-3)',
+                application: '📡 物理振动、信号处理'
+            },
+            {
+                name: '乘法序列',
+                k: 2,
+                operation: 'multiply',
+                initial: [2, 3],
+                formula: 'M(n) = M(n-1) * M(n-2)',
+                application: '📈 指数增长、复合利息'
+            },
+            {
+                name: '交替系数',
+                k: 2,
+                operation: 'mixed',
+                mixed: '2*A + 3*B',
+                initial: [1, 1],
+                formula: 'A(n) = 2*A(n-1) + 3*A(n-2)',
+                application: '💻 递归算法'
+            },
+            {
+                name: '移动平均',
+                k: 3,
+                operation: 'mixed',
+                mixed: '(A + B + C) / 3',
+                initial: [100, 200, 300],
+                formula: 'Avg(n) = (A+B+C)/3',
+                application: '📊 数据平滑、噪声过滤'
+            },
+            {
+                name: '4项累加',
+                k: 4,
+                operation: 'add',
+                initial: [1, 1, 1, 1],
+                formula: 'Q(n) = Q1+Q2+Q3+Q4',
+                application: '🔬 复杂系统模拟'
+            },
+            {
+                name: '几何级数',
+                k: 2,
+                operation: 'multiply',
+                initial: [2, 2],
+                formula: 'G(n) = G(n-1) * G(n-2)',
+                application: '🎨 分形几何'
+            },
+            {
+                name: '递减序列',
+                k: 2,
+                operation: 'subtract',
+                initial: [100, 50],
+                formula: 'D(n) = D(n-1) - D(n-2)',
+                application: '📉 衰减模型'
+            },
+            {
+                name: '卢卡斯数列',
+                k: 2,
+                operation: 'add',
+                initial: [2, 1],
+                formula: 'L(n) = L(n-1) + L(n-2)',
+                application: '🎯 数论、密码学'
+            },
+            {
+                name: '佩尔数列',
+                k: 2,
+                operation: 'mixed',
+                mixed: '2*A + B',
+                initial: [0, 1],
+                formula: 'P(n) = 2*P(n-1) + P(n-2)',
+                application: '√2 近似、丢番图方程'
+            },
+            {
+                name: '斐波那契平方',
+                k: 3,
+                operation: 'mixed',
+                mixed: 'A + 2*B',
+                initial: [0, 1, 3],
+                formula: 'S(n) = S(n-1) + 2*S(n-2)',
+                application: '🎨 图案设计'
+            }
+        ];
+
+        function initPresets() {
+            const container = document.getElementById('presetPatterns');
+            container.innerHTML = presets.map((p, i) => `
+                <div class="pattern-card" onclick="loadPreset(${i})">
+                    <div class="pattern-title">${p.name}</div>
+                    <div class="pattern-desc">k=${p.k}</div>
+                </div>
+            `).join('');
+        }
+
+        function loadPreset(index) {
+            const p = presets[index];
+            document.getElementById('kSelect').value = p.k;
+            document.getElementById('operationSelect').value = p.operation;
+            if (p.mixed) {
+                document.getElementById('mixedOps').value = p.mixed;
+            }
+            updateInitialValues(p.k);
+            const inputs = document.querySelectorAll('.initial-value-input');
+            p.initial.forEach((v, i) => {
+                if (inputs[i]) inputs[i].value = v;
+            });
+            document.getElementById('formulaDisplay').textContent = p.formula;
+            document.getElementById('applicationInfo').innerHTML = `<h3>✨ ${p.name}</h3><p>${p.application}</p>`;
+            generateSequence();
+        }
+
+        function updateInitialValues(k) {
+            const container = document.getElementById('initialValuesContainer');
+            let html = '';
+            for (let i = 0; i < k; i++) {
+                html += `<input type="number" class="initial-value-input" value="${i < 2 ? (i === 0 ? 0 : 1) : 1}" data-index="${i}">`;
+            }
+            container.innerHTML = html;
+            updateFormula();
+        }
+
+        function updateFormula() {
+            const k = parseInt(document.getElementById('kSelect').value);
+            const op = document.getElementById('operationSelect').value;
+            
+            let formula = '';
+            if (op === 'add') {
+                const terms = Array.from({length: k}, (_, i) => `F(n-${i+1})`).join(' + ');
+                formula = `F(n) = ${terms}`;
+            } else if (op === 'multiply') {
+                const terms = Array.from({length: k}, (_, i) => `F(n-${i+1})`).join(' * ');
+                formula = `F(n) = ${terms}`;
+            } else if (op === 'subtract') {
+                const terms = Array.from({length: k}, (_, i) => `F(n-${i+1})`).join(' - ');
+                formula = `F(n) = ${terms}`;
+            } else if (op === 'divide') {
+                const terms = Array.from({length: k}, (_, i) => `F(n-${i+1})`).join(' / ');
+                formula = `F(n) = ${terms}`;
+            } else {
+                formula = document.getElementById('mixedOps').value;
+            }
+            document.getElementById('formulaDisplay').textContent = formula;
+        }
+
+        function generateSequence() {
+            const k = parseInt(document.getElementById('kSelect').value);
+            const op = document.getElementById('operationSelect').value;
+            const termCount = parseInt(document.getElementById('termCount').value);
+            const inputs = document.querySelectorAll('.initial-value-input');
+            const initial = Array.from(inputs).map(inp => parseFloat(inp.value) || 0);
+            
+            let sequence = [...initial];
+            
+            for (let i = k; i < termCount; i++) {
+                let nextVal = 0;
+                const prevVals = sequence.slice(i - k, i);
+                
+                if (op === 'add') {
+                    nextVal = prevVals.reduce((a, b) => a + b, 0);
+                } else if (op === 'multiply') {
+                    nextVal = prevVals.reduce((a, b) => a * b, 1);
+                } else if (op === 'subtract') {
+                    nextVal = prevVals.reduce((a, b) => a - b);
+                } else if (op === 'divide') {
+                    nextVal = prevVals.reduce((a, b) => b !== 0 ? a / b : a);
+                } else {
+                    nextVal = evalMixed(prevVals, document.getElementById('mixedOps').value);
+                }
+                
+                sequence.push(nextVal);
+            }
+            
+            displaySequence(sequence);
+            drawChart(sequence);
+        }
+
+        function evalMixed(vals, expr) {
+            try {
+                let e = expr;
+                const letters = 'ABCDEFGHIJKLMNOPQRST';
+                vals.forEach((v, i) => {
+                    e = e.replace(new RegExp(letters[i], 'g'), `(${v})`);
+                });
+                return Function('"use strict"; return (' + e + ')')();
+            } catch {
+                return 0;
+            }
+        }
+
+        function displaySequence(sequence) {
+            const container = document.getElementById('sequenceDisplay');
+            container.innerHTML = sequence.map((val, i) => 
+                `<span class="sequence-item" title="第${i+1}项">${Number.isFinite(val) ? (Number.isInteger(val) ? val : val.toFixed(2)) : '∞'}</span>`
+            ).join('');
+            
+            window.currentSequence = sequence;
+        }
+        
+        function exportSequence() {
+            const sequence = window.currentSequence || [];
+            const k = parseInt(document.getElementById('kSelect').value);
+            const op = document.getElementById('operationSelect').value;
+            const formula = document.getElementById('formulaDisplay').textContent;
+            
+            const textContent = `UniCore 数学序列导出
+===============================
+公式: ${formula}
+前项数 (k): ${k}
+运算方式: ${op}
+项数: ${sequence.length}
+
+序列数据:
+${sequence.map((v, i) => `${i+1}. ${Number.isFinite(v) ? (Number.isInteger(v) ? v : v.toFixed(4)) : '∞'}`).join('\n')}
+`;
+            
+            const blob = new Blob([textContent], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `unicore-sequence-${Date.now()}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        }
+        
+        function copyToClipboard() {
+            const sequence = window.currentSequence || [];
+            const formula = document.getElementById('formulaDisplay').textContent;
+            const text = `${formula}\n${sequence.join(', ')}`;
+            
+            navigator.clipboard.writeText(text).then(() => {
+                alert('✅ 序列已复制到剪贴板！');
+            }).catch(err => {
+                console.error('复制失败:', err);
+            });
+        }
+
+        function drawChart(sequence) {
+            const ctx = document.getElementById('sequenceChart').getContext('2d');
+            const labels = sequence.map((_, i) => `${i+1}`);
+            const data = sequence.map(v => Number.isFinite(v) ? v : 0);
+            
+            if (chart) {
+                chart.destroy();
+            }
+            
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '序列值',
+                        data: data,
+                        borderColor: '#00d4ff',
+                        backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#00ff88',
+                        pointBorderColor: '#00ff88',
+                        pointRadius: 5,
+                        pointHoverRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#e0e0e0'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#888' },
+                            grid: { color: '#4a5568' }
+                        },
+                        y: {
+                            ticks: { color: '#888' },
+                            grid: { color: '#4a5568' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function randomize() {
+            const k = Math.floor(Math.random() * 9) + 2;
+            const ops = ['add', 'multiply', 'subtract', 'mixed'];
+            const op = ops[Math.floor(Math.random() * ops.length)];
+            
+            document.getElementById('kSelect').value = k;
+            document.getElementById('operationSelect').value = op;
+            updateInitialValues(k);
+            
+            const inputs = document.querySelectorAll('.initial-value-input');
+            inputs.forEach(inp => {
+                inp.value = Math.floor(Math.random() * 20) - 10;
+            });
+            
+            if (op === 'mixed') {
+                const letters = 'ABCDEFGHIJ'.slice(0, k);
+                let expr = '';
+                for (let i = 0; i < k; i++) {
+                    const coeff = Math.floor(Math.random() * 5) + 1;
+                    expr += (i > 0 ? ' + ' : '') + `${coeff}*${letters[i]}`;
+                }
+                document.getElementById('mixedOps').value = expr;
+            }
+            
+            updateFormula();
+            generateSequence();
+        }
+
+        document.getElementById('kSelect').addEventListener('change', (e) => {
+            updateInitialValues(parseInt(e.target.value));
+        });
+
+        document.getElementById('operationSelect').addEventListener('change', (e) => {
+            document.getElementById('mixedOpsContainer').style.display = 
+                e.target.value === 'mixed' ? 'block' : 'none';
+            updateFormula();
+        });
+
+        document.getElementById('mixedOps').addEventListener('input', updateFormula);
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initPresets();
+            updateInitialValues(2);
+            generateSequence();
+        });
+    </script>
+</body>
+</html>

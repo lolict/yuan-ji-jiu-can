@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniCore v2.0 - WASM底层核心 + 上层接口</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Courier New', monospace; background: #0a0a0f; min-height: 100vh; color: #00ff88; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        
+        header { text-align: center; padding: 30px 0; border-bottom: 2px solid #00ff88; margin-bottom: 30px; }
+        h1 { font-size: 2.5em; color: #00ff88; }
+        .version { color: #ffd93d; margin-top: 10px; }
+        
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .panel { background: rgba(0,255,136,0.05); border: 2px solid #00ff88; border-radius: 10px; padding: 20px; }
+        .panel-title { color: #ffd93d; font-size: 1.2em; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid rgba(0,255,136,0.3); }
+        
+        .editor { width: 100%; min-height: 250px; background: #0a0a0f; border: 2px solid #00ff88; border-radius: 5px; color: #00ff88; font-family: 'Courier New'; padding: 15px; font-size: 0.95em; line-height: 1.5; }
+        
+        .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin: 5px; transition: all 0.3s; }
+        .btn-primary { background: #00ff88; color: #0a0a0f; }
+        .btn-danger { background: #ff6b6b; color: white; }
+        .btn-warning { background: #ffd93d; color: #0a0a0f; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,255,136,0.3); }
+        
+        .output { background: #0a0a0f; border: 2px solid #00ff88; border-radius: 5px; padding: 15px; min-height: 300px; max-height: 500px; overflow-y: auto; font-size: 0.85em; }
+        .output-line { margin: 3px 0; padding: 2px 0; color: #00d4ff; }
+        .output-error { color: #ff6b6b; }
+        .output-success { color: #00ff88; }
+        
+        .stats { display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 20px; }
+        .stat { background: rgba(0,255,136,0.1); border: 2px solid #00ff88; border-radius: 10px; padding: 15px 25px; text-align: center; }
+        .stat-value { font-size: 1.8em; color: #ffd93d; font-weight: bold; }
+        .stat-label { color: #888; margin-top: 5px; font-size: 0.9em; }
+        
+        .full { grid-column: 1 / -1; }
+        .diagram { background: rgba(0,0,0,0.3); border-radius: 10px; padding: 20px; margin: 15px 0; text-align: center; font-family: 'Courier New'; color: #a0aec0; font-size: 0.85em; line-height: 1.8; }
+        .highlight { color: #00ff88; font-weight: bold; }
+        
+        .container-grid { display: grid; grid-template-columns: repeat(16, 1fr); gap: 2px; }
+        .container-cell { background: rgba(0,0,0,0.5); border: 1px solid #333; border-radius: 3px; padding: 5px; text-align: center; font-size: 0.75em; cursor: pointer; transition: all 0.2s; }
+        .container-cell:hover { background: rgba(0,255,136,0.2); }
+        .container-cell.active { background: rgba(255,217,61,0.3); border-color: #ffd93d; }
+        .container-cell.used { background: rgba(0,255,136,0.15); }
+        
+        .info { background: rgba(0,212,255,0.1); border: 1px solid #00d4ff; border-radius: 5px; padding: 15px; margin: 15px 0; font-size: 0.9em; }
+        .info h4 { color: #00d4ff; margin-bottom: 10px; }
+        
+        footer { text-align: center; padding: 30px; color: #666; border-top: 1px solid #333; margin-top: 50px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>UniCore v2.0 - WASM底层核心</h1>
+            <p class="version">底层优先 · 上层服从 · WebAssembly核心引擎</p>
+        </header>
+
+        <div class="diagram">
+<pre>
+┌──────────────────────────────────────────────────────────────┐
+│                    <span class="highlight">hacsjs_3d.js 上层（三维界面）</span>                    │
+├──────────────────────────────────────────────────────────────┤
+│                                                              │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐             │
+│  │  Three.js  │  │  WebGL     │  │  Three.js  │             │
+│  │  渲染引擎  │  │  渲染      │  │  渲染      │             │
+│  └─────┬──────┘  └─────┬──────┘  └─────┬──────┘             │
+│        │               │               │                     │
+├────────┼───────────────┼───────────────┼────────────────────┤
+│        ↓               ↓               ↓                     │
+│  ════════════════════════════════════════════════            │
+│  ║         <span class="highlight">UniCoreWASM 上层接口封装</span>          ║            │
+│  ║  ┌─────────────────────────────────────────────┐ ║         │
+│  ║  │  集装箱可视化  │ 节点因果链  │ 空间位置    │ ║         │
+│  ║  └─────────────────────────────────────────────┘ ║         │
+│  ════════════════════════════════════════════════            │
+│                                                              │
+├──────────────────────────────────────────────────────────────┤
+│                    <span class="highlight">WASM底层核心引擎</span>                        │
+│  ┌─────────────────────────────────────────────────────┐     │
+│  │  不进位计数  │  节点时间  │ 集装箱内存  │ 字符集   │     │
+│  └─────────────────────────────────────────────────────┘     │
+│                                                              │
+│  <span class="highlight">二进制运行 · 绕过JS二维限制 · 极致性能</span>              │
+└──────────────────────────────────────────────────────────────┘
+</pre>
+        </div>
+
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-value" id="cycles">0</div>
+                <div class="stat-label">执行周期</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="activeContainer">-</div>
+                <div class="stat-label">活动集装箱</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="containerCount">0</div>
+                <div class="stat-label">已用集装箱</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="nodeCount">0</div>
+                <div class="stat-label">节点数量</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="memoryUsage">0</div>
+                <div class="stat-label">内存占用(字节)</div>
+            </div>
+        </div>
+
+        <div class="info">
+            <h4>底层核心特性</h4>
+            <p>1. 不进位计数 (255+1=0, 0-1=255) - 零溢出</p>
+            <p>2. 节点因果时间 - 借用硬件时钟，自定义倍率</p>
+            <p>3. 256个集装箱内存池 - 位权+时空标记</p>
+            <p>4. 自定义字符集改造 - 绑定进制和集装箱</p>
+            <p>5. 插件指令扩展 - 0x40-0xFF 可扩展空间</p>
+        </div>
+
+        <div class="grid">
+            <div class="panel">
+                <div class="panel-title">汇编编辑器（WASM指令）</div>
+                <textarea class="editor" id="codeEditor" placeholder="输入UniISA v2.0汇编指令...&#10;&#10;示例:&#10;LOAD 0x10&#10;INC&#10;INC&#10;INC&#10;ADD 252&#10;INC&#10;HALT"></textarea>
+                <div style="margin-top: 15px;">
+                    <button class="btn btn-primary" onclick="runProgram()">执行</button>
+                    <button class="btn btn-primary" onclick="stepProgram()">单步</button>
+                    <button class="btn btn-danger" onclick="resetVM()">重置</button>
+                    <button class="btn btn-warning" onclick="loadSample('noncarry')">示例1</button>
+                    <button class="btn btn-warning" onclick="loadSample('node')">示例2</button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">执行输出（WASM核心）</div>
+                <div class="output" id="output">
+                    <div class="output-line">UniCore v2.0 WASM 核心已就绪</div>
+                    <div class="output-line">底层引擎: 不进位计数 + 节点时间 + 集装箱</div>
+                </div>
+            </div>
+
+            <div class="panel full">
+                <div class="panel-title">集装箱池 (256个) - 底层内存可视化</div>
+                <div class="container-grid" id="containerGrid"></div>
+                <div style="margin-top: 15px;">
+                    <button class="btn btn-primary" onclick="refreshGrid()">刷新</button>
+                    <span style="color: #888; margin-left: 15px;">点击选择活动集装箱 | 绿色=已使用 | 黄色=活动</span>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">自定义字符集改造系统</div>
+                <div class="info">
+                    <h4>方法论</h4>
+                    <p>步骤1: 只借ASCII字形，扔掉编码规则</p>
+                    <p>步骤2: 重新给字符排新编号</p>
+                    <p>步骤3: 绑定自定进制和集装箱范围</p>
+                    <p>步骤4: 编码解码转换</p>
+                </div>
+                <div style="margin-top: 15px;">
+                    <button class="btn btn-primary" onclick="testCharset()">测试字符集</button>
+                    <button class="btn btn-warning" onclick="exportCharset()">导出映射</button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">节点因果链（WASM时间系统）</div>
+                <div id="nodeDisplay" style="max-height: 200px; overflow-y: auto;">
+                    <div style="color: #888; text-align: center; padding: 30px;">暂无节点</div>
+                </div>
+                <div style="margin-top: 15px;">
+                    <button class="btn btn-primary" onclick="refreshNodes()">刷新</button>
+                </div>
+            </div>
+
+            <div class="panel full">
+                <div class="panel-title">指令参考（0x00-0xFF）</div>
+                <div class="info">
+                    <h4>系统控制 (0x00-0x0F)</h4>
+                    <p>NOP(0x00) | HALT(0x01) | LOAD(0x02) | STORE(0x03) | COPY(0x05)</p>
+                    
+                    <h4 style="margin-top: 15px;">不进位算术 (0x10-0x1F)</h4>
+                    <p>INC(0x10) | DEC(0x11) | ADD(0x12) | SUB(0x13) | ZERO(0x14) | MAX(0x15) | FLIP(0x16)</p>
+                    
+                    <h4 style="margin-top: 15px;">节点时间 (0x20-0x2F)</h4>
+                    <p>CREATE_NODE(0x20) | TRIGGER(0x22) | SYNC_TIME(0x24) | GET_OFFSET(0x25)</p>
+                    
+                    <h4 style="margin-top: 15px;">空间操作 (0x30-0x3F)</h4>
+                    <p>SET_POS(0x30) | GET_POS(0x31) | DISTANCE(0x33)</p>
+                    
+                    <h4 style="margin-top: 15px;">插件扩展 (0x40-0xFF)</h4>
+                    <p>LOAD_PLUGIN(0x40) | CALL_PLUGIN(0x42) | LIST_PLUGIN(0x43)</p>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>UniCore v2.0 - 底层WASM核心 | 上层hacsjs_3d.js服从</p>
+            <p style="margin-top: 10px; color: #888;">底层: Rust/WebAssembly | 上层: 三维界面</p>
+        </footer>
+    </div>
+
+    <script src="../src/wasm/unicore_wasm_core.js"></script>
+    <script>
+        let vm = new UniCoreWASM();
+        let assembler = new UniCoreAssembler();
+        let charset = new CustomCharset();
+        let stepMode = false;
+
+        function init() {
+            vm.initialize();
+            renderContainerGrid();
+            updateStats();
+        }
+
+        function renderContainerGrid() {
+            const grid = document.getElementById('containerGrid');
+            grid.innerHTML = '';
+            for (let i = 0; i < 256; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'container-cell';
+                cell.id = 'c' + i.toString(16).padStart(2, '0').toUpperCase();
+                cell.innerHTML = i.toString(16).padStart(2, '0').toUpperCase() + '<br>' + vm.containers[i];
+                if (vm.containers[i] !== 0) cell.classList.add('used');
+                if (vm.activeContainer === i) cell.classList.add('active');
+                cell.onclick = (function(id) { return function() { selectContainer(id); }; })(i);
+                grid.appendChild(cell);
+            }
+        }
+
+        function selectContainer(id) {
+            vm.activeContainer = id;
+            document.getElementById('output').innerHTML += '<div class="output-line">Selected: 0x' + id.toString(16).padStart(2, '0').toUpperCase() + ' (value=' + vm.containers[id] + ')</div>';
+            renderContainerGrid();
+            updateStats();
+        }
+
+        function refreshGrid() {
+            renderContainerGrid();
+            updateStats();
+        }
+
+        function updateStats() {
+            document.getElementById('cycles').textContent = vm.cycles;
+            document.getElementById('activeContainer').textContent = vm.activeContainer !== null ? '0x' + vm.activeContainer.toString(16).padStart(2, '0').toUpperCase() : '-';
+            document.getElementById('containerCount').textContent = vm.containers.filter(function(v) { return v !== 0; }).length;
+            document.getElementById('nodeCount').textContent = vm.nodes.size;
+            document.getElementById('memoryUsage').textContent = vm.containers.byteLength + vm.positions.byteLength + vm.flags.byteLength;
+        }
+
+        function updateOutput() {
+            const out = document.getElementById('output');
+            let html = '';
+            for (let i = Math.max(0, vm.output.length - 50); i < vm.output.length; i++) {
+                html += '<div class="output-line">' + vm.output[i] + '</div>';
+            }
+            out.innerHTML = html;
+            out.scrollTop = out.scrollHeight;
+        }
+
+        function refreshNodes() {
+            const display = document.getElementById('nodeDisplay');
+            if (vm.nodes.size === 0) {
+                display.innerHTML = '<div style="color: #888; text-align: center; padding: 30px;">暂无节点</div>';
+                return;
+            }
+            let html = '';
+            vm.nodes.forEach(function(node, id) {
+                const triggered = node.triggered ? '✓' : '○';
+                const typeName = ['NORMAL', 'ACTION', 'STATE', 'CAUSAL'][node.type - 1] || 'UNKNOWN';
+                html += '<div style="background: rgba(0,0,0,0.3); border: 1px solid ' + (node.triggered ? '#00ff88' : '#333') + '; border-radius: 5px; padding: 10px; margin: 5px 0;">';
+                html += '<span style="color: #ffd93d;">#' + node.id + '</span> ';
+                html += '<span style="color: #00d4ff;">[' + typeName + ']</span> ';
+                html += '<span style="color: #888;">cause=' + (node.cause || 'none') + '</span> ';
+                html += '<span style="color: ' + (node.triggered ? '#00ff88' : '#888') + ';">' + triggered + '</span>';
+                html += '</div>';
+            });
+            display.innerHTML = html;
+        }
+
+        function runProgram() {
+            const code = document.getElementById('codeEditor').value;
+            const program = assembler.assemble(code);
+            vm.output = [];
+            vm.loadProgram(Array.from(program));
+            vm.run();
+            renderContainerGrid();
+            updateStats();
+            updateOutput();
+            refreshNodes();
+        }
+
+        function stepProgram() {
+            const code = document.getElementById('codeEditor').value;
+            if (!vm.program || vm.program.length === 0) {
+                vm.output = [];
+                const program = assembler.assemble(code);
+                vm.loadProgram(Array.from(program));
+                vm.initialize();
+            }
+            if (vm.step()) {
+                renderContainerGrid();
+                updateStats();
+                updateOutput();
+                refreshNodes();
+            } else {
+                document.getElementById('output').innerHTML += '<div class="output-success">Execution finished</div>';
+            }
+        }
+
+        function resetVM() {
+            vm = new UniCoreWASM();
+            assembler = new UniCoreAssembler();
+            init();
+            document.getElementById('output').innerHTML = '<div class="output-line">VM reset</div>';
+        }
+
+        function loadSample(type) {
+            let code = '';
+            if (type === 'noncarry') {
+                code = '; 不进位计数演示\nLOAD 0x10\nINC\nINC\nINC\nADD 252\nINC\nHALT';
+            } else if (type === 'node') {
+                code = '; 节点因果链演示\nCREATE_NODE 1 NULL\nCREATE_NODE 2 1\nCREATE_NODE 3 2\nTRIGGER 3\nHALT';
+            }
+            document.getElementById('codeEditor').value = code;
+        }
+
+        function testCharset() {
+            charset.bindChar(65, 1);  // A -> 1
+            charset.bindChar(66, 2);  // B -> 2
+            charset.bindChar(67, 3);  // C -> 3
+            charset.bindRadix(64);
+            charset.bindContainerRange(0, 255);
+            
+            const encoded = charset.encode('ABC');
+            const decoded = charset.decode(encoded);
+            
+            document.getElementById('output').innerHTML += '<div class="output-line">Charset test:</div>';
+            document.getElementById('output').innerHTML += '<div class="output-line">Original: ABC</div>';
+            document.getElementById('output').innerHTML += '<div class="output-line">Encoded: ' + Array.from(encoded).join(', ') + '</div>';
+            document.getElementById('output').innerHTML += '<div class="output-line">Decoded: ' + decoded + '</div>';
+        }
+
+        function exportCharset() {
+            const mapping = charset.exportMapping();
+            const blob = new Blob([JSON.stringify(mapping, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'charset_mapping.json';
+            a.click();
+        }
+
+        init();
+    </script>
+</body>
+</html>

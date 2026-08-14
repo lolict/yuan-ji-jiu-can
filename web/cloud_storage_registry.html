@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniCore - 云盘备案众测平台</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 50%, #0d1b2a 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 40px 0;
+            border-bottom: 2px solid #2d3748;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 3.5em;
+            background: linear-gradient(135deg, #00d4ff 0%, #00ff88 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: #888;
+            margin-top: 10px;
+            font-size: 1.3em;
+        }
+
+        .intro-section {
+            background: rgba(0, 255, 136, 0.05);
+            border-left: 4px solid #00ff88;
+            padding: 25px;
+            border-radius: 0 15px 15px 0;
+            margin-bottom: 40px;
+        }
+
+        .intro-section h2 {
+            color: #00ff88;
+            margin-bottom: 15px;
+            font-size: 1.8em;
+        }
+
+        .intro-section p {
+            color: #a0aec0;
+            line-height: 1.8;
+            font-size: 1.1em;
+        }
+
+        .section-title {
+            font-size: 2em;
+            color: #00d4ff;
+            margin: 40px 0 25px 0;
+            padding-bottom: 15px;
+            border-bottom: 2px solid rgba(0, 212, 255, 0.3);
+        }
+
+        .cloud-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .cloud-card {
+            background: rgba(45, 55, 72, 0.4);
+            border: 2px solid #4a5568;
+            border-radius: 20px;
+            padding: 25px;
+            transition: all 0.4s;
+            cursor: pointer;
+        }
+
+        .cloud-card:hover {
+            transform: translateY(-8px);
+            border-color: #00d4ff;
+            box-shadow: 0 15px 40px rgba(0, 212, 255, 0.2);
+        }
+
+        .cloud-card.success {
+            border-color: #00ff88;
+        }
+
+        .cloud-card.failed {
+            border-color: #ff6b6b;
+        }
+
+        .cloud-card.untested {
+            border-color: #ffd93d;
+        }
+
+        .cloud-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .cloud-icon {
+            font-size: 3em;
+        }
+
+        .cloud-name {
+            font-size: 1.5em;
+            color: #00d4ff;
+            font-weight: 700;
+        }
+
+        .cloud-status {
+            margin-left: auto;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .status-success {
+            background: rgba(0, 255, 136, 0.2);
+            color: #00ff88;
+        }
+
+        .status-failed {
+            background: rgba(255, 107, 107, 0.2);
+            color: #ff6b6b;
+        }
+
+        .status-untested {
+            background: rgba(255, 217, 61, 0.2);
+            color: #ffd93d;
+        }
+
+        .cloud-desc {
+            color: #a0aec0;
+            line-height: 1.7;
+            margin-bottom: 20px;
+        }
+
+        .cloud-info {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .cloud-info-title {
+            color: #00ff88;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .cloud-info-item {
+            color: #a0aec0;
+            margin: 8px 0;
+            font-size: 0.95em;
+        }
+
+        .cloud-info-item code {
+            background: rgba(0, 212, 255, 0.1);
+            color: #00d4ff;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .cloud-api {
+            margin-top: 15px;
+        }
+
+        .api-title {
+            color: #ffd93d;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .api-desc {
+            color: #a0aec0;
+            font-size: 0.9em;
+            line-height: 1.6;
+        }
+
+        .feedback-section {
+            background: rgba(45, 55, 72, 0.4);
+            border: 2px solid #4a5568;
+            border-radius: 20px;
+            padding: 30px;
+            margin: 40px 0;
+        }
+
+        .feedback-title {
+            font-size: 1.8em;
+            color: #00d4ff;
+            margin-bottom: 20px;
+        }
+
+        .feedback-form {
+            display: grid;
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-label {
+            color: #00ff88;
+            font-weight: 600;
+        }
+
+        .form-input, .form-select, .form-textarea {
+            padding: 12px 16px;
+            background: #1a1a2e;
+            border: 2px solid #4a5568;
+            border-radius: 10px;
+            color: #e0e0e0;
+            font-size: 1em;
+        }
+
+        .form-textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #00d4ff 0%, #0077b6 100%);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 212, 255, 0.4);
+        }
+
+        .results-section {
+            margin: 40px 0;
+        }
+
+        .result-card {
+            background: rgba(45, 55, 72, 0.4);
+            border: 2px solid #4a5568;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+        }
+
+        .result-card:hover {
+            background: rgba(0, 212, 255, 0.1);
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .result-cloud {
+            color: #00d4ff;
+            font-weight: 700;
+            font-size: 1.2em;
+        }
+
+        .result-user {
+            color: #888;
+            font-size: 0.9em;
+        }
+
+        .result-content {
+            color: #a0aec0;
+            line-height: 1.7;
+        }
+
+        .result-time {
+            color: #666;
+            font-size: 0.85em;
+            margin-top: 10px;
+        }
+
+        footer {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            border-top: 1px solid #2d3748;
+            margin-top: 60px;
+        }
+
+        footer a {
+            color: #00d4ff;
+            text-decoration: none;
+        }
+
+        .tip-box {
+            background: rgba(255, 217, 61, 0.1);
+            border-left: 4px solid #ffd93d;
+            padding: 15px;
+            border-radius: 0 10px 10px 0;
+            margin: 15px 0;
+        }
+
+        .tip-box strong {
+            color: #ffd93d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>☁️ 云盘备案众测平台</h1>
+            <p class="subtitle">让社区帮你测试，找到最好用的云存储方案</p>
+        </header>
+
+        <div class="intro-section">
+            <h2>💡 平台说明</h2>
+            <p>
+                这个平台收集各种云盘服务的配置信息，帮助大家找到最适合自己的存储方案。<br><br>
+                <strong>核心思路：</strong><br>
+                • 我无法亲自测试所有云盘服务<br>
+                • 但我可以让大家一起测试<br>
+                • 你不需要亲自试错，让别人帮你测试<br>
+                • 测试成功或失败都可以提交，大家共享结果
+            </p>
+            
+            <div class="tip-box">
+                <strong>💰 成本说明：</strong>如果你没有花费，就无法登录网页。坚果云需要付费才能使用 WebDAV。其他云盘服务可能提供免费 API 或试用额度，大家可以一起测试哪些服务更实用。
+            </div>
+        </div>
+
+        <h2 class="section-title">📦 云盘服务备案</h2>
+        
+        <div class="cloud-grid">
+            <div class="cloud-card success">
+                <div class="cloud-header">
+                    <span class="cloud-icon">🥜</span>
+                    <span class="cloud-name">坚果云</span>
+                    <span class="cloud-status status-success">✅ 已验证</span>
+                </div>
+                <div class="cloud-desc">
+                    国内知名的同步云盘，支持 WebDAV，适合个人和小团队使用。
+                </div>
+                <div class="cloud-info">
+                    <div class="cloud-info-title">📋 WebDAV 配置</div>
+                    <div class="cloud-info-item">服务器：<code>dav.jianguoyun.com/dav/</code></div>
+                    <div class="cloud-info-item">端口：<code>443</code></div>
+                    <div class="cloud-info-item">用户名：你的注册邮箱</div>
+                    <div class="cloud-info-item">密码：应用密码（非登录密码）</div>
+                </div>
+                <div class="tip-box">
+                    <strong>⚠️ 注意：</strong>需要付费会员才能使用 WebDAV 功能
+                </div>
+            </div>
+
+            <div class="cloud-card untested">
+                <div class="cloud-header">
+                    <span class="cloud-icon">🔵</span>
+                    <span class="cloud-name">123云盘</span>
+                    <span class="cloud-status status-untested">❓ 待测试</span>
+                </div>
+                <div class="cloud-desc">
+                    国内新兴的云盘服务，界面简洁，提供了 API 接口供开发者使用。
+                </div>
+                <div class="cloud-info">
+                    <div class="cloud-info-title">📋 API 配置</div>
+                    <div class="cloud-info-item">API 地址：<code>https://www.123pan.com/api/</code></div>
+                    <div class="cloud-info-item">需要：注册账号获取 AppId 和 AppSecret</div>
+                </div>
+                <div class="cloud-api">
+                    <div class="api-title">🔧 待验证功能</div>
+                    <div class="api-desc">是否支持 WebDAV？API 是否免费？额度限制是多少？需要用户测试反馈！</div>
+                </div>
+            </div>
+
+            <div class="cloud-card untested">
+                <div class="cloud-header">
+                    <span class="cloud-icon">🔴</span>
+                    <span class="cloud-name">百度网盘</span>
+                    <span class="cloud-status status-untested">❓ 待测试</span>
+                </div>
+                <div class="cloud-desc">
+                    国内最大的云存储服务，提供了开放平台 API，支持第三方应用接入。
+                </div>
+                <div class="cloud-info">
+                    <div class="cloud-info-title">📋 开放平台 API</div>
+                    <div class="cloud-info-item">地址：<code>https://pan.baidu.com/union/</code></div>
+                    <div class="cloud-info-item">需要：注册开发者账号，创建应用获取 API Key</div>
+                </div>
+                <div class="cloud-api">
+                    <div class="api-title">🔧 待验证功能</div>
+                    <div class="api-desc">个人用户 API 额度有限，需要开通会员才能获得更多空间和流量。</div>
+                </div>
+            </div>
+
+            <div class="cloud-card untested">
+                <div class="cloud-header">
+                    <span class="cloud-icon">🟠</span>
+                    <span class="cloud-name">阿里云盘</span>
+                    <span class="cloud-status status-untested">❓ 待测试</span>
+                </div>
+                <div class="cloud-desc">
+                    阿里巴巴推出的云盘服务，界面清新，提供了开放 API 接口。
+                </div>
+                <div class="cloud-info">
+                    <div class="cloud-info-title">📋 开放平台</div>
+                    <div class="cloud-info-item">地址：<code>https://open.alicloud.com/</code></div>
+                    <div class="cloud-info-item">需要：阿里云账号，创建应用获取 Token</div>
+                </div>
+                <div class="cloud-api">
+                    <div class="api-title">🔧 待验证功能</div>
+                    <div class="api-desc">是否提供 WebDAV？API 限流情况？免费额度够用吗？</div>
+                </div>
+            </div>
+
+            <div class="cloud-card untested">
+                <div class="cloud-header">
+                    <span class="cloud-icon">🟡</span>
+                    <span class="cloud-name">迅雷云盘</span>
+                    <span class="cloud-status status-untested">❓ 待测试</span>
+                </div>
+                <div class="cloud-desc">
+                    迅雷推出的云存储服务，主要用于下载和分享资源。
+                </div>
+                <div class="cloud-info">
+                    <div class="cloud-info-title">📋 公开信息</div>
+                    <div class="cloud-info-item">官网：<code>https://cloud.xunlei.com/</code></div>
+                </div>
+                <div class="cloud-api">
+                    <div class="api-title">🔧 待验证功能</div>
+                    <div class="api-desc">是否提供 WebDAV 或 API？开发者文档在哪里？需要用户测试！</div>
+                </div>
+            </div>
+
+            <div class="cloud-card untested">
+                <div class="cloud-header">
+                    <span class="cloud-icon">💚</span>
+                    <span class="cloud-name">夸克网盘</span>
+                    <span class="cloud-status status-untested">❓ 待测试</span>
+                </div>
+                <div class="cloud-desc">
+                    阿里旗下夸克浏览器推出的网盘服务，提供大空间存储。
+                </div>
+                <div class="cloud-info">
+                    <div class="cloud-info-title">📋 公开信息</div>
+                    <div class="cloud-info-item">官网：<code>https://pan.quark.cn/</code></div>
+                </div>
+                <div class="cloud-api">
+                    <div class="api-title">🔧 待验证功能</div>
+                    <div class="api-desc">是否开放 API 或 WebDAV？需要社区用户测试反馈。</div>
+                </div>
+            </div>
+
+            <div class="cloud-card success">
+                <div class="cloud-header">
+                    <span class="cloud-icon">☁️</span>
+                    <span class="cloud-name">OwnCloud</span>
+                    <span class="cloud-status status-success">✅ 已验证</span>
+                </div>
+                <div class="cloud-desc">
+                    开源私有云盘解决方案，可以自己部署服务器，完全自主控制。
+                </div>
+                <div class="cloud-info">
+                    <div class="cloud-info-title">📋 WebDAV 配置</div>
+                    <div class="cloud-info-item">服务器：<code>你的域名/remote.php/dav/files/用户名/</code></div>
+                    <div class="cloud-info-item">端口：<code>443</code> (HTTPS)</div>
+                    <div class="cloud-info-item">用户名：你的 OwnCloud 账号</div>
+                    <div class="cloud-info-item">密码：你的 OwnCloud 密码</div>
+                </div>
+                <div class="tip-box">
+                    <strong>💡 优点：</strong>完全免费，可自行部署，数据完全私有
+                </div>
+            </div>
+
+            <div class="cloud-card success">
+                <div class="cloud-header">
+                    <span class="cloud-icon">📦</span>
+                    <span class="cloud-name">NextCloud</span>
+                    <span class="cloud-status status-success">✅ 已验证</span>
+                </div>
+                <div class="cloud-desc">
+                    OwnCloud 创始人创建的开源项目，功能更丰富，社区活跃。
+                </div>
+                <div class="cloud-info">
+                    <div class="cloud-info-title">📋 WebDAV 配置</div>
+                    <div class="cloud-info-item">服务器：<code>你的域名/remote.php/webdav/</code></div>
+                    <div class="cloud-info-item">端口：<code>443</code> (HTTPS)</div>
+                    <div class="cloud-info-item">用户名：你的 NextCloud 账号</div>
+                    <div class="cloud-info-item">密码：你的 NextCloud 密码</div>
+                </div>
+                <div class="tip-box">
+                    <strong>💡 优点：</strong>完全免费，可自行部署，支持大量插件
+                </div>
+            </div>
+
+            <div class="cloud-card untested">
+                <div class="cloud-header">
+                    <span class="cloud-icon">🌐</span>
+                    <span class="cloud-name">OneDrive</span>
+                    <span class="cloud-status status-untested">❓ 待测试</span>
+                </div>
+                <div class="cloud-desc">
+                    微软提供的云存储服务，与 Office 365 深度集成。
+                </div>
+                <div class="cloud-info">
+                    <div class="cloud-info-title">📋 Microsoft Graph API</div>
+                    <div class="cloud-info-item">地址：<code>https://graph.microsoft.com/</code></div>
+                    <div class="cloud-info-item">需要：Azure AD 应用注册，获取 Client ID 和 Secret</div>
+                </div>
+                <div class="cloud-api">
+                    <div class="api-title">🔧 待验证功能</div>
+                    <div class="api-desc">免费 5GB 空间，API 调用需要 OAuth2 认证。</div>
+                </div>
+            </div>
+
+            <div class="cloud-card untested">
+                <div class="cloud-header">
+                    <span class="cloud-icon">💧</span>
+                    <span class="cloud-name">Dropbox</span>
+                    <span class="cloud-status status-untested">❓ 待测试</span>
+                </div>
+                <div class="cloud-desc">
+                    全球知名的云存储服务，提供完善的 API 和 SDK。
+                </div>
+                <div class="cloud-info">
+                    <div class="cloud-info-title">📋 Dropbox API</div>
+                    <div class="cloud-info-item">地址：<code>https://www.dropbox.com/developers</code></div>
+                    <div class="cloud-info-item">需要：注册 Dropbox 开发者，创建应用获取 Access Token</div>
+                </div>
+                <div class="cloud-api">
+                    <div class="api-title">🔧 待验证功能</div>
+                    <div class="api-desc">免费 2GB 空间，API 相对完善，但国内访问较慢。</div>
+                </div>
+            </div>
+
+            <div class="cloud-card untested">
+                <div class="cloud-header">
+                    <span class="cloud-icon">🪣</span>
+                    <span class="cloud-name">AWS S3</span>
+                    <span class="cloud-status status-untested">❓ 待测试</span>
+                </div>
+                <div class="cloud-desc">
+                    亚马逊的对象存储服务，全球最广泛使用的云存储。
+                </div>
+                <div class="cloud-info">
+                    <div class="cloud-info-title">📋 AWS S3 API</div>
+                    <div class="cloud-info-item">地址：<code>s3.amazonaws.com</code></div>
+                    <div class="cloud-info-item">需要：AWS 账号，创建 S3 Bucket，获取 Access Key</div>
+                </div>
+                <div class="cloud-api">
+                    <div class="api-title">🔧 待验证功能</div>
+                    <div class="api-desc">新用户有12个月免费套餐，按量付费模式。需要信用卡注册。</div>
+                </div>
+            </div>
+
+            <div class="cloud-card untested">
+                <div class="cloud-header">
+                    <span class="cloud-icon">🔶</span>
+                    <span class="cloud-name">Backblaze B2</span>
+                    <span class="cloud-status status-untested">❓ 待测试</span>
+                </div>
+                <div class="cloud-desc">
+                    性价比较高的云存储服务，提供 S3 兼容 API。
+                </div>
+                <div class="cloud-info">
+                    <div class="cloud-info-title">📋 B2 Cloud Storage</div>
+                    <div class="cloud-info-item">地址：<code>https://www.backblaze.com/b2/cloud-storage.html</code></div>
+                    <div class="cloud-info-item">需要：注册账号，创建 Bucket，获取 Key ID 和 Application Key</div>
+                </div>
+                <div class="cloud-api">
+                    <div class="api-title">🔧 待验证功能</div>
+                    <div class="api-desc">免费 10GB 存储，S3 兼容 API，适合技术用户。</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="feedback-section">
+            <div class="feedback-title">📝 提交测试结果</div>
+            <div class="feedback-form">
+                <div class="form-group">
+                    <label class="form-label">云盘服务</label>
+                    <select class="form-select" id="cloudSelect">
+                        <option value="">请选择云盘服务</option>
+                        <option value="123云盘">123云盘</option>
+                        <option value="百度网盘">百度网盘</option>
+                        <option value="阿里云盘">阿里云盘</option>
+                        <option value="迅雷云盘">迅雷云盘</option>
+                        <option value="夸克网盘">夸克网盘</option>
+                        <option value="OneDrive">OneDrive</option>
+                        <option value="Dropbox">Dropbox</option>
+                        <option value="AWS S3">AWS S3</option>
+                        <option value="Backblaze B2">Backblaze B2</option>
+                        <option value="其他">其他</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">测试结果</label>
+                    <select class="form-select" id="resultSelect">
+                        <option value="success">✅ 测试成功</option>
+                        <option value="failed">❌ 测试失败</option>
+                        <option value="partial">⚠️ 部分成功</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">测试详情（可选）</label>
+                    <textarea class="form-textarea" id="testDetails" placeholder="分享你的配置方法、成功或失败的原因、使用体验等..."></textarea>
+                </div>
+                <button class="btn btn-primary" onclick="submitFeedback()">📤 提交测试结果</button>
+            </div>
+        </div>
+
+        <div class="results-section">
+            <h2 class="section-title">📊 社区测试结果</h2>
+            <div id="resultsList">
+                <div class="result-card">
+                    <div class="result-header">
+                        <span class="result-cloud">🥜 坚果云</span>
+                        <span class="result-user">@管理员</span>
+                    </div>
+                    <div class="result-content">
+                        已验证可用。使用 WebDAV 协议，需要付费会员。配置简单，稳定性好，推荐小团队使用。
+                    </div>
+                    <div class="result-time">📅 2026-05-13</div>
+                </div>
+                <div class="result-card">
+                    <div class="result-header">
+                        <span class="result-cloud">☁️ OwnCloud</span>
+                        <span class="result-user">@管理员</span>
+                    </div>
+                    <div class="result-content">
+                        已验证可用。完全免费，需要自己搭建服务器。WebDAV 配置简单，推荐有技术能力的用户使用。
+                    </div>
+                    <div class="result-time">📅 2026-05-13</div>
+                </div>
+                <div class="result-card">
+                    <div class="result-header">
+                        <span class="result-cloud">📦 NextCloud</span>
+                        <span class="result-user">@管理员</span>
+                    </div>
+                    <div class="result-content">
+                        已验证可用。OwnCloud 的升级版，功能更丰富，社区更活跃。同样需要自己部署。
+                    </div>
+                    <div class="result-time">📅 2026-05-13</div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p><a href="index.html">🏠 返回 UniCore 主页</a></p>
+            <p style="margin-top: 20px;">UniCore - 探索无限可能</p>
+        </footer>
+    </div>
+
+    <script>
+        let testResults = [];
+
+        function submitFeedback() {
+            const cloud = document.getElementById('cloudSelect').value;
+            const result = document.getElementById('resultSelect').value;
+            const details = document.getElementById('testDetails').value;
+            const user = '匿名用户' + Math.floor(Math.random() * 1000);
+            
+            if (!cloud) {
+                alert('请选择云盘服务！');
+                return;
+            }
+
+            const resultObj = {
+                cloud,
+                result,
+                details,
+                user,
+                time: new Date().toLocaleString('zh-CN')
+            };
+
+            testResults.unshift(resultObj);
+            displayResults();
+            
+            document.getElementById('cloudSelect').value = '';
+            document.getElementById('resultSelect').value = 'success';
+            document.getElementById('testDetails').value = '';
+            
+            alert('✅ 感谢提交测试结果！');
+        }
+
+        function displayResults() {
+            const container = document.getElementById('resultsList');
+            
+            let html = testResults.map(r => {
+                let resultIcon = r.result === 'success' ? '✅' : (r.result === 'failed' ? '❌' : '⚠️');
+                let content = r.details || '暂无详细说明';
+                
+                return `
+                    <div class="result-card">
+                        <div class="result-header">
+                            <span class="result-cloud">${resultIcon} ${r.cloud}</span>
+                            <span class="result-user">@${r.user}</span>
+                        </div>
+                        <div class="result-content">${content}</div>
+                        <div class="result-time">📅 ${r.time}</div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = html || '<p style="color: #888; text-align: center;">暂无测试结果</p>';
+        }
+
+        displayResults();
+    </script>
+</body>
+</html>

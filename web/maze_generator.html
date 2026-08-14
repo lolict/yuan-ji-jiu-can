@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniCore - 迷宫生成器和求解器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 50%, #0d1b2a 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 30px 0;
+            border-bottom: 2px solid #2d3748;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 3em;
+            background: linear-gradient(135deg, #00d4ff 0%, #00ff88 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 40px rgba(0, 212, 255, 0.3);
+        }
+
+        .subtitle {
+            color: #888;
+            margin-top: 10px;
+            font-size: 1.2em;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 25px;
+        }
+
+        @media (max-width: 1000px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: rgba(45, 55, 72, 0.4);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid #4a5568;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .panel-title {
+            font-size: 1.5em;
+            color: #00d4ff;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .panel-title::before {
+            content: '✨';
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            color: #00ff88;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        select, input[type="number"], input[type="range"] {
+            width: 100%;
+            padding: 12px 16px;
+            background: #1a202c;
+            border: 2px solid #4a5568;
+            border-radius: 10px;
+            color: #e0e0e0;
+            font-size: 1em;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        select:focus, input:focus {
+            border-color: #00d4ff;
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s;
+            flex: 1;
+            min-width: 100px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #00d4ff 0%, #0077b6 100%);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #00ff88 0%, #00b894 100%);
+            color: #1a1a2e;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #ffd93d 0%, #f39c12 100%);
+            color: #1a1a2e;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 212, 255, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .canvas-container {
+            background: #0a0a1a;
+            border-radius: 15px;
+            padding: 15px;
+            border: 2px solid #4a5568;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #mazeCanvas {
+            border-radius: 10px;
+        }
+
+        .algorithm-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .algorithm-card {
+            background: rgba(0, 212, 255, 0.1);
+            border: 2px solid rgba(0, 212, 255, 0.3);
+            border-radius: 12px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .algorithm-card:hover {
+            background: rgba(0, 212, 255, 0.2);
+            transform: translateY(-3px);
+            box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
+        }
+
+        .algorithm-card.active {
+            background: rgba(0, 255, 136, 0.2);
+            border-color: #00ff88;
+        }
+
+        .algorithm-name {
+            color: #00d4ff;
+            font-weight: 600;
+            font-size: 0.95em;
+        }
+
+        .algorithm-category {
+            color: #888;
+            font-size: 0.8em;
+            margin-top: 5px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.8em;
+            color: #00ff88;
+            font-weight: bold;
+        }
+
+        .stat-label {
+            color: #888;
+            font-size: 0.8em;
+            margin-top: 5px;
+        }
+
+        .info-section {
+            background: rgba(0, 255, 136, 0.05);
+            border-left: 4px solid #00ff88;
+            padding: 15px 20px;
+            border-radius: 0 10px 10px 0;
+            margin-top: 20px;
+        }
+
+        .info-section h3 {
+            color: #00ff88;
+            margin-bottom: 10px;
+        }
+
+        .info-section p {
+            color: #a0aec0;
+            line-height: 1.6;
+        }
+
+        footer {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            border-top: 1px solid #2d3748;
+            margin-top: 40px;
+        }
+
+        footer a {
+            color: #00d4ff;
+            text-decoration: none;
+        }
+
+        .value-display {
+            display: inline-block;
+            background: rgba(0, 212, 255, 0.2);
+            color: #00d4ff;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            background: rgba(255, 107, 107, 0.2);
+            color: #ff6b6b;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .status-badge.running {
+            background: rgba(0, 255, 136, 0.2);
+            color: #00ff88;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌀 UniCore 迷宫生成器和求解器</h1>
+            <p class="subtitle">探索多种迷宫生成和求解算法的可视化演示</p>
+        </header>
+
+        <div class="main-grid">
+            <div class="left-column">
+                <div class="panel">
+                    <div class="panel-title">🎮 控制面板</div>
+                    
+                    <div id="statusBadge" class="status-badge">⏸️ 等待开始</div>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value" id="steps">0</div>
+                            <div class="stat-label">步骤数</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="timeElapsed">0.0s</div>
+                            <div class="stat-label">用时</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="pathLength">0</div>
+                            <div class="stat-label">路径长度</div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>迷宫大小 <span id="sizeValue" class="value-display">30</span></label>
+                        <input type="range" id="mazeSize" min="10" max="60" value="30">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>动画速度 <span id="speedValue" class="value-display">中</span></label>
+                        <input type="range" id="speed" min="1" max="10" value="5">
+                    </div>
+
+                    <div class="btn-group">
+                        <button class="btn btn-success" onclick="generateMaze()" id="genBtn">🌀 生成迷宫</button>
+                        <button class="btn btn-primary" onclick="solveMaze()" id="solveBtn">🧭 求解迷宫</button>
+                    </div>
+                    
+                    <div class="btn-group">
+                        <button class="btn btn-warning" onclick="clearMaze()">🧹 清除路径</button>
+                        <button class="btn btn-danger" onclick="resetMaze()">↺ 重置</button>
+                    </div>
+                </div>
+                
+                <div class="panel" style="margin-top: 20px;">
+                    <div class="panel-title">🏗️ 生成算法</div>
+                    <div class="algorithm-grid" id="genAlgorithms">
+                        <div class="algorithm-card active" onclick="selectGenAlgorithm('recursive_backtracking')">
+                            <div class="algorithm-name">递归回溯</div>
+                            <div class="algorithm-category">DFS</div>
+                        </div>
+                        <div class="algorithm-card" onclick="selectGenAlgorithm('prim')">
+                            <div class="algorithm-name">Prim算法</div>
+                            <div class="algorithm-category">最小生成树</div>
+                        </div>
+                        <div class="algorithm-card" onclick="selectGenAlgorithm('kruskal')">
+                            <div class="algorithm-name">Kruskal算法</div>
+                            <div class="algorithm-category">最小生成树</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="panel" style="margin-top: 20px;">
+                    <div class="panel-title">🧭 求解算法</div>
+                    <div class="algorithm-grid" id="solveAlgorithms">
+                        <div class="algorithm-card active" onclick="selectSolveAlgorithm('bfs')">
+                            <div class="algorithm-name">BFS 广度优先</div>
+                            <div class="algorithm-category">最短路径</div>
+                        </div>
+                        <div class="algorithm-card" onclick="selectSolveAlgorithm('dfs')">
+                            <div class="algorithm-name">DFS 深度优先</div>
+                            <div class="algorithm-category">探索</div>
+                        </div>
+                        <div class="algorithm-card" onclick="selectSolveAlgorithm('astar')">
+                            <div class="algorithm-name">A* 算法</div>
+                            <div class="algorithm-category">启发式搜索</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="right-column">
+                <div class="panel">
+                    <div class="panel-title">🎨 迷宫可视化</div>
+                    <div class="canvas-container">
+                        <canvas id="mazeCanvas" width="700" height="700"></canvas>
+                    </div>
+                </div>
+                
+                <div class="panel" style="margin-top: 20px;">
+                    <div class="panel-title">💡 算法说明</div>
+                    <div class="info-section" id="algorithmInfo">
+                        <h3>递归回溯算法</h3>
+                        <p>递归回溯是最经典的迷宫生成算法，使用深度优先搜索(DFS)。从起点开始，随机选择未访问的邻居，打通墙壁继续前进，直到无法继续时回溯，最终生成完美迷宫。</p>
+                        <p style="margin-top: 10px; color: #00d4ff;">
+                            <strong>特点：</strong>长走廊、分支较少、视觉美观<br>
+                            <strong>时间复杂度：</strong>O(n²)<br>
+                            <strong>空间复杂度：</strong>O(n²)
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p><a href="index.html">🏠 返回 UniCore 主页</a></p>
+            <p style="margin-top: 20px;">UniCore - 探索无限可能</p>
+        </footer>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('mazeCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let maze = [];
+        let mazeSize = 30;
+        let cellSize;
+        let speed = 5;
+        let running = false;
+        let stopRequested = false;
+        let currentGenAlgorithm = 'recursive_backtracking';
+        let currentSolveAlgorithm = 'bfs';
+        let steps = 0;
+        let startTime = 0;
+        let solved = false;
+        let startCell = null;
+        let endCell = null;
+        let path = [];
+        
+        const algorithmInfo = {
+            recursive_backtracking: {
+                name: '递归回溯算法',
+                desc: '递归回溯是最经典的迷宫生成算法，使用深度优先搜索(DFS)。从起点开始，随机选择未访问的邻居，打通墙壁继续前进，直到无法继续时回溯，最终生成完美迷宫。',
+                features: '长走廊、分支较少、视觉美观',
+                time: 'O(n²)',
+                space: 'O(n²)'
+            },
+            prim: {
+                name: 'Prim算法',
+                desc: 'Prim算法最初用于求图的最小生成树。从一个单元格开始，不断选择相邻的未访问单元格并打通墙壁，随机生长迷宫，生成的迷宫短走廊较多。',
+                features: '短走廊、分支较多、迷宫较复杂',
+                time: 'O(n²)',
+                space: 'O(n²)'
+            },
+            kruskal: {
+                name: 'Kruskal算法',
+                desc: 'Kruskal算法同样来自最小生成树。将所有单元格视为独立集合，随机选择墙壁，若连接两个不同集合则打通，使用并查集(Union-Find)高效管理集合。',
+                features: '分布均匀、视觉上最平衡',
+                time: 'O(n² α(n))',
+                space: 'O(n²)'
+            },
+            bfs: {
+                name: 'BFS 广度优先搜索',
+                desc: '广度优先搜索从起点开始，同时探索所有可能的路径，保证找到最短路径。使用队列实现，适合找最短路径的场景。',
+                features: '保证找到最短路径',
+                time: 'O(n²)',
+                space: 'O(n²)'
+            },
+            dfs: {
+                name: 'DFS 深度优先搜索',
+                desc: '深度优先搜索沿着一条路一直走到尽头，再回溯寻找其他路径。通常不能保证找到最短路径，但会探索更多迷宫空间。',
+                features: '探索完整、不一定最短',
+                time: 'O(n²)',
+                space: 'O(n²)'
+            },
+            astar: {
+                name: 'A* 算法',
+                desc: 'A*是一种启发式搜索算法，结合了Dijkstra的特点和启发式函数。使用曼哈顿距离作为启发，能高效找到最短路径。',
+                features: '高效、保证最短路径',
+                time: 'O(n²)',
+                space: 'O(n²)'
+            }
+        };
+        
+        function initMaze() {
+            cellSize = Math.min(canvas.width, canvas.height) / mazeSize;
+            maze = [];
+            for (let y = 0; y < mazeSize; y++) {
+                maze[y] = [];
+                for (let x = 0; x < mazeSize; x++) {
+                    maze[y][x] = {
+                        walls: { top: true, right: true, bottom: true, left: true },
+                        visited: false,
+                        inPath: false,
+                        visitedBySolver: false
+                    };
+                }
+            }
+            startCell = { x: 0, y: 0 };
+            endCell = { x: mazeSize - 1, y: mazeSize - 1 };
+            drawMaze();
+            solved = false;
+            path = [];
+        }
+        
+        function drawMaze() {
+            ctx.fillStyle = '#0a0a1a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            const padding = 10;
+            ctx.translate(padding, padding);
+            
+            for (let y = 0; y < mazeSize; y++) {
+                for (let x = 0; x < mazeSize; x++) {
+                    const cell = maze[y][x];
+                    const cx = x * cellSize;
+                    const cy = y * cellSize;
+                    
+                    if (cell.inPath) {
+                        ctx.fillStyle = '#00ff88';
+                        ctx.fillRect(cx + cellSize * 0.3, cy + cellSize * 0.3, cellSize * 0.4, cellSize * 0.4);
+                    } else if (cell.visitedBySolver) {
+                        const hue = (x + y) % 360;
+                        ctx.fillStyle = `hsla(${hue}, 70%, 50%, 0.3)`;
+                        ctx.fillRect(cx + 2, cy + 2, cellSize - 4, cellSize - 4);
+                    } else if (cell.visited) {
+                        ctx.fillStyle = '#1a1a3e';
+                        ctx.fillRect(cx + 1, cy + 1, cellSize - 2, cellSize - 2);
+                    }
+                    
+                    if (x === startCell.x && y === startCell.y) {
+                        ctx.fillStyle = '#00d4ff';
+                        ctx.beginPath();
+                        ctx.arc(cx + cellSize / 2, cy + cellSize / 2, cellSize * 0.25, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    
+                    if (x === endCell.x && y === endCell.y) {
+                        ctx.fillStyle = '#ff6b6b';
+                        ctx.beginPath();
+                        ctx.arc(cx + cellSize / 2, cy + cellSize / 2, cellSize * 0.25, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    
+                    ctx.strokeStyle = '#4a5568';
+                    ctx.lineWidth = 2;
+                    
+                    if (cell.walls.top) {
+                        ctx.beginPath();
+                        ctx.moveTo(cx, cy);
+                        ctx.lineTo(cx + cellSize, cy);
+                        ctx.stroke();
+                    }
+                    if (cell.walls.right) {
+                        ctx.beginPath();
+                        ctx.moveTo(cx + cellSize, cy);
+                        ctx.lineTo(cx + cellSize, cy + cellSize);
+                        ctx.stroke();
+                    }
+                    if (cell.walls.bottom) {
+                        ctx.beginPath();
+                        ctx.moveTo(cx, cy + cellSize);
+                        ctx.lineTo(cx + cellSize, cy + cellSize);
+                        ctx.stroke();
+                    }
+                    if (cell.walls.left) {
+                        ctx.beginPath();
+                        ctx.moveTo(cx, cy);
+                        ctx.lineTo(cx, cy + cellSize);
+                        ctx.stroke();
+                    }
+                }
+            }
+            
+            ctx.resetTransform();
+        }
+        
+        function getNeighbors(x, y) {
+            const neighbors = [];
+            if (y > 0) neighbors.push({ x, y: y - 1, dir: 'top', opposite: 'bottom' });
+            if (x < mazeSize - 1) neighbors.push({ x: x + 1, y, dir: 'right', opposite: 'left' });
+            if (y < mazeSize - 1) neighbors.push({ x, y: y + 1, dir: 'bottom', opposite: 'top' });
+            if (x > 0) neighbors.push({ x: x - 1, y, dir: 'left', opposite: 'right' });
+            return neighbors;
+        }
+        
+        function getUnvisitedNeighbors(x, y) {
+            return getNeighbors(x, y).filter(n => !maze[n.y][n.x].visited);
+        }
+        
+        function updateStatus(text, isRunning = false) {
+            const badge = document.getElementById('statusBadge');
+            badge.textContent = isRunning ? '▶️ ' + text : '⏸️ ' + text;
+            badge.className = 'status-badge' + (isRunning ? ' running' : '');
+        }
+        
+        function updateStats() {
+            document.getElementById('steps').textContent = steps;
+            if (startTime > 0) {
+                const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+                document.getElementById('timeElapsed').textContent = elapsed + 's';
+            }
+            document.getElementById('pathLength').textContent = path.length;
+        }
+        
+        function selectGenAlgorithm(algo) {
+            if (running) return;
+            currentGenAlgorithm = algo;
+            
+            document.querySelectorAll('#genAlgorithms .algorithm-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            event.target.closest('.algorithm-card').classList.add('active');
+            
+            const info = algorithmInfo[algo];
+            document.getElementById('algorithmInfo').innerHTML = `
+                <h3>${info.name}</h3>
+                <p>${info.desc}</p>
+                <p style="margin-top: 10px; color: #00d4ff;">
+                    <strong>特点：</strong>${info.features}<br>
+                    <strong>时间复杂度：</strong>${info.time}<br>
+                    <strong>空间复杂度：</strong>${info.space}
+                </p>
+            `;
+        }
+        
+        function selectSolveAlgorithm(algo) {
+            if (running) return;
+            currentSolveAlgorithm = algo;
+            
+            document.querySelectorAll('#solveAlgorithms .algorithm-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            event.target.closest('.algorithm-card').classList.add('active');
+            
+            const info = algorithmInfo[algo];
+            document.getElementById('algorithmInfo').innerHTML = `
+                <h3>${info.name}</h3>
+                <p>${info.desc}</p>
+                <p style="margin-top: 10px; color: #00d4ff;">
+                    <strong>特点：</strong>${info.features}<br>
+                    <strong>时间复杂度：</strong>${info.time}<br>
+                    <strong>空间复杂度：</strong>${info.space}
+                </p>
+            `;
+        }
+        
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+        
+        async function generateMaze() {
+            if (running) return;
+            running = true;
+            stopRequested = false;
+            startTime = Date.now();
+            steps = 0;
+            path = [];
+            solved = false;
+            
+            document.getElementById('genBtn').disabled = true;
+            document.getElementById('solveBtn').disabled = true;
+            updateStatus('生成中...', true);
+            
+            for (let y = 0; y < mazeSize; y++) {
+                for (let x = 0; x < mazeSize; x++) {
+                    maze[y][x].visited = false;
+                    maze[y][x].inPath = false;
+                    maze[y][x].visitedBySolver = false;
+                }
+            }
+            
+            switch (currentGenAlgorithm) {
+                case 'recursive_backtracking': await recursiveBacktracking(); break;
+                case 'prim': await primMaze(); break;
+                case 'kruskal': await kruskalMaze(); break;
+            }
+            
+            if (!stopRequested) {
+                updateStatus('生成完成！', false);
+            }
+            
+            running = false;
+            document.getElementById('genBtn').disabled = false;
+            document.getElementById('solveBtn').disabled = false;
+        }
+        
+        async function recursiveBacktracking() {
+            const stack = [{ x: 0, y: 0 }];
+            maze[0][0].visited = true;
+            
+            while (stack.length > 0 && !stopRequested) {
+                const current = stack[stack.length - 1];
+                const neighbors = getUnvisitedNeighbors(current.x, current.y);
+                
+                if (neighbors.length > 0) {
+                    const next = neighbors[Math.floor(Math.random() * neighbors.length)];
+                    maze[current.y][current.x].walls[next.dir] = false;
+                    maze[next.y][next.x].walls[next.opposite] = false;
+                    maze[next.y][next.x].visited = true;
+                    stack.push({ x: next.x, y: next.y });
+                    steps++;
+                    
+                    if (steps % (mazeSize / 2) === 0) {
+                        drawMaze();
+                        updateStats();
+                        await sleep(100 - speed * 9);
+                    }
+                } else {
+                    stack.pop();
+                }
+            }
+            drawMaze();
+            updateStats();
+        }
+        
+        async function primMaze() {
+            const walls = [];
+            maze[0][0].visited = true;
+            
+            for (const n of getNeighbors(0, 0)) {
+                walls.push({ from: { x: 0, y: 0 }, to: n });
+            }
+            
+            while (walls.length > 0 && !stopRequested) {
+                const idx = Math.floor(Math.random() * walls.length);
+                const wall = walls[idx];
+                walls.splice(idx, 1);
+                
+                if (!maze[wall.to.y][wall.to.x].visited) {
+                    maze[wall.from.y][wall.from.x].walls[wall.to.dir] = false;
+                    maze[wall.to.y][wall.to.x].walls[wall.to.opposite] = false;
+                    maze[wall.to.y][wall.to.x].visited = true;
+                    
+                    for (const n of getNeighbors(wall.to.x, wall.to.y)) {
+                        if (!maze[n.y][n.x].visited) {
+                            walls.push({ from: { x: wall.to.x, y: wall.to.y }, to: n });
+                        }
+                    }
+                    steps++;
+                    
+                    if (steps % (mazeSize / 2) === 0) {
+                        drawMaze();
+                        updateStats();
+                        await sleep(100 - speed * 9);
+                    }
+                }
+            }
+            drawMaze();
+            updateStats();
+        }
+        
+        async function kruskalMaze() {
+            const sets = [];
+            for (let y = 0; y < mazeSize; y++) {
+                sets[y] = [];
+                for (let x = 0; x < mazeSize; x++) {
+                    sets[y][x] = y * mazeSize + x;
+                }
+            }
+            
+            function find(x, y) {
+                if (sets[y][x] !== y * mazeSize + x) {
+                    const idx = sets[y][x];
+                    const y2 = Math.floor(idx / mazeSize);
+                    const x2 = idx % mazeSize;
+                    sets[y][x] = find(x2, y2);
+                }
+                return sets[y][x];
+            }
+            
+            function union(x1, y1, x2, y2) {
+                const root1 = find(x1, y1);
+                const root2 = find(x2, y2);
+                if (root1 !== root2) {
+                    const ry = Math.floor(root2 / mazeSize);
+                    const rx = root2 % mazeSize;
+                    sets[ry][rx] = root1;
+                    return true;
+                }
+                return false;
+            }
+            
+            const edges = [];
+            for (let y = 0; y < mazeSize; y++) {
+                for (let x = 0; x < mazeSize; x++) {
+                    if (y > 0) edges.push({ x1: x, y1: y, x2: x, y2: y - 1, dir1: 'top', dir2: 'bottom' });
+                    if (x < mazeSize - 1) edges.push({ x1: x, y1: y, x2: x + 1, y2: y, dir1: 'right', dir2: 'left' });
+                }
+            }
+            
+            for (let i = edges.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [edges[i], edges[j]] = [edges[j], edges[i]];
+            }
+            
+            for (const edge of edges) {
+                if (stopRequested) break;
+                if (union(edge.x1, edge.y1, edge.x2, edge.y2)) {
+                    maze[edge.y1][edge.x1].walls[edge.dir1] = false;
+                    maze[edge.y2][edge.x2].walls[edge.dir2] = false;
+                    maze[edge.y2][edge.x2].visited = true;
+                    steps++;
+                    
+                    if (steps % (mazeSize * mazeSize / 10) === 0) {
+                        drawMaze();
+                        updateStats();
+                        await sleep(100 - speed * 9);
+                    }
+                }
+            }
+            
+            for (let y = 0; y < mazeSize; y++) {
+                for (let x = 0; x < mazeSize; x++) {
+                    maze[y][x].visited = true;
+                }
+            }
+            
+            drawMaze();
+            updateStats();
+        }
+        
+        async function solveMaze() {
+            if (running || solved) return;
+            running = true;
+            stopRequested = false;
+            startTime = Date.now();
+            steps = 0;
+            
+            document.getElementById('genBtn').disabled = true;
+            document.getElementById('solveBtn').disabled = true;
+            updateStatus('求解中...', true);
+            
+            for (let y = 0; y < mazeSize; y++) {
+                for (let x = 0; x < mazeSize; x++) {
+                    maze[y][x].inPath = false;
+                    maze[y][x].visitedBySolver = false;
+                }
+            }
+            
+            path = [];
+            switch (currentSolveAlgorithm) {
+                case 'bfs': path = await bfsSolve(); break;
+                case 'dfs': path = await dfsSolve(); break;
+                case 'astar': path = await astarSolve(); break;
+            }
+            
+            for (const pos of path) {
+                maze[pos.y][pos.x].inPath = true;
+            }
+            
+            if (!stopRequested) {
+                updateStatus('求解完成！', false);
+                solved = true;
+            }
+            
+            running = false;
+            document.getElementById('genBtn').disabled = false;
+            document.getElementById('solveBtn').disabled = false;
+            drawMaze();
+            updateStats();
+        }
+        
+        function getPassableNeighbors(x, y) {
+            const cell = maze[y][x];
+            return getNeighbors(x, y).filter(n => !cell.walls[n.dir]);
+        }
+        
+        async function bfsSolve() {
+            const queue = [startCell];
+            const parent = new Map();
+            maze[startCell.y][startCell.x].visitedBySolver = true;
+            
+            while (queue.length > 0 && !stopRequested) {
+                const current = queue.shift();
+                
+                if (current.x === endCell.x && current.y === endCell.y) {
+                    const result = [];
+                    let p = current;
+                    while (p) {
+                        result.unshift(p);
+                        p = parent.get(`${p.x},${p.y}`);
+                    }
+                    return result;
+                }
+                
+                for (const n of getPassableNeighbors(current.x, current.y)) {
+                    if (!maze[n.y][n.x].visitedBySolver) {
+                        maze[n.y][n.x].visitedBySolver = true;
+                        parent.set(`${n.x},${n.y}`, current);
+                        queue.push({ x: n.x, y: n.y });
+                        steps++;
+                        
+                        if (steps % 5 === 0) {
+                            drawMaze();
+                            updateStats();
+                            await sleep(100 - speed * 9);
+                        }
+                    }
+                }
+            }
+            return [];
+        }
+        
+        async function dfsSolve() {
+            const stack = [startCell];
+            const parent = new Map();
+            maze[startCell.y][startCell.x].visitedBySolver = true;
+            
+            while (stack.length > 0 && !stopRequested) {
+                const current = stack.pop();
+                
+                if (current.x === endCell.x && current.y === endCell.y) {
+                    const result = [];
+                    let p = current;
+                    while (p) {
+                        result.unshift(p);
+                        p = parent.get(`${p.x},${p.y}`);
+                    }
+                    return result;
+                }
+                
+                const neighbors = getPassableNeighbors(current.x, current.y);
+                for (let i = neighbors.length - 1; i >= 0; i--) {
+                    const n = neighbors[i];
+                    if (!maze[n.y][n.x].visitedBySolver) {
+                        maze[n.y][n.x].visitedBySolver = true;
+                        parent.set(`${n.x},${n.y}`, current);
+                        stack.push({ x: n.x, y: n.y });
+                        steps++;
+                        
+                        if (steps % 5 === 0) {
+                            drawMaze();
+                            updateStats();
+                            await sleep(100 - speed * 9);
+                        }
+                    }
+                }
+            }
+            return [];
+        }
+        
+        async function astarSolve() {
+            function heuristic(x, y) {
+                return Math.abs(x - endCell.x) + Math.abs(y - endCell.y);
+            }
+            
+            const gScore = new Map();
+            const fScore = new Map();
+            const parent = new Map();
+            const openSet = [startCell];
+            
+            gScore.set(`${startCell.x},${startCell.y}`, 0);
+            fScore.set(`${startCell.x},${startCell.y}`, heuristic(startCell.x, startCell.y));
+            maze[startCell.y][startCell.x].visitedBySolver = true;
+            
+            while (openSet.length > 0 && !stopRequested) {
+                let minIdx = 0;
+                for (let i = 1; i < openSet.length; i++) {
+                    if ((fScore.get(`${openSet[i].x},${openSet[i].y}`) || Infinity) < 
+                        (fScore.get(`${openSet[minIdx].x},${openSet[minIdx].y}`) || Infinity)) {
+                        minIdx = i;
+                    }
+                }
+                
+                const current = openSet.splice(minIdx, 1)[0];
+                
+                if (current.x === endCell.x && current.y === endCell.y) {
+                    const result = [];
+                    let p = current;
+                    while (p) {
+                        result.unshift(p);
+                        p = parent.get(`${p.x},${p.y}`);
+                    }
+                    return result;
+                }
+                
+                for (const n of getPassableNeighbors(current.x, current.y)) {
+                    const tentativeG = (gScore.get(`${current.x},${current.y}`) || 0) + 1;
+                    
+                    if (tentativeG < (gScore.get(`${n.x},${n.y}`) || Infinity)) {
+                        parent.set(`${n.x},${n.y}`, current);
+                        gScore.set(`${n.x},${n.y}`, tentativeG);
+                        fScore.set(`${n.x},${n.y}`, tentativeG + heuristic(n.x, n.y));
+                        
+                        if (!maze[n.y][n.x].visitedBySolver) {
+                            maze[n.y][n.x].visitedBySolver = true;
+                            openSet.push({ x: n.x, y: n.y });
+                        }
+                        
+                        steps++;
+                        
+                        if (steps % 5 === 0) {
+                            drawMaze();
+                            updateStats();
+                            await sleep(100 - speed * 9);
+                        }
+                    }
+                }
+            }
+            return [];
+        }
+        
+        function clearMaze() {
+            if (running) return;
+            for (let y = 0; y < mazeSize; y++) {
+                for (let x = 0; x < mazeSize; x++) {
+                    maze[y][x].inPath = false;
+                    maze[y][x].visitedBySolver = false;
+                }
+            }
+            solved = false;
+            path = [];
+            steps = 0;
+            updateStats();
+            drawMaze();
+            updateStatus('路径已清除', false);
+        }
+        
+        function resetMaze() {
+            if (running) return;
+            initMaze();
+            solved = false;
+            path = [];
+            steps = 0;
+            updateStats();
+            updateStatus('已重置', false);
+        }
+        
+        document.getElementById('mazeSize').addEventListener('input', (e) => {
+            document.getElementById('sizeValue').textContent = e.target.value;
+            if (!running) {
+                mazeSize = parseInt(e.target.value);
+                initMaze();
+            }
+        });
+        
+        document.getElementById('speed').addEventListener('input', (e) => {
+            const speedLabels = ['非常慢', '很慢', '慢', '较慢', '中', '较快', '快', '很快', '很快', '非常快'];
+            document.getElementById('speedValue').textContent = speedLabels[parseInt(e.target.value) - 1];
+            speed = parseInt(e.target.value);
+        });
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            initMaze();
+            updateStats();
+        });
+    </script>
+</body>
+</html>

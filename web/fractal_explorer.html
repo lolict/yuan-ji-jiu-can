@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniCore - 分形探索器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 50%, #0d1b2a 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 30px 0;
+            border-bottom: 2px solid #2d3748;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 3em;
+            background: linear-gradient(135deg, #00d4ff 0%, #00ff88 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 40px rgba(0, 212, 255, 0.3);
+        }
+
+        .subtitle {
+            color: #888;
+            margin-top: 10px;
+            font-size: 1.2em;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 25px;
+        }
+
+        @media (max-width: 1000px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: rgba(45, 55, 72, 0.4);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid #4a5568;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .panel-title {
+            font-size: 1.5em;
+            color: #00d4ff;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .panel-title::before {
+            content: '✨';
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            color: #00ff88;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        select, input[type="number"], input[type="range"] {
+            width: 100%;
+            padding: 12px 16px;
+            background: #1a202c;
+            border: 2px solid #4a5568;
+            border-radius: 10px;
+            color: #e0e0e0;
+            font-size: 1em;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        select:focus, input:focus {
+            border-color: #00d4ff;
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #00d4ff 0%, #0077b6 100%);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #00ff88 0%, #00b894 100%);
+            color: #1a1a2e;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #ffd93d 0%, #f39c12 100%);
+            color: #1a1a2e;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 212, 255, 0.4);
+        }
+
+        .canvas-container {
+            background: #0a0a1a;
+            border-radius: 15px;
+            padding: 10px;
+            border: 2px solid #4a5568;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #fractalCanvas {
+            border-radius: 10px;
+            max-width: 100%;
+            height: auto;
+        }
+
+        .preset-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .preset-card {
+            background: rgba(0, 212, 255, 0.1);
+            border: 2px solid rgba(0, 212, 255, 0.3);
+            border-radius: 12px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .preset-card:hover {
+            background: rgba(0, 212, 255, 0.2);
+            transform: translateY(-3px);
+            box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
+        }
+
+        .preset-name {
+            color: #00d4ff;
+            font-weight: 600;
+            font-size: 0.95em;
+        }
+
+        .preset-emoji {
+            font-size: 1.8em;
+            margin-bottom: 5px;
+        }
+
+        .info-section {
+            background: rgba(0, 255, 136, 0.05);
+            border-left: 4px solid #00ff88;
+            padding: 15px 20px;
+            border-radius: 0 10px 10px 0;
+            margin-top: 20px;
+        }
+
+        .info-section h3 {
+            color: #00ff88;
+            margin-bottom: 10px;
+        }
+
+        .info-section p {
+            color: #a0aec0;
+            line-height: 1.6;
+        }
+
+        footer {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            border-top: 1px solid #2d3748;
+            margin-top: 40px;
+        }
+
+        footer a {
+            color: #00d4ff;
+            text-decoration: none;
+        }
+
+        .value-display {
+            display: inline-block;
+            background: rgba(0, 212, 255, 0.2);
+            color: #00d4ff;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌌 UniCore 分形探索器</h1>
+            <p class="subtitle">探索数学与艺术的完美结合 - Mandelbrot集合与Julia集合</p>
+        </header>
+
+        <div class="main-grid">
+            <div class="left-column">
+                <div class="panel">
+                    <div class="panel-title">🎨 分形配置</div>
+                    
+                    <div class="form-group">
+                        <label>分形类型</label>
+                        <select id="fractalType">
+                            <option value="mandelbrot">Mandelbrot 集合</option>
+                            <option value="julia">Julia 集合</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>最大迭代次数 <span id="iterValue" class="value-display">100</span></label>
+                        <input type="range" id="iterations" min="20" max="500" value="100">
+                    </div>
+                    
+                    <div class="form-group" id="juliaCxGroup" style="display: none;">
+                        <label>Julia 参数 - 实部 (c_re) <span id="cxValue" class="value-display">-0.7</span></label>
+                        <input type="range" id="juliaCx" min="-2" max="2" step="0.01" value="-0.7">
+                    </div>
+                    
+                    <div class="form-group" id="juliaCyGroup" style="display: none;">
+                        <label>Julia 参数 - 虚部 (c_im) <span id="cyValue" class="value-display">0.27015</span></label>
+                        <input type="range" id="juliaCy" min="-2" max="2" step="0.01" value="0.27015">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>缩放级别 <span id="zoomValue" class="value-display">1.0</span></label>
+                        <input type="range" id="zoom" min="0.1" max="10" step="0.1" value="1">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>中心 X 偏移 <span id="xOffsetValue" class="value-display">-0.5</span></label>
+                        <input type="range" id="xOffset" min="-3" max="3" step="0.01" value="-0.5">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>中心 Y 偏移 <span id="yOffsetValue" class="value-display">0.0</span></label>
+                        <input type="range" id="yOffset" min="-3" max="3" step="0.01" value="0">
+                    </div>
+
+                    <div class="btn-group">
+                        <button class="btn btn-success" onclick="renderFractal()">🎨 渲染分形</button>
+                        <button class="btn btn-warning" onclick="randomize()">🎲 随机参数</button>
+                        <button class="btn btn-primary" onclick="downloadImage()">💾 下载图片</button>
+                    </div>
+                </div>
+                
+                <div class="panel" style="margin-top: 20px;">
+                    <div class="panel-title">🎯 快速预设</div>
+                    <div class="preset-grid">
+                        <div class="preset-card" onclick="loadPreset(0)">
+                            <div class="preset-emoji">🦋</div>
+                            <div class="preset-name">经典 Mandelbrot</div>
+                        </div>
+                        <div class="preset-card" onclick="loadPreset(1)">
+                            <div class="preset-emoji">💜</div>
+                            <div class="preset-name">Douady 兔子</div>
+                        </div>
+                        <div class="preset-card" onclick="loadPreset(2)">
+                            <div class="preset-emoji">🌊</div>
+                            <div class="preset-name">Siegel 盘</div>
+                        </div>
+                        <div class="preset-card" onclick="loadPreset(3)">
+                            <div class="preset-emoji">🌟</div>
+                            <div class="preset-name">螺旋星系</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="right-column">
+                <div class="panel">
+                    <div class="panel-title">🎬 分形可视化</div>
+                    <div class="canvas-container">
+                        <canvas id="fractalCanvas" width="800" height="600"></canvas>
+                    </div>
+                </div>
+                
+                <div class="panel" style="margin-top: 20px;">
+                    <div class="panel-title">🌍 关于分形</div>
+                    <div class="info-section">
+                        <h3>🎓 什么是分形？</h3>
+                        <p>分形是具有自相似性的复杂几何图形，它们在任意缩放级别下都保持相似的结构。Mandelbrot和Julia集合是最著名的分形例子，它们展示了简单的数学公式如何产生无限复杂的美丽图案。</p>
+                        <p style="margin-top: 10px; color: #00d4ff;">
+                            <strong>Mandelbrot集合公式：</strong> zₙ₊₁ = zₙ² + c<br>
+                            <strong>Julia集合公式：</strong> zₙ₊₁ = zₙ² + c (固定的c值)
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p><a href="index.html">🏠 返回 UniCore 主页</a></p>
+            <p style="margin-top: 20px;">UniCore - 探索无限可能</p>
+        </footer>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('fractalCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        const presets = [
+            {
+                name: '经典 Mandelbrot',
+                type: 'mandelbrot',
+                iterations: 100,
+                zoom: 1,
+                xOffset: -0.5,
+                yOffset: 0
+            },
+            {
+                name: 'Douady 兔子',
+                type: 'julia',
+                cx: -0.123,
+                cy: 0.745,
+                iterations: 150,
+                zoom: 1.2,
+                xOffset: 0,
+                yOffset: 0
+            },
+            {
+                name: 'Siegel 盘',
+                type: 'julia',
+                cx: -0.391,
+                cy: -0.587,
+                iterations: 150,
+                zoom: 1,
+                xOffset: 0,
+                yOffset: 0
+            },
+            {
+                name: '螺旋星系',
+                type: 'julia',
+                cx: -0.70176,
+                cy: -0.3842,
+                iterations: 200,
+                zoom: 1.5,
+                xOffset: 0,
+                yOffset: 0
+            }
+        ];
+        
+        function hslToRgb(h, s, l) {
+            let r, g, b;
+            if (s === 0) {
+                r = g = b = l;
+            } else {
+                const hue2rgb = (p, q, t) => {
+                    if (t < 0) t += 1;
+                    if (t > 1) t -= 1;
+                    if (t < 1/6) return p + (q - p) * 6 * t;
+                    if (t < 1/2) return q;
+                    if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+                    return p;
+                };
+                const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+                const p = 2 * l - q;
+                r = hue2rgb(p, q, h + 1/3);
+                g = hue2rgb(p, q, h);
+                b = hue2rgb(p, q, h - 1/3);
+            }
+            return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+        }
+        
+        function getColor(iteration, maxIterations) {
+            if (iteration === maxIterations) {
+                return [0, 0, 0];
+            }
+            const t = iteration / maxIterations;
+            const hue = (t * 360 + 180) % 360;
+            return hslToRgb(hue / 360, 0.8, 0.5);
+        }
+        
+        function renderFractal() {
+            const type = document.getElementById('fractalType').value;
+            const maxIterations = parseInt(document.getElementById('iterations').value);
+            const zoom = parseFloat(document.getElementById('zoom').value);
+            const xOffset = parseFloat(document.getElementById('xOffset').value);
+            const yOffset = parseFloat(document.getElementById('yOffset').value);
+            const juliaCx = parseFloat(document.getElementById('juliaCx').value);
+            const juliaCy = parseFloat(document.getElementById('juliaCy').value);
+            
+            const width = canvas.width;
+            const height = canvas.height;
+            const imageData = ctx.createImageData(width, height);
+            const data = imageData.data;
+            
+            for (let px = 0; px < width; px++) {
+                for (let py = 0; py < height; py++) {
+                    let x0 = (px - width / 2) / (150 * zoom) + xOffset;
+                    let y0 = (py - height / 2) / (150 * zoom) + yOffset;
+                    
+                    let x = 0, y = 0;
+                    let cx = x0, cy = y0;
+                    
+                    if (type === 'julia') {
+                        x = x0;
+                        y = y0;
+                        cx = juliaCx;
+                        cy = juliaCy;
+                    }
+                    
+                    let iteration = 0;
+                    
+                    while (x * x + y * y <= 4 && iteration < maxIterations) {
+                        const xtemp = x * x - y * y + cx;
+                        y = 2 * x * y + cy;
+                        x = xtemp;
+                        iteration++;
+                    }
+                    
+                    const [r, g, b] = getColor(iteration, maxIterations);
+                    const index = (py * width + px) * 4;
+                    data[index] = r;
+                    data[index + 1] = g;
+                    data[index + 2] = b;
+                    data[index + 3] = 255;
+                }
+            }
+            
+            ctx.putImageData(imageData, 0, 0);
+        }
+        
+        function loadPreset(index) {
+            const preset = presets[index];
+            document.getElementById('fractalType').value = preset.type;
+            
+            if (preset.type === 'julia') {
+                document.getElementById('juliaCxGroup').style.display = 'block';
+                document.getElementById('juliaCyGroup').style.display = 'block';
+                document.getElementById('juliaCx').value = preset.cx;
+                document.getElementById('juliaCy').value = preset.cy;
+                document.getElementById('cxValue').textContent = preset.cx;
+                document.getElementById('cyValue').textContent = preset.cy;
+            } else {
+                document.getElementById('juliaCxGroup').style.display = 'none';
+                document.getElementById('juliaCyGroup').style.display = 'none';
+            }
+            
+            document.getElementById('iterations').value = preset.iterations;
+            document.getElementById('zoom').value = preset.zoom;
+            document.getElementById('xOffset').value = preset.xOffset;
+            document.getElementById('yOffset').value = preset.yOffset;
+            document.getElementById('iterValue').textContent = preset.iterations;
+            document.getElementById('zoomValue').textContent = preset.zoom;
+            document.getElementById('xOffsetValue').textContent = preset.xOffset;
+            document.getElementById('yOffsetValue').textContent = preset.yOffset;
+            
+            renderFractal();
+        }
+        
+        function randomize() {
+            const type = Math.random() > 0.5 ? 'julia' : 'mandelbrot';
+            document.getElementById('fractalType').value = type;
+            
+            if (type === 'julia') {
+                document.getElementById('juliaCxGroup').style.display = 'block';
+                document.getElementById('juliaCyGroup').style.display = 'block';
+                const cx = (Math.random() - 0.5) * 3;
+                const cy = (Math.random() - 0.5) * 3;
+                document.getElementById('juliaCx').value = cx.toFixed(4);
+                document.getElementById('juliaCy').value = cy.toFixed(4);
+                document.getElementById('cxValue').textContent = cx.toFixed(4);
+                document.getElementById('cyValue').textContent = cy.toFixed(4);
+            } else {
+                document.getElementById('juliaCxGroup').style.display = 'none';
+                document.getElementById('juliaCyGroup').style.display = 'none';
+            }
+            
+            const iterations = Math.floor(Math.random() * 300) + 50;
+            const zoom = Math.random() * 4 + 0.5;
+            const xOffset = (Math.random() - 0.5) * 2;
+            const yOffset = (Math.random() - 0.5) * 2;
+            
+            document.getElementById('iterations').value = iterations;
+            document.getElementById('zoom').value = zoom.toFixed(1);
+            document.getElementById('xOffset').value = xOffset.toFixed(2);
+            document.getElementById('yOffset').value = yOffset.toFixed(2);
+            
+            document.getElementById('iterValue').textContent = iterations;
+            document.getElementById('zoomValue').textContent = zoom.toFixed(1);
+            document.getElementById('xOffsetValue').textContent = xOffset.toFixed(2);
+            document.getElementById('yOffsetValue').textContent = yOffset.toFixed(2);
+            
+            renderFractal();
+        }
+        
+        function downloadImage() {
+            const link = document.createElement('a');
+            link.download = `unicore-fractal-${Date.now()}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+        
+        document.getElementById('fractalType').addEventListener('change', (e) => {
+            const isJulia = e.target.value === 'julia';
+            document.getElementById('juliaCxGroup').style.display = isJulia ? 'block' : 'none';
+            document.getElementById('juliaCyGroup').style.display = isJulia ? 'block' : 'none';
+        });
+        
+        document.getElementById('iterations').addEventListener('input', (e) => {
+            document.getElementById('iterValue').textContent = e.target.value;
+        });
+        
+        document.getElementById('juliaCx').addEventListener('input', (e) => {
+            document.getElementById('cxValue').textContent = e.target.value;
+        });
+        
+        document.getElementById('juliaCy').addEventListener('input', (e) => {
+            document.getElementById('cyValue').textContent = e.target.value;
+        });
+        
+        document.getElementById('zoom').addEventListener('input', (e) => {
+            document.getElementById('zoomValue').textContent = e.target.value;
+        });
+        
+        document.getElementById('xOffset').addEventListener('input', (e) => {
+            document.getElementById('xOffsetValue').textContent = e.target.value;
+        });
+        
+        document.getElementById('yOffset').addEventListener('input', (e) => {
+            document.getElementById('yOffsetValue').textContent = e.target.value;
+        });
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            renderFractal();
+        });
+    </script>
+</body>
+</html>

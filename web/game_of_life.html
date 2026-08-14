@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniCore - 生命游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 50%, #0d1b2a 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 30px 0;
+            border-bottom: 2px solid #2d3748;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 3em;
+            background: linear-gradient(135deg, #00d4ff 0%, #00ff88 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 40px rgba(0, 212, 255, 0.3);
+        }
+
+        .subtitle {
+            color: #888;
+            margin-top: 10px;
+            font-size: 1.2em;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 25px;
+        }
+
+        @media (max-width: 1000px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: rgba(45, 55, 72, 0.4);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid #4a5568;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .panel-title {
+            font-size: 1.5em;
+            color: #00d4ff;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .panel-title::before {
+            content: '✨';
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            color: #00ff88;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        select, input[type="number"], input[type="range"] {
+            width: 100%;
+            padding: 12px 16px;
+            background: #1a202c;
+            border: 2px solid #4a5568;
+            border-radius: 10px;
+            color: #e0e0e0;
+            font-size: 1em;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        select:focus, input:focus {
+            border-color: #00d4ff;
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #00d4ff 0%, #0077b6 100%);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #00ff88 0%, #00b894 100%);
+            color: #1a1a2e;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #ffd93d 0%, #f39c12 100%);
+            color: #1a1a2e;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 212, 255, 0.4);
+        }
+
+        .canvas-container {
+            background: #0a0a1a;
+            border-radius: 15px;
+            padding: 10px;
+            border: 2px solid #4a5568;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #gameCanvas {
+            border-radius: 10px;
+            cursor: crosshair;
+        }
+
+        .preset-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .preset-card {
+            background: rgba(0, 212, 255, 0.1);
+            border: 2px solid rgba(0, 212, 255, 0.3);
+            border-radius: 12px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .preset-card:hover {
+            background: rgba(0, 212, 255, 0.2);
+            transform: translateY(-3px);
+            box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
+        }
+
+        .preset-name {
+            color: #00d4ff;
+            font-weight: 600;
+            font-size: 0.95em;
+        }
+
+        .preset-emoji {
+            font-size: 1.8em;
+            margin-bottom: 5px;
+        }
+
+        .info-section {
+            background: rgba(0, 255, 136, 0.05);
+            border-left: 4px solid #00ff88;
+            padding: 15px 20px;
+            border-radius: 0 10px 10px 0;
+            margin-top: 20px;
+        }
+
+        .info-section h3 {
+            color: #00ff88;
+            margin-bottom: 10px;
+        }
+
+        .info-section p {
+            color: #a0aec0;
+            line-height: 1.6;
+        }
+
+        footer {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            border-top: 1px solid #2d3748;
+            margin-top: 40px;
+        }
+
+        footer a {
+            color: #00d4ff;
+            text-decoration: none;
+        }
+
+        .value-display {
+            display: inline-block;
+            background: rgba(0, 212, 255, 0.2);
+            color: #00d4ff;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            color: #00ff88;
+            font-weight: bold;
+        }
+
+        .stat-label {
+            color: #888;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🧬 UniCore 生命游戏</h1>
+            <p class="subtitle">Conway's Game of Life - 探索简单规则产生的复杂生命演化</p>
+        </header>
+
+        <div class="main-grid">
+            <div class="left-column">
+                <div class="panel">
+                    <div class="panel-title">🎮 游戏控制</div>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value" id="generation">0</div>
+                            <div class="stat-label">世代</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="population">0</div>
+                            <div class="stat-label">人口</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="fps">0</div>
+                            <div class="stat-label">FPS</div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>速度 <span id="speedValue" class="value-display">10</span></label>
+                        <input type="range" id="speed" min="1" max="60" value="10">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>网格大小</label>
+                        <select id="gridSize">
+                            <option value="50">50 × 50</option>
+                            <option value="80" selected>80 × 80</option>
+                            <option value="100">100 × 100</option>
+                            <option value="150">150 × 150</option>
+                        </select>
+                    </div>
+
+                    <div class="btn-group">
+                        <button class="btn btn-success" onclick="startGame()" id="startBtn">▶ 开始</button>
+                        <button class="btn btn-danger" onclick="stopGame()" id="stopBtn">⏹ 暂停</button>
+                        <button class="btn btn-primary" onclick="step()">⏭ 单步</button>
+                    </div>
+                    
+                    <div class="btn-group">
+                        <button class="btn btn-warning" onclick="randomizeGrid()">🎲 随机</button>
+                        <button class="btn btn-danger" onclick="clearGrid()">🗑 清空</button>
+                    </div>
+                </div>
+                
+                <div class="panel" style="margin-top: 20px;">
+                    <div class="panel-title">🎯 预设模式</div>
+                    <div class="preset-grid">
+                        <div class="preset-card" onclick="loadPreset('glider')">
+                            <div class="preset-emoji">🛸</div>
+                            <div class="preset-name">滑翔机</div>
+                        </div>
+                        <div class="preset-card" onclick="loadPreset('blinker')">
+                            <div class="preset-emoji">💫</div>
+                            <div class="preset-name">闪烁器</div>
+                        </div>
+                        <div class="preset-card" onclick="loadPreset('pulsar')">
+                            <div class="preset-emoji">⭐</div>
+                            <div class="preset-name">脉冲星</div>
+                        </div>
+                        <div class="preset-card" onclick="loadPreset('gliderGun')">
+                            <div class="preset-emoji">🔫</div>
+                            <div class="preset-name">滑翔机枪</div>
+                        </div>
+                        <div class="preset-card" onclick="loadPreset('spaceship')">
+                            <div class="preset-emoji">🚀</div>
+                            <div class="preset-name">太空船</div>
+                        </div>
+                        <div class="preset-card" onclick="loadPreset('pentaDecathlon')">
+                            <div class="preset-emoji">🏅</div>
+                            <div class="preset-name">十项全能</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="right-column">
+                <div class="panel">
+                    <div class="panel-title">🎬 生命演化</div>
+                    <div class="canvas-container">
+                        <canvas id="gameCanvas" width="800" height="600"></canvas>
+                    </div>
+                </div>
+                
+                <div class="panel" style="margin-top: 20px;">
+                    <div class="panel-title">🌍 游戏规则</div>
+                    <div class="info-section">
+                        <h3>📜 生命游戏规则</h3>
+                        <p>每个细胞有两种状态：存活（黑色）或死亡（白色）。根据周围8个邻居的状态：</p>
+                        <ul style="color: #a0aec0; margin-top: 10px; margin-left: 20px;">
+                            <li><strong>存活</strong>：2-3个邻居存活 → 继续存活</li>
+                            <li><strong>死亡</strong>：少于2个邻居（孤独）或多于3个邻居（拥挤）</li>
+                            <li><strong>繁殖</strong>：死亡细胞有恰好3个邻居 → 复活</li>
+                        </ul>
+                        <p style="margin-top: 10px; color: #00d4ff;">
+                            <strong>提示：</strong>点击或拖拽在画布上绘制细胞！
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p><a href="index.html">🏠 返回 UniCore 主页</a></p>
+            <p style="margin-top: 20px;">UniCore - 探索无限可能</p>
+        </footer>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let grid = [];
+        let gridSize = 80;
+        let cellSize = 10;
+        let running = false;
+        let generation = 0;
+        let animationId = null;
+        let lastTime = 0;
+        let fps = 0;
+        let frameCount = 0;
+        let lastFpsUpdate = 0;
+        let speed = 10;
+        let drawing = false;
+        
+        const presets = {
+            glider: [
+                [0, 1, 0],
+                [0, 0, 1],
+                [1, 1, 1]
+            ],
+            blinker: [
+                [1, 1, 1]
+            ],
+            pulsar: [
+                [0,0,1,1,1,0,0,0,1,1,1,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,0,0],
+                [1,0,0,0,0,1,0,1,0,0,0,0,1],
+                [1,0,0,0,0,1,0,1,0,0,0,0,1],
+                [1,0,0,0,0,1,0,1,0,0,0,0,1],
+                [0,0,1,1,1,0,0,0,1,1,1,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,0,0],
+                [0,0,1,1,1,0,0,0,1,1,1,0,0],
+                [1,0,0,0,0,1,0,1,0,0,0,0,1],
+                [1,0,0,0,0,1,0,1,0,0,0,0,1],
+                [1,0,0,0,0,1,0,1,0,0,0,0,1],
+                [0,0,0,0,0,0,0,0,0,0,0,0,0],
+                [0,0,1,1,1,0,0,0,1,1,1,0,0]
+            ],
+            gliderGun: [
+                [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
+                [0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
+                [1,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                [1,1,0,0,0,0,0,0,0,0,1,0,0,0,1,0,1,1,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+            ],
+            spaceship: [
+                [0,1,1,1,1],
+                [1,0,0,0,1],
+                [0,0,0,0,1],
+                [1,0,0,1,0]
+            ],
+            pentaDecathlon: [
+                [0,0,1,0,0,0,0,1,0,0],
+                [1,1,0,1,1,1,1,0,1,1],
+                [0,0,1,0,0,0,0,1,0,0]
+            ]
+        };
+        
+        function initGrid(size) {
+            gridSize = size;
+            cellSize = Math.min(canvas.width, canvas.height) / gridSize;
+            grid = [];
+            for (let y = 0; y < gridSize; y++) {
+                grid[y] = [];
+                for (let x = 0; x < gridSize; x++) {
+                    grid[y][x] = 0;
+                }
+            }
+            generation = 0;
+            updateStats();
+        }
+        
+        function randomizeGrid() {
+            for (let y = 0; y < gridSize; y++) {
+                for (let x = 0; x < gridSize; x++) {
+                    grid[y][x] = Math.random() < 0.3 ? 1 : 0;
+                }
+            }
+            generation = 0;
+            updateStats();
+            drawGrid();
+        }
+        
+        function clearGrid() {
+            initGrid(gridSize);
+            drawGrid();
+        }
+        
+        function loadPreset(name) {
+            clearGrid();
+            const pattern = presets[name];
+            const startY = Math.floor(gridSize / 2) - Math.floor(pattern.length / 2);
+            const startX = Math.floor(gridSize / 2) - Math.floor(pattern[0].length / 2);
+            
+            for (let y = 0; y < pattern.length; y++) {
+                for (let x = 0; x < pattern[y].length; x++) {
+                    if (startY + y >= 0 && startY + y < gridSize && startX + x >= 0 && startX + x < gridSize) {
+                        grid[startY + y][startX + x] = pattern[y][x];
+                    }
+                }
+            }
+            drawGrid();
+            updateStats();
+        }
+        
+        function countNeighbors(x, y) {
+            let count = 0;
+            for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                    if (dx === 0 && dy === 0) continue;
+                    const nx = (x + dx + gridSize) % gridSize;
+                    const ny = (y + dy + gridSize) % gridSize;
+                    count += grid[ny][nx];
+                }
+            }
+            return count;
+        }
+        
+        function step() {
+            const newGrid = [];
+            for (let y = 0; y < gridSize; y++) {
+                newGrid[y] = [];
+                for (let x = 0; x < gridSize; x++) {
+                    const neighbors = countNeighbors(x, y);
+                    if (grid[y][x] === 1) {
+                        newGrid[y][x] = (neighbors === 2 || neighbors === 3) ? 1 : 0;
+                    } else {
+                        newGrid[y][x] = neighbors === 3 ? 1 : 0;
+                    }
+                }
+            }
+            grid = newGrid;
+            generation++;
+            drawGrid();
+            updateStats();
+        }
+        
+        function drawGrid() {
+            ctx.fillStyle = '#0a0a1a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            for (let y = 0; y < gridSize; y++) {
+                for (let x = 0; x < gridSize; x++) {
+                    if (grid[y][x] === 1) {
+                        const hue = (generation * 2 + x + y) % 360;
+                        ctx.fillStyle = `hsl(${hue}, 80%, 60%)`;
+                    } else {
+                        ctx.fillStyle = '#1a1a3e';
+                    }
+                    ctx.fillRect(x * cellSize + 1, y * cellSize + 1, cellSize - 2, cellSize - 2);
+                }
+            }
+        }
+        
+        function updateStats() {
+            document.getElementById('generation').textContent = generation;
+            let population = 0;
+            for (let y = 0; y < gridSize; y++) {
+                for (let x = 0; x < gridSize; x++) {
+                    population += grid[y][x];
+                }
+            }
+            document.getElementById('population').textContent = population;
+        }
+        
+        function startGame() {
+            running = true;
+            animate();
+        }
+        
+        function stopGame() {
+            running = false;
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+        }
+        
+        function animate(currentTime = 0) {
+            if (!running) return;
+            
+            const deltaTime = currentTime - lastTime;
+            const interval = 1000 / speed;
+            
+            if (deltaTime >= interval) {
+                step();
+                lastTime = currentTime;
+            }
+            
+            frameCount++;
+            if (currentTime - lastFpsUpdate >= 1000) {
+                fps = frameCount;
+                frameCount = 0;
+                lastFpsUpdate = currentTime;
+                document.getElementById('fps').textContent = fps;
+            }
+            
+            animationId = requestAnimationFrame(animate);
+        }
+        
+        function getCellPosition(e) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const x = Math.floor((e.clientX - rect.left) * scaleX / cellSize);
+            const y = Math.floor((e.clientY - rect.top) * scaleY / cellSize);
+            return { x, y };
+        }
+        
+        function toggleCell(e) {
+            const { x, y } = getCellPosition(e);
+            if (x >= 0 && x < gridSize && y >= 0 && y < gridSize) {
+                grid[y][x] = grid[y][x] === 1 ? 0 : 1;
+                drawGrid();
+                updateStats();
+            }
+        }
+        
+        function drawCell(e) {
+            if (!drawing) return;
+            const { x, y } = getCellPosition(e);
+            if (x >= 0 && x < gridSize && y >= 0 && y < gridSize) {
+                grid[y][x] = 1;
+                drawGrid();
+                updateStats();
+            }
+        }
+        
+        canvas.addEventListener('mousedown', (e) => {
+            drawing = true;
+            toggleCell(e);
+        });
+        
+        canvas.addEventListener('mousemove', drawCell);
+        
+        canvas.addEventListener('mouseup', () => {
+            drawing = false;
+        });
+        
+        canvas.addEventListener('mouseleave', () => {
+            drawing = false;
+        });
+        
+        document.getElementById('speed').addEventListener('input', (e) => {
+            speed = parseInt(e.target.value);
+            document.getElementById('speedValue').textContent = speed;
+        });
+        
+        document.getElementById('gridSize').addEventListener('change', (e) => {
+            const size = parseInt(e.target.value);
+            initGrid(size);
+            drawGrid();
+        });
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            initGrid(80);
+            loadPreset('glider');
+        });
+    </script>
+</body>
+</html>
+   

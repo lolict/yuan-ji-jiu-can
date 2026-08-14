@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniCore v2.0 - 全新指令集虚拟机</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Courier New', monospace; background: #0a0a0f; min-height: 100vh; color: #00ff88; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        
+        header { text-align: center; padding: 30px 0; border-bottom: 2px solid #00ff88; margin-bottom: 30px; }
+        h1 { font-size: 3em; color: #00ff88; text-shadow: 0 0 20px rgba(0,255,136,0.5); }
+        .version { color: #ffd93d; font-size: 1.2em; margin-top: 10px; }
+        
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .panel { background: rgba(0,255,136,0.05); border: 2px solid #00ff88; border-radius: 10px; padding: 20px; }
+        .panel-title { color: #ffd93d; font-size: 1.3em; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid rgba(0,255,136,0.3); }
+        
+        .code-editor { width: 100%; min-height: 300px; background: #0a0a0f; border: 2px solid #00ff88; border-radius: 5px; color: #00ff88; font-family: 'Courier New', monospace; padding: 15px; font-size: 1em; line-height: 1.5; }
+        
+        .btn { padding: 12px 24px; border: none; border-radius: 5px; cursor: pointer; font-size: 1em; font-weight: bold; transition: all 0.3s; margin: 5px; }
+        .btn-primary { background: #00ff88; color: #0a0a0f; }
+        .btn-danger { background: #ff6b6b; color: white; }
+        .btn-warning { background: #ffd93d; color: #0a0a0f; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,255,136,0.3); }
+        
+        .output { background: #0a0a0f; border: 2px solid #00ff88; border-radius: 5px; padding: 15px; min-height: 400px; max-height: 600px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.9em; }
+        .output-line { margin: 5px 0; padding: 3px 0; border-bottom: 1px solid rgba(0,255,136,0.1); }
+        .output-error { color: #ff6b6b; }
+        .output-info { color: #00d4ff; }
+        .output-success { color: #00ff88; }
+        
+        .container-grid { display: grid; grid-template-columns: repeat(16, 1fr); gap: 3px; }
+        .container-cell { background: rgba(0,0,0,0.5); border: 1px solid #333; border-radius: 3px; padding: 8px; text-align: center; font-size: 0.8em; cursor: pointer; transition: all 0.2s; }
+        .container-cell:hover { background: rgba(0,255,136,0.2); border-color: #00ff88; }
+        .container-cell.active { background: rgba(255,217,61,0.3); border-color: #ffd93d; }
+        .container-cell.used { background: rgba(0,255,136,0.2); }
+        
+        .node-list { max-height: 300px; overflow-y: auto; }
+        .node-item { background: rgba(0,0,0,0.3); border: 1px solid #333; border-radius: 5px; padding: 10px; margin: 5px 0; }
+        .node-item.triggered { border-color: #00ff88; background: rgba(0,255,136,0.1); }
+        .node-id { color: #ffd93d; font-weight: bold; }
+        .node-type { color: #00d4ff; }
+        
+        .status-bar { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
+        .status-item { background: rgba(0,255,136,0.1); border: 2px solid #00ff88; border-radius: 10px; padding: 15px 25px; text-align: center; }
+        .status-value { font-size: 2em; color: #ffd93d; font-weight: bold; }
+        .status-label { color: #888; margin-top: 5px; }
+        
+        .full-width { grid-column: 1 / -1; }
+        
+        .instruction-help { background: rgba(0,0,0,0.3); border-radius: 5px; padding: 15px; margin-top: 15px; font-size: 0.85em; }
+        .instruction-help h4 { color: #ffd93d; margin-bottom: 10px; }
+        .instruction-help table { width: 100%; border-collapse: collapse; }
+        .instruction-help th, .instruction-help td { border: 1px solid #333; padding: 8px; text-align: left; }
+        .instruction-help th { background: rgba(0,255,136,0.1); color: #00ff88; }
+        
+        .sample-program { background: rgba(255,217,61,0.1); border: 2px dashed #ffd93d; border-radius: 10px; padding: 20px; margin: 20px 0; }
+        .sample-title { color: #ffd93d; font-weight: bold; margin-bottom: 10px; }
+        
+        footer { text-align: center; padding: 30px; color: #666; border-top: 1px solid #333; margin-top: 50px; }
+        footer a { color: #00ff88; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>UniCore v2.0</h1>
+            <p class="version">全新指令集架构 - 不进位 · 节点时间 · 集装箱</p>
+        </header>
+
+        <div class="status-bar">
+            <div class="status-item">
+                <div class="status-value" id="cycleCount">0</div>
+                <div class="status-label">执行周期</div>
+            </div>
+            <div class="status-item">
+                <div class="status-value" id="activeContainer">-</div>
+                <div class="status-label">活动集装箱</div>
+            </div>
+            <div class="status-item">
+                <div class="status-value" id="containerCount">0</div>
+                <div class="status-label">已用集装箱</div>
+            </div>
+            <div class="status-item">
+                <div class="status-value" id="nodeCount">0</div>
+                <div class="status-label">节点数量</div>
+            </div>
+            <div class="status-item">
+                <div class="status-value" id="pluginCount">0</div>
+                <div class="status-label">已加载插件</div>
+            </div>
+        </div>
+
+        <div class="sample-program">
+            <div class="sample-title">示例程序 - 不进位计数演示</div>
+            <pre style="color: #a0aec0; font-size: 0.9em;">
+; 演示不进位加法: 0 + 1 + 1 + 1 + 252 = 255 (然后溢出回0)
+LOAD 0x10           ; 加载集装箱0x10 (值=0)
+INC                 ; +1 -> 1
+INC                 ; +1 -> 2
+INC                 ; +1 -> 3
+ADD 252             ; +252 -> 255
+INC                 ; 255+1 -> 0 (不进位溢出)
+HALT                ; 停止
+            </pre>
+            <button class="btn btn-warning" onclick="loadSample('noncarry')">加载示例</button>
+        </div>
+
+        <div class="grid">
+            <div class="panel">
+                <div class="panel-title">指令编辑器</div>
+                <textarea class="code-editor" id="codeEditor" placeholder="输入UniISA v2.0指令...&#10;&#10;示例:&#10;LOAD 0x10&#10;INC&#10;HALT"></textarea>
+                <div style="margin-top: 15px;">
+                    <button class="btn btn-primary" onclick="runProgram()">执行</button>
+                    <button class="btn btn-primary" onclick="stepProgram()">单步</button>
+                    <button class="btn btn-danger" onclick="resetVM()">重置</button>
+                    <button class="btn btn-warning" onclick="exportState()">导出</button>
+                    <button class="btn btn-warning" onclick="importState()">导入</button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">执行输出</div>
+                <div class="output" id="output">
+                    <div class="output-line output-info">UniCore v2.0 虚拟机已就绪</div>
+                    <div class="output-line output-info">输入程序并点击"执行"开始</div>
+                </div>
+            </div>
+
+            <div class="panel full-width">
+                <div class="panel-title">集装箱池 (256个)</div>
+                <div class="container-grid" id="containerGrid"></div>
+                <div style="margin-top: 15px;">
+                    <button class="btn btn-primary" onclick="refreshContainerView()">刷新</button>
+                    <span style="color: #888; margin-left: 20px;">
+                        点击集装箱查看/编辑 | 
+                        <span style="color: #ffd93d;">■</span> 已使用 |
+                        <span style="color: #00ff88;">■</span> 活动
+                    </span>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">节点因果链</div>
+                <div class="node-list" id="nodeList">
+                    <div style="color: #888; text-align: center; padding: 50px;">
+                        暂无节点<br>
+                        执行 CREATE_NODE 指令创建节点
+                    </div>
+                </div>
+                <div style="margin-top: 15px;">
+                    <button class="btn btn-primary" onclick="refreshNodeView()">刷新</button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">插件系统</div>
+                <div id="pluginList">
+                    <div class="node-item">
+                        <span class="node-id">0xA0</span> - 
+                        <span class="node-type">HelloWorld</span>
+                        <button class="btn btn-primary" style="padding: 5px 15px; margin-left: 10px;" onclick="loadPlugin(0xA0)">加载</button>
+                    </div>
+                    <div class="node-item">
+                        <span class="node-id">0xA1</span> - 
+                        <span class="node-type">CharMap</span>
+                        <button class="btn btn-primary" style="padding: 5px 15px; margin-left: 10px;" onclick="loadPlugin(0xA1)">加载</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel full-width">
+                <div class="panel-title">指令参考</div>
+                <div class="instruction-help">
+                    <h4>系统控制指令 (0x00-0x0F)</h4>
+                    <table>
+                        <tr><th>指令</th><th>操作码</th><th>说明</th></tr>
+                        <tr><td>NOP</td><td>0x00</td><td>空操作</td></tr>
+                        <tr><td>HALT</td><td>0x01</td><td>停止执行</td></tr>
+                        <tr><td>LOAD id</td><td>0x02</td><td>加载集装箱</td></tr>
+                        <tr><td>STORE id</td><td>0x03</td><td>存储集装箱</td></tr>
+                        <tr><td>COPY id1,id2</td><td>0x05</td><td>复制集装箱</td></tr>
+                    </table>
+                    
+                    <h4 style="margin-top: 20px;">不进位算术指令 (0x10-0x1F)</h4>
+                    <table>
+                        <tr><th>指令</th><th>操作码</th><th>说明</th></tr>
+                        <tr><td>INC</td><td>0x10</td><td>不进位+1 (255→0)</td></tr>
+                        <tr><td>DEC</td><td>0x11</td><td>不进位-1 (0→255)</td></tr>
+                        <tr><td>ADD n</td><td>0x12</td><td>不进位加n</td></tr>
+                        <tr><td>SUB n</td><td>0x13</td><td>不进位减n</td></tr>
+                        <tr><td>ZERO</td><td>0x14</td><td>设为0</td></tr>
+                        <tr><td>MAX</td><td>0x15</td><td>设为255</td></tr>
+                        <tr><td>FLIP</td><td>0x16</td><td>位翻转 (v→255-v)</td></tr>
+                    </table>
+                    
+                    <h4 style="margin-top: 20px;">节点时间指令 (0x20-0x2F)</h4>
+                    <table>
+                        <tr><th>指令</th><th>操作码</th><th>说明</th></tr>
+                        <tr><td>CREATE_NODE type,cause</td><td>0x20</td><td>创建节点</td></tr>
+                        <tr><td>TRIGGER id</td><td>0x22</td><td>触发节点</td></tr>
+                        <tr><td>SYNC_TIME</td><td>0x24</td><td>同步时间</td></tr>
+                    </table>
+                    
+                    <h4 style="margin-top: 20px;">空间操作指令 (0x30-0x3F)</h4>
+                    <table>
+                        <tr><th>指令</th><th>操作码</th><th>说明</th></tr>
+                        <tr><td>SET_POS x,y,z</td><td>0x30</td><td>设置位置</td></tr>
+                        <tr><td>GET_POS</td><td>0x31</td><td>获取位置</td></tr>
+                    </table>
+                    
+                    <h4 style="margin-top: 20px;">插件指令 (0x40-0xFF)</h4>
+                    <table>
+                        <tr><th>指令</th><th>操作码</th><th>说明</th></tr>
+                        <tr><td>LOAD_PLUGIN id</td><td>0x40</td><td>加载插件</td></tr>
+                        <tr><td>CALL_PLUGIN id</td><td>0x42</td><td>调用插件</td></tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>UniCore v2.0 - 全新指令集架构 | <a href="index.html">返回主页</a></p>
+            <p style="margin-top: 10px; color: #888;">
+                基于 UniISA v2.0 规范 | 不进位 · 节点因果 · 集装箱架构
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        class UniCoreVM {
+            constructor() {
+                this.reset();
+            }
+            
+            reset() {
+                this.containers = Array.from({length: 256}, (_, i) => ({
+                    id: i,
+                    value: 0,
+                    flags: 0,
+                    position: {x: 0, y: 0, z: 0}
+                }));
+                this.activeContainerId = null;
+                this.nodes = {};
+                this.nodeCounter = 0;
+                this.rootNode = null;
+                this.plugins = {};
+                this.running = false;
+                this.cycles = 0;
+                this.output = [];
+            }
+            
+            initialize() {
+                this.running = true;
+                this.cycles = 0;
+                this.rootNode = {id: 0, type: 1, cause: null, triggered: true};
+                this.nodes[0] = this.rootNode;
+                this.nodeCounter = 1;
+                this.log('VM initialized - UniCore v2.0');
+                this.log('Container pool: 256 containers');
+                this.log('Root node created: ID=0');
+            }
+            
+            log(msg, type = 'info') {
+                this.output.push({msg, type, time: Date.now()});
+            }
+            
+            loadProgram(code) {
+                this.program = this.parseCode(code);
+                this.pc = 0;
+                this.log('Program loaded: ' + this.program.length + ' instructions');
+            }
+            
+            parseCode(code) {
+                const lines = code.split('\n');
+                const program = [];
+                
+                for (let line of lines) {
+                    line = line.trim();
+                    if (!line || line.startsWith(';')) continue;
+                    
+                    const parts = line.split(/\s+/);
+                    const op = parts[0].toUpperCase();
+                    
+                    let opcode = 0;
+                    let args = [0, 0, 0];
+                    
+                    switch(op) {
+                        case 'NOP': opcode = 0x00; break;
+                        case 'HALT': opcode = 0x01; break;
+                        case 'LOAD': opcode = 0x02; args[0] = parseInt(parts[1], 16) || 0; break;
+                        case 'STORE': opcode = 0x03; args[0] = parseInt(parts[1], 16) || 0; break;
+                        case 'COPY': 
+                            opcode = 0x05; 
+                            const copyArgs = parts[1].split(',');
+                            args[0] = parseInt(copyArgs[0], 16) || 0;
+                            args[1] = parseInt(copyArgs[1], 16) || 0;
+                            break;
+                        case 'INC': opcode = 0x10; break;
+                        case 'DEC': opcode = 0x11; break;
+                        case 'ADD': opcode = 0x12; args[0] = parseInt(parts[1]) || 0; break;
+                        case 'SUB': opcode = 0x13; args[0] = parseInt(parts[1]) || 0; break;
+                        case 'ZERO': opcode = 0x14; break;
+                        case 'MAX': opcode = 0x15; break;
+                        case 'FLIP': opcode = 0x16; break;
+                        case 'CREATE_NODE': 
+                            opcode = 0x20; 
+                            args[0] = parseInt(parts[1]) || 1;
+                            args[1] = parseInt(parts[2]) || 0xFF;
+                            break;
+                        case 'TRIGGER': opcode = 0x22; args[0] = parseInt(parts[1]) || 0; break;
+                        case 'SYNC_TIME': opcode = 0x24; break;
+                        case 'SET_POS':
+                            opcode = 0x30;
+                            const posArgs = parts[1].split(',');
+                            args[0] = parseInt(posArgs[0]) || 0;
+                            args[1] = parseInt(posArgs[1]) || 0;
+                            args[2] = parseInt(posArgs[2]) || 0;
+                            break;
+                        case 'GET_POS': opcode = 0x31; break;
+                        case 'LOAD_PLUGIN': opcode = 0x40; args[0] = parseInt(parts[1], 16) || 0; break;
+                        case 'CALL_PLUGIN': opcode = 0x42; args[0] = parseInt(parts[1], 16) || 0; break;
+                        default:
+                            this.log('Unknown instruction: ' + op, 'error');
+                            continue;
+                    }
+                    
+                    program.push({opcode, args, raw: line});
+                }
+                
+                return program;
+            }
+            
+            step() {
+                if (!this.running || this.pc >= this.program.length) {
+                    return false;
+                }
+                
+                const instr = this.program[this.pc];
+                this.executeInstruction(instr);
+                this.pc++;
+                this.cycles++;
+                
+                return this.running;
+            }
+            
+            executeInstruction(instr) {
+                const opcode = instr.opcode;
+                const args = instr.args;
+                
+                switch(opcode) {
+                    case 0x00: break;
+                    case 0x01:
+                        this.running = false;
+                        this.log('HALT at cycle ' + this.cycles);
+                        break;
+                    case 0x02:
+                        const loadId = args[0];
+                        if (loadId >= 0 && loadId < 256) {
+                            this.activeContainerId = loadId;
+                            this.log('LOAD container 0x' + loadId.toString(16).padStart(2,'0') + ', value=' + this.containers[loadId].value);
+                        }
+                        break;
+                    case 0x03:
+                        if (this.activeContainerId !== null && args[0] < 256) {
+                            this.containers[args[0]].value = this.containers[this.activeContainerId].value;
+                            this.log('STORE to container 0x' + args[0].toString(16).padStart(2,'0'));
+                        }
+                        break;
+                    case 0x05:
+                        if (args[0] < 256 && args[1] < 256) {
+                            this.containers[args[1]].value = this.containers[args[0]].value;
+                            this.log('COPY from 0x' + args[0].toString(16).padStart(2,'0') + ' to 0x' + args[1].toString(16).padStart(2,'0'));
+                        }
+                        break;
+                    case 0x10:
+                        if (this.activeContainerId !== null) {
+                            const c = this.containers[this.activeContainerId];
+                            c.value = (c.value + 1) % 256;
+                            this.log('INC container 0x' + this.activeContainerId.toString(16).padStart(2,'0') + ' -> ' + c.value);
+                        }
+                        break;
+                    case 0x11:
+                        if (this.activeContainerId !== null) {
+                            const c = this.containers[this.activeContainerId];
+                            c.value = (c.value - 1 + 256) % 256;
+                            this.log('DEC container 0x' + this.activeContainerId.toString(16).padStart(2,'0') + ' -> ' + c.value);
+                        }
+                        break;
+                    case 0x12:
+                        if (this.activeContainerId !== null) {
+                            const c = this.containers[this.activeContainerId];
+                            c.value = (c.value + args[0]) % 256;
+                            this.log('ADD ' + args[0] + ' to container 0x' + this.activeContainerId.toString(16).padStart(2,'0') + ' -> ' + c.value);
+                        }
+                        break;
+                    case 0x13:
+                        if (this.activeContainerId !== null) {
+                            const c = this.containers[this.activeContainerId];
+                            c.value = (c.value - args[0] + 256) % 256;
+                            this.log('SUB ' + args[0] + ' from container 0x' + this.activeContainerId.toString(16).padStart(2,'0') + ' -> ' + c.value);
+                        }
+                        break;
+                    case 0x14:
+                        if (this.activeContainerId !== null) {
+                            this.containers[this.activeContainerId].value = 0;
+                            this.log('ZERO container 0x' + this.activeContainerId.toString(16).padStart(2,'0'));
+                        }
+                        break;
+                    case 0x15:
+                        if (this.activeContainerId !== null) {
+                            this.containers[this.activeContainerId].value = 255;
+                            this.log('MAX container 0x' + this.activeContainerId.toString(16).padStart(2,'0'));
+                        }
+                        break;
+                    case 0x16:
+                        if (this.activeContainerId !== null) {
+                            const c = this.containers[this.activeContainerId];
+                            c.value = 255 - c.value;
+                            this.log('FLIP container 0x' + this.activeContainerId.toString(16).padStart(2,'0') + ' -> ' + c.value);
+                        }
+                        break;
+                    case 0x20:
+                        const eventType = args[0];
+                        const causeId = args[1] === 0xFF ? null : args[1];
+                        const node = {
+                            id: this.nodeCounter,
+                            type: eventType,
+                            cause: causeId,
+                            triggered: false
+                        };
+                        this.nodes[this.nodeCounter] = node;
+                        this.nodeCounter++;
+                        this.log('CREATE_NODE ID=' + node.id + ', type=' + eventType + ', cause=' + (causeId || 'none'));
+                        break;
+                    case 0x22:
+                        const triggerId = args[0];
+                        if (this.nodes[triggerId]) {
+                            this.nodes[triggerId].triggered = true;
+                            const cause = this.nodes[triggerId].cause;
+                            if (cause !== null && this.nodes[cause]) {
+                                this.nodes[cause].triggered = true;
+                            }
+                            this.log('TRIGGER node ' + triggerId);
+                        }
+                        break;
+                    case 0x24:
+                        this.timeBase = Date.now();
+                        this.log('SYNC_TIME, base=' + this.timeBase);
+                        break;
+                    case 0x30:
+                        if (this.activeContainerId !== null) {
+                            const c = this.containers[this.activeContainerId];
+                            c.position = {x: args[0], y: args[1], z: args[2]};
+                            this.log('SET_POS container 0x' + this.activeContainerId.toString(16).padStart(2,'0') + ' -> (' + args[0] + ', ' + args[1] + ', ' + args[2] + ')');
+                        }
+                        break;
+                    case 0x31:
+                        if (this.activeContainerId !== null) {
+                            const c = this.containers[this.activeContainerId];
+                            const p = c.position;
+                            this.log('GET_POS container 0x' + this.activeContainerId.toString(16).padStart(2,'0') + ' -> (' + p.x + ', ' + p.y + ', ' + p.z + ')');
+                        }
+                        break;
+                    case 0x40:
+                        const pluginId = args[0];
+                        this.plugins[pluginId] = {loaded: true};
+                        this.log('LOAD_PLUGIN 0x' + pluginId.toString(16).padStart(2,'0'));
+                        break;
+                    case 0x42:
+                        const callId = args[0];
+                        if (this.plugins[callId] && this.plugins[callId].loaded) {
+                            if (callId === 0xA0) {
+                                this.log('Hello from HelloWorld plugin!');
+                            } else if (callId === 0xA1) {
+                                if (this.activeContainerId !== null) {
+                                    const char = String.fromCharCode(this.containers[this.activeContainerId].value);
+                                    this.log('CharMap: ' + char);
+                                }
+                            }
+                            this.log('CALL_PLUGIN 0x' + callId.toString(16).padStart(2,'0') + ' executed');
+                        }
+                        break;
+                }
+            }
+            
+            run(maxCycles) {
+                if (!maxCycles) maxCycles = 1000;
+                this.initialize();
+                this.log('Starting execution (max ' + maxCycles + ' cycles)');
+                
+                while (this.running && this.cycles < maxCycles) {
+                    if (!this.step()) break;
+                }
+                
+                this.log('Execution finished after ' + this.cycles + ' cycles');
+            }
+            
+            getState() {
+                return {
+                    cycles: this.cycles,
+                    activeContainer: this.activeContainerId,
+                    containerCount: this.containers.filter(function(c) { return c.value !== 0; }).length,
+                    nodeCount: Object.keys(this.nodes).length,
+                    pluginCount: Object.values(this.plugins).filter(function(p) { return p.loaded; }).length
+                };
+            }
+        }
+        
+        let vm = new UniCoreVM();
+        
+        function init() {
+            vm.initialize();
+            renderContainerGrid();
+            updateStatus();
+            updateOutput();
+            updateNodeView();
+        }
+        
+        function renderContainerGrid() {
+            const grid = document.getElementById('containerGrid');
+            grid.innerHTML = '';
+            
+            for (let i = 0; i < 256; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'container-cell';
+                cell.id = 'container-' + i;
+                cell.innerHTML = '<div style="color: #888;">' + i.toString(16).padStart(2,'0').toUpperCase() + '</div><div style="color: #ffd93d;">' + vm.containers[i].value + '</div>';
+                
+                if (vm.containers[i].value !== 0) {
+                    cell.classList.add('used');
+                }
+                if (vm.activeContainerId === i) {
+                    cell.classList.add('active');
+                }
+                
+                cell.onclick = (function(id) {
+                    return function() { selectContainer(id); };
+                })(i);
+                grid.appendChild(cell);
+            }
+        }
+        
+        function selectContainer(id) {
+            vm.activeContainerId = id;
+            renderContainerGrid();
+            updateStatus();
+        }
+        
+        function refreshContainerView() {
+            renderContainerGrid();
+        }
+        
+        function updateStatus() {
+            const state = vm.getState();
+            document.getElementById('cycleCount').textContent = state.cycles;
+            document.getElementById('activeContainer').textContent = 
+                state.activeContainer !== null ? '0x' + state.activeContainer.toString(16).padStart(2,'0').toUpperCase() : '-';
+            document.getElementById('containerCount').textContent = state.containerCount;
+            document.getElementById('nodeCount').textContent = state.nodeCount;
+            document.getElementById('pluginCount').textContent = state.pluginCount;
+        }
+        
+        function updateOutput() {
+            const outputEl = document.getElementById('output');
+            let html = '';
+            
+            const recentOutput = vm.output.slice(-100);
+            for (let idx = 0; idx < recentOutput.length; idx++) {
+                const item = recentOutput[idx];
+                let className = 'output-line';
+                if (item.type === 'error') className += ' output-error';
+                else if (item.type === 'success') className += ' output-success';
+                else className += ' output-info';
+                
+                html += '<div class="' + className + '">' + item.msg + '</div>';
+            }
+            
+            outputEl.innerHTML = html;
+            outputEl.scrollTop = outputEl.scrollHeight;
+        }
+        
+        function updateNodeView() {
+            const nodeList = document.getElementById('nodeList');
+            const nodes = Object.values(vm.nodes);
+            
+            if (nodes.length === 0) {
+                nodeList.innerHTML = '<div style="color: #888; text-align: center; padding: 50px;">暂无节点<br>执行 CREATE_NODE 指令创建节点</div>';
+                return;
+            }
+            
+            let html = '';
+            for (let idx = 0; idx < nodes.length; idx++) {
+                const node = nodes[idx];
+                const triggered = node.triggered ? 'triggered' : '';
+                const typeNames = ['NORMAL', 'ACTION', 'STATE', 'CAUSAL'];
+                const typeName = typeNames[node.type - 1] || 'UNKNOWN';
+                
+                html += '<div class="node-item ' + triggered + '">';
+                html += '<span class="node-id">#' + node.id + '</span> - ';
+                html += '<span class="node-type">' + typeName + '</span>';
+                if (node.cause !== null) {
+                    html += ' <span style="color: #888;">← #' + node.cause + '</span>';
+                }
+                if (node.triggered) {
+                    html += ' <span style="color: #00ff88;">✓</span>';
+                }
+                html += '</div>';
+            }
+            
+            nodeList.innerHTML = html;
+        }
+        
+        function refreshNodeView() {
+            updateNodeView();
+        }
+        
+        function runProgram() {
+            const code = document.getElementById('codeEditor').value;
+            vm.output = [];
+            vm.loadProgram(code);
+            vm.run();
+            renderContainerGrid();
+            updateStatus();
+            updateOutput();
+            updateNodeView();
+        }
+        
+        function stepProgram() {
+            const code = document.getElementById('codeEditor').value;
+            
+            if (vm.program.length === 0) {
+                vm.output = [];
+                vm.loadProgram(code);
+                vm.initialize();
+            }
+            
+            if (vm.step()) {
+                renderContainerGrid();
+                updateStatus();
+                updateOutput();
+                updateNodeView();
+            }
+        }
+        
+        function resetVM() {
+            vm.reset();
+            init();
+        }
+        
+        function loadSample(type) {
+            let code = '';
+            
+            if (type === 'noncarry') {
+                code = '; 不进位计数演示\nLOAD 0x10\nINC\nINC\nINC\nADD 252\nINC\nHALT';
+            }
+            
+            document.getElementById('codeEditor').value = code;
+        }
+        
+        function loadPlugin(id) {
+            vm.plugins[id] = {loaded: true};
+            updateStatus();
+            vm.log('Plugin 0x' + id.toString(16).padStart(2,'0') + ' loaded', 'success');
+            updateOutput();
+        }
+        
+        function exportState() {
+            const state = {
+                version: 'UniCore v2.0',
+                containers: vm.containers,
+                nodes: vm.nodes,
+                plugins: vm.plugins,
+                output: vm.output.slice(-50)
+            };
+            
+            const blob = new Blob([JSON.stringify(state, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'unicore_v2_state.json';
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            vm.log('State exported', 'success');
+            updateOutput();
+        }
+        
+        function importState() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = function(e) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    try {
+                        const state = JSON.parse(evt.target.result);
+                        vm.containers = state.containers;
+                        vm.nodes = state.nodes;
+                        vm.plugins = state.plugins;
+                        const nodeIds = Object.keys(vm.nodes).map(Number);
+                        if (nodeIds.length > 0) {
+                            vm.nodeCounter = Math.max.apply(null, nodeIds) + 1;
+                        }
+                        
+                        renderContainerGrid();
+                        updateStatus();
+                        updateNodeView();
+                        vm.log('State imported', 'success');
+                        updateOutput();
+                    } catch (err) {
+                        vm.log('Import failed: ' + err.message, 'error');
+                        updateOutput();
+                    }
+                };
+                reader.readAsText(e.target.files[0]);
+            };
+            input.click();
+        }
+        
+        init();
+    </script>
+</body>
+</html>

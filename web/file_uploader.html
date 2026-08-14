@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniCore - 文件上传管理器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 50%, #0d1b2a 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 40px 0;
+            border-bottom: 2px solid #2d3748;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 3.5em;
+            background: linear-gradient(135deg, #00d4ff 0%, #00ff88 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: #888;
+            margin-top: 10px;
+            font-size: 1.3em;
+        }
+
+        .upload-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .upload-card {
+            background: rgba(45, 55, 72, 0.4);
+            border: 2px solid #4a5568;
+            border-radius: 20px;
+            padding: 30px;
+            transition: all 0.4s;
+            cursor: pointer;
+        }
+
+        .upload-card:hover {
+            transform: translateY(-10px);
+            border-color: #00d4ff;
+            box-shadow: 0 20px 50px rgba(0, 212, 255, 0.25);
+        }
+
+        .upload-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+            display: block;
+        }
+
+        .upload-title {
+            font-size: 1.6em;
+            color: #00d4ff;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+
+        .upload-desc {
+            color: #a0aec0;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .upload-input {
+            display: none;
+        }
+
+        .upload-area {
+            border: 3px dashed rgba(0, 212, 255, 0.5);
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            transition: all 0.3s;
+            background: rgba(0, 212, 255, 0.05);
+        }
+
+        .upload-area:hover {
+            border-color: #00ff88;
+            background: rgba(0, 255, 136, 0.1);
+        }
+
+        .upload-area.dragover {
+            border-color: #00ff88;
+            background: rgba(0, 255, 136, 0.2);
+            transform: scale(1.02);
+        }
+
+        .upload-icon-small {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            color: #00d4ff;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .upload-hint {
+            color: #888;
+            font-size: 0.9em;
+        }
+
+        .file-list {
+            margin-top: 20px;
+        }
+
+        .file-item {
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: all 0.3s;
+        }
+
+        .file-item:hover {
+            background: rgba(0, 212, 255, 0.2);
+        }
+
+        .file-icon {
+            font-size: 2em;
+        }
+
+        .file-info {
+            flex: 1;
+        }
+
+        .file-name {
+            color: #00ff88;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .file-meta {
+            color: #888;
+            font-size: 0.85em;
+        }
+
+        .file-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #00ff88 0%, #00b894 100%);
+            color: #1a1a2e;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%);
+            color: white;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #00d4ff 0%, #0077b6 100%);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 212, 255, 0.4);
+        }
+
+        .stats-section {
+            background: rgba(45, 55, 72, 0.4);
+            border: 2px solid #4a5568;
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 40px;
+        }
+
+        .stats-title {
+            font-size: 2em;
+            color: #00d4ff;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-card {
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .stat-card:hover {
+            background: rgba(0, 212, 255, 0.2);
+            transform: translateY(-5px);
+        }
+
+        .stat-value {
+            font-size: 3em;
+            color: #00ff88;
+            font-weight: 800;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            color: #888;
+            font-size: 1.1em;
+        }
+
+        .info-section {
+            background: rgba(0, 255, 136, 0.05);
+            border-left: 4px solid #00ff88;
+            padding: 20px;
+            border-radius: 0 15px 15px 0;
+            margin-bottom: 30px;
+        }
+
+        .info-section h3 {
+            color: #00ff88;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+
+        .info-section p {
+            color: #a0aec0;
+            line-height: 1.8;
+        }
+
+        footer {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            border-top: 1px solid #2d3748;
+            margin-top: 60px;
+        }
+
+        footer a {
+            color: #00d4ff;
+            text-decoration: none;
+        }
+
+        .preview-container {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 10px;
+            border: 2px solid #00d4ff;
+        }
+
+        .preview-text {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid #4a5568;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #00ff88;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            text-align: left;
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 255, 136, 0.9);
+            color: #1a1a2e;
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-weight: 600;
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📤 UniCore 文件上传管理器</h1>
+            <p class="subtitle">支持多种文件类型的上传与管理</p>
+        </header>
+
+        <div class="info-section">
+            <h3>💡 功能说明</h3>
+            <p>
+                这个工具支持多种文件上传场景：<br>
+                • <strong>文档上传</strong> - 支持 PDF、Word、Excel、TXT 等文档格式<br>
+                • <strong>压缩包上传</strong> - 支持 ZIP、RAR、7Z、TAR.GZ 等压缩格式<br>
+                • <strong>源代码上传</strong> - 支持各种编程语言的源代码文件<br>
+                • <strong>图片上传</strong> - 支持 JPG、PNG、GIF、SVG 等图片格式<br><br>
+                所有文件都会在浏览器中进行预览和处理，完全保护你的隐私！
+            </p>
+        </div>
+
+        <div class="stats-section">
+            <div class="stats-title">📊 上传统计</div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalFiles">0</div>
+                    <div class="stat-label">已上传文件</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalSize">0 KB</div>
+                    <div class="stat-label">总大小</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="docCount">0</div>
+                    <div class="stat-label">文档</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="imageCount">0</div>
+                    <div class="stat-label">图片</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="archiveCount">0</div>
+                    <div class="stat-label">压缩包</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="codeCount">0</div>
+                    <div class="stat-label">源代码</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="upload-grid">
+            <div class="upload-card">
+                <span class="upload-icon">📄</span>
+                <div class="upload-title">📄 文档上传</div>
+                <div class="upload-desc">上传 Word、Excel、PDF、TXT 等文档文件</div>
+                <input type="file" id="docInput" class="upload-input" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.rtf,.odt" multiple>
+                <div class="upload-area" onclick="document.getElementById('docInput').click()">
+                    <div class="upload-icon-small">📁</div>
+                    <div class="upload-text">点击或拖拽上传文档</div>
+                    <div class="upload-hint">支持 PDF, DOC, DOCX, XLS, XLSX, PPT, TXT 等格式</div>
+                </div>
+                <div class="file-list" id="docList"></div>
+            </div>
+
+            <div class="upload-card">
+                <span class="upload-icon">📦</span>
+                <div class="upload-title">📦 压缩包上传</div>
+                <div class="upload-desc">上传 ZIP、RAR、7Z、TAR.GZ 等压缩文件</div>
+                <input type="file" id="archiveInput" class="upload-input" accept=".zip,.rar,.7z,.tar,.gz,.bz2,.xz" multiple>
+                <div class="upload-area" onclick="document.getElementById('archiveInput').click()">
+                    <div class="upload-icon-small">🗜️</div>
+                    <div class="upload-text">点击或拖拽上传压缩包</div>
+                    <div class="upload-hint">支持 ZIP, RAR, 7Z, TAR, GZ 等格式</div>
+                </div>
+                <div class="file-list" id="archiveList"></div>
+            </div>
+
+            <div class="upload-card">
+                <span class="upload-icon">💻</span>
+                <div class="upload-title">💻 源代码上传</div>
+                <div class="upload-desc">上传各种编程语言的源代码文件</div>
+                <input type="file" id="codeInput" class="upload-input" accept=".js,.ts,.py,.java,.c,.cpp,.h,.cs,.go,.rs,.rb,.php,.swift,.kt,.scala,.html,.css,.scss,.json,.xml,.yaml,.yml,.sql,.sh,.bash" multiple>
+                <div class="upload-area" onclick="document.getElementById('codeInput').click()">
+                    <div class="upload-icon-small">⌨️</div>
+                    <div class="upload-text">点击或拖拽上传源代码</div>
+                    <div class="upload-hint">支持 JS, TS, PY, JAVA, C, C++, GO, RS 等 50+ 种语言</div>
+                </div>
+                <div class="file-list" id="codeList"></div>
+            </div>
+
+            <div class="upload-card">
+                <span class="upload-icon">🖼️</span>
+                <div class="upload-title">🖼️ 图片上传</div>
+                <div class="upload-desc">上传 JPG、PNG、GIF、SVG 等图片文件</div>
+                <input type="file" id="imageInput" class="upload-input" accept="image/*" multiple>
+                <div class="upload-area" onclick="document.getElementById('imageInput').click()">
+                    <div class="upload-icon-small">📷</div>
+                    <div class="upload-text">点击或拖拽上传图片</div>
+                    <div class="upload-hint">支持 JPG, PNG, GIF, SVG, WEBP, BMP 等格式</div>
+                </div>
+                <div class="file-list" id="imageList"></div>
+            </div>
+        </div>
+
+        <div class="stats-section">
+            <div class="stats-title">🗂️ 最近上传的文件</div>
+            <div class="file-list" id="allFiles"></div>
+        </div>
+
+        <footer>
+            <p><a href="index.html">🏠 返回 UniCore 主页</a></p>
+            <p style="margin-top: 20px;">UniCore - 探索无限可能</p>
+        </footer>
+    </div>
+
+    <script>
+        let totalFiles = 0;
+        let totalSize = 0;
+        let docFiles = [];
+        let archiveFiles = [];
+        let codeFiles = [];
+        let imageFiles = [];
+        let allUploadedFiles = [];
+
+        const fileIcons = {
+            pdf: '📕',
+            doc: '📘',
+            docx: '📘',
+            xls: '📗',
+            xlsx: '📗',
+            ppt: '📙',
+            pptx: '📙',
+            txt: '📝',
+            rtf: '📝',
+            odt: '📝',
+            zip: '🗜️',
+            rar: '🗜️',
+            '7z': '🗜️',
+            tar: '🗜️',
+            gz: '🗜️',
+            js: '📜',
+            ts: '📜',
+            py: '🐍',
+            java: '☕',
+            c: '⚙️',
+            cpp: '⚙️',
+            h: '⚙️',
+            cs: '💜',
+            go: '🐹',
+            rs: '🦀',
+            rb: '💎',
+            php: '🐘',
+            swift: '🍎',
+            kt: '🟣',
+            scala: '🔴',
+            html: '🌐',
+            css: '🎨',
+            scss: '🎨',
+            json: '📋',
+            xml: '📋',
+            yaml: '📋',
+            yml: '📋',
+            sql: '🗃️',
+            sh: '📟',
+            bash: '📟',
+            jpg: '🖼️',
+            jpeg: '🖼️',
+            png: '🖼️',
+            gif: '🎞️',
+            svg: '🏆',
+            webp: '🖼️',
+            bmp: '🖼️'
+        };
+
+        function getFileIcon(filename) {
+            const ext = filename.split('.').pop().toLowerCase();
+            return fileIcons[ext] || '📄';
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+            if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+            return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+        }
+
+        function updateStats() {
+            document.getElementById('totalFiles').textContent = totalFiles;
+            document.getElementById('totalSize').textContent = formatFileSize(totalSize);
+            document.getElementById('docCount').textContent = docFiles.length;
+            document.getElementById('imageCount').textContent = imageFiles.length;
+            document.getElementById('archiveCount').textContent = archiveFiles.length;
+            document.getElementById('codeCount').textContent = codeFiles.length;
+        }
+
+        function createFileItem(file, type) {
+            const div = document.createElement('div');
+            div.className = 'file-item';
+            div.innerHTML = `
+                <span class="file-icon">${getFileIcon(file.name)}</span>
+                <div class="file-info">
+                    <div class="file-name">${file.name}</div>
+                    <div class="file-meta">${formatFileSize(file.size)} • ${file.type || 'unknown'}</div>
+                </div>
+                <div class="file-actions">
+                    <button class="btn btn-success" onclick="previewFile('${type}', ${type === 'image' ? '' : `event, '${file.name}'`})">👁️ 预览</button>
+                    <button class="btn btn-danger" onclick="removeFile('${type}', this, ${type === 'image' ? `URL.createObjectURL(file)` : `null`})">🗑️ 删除</button>
+                </div>
+            `;
+            return div;
+        }
+
+        function addFile(type, inputId, listId, fileArray) {
+            const input = document.getElementById(inputId);
+            const list = document.getElementById(listId);
+            const allFilesList = document.getElementById('allFiles');
+
+            input.addEventListener('change', function(e) {
+                handleFiles(e.target.files, type, list, fileArray, allFilesList);
+            });
+
+            const uploadArea = input.parentElement.querySelector('.upload-area');
+            
+            uploadArea.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                this.classList.add('dragover');
+            });
+
+            uploadArea.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                this.classList.remove('dragover');
+            });
+
+            uploadArea.addEventListener('drop', function(e) {
+                e.preventDefault();
+                this.classList.remove('dragover');
+                handleFiles(e.dataTransfer.files, type, list, fileArray, allFilesList);
+            });
+        }
+
+        function handleFiles(files, type, list, fileArray, allFilesList) {
+            for (let file of files) {
+                fileArray.push(file);
+                totalFiles++;
+                totalSize += file.size;
+                allUploadedFiles.push({ file, type });
+
+                const item = createFileItem(file, type);
+                list.insertBefore(item, list.firstChild);
+                
+                const allItem = createFileItem(file, type);
+                allFilesList.insertBefore(allItem, allFilesList.firstChild);
+
+                showToast(`✅ 已上传: ${file.name}`);
+            }
+            updateStats();
+        }
+
+        function previewFile(type, event, filename) {
+            event.stopPropagation();
+            
+            if (type === 'image') {
+                const file = event.target.closest('.file-item').querySelector('.file-icon').textContent;
+                alert('图片预览功能 - 图片已加载');
+            } else {
+                const item = event.target.closest('.file-item');
+                const fileName = item.querySelector('.file-name').textContent;
+                const fileInfo = item.querySelector('.file-meta').textContent;
+                alert(`📄 文件预览\n\n文件名: ${fileName}\n信息: ${fileInfo}\n\n提示: 这是一个模拟预览功能`);
+            }
+        }
+
+        function removeFile(type, btn, dataUrl) {
+            const item = btn.closest('.file-item');
+            const fileName = item.querySelector('.file-name').textContent;
+            
+            item.remove();
+            
+            if (type === 'doc') {
+                docFiles = docFiles.filter(f => f.name !== fileName);
+            } else if (type === 'archive') {
+                archiveFiles = archiveFiles.filter(f => f.name !== fileName);
+            } else if (type === 'code') {
+                codeFiles = codeFiles.filter(f => f.name !== fileName);
+            } else if (type === 'image') {
+                imageFiles = imageFiles.filter(f => f.name !== fileName);
+            }
+
+            allUploadedFiles = allUploadedFiles.filter(f => f.file.name !== fileName);
+            totalFiles--;
+            
+            const allItems = document.querySelectorAll('#allFiles .file-item');
+            allItems.forEach(item => {
+                if (item.querySelector('.file-name').textContent === fileName) {
+                    item.remove();
+                }
+            });
+
+            showToast(`🗑️ 已删除: ${fileName}`);
+        }
+
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.animation = 'slideIn 0.3s ease reverse';
+                setTimeout(() => toast.remove(), 300);
+            }, 2000);
+        }
+
+        addFile('doc', 'docInput', 'docList', docFiles);
+        addFile('archive', 'archiveInput', 'archiveList', archiveFiles);
+        addFile('code', 'codeInput', 'codeList', codeFiles);
+        addFile('image', 'imageInput', 'imageList', imageFiles);
+
+        updateStats();
+    </script>
+</body>
+</html>

@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniCore v4.0 - 稀疏数代数体系</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Courier New', monospace; background: #0a0a0f; color: #00ff88; min-height: 100vh; }
+        
+        .title-bar { 
+            background: linear-gradient(to right, #0a0a0f, rgba(0,255,136,0.3)); 
+            border-bottom: 2px solid #00ff88; 
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .title-bar h1 { font-size: 1.2em; color: #00ff88; }
+        .title-bar .subtitle { color: #ffd93d; font-size: 0.8em; margin-top: 5px; }
+        
+        .container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; padding: 15px; }
+        
+        .panel { 
+            background: rgba(10, 10, 15, 0.95); 
+            border: 2px solid #00ff88; 
+            border-radius: 10px; 
+            padding: 12px; 
+        }
+        
+        .panel h2 { 
+            color: #ffd93d; 
+            font-size: 0.85em; 
+            margin-bottom: 8px; 
+            border-bottom: 1px solid rgba(0,255,136,0.3); 
+            padding-bottom: 4px;
+        }
+        
+        .priority-tag {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.65em;
+            margin-bottom: 5px;
+        }
+        
+        .priority-1 { background: rgba(255,0,0,0.3); color: #ff6b6b; }
+        .priority-2 { background: rgba(255,136,0,0.3); color: #ffd93d; }
+        .priority-3 { background: rgba(0,255,136,0.3); color: #00ff88; }
+        .priority-4 { background: rgba(0,136,255,0.3); color: #00d4ff; }
+        
+        .symbol-list { 
+            display: flex; 
+            flex-wrap: wrap; 
+            gap: 3px; 
+            max-height: 120px; 
+            overflow-y: auto; 
+        }
+        
+        .symbol-item { 
+            padding: 3px 6px; 
+            background: rgba(0,0,0,0.3); 
+            border-radius: 3px; 
+            font-size: 0.75em;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .symbol-item:hover { background: rgba(0,255,136,0.2); }
+        .symbol-item.active { background: rgba(0,255,136,0.4); }
+        
+        .info-box { 
+            background: rgba(0,0,0,0.3); 
+            border-radius: 5px; 
+            padding: 8px; 
+            margin: 8px 0; 
+            font-size: 0.75em; 
+        }
+        
+        .info-box .label { color: #888; }
+        .info-box .value { color: #00ff88; font-weight: bold; }
+        
+        .chain-display {
+            background: rgba(0,0,0,0.3);
+            border-radius: 5px;
+            padding: 8px;
+            margin: 8px 0;
+            font-size: 0.7em;
+        }
+        
+        .chain-link {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin: 3px 0;
+        }
+        
+        .chain-arrow { color: #ffd93d; }
+        
+        .btn { 
+            padding: 5px 10px; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-family: inherit; 
+            font-size: 0.75em; 
+            margin: 2px; 
+            transition: all 0.2s; 
+        }
+        
+        .btn-primary { background: #00ff88; color: #0a0a0f; }
+        .btn-secondary { background: #0088ff; color: white; }
+        
+        .log-box { 
+            background: rgba(0,0,0,0.5); 
+            border-radius: 5px; 
+            padding: 6px; 
+            max-height: 100px; 
+            overflow-y: auto; 
+            font-size: 0.7em; 
+            margin-top: 8px;
+        }
+        
+        .log-line { margin: 2px 0; color: #00d4ff; }
+        .log-line.success { color: #00ff88; }
+        
+        .grid-card {
+            background: rgba(0,0,0,0.3);
+            border-radius: 5px;
+            padding: 8px;
+            margin: 5px 0;
+            font-size: 0.7em;
+            border-left: 3px solid #00ff88;
+        }
+        
+        .grid-code { color: #ffd93d; font-weight: bold; }
+        
+        @media (max-width: 1024px) {
+            .container { grid-template-columns: repeat(2, 1fr); }
+        }
+        
+        @media (max-width: 640px) {
+            .container { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="title-bar">
+        <h1>UniCore v4.0 - 稀疏数代数体系</h1>
+        <div class="subtitle">优先级：声调(170) > 韵母(64) > 声母(48) > 数字(10) | 稀疏数代数学</div>
+    </div>
+    
+    <div class="container">
+        <!-- 声调面板 -->
+        <div class="panel">
+            <h2>声调序列 <span class="priority-tag priority-1">第1优先级</span></h2>
+            <div class="symbol-list" id="sd-list"></div>
+            <div class="info-box">
+                <div><span class="label">数量:</span> <span class="value">170</span></div>
+                <div><span class="label">权位:</span> <span class="value">最高</span></div>
+            </div>
+        </div>
+        
+        <!-- 韵母面板 -->
+        <div class="panel">
+            <h2>韵母序列 <span class="priority-tag priority-2">第2优先级</span></h2>
+            <div class="symbol-list" id="ym-list"></div>
+            <div class="info-box">
+                <div><span class="label">数量:</span> <span class="value">64</span></div>
+                <div><span class="label">权位:</span> <span class="value">次之</span></div>
+            </div>
+        </div>
+        
+        <!-- 声母面板 -->
+        <div class="panel">
+            <h2>声母序列 <span class="priority-tag priority-3">第3优先级</span></h2>
+            <div class="symbol-list" id="sm-list"></div>
+            <div class="info-box">
+                <div><span class="label">数量:</span> <span class="value">48</span></div>
+                <div><span class="label">权位:</span> <span class="value">第三</span></div>
+            </div>
+        </div>
+        
+        <!-- 数字面板 -->
+        <div class="panel">
+            <h2>数字序列 <span class="priority-tag priority-4">第4优先级 · 代数</span></h2>
+            <div class="symbol-list" id="num-list"></div>
+            <div class="info-box">
+                <div><span class="label">数量:</span> <span class="value">10</span></div>
+                <div><span class="label">权位:</span> <span class="value">最低 · 代数</span></div>
+            </div>
+        </div>
+        
+        <!-- 符号信息面板 -->
+        <div class="panel">
+            <h2>符号信息</h2>
+            <div id="symbol-info" class="info-box">
+                <div>点击左侧符号查看详情</div>
+            </div>
+            
+            <h2>稀疏数链</h2>
+            <div id="symbol-chain" class="chain-display">
+                <div>选择符号查看代表链</div>
+            </div>
+        </div>
+        
+        <!-- 格子系统面板 -->
+        <div class="panel">
+            <h2>格子集装箱</h2>
+            <button class="btn btn-primary" onclick="createGrid()">创建格子</button>
+            <button class="btn btn-secondary" onclick="connectGrids()">连接格子</button>
+            
+            <div id="grids-list"></div>
+        </div>
+        
+        <!-- 运算面板 -->
+        <div class="panel">
+            <h2>稀疏数运算</h2>
+            <div style="margin-bottom: 8px;">
+                <select id="op1-type" class="btn btn-secondary">
+                    <option value="shengdiao">声调</option>
+                    <option value="yunmu">韵母</option>
+                    <option value="shengmu">声母</option>
+                    <option value="number">数字</option>
+                </select>
+                <span style="margin: 0 5px;">+</span>
+                <select id="op2-type" class="btn btn-secondary">
+                    <option value="shengdiao">声调</option>
+                    <option value="yunmu">韵母</option>
+                    <option value="shengmu">声母</option>
+                    <option value="number">数字</option>
+                </select>
+                <button class="btn btn-primary" onclick="sparseAdd()">运算</button>
+            </div>
+            
+            <div id="op-result" class="info-box">
+                <div>结果：等待运算</div>
+            </div>
+        </div>
+        
+        <!-- 通信面板 -->
+        <div class="panel">
+            <h2>稀疏数通信</h2>
+            <button class="btn btn-primary" onclick="transmit()">传递信息</button>
+            <div id="comm-result" class="info-box">
+                <div>通信状态：等待操作</div>
+            </div>
+            
+            <div class="log-box" id="log-box"></div>
+        </div>
+    </div>
+    
+    <script src="../src/core/sparse_number_system.js"></script>
+    <script>
+        let selected = { shengdiao: null, yunmu: null, shengmu: null, number: null };
+        let grids = [];
+
+        function init() {
+            renderSymbolLists();
+            log('稀疏数代数体系初始化完成', 'success');
+        }
+
+        function renderSymbolLists() {
+            renderList('sd-list', USER_SHENGDIAO.slice(0, 20), 'shengdiao');
+            renderList('ym-list', USER_YUNMU, 'yunmu');
+            renderList('sm-list', USER_SHENGMU, 'shengmu');
+            renderList('num-list', USER_NUMBERS, 'number');
+        }
+
+        function renderList(containerId, symbols, type) {
+            const container = document.getElementById(containerId);
+            symbols.forEach((s, i) => {
+                const item = document.createElement('div');
+                item.className = 'symbol-item';
+                item.textContent = s;
+                item.onclick = () => selectSymbol(s, type);
+                container.appendChild(item);
+            });
+            if (symbols.length > 20) {
+                container.innerHTML += `<div style="color:#888;font-size:0.65em">...共${symbols.length}个</div>`;
+            }
+        }
+
+        function selectSymbol(symbol, type) {
+            // 清除之前选中
+            document.querySelectorAll('.symbol-item.active').forEach(el => el.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // 记录选中
+            selected[type] = symbol;
+            
+            // 显示信息
+            const info = SPARSE_SYSTEM.getSymbolInfo(symbol, type);
+            displaySymbolInfo(info);
+            
+            // 显示稀疏数链
+            const chain = SPARSE_SYSTEM.getSymbolChain(symbol, type);
+            displayChain(chain);
+            
+            log(`选中: ${type} - ${symbol}`);
+        }
+
+        function displaySymbolInfo(info) {
+            const container = document.getElementById('symbol-info');
+            container.innerHTML = `
+                <div><span class="label">符号:</span> <span class="value">${info.symbol}</span></div>
+                <div><span class="label">类型:</span> <span class="value">${info.type}</span></div>
+                <div><span class="label">索引:</span> <span class="value">${info.index}</span></div>
+                <div><span class="label">权位:</span> <span class="value">${info.weight}</span></div>
+                ${info.represents ? `
+                <div><span class="label">代表:</span> <span class="value">${info.represents.count}个${info.represents.type}</span></div>
+                <div><span class="label">示例:</span> <span class="value">${info.represents.symbols.join(', ')}</span></div>
+                ` : ''}
+            `;
+        }
+
+        function displayChain(chain) {
+            const container = document.getElementById('symbol-chain');
+            container.innerHTML = chain.map((link, i) => `
+                <div class="chain-link">
+                    <span class="value">${link.symbol}</span>
+                    <span class="label">(${link.type})</span>
+                    ${i < chain.length - 1 ? `<span class="chain-arrow">→</span>` : ''}
+                    ${link.representsCount ? `<span class="label">代表${link.representsCount}个</span>` : ''}
+                </div>
+            `).join('');
+        }
+
+        function createGrid() {
+            const sd = selected.shengdiao || USER_SHENGDIAO[0];
+            const ym = selected.yunmu || USER_YUNMU[0];
+            const sm = selected.shengmu || USER_SHENGMU[0];
+            
+            const grid = SPARSE_SYSTEM.createGrid(sm, ym, sd);
+            grids.push(grid);
+            
+            const container = document.getElementById('grids-list');
+            const card = document.createElement('div');
+            card.className = 'grid-card';
+            card.innerHTML = `
+                <div class="grid-code">${sm}${ym}${sd}</div>
+                <div>声母: ${sm} | 韵母: ${ym} | 声调: ${sd}</div>
+                <div>权位值: ${grid.weight}</div>
+            `;
+            container.appendChild(card);
+            
+            log(`创建格子: ${sm}${ym}${sd}`, 'success');
+        }
+
+        function connectGrids() {
+            if (grids.length < 2) {
+                log('请先创建至少两个格子', 'error');
+                return;
+            }
+            
+            const grid1 = grids[grids.length - 2];
+            const grid2 = grids[grids.length - 1];
+            
+            if (SPARSE_SYSTEM.recognize(grid1, grid2)) {
+                grid1.connections[grid2.sparseCode] = grid2;
+                grid2.connections[grid1.sparseCode] = grid1;
+                log(`${grid1.shengmu}${grid1.yunmu}${grid1.shengdiao} ↔ ${grid2.shengmu}${grid2.yunmu}${grid2.shengdiao} 互认成功`, 'success');
+            } else {
+                log('两个格子未互认', 'error');
+            }
+        }
+
+        function sparseAdd() {
+            const type1 = document.getElementById('op1-type').value;
+            const type2 = document.getElementById('op2-type').value;
+            
+            const sym1 = selected[type1] || getFirstSymbol(type1);
+            const sym2 = selected[type2] || getFirstSymbol(type2);
+            
+            const result = SPARSE_SYSTEM.sparseAdd(sym1, type1, sym2, type2);
+            
+            const container = document.getElementById('op-result');
+            container.innerHTML = `
+                <div><span class="label">运算:</span> ${sym1}(${type1}) + ${sym2}(${type2})</div>
+                <div><span class="label">结果:</span> <span class="value">${result.result}(${result.type})</span></div>
+                <div><span class="label">原因:</span> ${result.reason}</div>
+            `;
+            
+            log(`稀疏数运算: ${sym1} + ${sym2} = ${result.result}`, 'success');
+        }
+
+        function getFirstSymbol(type) {
+            switch(type) {
+                case 'shengdiao': return USER_SHENGDIAO[0];
+                case 'yunmu': return USER_YUNMU[0];
+                case 'shengmu': return USER_SHENGMU[0];
+                case 'number': return USER_NUMBERS[0];
+            }
+        }
+
+        function transmit() {
+            if (grids.length < 2) {
+                log('请先创建至少两个格子', 'error');
+                return;
+            }
+            
+            const result = SPARSE_SYSTEM.transmit(grids[0], grids[1], '测试数据');
+            
+            const container = document.getElementById('comm-result');
+            container.innerHTML = `
+                <div><span class="label">状态:</span> ${result.success ? '<span class="value">成功</span>' : '<span style="color:#ff6b6b">失败</span>'}</div>
+                ${result.success ? `<div><span class="label">通道:</span> ${result.via}</div>` : `<div><span class="label">原因:</span> ${result.reason}</div>`}
+            `;
+            
+            log(result.success ? '通信成功' : '通信失败', result.success ? 'success' : 'error');
+        }
+
+        function log(msg, type = '') {
+            const box = document.getElementById('log-box');
+            const line = document.createElement('div');
+            line.className = 'log-line ' + type;
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            box.appendChild(line);
+            box.scrollTop = box.scrollHeight;
+            while (box.children.length > 30) box.removeChild(box.firstChild);
+        }
+
+        init();
+    </script>
+</body>
+</html>

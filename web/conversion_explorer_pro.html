@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniCore - 概念转换探索器（完整版）</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 50%, #0d1b2a 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+        }
+
+        .container {
+            max-width: 1500px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 30px 0;
+            border-bottom: 2px solid #2d3748;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 3em;
+            background: linear-gradient(135deg, #00d4ff 0%, #00ff88 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: #888;
+            margin-top: 10px;
+            font-size: 1.2em;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            gap: 25px;
+        }
+
+        @media (max-width: 1100px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: rgba(45, 55, 72, 0.4);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid #4a5568;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .panel-title {
+            font-size: 1.5em;
+            color: #00d4ff;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .category-title {
+            color: #00ff88;
+            font-size: 1.1em;
+            margin: 20px 0 10px 0;
+            padding-bottom: 5px;
+            border-bottom: 1px solid rgba(0, 255, 136, 0.3);
+        }
+
+        .conversion-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 12px;
+        }
+
+        .conversion-card {
+            background: rgba(0, 212, 255, 0.1);
+            border: 2px solid rgba(0, 212, 255, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .conversion-card:hover {
+            background: rgba(0, 212, 255, 0.2);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 212, 255, 0.3);
+        }
+
+        .conversion-card.active {
+            background: rgba(0, 255, 136, 0.2);
+            border-color: #00ff88;
+        }
+
+        .card-title {
+            color: #00d4ff;
+            font-weight: 700;
+            font-size: 0.95em;
+            margin-bottom: 8px;
+        }
+
+        .card-example {
+            color: #a0aec0;
+            font-size: 0.85em;
+            line-height: 1.4;
+        }
+
+        .canvas-container {
+            background: #0a0a1a;
+            border-radius: 15px;
+            padding: 15px;
+            border: 2px solid #4a5568;
+            min-height: 450px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #conceptCanvas {
+            border-radius: 10px;
+        }
+
+        .info-section {
+            background: rgba(0, 255, 136, 0.05);
+            border-left: 4px solid #00ff88;
+            padding: 15px 20px;
+            border-radius: 0 10px 10px 0;
+            margin-top: 20px;
+        }
+
+        .info-section h3 {
+            color: #00ff88;
+            margin-bottom: 10px;
+        }
+
+        .info-section p {
+            color: #a0aec0;
+            line-height: 1.6;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s;
+            flex: 1;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #00d4ff 0%, #0077b6 100%);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 212, 255, 0.4);
+        }
+
+        footer {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            border-top: 1px solid #2d3748;
+            margin-top: 40px;
+        }
+
+        footer a {
+            color: #00d4ff;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔮 概念转换探索器（完整版）</h1>
+            <p class="subtitle">探索从 X → Y 的无限转换关系 - 包含 18 种不同转换类型</p>
+        </header>
+
+        <div class="main-grid">
+            <div class="left-column">
+                <div class="panel" style="max-height: 80vh; overflow-y: auto;">
+                    <div class="panel-title">📚 转换类型</div>
+
+                    <div class="category-title">🔬 技术领域转换</div>
+                    <div class="conversion-grid">
+                        <div class="conversion-card active" onclick="selectConversion('number')">
+                            <div class="card-title">🔢 进制转换</div>
+                            <div class="card-example">二进制 ↔ 十进制 ↔ 十六进制</div>
+                        </div>
+                        <div class="conversion-card" onclick="selectConversion('space')">
+                            <div class="card-title">🗺️ 空间坐标</div>
+                            <div class="card-example">笛卡尔 ↔ 极坐标 ↔ 球坐标</div>
+                        </div>
+                        <div class="conversion-card" onclick="selectConversion('type')">
+                            <div class="card-title">📝 类型系统</div>
+                            <div class="card-example">强类型 ↔ 弱类型</div>
+                        </div>
+                        <div class="conversion-card" onclick="selectConversion('network')">
+                            <div class="card-title">🌐 网络协议</div>
+                            <div class="card-example">HTTP ↔ TCP ↔ IP</div>
+                        </div>
+                        <div class="conversion-card" onclick="selectConversion('encoding')">
+                            <div class="card-title">💾 编码格式</div>
+                            <div class="card-example">ASCII ↔ UTF-8 ↔ Base64</div>
+                        </div>
+                    </div>
+
+                    <div class="category-title">🔐 权限与安全</div>
+                    <div class="conversion-grid">
+                        <div class="conversion-card" onclick="selectConversion('publicprivate')">
+                            <div class="card-title">🔐 公私权限</div>
+                            <div class="card-example">public ↔ protected ↔ private</div>
+                        </div>
+                        <div class="conversion-card" onclick="selectConversion('security')">
+                            <div class="card-title">🛡️ 安全级别</div>
+                            <div class="card-example">公开 ↔ 内部 ↔ 机密</div>
+                        </div>
+                    </div>
+
+                    <div class="category-title">🤖 人工智能</div>
+                    <div class="conversion-grid">
+                        <div class="conversion-card" onclick="selectConversion('neural')">
+                            <div class="card-title">🧠 神经网络</div>
+                            <div class="card-example">CNN ↔ RNN ↔ Transformer</div>
+                        </div>
+                        <div class="conversion-card" onclick="selectConversion('knowledge')">
+                            <div class="card-title">📖 知识迁移</div>
+                            <div class="card-example">预训练 ↔ 微调 ↔ 蒸馏</div>
+                        </div>
+                    </div>
+
+                    <div class="category-title">👥 社会与心理</div>
+                    <div class="conversion-grid">
+                        <div class="conversion-card" onclick="selectConversion('competition')">
+                            <div class="card-title">⚔️ 竞争合作</div>
+                            <div class="card-example">零和 ↔ 正和 ↔ 负和</div>
+                        </div>
+                        <div class="conversion-card" onclick="selectConversion('social')">
+                            <div class="card-title">🌍 社会关系</div>
+                            <div class="card-example">陌生 ↔ 认识 ↔ 熟悉</div>
+                        </div>
+                        <div class="conversion-card" onclick="selectConversion('influence')">
+                            <div class="card-title">⚡ 影响力链</div>
+                            <div class="card-example">信息 → 认知 → 行为</div>
+                        </div>
+                        <div class="conversion-card" onclick="selectConversion('emotion')">
+                            <div class="card-title">💭 情绪转换</div>
+                            <div class="card-example">希望 ↔ 失望 ↔ 平静</div>
+                        </div>
+                        <div class="conversion-card" onclick="selectConversion('familiar')">
+                            <div class="card-title">🔄 熟悉陌生</div>
+                            <div class="card-example">陌生 → 了解 → 精通</div>
+                        </div>
+                        <div class="conversion-card" onclick="selectConversion('ability')">
+                            <div class="card-title">💪 能力成长</div>
+                            <div class="card-example">新手 → 进阶 → 专家</div>
+                        </div>
+                    </div>
+
+                    <div class="category-title">🎭 激励与行为</div>
+                    <div class="conversion-grid">
+                        <div class="conversion-card" onclick="selectConversion('reward')">
+                            <div class="card-title">🎁 奖惩转换</div>
+                            <div class="card-example">奖励 ↔ 惩罚 ↔ 中性</div>
+                        </div>
+                        <div class="conversion-card" onclick="selectConversion('learning')">
+                            <div class="card-title">🎓 学习周期</div>
+                            <div class="card-example">试错 → 反思 → 进步</div>
+                        </div>
+                    </div>
+
+                    <div class="category-title">📊 范畴与抽象</div>
+                    <div class="conversion-grid">
+                        <div class="conversion-card" onclick="selectConversion('category')">
+                            <div class="card-title">🎨 范畴转换</div>
+                            <div class="card-example">对象 ↔ 态射 ↔ 函子</div>
+                        </div>
+                        <div class="conversion-card" onclick="selectConversion('thought')">
+                            <div class="card-title">🧠 思想演化</div>
+                            <div class="card-example">直觉 → 理性 → 智慧</div>
+                        </div>
+                    </div>
+
+                    <div class="btn-group">
+                        <button class="btn btn-primary" onclick="animateConversion()">▶ 演示转换</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="right-column">
+                <div class="panel">
+                    <div class="panel-title">🎬 可视化</div>
+                    <div class="canvas-container">
+                        <canvas id="conceptCanvas" width="750" height="500"></canvas>
+                    </div>
+                </div>
+                
+                <div class="panel" style="margin-top: 20px;">
+                    <div class="panel-title">📊 转换说明</div>
+                    <div class="info-section" id="conversionInfo">
+                        <h3>进制转换</h3>
+                        <p>不同的进制系统只是数字的不同表示方式。计算机使用二进制（0/1），人类习惯使用十进制（0-9）。</p>
+                        <p style="margin-top: 10px; color: #00d4ff;">
+                            <strong>常见进制：</strong><br>
+                            • 二进制 (Binary): 0, 1<br>
+                            • 八进制 (Octal): 0-7<br>
+                            • 十进制 (Decimal): 0-9<br>
+                            • 十六进制 (Hex): 0-9, A-F
+                        </p>
+                    </div>
+                </div>
+
+                <div class="panel" style="margin-top: 20px;">
+                    <div class="panel-title">💡 转换哲学</div>
+                    <div class="info-section">
+                        <h3>万物的转换</h3>
+                        <p>世界上的一切都在不断地转换：能量转换、信息转换、状态转换、关系转换...</p>
+                        <p style="margin-top: 10px; color: #00d4ff;">
+                            <strong>核心思想：</strong><br>
+                            • 转换是宇宙的基本规律<br>
+                            • 输入决定输出<br>
+                            • 转换是可逆的或不可逆的<br>
+                            • 转换会产生新的属性
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p><a href="index.html">🏠 返回 UniCore 主页</a></p>
+            <p style="margin-top: 20px;">UniCore - 探索无限可能</p>
+        </footer>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('conceptCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let currentConversion = 'number';
+        let animating = false;
+
+        const conversions = {
+            number: {
+                title: '进制转换',
+                desc: '不同的进制系统只是数字的不同表示方式。计算机使用二进制（0/1），人类习惯使用十进制（0-9）。',
+                items: [
+                    { label: '二进制', value: '101101', color: '#00d4ff' },
+                    { label: '八进制', value: '55', color: '#00ff88' },
+                    { label: '十进制', value: '45', color: '#ffd93d' },
+                    { label: '十六进制', value: '2D', color: '#ff6b6b' }
+                ],
+                details: '• 二进制 (Binary): 0, 1<br>• 八进制 (Octal): 0-7<br>• 十进制 (Decimal): 0-9<br>• 十六进制 (Hex): 0-9, A-F'
+            },
+            space: {
+                title: '空间坐标转换',
+                desc: '空间中的点可以用不同的坐标系表示。笛卡尔坐标系使用(x,y,z)，极坐标系使用(r,θ)。',
+                items: [
+                    { label: '笛卡尔', value: '(3, 4)', color: '#00d4ff' },
+                    { label: '极坐标', value: '(5, 53°)', color: '#00ff88' },
+                    { label: '球坐标', value: '(5, 53°, 90°)', color: '#ffd93d' },
+                    { label: '柱坐标', value: '(5, 53°, 2)', color: '#ff6b6b' }
+                ],
+                details: '• 笛卡尔：x, y, z<br>• 极坐标：r, θ<br>• 球坐标：r, θ, φ<br>• 柱坐标：r, θ, z'
+            },
+            type: {
+                title: '类型系统转换',
+                desc: '不同编程语言有不同的类型系统。强类型语言类型检查严格，弱类型语言更灵活但易出错。',
+                items: [
+                    { label: '静态类型', value: 'int x = 5', color: '#00d4ff' },
+                    { label: '动态类型', value: 'x = 5', color: '#00ff88' },
+                    { label: '强类型', value: '严格检查', color: '#ffd93d' },
+                    { label: '弱类型', value: '灵活隐式', color: '#ff6b6b' }
+                ],
+                details: '• 静态类型：编译时检查<br>• 动态类型：运行时检查<br>• 强类型：严格类型转换<br>• 弱类型：自动类型转换'
+            },
+            network: {
+                title: '网络协议栈',
+                desc: '网络通信是分层处理的，每一层封装和转换数据格式，从应用层到物理层依次传递。',
+                items: [
+                    { label: '应用层', value: 'HTTP/S', color: '#00d4ff' },
+                    { label: '传输层', value: 'TCP/UDP', color: '#00ff88' },
+                    { label: '网络层', value: 'IP', color: '#ffd93d' },
+                    { label: '链路层', value: 'Ethernet', color: '#ff6b6b' }
+                ],
+                details: '• 应用层：用户数据<br>• 传输层：端口号<br>• 网络层：IP地址<br>• 链路层：MAC地址'
+            },
+            encoding: {
+                title: '编码格式转换',
+                desc: '字符编码是计算机表示文本的方式，不同编码格式可以互相转换，但需要避免乱码。',
+                items: [
+                    { label: 'ASCII', value: '英文', color: '#00d4ff' },
+                    { label: 'UTF-8', value: '万国码', color: '#00ff88' },
+                    { label: 'UTF-16', value: '宽字符', color: '#ffd93d' },
+                    { label: 'Base64', value: '可打印', color: '#ff6b6b' }
+                ],
+                details: '• ASCII：1字节，仅限英文<br>• UTF-8：变长，通用编码<br>• UTF-16：2/4字节<br>• Base64：二进制转文本'
+            },
+            publicprivate: {
+                title: '公私权限转换',
+                desc: '在面向对象编程和社会系统中，"公开"和"私有"代表不同的访问权限和控制级别。',
+                items: [
+                    { label: '公开', value: 'public', color: '#00d4ff' },
+                    { label: '受保护', value: 'protected', color: '#00ff88' },
+                    { label: '私有', value: 'private', color: '#ffd93d' },
+                    { label: '内部', value: 'internal', color: '#ff6b6b' }
+                ],
+                details: '• public：所有人可见<br>• protected：子类可见<br>• private：仅自身可见<br>• internal：程序集内可见'
+            },
+            security: {
+                title: '安全级别转换',
+                desc: '信息系统的安全级别可以从完全公开到最高机密，不同级别有不同的访问控制策略。',
+                items: [
+                    { label: '公开', value: 'Public', color: '#00d4ff' },
+                    { label: '内部', value: 'Internal', color: '#00ff88' },
+                    { label: '秘密', value: 'Confidential', color: '#ffd93d' },
+                    { label: '绝密', value: 'Top Secret', color: '#ff6b6b' }
+                ],
+                details: '• 公开：无限制访问<br>• 内部：仅限授权用户<br>• 秘密：重要信息<br>• 绝密：最高级别保护'
+            },
+            neural: {
+                title: '神经网络架构转换',
+                desc: '不同的神经网络架构适合不同任务，模型之间可以互相借鉴、移植和转换。',
+                items: [
+                    { label: 'CNN', value: '卷积网络', color: '#00d4ff' },
+                    { label: 'RNN', value: '循环网络', color: '#00ff88' },
+                    { label: 'Transformer', value: '注意力', color: '#ffd93d' },
+                    { label: 'GNN', value: '图网络', color: '#ff6b6b' }
+                ],
+                details: '• CNN：图像处理<br>• RNN：序列数据<br>• Transformer：全局注意力<br>• GNN：图结构数据'
+            },
+            knowledge: {
+                title: '知识迁移转换',
+                desc: '机器学习中，知识可以在不同模型、任务之间迁移、共享和传递。',
+                items: [
+                    { label: '预训练', value: '大规模数据', color: '#00d4ff' },
+                    { label: '微调', value: '特定任务', color: '#00ff88' },
+                    { label: '蒸馏', value: '知识压缩', color: '#ffd93d' },
+                    { label: 'Prompt', value: '提示工程', color: '#ff6b6b' }
+                ],
+                details: '• 预训练：通用知识<br>• 微调：任务特定<br>• 知识蒸馏：小模型学习大模型<br>• Prompt：引导模型行为'
+            },
+            competition: {
+                title: '竞争与合作',
+                desc: '竞争与合作是社会互动的两个极端。完全竞争和完全合作之间存在多种混合模式。',
+                items: [
+                    { label: '零和竞争', value: '我赢你输', color: '#ff6b6b' },
+                    { label: '合作', value: '双赢', color: '#00ff88' },
+                    { label: '竞合', value: '亦竞亦合', color: '#ffd93d' },
+                    { label: '共生', value: '相互依存', color: '#9b59b6' }
+                ],
+                details: '• 零和：一方所得即另一方所失<br>• 正和：双方都能获益<br>• 负和：双方都受损'
+            },
+            social: {
+                title: '社会关系演变',
+                desc: '人与人之间的关系从陌生到熟悉，需要经历多个阶段的转换过程。',
+                items: [
+                    { label: '完全陌生', value: '陌生人', color: '#ff6b6b' },
+                    { label: '认识', value: '点头之交', color: '#ffd93d' },
+                    { label: '熟悉', value: '朋友', color: '#00ff88' },
+                    { label: '亲密', value: '知己', color: '#00d4ff' }
+                ],
+                details: '• 陌生人：零接触<br>• 认识：初步了解<br>• 熟悉：信任建立<br>• 亲密：深度连接'
+            },
+            influence: {
+                title: '影响力传播链',
+                desc: '信息和影响力从最初的源头开始，经过多次转换，最终影响行为决策。',
+                items: [
+                    { label: '信息', value: 'Data', color: '#00d4ff' },
+                    { label: '认知', value: 'Awareness', color: '#00ff88' },
+                    { label: '态度', value: 'Attitude', color: '#ffd93d' },
+                    { label: '行为', value: 'Action', color: '#ff6b6b' }
+                ],
+                details: '• 信息：事实输入<br>• 认知：理解处理<br>• 态度：价值判断<br>• 行为：具体行动'
+            },
+            emotion: {
+                title: '情绪状态转换',
+                desc: '情绪不是静态的，而是在不同状态之间动态转换。理解转换规律有助于情绪管理。',
+                items: [
+                    { label: '希望', value: '期待美好', color: '#00ff88' },
+                    { label: '平静', value: '中性状态', color: '#00d4ff' },
+                    { label: '失望', value: '期望落空', color: '#ffd93d' },
+                    { label: '绝望', value: '彻底放弃', color: '#ff6b6b' }
+                ],
+                details: '• 希望 → 行动 → 结果<br>• 成功 → 满足<br>• 失败 → 反思 → 调整'
+            },
+            familiar: {
+                title: '熟悉度转换',
+                desc: '认知事物从陌生到熟悉是一个学习过程。反向转换则可能意味着遗忘或重新审视。',
+                items: [
+                    { label: '完全陌生', value: '未知', color: '#ff6b6b' },
+                    { label: '初步了解', value: '认知', color: '#ffd93d' },
+                    { label: '熟练掌握', value: '精通', color: '#00ff88' },
+                    { label: '融会贯通', value: '专家', color: '#9b59b6' }
+                ],
+                details: '• 陌生 → 了解 → 熟悉 → 精通<br>• 逆向：熟练 → 生疏 → 遗忘'
+            },
+            ability: {
+                title: '能力成长转换',
+                desc: '个人能力从新手到专家的成长过程需要经历不同阶段的转换和积累。',
+                items: [
+                    { label: '新手', value: '入门', color: '#ff6b6b' },
+                    { label: '进阶', value: '熟练', color: '#ffd93d' },
+                    { label: '高手', value: '专精', color: '#00ff88' },
+                    { label: '大师', value: '创新', color: '#9b59b6' }
+                ],
+                details: '• 新手：学习基础<br>• 进阶：实践积累<br>• 高手：融会贯通<br>• 大师：创造新知'
+            },
+            reward: {
+                title: '奖惩机制转换',
+                desc: '奖励和惩罚是行为管理的两种手段。心理学研究表明，两者的效果和副作用不同。',
+                items: [
+                    { label: '正向激励', value: '奖励', color: '#00ff88' },
+                    { label: '负向激励', value: '惩罚', color: '#ff6b6b' },
+                    { label: '自然后果', value: '因果', color: '#00d4ff' },
+                    { label: '社会反馈', value: '舆论', color: '#ffd93d' }
+                ],
+                details: '• 奖励：增加期望行为<br>• 惩罚：减少不良行为<br>• 自然后果：行为导致自然结果'
+            },
+            learning: {
+                title: '学习过程转换',
+                desc: '学习是通过试错、反思和改进不断进步的过程，每个阶段都有不同的重点。',
+                items: [
+                    { label: '试错', value: '尝试', color: '#00d4ff' },
+                    { label: '反思', value: '复盘', color: '#00ff88' },
+                    { label: '改进', value: '优化', color: '#ffd93d' },
+                    { label: '掌握', value: '熟练', color: '#ff6b6b' }
+                ],
+                details: '• 试错：大胆尝试<br>• 反思：分析问题<br>• 改进：调整策略<br>• 掌握：巩固成果'
+            },
+            category: {
+                title: '范畴论转换',
+                desc: '范畴论是数学的数学，研究对象、态射和函子等抽象结构之间的转换关系。',
+                items: [
+                    { label: '对象', value: 'Objects', color: '#00d4ff' },
+                    { label: '态射', value: 'Morphisms', color: '#00ff88' },
+                    { label: '函子', value: 'Functors', color: '#ffd93d' },
+                    { label: '自然变换', value: 'NT', color: '#ff6b6b' }
+                ],
+                details: '• 对象：抽象事物<br>• 态射：对象间关系<br>• 函子：范畴间映射<br>• 自然变换：函子间关系'
+            },
+            thought: {
+                title: '思想演化转换',
+                desc: '人类认知过程从直觉开始，经过理性思考，最终可能达到智慧的境界。',
+                items: [
+                    { label: '直觉', value: '第一感觉', color: '#ff6b6b' },
+                    { label: '理性', value: '逻辑分析', color: '#ffd93d' },
+                    { label: '智慧', value: '深刻洞察', color: '#00ff88' },
+                    { label: '超越', value: '无住生心', color: '#9b59b6' }
+                ],
+                details: '• 直觉：快速判断<br>• 理性：严密推理<br>• 智慧：综合理解<br>• 超越：更高维度'
+            }
+        };
+
+        function selectConversion(type) {
+            if (animating) return;
+            currentConversion = type;
+
+            document.querySelectorAll('.conversion-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            event.target.closest('.conversion-card').classList.add('active');
+
+            const conv = conversions[type];
+            document.getElementById('conversionInfo').innerHTML = `
+                <h3>${conv.title}</h3>
+                <p>${conv.desc}</p>
+                <p style="margin-top: 10px; color: #00d4ff;">
+                    <strong>${conv.details}</strong>
+                </p>
+            `;
+
+            drawConversion();
+        }
+
+        function drawConversion(progress = 0) {
+            const conv = conversions[currentConversion];
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw title
+            ctx.fillStyle = '#00d4ff';
+            ctx.font = 'bold 28px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(conv.title, canvas.width / 2, 50);
+
+            // Draw conversion diagram
+            const items = conv.items;
+            const startX = 100;
+            const endX = canvas.width - 100;
+            const y = canvas.height / 2;
+            const spacing = items.length > 1 ? (endX - startX) / (items.length - 1) : 0;
+
+            // Draw arrow line
+            if (items.length > 1) {
+                ctx.beginPath();
+                ctx.strokeStyle = 'rgba(74, 85, 104, 0.5)';
+                ctx.lineWidth = 3;
+                ctx.moveTo(startX, y);
+                ctx.lineTo(endX, y);
+                ctx.stroke();
+
+                // Draw arrows
+                for (let i = 0; i < items.length - 1; i++) {
+                    const x = startX + spacing * (i + 0.5);
+                    ctx.beginPath();
+                    ctx.fillStyle = 'rgba(0, 212, 255, 0.3)';
+                    ctx.moveTo(x - 18, y - 12);
+                    ctx.lineTo(x + 18, y);
+                    ctx.lineTo(x - 18, y + 12);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+            }
+
+            // Draw nodes
+            items.forEach((item, i) => {
+                const x = items.length === 1 ? canvas.width / 2 : startX + spacing * i;
+                const alpha = 0.3 + (progress === 0 ? 0.7 : Math.sin(progress * Math.PI + i * 0.5) * 0.5 + 0.5);
+
+                // Glow effect
+                ctx.beginPath();
+                ctx.arc(x, y, 55 + Math.sin(progress * Math.PI) * 10, 0, Math.PI * 2);
+                const gradient = ctx.createRadialGradient(x, y, 0, x, y, 65);
+                gradient.addColorStop(0, item.color);
+                gradient.addColorStop(1, 'transparent');
+                ctx.globalAlpha = alpha * 0.3;
+                ctx.fillStyle = gradient;
+                ctx.fill();
+                ctx.globalAlpha = 1;
+
+                // Main circle
+                ctx.beginPath();
+                ctx.arc(x, y, 45, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(26, 26, 62, 0.9)';
+                ctx.fill();
+                ctx.strokeStyle = item.color;
+                ctx.lineWidth = 4;
+                ctx.globalAlpha = alpha;
+                ctx.stroke();
+                ctx.globalAlpha = 1;
+
+                // Label
+                ctx.fillStyle = '#e0e0e0';
+                ctx.font = 'bold 16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(item.label, x, y - 12);
+
+                // Value
+                ctx.fillStyle = item.color;
+                ctx.font = '14px Arial';
+                ctx.fillText(item.value, x, y + 18);
+
+                // Index
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.font = '12px Arial';
+                ctx.fillText(`${i + 1}`, x, y + 80);
+            });
+
+            // Draw bidirectional arrows
+            if (items.length > 1) {
+                ctx.fillStyle = '#ffd93d';
+                ctx.font = '24px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('⇌', canvas.width / 2, y - 95);
+            }
+        }
+
+        async function animateConversion() {
+            if (animating) return;
+            animating = true;
+
+            const duration = 3000;
+            const startTime = Date.now();
+
+            function animate() {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+
+                drawConversion(progress);
+
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    animating = false;
+                }
+            }
+
+            animate();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            drawConversion();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+[package]
+name = "unicore-safety"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "unicore_safety"
+path = "src/lang/rust/safety.rs"
+crate-type = ["rlib", "cdylib"]
+
+[dependencies]
