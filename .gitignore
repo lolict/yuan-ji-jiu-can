@@ -9,6 +9,12 @@ zig-out/
 .DS_Store
 Thumbs.db
 
+# Rust 编译产物
+target/
+*.rlib
+*.rmeta
+*.d
+
 # 编译产物
 superposition
 test_superposition
