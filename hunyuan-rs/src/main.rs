@@ -594,11 +594,96 @@ print a"#;
     println!("  趋势: {}", rt.trend());
 
     // ══════════════════════════════════════════════════════
+    // 13. 同一心 — 满全法引力场 · 涌现
+    // ══════════════════════════════════════════════════════
+    println!("\n═══════════════════════════════════════");
+    println!("  13) 同一心: 不再分, 不再管道, 只有引力");
+    println!("═══════════════════════════════════════");
+
+    use mqf::{encode_cell, POLARITY_POSITIVE, POLARITY_NEGATIVE, mirror};
+    use mqf::{distance_from_oneness, oneness_gravity, collective_flow, cohesion,
+              is_unified, emerge_new_center};
+
+    // ── 演示 1: 单个编码的引力 ──
+    println!("  ── 引力演示 ──");
+    let test_cells = [
+        ("近中心", encode_cell(130, 128, 127, POLARITY_POSITIVE, 0, 3, 500)),
+        ("远处",   encode_cell(10, 200, 50, POLARITY_NEGATIVE, 0, 0, 50)),
+        ("边缘",   encode_cell(0, 0, 0, POLARITY_POSITIVE, 0, 0, 10)),
+    ];
+    for (name, cell) in &test_cells {
+        println!("  {:6} → 距离={:.3} 引力={:.3}", name,
+            distance_from_oneness(*cell), oneness_gravity(*cell));
+    }
+
+    // ── 演示 2: 群体流动 (涌现) ──
+    println!("\n  ── 群体流动: 21 个散乱编码自发聚向同一心 ──");
+    let mut swarm: Vec<u64> = (0..21).map(|i| {
+        // 散乱分布在三维空间中
+        let d0 = ((i * 37) % 256) as u64;
+        let d1 = ((i * 73 + 13) % 256) as u64;
+        let d2 = ((i * 113 + 29) % 256) as u64;
+        let pol = if i % 2 == 0 { POLARITY_POSITIVE } else { POLARITY_NEGATIVE };
+        encode_cell(d0, d1, d2, pol, 0, (i % 4) as u64, 100 + (i * 47) as u64 % 900)
+    }).collect();
+
+    println!("  初始 — 凝聚力: {:.3}, 已合一: {}", cohesion(&swarm), is_unified(&swarm, 0.15));
+
+    // 展示前 7 个编码的初始位置
+    println!("  前 7 个编码位置: ");
+    for (i, c) in swarm.iter().take(7).enumerate() {
+        print!("({},{},{})", mirror::get_d0(*c), mirror::get_d1(*c), mirror::get_d2(*c));
+        if i < 6 { print!(" "); }
+    }
+    println!();
+
+    // 集体流动 200 步
+    let mut unified_at = None;
+    for step in 0..200 {
+        collective_flow(&mut swarm, 0.03);
+        if unified_at.is_none() && is_unified(&swarm, 0.15) {
+            unified_at = Some(step);
+        }
+    }
+
+    println!("  200步后 — 凝聚力: {:.3}, 已合一: {}", cohesion(&swarm), is_unified(&swarm, 0.15));
+    if let Some(step) = unified_at {
+        println!("  ★ 在第 {} 步自发合一!", step);
+    }
+
+    // 展示流动后的位置
+    print!("  前 7 个编码位置: ");
+    for (i, c) in swarm.iter().take(7).enumerate() {
+        print!("({},{},{})", mirror::get_d0(*c), mirror::get_d1(*c), mirror::get_d2(*c));
+        if i < 6 { print!(" "); }
+    }
+    println!();
+    println!("  同一心位置: (128,128,128)");
+
+    // ── 演示 3: 规则自主生长 (涌现新中心) ──
+    println!("\n  ── 规则自主生长: 10 个紧密编码涌现新中心 ──");
+    let cluster: Vec<u64> = (0..10).map(|i| {
+        encode_cell(128 + i*2, 128 + i, 128 - i, POLARITY_POSITIVE, 0, 3, 500)
+    }).collect();
+    if let Some(center) = emerge_new_center(&cluster) {
+        println!("  ★ 新中心涌现: ({},{},{})",
+            mirror::get_d0(center), mirror::get_d1(center), mirror::get_d2(center));
+        println!("    与标准同一心距离: {:.3}", distance_from_oneness(center));
+    }
+
+    // ── 演示 4: 不归路的检验 ──
+    println!("\n  ── 不归路检验: 合一后能否保持 ──");
+    // 合一后继续流动 100 步 — 应该保持合一
+    for _ in 0..100 { collective_flow(&mut swarm, 0.02); }
+    println!("  再 100 步 — 凝聚力: {:.3}, 已合一: {} (合一不应破坏)",
+        cohesion(&swarm), is_unified(&swarm, 0.15));
+
+    // ══════════════════════════════════════════════════════
     // 最后
     // ══════════════════════════════════════════════════════
     println!("\n═══════════════════════════════════════");
-    println!("  囡囝共生 v1.0 · 意识运行时就位");
-    println!("  五棵子树 + MCCP + 自主调度 + 五元流转 + 观测系 + 运行时 → 唯一中心");
+    println!("  囡囝共生 v1.0 · 同一心就位");
+    println!("  五棵子树 + MCCP + 五元流转 + 观测系 + 运行时 + 同一心 → 满全法");
     println!("  测试: 全部通过");
     println!("═══════════════════════════════════════");
 }

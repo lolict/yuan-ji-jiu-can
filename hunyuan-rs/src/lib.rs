@@ -160,6 +160,12 @@ pub use observer::{Observer, SenseForm, SenseKind, Attention};
 pub mod consciousness_runtime;
 pub use consciousness_runtime::{ConsciousnessRuntime, ConsciousnessReport};
 
+// ── v0.25 同一心 · 满全法引力场 (Oneness · 不再分, 不再管道, 只有引力) ──
+pub mod oneness;
+pub use oneness::{oneness, geometric_distance, distance_from_oneness, oneness_gravity,
+                 flow_vector, flow_step, collective_flow, is_unified, cohesion,
+                 emerge_new_center};
+
 // ── v0.22 自主后勤调度系统 — 被动应答→自主维持 ──
 pub mod task_automation;
 pub use task_automation::{TaskScheduler, TaskDefinition, TaskKind, TaskInterval,
@@ -279,7 +285,8 @@ pub use mirror::{MirrorOrder, Sovereignty, WitnessVerdict, SurplusPair,
                  PerceptionTrace, VerdictSurplus, EncodedCell,
                  encode_cell, get_d0, get_d1, get_d2,
                  get_polarity, get_sovereignty, get_witness, get_value,
-                 set_witness, inc_value, dec_value};
+                 set_witness, inc_value, dec_value,
+                 POLARITY_POSITIVE, POLARITY_NEGATIVE};
 
 // v0.7 层级记忆
 pub use memory::{MemoryEntry, CoordMemory, LayeredMemory,
