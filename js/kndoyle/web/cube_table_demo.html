@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>里外嵌套三维表格系统</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Courier New', monospace; background: #0a0a0f; color: #00ff88; min-height: 100vh; overflow: hidden; }
+        
+        #container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; }
+        
+        .ui-panel {
+            position: fixed;
+            z-index: 100;
+            background: rgba(10, 10, 15, 0.95);
+            border: 2px solid #00ff88;
+            border-radius: 10px;
+            padding: 15px;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+        }
+        
+        .panel-left { top: 60px; left: 10px; width: 320px; }
+        .panel-right { top: 60px; right: 10px; width: 300px; }
+        
+        h2 { color: #ffd93d; font-size: 1em; margin-bottom: 10px; border-bottom: 1px solid rgba(0,255,136,0.3); padding-bottom: 5px; }
+        
+        .btn { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-family: inherit; font-size: 0.8em; margin: 3px; transition: all 0.2s; }
+        .btn-primary { background: #00ff88; color: #0a0a0f; }
+        .btn-secondary { background: #0088ff; color: white; }
+        .btn-warning { background: #ffd93d; color: #0a0a0f; }
+        .btn-danger { background: #ff6b6b; color: white; }
+        .btn:hover { transform: scale(1.05); }
+        
+        .info-box { background: rgba(0,0,0,0.4); border-radius: 5px; padding: 10px; margin: 10px 0; font-size: 0.85em; }
+        .info-box h4 { color: #00d4ff; margin-bottom: 5px; }
+        
+        .log-box { background: rgba(0,0,0,0.5); border-radius: 5px; padding: 8px; max-height: 200px; overflow-y: auto; font-size: 0.8em; }
+        .log-line { margin: 3px 0; color: #00d4ff; }
+        .log-line.success { color: #00ff88; }
+        
+        .title-bar { position: fixed; top: 0; left: 0; right: 0; height: 50px; background: linear-gradient(to right, rgba(10,10,15,0.98), rgba(0,255,136,0.3)); border-bottom: 2px solid #00ff88; display: flex; align-items: center; justify-content: center; z-index: 200; }
+        .title-bar h1 { font-size: 1.1em; color: #00ff88; }
+        
+        .form-group { margin: 10px 0; }
+        .form-group label { display: block; margin-bottom: 5px; color: #888; font-size: 0.85em; }
+        .form-group input, .form-group select { width: 100%; padding: 8px; background: #1a1a2e; border: 1px solid #00ff88; border-radius: 4px; color: #00ff88; font-family: inherit; }
+        
+        .symbol-info { display: flex; gap: 10px; margin: 10px 0; }
+        .symbol-item { flex: 1; background: rgba(0,0,0,0.3); border-radius: 5px; padding: 10px; text-align: center; }
+        .symbol-item .value { font-size: 1.5em; font-weight: bold; }
+        .symbol-item .label { font-size: 0.8em; color: #888; }
+        .symbol-0 .value { color: #00ff88; }
+        .symbol-1 .value { color: #0088ff; }
+        
+        .tree-view { background: rgba(0,0,0,0.3); border-radius: 5px; padding: 10px; max-height: 300px; overflow-y: auto; }
+        .tree-node { padding: 5px 0; padding-left: calc(var(--level, 0) * 20px); cursor: pointer; }
+        .tree-node:hover { background: rgba(0,255,136,0.1); }
+        .tree-node.selected { background: rgba(0,255,136,0.2); }
+        .tree-symbol { display: inline-block; width: 20px; height: 20px; line-height: 20px; text-align: center; border-radius: 3px; margin-right: 5px; font-weight: bold; }
+        .tree-symbol-0 { background: rgba(0,255,136,0.3); color: #00ff88; }
+        .tree-symbol-1 { background: rgba(0,136,255,0.3); color: #0088ff; }
+        
+        .view-btns { display: flex; gap: 5px; flex-wrap: wrap; }
+        .view-btns .btn { flex: 1; min-width: 60px; font-size: 0.75em; }
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+    
+    <div class="title-bar">
+        <h1>里外嵌套三维表格系统 - 0包含1 函子映射</h1>
+    </div>
+    
+    <div class="ui-panel panel-left">
+        <h2>符号层级说明</h2>
+        <div class="symbol-info">
+            <div class="symbol-item symbol-0">
+                <div class="value">0</div>
+                <div class="label">母集/女集</div>
+                <div class="label">包含1</div>
+            </div>
+            <div class="symbol-item symbol-1">
+                <div class="value">1</div>
+                <div class="label">父集/子集</div>
+                <div class="label">被包含</div>
+            </div>
+        </div>
+        
+        <h2>创建表格</h2>
+        <div class="form-group">
+            <label>标题</label>
+            <input type="text" id="input-title" value="大千世界">
+        </div>
+        <div class="form-group">
+            <label>符号</label>
+            <select id="input-symbol">
+                <option value="0">0 - 母集/女集</option>
+                <option value="1">1 - 父集/子集</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>内容</label>
+            <input type="text" id="input-content" value="">
+        </div>
+        <button class="btn btn-primary" onclick="createTable()">创建</button>
+        
+        <h2>快速示例</h2>
+        <button class="btn btn-warning" onclick="createUniverse()">大千世界(0)</button>
+        <button class="btn btn-secondary" onclick="createGalaxy()">星系(1)</button>
+        <button class="btn btn-primary" onclick="createAll()">创建完整层级</button>
+        
+        <h2>操作</h2>
+        <button class="btn btn-primary" onclick="autoFillZeros()">自动填充0→1</button>
+        <button class="btn btn-secondary" onclick="expandAll()">展开全部</button>
+        <button class="btn btn-danger" onclick="clearAll()">清空</button>
+        
+        <h2>视图</h2>
+        <div class="view-btns">
+            <button class="btn btn-primary" onclick="setView('top')">俯视</button>
+            <button class="btn btn-primary" onclick="setView('front')">正视</button>
+            <button class="btn btn-primary" onclick="setView('left')">侧视</button>
+        </div>
+    </div>
+    
+    <div class="ui-panel panel-right">
+        <h2>当前选中</h2>
+        <div class="info-box" id="selected-info">
+            <p>ID: <span id="sel-id">-</span></p>
+            <p>标题: <span id="sel-title">-</span></p>
+            <p>符号: <span id="sel-symbol">-</span></p>
+            <p>层级: <span id="sel-level">-</span></p>
+            <p>内容: <span id="sel-content">-</span></p>
+        </div>
+        
+        <button class="btn btn-primary" onclick="addChildToSelected()">添加子表格</button>
+        <button class="btn btn-secondary" onclick="toggleSelected()">展开/收起</button>
+        <button class="btn btn-warning" onclick="autoFillSelected()">0→1填充</button>
+        
+        <h2>树形结构</h2>
+        <div class="tree-view" id="tree-view"></div>
+        
+        <h2>日志</h2>
+        <div class="log-box" id="log-box"></div>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="../../src/table/cube_table_system.js"></script>
+    
+    <script>
+        let renderer, mapper, container, rootTables = [];
+        let selectedTable = null;
+
+        function init() {
+            log('Initializing CubeTable System...');
+            
+            container = new TableContainer(0, { title: '主集装箱' });
+            mapper = new InsideOutsideMapper();
+            renderer = new CubeTableRenderer(document.getElementById('container'));
+            
+            log('System initialized', 'success');
+        }
+
+        function createTable() {
+            const title = document.getElementById('input-title').value || '未命名';
+            const symbol = parseInt(document.getElementById('input-symbol').value);
+            const content = document.getElementById('input-content').value;
+
+            const table = new CubeTable({ title, level: 0, symbol });
+            if (content) {
+                table.setContent(content, symbol === 0 ? 'name' : 'function');
+            }
+
+            rootTables.push(table);
+            container.addTable(table);
+            
+            renderer.rootTables = rootTables;
+            renderer.refreshScene();
+            
+            log(`Created: ${title} [${symbol}]`, 'success');
+            updateTreeView();
+        }
+
+        function createUniverse() {
+            const universe = new CubeTable({ title: '宇宙', level: 0, symbol: 0 });
+            universe.setContent('包含万物的大千世界', 'name');
+            
+            rootTables.push(universe);
+            container.addTable(universe);
+            
+            renderer.rootTables = rootTables;
+            renderer.refreshScene();
+            
+            log('Created: 宇宙(0)', 'success');
+            updateTreeView();
+        }
+
+        function createGalaxy() {
+            const galaxy = new CubeTable({ title: '银河系', level: 1, symbol: 1 });
+            galaxy.setContent('恒星系函数', 'function');
+            
+            const parent = rootTables.find(t => t.symbol === 0) || rootTables[0];
+            if (parent) {
+                parent.addChild(galaxy);
+                log('Added to parent', 'success');
+            } else {
+                rootTables.push(galaxy);
+            }
+            
+            renderer.rootTables = rootTables;
+            renderer.refreshScene();
+            
+            log('Created: 银河系(1)', 'success');
+            updateTreeView();
+        }
+
+        function createAll() {
+            clearAll();
+
+            const universe = new CubeTable({ title: '宇宙(大千世界)', level: 0, symbol: 0 });
+            universe.setContent('0=母集=大千世界', 'name');
+
+            const galaxy = new CubeTable({ title: '银河系', level: 1, symbol: 1 });
+            galaxy.setContent('1=父集=星系函数', 'function');
+            universe.addChild(galaxy);
+
+            const solar = new CubeTable({ title: '太阳系', level: 2, symbol: 0 });
+            solar.setContent('太阳系女集', 'name');
+            galaxy.addChild(solar);
+
+            const earth = new CubeTable({ title: '地球', level: 3, symbol: 1 });
+            earth.setContent(() => '文明发展函数', 'function');
+            solar.addChild(earth);
+
+            const china = new CubeTable({ title: '中国', level: 4, symbol: 0 });
+            china.setContent('中华文明', 'name');
+            earth.addChild(china);
+
+            rootTables.push(universe);
+            container.addTable(universe);
+            
+            universe.isOpen = true;
+            galaxy.isOpen = true;
+            solar.isOpen = true;
+            earth.isOpen = true;
+
+            renderer.rootTables = rootTables;
+            renderer.refreshScene();
+            
+            log('Created complete hierarchy', 'success');
+            updateTreeView();
+        }
+
+        function autoFillZeros() {
+            for (const table of rootTables) {
+                mapper.autoFillZeros(table);
+            }
+            
+            renderer.refreshScene();
+            log('Auto-filled all zeros with ones', 'success');
+            updateTreeView();
+        }
+
+        function expandAll() {
+            const expand = (table) => {
+                table.isOpen = true;
+                table.children.forEach(expand);
+            };
+            rootTables.forEach(expand);
+            
+            renderer.refreshScene();
+            log('Expanded all', 'success');
+            updateTreeView();
+        }
+
+        function clearAll() {
+            rootTables = [];
+            container = new TableContainer(0, { title: '主集装箱' });
+            renderer.rootTables = [];
+            renderer.refreshScene();
+            selectedTable = null;
+            updateSelectedInfo();
+            updateTreeView();
+            log('Cleared all');
+        }
+
+        function setView(direction) {
+            renderer.setOrthographicView(direction);
+            log(`View: ${direction}`);
+        }
+
+        function addChildToSelected() {
+            if (!selectedTable) {
+                log('Select a table first', 'error');
+                return;
+            }
+
+            const symbol = selectedTable.symbol === 0 ? 1 : 0;
+            const child = new CubeTable({
+                title: `子集${selectedTable.children.length + 1}`,
+                level: selectedTable.level + 1,
+                symbol
+            });
+
+            selectedTable.addChild(child);
+            selectedTable.isOpen = true;
+            
+            renderer.refreshScene();
+            log(`Added child [${symbol}] to ${selectedTable.title}`, 'success');
+            updateTreeView();
+        }
+
+        function toggleSelected() {
+            if (!selectedTable) {
+                log('Select a table first', 'error');
+                return;
+            }
+
+            selectedTable.toggle();
+            renderer.refreshScene();
+            log(`${selectedTable.isOpen ? 'Expanded' : 'Collapsed'}: ${selectedTable.title}`, 'success');
+            updateTreeView();
+        }
+
+        function autoFillSelected() {
+            if (!selectedTable) {
+                log('Select a table first', 'error');
+                return;
+            }
+
+            if (selectedTable.symbol === 0) {
+                mapper.autoFillZeros(selectedTable);
+                renderer.refreshScene();
+                log(`Auto-filled: ${selectedTable.title}`, 'success');
+                updateTreeView();
+            } else {
+                log('Only symbol 0 can be auto-filled', 'error');
+            }
+        }
+
+        function updateSelectedInfo() {
+            document.getElementById('sel-id').textContent = selectedTable ? selectedTable.id : '-';
+            document.getElementById('sel-title').textContent = selectedTable ? selectedTable.title : '-';
+            document.getElementById('sel-symbol').textContent = selectedTable ? `[${selectedTable.symbol}]` : '-';
+            document.getElementById('sel-level').textContent = selectedTable ? selectedTable.level : '-';
+            document.getElementById('sel-content').textContent = selectedTable ? (selectedTable.content || '-') : '-';
+        }
+
+        function updateTreeView() {
+            const view = document.getElementById('tree-view');
+            view.innerHTML = '';
+
+            const renderNode = (table, level = 0) => {
+                const node = document.createElement('div');
+                node.className = 'tree-node' + (selectedTable && selectedTable.id === table.id ? ' selected' : '');
+                node.style.setProperty('--level', level);
+                
+                const symbolClass = `tree-symbol-${table.symbol}`;
+                node.innerHTML = `<span class="tree-symbol ${symbolClass}">${table.symbol}</span>${table.title}${table.content ? ` : ${table.content}` : ''}${table.isOpen ? ' ▼' : ' ▶'}`;
+                
+                node.onclick = () => {
+                    selectedTable = table;
+                    renderer.onTableClick(table.id);
+                    updateSelectedInfo();
+                    updateTreeView();
+                };
+
+                view.appendChild(node);
+
+                if (table.isOpen && table.children.length > 0) {
+                    table.children.forEach(child => renderNode(child, level + 1));
+                }
+            };
+
+            rootTables.forEach(table => renderNode(table));
+        }
+
+        function log(message, type = '') {
+            const box = document.getElementById('log-box');
+            const line = document.createElement('div');
+            line.className = 'log-line ' + type;
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            box.appendChild(line);
+            box.scrollTop = box.scrollHeight;
+
+            while (box.children.length > 100) {
+                box.removeChild(box.firstChild);
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+=== v1.4 顺序执行验证 (正确性基线) ===
+  [PASS] Σ(1..100): dmem[0]=5050 expected=5050 (顺序执行)
+  [PASS] 25*17: dmem[0]=425 expected=425 (顺序执行)
+  [PASS] 1000/13: dmem[0]=76 expected=76 (顺序执行)
+
+=== v1.4 反汇编 ===
+  prog_sigma_100.hex: 14 instructions
+    [  0] OP_PUSH  rd=r1 imm=100
+    [  4] OP_PUSH  rd=r2 imm=0
+    [  8] OP_ADD  r2 = r2, r1
+    [ 12] OP_SUBI  rd=1 rs1=1 rs2=0 imm=1
+    [ 16] OP_JNZ  -- test=r1 -> 8
+    [ 20] NOP
+    [ 24] OP_STORE  -- data=r2 -> mem[r0+0]
+    [ 28] NOP
+    [ 32] OP_JMP  rd=r0 imm=28
+    [ 36] NOP
+    [ 40] NOP
+    [ 44] NOP
+    [ 48] NOP
+    [ 52] NOP
+
+  prog_mul.hex: 12 instructions
+    [  0] OP_PUSH  rd=r1 imm=25
+    [  4] OP_PUSH  rd=r2 imm=17
+    [  8] OP_MUL  r3 = r1, r2
+    [ 12] NOP
+    [ 16] OP_STORE  -- data=r3 -> mem[r0+0]
+    [ 20] NOP
+    [ 24] OP_JMP  rd=r0 imm=20
+    [ 28] NOP
+    [ 32] NOP
+    [ 36] NOP
+    [ 40] NOP
+    [ 44] NOP
+
+  prog_div.hex: 12 instructions
+    [  0] OP_PUSH  rd=r1 imm=1000
+    [  4] OP_PUSH  rd=r2 imm=13
+    [  8] OP_DIV  r3 = r1, r2
+    [ 12] NOP
+    [ 16] OP_STORE  -- data=r3 -> mem[r0+0]
+    [ 20] NOP
+    [ 24] OP_JMP  rd=r0 imm=20
+    [ 28] NOP
+    [ 32] NOP
+    [ 36] NOP
+    [ 40] NOP
+    [ 44] NOP
+

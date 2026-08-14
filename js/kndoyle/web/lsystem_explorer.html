@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniCore - L系统分形生成器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 50%, #0d1b2a 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 30px 0;
+            border-bottom: 2px solid #2d3748;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 3em;
+            background: linear-gradient(135deg, #00d4ff 0%, #00ff88 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 40px rgba(0, 212, 255, 0.3);
+        }
+
+        .subtitle {
+            color: #888;
+            margin-top: 10px;
+            font-size: 1.2em;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 25px;
+        }
+
+        @media (max-width: 1000px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: rgba(45, 55, 72, 0.4);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid #4a5568;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .panel-title {
+            font-size: 1.5em;
+            color: #00d4ff;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .panel-title::before {
+            content: '✨';
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            color: #00ff88;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        select, input[type="number"], input[type="text"] {
+            width: 100%;
+            padding: 12px 16px;
+            background: #1a202c;
+            border: 2px solid #4a5568;
+            border-radius: 10px;
+            color: #e0e0e0;
+            font-size: 1em;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 12px 16px;
+            background: #1a202c;
+            border: 2px solid #4a5568;
+            border-radius: 10px;
+            color: #e0e0e0;
+            font-size: 0.95em;
+            outline: none;
+            transition: all 0.3s;
+            min-height: 120px;
+            font-family: 'Consolas', monospace;
+            resize: vertical;
+        }
+
+        select:focus, input:focus, textarea:focus {
+            border-color: #00d4ff;
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #00d4ff 0%, #0077b6 100%);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #00ff88 0%, #00b894 100%);
+            color: #1a1a2e;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #ffd93d 0%, #f39c12 100%);
+            color: #1a1a2e;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 212, 255, 0.4);
+        }
+
+        .canvas-container {
+            background: #0a0a1a;
+            border-radius: 15px;
+            padding: 10px;
+            border: 2px solid #4a5568;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #lsystemCanvas {
+            border-radius: 10px;
+        }
+
+        .preset-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .preset-card {
+            background: rgba(0, 212, 255, 0.1);
+            border: 2px solid rgba(0, 212, 255, 0.3);
+            border-radius: 12px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .preset-card:hover {
+            background: rgba(0, 212, 255, 0.2);
+            transform: translateY(-3px);
+            box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
+        }
+
+        .preset-name {
+            color: #00d4ff;
+            font-weight: 600;
+            font-size: 0.95em;
+        }
+
+        .preset-emoji {
+            font-size: 2em;
+            margin-bottom: 8px;
+        }
+
+        .info-section {
+            background: rgba(0, 255, 136, 0.05);
+            border-left: 4px solid #00ff88;
+            padding: 15px 20px;
+            border-radius: 0 10px 10px 0;
+            margin-top: 20px;
+        }
+
+        .info-section h3 {
+            color: #00ff88;
+            margin-bottom: 10px;
+        }
+
+        .info-section p {
+            color: #a0aec0;
+            line-height: 1.6;
+        }
+
+        footer {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            border-top: 1px solid #2d3748;
+            margin-top: 40px;
+        }
+
+        footer a {
+            color: #00d4ff;
+            text-decoration: none;
+        }
+
+        .value-display {
+            display: inline-block;
+            background: rgba(0, 212, 255, 0.2);
+            color: #00d4ff;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .small-label {
+            font-size: 0.85em;
+            color: #888;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌿 UniCore L系统分形生成器</h1>
+            <p class="subtitle">Lindenmayer System - 生成植物、雪花等自然分形图案</p>
+        </header>
+
+        <div class="main-grid">
+            <div class="left-column">
+                <div class="panel">
+                    <div class="panel-title">🎨 L系统配置</div>
+                    
+                    <div class="form-group">
+                        <label>公理 (初始字符串)</label>
+                        <input type="text" id="axiom" value="F">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>产生式规则</label>
+                        <p class="small-label">格式：字符→替换字符串，每行一个规则</p>
+                        <textarea id="rules">F→F+F-F-F+F</textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>迭代次数 <span id="iterValue" class="value-display">4</span></label>
+                        <input type="range" id="iterations" min="1" max="8" value="4">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>角度 (度) <span id="angleValue" class="value-display">90</span></label>
+                        <input type="range" id="angle" min="10" max="180" value="90">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>线段长度 <span id="lengthValue" class="value-display">5</span></label>
+                        <input type="range" id="length" min="1" max="20" value="5">
+                    </div>
+
+                    <div class="btn-group">
+                        <button class="btn btn-success" onclick="generateLSystem()">🌿 生成图案</button>
+                        <button class="btn btn-primary" onclick="downloadSVG()">💾 下载SVG</button>
+                    </div>
+                </div>
+                
+                <div class="panel" style="margin-top: 20px;">
+                    <div class="panel-title">🎯 预设图案</div>
+                    <div class="preset-grid">
+                        <div class="preset-card" onclick="loadPreset('koch')">
+                            <div class="preset-emoji">❄️</div>
+                            <div class="preset-name">科赫雪花</div>
+                        </div>
+                        <div class="preset-card" onclick="loadPreset('tree')">
+                            <div class="preset-emoji">🌲</div>
+                            <div class="preset-name">分形树</div>
+                        </div>
+                        <div class="preset-card" onclick="loadPreset('sierpinski')">
+                            <div class="preset-emoji">🔺</div>
+                            <div class="preset-name">谢尔宾斯基</div>
+                        </div>
+                        <div class="preset-card" onclick="loadPreset('dragon')">
+                            <div class="preset-emoji">🐉</div>
+                            <div class="preset-name">龙曲线</div>
+                        </div>
+                        <div class="preset-card" onclick="loadPreset('hilbert')">
+                            <div class="preset-emoji">🔲</div>
+                            <div class="preset-name">希尔伯特</div>
+                        </div>
+                        <div class="preset-card" onclick="loadPreset('bush')">
+                            <div class="preset-emoji">🌳</div>
+                            <div class="preset-name">灌木</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="right-column">
+                <div class="panel">
+                    <div class="panel-title">🎬 分形可视化</div>
+                    <div class="canvas-container">
+                        <canvas id="lsystemCanvas" width="800" height="600"></canvas>
+                    </div>
+                </div>
+                
+                <div class="panel" style="margin-top: 20px;">
+                    <div class="panel-title">📖 关于L系统</div>
+                    <div class="info-section">
+                        <h3>🌿 什么是L系统？</h3>
+                        <p>Lindenmayer系统（L-system）是一种并行重写系统，由生物学家Aristid Lindenmayer于1968年提出，用于模拟植物生长过程。</p>
+                        <p style="margin-top: 10px; color: #00d4ff;">
+                            <strong>命令说明：</strong><br>
+                            F - 向前画线段<br>
+                            + - 右转指定角度<br>
+                            - - 左转指定角度<br>
+                            [ - 保存当前位置和角度<br>
+                            ] - 恢复之前保存的状态
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p><a href="index.html">🏠 返回 UniCore 主页</a></p>
+            <p style="margin-top: 20px;">UniCore - 探索无限可能</p>
+        </footer>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('lsystemCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        const presets = {
+            koch: {
+                axiom: 'F++F++F',
+                rules: 'F→F-F++F-F',
+                iterations: 4,
+                angle: 60,
+                length: 4
+            },
+            tree: {
+                axiom: 'X',
+                rules: 'X→F-[[X]+X]+F[+FX]-X\nF→FF',
+                iterations: 6,
+                angle: 25,
+                length: 3
+            },
+            sierpinski: {
+                axiom: 'F-G-G',
+                rules: 'F→F-G+F+G-F\nG→GG',
+                iterations: 6,
+                angle: 120,
+                length: 4
+            },
+            dragon: {
+                axiom: 'FX',
+                rules: 'X→X+YF+\nY→-FX-Y',
+                iterations: 12,
+                angle: 90,
+                length: 4
+            },
+            hilbert: {
+                axiom: 'A',
+                rules: 'A→-BF+AFA+FB-\nB→+AF-BFB-FA+',
+                iterations: 6,
+                angle: 90,
+                length: 8
+            },
+            bush: {
+                axiom: 'Y',
+                rules: 'Y→X[-FFF][+FFF]FY\nX→F-[[X]+X]+F[+FX]-X',
+                iterations: 5,
+                angle: 25,
+                length: 3
+            }
+        };
+        
+        function parseRules(rulesText) {
+            const rules = {};
+            const lines = rulesText.split('\n');
+            for (let line of lines) {
+                line = line.trim();
+                if (line) {
+                    const parts = line.split(/→|->|=/);
+                    if (parts.length >= 2) {
+                        rules[parts[0].trim()] = parts[1].trim();
+                    }
+                }
+            }
+            return rules;
+        }
+        
+        function generateLSystemString(axiom, rules, iterations) {
+            let result = axiom;
+            for (let i = 0; i < iterations; i++) {
+                let newResult = '';
+                for (let char of result) {
+                    newResult += rules[char] || char;
+                }
+                result = newResult;
+            }
+            return result;
+        }
+        
+        function drawLSystem(str, angle, length) {
+            ctx.fillStyle = '#0a0a1a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            let x = canvas.width / 2;
+            let y = canvas.height - 50;
+            let currentAngle = -Math.PI / 2;
+            const stack = [];
+            
+            ctx.lineWidth = 1.5;
+            ctx.lineCap = 'round';
+            
+            let i = 0;
+            for (let char of str) {
+                const hue = (i / str.length) * 360;
+                ctx.strokeStyle = `hsl(${hue}, 70%, 60%)`;
+                
+                if (char === 'F' || char === 'G') {
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    x += Math.cos(currentAngle) * length;
+                    y += Math.sin(currentAngle) * length;
+                    ctx.lineTo(x, y);
+                    ctx.stroke();
+                } else if (char === '+') {
+                    currentAngle += (angle * Math.PI / 180);
+                } else if (char === '-') {
+                    currentAngle -= (angle * Math.PI / 180);
+                } else if (char === '[') {
+                    stack.push({ x, y, angle: currentAngle });
+                } else if (char === ']') {
+                    const state = stack.pop();
+                    x = state.x;
+                    y = state.y;
+                    currentAngle = state.angle;
+                }
+                i++;
+            }
+        }
+        
+        function generateLSystem() {
+            const axiom = document.getElementById('axiom').value;
+            const rulesText = document.getElementById('rules').value;
+            const iterations = parseInt(document.getElementById('iterations').value);
+            const angle = parseFloat(document.getElementById('angle').value);
+            const length = parseFloat(document.getElementById('length').value);
+            
+            const rules = parseRules(rulesText);
+            const lSystemString = generateLSystemString(axiom, rules, iterations);
+            
+            drawLSystem(lSystemString, angle, length);
+        }
+        
+        function loadPreset(name) {
+            const preset = presets[name];
+            document.getElementById('axiom').value = preset.axiom;
+            document.getElementById('rules').value = preset.rules;
+            document.getElementById('iterations').value = preset.iterations;
+            document.getElementById('angle').value = preset.angle;
+            document.getElementById('length').value = preset.length;
+            document.getElementById('iterValue').textContent = preset.iterations;
+            document.getElementById('angleValue').textContent = preset.angle;
+            document.getElementById('lengthValue').textContent = preset.length;
+            generateLSystem();
+        }
+        
+        function downloadSVG() {
+            const svgContent = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.download = `lsystem-${Date.now()}.png`;
+            link.href = svgContent;
+            link.click();
+        }
+        
+        document.getElementById('iterations').addEventListener('input', (e) => {
+            document.getElementById('iterValue').textContent = e.target.value;
+        });
+        
+        document.getElementById('angle').addEventListener('input', (e) => {
+            document.getElementById('angleValue').textContent = e.target.value;
+        });
+        
+        document.getElementById('length').addEventListener('input', (e) => {
+            document.getElementById('lengthValue').textContent = e.target.value;
+        });
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            loadPreset('koch');
+        });
+    </script>
+</body>
+</html>

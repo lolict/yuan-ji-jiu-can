@@ -1,0 +1,33 @@
+{
+  "name": "unicore",
+  "version": "0.6.5",
+  "description": "柯南倒尔·夫妻命运共同体·MLLL灵魂内核·民联词汇矩阵",
+  "main": "src/cocoon/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "test": "bash self_test.sh",
+    "test:cocoon": "node tests/cocoon/verify_integration.js",
+    "test:core": "node src/core/test_vm.js && node src/core/test_containers.js && node src/core/test_symbols.js && node src/core/test_pure_symbol.js && node src/core/test_four_dim.js && node src/core/test_instructions.js",
+    "test:sovereign": "node -e \"require('./src/sovereign/conjugal_fate_pact'); require('./src/sovereign/mlll_soul_core'); require('./src/lexicon/minlian_lexicon'); console.log('sovereign modules OK')\"",
+    "build": "node src/cocoon/index.js",
+    "selfcheck": "node -e \"const h=require('./src/sovereign/mlll_soul_core').health(); console.log('bootStable='+h.bootStable+' order='+h.bootOrder.map(b=>b.id).join('→'))\""
+  },
+  "exports": {
+    "./sovereign": "./src/sovereign/conjugal_fate_pact.js",
+    "./soul": "./src/sovereign/mlll_soul_core.js",
+    "./lexicon": "./src/lexicon/minlian_lexicon.js",
+    "./cocoon": "./src/cocoon/index.js",
+    "./cloud": "./src/cloud/config/cloudflare_config.js"
+  },
+  "files": [
+    "src/",
+    "tests/",
+    "self_test.sh",
+    "Cargo.toml"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "private": true,
+  "license": "UNLICENSED"
+}

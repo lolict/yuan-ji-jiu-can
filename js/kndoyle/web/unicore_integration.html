@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniCore v2.0 - 底层WASM + 上层hacsjs_3d.js 整合系统</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Courier New', monospace; background: #0a0a0f; min-height: 100vh; color: #00ff88; overflow: hidden; }
+        
+        #container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; }
+        
+        .ui-panel {
+            position: fixed;
+            z-index: 100;
+            background: rgba(10, 10, 15, 0.95);
+            border: 2px solid #00ff88;
+            border-radius: 10px;
+            padding: 15px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .panel-left { top: 60px; left: 10px; width: 300px; max-height: calc(100vh - 80px); overflow-y: auto; }
+        .panel-right { top: 60px; right: 10px; width: 280px; max-height: calc(100vh - 80px); overflow-y: auto; }
+        .panel-bottom { bottom: 10px; left: 50%; transform: translateX(-50%); }
+        
+        h2 { color: #ffd93d; font-size: 1em; margin-bottom: 10px; border-bottom: 1px solid rgba(0,255,136,0.3); padding-bottom: 5px; }
+        
+        .btn { padding: 6px 10px; border: none; border-radius: 4px; cursor: pointer; font-family: inherit; font-size: 0.8em; margin: 2px; transition: all 0.2s; }
+        .btn-primary { background: #00ff88; color: #0a0a0f; }
+        .btn-secondary { background: #0088ff; color: white; }
+        .btn-warning { background: #ffd93d; color: #0a0a0f; }
+        .btn-danger { background: #ff6b6b; color: white; }
+        .btn:hover { transform: scale(1.05); box-shadow: 0 0 10px rgba(0,255,136,0.3); }
+        
+        .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 10px 0; }
+        .stat { background: rgba(0,0,0,0.3); padding: 8px; border-radius: 5px; text-align: center; }
+        .stat-value { font-size: 1.1em; color: #ffd93d; }
+        .stat-label { font-size: 0.7em; color: #888; }
+        
+        .cross-keys { display: grid; grid-template-areas: ". u ." "l c r" ". d ."; gap: 3px; width: 120px; margin: 0 auto; }
+        .key { width: 35px; height: 35px; background: rgba(0,255,136,0.2); border: 2px solid #00ff88; border-radius: 5px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1em; }
+        .key:hover { background: rgba(0,255,136,0.4); }
+        .key:active { background: rgba(0,255,136,0.6); }
+        .key-u { grid-area: u; } .key-d { grid-area: d; } .key-l { grid-area: l; } .key-r { grid-area: r; } .key-c { grid-area: c; background: rgba(255,217,61,0.2); border-color: #ffd93d; }
+        
+        .log-box { background: rgba(0,0,0,0.5); border-radius: 5px; padding: 8px; max-height: 150px; overflow-y: auto; font-size: 0.75em; margin-top: 10px; }
+        .log-line { margin: 2px 0; color: #00d4ff; }
+        .log-line.success { color: #00ff88; } .log-line.error { color: #ff6b6b; }
+        
+        .info-box { background: rgba(0,0,0,0.4); border-radius: 5px; padding: 8px; margin: 8px 0; font-size: 0.8em; }
+        
+        .title-bar { position: fixed; top: 0; left: 0; right: 0; height: 50px; background: linear-gradient(to right, rgba(10,10,15,0.98), rgba(0,255,136,0.2)); border-bottom: 2px solid #00ff88; display: flex; align-items: center; justify-content: center; z-index: 200; }
+        .title-bar h1 { font-size: 1.1em; color: #00ff88; }
+        .title-bar .subtitle { position: absolute; right: 20px; color: #ffd93d; font-size: 0.8em; }
+        
+        .array-btns { display: flex; flex-wrap: wrap; gap: 3px; }
+        .array-btns .btn { flex: 1; min-width: 50px; font-size: 0.7em; }
+        
+        .status-indicator { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
+        .status-off { background: #666; } .status-on { background: #00ff88; box-shadow: 0 0 5px #00ff88; }
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+    
+    <div class="title-bar">
+        <h1>UniCore v2.0 - 底层WASM核心 + 上层hacsjs_3d.js 三维界面</h1>
+        <span class="subtitle">.3d.cbc.mll 私有格式</span>
+    </div>
+    
+    <div class="ui-panel panel-left">
+        <h2>系统状态</h2>
+        <div class="stats">
+            <div class="stat"><div class="stat-value" id="s-cycles">0</div><div class="stat-label">执行周期</div></div>
+            <div class="stat"><div class="stat-value" id="s-containers">0</div><div class="stat-label">集装箱</div></div>
+            <div class="stat"><div class="stat-value" id="s-active">-</div><div class="stat-label">活动集装箱</div></div>
+            <div class="stat"><div class="stat-value" id="s-nodes">0</div><div class="stat-label">节点数</div></div>
+        </div>
+        
+        <h2>WASM核心状态</h2>
+        <div class="info-box">
+            <span class="status-indicator" id="i-wasm"></span> WASM: <span id="v-wasm">未初始化</span>
+        </div>
+        <div class="info-box">
+            <span class="status-indicator" id="i-3d"></span> 3D引擎: <span id="v-3d">未初始化</span>
+        </div>
+        <div class="info-box">
+            <span class="status-indicator" id="i-cbc"></span> CBC文件: <span id="v-cbc">未就绪</span>
+        </div>
+        <div class="info-box">
+            <span class="status-indicator" id="i-plugin"></span> 插件: <span id="v-plugin">0</span>
+        </div>
+        
+        <h2>底层操作 (WASM)</h2>
+        <button class="btn btn-primary" onclick="initWASM()">初始化</button>
+        <button class="btn btn-secondary" onclick="runTest()">执行测试</button>
+        <button class="btn btn-danger" onclick="resetAll()">重置</button>
+        
+        <h2>集装箱 (3D)</h2>
+        <button class="btn btn-primary" onclick="createContainers()">创建256</button>
+        <button class="btn btn-secondary" onclick="clearContainers()">清空</button>
+        
+        <h2>空间阵列</h2>
+        <div class="array-btns">
+            <button class="btn btn-primary" onclick="createArray('matrix')">矩阵</button>
+            <button class="btn btn-secondary" onclick="createArray('cone')">锥阵</button>
+            <button class="btn btn-warning" onclick="createArray('sphere')">球阵</button>
+            <button class="btn btn-primary" onclick="createArray('hex')">蜂窝</button>
+            <button class="btn btn-secondary" onclick="createArray('wave')">波浪</button>
+        </div>
+        
+        <h2>节点因果链</h2>
+        <button class="btn btn-warning" onclick="createNodes()">创建节点</button>
+        <button class="btn btn-danger" onclick="clearNodes()">清空</button>
+        
+        <h2>.3d.cbc.mll 文件</h2>
+        <button class="btn btn-primary" onclick="exportFile()">导出</button>
+        <button class="btn btn-secondary" onclick="importFile()">导入</button>
+        <input type="file" id="file-input" accept=".3d.cbc.mll" style="display:none" onchange="handleFile(this)">
+    </div>
+    
+    <div class="ui-panel panel-right">
+        <h2>十字方向键</h2>
+        <div class="cross-keys">
+            <div class="key key-u" onclick="move('up')">▲</div>
+            <div class="key key-l" onclick="move('left')">◄</div>
+            <div class="key key-c" onclick="move('center')">●</div>
+            <div class="key key-r" onclick="move('right')">►</div>
+            <div class="key key-d" onclick="move('down')">▼</div>
+        </div>
+        
+        <h2>旋转控制</h2>
+        <div class="array-btns">
+            <button class="btn btn-warning" onclick="rotate('x')">X</button>
+            <button class="btn btn-warning" onclick="rotate('y')">Y</button>
+            <button class="btn btn-warning" onclick="rotate('z')">Z</button>
+        </div>
+        
+        <h2>视角切换</h2>
+        <div class="array-btns">
+            <button class="btn btn-primary" onclick="setView('top')">俯</button>
+            <button class="btn btn-primary" onclick="setView('front')">正</button>
+            <button class="btn btn-primary" onclick="setView('left')">侧</button>
+        </div>
+        
+        <h2>操作日志</h2>
+        <div class="log-box" id="log-box"></div>
+    </div>
+    
+    <div class="ui-panel panel-bottom">
+        <h2>快捷键</h2>
+        <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>移动</span>
+        <span><kbd>I</kbd><kbd>J</kbd><kbd>K</kbd><kbd>L</kbd>旋转</span>
+        <span><kbd>空格</kbd>选中</span>
+        <span><kbd>1-5</kbd>阵列</span>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="../src/hacsjs_3d/hacsjs_3d.js"></script>
+    <script src="../src/wasm/unicore_wasm_core.js"></script>
+    <script src="../src/wasm/unicore_plugin_system.js"></script>
+    <script src="../src/wasm/3dcbc_file_tool.js"></script>
+    
+    <script>
+        let engine3d, vm, pluginSystem, cbcWriter, cbcReader;
+        
+        function init() {
+            log('Initializing UniCore v2.0...');
+            
+            // 初始化3D引擎
+            engine3d = initHACSJS3D('container');
+            engine3d.onContainerClick = (id) => {
+                log(`选中: 0x${id.toString(16).toUpperCase().padStart(2,'0')}`, 'success');
+                updateStats();
+            };
+            
+            // 初始化VM
+            vm = new UniCoreWASM();
+            
+            // 初始化插件系统
+            pluginSystem = new UniCorePluginSystem(vm);
+            registerPlugins();
+            
+            // 初始化CBC
+            cbcWriter = new CBCFileWriter();
+            cbcReader = new CBCFileReader();
+            
+            updateStatus();
+            log('System initialized', 'success');
+            
+            setupKeyboard();
+        }
+        
+        function registerPlugins() {
+            pluginSystem.registerPlugin(new RadixPlugin());
+            pluginSystem.registerPlugin(new CharsetPlugin());
+            pluginSystem.registerPlugin(new SpatialPlugin());
+            log(`Registered ${pluginSystem.listPlugins().length} plugins`);
+        }
+        
+        function initWASM() {
+            vm.initialize();
+            updateStatus();
+            log('WASM core initialized', 'success');
+        }
+        
+        function runTest() {
+            if (!vm.running) initWASM();
+            
+            const program = vm.assemble(`
+                LOAD 0x10
+                INC
+                INC
+                INC
+                ADD 252
+                INC
+                CREATE_NODE 1 NULL
+                CREATE_NODE 2 1
+                TRIGGER 2
+                HALT
+            `);
+            
+            vm.loadProgram(Array.from(program));
+            vm.run(100);
+            
+            vm.output.forEach(m => log(m));
+            log(`Done: ${vm.cycles} cycles`, 'success');
+            
+            updateStats();
+            updateStatus();
+        }
+        
+        function resetAll() {
+            engine3d.clearAll();
+            vm = new UniCoreWASM();
+            pluginSystem = new UniCorePluginSystem(vm);
+            registerPlugins();
+            log('System reset', 'success');
+            updateStats();
+            updateStatus();
+        }
+        
+        function createContainers() {
+            engine3d.createAllContainers(256);
+            log('Created 256 containers', 'success');
+            updateStats();
+        }
+        
+        function clearContainers() {
+            engine3d.containerMeshes.forEach(m => { engine3d.scene.remove(m); m.geometry.dispose(); m.material.dispose(); });
+            engine3d.containerMeshes.clear();
+            engine3d.containers.clear();
+            engine3d.activeContainerId = null;
+            log('Containers cleared');
+            updateStats();
+        }
+        
+        function createArray(type) {
+            log(`Creating ${type} array...`);
+            engine3d.createSpatialArray(type);
+            log(`${type} array created`, 'success');
+            updateStats();
+        }
+        
+        function createNodes() {
+            const nodes = [
+                {id:1,type:1,cause:null}, {id:2,type:2,cause:1}, {id:3,type:3,cause:2},
+                {id:4,type:4,cause:3}, {id:5,type:1,cause:3}, {id:6,type:2,cause:5}, {id:7,type:3,cause:6}
+            ];
+            engine3d.createNodeChain(nodes);
+            log('Created node chain', 'success');
+            updateStats();
+        }
+        
+        function clearNodes() {
+            engine3d.nodeMeshes.forEach(m => { engine3d.scene.remove(m); m.geometry.dispose(); m.material.dispose(); });
+            engine3d.nodeMeshes.clear();
+            engine3d.nodes.clear();
+            engine3d.clearConnections();
+            log('Nodes cleared');
+            updateStats();
+        }
+        
+        function move(dir) {
+            if (!engine3d.containerMeshes.size) return;
+            if (engine3d.activeContainerId === null) engine3d.setActiveContainer(0);
+            switch(dir) {
+                case 'up': engine3d.moveSelected('up', 5); break;
+                case 'down': engine3d.moveSelected('down', 5); break;
+                case 'left': engine3d.moveSelected('left', 5); break;
+                case 'right': engine3d.moveSelected('right', 5); break;
+                case 'center':
+                    const m = engine3d.containerMeshes.get(engine3d.activeContainerId);
+                    if (m) engine3d.focusOn(m.position);
+                    break;
+            }
+        }
+        
+        function rotate(axis) {
+            if (!engine3d.containerMeshes.size) return;
+            if (engine3d.activeContainerId === null) engine3d.setActiveContainer(0);
+            engine3d.rotateSelected(axis, 45);
+        }
+        
+        function setView(dir) {
+            engine3d.setOrthographicView(dir);
+            log(`View: ${dir}`);
+        }
+        
+        function exportFile() {
+            const data = {
+                version: '2.0',
+                radix: [{id:1,base:64,min:0,flags:0}],
+                charset: [{source:65,custom:1,container:0x10}],
+                containers: {
+                    values: vm.containers,
+                    positions: new Uint8Array(1024),
+                    flags: new Uint8Array(256)
+                },
+                spatial: {type:1,dimension:3,origin:{x:0,y:0,z:0},elementCount:engine3d.containerMeshes.size},
+                timenodes: Array.from(vm.nodes.values()).map(n => ({id:n.id,type:n.type||1,cause:n.cause||null,offset:0,flags:0})),
+                plugins: pluginSystem.listPlugins()
+            };
+            
+            const buffer = cbcWriter.write(data);
+            const blob = new Blob([buffer], {type:'application/octet-stream'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'data.3d.cbc.mll';
+            a.click();
+            log('Exported .3d.cbc.mll', 'success');
+        }
+        
+        function importFile() {
+            document.getElementById('file-input').click();
+        }
+        
+        function handleFile(input) {
+            const file = input.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = cbcReader.read(e.target.result);
+                    log('Imported .3d.cbc.mll', 'success');
+                    log(`Containers: ${data.containers ? 256 : 0}`);
+                    log(`Nodes: ${data.timenodes ? data.timenodes.length : 0}`);
+                    if (data.timenodes && data.timenodes.length) createNodes();
+                } catch(err) {
+                    log('Import failed: ' + err.message, 'error');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+        
+        function updateStats() {
+            document.getElementById('s-cycles').textContent = vm.cycles;
+            document.getElementById('s-containers').textContent = engine3d.containerMeshes.size;
+            document.getElementById('s-active').textContent = engine3d.activeContainerId !== null ? '0x' + engine3d.activeContainerId.toString(16).toUpperCase().padStart(2,'0') : '-';
+            document.getElementById('s-nodes').textContent = engine3d.nodeMeshes.size;
+        }
+        
+        function updateStatus() {
+            document.getElementById('i-wasm').className = 'status-indicator ' + (vm.running ? 'status-on' : 'status-off');
+            document.getElementById('v-wasm').textContent = vm.running ? '运行中' : '就绪';
+            document.getElementById('i-3d').className = 'status-indicator status-on';
+            document.getElementById('v-3d').textContent = '运行中';
+            document.getElementById('i-cbc').className = 'status-indicator status-on';
+            document.getElementById('v-cbc').textContent = '就绪';
+            document.getElementById('i-plugin').className = 'status-indicator status-on';
+            document.getElementById('v-plugin').textContent = pluginSystem.listPlugins().length;
+        }
+        
+        function log(msg, type='') {
+            const box = document.getElementById('log-box');
+            const line = document.createElement('div');
+            line.className = 'log-line ' + type;
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            box.appendChild(line);
+            box.scrollTop = box.scrollHeight;
+            while (box.children.length > 50) box.removeChild(box.firstChild);
+        }
+        
+        function setupKeyboard() {
+            document.addEventListener('keydown', (e) => {
+                const key = e.key.toLowerCase();
+                switch(key) {
+                    case 'w': move('up'); break;
+                    case 's': move('down'); break;
+                    case 'a': move('left'); break;
+                    case 'd': move('right'); break;
+                    case 'i': case 'j': rotate('x'); break;
+                    case 'k': case 'l': rotate('y'); break;
+                    case 'q': rotate('z'); break;
+                    case 'e': rotate('z'); break;
+                    case ' ':
+                        e.preventDefault();
+                        const ids = Array.from(engine3d.containerMeshes.keys());
+                        if (ids.length) {
+                            const idx = ids.indexOf(engine3d.activeContainerId);
+                            engine3d.setActiveContainer(ids[(idx+1)%ids.length]);
+                        }
+                        break;
+                    case '1': createArray('matrix'); break;
+                    case '2': createArray('cone'); break;
+                    case '3': createArray('sphere'); break;
+                    case '4': createArray('hex'); break;
+                    case '5': createArray('wave'); break;
+                }
+            });
+        }
+        
+        init();
+    </script>
+</body>
+</html>

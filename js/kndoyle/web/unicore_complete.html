@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniCore v2.0 - 完整系统整合</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Courier New', monospace; background: #0a0a0f; color: #00ff88; min-height: 100vh; overflow: hidden; }
+        
+        #container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; }
+        
+        .ui-panel {
+            position: fixed;
+            z-index: 100;
+            background: rgba(10, 10, 15, 0.95);
+            border: 2px solid #00ff88;
+            border-radius: 10px;
+            padding: 12px;
+            max-height: calc(100vh - 70px);
+            overflow-y: auto;
+        }
+        
+        .panel-left { top: 60px; left: 5px; width: 280px; }
+        .panel-right { top: 60px; right: 5px; width: 260px; }
+        .panel-bottom { bottom: 5px; left: 50%; transform: translateX(-50%); }
+        
+        h2 { color: #ffd93d; font-size: 0.9em; margin-bottom: 8px; border-bottom: 1px solid rgba(0,255,136,0.3); padding-bottom: 4px; }
+        
+        .btn { padding: 5px 10px; border: none; border-radius: 4px; cursor: pointer; font-family: inherit; font-size: 0.75em; margin: 2px; transition: all 0.2s; }
+        .btn-primary { background: #00ff88; color: #0a0a0f; }
+        .btn-secondary { background: #0088ff; color: white; }
+        .btn-warning { background: #ffd93d; color: #0a0a0f; }
+        .btn-danger { background: #ff6b6b; color: white; }
+        .btn:hover { transform: scale(1.05); }
+        
+        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin: 8px 0; }
+        .stat { background: rgba(0,0,0,0.3); padding: 6px; border-radius: 4px; text-align: center; }
+        .stat-value { font-size: 1em; color: #ffd93d; }
+        .stat-label { font-size: 0.65em; color: #888; }
+        
+        .log-box { background: rgba(0,0,0,0.5); border-radius: 4px; padding: 6px; max-height: 120px; overflow-y: auto; font-size: 0.7em; margin-top: 8px; }
+        .log-line { margin: 2px 0; color: #00d4ff; }
+        .log-line.success { color: #00ff88; }
+        .log-line.error { color: #ff6b6b; }
+        
+        .info-box { background: rgba(0,0,0,0.3); border-radius: 4px; padding: 6px; margin: 6px 0; font-size: 0.75em; }
+        
+        .title-bar { position: fixed; top: 0; left: 0; right: 0; height: 50px; background: linear-gradient(to right, rgba(10,10,15,0.98), rgba(0,255,136,0.3), rgba(0,136,255,0.3)); border-bottom: 2px solid #00ff88; display: flex; align-items: center; justify-content: center; z-index: 200; }
+        .title-bar h1 { font-size: 1em; color: #00ff88; }
+        .title-bar .version { position: absolute; right: 15px; color: #ffd93d; font-size: 0.75em; }
+        
+        .status-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 5px; }
+        .dot-off { background: #666; } .dot-on { background: #00ff88; box-shadow: 0 0 5px #00ff88; }
+        
+        .array-btns { display: flex; flex-wrap: wrap; gap: 3px; }
+        .array-btns .btn { flex: 1; min-width: 45px; font-size: 0.7em; }
+        
+        .code-input { width: 100%; height: 60px; background: #1a1a2e; border: 1px solid #00ff88; border-radius: 4px; color: #00ff88; font-family: inherit; font-size: 0.8em; padding: 5px; resize: none; }
+        
+        .instruction-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 3px; font-size: 0.7em; }
+        .instruction-item { background: rgba(0,0,0,0.3); padding: 4px; border-radius: 3px; }
+        .instruction-op { color: #ffd93d; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+    
+    <div class="title-bar">
+        <h1>UniCore v2.0 - 底层WASM + hacsjs_3d + CubeTable + 0xA5指令</h1>
+        <span class="version">.3d.cbc.mll</span>
+    </div>
+    
+    <div class="ui-panel panel-left">
+        <h2>系统状态</h2>
+        <div class="stats">
+            <div class="stat"><div class="stat-value" id="s-vm">-</div><div class="stat-label">VM周期</div></div>
+            <div class="stat"><div class="stat-value" id="s-containers">0</div><div class="stat-label">集装箱</div></div>
+            <div class="stat"><div class="stat-value" id="s-nodes">0</div><div class="stat-label">节点</div></div>
+            <div class="stat"><div class="stat-value" id="s-tables">0</div><div class="stat-label">表格</div></div>
+            <div class="stat"><div class="stat-value" id="s-plugins">0</div><div class="stat-label">插件</div></div>
+        </div>
+        
+        <h2>模块状态</h2>
+        <div class="info-box"><span class="status-dot dot-off" id="d-wasm"></span>WASM: <span id="v-wasm">未初始化</span></div>
+        <div class="info-box"><span class="status-dot dot-off" id="d-3d"></span>3D引擎: <span id="v-3d">未初始化</span></div>
+        <div class="info-box"><span class="status-dot dot-off" id="d-table"></span>表格系统: <span id="v-table">未初始化</span></div>
+        
+        <h2>初始化</h2>
+        <button class="btn btn-primary" onclick="initAll()">初始化全部</button>
+        <button class="btn btn-secondary" onclick="initWASM()">WASM</button>
+        <button class="btn btn-secondary" onclick="init3D()">3D</button>
+        <button class="btn btn-secondary" onclick="initTable()">表格</button>
+        
+        <h2>操作</h2>
+        <button class="btn btn-primary" onclick="runTest()">执行测试</button>
+        <button class="btn btn-secondary" onclick="stepExecute()">单步</button>
+        <button class="btn btn-danger" onclick="resetAll()">重置</button>
+        
+        <h2>3D创建</h2>
+        <div class="array-btns">
+            <button class="btn btn-primary" onclick="createContainers()">集装箱</button>
+            <button class="btn btn-secondary" onclick="createArray('matrix')">矩阵</button>
+            <button class="btn btn-warning" onclick="createArray('cone')">锥阵</button>
+            <button class="btn btn-secondary" onclick="createArray('sphere')">球阵</button>
+            <button class="btn btn-primary" onclick="createArray('hex')">蜂窝</button>
+            <button class="btn btn-warning" onclick="createArray('wave')">波浪</button>
+        </div>
+        
+        <h2>表格创建</h2>
+        <button class="btn btn-primary" onclick="createUniverse()">宇宙0</button>
+        <button class="btn btn-secondary" onclick="createGalaxy()">星系1</button>
+        <button class="btn btn-warning" onclick="autoFillZeros()">0→1</button>
+        
+        <h2>0xA5指令</h2>
+        <div class="instruction-list">
+            <div class="instruction-item"><span class="instruction-op">0xA5 0x00</span> PING</div>
+            <div class="instruction-item"><span class="instruction-op">0xA5 0x01</span> INIT_3D</div>
+            <div class="instruction-item"><span class="instruction-op">0xA5 0x02</span> INIT_TABLE</div>
+            <div class="instruction-item"><span class="instruction-op">0xA5 0x03</span> SYNC</div>
+            <div class="instruction-item"><span class="instruction-op">0xA5 0x10</span> CREATE</div>
+            <div class="instruction-item"><span class="instruction-op">0xA5 0x15</span> FILL_ZERO</div>
+        </div>
+    </div>
+    
+    <div class="ui-panel panel-right">
+        <h2>汇编输入</h2>
+        <textarea class="code-input" id="code-input" placeholder="输入汇编指令...&#10;LOAD 0x10&#10;INC&#10;HALT"></textarea>
+        <button class="btn btn-primary" onclick="executeCode()">执行</button>
+        
+        <h2>0xA5命令</h2>
+        <button class="btn btn-primary" onclick="exec0xA5(0x00)">PING</button>
+        <button class="btn btn-primary" onclick="exec0xA5(0x01)">INIT_3D</button>
+        <button class="btn btn-primary" onclick="exec0xA5(0x02)">INIT_TABLE</button>
+        <button class="btn btn-secondary" onclick="exec0xA5(0x03)">SYNC</button>
+        <button class="btn btn-warning" onclick="exec0xA5(0x10)">CREATE</button>
+        <button class="btn btn-warning" onclick="exec0xA5(0x15)">FILL_ZERO</button>
+        
+        <h2>文件操作</h2>
+        <button class="btn btn-primary" onclick="exportData()">导出.3d.cbc.mll</button>
+        <button class="btn btn-secondary" onclick="importData()">导入</button>
+        <input type="file" id="file-input" accept=".3d.cbc.mll,.cbc,.json" style="display:none">
+        
+        <h2>视角</h2>
+        <div class="array-btns">
+            <button class="btn btn-primary" onclick="setView('top')">俯</button>
+            <button class="btn btn-primary" onclick="setView('front')">正</button>
+            <button class="btn btn-primary" onclick="setView('left')">侧</button>
+        </div>
+        
+        <h2>日志</h2>
+        <div class="log-box" id="log-box"></div>
+    </div>
+    
+    <div class="ui-panel panel-bottom">
+        <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>移动</span>
+        <span><kbd>空格</kbd>选中</span>
+        <span><kbd>1-5</kbd>阵列</span>
+        <span><kbd>0xA5</kbd>系统指令</span>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="../src/core/unicore_system_core.js"></script>
+    <script src="../src/hacsjs_3d/hacsjs_3d.js"></script>
+    <script src="../src/table/cube_table_system.js"></script>
+    <script src="../src/wasm/unicore_wasm_core.js"></script>
+    <script src="../src/wasm/unicore_plugin_system.js"></script>
+    <script src="../src/wasm/3dcbc_file_tool.js"></script>
+    
+    <script>
+        let system, engine3d, tableMapper, tableContainer;
+        
+        function init() {
+            log('Initializing UniCore v2.0...');
+            
+            system = new UniCoreSystem();
+            system.init3D('container');
+            engine3d = window.hacs3d;
+            
+            tableMapper = new InsideOutsideMapper();
+            tableContainer = [];
+            
+            updateAllStatus();
+            setupKeyboard();
+            
+            log('UniCore v2.0 ready', 'success');
+        }
+        
+        function initAll() {
+            system.vm.initialize();
+            system.init3D('container');
+            engine3d = window.hacs3d;
+            system.initTable();
+            
+            updateAllStatus();
+            log('All modules initialized', 'success');
+        }
+        
+        function initWASM() {
+            system.vm.initialize();
+            updateAllStatus();
+            log('WASM initialized', 'success');
+        }
+        
+        function init3D() {
+            system.init3D('container');
+            engine3d = window.hacs3d;
+            updateAllStatus();
+            log('3D engine initialized', 'success');
+        }
+        
+        function initTable() {
+            system.initTable();
+            updateAllStatus();
+            log('Table system initialized', 'success');
+        }
+        
+        function runTest() {
+            if (!system.vm.running) system.vm.initialize();
+            
+            const code = document.getElementById('code-input').value || `
+                LOAD 0x10
+                INC
+                INC
+                INC
+                ADD 252
+                INC
+                CREATE_NODE 1 NULL
+                CREATE_NODE 2 1
+                TRIGGER 2
+                HALT
+            `;
+            
+            const program = system.vm.assemble(code);
+            system.vm.loadProgram(Array.from(program));
+            system.vm.run(100);
+            
+            system.vm.output.forEach(m => log(m));
+            log(`Done: ${system.vm.cycles} cycles`, 'success');
+            
+            updateAllStatus();
+        }
+        
+        function stepExecute() {
+            const code = document.getElementById('code-input').value;
+            if (code && (!system.vm.program || system.vm.program.length === 0)) {
+                const program = system.vm.assemble(code);
+                system.vm.loadProgram(Array.from(program));
+                system.vm.initialize();
+            }
+            
+            if (system.vm.step()) {
+                const lastOutput = system.vm.output[system.vm.output.length - 1];
+                if (lastOutput) log(lastOutput);
+                updateAllStatus();
+            } else {
+                log('Execution finished', 'success');
+            }
+        }
+        
+        function executeCode() {
+            const code = document.getElementById('code-input').value;
+            if (!code.trim()) return;
+            
+            if (!system.vm.running) system.vm.initialize();
+            
+            const program = system.vm.assemble(code);
+            system.vm.loadProgram(Array.from(program));
+            system.vm.run();
+            
+            system.vm.output.forEach(m => log(m));
+            log('Execution complete', 'success');
+            
+            updateAllStatus();
+        }
+        
+        function exec0xA5(subCmd) {
+            const result = execute0xA5(system, subCmd);
+            log(`0xA5: ${result.cmd} - ${result.ok ? 'OK' : 'FAILED'}`, result.ok ? 'success' : 'error');
+            if (result.data) {
+                console.log(result.data);
+            }
+            updateAllStatus();
+        }
+        
+        function resetAll() {
+            system.reset();
+            if (window.hacs3d) window.hacs3d.clearAll();
+            tableContainer = [];
+            log('System reset', 'success');
+            updateAllStatus();
+        }
+        
+        function createContainers() {
+            if (!engine3d) init3D();
+            engine3d.createAllContainers(256);
+            log('Created 256 containers', 'success');
+            updateAllStatus();
+        }
+        
+        function createArray(type) {
+            if (!engine3d) init3D();
+            engine3d.createSpatialArray(type);
+            log(`Created ${type} array`, 'success');
+            updateAllStatus();
+        }
+        
+        function createUniverse() {
+            const universe = new CubeTable({ title: '宇宙(大千世界)', level: 0, symbol: 0 });
+            universe.setContent('0=母集=万物', 'name');
+            tableContainer.push(universe);
+            log('Created: 宇宙(0)', 'success');
+            updateAllStatus();
+        }
+        
+        function createGalaxy() {
+            const parent = tableContainer.find(t => t.symbol === 0);
+            if (!parent) {
+                createUniverse();
+            }
+            
+            const galaxy = new CubeTable({ title: '银河系', level: 1, symbol: 1 });
+            galaxy.setContent('1=父集=星系', 'function');
+            
+            const p = tableContainer.find(t => t.symbol === 0);
+            if (p) {
+                p.addChild(galaxy);
+                p.isOpen = true;
+            } else {
+                tableContainer.push(galaxy);
+            }
+            
+            log('Created: 银河系(1)', 'success');
+            updateAllStatus();
+        }
+        
+        function autoFillZeros() {
+            tableContainer.forEach(t => tableMapper.autoFillZeros(t));
+            log('Auto-filled all zeros with ones', 'success');
+            updateAllStatus();
+        }
+        
+        function setView(dir) {
+            if (engine3d) engine3d.setOrthographicView(dir);
+        }
+        
+        function exportData() {
+            const state = system.syncAll();
+            const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'unicore_data.3d.cbc.mll';
+            a.click();
+            log('Exported .3d.cbc.mll', 'success');
+        }
+        
+        function importData() {
+            document.getElementById('file-input').click();
+        }
+        
+        document.getElementById('file-input').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const data = JSON.parse(ev.target.result);
+                    system.importData(JSON.stringify(data));
+                    log('Imported .3d.cbc.mll', 'success');
+                    updateAllStatus();
+                } catch(err) {
+                    log('Import failed: ' + err.message, 'error');
+                }
+            };
+            reader.readAsText(file);
+        });
+        
+        function updateAllStatus() {
+            const status = system.getStatus();
+            
+            document.getElementById('s-vm').textContent = status.cycles;
+            document.getElementById('s-containers').textContent = engine3d ? engine3d.containerMeshes.size : 0;
+            document.getElementById('s-nodes').textContent = engine3d ? engine3d.nodeMeshes.size : 0;
+            document.getElementById('s-tables').textContent = tableContainer.length;
+            document.getElementById('s-plugins').textContent = status.pluginCount;
+            
+            document.getElementById('d-wasm').className = 'status-dot ' + (system.vm.running ? 'dot-on' : 'dot-off');
+            document.getElementById('v-wasm').textContent = system.vm.running ? '运行中' : '就绪';
+            
+            document.getElementById('d-3d').className = 'status-dot dot-on';
+            document.getElementById('v-3d').textContent = engine3d ? '就绪' : '未初始化';
+            
+            document.getElementById('d-table').className = 'status-dot dot-on';
+            document.getElementById('v-table').textContent = status.tableCount > 0 ? `${status.tableCount}个` : '就绪';
+        }
+        
+        function log(msg, type = '') {
+            const box = document.getElementById('log-box');
+            const line = document.createElement('div');
+            line.className = 'log-line ' + type;
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            box.appendChild(line);
+            box.scrollTop = box.scrollHeight;
+            while (box.children.length > 50) box.removeChild(box.firstChild);
+        }
+        
+        function setupKeyboard() {
+            document.addEventListener('keydown', (e) => {
+                const key = e.key.toLowerCase();
+                
+                if (key === 'w') engine3d && engine3d.moveSelected('up', 5);
+                if (key === 's') engine3d && engine3d.moveSelected('down', 5);
+                if (key === 'a') engine3d && engine3d.moveSelected('left', 5);
+                if (key === 'd') engine3d && engine3d.moveSelected('right', 5);
+                
+                if (key === ' ') {
+                    e.preventDefault();
+                    if (engine3d) {
+                        const ids = Array.from(engine3d.containerMeshes.keys());
+                        if (ids.length) {
+                            const idx = ids.indexOf(engine3d.activeContainerId);
+                            engine3d.setActiveContainer(ids[(idx + 1) % ids.length]);
+                            updateAllStatus();
+                        }
+                    }
+                }
+                
+                if (key === '1') createArray('matrix');
+                if (key === '2') createArray('cone');
+                if (key === '3') createArray('sphere');
+                if (key === '4') createArray('hex');
+                if (key === '5') createArray('wave');
+            });
+        }
+        
+        init();
+    </script>
+</body>
+</html>

@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniCore - 1字节集装箱文字系统</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 50%, #0d1b2a 100%); min-height: 100vh; color: #e0e0e0; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        
+        header { text-align: center; padding: 40px 0; border-bottom: 2px solid #2d3748; margin-bottom: 40px; }
+        h1 { font-size: 3.5em; background: linear-gradient(135deg, #00d4ff 0%, #00ff88 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .subtitle { color: #888; margin-top: 10px; font-size: 1.3em; }
+        
+        .section { background: rgba(45, 55, 72, 0.4); border: 2px solid #4a5568; border-radius: 20px; padding: 30px; margin-bottom: 30px; }
+        .section-title { font-size: 2em; color: #00d4ff; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid rgba(0, 212, 255, 0.2); }
+        
+        .memory-card { background: rgba(0, 255, 136, 0.1); border: 2px solid rgba(0, 255, 136, 0.3); border-radius: 15px; padding: 30px; text-align: center; margin: 20px 0; }
+        .memory-value { font-size: 4em; color: #00ff88; font-weight: 800; }
+        .memory-label { color: #888; margin-top: 10px; font-size: 1.2em; }
+        
+        .concept-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 20px 0; }
+        .concept-card { background: rgba(0, 212, 255, 0.1); border: 2px solid rgba(0, 212, 255, 0.3); border-radius: 15px; padding: 20px; text-align: center; transition: all 0.3s; }
+        .concept-card:hover { transform: translateY(-5px); box-shadow: 0 10px 30px rgba(0, 212, 255, 0.2); }
+        .concept-icon { font-size: 3em; margin-bottom: 15px; }
+        .concept-name { color: #00ff88; font-size: 1.3em; font-weight: 700; }
+        .concept-desc { color: #a0aec0; margin-top: 10px; line-height: 1.5; }
+        
+        .byte-grid { display: grid; grid-template-columns: repeat(32, 1fr); gap: 5px; margin: 20px 0; }
+        .byte-cell { aspect-ratio: 1; background: rgba(0, 0, 0, 0.5); border: 1px solid #4a5568; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 0.7em; color: #888; cursor: pointer; transition: all 0.2s; }
+        .byte-cell:hover { background: rgba(0, 212, 255, 0.3); color: #00ff88; }
+        .byte-cell.filled { background: rgba(0, 255, 136, 0.2); border-color: #00ff88; color: #00ff88; }
+        .byte-cell.selected { background: rgba(255, 217, 61, 0.3); border-color: #ffd93d; color: #ffd93d; }
+        
+        .control-panel { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin: 20px 0; }
+        .control-card { background: rgba(0, 0, 0, 0.3); border: 2px solid #4a5568; border-radius: 15px; padding: 20px; }
+        .control-title { color: #00ff88; font-size: 1.2em; font-weight: 700; margin-bottom: 15px; }
+        .input-group { margin-bottom: 15px; }
+        .input-label { display: block; color: #888; margin-bottom: 5px; }
+        .input-field { width: 100%; padding: 12px; background: #1a1a2e; border: 2px solid #4a5568; border-radius: 10px; color: #00ff88; font-size: 1em; }
+        .btn { padding: 12px 24px; border: none; border-radius: 10px; cursor: pointer; font-size: 1em; font-weight: 600; transition: all 0.3s; }
+        .btn-primary { background: linear-gradient(135deg, #00d4ff 0%, #0077b6 100%); color: white; }
+        .btn-success { background: linear-gradient(135deg, #00ff88 0%, #00b894 100%); color: #1a1a2e; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0, 212, 255, 0.4); }
+        
+        .result-box { background: rgba(0, 0, 0, 0.3); border: 2px solid #00ff88; border-radius: 10px; padding: 20px; margin-top: 20px; }
+        .result-title { color: #00ff88; font-weight: 700; margin-bottom: 10px; }
+        .result-content { font-family: 'Courier New', monospace; color: #e0e0e0; line-height: 1.7; }
+        
+        .code-display { background: rgba(0, 0, 0, 0.5); border-radius: 10px; padding: 15px; font-family: 'Courier New', monospace; color: #00ff88; font-size: 1.3em; text-align: center; margin: 10px 0; }
+        
+        .comparison-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        .comparison-table th, .comparison-table td { border: 1px solid #4a5568; padding: 12px; text-align: center; }
+        .comparison-table th { background: rgba(0, 212, 255, 0.1); color: #00ff88; }
+        .highlight { color: #00ff88; font-weight: 700; }
+        
+        footer { text-align: center; padding: 40px; color: #666; border-top: 1px solid #2d3748; margin-top: 60px; }
+        footer a { color: #00d4ff; text-decoration: none; }
+        
+        .formula-box { background: rgba(0, 0, 0, 0.3); border: 2px solid #00ff88; border-radius: 15px; padding: 30px; text-align: center; margin: 30px 0; }
+        .formula { font-family: 'Courier New', monospace; font-size: 1.8em; color: #00ff88; margin: 15px 0; }
+        .formula-highlight { color: #ffd93d; font-weight: 800; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📦 1字节集装箱文字系统</h1>
+            <p class="subtitle">真正最小内存！0~255 完全1字节！不进位二进制！</p>
+        </header>
+
+        <div class="section">
+            <h2 class="section-title">✅ 核心原理</h2>
+            <div class="memory-card">
+                <div class="memory-value">1</div>
+                <div class="memory-label">字节 / 字符</div>
+            </div>
+            
+            <div class="formula-box">
+                <div class="formula">8 bit = <span class="formula-highlight">1 byte</span></div>
+                <div class="formula">1 byte = 0 ~ <span class="formula-highlight">255</span></div>
+                <div class="formula">总容量 = <span class="formula-highlight">256</span> 个字符</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">📊 概念解析</h2>
+            <div class="concept-grid">
+                <div class="concept-card">
+                    <div class="concept-icon">💾</div>
+                    <div class="concept-name">1字节</div>
+                    <div class="concept-desc">8位二进制<br>0~255共256个值<br>真正最小内存</div>
+                </div>
+                <div class="concept-card">
+                    <div class="concept-icon">📦</div>
+                    <div class="concept-name">单箱模式</div>
+                    <div class="concept-desc">一个集装箱256个位置<br>不进位<br>满了换新箱</div>
+                </div>
+                <div class="concept-card">
+                    <div class="concept-icon">🔢</div>
+                    <div class="concept-name">定位编码</div>
+                    <div class="concept-desc">0~255直接编码<br>无需复杂计算<br>直接映射</div>
+                </div>
+                <div class="concept-card">
+                    <div class="concept-icon">🎯</div>
+                    <div class="concept-name">字符绑定</div>
+                    <div class="concept-desc">每个数字绑定一个字符<br>一一对应<br>快速查找</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">🖥️ 256位置可视化</h2>
+            <p style="color: #888; margin-bottom: 20px;">点击格子绑定字符，红色表示已绑定</p>
+            <div class="byte-grid" id="byteGrid"></div>
+            <div style="margin-top: 20px; text-align: center;">
+                <input type="text" class="input-field" style="width: 80px; display: inline;" id="quickChar" placeholder="字符">
+                <button class="btn btn-success" onclick="bindQuickChar()">快速绑定</button>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">🔧 操作控制台</h2>
+            <div class="control-panel">
+                <div class="control-card">
+                    <div class="control-title">📍 编码转换</div>
+                    <div class="input-group">
+                        <label class="input-label">十进制 (0-255)</label>
+                        <input type="number" class="input-field" id="decInput" placeholder="输入0-255" min="0" max="255">
+                    </div>
+                    <button class="btn btn-primary" onclick="convertDec()">转换为二进制</button>
+                    <div class="result-box">
+                        <div class="result-title">二进制结果</div>
+                        <div class="code-display" id="binResult">-</div>
+                    </div>
+                </div>
+
+                <div class="control-card">
+                    <div class="control-title">🔗 字符绑定</div>
+                    <div class="input-group">
+                        <label class="input-label">位置 (0-255)</label>
+                        <input type="number" class="input-field" id="bindPos" placeholder="输入位置" min="0" max="255">
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label">字符</label>
+                        <input type="text" class="input-field" id="bindChar" placeholder="输入字符">
+                    </div>
+                    <button class="btn btn-success" onclick="bindChar()">绑定字符</button>
+                    <button class="btn btn-primary" onclick="unbindChar()">解除绑定</button>
+                </div>
+
+                <div class="control-card">
+                    <div class="control-title">🔍 字符查找</div>
+                    <div class="input-group">
+                        <label class="input-label">查找字符</label>
+                        <input type="text" class="input-field" id="searchChar" placeholder="输入要查找的字符">
+                    </div>
+                    <button class="btn btn-primary" onclick="searchChar()">查找</button>
+                    <div class="result-box">
+                        <div class="result-title">查找结果</div>
+                        <div class="result-content" id="searchResult">-</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">📊 内存对比表</h2>
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>编码类型</th>
+                        <th>单字符内存</th>
+                        <th>256字符总内存</th>
+                        <th>优点</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>传统ASCII</td>
+                        <td>1字节</td>
+                        <td>256字节</td>
+                        <td>基础英文</td>
+                    </tr>
+                    <tr>
+                        <td>传统UTF-8(汉字)</td>
+                        <td>3字节</td>
+                        <td>768字节</td>
+                        <td>支持所有语言</td>
+                    </tr>
+                    <tr>
+                        <td>传统UTF-16(汉字)</td>
+                        <td>2字节</td>
+                        <td>512字节</td>
+                        <td>支持大多数字符</td>
+                    </tr>
+                    <tr>
+                        <td class="highlight">1字节集装箱</td>
+                        <td class="highlight">1字节</td>
+                        <td class="highlight">256字节</td>
+                        <td class="highlight">最小内存！自定义字符</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">📝 绑定统计</h2>
+            <div class="result-box">
+                <div class="result-title">当前绑定状态</div>
+                <div class="result-content" id="stats">
+                    已绑定: 0 / 256<br>
+                    剩余: 256 / 256<br>
+                    使用率: 0%
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p><a href="index.html">🏠 返回 UniCore 主页</a></p>
+            <p style="margin-top: 20px;">UniCore - 探索无限可能</p>
+        </footer>
+    </div>
+
+    <script>
+        const charMap = new Array(256).fill(null);
+        let selectedCell = null;
+
+        function initGrid() {
+            const grid = document.getElementById('byteGrid');
+            grid.innerHTML = '';
+            for (let i = 0; i < 256; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'byte-cell';
+                cell.textContent = charMap[i] || i.toString(16).padStart(2, '0').toUpperCase();
+                cell.dataset.index = i;
+                if (charMap[i]) cell.classList.add('filled');
+                cell.onclick = () => selectCell(i);
+                grid.appendChild(cell);
+            }
+            updateStats();
+        }
+
+        function selectCell(index) {
+            document.querySelectorAll('.byte-cell').forEach(c => c.classList.remove('selected'));
+            event.target.classList.add('selected');
+            selectedCell = index;
+            document.getElementById('bindPos').value = index;
+        }
+
+        function convertDec() {
+            const dec = parseInt(document.getElementById('decInput').value);
+            if (isNaN(dec) || dec < 0 || dec > 255) {
+                document.getElementById('binResult').textContent = '❌ 请输入0-255';
+                return;
+            }
+            const bin = dec.toString(2).padStart(8, '0');
+            const hex = dec.toString(16).toUpperCase().padStart(2, '0');
+            document.getElementById('binResult').textContent = `${bin} (0x${hex})`;
+        }
+
+        function bindChar() {
+            const pos = parseInt(document.getElementById('bindPos').value);
+            const char = document.getElementById('bindChar').value;
+
+            if (isNaN(pos) || pos < 0 || pos > 255) {
+                alert('位置必须在0-255之间');
+                return;
+            }
+            if (!char) {
+                alert('请输入字符');
+                return;
+            }
+
+            charMap[pos] = char.charAt(0);
+            initGrid();
+            updateStats();
+        }
+
+        function unbindChar() {
+            const pos = parseInt(document.getElementById('bindPos').value);
+            if (isNaN(pos) || pos < 0 || pos > 255) {
+                alert('位置必须在0-255之间');
+                return;
+            }
+            charMap[pos] = null;
+            initGrid();
+            updateStats();
+        }
+
+        function bindQuickChar() {
+            const char = document.getElementById('quickChar').value;
+            if (!char || !selectedCell) {
+                alert('请先选中位置并输入字符');
+                return;
+            }
+            charMap[selectedCell] = char.charAt(0);
+            initGrid();
+            updateStats();
+        }
+
+        function searchChar() {
+            const char = document.getElementById('searchChar').value;
+            if (!char) {
+                document.getElementById('searchResult').textContent = '请输入要查找的字符';
+                return;
+            }
+
+            const pos = charMap.indexOf(char.charAt(0));
+            if (pos >= 0) {
+                document.getElementById('searchResult').innerHTML = 
+                    `✅ 找到！字符 "${char}" 位于位置 <span style="color: #00ff88;">${pos}</span>`;
+                document.querySelectorAll('.byte-cell')[pos].classList.add('selected');
+                document.querySelectorAll('.byte-cell')[pos].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } else {
+                document.getElementById('searchResult').innerHTML = 
+                    `❌ 未找到字符 "${char}"`;
+            }
+        }
+
+        function updateStats() {
+            const filled = charMap.filter(c => c !== null).length;
+            const percent = ((filled / 256) * 100).toFixed(1);
+            document.getElementById('stats').innerHTML = 
+                `已绑定: <span style="color: #00ff88;">${filled}</span> / 256<br>
+                 剩余: <span style="color: #ffd93d;">${256 - filled}</span> / 256<br>
+                 使用率: <span style="color: #00d4ff;">${percent}%</span>`;
+        }
+
+        initGrid();
+    </script>
+</body>
+</html>

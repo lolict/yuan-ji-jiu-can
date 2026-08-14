@@ -1,0 +1,1209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniCore - 数据结构可视化</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 50%, #0d1b2a 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 30px 0;
+            border-bottom: 2px solid #2d3748;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 3em;
+            background: linear-gradient(135deg, #00d4ff 0%, #00ff88 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 40px rgba(0, 212, 255, 0.3);
+        }
+
+        .subtitle {
+            color: #888;
+            margin-top: 10px;
+            font-size: 1.2em;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 25px;
+        }
+
+        @media (max-width: 1000px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: rgba(45, 55, 72, 0.4);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid #4a5568;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .panel-title {
+            font-size: 1.5em;
+            color: #00d4ff;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .panel-title::before {
+            content: '✨';
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            color: #00ff88;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        select, input[type="number"], input[type="text"] {
+            width: 100%;
+            padding: 12px 16px;
+            background: #1a1a2e;
+            border: 2px solid #4a5568;
+            border-radius: 10px;
+            color: #e0e0e0;
+            font-size: 1em;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        select:focus, input:focus {
+            border-color: #00d4ff;
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 18px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s;
+            flex: 1;
+            min-width: 80px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #00d4ff 0%, #0077b6 100%);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #00ff88 0%, #00b894 100%);
+            color: #1a1a2e;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #ffd93d 0%, #f39c12 100%);
+            color: #1a1a2e;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 212, 255, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .canvas-container {
+            background: #0a0a1a;
+            border-radius: 15px;
+            padding: 15px;
+            border: 2px solid #4a5568;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #dsCanvas {
+            border-radius: 10px;
+        }
+
+        .algorithm-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .algorithm-card {
+            background: rgba(0, 212, 255, 0.1);
+            border: 2px solid rgba(0, 212, 255, 0.3);
+            border-radius: 12px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .algorithm-card:hover {
+            background: rgba(0, 212, 255, 0.2);
+            transform: translateY(-3px);
+            box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
+        }
+
+        .algorithm-card.active {
+            background: rgba(0, 255, 136, 0.2);
+            border-color: #00ff88;
+        }
+
+        .algorithm-name {
+            color: #00d4ff;
+            font-weight: 600;
+            font-size: 0.95em;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.8em;
+            color: #00ff88;
+            font-weight: bold;
+        }
+
+        .stat-label {
+            color: #888;
+            font-size: 0.8em;
+            margin-top: 5px;
+        }
+
+        .info-section {
+            background: rgba(0, 255, 136, 0.05);
+            border-left: 4px solid #00ff88;
+            padding: 15px 20px;
+            border-radius: 0 10px 10px 0;
+            margin-top: 20px;
+        }
+
+        .info-section h3 {
+            color: #00ff88;
+            margin-bottom: 10px;
+        }
+
+        .info-section p {
+            color: #a0aec0;
+            line-height: 1.6;
+        }
+
+        footer {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            border-top: 1px solid #2d3748;
+            margin-top: 40px;
+        }
+
+        footer a {
+            color: #00d4ff;
+            text-decoration: none;
+        }
+
+        .message-box {
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 10px;
+            padding: 12px 15px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #00d4ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 UniCore 数据结构可视化</h1>
+            <p class="subtitle">直观理解链表、树、堆、图等经典数据结构的操作过程</p>
+        </header>
+
+        <div class="main-grid">
+            <div class="left-column">
+                <div class="panel">
+                    <div class="panel-title">🎮 选择数据结构</div>
+                    <div class="algorithm-grid" id="structures">
+                        <div class="algorithm-card active" onclick="selectStructure('linkedlist')">
+                            <div class="algorithm-name">单向链表</div>
+                        </div>
+                        <div class="algorithm-card" onclick="selectStructure('stack')">
+                            <div class="algorithm-name">栈 (Stack)</div>
+                        </div>
+                        <div class="algorithm-card" onclick="selectStructure('queue')">
+                            <div class="algorithm-name">队列 (Queue)</div>
+                        </div>
+                        <div class="algorithm-card" onclick="selectStructure('bst')">
+                            <div class="algorithm-name">二叉搜索树</div>
+                        </div>
+                        <div class="algorithm-card" onclick="selectStructure('heap')">
+                            <div class="algorithm-name">最大堆</div>
+                        </div>
+                        <div class="algorithm-card" onclick="selectStructure('hashmap')">
+                            <div class="algorithm-name">哈希表</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel" style="margin-top: 20px;">
+                    <div class="panel-title">⚙️ 操作控制</div>
+                    
+                    <div class="stats-grid" id="stats">
+                        <div class="stat-card">
+                            <div class="stat-value" id="count">0</div>
+                            <div class="stat-label">元素数量</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="ops">0</div>
+                            <div class="stat-label">操作次数</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="comparisons">0</div>
+                            <div class="stat-label">比较次数</div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group" id="inputGroup">
+                        <label>值</label>
+                        <input type="number" id="inputValue" placeholder="输入数值">
+                    </div>
+
+                    <div class="form-group" id="inputGroupKey" style="display: none;">
+                        <label>键 (用于哈希表)</label>
+                        <input type="text" id="inputKey" placeholder="输入键">
+                    </div>
+
+                    <div class="btn-group" id="opButtons">
+                        <button class="btn btn-success" onclick="insert()">➕ 插入</button>
+                        <button class="btn btn-danger" onclick="remove()">🗑️ 删除</button>
+                        <button class="btn btn-primary" onclick="search()">🔍 搜索</button>
+                    </div>
+                    
+                    <div class="btn-group">
+                        <button class="btn btn-warning" onclick="reset()">🔄 重置</button>
+                        <button class="btn btn-primary" onclick="randomFill()">🎲 随机填充</button>
+                    </div>
+                    
+                    <div class="message-box" id="messageBox">选择数据结构开始操作</div>
+                </div>
+            </div>
+
+            <div class="right-column">
+                <div class="panel">
+                    <div class="panel-title">🎨 可视化</div>
+                    <div class="canvas-container">
+                        <canvas id="dsCanvas" width="850" height="600"></canvas>
+                    </div>
+                </div>
+                
+                <div class="panel" style="margin-top: 20px;">
+                    <div class="panel-title">💡 说明</div>
+                    <div class="info-section" id="infoBox">
+                        <h3>单向链表 (Linked List)</h3>
+                        <p>链表是一种线性数据结构，其中每个元素通过指针链接。支持插入、删除、搜索等操作。</p>
+                        <p style="margin-top: 10px; color: #00d4ff;">
+                            <strong>特点：</strong>动态大小、插入删除快、随机访问慢<br>
+                            <strong>时间复杂度：</strong>插入 O(1)、访问 O(n)
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p><a href="index.html">🏠 返回 UniCore 主页</a></p>
+            <p style="margin-top: 20px;">UniCore - 探索无限可能</p>
+        </footer>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('dsCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let currentStructure = 'linkedlist';
+        let data = null;
+        let opCount = 0;
+        let comparisonCount = 0;
+        
+        const structureInfo = {
+            linkedlist: {
+                title: '单向链表 (Linked List)',
+                desc: '链表是一种线性数据结构，其中每个元素通过指针链接。支持插入、删除、搜索等操作。',
+                features: '动态大小、插入删除快、随机访问慢',
+                time: '插入 O(1)、访问 O(n)'
+            },
+            stack: {
+                title: '栈 (Stack)',
+                desc: '栈是一种后进先出 (LIFO) 的线性数据结构。元素从顶部添加和移除。',
+                features: '后进先出、操作简单、受限访问',
+                time: 'Push/Pop O(1)'
+            },
+            queue: {
+                title: '队列 (Queue)',
+                desc: '队列是一种先进先出 (FIFO) 的线性数据结构。元素从尾部添加，从头部移除。',
+                features: '先进先出、操作简单、受限访问',
+                time: 'Enqueue/Dequeue O(1)'
+            },
+            bst: {
+                title: '二叉搜索树 (BST)',
+                desc: '二叉搜索树是一种树状数据结构，对于每个节点，左子树所有值小于节点值，右子树所有值大于节点值。',
+                features: '快速查找、有序遍历、平衡后性能好',
+                time: '平均 O(log n)、最坏 O(n)'
+            },
+            heap: {
+                title: '最大堆 (Max Heap)',
+                desc: '堆是一种完全二叉树，其中父节点总是大于或等于子节点。常用于优先队列。',
+                features: '快速获取最值、高效插入删除、数组表示',
+                time: 'Insert/Extract O(log n)'
+            },
+            hashmap: {
+                title: '哈希表 (Hash Map)',
+                desc: '哈希表使用哈希函数将键映射到数组索引，实现快速的键值对查找。',
+                features: '极快查找、键值对存储、冲突处理',
+                time: '平均 O(1)、最坏 O(n)'
+            }
+        };
+        
+        class ListNode {
+            constructor(value) {
+                this.value = value;
+                this.next = null;
+            }
+        }
+        
+        class TreeNode {
+            constructor(value) {
+                this.value = value;
+                this.left = null;
+                this.right = null;
+            }
+        }
+        
+        function initStructure() {
+            opCount = 0;
+            comparisonCount = 0;
+            
+            switch (currentStructure) {
+                case 'linkedlist':
+                    data = null;
+                    break;
+                case 'stack':
+                    data = [];
+                    break;
+                case 'queue':
+                    data = [];
+                    break;
+                case 'bst':
+                    data = null;
+                    break;
+                case 'heap':
+                    data = [];
+                    break;
+                case 'hashmap':
+                    data = {};
+                    break;
+            }
+            
+            updateStats();
+            draw();
+            showMessage('数据结构已初始化');
+        }
+        
+        function updateStats() {
+            let count = 0;
+            switch (currentStructure) {
+                case 'linkedlist':
+                    let node = data;
+                    while (node) {
+                        count++;
+                        node = node.next;
+                    }
+                    break;
+                case 'stack':
+                case 'queue':
+                case 'heap':
+                    count = data.length;
+                    break;
+                case 'bst':
+                    count = countNodes(data);
+                    break;
+                case 'hashmap':
+                    count = Object.keys(data).length;
+                    break;
+            }
+            
+            document.getElementById('count').textContent = count;
+            document.getElementById('ops').textContent = opCount;
+            document.getElementById('comparisons').textContent = comparisonCount;
+        }
+        
+        function countNodes(node) {
+            if (!node) return 0;
+            return 1 + countNodes(node.left) + countNodes(node.right);
+        }
+        
+        function showMessage(msg) {
+            document.getElementById('messageBox').textContent = msg;
+        }
+        
+        function selectStructure(structure) {
+            currentStructure = structure;
+            
+            document.querySelectorAll('.algorithm-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            event.target.closest('.algorithm-card').classList.add('active');
+            
+            const info = structureInfo[structure];
+            document.getElementById('infoBox').innerHTML = `
+                <h3>${info.title}</h3>
+                <p>${info.desc}</p>
+                <p style="margin-top: 10px; color: #00d4ff;">
+                    <strong>特点：</strong>${info.features}<br>
+                    <strong>时间复杂度：</strong>${info.time}
+                </p>
+            `;
+            
+            if (structure === 'hashmap') {
+                document.getElementById('inputGroup').style.display = 'none';
+                document.getElementById('inputGroupKey').style.display = 'block';
+            } else {
+                document.getElementById('inputGroup').style.display = 'block';
+                document.getElementById('inputGroupKey').style.display = 'none';
+            }
+            
+            initStructure();
+        }
+        
+        function randomFill() {
+            opCount = 0;
+            comparisonCount = 0;
+            
+            switch (currentStructure) {
+                case 'linkedlist':
+                    data = null;
+                    for (let i = 0; i < 5; i++) {
+                        const val = Math.floor(Math.random() * 50) + 1;
+                        llInsert(val);
+                    }
+                    break;
+                case 'stack':
+                case 'queue':
+                case 'heap':
+                    data = [];
+                    for (let i = 0; i < 8; i++) {
+                        const val = Math.floor(Math.random() * 50) + 1;
+                        if (currentStructure === 'stack') data.push(val);
+                        else if (currentStructure === 'queue') data.push(val);
+                        else heapInsert(val);
+                    }
+                    break;
+                case 'bst':
+                    data = null;
+                    for (let i = 0; i < 6; i++) {
+                        const val = Math.floor(Math.random() * 50) + 1;
+                        bstInsert(val);
+                    }
+                    break;
+                case 'hashmap':
+                    data = {};
+                    for (let i = 0; i < 5; i++) {
+                        const key = String.fromCharCode(97 + i);
+                        const val = Math.floor(Math.random() * 50) + 1;
+                        data[key] = val;
+                    }
+                    break;
+            }
+            
+            updateStats();
+            draw();
+            showMessage('已随机填充');
+        }
+        
+        function insert() {
+            opCount++;
+            
+            if (currentStructure === 'hashmap') {
+                const key = document.getElementById('inputKey').value.trim();
+                const val = parseInt(document.getElementById('inputValue').value);
+                
+                if (!key) {
+                    showMessage('请输入键');
+                    return;
+                }
+                
+                data[key] = val;
+                showMessage(`插入 {${key}: ${val}}`);
+            } else {
+                const val = parseInt(document.getElementById('inputValue').value);
+                
+                if (isNaN(val)) {
+                    showMessage('请输入有效数值');
+                    return;
+                }
+                
+                switch (currentStructure) {
+                    case 'linkedlist':
+                        llInsert(val);
+                        showMessage(`插入 ${val}`);
+                        break;
+                    case 'stack':
+                        data.push(val);
+                        showMessage(`Push ${val}`);
+                        break;
+                    case 'queue':
+                        data.push(val);
+                        showMessage(`Enqueue ${val}`);
+                        break;
+                    case 'bst':
+                        bstInsert(val);
+                        showMessage(`插入 ${val}`);
+                        break;
+                    case 'heap':
+                        heapInsert(val);
+                        showMessage(`插入 ${val}`);
+                        break;
+                }
+            }
+            
+            updateStats();
+            draw();
+        }
+        
+        function remove() {
+            opCount++;
+            
+            if (currentStructure === 'hashmap') {
+                const key = document.getElementById('inputKey').value.trim();
+                
+                if (!key || !data.hasOwnProperty(key)) {
+                    showMessage('键不存在');
+                    return;
+                }
+                
+                const val = data[key];
+                delete data[key];
+                showMessage(`删除 {${key}: ${val}}`);
+            } else {
+                switch (currentStructure) {
+                    case 'linkedlist':
+                        const val = parseInt(document.getElementById('inputValue').value);
+                        if (isNaN(val)) {
+                            showMessage('请输入要删除的数值');
+                            return;
+                        }
+                        llDelete(val);
+                        showMessage(`删除 ${val}`);
+                        break;
+                    case 'stack':
+                        if (data.length > 0) {
+                            showMessage(`Pop ${data.pop()}`);
+                        } else {
+                            showMessage('栈空');
+                        }
+                        break;
+                    case 'queue':
+                        if (data.length > 0) {
+                            showMessage(`Dequeue ${data.shift()}`);
+                        } else {
+                            showMessage('队列空');
+                        }
+                        break;
+                    case 'bst':
+                        const bval = parseInt(document.getElementById('inputValue').value);
+                        if (isNaN(bval)) {
+                            showMessage('请输入要删除的数值');
+                            return;
+                        }
+                        data = bstDelete(data, bval);
+                        showMessage(`删除 ${bval}`);
+                        break;
+                    case 'heap':
+                        if (data.length > 0) {
+                            const maxVal = heapExtractMax();
+                            showMessage(`Extract max ${maxVal}`);
+                        } else {
+                            showMessage('堆空');
+                        }
+                        break;
+                }
+            }
+            
+            updateStats();
+            draw();
+        }
+        
+        function search() {
+            opCount++;
+            comparisonCount = 0;
+            
+            if (currentStructure === 'hashmap') {
+                const key = document.getElementById('inputKey').value.trim();
+                
+                if (data.hasOwnProperty(key)) {
+                    showMessage(`找到 {${key}: ${data[key]}} (${comparisonCount}次比较)`);
+                } else {
+                    showMessage(`键 ${key} 未找到 (${comparisonCount}次比较)`);
+                }
+            } else {
+                const val = parseInt(document.getElementById('inputValue').value);
+                
+                if (isNaN(val)) {
+                    showMessage('请输入要搜索的数值');
+                    return;
+                }
+                
+                let found = false;
+                
+                switch (currentStructure) {
+                    case 'linkedlist':
+                        found = llSearch(val);
+                        break;
+                    case 'stack':
+                    case 'queue':
+                        found = data.includes(val);
+                        break;
+                    case 'bst':
+                        found = bstSearch(data, val);
+                        break;
+                    case 'heap':
+                        found = data.includes(val);
+                        break;
+                }
+                
+                if (found) {
+                    showMessage(`找到 ${val} (${comparisonCount}次比较)`);
+                } else {
+                    showMessage(`${val} 未找到 (${comparisonCount}次比较)`);
+                }
+            }
+            
+            updateStats();
+        }
+        
+        function reset() {
+            initStructure();
+        }
+        
+        function llInsert(val) {
+            const newNode = new ListNode(val);
+            if (!data) {
+                data = newNode;
+            } else {
+                let node = data;
+                while (node.next) {
+                    node = node.next;
+                }
+                node.next = newNode;
+            }
+        }
+        
+        function llDelete(val) {
+            if (!data) return;
+            
+            if (data.value === val) {
+                data = data.next;
+                return;
+            }
+            
+            let node = data;
+            while (node.next && node.next.value !== val) {
+                node = node.next;
+            }
+            
+            if (node.next) {
+                node.next = node.next.next;
+            }
+        }
+        
+        function llSearch(val) {
+            let node = data;
+            while (node) {
+                comparisonCount++;
+                if (node.value === val) {
+                    return true;
+                }
+                node = node.next;
+            }
+            return false;
+        }
+        
+        function bstInsert(val) {
+            if (!data) {
+                data = new TreeNode(val);
+                return;
+            }
+            
+            let node = data;
+            while (true) {
+                comparisonCount++;
+                if (val < node.value) {
+                    if (!node.left) {
+                        node.left = new TreeNode(val);
+                        break;
+                    }
+                    node = node.left;
+                } else if (val > node.value) {
+                    if (!node.right) {
+                        node.right = new TreeNode(val);
+                        break;
+                    }
+                    node = node.right;
+                } else {
+                    break;
+                }
+            }
+        }
+        
+        function bstSearch(node, val) {
+            if (!node) return false;
+            
+            comparisonCount++;
+            if (val === node.value) return true;
+            comparisonCount++;
+            if (val < node.value) return bstSearch(node.left, val);
+            return bstSearch(node.right, val);
+        }
+        
+        function bstDelete(node, val) {
+            if (!node) return null;
+            
+            comparisonCount++;
+            if (val < node.value) {
+                node.left = bstDelete(node.left, val);
+            } else if (val > node.value) {
+                node.right = bstDelete(node.right, val);
+            } else {
+                if (!node.left) return node.right;
+                if (!node.right) return node.left;
+                
+                let minNode = node.right;
+                while (minNode.left) minNode = minNode.left;
+                node.value = minNode.value;
+                node.right = bstDelete(node.right, minNode.value);
+            }
+            
+            return node;
+        }
+        
+        function heapInsert(val) {
+            data.push(val);
+            let i = data.length - 1;
+            
+            while (i > 0) {
+                const parent = Math.floor((i - 1) / 2);
+                comparisonCount++;
+                if (data[i] <= data[parent]) break;
+                [data[i], data[parent]] = [data[parent], data[i]];
+                i = parent;
+            }
+        }
+        
+        function heapExtractMax() {
+            if (data.length === 0) return null;
+            
+            const max = data[0];
+            data[0] = data[data.length - 1];
+            data.pop();
+            
+            let i = 0;
+            while (true) {
+                const left = 2 * i + 1;
+                const right = 2 * i + 2;
+                let largest = i;
+                
+                if (left < data.length) {
+                    comparisonCount++;
+                    if (data[left] > data[largest]) largest = left;
+                }
+                if (right < data.length) {
+                    comparisonCount++;
+                    if (data[right] > data[largest]) largest = right;
+                }
+                
+                if (largest === i) break;
+                [data[i], data[largest]] = [data[largest], data[i]];
+                i = largest;
+            }
+            
+            return max;
+        }
+        
+        function draw() {
+            ctx.fillStyle = '#0a0a1a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            switch (currentStructure) {
+                case 'linkedlist':
+                    drawLinkedList();
+                    break;
+                case 'stack':
+                    drawStack();
+                    break;
+                case 'queue':
+                    drawQueue();
+                    break;
+                case 'bst':
+                    drawBST();
+                    break;
+                case 'heap':
+                    drawHeap();
+                    break;
+                case 'hashmap':
+                    drawHashmap();
+                    break;
+            }
+        }
+        
+        function drawLinkedList() {
+            let node = data;
+            let x = 50;
+            let y = canvas.height / 2;
+            
+            ctx.strokeStyle = '#00d4ff';
+            ctx.fillStyle = '#00d4ff';
+            ctx.font = '14px Arial';
+            ctx.textAlign = 'center';
+            
+            ctx.fillText('Head', x, y - 40);
+            
+            while (node) {
+                ctx.beginPath();
+                ctx.arc(x + 30, y, 25, 0, Math.PI * 2);
+                ctx.fillStyle = '#1a1a3e';
+                ctx.fill();
+                ctx.strokeStyle = '#00d4ff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                ctx.fillStyle = '#00ff88';
+                ctx.font = 'bold 18px Arial';
+                ctx.fillText(node.value, x + 30, y + 7);
+                
+                if (node.next) {
+                    ctx.beginPath();
+                    ctx.strokeStyle = '#4a5568';
+                    ctx.moveTo(x + 55, y);
+                    ctx.lineTo(x + 90, y);
+                    ctx.moveTo(x + 80, y - 7);
+                    ctx.lineTo(x + 90, y);
+                    ctx.lineTo(x + 80, y + 7);
+                    ctx.stroke();
+                }
+                
+                x += 90;
+                node = node.next;
+            }
+            
+            if (data === null) {
+                ctx.fillStyle = '#4a5568';
+                ctx.font = '20px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('(空链表)', canvas.width / 2, canvas.height / 2);
+            }
+        }
+        
+        function drawStack() {
+            const startX = canvas.width / 2;
+            const startY = canvas.height - 50;
+            const nodeWidth = 100;
+            const nodeHeight = 40;
+            
+            ctx.strokeStyle = '#4a5568';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(startX - nodeWidth / 2 - 10, startY + 10);
+            ctx.lineTo(startX - nodeWidth / 2 - 10, startY - data.length * (nodeHeight + 5) - 10);
+            ctx.lineTo(startX + nodeWidth / 2 + 10, startY - data.length * (nodeHeight + 5) - 10);
+            ctx.lineTo(startX + nodeWidth / 2 + 10, startY + 10);
+            ctx.stroke();
+            
+            ctx.fillStyle = '#00d4ff';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Top', startX + nodeWidth / 2 + 40, startY - data.length * (nodeHeight + 5) - nodeHeight / 2);
+            
+            for (let i = 0; i < data.length; i++) {
+                const y = startY - i * (nodeHeight + 5);
+                
+                ctx.fillStyle = '#1a1a3e';
+                ctx.fillRect(startX - nodeWidth / 2, y - nodeHeight, nodeWidth, nodeHeight);
+                ctx.strokeStyle = '#00d4ff';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(startX - nodeWidth / 2, y - nodeHeight, nodeWidth, nodeHeight);
+                
+                ctx.fillStyle = '#00ff88';
+                ctx.font = 'bold 16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(data[i], startX, y - nodeHeight / 2 + 6);
+            }
+            
+            if (data.length === 0) {
+                ctx.fillStyle = '#4a5568';
+                ctx.font = '20px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('(空栈)', canvas.width / 2, canvas.height / 2);
+            }
+        }
+        
+        function drawQueue() {
+            const startX = 80;
+            const startY = canvas.height / 2;
+            const nodeWidth = 80;
+            const nodeHeight = 50;
+            
+            ctx.fillStyle = '#00d4ff';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Front', startX + nodeWidth / 2, startY - 45);
+            if (data.length > 0) {
+                ctx.fillText('Rear', startX + (data.length - 1) * (nodeWidth + 10) + nodeWidth / 2, startY - 45);
+            }
+            
+            for (let i = 0; i < data.length; i++) {
+                const x = startX + i * (nodeWidth + 10);
+                
+                ctx.fillStyle = '#1a1a3e';
+                ctx.fillRect(x, startY - nodeHeight / 2, nodeWidth, nodeHeight);
+                ctx.strokeStyle = '#00d4ff';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(x, startY - nodeHeight / 2, nodeWidth, nodeHeight);
+                
+                ctx.fillStyle = '#00ff88';
+                ctx.font = 'bold 18px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(data[i], x + nodeWidth / 2, startY + 7);
+            }
+            
+            if (data.length === 0) {
+                ctx.fillStyle = '#4a5568';
+                ctx.font = '20px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('(空队列)', canvas.width / 2, canvas.height / 2);
+            }
+        }
+        
+        function drawBST() {
+            if (!data) {
+                ctx.fillStyle = '#4a5568';
+                ctx.font = '20px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('(空树)', canvas.width / 2, canvas.height / 2);
+                return;
+            }
+            
+            drawTreeNode(data, canvas.width / 2, 80, 250);
+        }
+        
+        function drawTreeNode(node, x, y, offset) {
+            if (!node) return;
+            
+            ctx.fillStyle = '#1a1a3e';
+            ctx.beginPath();
+            ctx.arc(x, y, 30, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#00d4ff';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            
+            ctx.fillStyle = '#00ff88';
+            ctx.font = 'bold 18px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(node.value, x, y);
+            
+            if (node.left) {
+                ctx.strokeStyle = '#4a5568';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(x - 25, y + 15);
+                ctx.lineTo(x - offset + 25, y + 70 - 15);
+                ctx.stroke();
+                drawTreeNode(node.left, x - offset, y + 70, offset / 2);
+            }
+            
+            if (node.right) {
+                ctx.strokeStyle = '#4a5568';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(x + 25, y + 15);
+                ctx.lineTo(x + offset - 25, y + 70 - 15);
+                ctx.stroke();
+                drawTreeNode(node.right, x + offset, y + 70, offset / 2);
+            }
+        }
+        
+        function drawHeap() {
+            const startX = canvas.width / 2;
+            const startY = 80;
+            const levelHeight = 90;
+            
+            if (data.length === 0) {
+                ctx.fillStyle = '#4a5568';
+                ctx.font = '20px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('(空堆)', canvas.width / 2, canvas.height / 2);
+                return;
+            }
+            
+            let level = 0;
+            let startIdx = 0;
+            let nodesInLevel = 1;
+            
+            while (startIdx < data.length) {
+                const levelX = startX - (nodesInLevel - 1) * 60 / 2;
+                
+                for (let i = 0; i < nodesInLevel && startIdx + i < data.length; i++) {
+                    const x = levelX + i * 60;
+                    const y = startY + level * levelHeight;
+                    const val = data[startIdx + i];
+                    
+                    ctx.fillStyle = '#1a1a3e';
+                    ctx.beginPath();
+                    ctx.arc(x, y, 25, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#00d4ff';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    
+                    ctx.fillStyle = '#00ff88';
+                    ctx.font = 'bold 16px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(val, x, y);
+                    
+                    const parentIdx = Math.floor((startIdx + i - 1) / 2);
+                    if (parentIdx >= 0) {
+                        const parentLevel = Math.floor(Math.log2(parentIdx + 1));
+                        const parentInLevel = parentIdx - (Math.pow(2, parentLevel) - 1);
+                        const parentNodesInLevel = Math.pow(2, parentLevel);
+                        const parentX = startX - (parentNodesInLevel - 1) * 60 / 2 + parentInLevel * 60;
+                        const parentY = startY + parentLevel * levelHeight;
+                        
+                        ctx.strokeStyle = '#4a5568';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.moveTo(parentX, parentY + 25);
+                        ctx.lineTo(x, y - 25);
+                        ctx.stroke();
+                    }
+                }
+                
+                startIdx += nodesInLevel;
+                nodesInLevel *= 2;
+                level++;
+            }
+        }
+        
+        function drawHashmap() {
+            const keys = Object.keys(data);
+            const startX = 100;
+            const startY = 100;
+            const cellWidth = 150;
+            const cellHeight = 50;
+            const cols = 4;
+            
+            ctx.font = '14px Arial';
+            
+            for (let i = 0; i < keys.length; i++) {
+                const col = i % cols;
+                const row = Math.floor(i / cols);
+                const x = startX + col * (cellWidth + 20);
+                const y = startY + row * (cellHeight + 15);
+                const key = keys[i];
+                const val = data[key];
+                
+                ctx.fillStyle = '#1a1a3e';
+                ctx.fillRect(x, y, cellWidth, cellHeight);
+                ctx.strokeStyle = '#00d4ff';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(x, y, cellWidth, cellHeight);
+                
+                ctx.fillStyle = '#00d4ff';
+                ctx.font = 'bold 14px Arial';
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'top';
+                ctx.fillText(`Key: ${key}`, x + 10, y + 8);
+                
+                ctx.fillStyle = '#00ff88';
+                ctx.fillText(`Value: ${val}`, x + 10, y + 28);
+            }
+            
+            if (keys.length === 0) {
+                ctx.fillStyle = '#4a5568';
+                ctx.font = '20px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('(空哈希表)', canvas.width / 2, canvas.height / 2);
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            initStructure();
+        });
+    </script>
+</body>
+</html>

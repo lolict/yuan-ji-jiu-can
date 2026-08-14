@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniCore - API 集成可视化</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 50%, #0d1b2a 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 30px 0;
+            border-bottom: 2px solid #2d3748;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 3em;
+            background: linear-gradient(135deg, #00d4ff 0%, #00ff88 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: #888;
+            margin-top: 10px;
+            font-size: 1.2em;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 25px;
+        }
+
+        @media (max-width: 1000px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: rgba(45, 55, 72, 0.4);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid #4a5568;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .panel-title {
+            font-size: 1.5em;
+            color: #00d4ff;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .panel-title::before {
+            content: '🔌';
+        }
+
+        .preset-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .preset-card {
+            background: rgba(0, 212, 255, 0.1);
+            border: 2px solid rgba(0, 212, 255, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .preset-card:hover {
+            background: rgba(0, 212, 255, 0.2);
+            transform: translateY(-3px);
+            box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
+        }
+
+        .preset-card.active {
+            background: rgba(0, 255, 136, 0.2);
+            border-color: #00ff88;
+        }
+
+        .preset-name {
+            color: #00d4ff;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 18px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s;
+            flex: 1;
+            min-width: 80px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #00d4ff 0%, #0077b6 100%);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #00ff88 0%, #00b894 100%);
+            color: #1a1a2e;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 212, 255, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .canvas-container {
+            background: #0a0a1a;
+            border-radius: 15px;
+            padding: 15px;
+            border: 2px solid #4a5568;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #apiCanvas {
+            border-radius: 10px;
+        }
+
+        .message-box {
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #00d4ff;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .message {
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(0, 212, 255, 0.1);
+        }
+
+        .message:last-child {
+            border-bottom: none;
+        }
+
+        .info-section {
+            background: rgba(0, 255, 136, 0.05);
+            border-left: 4px solid #00ff88;
+            padding: 15px 20px;
+            border-radius: 0 10px 10px 0;
+            margin-top: 20px;
+        }
+
+        .info-section h3 {
+            color: #00ff88;
+            margin-bottom: 10px;
+        }
+
+        .info-section p {
+            color: #a0aec0;
+            line-height: 1.6;
+        }
+
+        footer {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            border-top: 1px solid #2d3748;
+            margin-top: 40px;
+        }
+
+        footer a {
+            color: #00d4ff;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔌 UniCore API 集成可视化</h1>
+            <p class="subtitle">直观理解 API 到 API 集成的工作原理</p>
+        </header>
+
+        <div class="main-grid">
+            <div class="left-column">
+                <div class="panel">
+                    <div class="panel-title">预设场景</div>
+                    <div class="preset-grid">
+                        <div class="preset-card active" onclick="selectPreset('ecommerce')">
+                            <div class="preset-name">电商订单</div>
+                        </div>
+                        <div class="preset-card" onclick="selectPreset('social')">
+                            <div class="preset-name">社媒同步</div>
+                        </div>
+                        <div class="preset-card" onclick="selectPreset('crm')">
+                            <div class="preset-name">CRM 集成</div>
+                        </div>
+                        <div class="preset-card" onclick="selectPreset('analytics')">
+                            <div class="preset-name">数据聚合</div>
+                        </div>
+                    </div>
+
+                    <div class="btn-group">
+                        <button class="btn btn-success" onclick="startIntegration()" id="startBtn">▶ 开始运行</button>
+                        <button class="btn btn-danger" onclick="resetSimulation()">🔄 重置</button>
+                    </div>
+
+                    <div class="message-box" id="messageBox">
+                        <div class="message">选择一个场景，点击"开始运行"查看 API 集成演示</div>
+                    </div>
+                </div>
+
+                <div class="panel" style="margin-top: 20px;">
+                    <div class="panel-title">💡 说明</div>
+                    <div class="info-section">
+                        <h3>什么是 API 集成？</h3>
+                        <p>API 集成让不同的系统通过 API 自动对话，实现数据同步和功能联动，就像工具之间的"自动翻译官"。</p>
+                        <p style="margin-top: 10px; color: #00d4ff;">
+                            <strong>核心价值：</strong><br>
+                            • 告别手动复制粘贴<br>
+                            • 打破数据孤岛<br>
+                            • 提升响应速度<br>
+                            • 扩展工具能力
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="right-column">
+                <div class="panel">
+                    <div class="panel-title">🎬 可视化演示</div>
+                    <div class="canvas-container">
+                        <canvas id="apiCanvas" width="850" height="600"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p><a href="index.html">🏠 返回 UniCore 主页</a></p>
+            <p style="margin-top: 20px;">UniCore - 探索无限可能</p>
+        </footer>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('apiCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let currentPreset = 'ecommerce';
+        let running = false;
+        let messages = [];
+
+        const presets = {
+            ecommerce: {
+                name: '电商订单流程',
+                services: [
+                    { id: 'store', name: '电商平台', x: 150, y: 150, color: '#00d4ff' },
+                    { id: 'payment', name: '支付网关', x: 425, y: 100, color: '#00ff88' },
+                    { id: 'inventory', name: '库存系统', x: 425, y: 220, color: '#ffd93d' },
+                    { id: 'shipping', name: '物流 API', x: 700, y: 150, color: '#ff6b6b' }
+                ],
+                steps: [
+                    { from: 'store', to: 'payment', action: '发起支付请求' },
+                    { from: 'payment', to: 'store', action: '支付成功回调' },
+                    { from: 'store', to: 'inventory', action: '扣减库存' },
+                    { from: 'inventory', to: 'shipping', action: '创建物流订单' },
+                    { from: 'shipping', to: 'store', action: '返回快递单号' }
+                ]
+            },
+            social: {
+                name: '社交媒体同步',
+                services: [
+                    { id: 'creator', name: 'AI 内容生成', x: 150, y: 150, color: '#00d4ff' },
+                    { id: 'wechat', name: '微信公众号', x: 425, y: 80, color: '#00ff88' },
+                    { id: 'weibo', name: '微博', x: 425, y: 200, color: '#ffd93d' },
+                    { id: 'douyin', name: '抖音', x: 425, y: 320, color: '#ff6b6b' },
+                    { id: 'analytics', name: '数据分析', x: 700, y: 200, color: '#9b59b6' }
+                ],
+                steps: [
+                    { from: 'creator', to: 'wechat', action: '发布文章' },
+                    { from: 'creator', to: 'weibo', action: '发布微博' },
+                    { from: 'creator', to: 'douyin', action: '发布视频' },
+                    { from: 'wechat', to: 'analytics', action: '同步阅读数据' },
+                    { from: 'weibo', to: 'analytics', action: '同步互动数据' },
+                    { from: 'douyin', to: 'analytics', action: '同步播放数据' }
+                ]
+            },
+            crm: {
+                name: 'CRM 客户管理',
+                services: [
+                    { id: 'website', name: '网站表单', x: 150, y: 150, color: '#00d4ff' },
+                    { id: 'ai', name: 'AI 分析工具', x: 425, y: 100, color: '#00ff88' },
+                    { id: 'crm', name: 'CRM 系统', x: 425, y: 220, color: '#ffd93d' },
+                    { id: 'notification', name: '通知服务', x: 700, y: 150, color: '#ff6b6b' }
+                ],
+                steps: [
+                    { from: 'website', to: 'ai', action: '发送客户数据' },
+                    { from: 'ai', to: 'crm', action: '添加客户标签' },
+                    { from: 'crm', to: 'notification', action: '触发跟进提醒' }
+                ]
+            },
+            analytics: {
+                name: '数据聚合分析',
+                services: [
+                    { id: 'sales', name: '销售数据', x: 150, y: 100, color: '#00d4ff' },
+                    { id: 'user', name: '用户行为', x: 150, y: 200, color: '#00ff88' },
+                    { id: 'marketing', name: '营销数据', x: 150, y: 300, color: '#ffd93d' },
+                    { id: 'etl', name: 'ETL 处理', x: 425, y: 200, color: '#9b59b6' },
+                    { id: 'warehouse', name: '数据仓库', x: 700, y: 200, color: '#ff6b6b' }
+                ],
+                steps: [
+                    { from: 'sales', to: 'etl', action: '提取销售数据' },
+                    { from: 'user', to: 'etl', action: '提取用户数据' },
+                    { from: 'marketing', to: 'etl', action: '提取营销数据' },
+                    { from: 'etl', to: 'warehouse', action: '清洗并加载' }
+                ]
+            }
+        };
+
+        function addMessage(text) {
+            const time = new Date().toLocaleTimeString();
+            messages.unshift(`[${time}] ${text}`);
+            if (messages.length > 20) messages.pop();
+            
+            const box = document.getElementById('messageBox');
+            box.innerHTML = messages.map(m => `<div class="message">${m}</div>`).join('');
+        }
+
+        function selectPreset(preset) {
+            if (running) return;
+            currentPreset = preset;
+            
+            document.querySelectorAll('.preset-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            event.target.closest('.preset-card').classList.add('active');
+            
+            drawPreset();
+            addMessage(`已选择场景：${presets[preset].name}`);
+        }
+
+        function drawPreset() {
+            const preset = presets[currentPreset];
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#0a0a1a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw title
+            ctx.fillStyle = '#00d4ff';
+            ctx.font = 'bold 24px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(preset.name, canvas.width / 2, 40);
+            
+            // Draw connections
+            preset.steps.forEach(step => {
+                const from = preset.services.find(s => s.id === step.from);
+                const to = preset.services.find(s => s.id === step.to);
+                
+                ctx.beginPath();
+                ctx.strokeStyle = 'rgba(74, 85, 104, 0.3)';
+                ctx.lineWidth = 3;
+                ctx.setLineDash([10, 5]);
+                ctx.moveTo(from.x, from.y);
+                ctx.lineTo(to.x, to.y);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            });
+            
+            // Draw services
+            preset.services.forEach(service => {
+                // Draw circle
+                ctx.beginPath();
+                ctx.arc(service.x, service.y, 60, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(26, 26, 62, 0.9)';
+                ctx.fill();
+                ctx.strokeStyle = service.color;
+                ctx.lineWidth = 4;
+                ctx.stroke();
+                
+                // Draw icon
+                ctx.fillStyle = service.color;
+                ctx.font = 'bold 32px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('📡', service.x, service.y - 10);
+                
+                // Draw name
+                ctx.fillStyle = '#e0e0e0';
+                ctx.font = '16px Arial';
+                ctx.fillText(service.name, service.x, service.y + 40);
+            });
+        }
+
+        async function startIntegration() {
+            if (running) return;
+            running = true;
+            document.getElementById('startBtn').disabled = true;
+            
+            const preset = presets[currentPreset];
+            addMessage(`开始运行 ${preset.name} 流程...`);
+            
+            for (let i = 0; i < preset.steps.length; i++) {
+                const step = preset.steps[i];
+                const from = preset.services.find(s => s.id === step.from);
+                const to = preset.services.find(s => s.id === step.to);
+                
+                addMessage(`📤 ${from.name} → ${to.name}: ${step.action}`);
+                await animateDataFlow(from, to);
+                await sleep(600);
+            }
+            
+            addMessage('✅ 集成流程完成！');
+            running = false;
+            document.getElementById('startBtn').disabled = false;
+        }
+
+        async function animateDataFlow(from, to) {
+            const duration = 1000;
+            const startTime = Date.now();
+            
+            return new Promise(resolve => {
+                function animate() {
+                    const elapsed = Date.now() - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    
+                    drawPreset();
+                    
+                    // Draw moving data packet
+                    const x = from.x + (to.x - from.x) * progress;
+                    const y = from.y + (to.y - from.y) * progress;
+                    
+                    ctx.beginPath();
+                    ctx.arc(x, y, 15, 0, Math.PI * 2);
+                    const gradient = ctx.createRadialGradient(x, y, 0, x, y, 20);
+                    gradient.addColorStop(0, 'rgba(0, 255, 136, 0.9)');
+                    gradient.addColorStop(0.5, 'rgba(0, 212, 255, 0.6)');
+                    gradient.addColorStop(1, 'rgba(0, 255, 136, 0)');
+                    ctx.fillStyle = gradient;
+                    ctx.fill();
+                    
+                    // Highlight source and target
+                    ctx.beginPath();
+                    ctx.arc(from.x, from.y, 65, 0, Math.PI * 2);
+                    ctx.strokeStyle = from.color;
+                    ctx.lineWidth = 6;
+                    ctx.globalAlpha = 0.5;
+                    ctx.stroke();
+                    
+                    ctx.beginPath();
+                    ctx.arc(to.x, to.y, 65, 0, Math.PI * 2);
+                    ctx.strokeStyle = to.color;
+                    ctx.lineWidth = 6;
+                    ctx.globalAlpha = progress;
+                    ctx.stroke();
+                    ctx.globalAlpha = 1;
+                    
+                    if (progress < 1) {
+                        requestAnimationFrame(animate);
+                    } else {
+                        resolve();
+                    }
+                }
+                animate();
+            });
+        }
+
+        function resetSimulation() {
+            if (running) return;
+            messages = [];
+            addMessage('已重置，选择场景开始演示');
+            drawPreset();
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            drawPreset();
+        });
+    </script>
+</body>
+</html>

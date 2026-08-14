@@ -1,0 +1,10 @@
+.r2_fallback/
+*.swp
+.DS_Store
+node_modules/
+target/
+zig-cache/
+.zig-cache/
+zig-out/
+unicore_test
+unicore_test.o

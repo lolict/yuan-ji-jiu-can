@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniCore Guardian - 自有知识产权守护系统</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Courier New', monospace; background: #0a0a0f; color: #00ff88; min-height: 100vh; }
+        
+        .title-bar { 
+            background: linear-gradient(to right, #0a0a0f, rgba(255,0,128,0.3)); 
+            border-bottom: 3px solid #ff0080; 
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .title-bar h1 { font-size: 1.3em; color: #ff0080; }
+        .title-bar .subtitle { color: #ffd93d; font-size: 0.8em; margin-top: 5px; }
+        
+        .container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; padding: 15px; }
+        
+        .panel { 
+            background: rgba(10, 10, 15, 0.95); 
+            border: 2px solid #ff0080; 
+            border-radius: 10px; 
+            padding: 12px; 
+        }
+        
+        .panel h2 { 
+            color: #ffd93d; 
+            font-size: 0.85em; 
+            margin-bottom: 8px; 
+            border-bottom: 1px solid rgba(255,0,128,0.3); 
+            padding-bottom: 4px;
+        }
+        
+        .feature-tag {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.65em;
+            margin: 2px;
+        }
+        
+        .tag-red { background: rgba(255,0,0,0.3); color: #ff6b6b; }
+        .tag-yellow { background: rgba(255,217,0,0.3); color: #ffd93d; }
+        .tag-green { background: rgba(0,255,0,0.3); color: #00ff88; }
+        .tag-blue { background: rgba(0,136,255,0.3); color: #00d4ff; }
+        
+        .symbol-grid { 
+            display: grid; 
+            grid-template-columns: repeat(8, 1fr); 
+            gap: 2px; 
+            margin: 8px 0;
+        }
+        
+        .symbol-item { 
+            aspect-ratio: 1;
+            background: rgba(0,0,0,0.3); 
+            border-radius: 3px; 
+            font-size: 0.6em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .symbol-item:hover { background: rgba(255,0,128,0.3); }
+        .symbol-item.selected { background: rgba(255,0,128,0.6); }
+        
+        .info-box { 
+            background: rgba(0,0,0,0.3); 
+            border-radius: 5px; 
+            padding: 8px; 
+            margin: 6px 0; 
+            font-size: 0.7em; 
+        }
+        
+        .info-box .label { color: #888; }
+        .info-box .value { color: #ff0080; font-weight: bold; }
+        
+        .btn { 
+            padding: 5px 10px; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-family: inherit; 
+            font-size: 0.7em; 
+            margin: 2px; 
+            transition: all 0.2s; 
+        }
+        
+        .btn-primary { background: #ff0080; color: white; }
+        .btn-secondary { background: #ffd93d; color: #0a0a0f; }
+        .btn-small { font-size: 0.65em; padding: 3px 6px; }
+        
+        .cluster-list, .formation-list, .relation-list {
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        
+        .list-item {
+            padding: 4px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 3px;
+            margin: 2px 0;
+            font-size: 0.7em;
+            cursor: pointer;
+        }
+        
+        .list-item:hover { background: rgba(255,0,128,0.2); }
+        
+        .log-box { 
+            background: rgba(0,0,0,0.5); 
+            border-radius: 5px; 
+            padding: 6px; 
+            max-height: 100px; 
+            overflow-y: auto; 
+            font-size: 0.65em; 
+            margin-top: 8px;
+        }
+        
+        .log-line { margin: 2px 0; color: #00d4ff; }
+        .log-line.success { color: #00ff88; }
+        .log-line.error { color: #ff6b6b; }
+        
+        .grid-visual {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 3px;
+            margin: 8px 0;
+        }
+        
+        .grid-cell {
+            aspect-ratio: 1;
+            background: rgba(255,0,128,0.2);
+            border: 1px solid rgba(255,0,128,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.5em;
+            border-radius: 2px;
+        }
+        
+        .grid-cell.center { background: rgba(255,0,128,0.5); }
+        
+        @media (max-width: 1024px) {
+            .container { grid-template-columns: repeat(2, 1fr); }
+        }
+        
+        @media (max-width: 640px) {
+            .container { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="title-bar">
+        <h1>🛡️ UniCore Guardian - 自有知识产权守护系统</h1>
+        <div class="subtitle">零依赖 · 私有格式 · 自有指令 · 完全闭环 · 不可抄袭</div>
+    </div>
+    
+    <div class="container">
+        <!-- 自有符号面板 -->
+        <div class="panel">
+            <h2>自有符号序列 <span class="feature-tag tag-red">核心资产</span></h2>
+            
+            <div class="info-box">
+                <span class="feature-tag tag-blue">声调 170</span>
+                <span class="feature-tag tag-yellow">韵母 64</span>
+                <span class="feature-tag tag-green">声母 48</span>
+                <span class="feature-tag tag-red">数字 10</span>
+            </div>
+            
+            <h3 style="color:#ff0080;font-size:0.7em;margin:8px 0;">声母序列</h3>
+            <div class="symbol-grid" id="sm-grid"></div>
+            
+            <h3 style="color:#ffd93d;font-size:0.7em;margin:8px 0;">韵母序列</h3>
+            <div class="symbol-grid" id="ym-grid"></div>
+            
+            <h3 style="color:#00d4ff;font-size:0.7em;margin:8px 0;">数字序列</h3>
+            <div class="symbol-grid" id="num-grid"></div>
+        </div>
+        
+        <!-- 聚类面板 -->
+        <div class="panel">
+            <h2>聚类系统 <span class="feature-tag tag-green">认知计算</span></h2>
+            
+            <div class="cluster-list" id="cluster-list"></div>
+            
+            <h3 style="color:#ff0080;font-size:0.7em;margin:8px 0;">自有指令集</h3>
+            <div class="info-box">
+                <div>聚类 · 创建 · 连接 · 布阵 · 编码 · 解码 · 着色</div>
+            </div>
+            
+            <h3 style="color:#ffd93d;font-size:0.7em;margin:8px 0;">格子可视化</h3>
+            <div class="grid-visual" id="grid-visual">
+                <div class="grid-cell"></div>
+                <div class="grid-cell">前</div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell">左</div>
+                <div class="grid-cell center">中</div>
+                <div class="grid-cell">右</div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell">后</div>
+                <div class="grid-cell"></div>
+            </div>
+        </div>
+        
+        <!-- 阵法面板 -->
+        <div class="panel">
+            <h2>阵法系统 <span class="feature-tag tag-yellow">空间计算</span></h2>
+            
+            <div class="formation-list" id="formation-list"></div>
+            
+            <h3 style="color:#ff0080;font-size:0.7em;margin:8px 0;">关系系统</h3>
+            <div class="relation-list" id="relation-list"></div>
+        </div>
+        
+        <!-- 操作面板 -->
+        <div class="panel">
+            <h2>核心操作 <span class="feature-tag tag-red">自有指令</span></h2>
+            
+            <button class="btn btn-primary" onclick="createCharacter()">创建汉字</button>
+            <button class="btn btn-primary" onclick="encodeTriple()">编码</button>
+            <button class="btn btn-primary" onclick="executeOwnInstruction()">执行指令</button>
+            
+            <div class="info-box" id="op-result">
+                <div>等待操作...</div>
+            </div>
+            
+            <button class="btn btn-secondary" onclick="exportPrivate()">导出私有格式</button>
+            <button class="btn btn-secondary" onclick="importPrivate()">导入私有格式</button>
+            <input type="file" id="file-input" accept=".guardian,.json" style="display:none">
+        </div>
+        
+        <!-- 稀疏数运算面板 -->
+        <div class="panel">
+            <h2>稀疏数代数 <span class="feature-tag tag-blue">进位运算</span></h2>
+            
+            <div style="margin:8px 0;">
+                <select id="sym1-type">
+                    <option value="shengdiao">声调</option>
+                    <option value="yunmu">韵母</option>
+                    <option value="shengmu">声母</option>
+                    <option value="number">数字</option>
+                </select>
+                <span style="margin:0 5px;">+</span>
+                <select id="sym2-type">
+                    <option value="shengdiao">声调</option>
+                    <option value="yunmu">韵母</option>
+                    <option value="shengmu">声母</option>
+                    <option value="number">数字</option>
+                </select>
+            </div>
+            
+            <button class="btn btn-primary btn-small" onclick="sparseOp()">稀疏运算</button>
+            
+            <div class="info-box" id="sparse-result">
+                <div>优先级：声调(4) > 韵母(3) > 声母(2) > 数字(1)</div>
+            </div>
+            
+            <button class="btn btn-secondary btn-small" onclick="carryOp()">进位运算</button>
+            
+            <div class="info-box" id="carry-result">
+                <div>声调用完 → 韵母 → 声母 → 数字 → 双重声调</div>
+            </div>
+        </div>
+        
+        <!-- 颜色编程面板 -->
+        <div class="panel">
+            <h2>颜色编程 <span class="feature-tag tag-green">可编程着色</span></h2>
+            
+            <input type="color" id="color-picker" value="#ff0080" style="width:100%;height:30px;">
+            
+            <div class="info-box">
+                <div>选址目标：</div>
+                <button class="btn btn-secondary btn-small" onclick="colorWall()">墙体</button>
+                <button class="btn btn-secondary btn-small" onclick="colorCorner()">内角</button>
+                <button class="btn btn-secondary btn-small" onclick="colorConn()">外连</button>
+                <button class="btn btn-secondary btn-small" onclick="colorCenter()">中心</button>
+            </div>
+            
+            <h3 style="color:#ff0080;font-size:0.7em;margin:8px 0;">特征标签</h3>
+            <div>
+                <span class="feature-tag tag-red">是/非</span>
+                <span class="feature-tag tag-yellow">对/错</span>
+                <span class="feature-tag tag-green">动/静</span>
+                <span class="feature-tag tag-blue">亲/疏</span>
+                <span class="feature-tag tag-red">有/无</span>
+                <span class="feature-tag tag-yellow">大/小</span>
+            </div>
+        </div>
+        
+        <!-- 日志面板 -->
+        <div class="panel" style="grid-column: span 3;">
+            <h2>操作日志 <span class="feature-tag tag-blue">私有记录</span></h2>
+            <div class="log-box" id="log-box"></div>
+        </div>
+    </div>
+    
+    <script src="../src/guardian/unicore_guardian.js"></script>
+    <script>
+        let selectedSymbols = { shengmu: null, yunmu: null, shengdiao: null, number: null };
+        let createdGrids = [];
+        let currentGridId = null;
+
+        function init() {
+            renderSymbolGrids();
+            renderClusters();
+            renderFormations();
+            renderRelations();
+            log('🛡️ 守护系统初始化完成 - 自有知识产权已锁定', 'success');
+        }
+
+        function renderSymbolGrids() {
+            renderGrid('sm-grid', GUARDIAN_SHENGMU.slice(0, 24), 'shengmu');
+            renderGrid('ym-grid', GUARDIAN_YUNMU.slice(0, 24), 'yunmu');
+            renderGrid('num-grid', GUARDIAN_NUMBERS, 'number');
+        }
+
+        function renderGrid(containerId, symbols, type) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            symbols.forEach(s => {
+                const item = document.createElement('div');
+                item.className = 'symbol-item';
+                item.textContent = s;
+                item.onclick = () => selectSymbol(s, type);
+                container.appendChild(item);
+            });
+        }
+
+        function selectSymbol(symbol, type) {
+            selectedSymbols[type] = symbol;
+            const items = document.querySelectorAll(`#${type === 'shengmu' ? 'sm' : type === 'yunmu' ? 'ym' : 'num'}-grid .symbol-item`);
+            items.forEach(item => {
+                if (item.textContent === symbol) {
+                    item.classList.add('selected');
+                } else {
+                    item.classList.remove('selected');
+                }
+            });
+            log(`选中 ${type}: ${symbol}`);
+        }
+
+        function renderClusters() {
+            const container = document.getElementById('cluster-list');
+            container.innerHTML = '';
+            GUARDIAN.clusters.forEach((cluster, name) => {
+                const item = document.createElement('div');
+                item.className = 'list-item';
+                item.innerHTML = `<strong>${cluster.name}</strong>: ${cluster.items.slice(0, 5).join(', ')}...`;
+                item.onclick = () => {
+                    const result = GUARDIAN.getFromCluster(name, Math.floor(Math.random() * cluster.items.length));
+                    log(`聚类 ${name}: ${result}`);
+                };
+                container.appendChild(item);
+            });
+        }
+
+        function renderFormations() {
+            const container = document.getElementById('formation-list');
+            container.innerHTML = '';
+            GUARDIAN.formations.forEach((formation, name) => {
+                const item = document.createElement('div');
+                item.className = 'list-item';
+                item.innerHTML = `<strong>${formation.name}</strong>: ${formation.description}`;
+                container.appendChild(item);
+            });
+        }
+
+        function renderRelations() {
+            const container = document.getElementById('relation-list');
+            container.innerHTML = '';
+            let count = 0;
+            GUARDIAN.relations.forEach((rel, name) => {
+                if (count < 10) {
+                    const item = document.createElement('div');
+                    item.className = 'list-item';
+                    item.innerHTML = `${name} ⟷ ${rel.opposite} (层级${rel.level})`;
+                    container.appendChild(item);
+                    count++;
+                }
+            });
+        }
+
+        function createCharacter() {
+            const sm = selectedSymbols.shengmu || GUARDIAN_SHENGMU[0];
+            const ym = selectedSymbols.yunmu || GUARDIAN_YUNMU[0];
+            const sd = GUARDIAN_SHENGDIAO[0];
+            
+            const grid = GUARDIAN.createCharacter(sm, ym, sd);
+            createdGrids.push(grid);
+            currentGridId = grid.id;
+            
+            document.getElementById('op-result').innerHTML = `
+                <div>✅ 创建成功</div>
+                <div>码: ${sm}${ym}${sd}</div>
+                <div>ID: ${grid.id}</div>
+                <div>魔数: ${GUARDIAN.magic.join(', ')}</div>
+            `;
+            
+            log(`创建汉字: ${sm}${ym}${sd}`, 'success');
+        }
+
+        function encodeTriple() {
+            const sm = selectedSymbols.shengmu || GUARDIAN_SHENGMU[0];
+            const ym = selectedSymbols.yunmu || GUARDIAN_YUNMU[0];
+            const sd = GUARDIAN_SHENGDIAO[0];
+            
+            const encoded = GUARDIAN.encode(sm, ym, sd);
+            
+            document.getElementById('op-result').innerHTML = `
+                <div>🔐 编码结果</div>
+                <div>明文: ${sm}${ym}${sd}</div>
+                <div>混淆码: ${encoded.obfuscated}</div>
+                <div>原始码: ${encoded.raw}</div>
+            `;
+            
+            log(`编码: ${sm}${ym}${sd} → ${encoded.obfuscated}`, 'success');
+        }
+
+        function executeOwnInstruction() {
+            const instructions = ['聚类', '创建', '连接', '布阵', '编码', '着色'];
+            const instruction = instructions[Math.floor(Math.random() * instructions.length)];
+            
+            const result = GUARDIAN.executeInstruction(instruction, {
+                cluster: 'rightwrong',
+                item: '是',
+                shengmu: GUARDIAN_SHENGMU[0],
+                yunmu: GUARDIAN_YUNMU[0],
+                shengdiao: GUARDIAN_SHENGDIAO[0]
+            });
+            
+            document.getElementById('op-result').innerHTML = `
+                <div>⚙️ 指令执行</div>
+                <div>指令: ${instruction}</div>
+                <div>结果: ${result !== null ? '成功' : '完成'}</div>
+            `;
+            
+            log(`执行自有指令: ${instruction}`, 'success');
+        }
+
+        function sparseOp() {
+            const type1 = document.getElementById('sym1-type').value;
+            const type2 = document.getElementById('sym2-type').value;
+            
+            const sym1 = selectedSymbols[type1] || GUARDIAN_SHENGMU[0];
+            const sym2 = selectedSymbols[type2] || GUARDIAN_YUNMU[0];
+            
+            const result = GUARDIAN.sparseOperation(sym1, type1, sym2, type2);
+            
+            document.getElementById('sparse-result').innerHTML = `
+                <div>✨ 稀疏数运算</div>
+                <div>${sym1}(${type1}) + ${sym2}(${type2})</div>
+                <div>结果: ${result.symbol}(${result.type})</div>
+                <div>原因: 权位高者优先</div>
+            `;
+            
+            log(`稀疏运算: ${sym1} + ${sym2} = ${result.symbol}`, 'success');
+        }
+
+        function carryOp() {
+            const sm = selectedSymbols.shengmu || GUARDIAN_SHENGMU[0];
+            const carry = GUARDIAN.carryOperation(sm, 'shengmu');
+            
+            document.getElementById('carry-result').innerHTML = `
+                <div>🔄 进位运算</div>
+                <div>当前: ${sm}(声母)</div>
+                <div>进位到: ${carry ? carry.nextType : '无'}</div>
+                <div>新符号: ${carry ? carry.nextSymbol : '无'}</div>
+            `;
+            
+            log(`进位: ${sm} → ${carry ? carry.nextSymbol : '无法进位'}`, 'success');
+        }
+
+        function colorWall() {
+            const color = document.getElementById('color-picker').value;
+            if (currentGridId) {
+                GUARDIAN.colorProgramming(color, 'wall', currentGridId);
+                log(`墙体着色: ${color}`, 'success');
+            } else {
+                log('请先创建汉字', 'error');
+            }
+        }
+
+        function colorCorner() {
+            const color = document.getElementById('color-picker').value;
+            if (currentGridId) {
+                GUARDIAN.colorProgramming(color, 'innerCorner', currentGridId);
+                log(`内角着色: ${color}`, 'success');
+            } else {
+                log('请先创建汉字', 'error');
+            }
+        }
+
+        function colorConn() {
+            const color = document.getElementById('color-picker').value;
+            if (currentGridId) {
+                GUARDIAN.colorProgramming(color, 'outerConnection', currentGridId);
+                log(`外连着色: ${color}`, 'success');
+            } else {
+                log('请先创建汉字', 'error');
+            }
+        }
+
+        function colorCenter() {
+            const color = document.getElementById('color-picker').value;
+            if (currentGridId) {
+                GUARDIAN.colorProgramming(color, 'center', currentGridId);
+                log(`中心着色: ${color}`, 'success');
+            } else {
+                log('请先创建汉字', 'error');
+            }
+        }
+
+        function exportPrivate() {
+            const data = GUARDIAN.export();
+            const blob = new Blob([data], { type: 'application/octet-stream' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `unicore_${Date.now()}.guardian`;
+            a.click();
+            log('🛡️ 导出私有格式成功', 'success');
+        }
+
+        function importPrivate() {
+            document.getElementById('file-input').click();
+        }
+
+        document.getElementById('file-input').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                if (GUARDIAN.import(ev.target.result)) {
+                    log('🛡️ 导入成功 - 私有格式验证通过', 'success');
+                } else {
+                    log('导入失败 - 格式验证未通过', 'error');
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        function log(msg, type = '') {
+            const box = document.getElementById('log-box');
+            const line = document.createElement('div');
+            line.className = 'log-line ' + type;
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            box.appendChild(line);
+            box.scrollTop = box.scrollHeight;
+            while (box.children.length > 50) box.removeChild(box.firstChild);
+        }
+
+        init();
+    </script>
+</body>
+</html>

@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniCore - 通用核心平台</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 50%, #0d1b2a 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 50px 0;
+            margin-bottom: 50px;
+        }
+
+        h1 {
+            font-size: 4em;
+            background: linear-gradient(135deg, #00d4ff 0%, #00ff88 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 15px;
+            text-shadow: 0 0 40px rgba(0, 212, 255, 0.3);
+            letter-spacing: 3px;
+        }
+
+        .subtitle {
+            font-size: 1.4em;
+            color: #888;
+            margin-bottom: 25px;
+        }
+
+        .tagline {
+            font-size: 1.1em;
+            color: #aaa;
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.7;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 25px;
+            margin-bottom: 60px;
+        }
+
+        .feature-card {
+            background: rgba(45, 55, 72, 0.4);
+            border: 2px solid #4a5568;
+            border-radius: 20px;
+            padding: 35px 30px;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            backdrop-filter: blur(10px);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            border-color: #00d4ff;
+            box-shadow: 0 20px 50px rgba(0, 212, 255, 0.25);
+            background: rgba(0, 212, 255, 0.1);
+        }
+
+        .feature-icon {
+            font-size: 3.5em;
+            margin-bottom: 20px;
+        }
+
+        .feature-title {
+            font-size: 1.7em;
+            color: #00d4ff;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+
+        .feature-desc {
+            color: #a0aec0;
+            line-height: 1.7;
+            font-size: 1.05em;
+            margin-bottom: 25px;
+        }
+
+        .feature-btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #00d4ff 0%, #0077b6 100%);
+            color: white;
+            padding: 14px 30px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+            font-size: 1.05em;
+        }
+
+        .feature-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 30px rgba(0, 212, 255, 0.4);
+        }
+
+        .feature-btn.success {
+            background: linear-gradient(135deg, #00ff88 0%, #00b894 100%);
+            color: #1a1a2e;
+        }
+
+        .feature-btn.info {
+            background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+            color: white;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2.2em;
+            color: #00ff88;
+            margin-bottom: 40px;
+            font-weight: 700;
+        }
+
+        .about-section {
+            background: rgba(0, 255, 136, 0.05);
+            border: 2px solid rgba(0, 255, 136, 0.2);
+            border-radius: 20px;
+            padding: 45px;
+            margin-bottom: 50px;
+        }
+
+        .about-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+            margin-top: 30px;
+        }
+
+        .about-item h3 {
+            color: #00d4ff;
+            margin-bottom: 12px;
+            font-size: 1.3em;
+        }
+
+        .about-item p {
+            color: #a0aec0;
+            line-height: 1.6;
+        }
+
+        footer {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            border-top: 1px solid #2d3748;
+            margin-top: 60px;
+        }
+
+        footer a {
+            color: #00d4ff;
+            text-decoration: none;
+        }
+
+        .quick-links {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .quick-links a {
+            padding: 8px 20px;
+            background: rgba(0, 212, 255, 0.1);
+            border-radius: 20px;
+            color: #00d4ff;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+
+        .quick-links a:hover {
+            background: rgba(0, 212, 255, 0.2);
+        }
+
+        .demo-video {
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px solid #4a5568;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 30px;
+        }
+
+        .code-desc {
+            flex: 1;
+        }
+
+        .code-desc h2 {
+            color: #00ff88;
+            margin-bottom: 15px;
+        }
+
+        .code-desc p {
+            color: #a0aec0;
+            line-height: 1.7;
+        }
+
+        .stat-number {
+            font-size: 2.5em;
+            color: #00d4ff;
+            font-weight: 800;
+        }
+
+        .stat-label {
+            color: #888;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⚡ UniCore</h1>
+            <p class="subtitle">通用核心平台</p>
+            <p class="tagline">
+                从虚拟机到数学规律探索，<br>
+                探索技术与创意的无限可能
+            </p>
+        </header>
+
+        <h2 class="section-title">🚀 核心工具</h2>
+        <div class="features">
+            <div class="feature-card" onclick="window.location.href='sparse_number_demo.html'">
+                <div class="feature-icon">✨</div>
+                <div class="feature-title">稀疏数代数体系 v4.0</div>
+                <div class="feature-desc">
+                    声调(170)＞韵母(64)＞声母(48)＞数字(10)！稀疏数代数学！后面少的代表前面多的！
+                </div>
+                <a href="sparse_number_demo.html" class="feature-btn success">打开代数 →</a>
+            </div>
+
+            <div class="feature-card" onclick="window.location.href='pure_symbol_demo.html'">
+                <div class="feature-icon">🔮</div>
+                <div class="feature-title">纯符号序列体系 v3.0</div>
+                <div class="feature-desc">
+                    零数字！零进制！零进位！纯符号互认！48声母+64韵母+170声调=完整体系！
+                </div>
+                <a href="pure_symbol_demo.html" class="feature-btn success">打开体系 →</a>
+            </div>
+
+            <div class="feature-card" onclick="window.location.href='unicore_complete.html'">
+                <div class="feature-icon">🚀</div>
+                <div class="feature-title">UniCore 完整系统</div>
+                <div class="feature-desc">
+                    WASM底层+hacsjs_3d三维+CubeTable表格+0xA5指令全整合！一站式体验！
+                </div>
+                <a href="unicore_complete.html" class="feature-btn success">打开完整系统 →</a>
+            </div>
+
+            <div class="feature-card" onclick="window.location.href='unicore_integration.html'">
+                <div class="feature-icon">⚙️</div>
+                <div class="feature-title">WASM底层核心</div>
+                <div class="feature-desc">
+                    底层WASM二进制编译！不进位计数！节点因果时间！集装箱内存！插件指令扩展！
+                </div>
+                <a href="unicore_integration.html" class="feature-btn success">打开核心 →</a>
+            </div>
+
+            <div class="feature-card" onclick="window.location.href='hacsjs_3d_demo.html'">
+                <div class="feature-icon">🌐</div>
+                <div class="feature-title">hacsjs_3d.js 三维引擎</div>
+                <div class="feature-desc">
+                    Three.js原生3D！集装箱可视化！节点因果链！空间阵列！十字方向键操控！
+                </div>
+                <a href="hacsjs_3d_demo.html" class="feature-btn success">打开引擎 →</a>
+            </div>
+
+            <div class="feature-card" onclick="window.location.href='cube_table_demo.html'">
+                <div class="feature-icon">📐</div>
+                <div class="feature-title">里外嵌套三维表格</div>
+                <div class="feature-desc">
+                    0包含1的函子映射！符号=代数=名字=函数！表格=集装箱！里外关系嵌套！层级：母集/女集0，父集/子集1！
+                </div>
+                <a href="cube_table_demo.html" class="feature-btn success">打开表格 →</a>
+            </div>
+
+            <div class="feature-card" onclick="window.location.href='unicore_v2.html'">
+                <div class="feature-icon">⚡</div>
+                <div class="feature-title">UniCore v2.0 虚拟机</div>
+                <div class="feature-desc">
+                    全新指令集！不进位计数！节点因果时间！集装箱架构！插件即指令！真正的革命性突破！
+                </div>
+                <a href="unicore_v2.html" class="feature-btn success">打开虚拟机 →</a>
+            </div>
+
+            <div class="feature-card" onclick="window.location.href='cbc_format.html'">
+                <div class="feature-icon">📦</div>
+                <div class="feature-title">CON-BIN-COMM 统一格式</div>
+                <div class="feature-desc">
+                    .cbc统一存储格式！集装箱+二进制+通信一体化！8位时空/行为标记！可导入导出！
+                </div>
+                <a href="cbc_format.html" class="feature-btn success">打开系统 →</a>
+            </div>
+
+            <div class="feature-card" onclick="window.location.href='node_time.html'">
+                <div class="feature-icon">⏱️</div>
+                <div class="feature-title">节点因果时间系统</div>
+                <div class="feature-desc">
+                    抛弃传统时分秒！节点式因果记录！借用手机硬件时钟！自定义映射倍率！
+                </div>
+                <a href="node_time.html" class="feature-btn success">打开系统 →</a>
+            </div>
+
+            <div class="feature-card" onclick="window.location.href='3d_controls.html'">
+                <div class="feature-icon">🎮</div>
+                <div class="feature-title">三维操控圆柱+十字键</div>
+                <div class="feature-desc">
+                    人体工程学设计！圆柱视角+十字方向键！生理极限锁！手脚逻辑绑定！
+                </div>
+                <a href="3d_controls.html" class="feature-btn success">打开系统 →</a>
+            </div>
+
+            <div class="feature-card" onclick="window.location.href='plugable_charset.html'">
+                <div class="feature-icon">🔤</div>
+                <div class="feature-title">可插拔字符集系统</div>
+                <div class="feature-desc">
+                    自定义字符集！255个符号！1字节最大化效率！可插拔！可导入导出！
+                </div>
+                <a href="plugable_charset.html" class="feature-btn">打开系统 →</a>
+            </div>
+
+            <div class="feature-card" onclick="window.location.href='plugable_radix.html'">
+                <div class="feature-icon">🔌</div>
+                <div class="feature-title">可插拔进制系统</div>
+                <div class="feature-desc">
+                    模块化设计！像USB一样随便换进制！不写死！可插拔！可导入导出！64进制、256进制、自定义进制！
+                </div>
+                <a href="plugable_radix.html" class="feature-btn">打开系统 →</a>
+            </div>
+
+            <div class="feature-card" onclick="window.location.href='1byte_container.html'">
+                <div class="feature-icon">💾</div>
+                <div class="feature-title">1字节集装箱系统</div>
+                <div class="feature-desc">
+                    真正最小内存！8bit=1字节！0~255完全1字节！不进位二进制！自定义字符绑定！
+                </div>
+                <a href="1byte_container.html" class="feature-btn">打开系统 →</a>
+            </div>
+
+            <div class="feature-card" onclick="window.location.href='3d_container_system.html'">
+                <div class="feature-icon">📦</div>
+                <div class="feature-title">三维集装箱文字系统</div>
+                <div class="feature-desc">
+                    不进位二进制！三维定位！造字程序！全新文字系统！兼容其他编码！最小内存！自定义进制编码！
+                </div>
+                <a href="3d_container_system.html" class="feature-btn">打开系统 →</a>
+            </div>
+
+            <div class="feature-card" onclick="window.location.href='custom_numeral_system.html'">
+                <div class="feature-icon">🔢</div>
+                <div class="feature-title">自定义进制系统</div>
+                <div class="feature-desc">
+                    五维度六层级进制！声母、韵母、声调、数字、助记符！自定义编码！多次进位验证！最小内存！超越传统二进制！
+                </div>
+                <a href="custom_numeral_system.html" class="feature-btn">打开进制系统 →</a>
+            </div>
+
+            <div class="feature-card" onclick="window.location.href='text_tools.html'">
+                <div class="feature-icon">📝</div>
+                <div class="feature-title">文本处理工具包</div>
+                <div class="feature-desc">
+                    12种文本处理工具！统计、比较、转换、查找替换、提取、格式化等，一应俱全！
+                </div>
+                <a href="text_tools.html" class="feature-btn info">打开工具 →</a>
+            </div>
+
+            <div class="feature-card" onclick="window.location.href='data_generator.html'">
+                <div class="feature-icon">📊</div>
+                <div class="feature-title">数据生成器</div>
+                <div class="feature-desc">
+                    12种数据生成器！姓名、电话地址邮箱身份证银行卡等！JSON模拟数据！快速生成测试数据！
+                </div>
+                <a href="data_generator.html" class="feature-btn">生成数据 →</a>
+            </div>
+
+            <div class="feature-card" onclick="window.location.href='toolbox.html'">
+                <div class="feature-icon">🛠️</div>
+                <div class="feature-title">在线工具箱</div>
+                <div class="feature-desc">
+                    集合了各种实用小工具！进制转换、JSON格式化、密码生成、颜色选择器、UUID生成等10+实用工具！
+                </div>
+                <a href="toolbox.html" class="feature-btn info">打开工具箱 →</a>
+            </div>
+
+            <div class="feature-card" onclick="window.location.href='cloud_storage_registry.html'">
+                <div class="feature-icon">☁️</div>
+                <div class="feature-title">云盘备案众测</div>
+                <div class="feature-desc">
+                    收集各种云盘服务配置信息，让社区帮你测试！坚果云、123云盘、百度网盘、阿里云盘等，让别人帮你试错！
+                </div>
+                <a href="cloud_storage_registry.html" class="feature-btn success">开始备案 →</a>
+            </div>
+
+            <div class="feature-card" onclick="window.location.href='file_uploader.html'">
+                <div class="feature-icon">📤</div>
+                <div class="feature-title">文件上传管理器</div>
+                <div class="feature-desc">
+                    支持文档、压缩包、源代码、图片等多种文件类型上传与管理，完全保护隐私！
+                </div>
+                <a href="file_uploader.html" class="feature-btn success">开始上传 →</a>
+            </div>
+
+            <div class="feature-card" onclick="window.location.href='conversion_explorer.html'">
+                <div class="feature-icon">🔮</div>
+                <div class="feature-title">概念转换探索器</div>
+                <div class="feature-desc">
+                    探索 X → Y 的无限可能！进制、空间、类型、公私、竞争合作、情绪、奖惩、熟悉度... 8种转换关系可视化演示！
+                </div>
+                <a href="conversion_explorer.html" class="feature-btn success">开始探索 →</a>
+            </div>
+            
+            <div class="feature-card" onclick="window.location.href='conversion_explorer_pro.html'">
+                <div class="feature-icon">✨</div>
+                <div class="feature-title">概念转换探索器 Pro</div>
+                <div class="feature-desc">
+                    完整版，包含 18 种转换类型：技术、AI、社会、心理、范畴论等多个领域！
+                </div>
+                <a href="conversion_explorer_pro.html" class="feature-btn success">开始探索 →</a>
+            </div>
+            
+            <div class="feature-card" onclick="window.location.href='api_integration_visualizer.html'">
+                <div class="feature-icon">🔌</div>
+                <div class="feature-title">API 集成可视化</div>
+                <div class="feature-desc">
+                    直观理解 API 到 API 集成的工作原理，
+                    电商订单、社媒同步、CRM 集成、数据聚合等场景演示！
+                </div>
+                <a href="api_integration_visualizer.html" class="feature-btn success">开始探索 →</a>
+            </div>
+            
+            <div class="feature-card" onclick="window.location.href='datastructure_visualizer.html'">
+                <div class="feature-icon">📊</div>
+                <div class="feature-title">数据结构可视化</div>
+                <div class="feature-desc">
+                    直观理解链表、栈、队列、树、堆、哈希表等经典数据结构的操作过程，
+                    实时动画演示，展示插入、删除、搜索等步骤！
+                </div>
+                <a href="datastructure_visualizer.html" class="feature-btn">开始探索 →</a>
+            </div>
+            
+            <div class="feature-card" onclick="window.location.href='pathfinding_visualizer.html'">
+                <div class="feature-icon">🗺️</div>
+                <div class="feature-title">寻路算法可视化</div>
+                <div class="feature-desc">
+                    探索图搜索算法可视化，A*、Dijkstra、BFS、DFS等，
+                    实时动画演示，直观理解寻路算法的工作原理！
+                </div>
+                <a href="pathfinding_visualizer.html" class="feature-btn">开始探索 →</a>
+            </div>
+            
+            <div class="feature-card" onclick="window.location.href='maze_generator.html'">
+                <div class="feature-icon">🌀</div>
+                <div class="feature-title">迷宫生成器</div>
+                <div class="feature-desc">
+                    探索多种迷宫生成和求解算法，递归回溯、Prim、Kruskal，
+                    BFS、DFS、A*，直观理解算法的工作原理！
+                </div>
+                <a href="maze_generator.html" class="feature-btn">开始探索 →</a>
+            </div>
+            
+            <div class="feature-card" onclick="window.location.href='sorting_visualizer.html'">
+                <div class="feature-icon">📊</div>
+                <div class="feature-title">排序算法可视化</div>
+                <div class="feature-desc">
+                    直观理解各种排序算法的工作原理，6种经典排序算法动画演示，
+                    实时统计比较次数、交换次数和执行时间！
+                </div>
+                <a href="sorting_visualizer.html" class="feature-btn">开始学习 →</a>
+            </div>
+            
+            <div class="feature-card" onclick="window.location.href='lsystem_explorer.html'">
+                <div class="feature-icon">🌿</div>
+                <div class="feature-title">L系统分形生成器</div>
+                <div class="feature-desc">
+                    Lindenmayer系统 - 生成植物、雪花、龙曲线等自然分形图案，
+                    支持自定义规则，彩虹渐变配色！
+                </div>
+                <a href="lsystem_explorer.html" class="feature-btn">开始生成 →</a>
+            </div>
+            
+            <div class="feature-card" onclick="window.location.href='game_of_life.html'">
+                <div class="feature-icon">🧬</div>
+                <div class="feature-title">生命游戏</div>
+                <div class="feature-desc">
+                    Conway's Game of Life - 探索简单规则产生的复杂生命演化，
+                    支持多种预设模式，可自定义绘制！
+                </div>
+                <a href="game_of_life.html" class="feature-btn">开始游戏 →</a>
+            </div>
+            
+            <div class="feature-card" onclick="window.location.href='fractal_explorer.html'">
+                <div class="feature-icon">🌌</div>
+                <div class="feature-title">分形探索器</div>
+                <div class="feature-desc">
+                    探索数学与艺术的完美结合，Mandelbrot和Julia集合，
+                    无限缩放，精美配色，可导出为PNG图片！
+                </div>
+                <a href="fractal_explorer.html" class="feature-btn">开始探索 →</a>
+            </div>
+            
+            <div class="feature-card" onclick="window.location.href='sequence_explorer.html'">
+                <div class="feature-icon">🔢</div>
+                <div class="feature-title">数学规律探索器</div>
+                <div class="feature-desc">
+                    从斐波那契到任意k项序列，支持加减乘除混合运算，
+                    实时可视化，探索数学的奥秘！
+                </div>
+                <a href="sequence_explorer.html" class="feature-btn">开始探索 →</a>
+            </div>
+
+            <div class="feature-card" onclick="window.location.href='unicore_web.html'">
+                <div class="feature-icon">💻</div>
+                <div class="feature-title">UniCore 虚拟机</div>
+                <div class="feature-desc">
+                    完整的通用指令集架构虚拟机，支持自定义汇编语言，
+                    实时执行，可视化寄存器与内存！
+                </div>
+                <a href="unicore_web.html" class="feature-btn">启动虚拟机 →</a>
+            </div>
+        </div>
+
+        <div class="about-section">
+            <h2 class="section-title">🎯 关于 UniCore</h2>
+            <div class="about-grid">
+                <div class="about-item">
+                    <h3>🏗️ 完整架构</h3>
+                    <p>包含自定义ISA、虚拟机、二进制翻译器的完整计算机系统</p>
+                </div>
+                <div class="about-item">
+                    <h3>🌐 去中心化</h3>
+                    <p>支持GitHub Gist、坚果云WebDAV、WebRTC P2P同步</p>
+                </div>
+                <div class="about-item">
+                    <h3>📱 移动优先</h3>
+                    <p>所有界面完全响应式设计，完美支持移动设备</p>
+                </div>
+                <div class="about-item">
+                    <h3>🎨 精美设计</h3>
+                    <p>现代化深色主题，出色的视觉体验</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="demo-video">
+            <div class="code-desc">
+                <h2>📊 项目统计</h2>
+                <p>
+                    <span class="stat-number">1000+</span> <span class="stat-label">行代码</span>
+                    &nbsp;&nbsp;&nbsp;
+                    <span class="stat-number">5+</span> <span class="stat-label">编程语言</span>
+                    &nbsp;&nbsp;&nbsp;
+                    <span class="stat-number">∞</span> <span class="stat-label">可能性</span>
+                </p>
+            </div>
+        </div>
+
+        <footer>
+            <p>UniCore - 探索无限可能</p>
+            <div class="quick-links">
+                <a href="cbc_format.html">CBC统一格式</a>
+                <a href="node_time.html">节点因果时间</a>
+                <a href="3d_controls.html">三维操控系统</a>
+                <a href="plugable_charset.html">字符集系统</a>
+                <a href="plugable_radix.html">可插拔进制</a>
+                <a href="1byte_container.html">1字节系统</a>
+                <a href="3d_container_system.html">集装箱系统</a>
+                <a href="custom_numeral_system.html">进制系统</a>
+                <a href="text_tools.html">文本处理</a>
+                <a href="data_generator.html">数据生成器</a>
+                <a href="toolbox.html">在线工具箱</a>
+                <a href="cloud_storage_registry.html">云盘备案</a>
+                <a href="file_uploader.html">文件上传</a>
+                <a href="conversion_explorer.html">概念转换</a>
+                <a href="conversion_explorer_pro.html">转换Pro</a>
+                <a href="api_integration_visualizer.html">API 集成</a>
+                <a href="datastructure_visualizer.html">数据结构</a>
+                <a href="pathfinding_visualizer.html">寻路算法</a>
+                <a href="maze_generator.html">迷宫生成器</a>
+                <a href="sorting_visualizer.html">排序可视化</a>
+                <a href="lsystem_explorer.html">L系统</a>
+                <a href="game_of_life.html">生命游戏</a>
+                <a href="fractal_explorer.html">分形探索器</a>
+                <a href="sequence_explorer.html">数学探索器</a>
+                <a href="unicore_web.html">虚拟机</a>
+                <a href="https://github.com/lolict/Unicore">GitHub</a>
+            </div>
+            <p style="margin-top: 20px;">
+                Made with 💚 by the UniCore team
+            </p>
+        </footer>
+    </div>
+    <script>
+        console.log('🚀 UniCore 平台已加载');
+    </script>
+</body>
+</html>

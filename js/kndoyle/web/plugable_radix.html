@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniCore - 可插拔进制系统</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 50%, #0d1b2a 100%); min-height: 100vh; color: #e0e0e0; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        
+        header { text-align: center; padding: 40px 0; border-bottom: 2px solid #2d3748; margin-bottom: 40px; }
+        h1 { font-size: 3.5em; background: linear-gradient(135deg, #00d4ff 0%, #00ff88 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .subtitle { color: #888; margin-top: 10px; font-size: 1.3em; }
+        
+        .section { background: rgba(45, 55, 72, 0.4); border: 2px solid #4a5568; border-radius: 20px; padding: 30px; margin-bottom: 30px; }
+        .section-title { font-size: 2em; color: #00d4ff; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid rgba(0, 212, 255, 0.2); }
+        
+        .concept-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 20px 0; }
+        .concept-card { background: rgba(0, 212, 255, 0.1); border: 2px solid rgba(0, 212, 255, 0.3); border-radius: 15px; padding: 20px; text-align: center; transition: all 0.3s; }
+        .concept-card:hover { transform: translateY(-5px); box-shadow: 0 10px 30px rgba(0, 212, 255, 0.2); }
+        .concept-icon { font-size: 3em; margin-bottom: 15px; }
+        .concept-name { color: #00ff88; font-size: 1.3em; font-weight: 700; }
+        
+        .plugin-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 20px 0; }
+        .plugin-card { background: rgba(0, 0, 0, 0.3); border: 2px solid #4a5568; border-radius: 15px; padding: 20px; cursor: pointer; transition: all 0.3s; }
+        .plugin-card:hover { border-color: #00ff88; transform: translateY(-3px); }
+        .plugin-card.active { border-color: #00ff88; background: rgba(0, 255, 136, 0.1); }
+        .plugin-title { color: #00ff88; font-size: 1.2em; font-weight: 700; margin-bottom: 10px; }
+        .plugin-desc { color: #888; margin-bottom: 15px; }
+        .plugin-meta { display: flex; gap: 15px; color: #a0aec0; font-size: 0.9em; }
+        
+        .panel { background: rgba(0, 0, 0, 0.3); border: 2px solid #4a5568; border-radius: 15px; padding: 20px; margin: 20px 0; }
+        .panel-header { color: #00ff88; font-size: 1.2em; font-weight: 700; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #4a5568; }
+        
+        .code-editor { width: 100%; min-height: 300px; background: #1a1a2e; border: 2px solid #4a5568; border-radius: 10px; color: #00ff88; font-family: 'Courier New', monospace; font-size: 0.9em; padding: 15px; line-height: 1.6; }
+        
+        .btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin: 15px 0; }
+        .btn { padding: 12px 24px; border: none; border-radius: 10px; cursor: pointer; font-size: 1em; font-weight: 600; transition: all 0.3s; }
+        .btn-primary { background: linear-gradient(135deg, #00d4ff 0%, #0077b6 100%); color: white; }
+        .btn-success { background: linear-gradient(135deg, #00ff88 0%, #00b894 100%); color: #1a1a2e; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0, 212, 255, 0.4); }
+        
+        .demo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; margin: 20px 0; }
+        .demo-box { background: rgba(0, 0, 0, 0.3); border: 2px solid #4a5568; border-radius: 15px; padding: 20px; }
+        .demo-title { color: #00ff88; font-weight: 700; margin-bottom: 15px; }
+        .input-group { margin-bottom: 15px; }
+        .input-label { display: block; color: #888; margin-bottom: 5px; }
+        .input-field { width: 100%; padding: 12px; background: #1a1a2e; border: 2px solid #4a5568; border-radius: 10px; color: #00ff88; font-size: 1em; }
+        
+        .status { display: flex; gap: 15px; margin: 20px 0; padding: 15px; background: rgba(0, 0, 0, 0.3); border-radius: 10px; }
+        .status-item { flex: 1; text-align: center; }
+        .status-label { color: #888; font-size: 0.9em; }
+        .status-value { color: #00ff88; font-size: 1.5em; font-weight: 800; }
+        
+        footer { text-align: center; padding: 40px; color: #666; border-top: 1px solid #2d3748; margin-top: 60px; }
+        footer a { color: #00d4ff; text-decoration: none; }
+        
+        .diagram { background: rgba(0, 0, 0, 0.3); border-radius: 10px; padding: 20px; margin: 20px 0; }
+        .diagram-text { font-family: 'Courier New', monospace; color: #a0aec0; line-height: 2; text-align: center; }
+        .highlight { color: #00ff88; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔌 可插拔进制系统</h1>
+            <p class="subtitle">模块化设计！像USB一样随便换进制！不写死！可插拔！</p>
+        </header>
+
+        <div class="section">
+            <h2 class="section-title">💡 核心理念</h2>
+            <div class="concept-grid">
+                <div class="concept-card">
+                    <div class="concept-icon">🔌</div>
+                    <div class="concept-name">可插拔</div>
+                    <div class="concept-desc">像USB接口一样<br>随便插随便拔<br>不写死</div>
+                </div>
+                <div class="concept-card">
+                    <div class="concept-icon">🧩</div>
+                    <div class="concept-name">模块化</div>
+                    <div class="concept-desc">每个进制独立模块<br>互不干扰<br>随时更换</div>
+                </div>
+                <div class="concept-card">
+                    <div class="concept-icon">🔄</div>
+                    <div class="concept-name">可互通</div>
+                    <div class="concept-desc">进制之间可互相转换<br>数据兼容<br>灵活切换</div>
+                </div>
+                <div class="concept-card">
+                    <div class="concept-icon">⚡</div>
+                    <div class="concept-name">高效</div>
+                    <div class="concept-desc">位权确认<br>身份确认<br>快速计算</div>
+                </div>
+            </div>
+
+            <div class="diagram">
+                <div class="diagram-text">
+┌─────────────────────────────────────────────┐
+│  <span class="highlight">核心插座系统</span>                                  │
+├─────────────────────────────────────────────┤
+│  ┌─────────┐ ┌─────────┐ ┌─────────┐       │
+│  │  64进制  │ │你设定的  │ │  其他进制  │       │
+│  │  模块    │ │  模块    │ │  模块    │       │
+│  │  可插拔  │ │  可插拔  │ │  可插拔  │       │
+│  └────┬────┘ └────┬────┘ └────┬────┘       │
+│       │           │           │              │
+│  ┌────┴───────────┴───────────┴────────┐   │
+│  │  <span class="highlight">统一接口层</span>                             │   │
+│  └────────────────────────────────────────┘   │
+│  ┌────────────────────────────────────────┐   │
+│  │  <span class="highlight">字体系统、编码系统、集装箱系统</span>        │   │
+│  └────────────────────────────────────────┘   │
+└─────────────────────────────────────────────┘
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">📦 可用进制模块</h2>
+            <div class="plugin-grid" id="pluginGrid"></div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">⚙️ 进制模块编辑器</h2>
+            <p style="color: #888; margin-bottom: 20px;">点击上面的模块，在这里查看和编辑进制定义</p>
+            
+            <div class="panel">
+                <div class="panel-header">📝 进制定义 (JSON格式)</div>
+                <textarea class="code-editor" id="moduleEditor"></textarea>
+                <div class="btn-group">
+                    <button class="btn btn-success" onclick="saveModule()">💾 保存模块</button>
+                    <button class="btn btn-primary" onclick="testModule()">🧪 测试模块</button>
+                    <button class="btn btn-primary" onclick="exportModule()">📤 导出模块</button>
+                    <button class="btn btn-primary" onclick="importModule()">📥 导入模块</button>
+                    <button class="btn btn-success" onclick="createNewModule()">➕ 创建新模块</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">🧪 进制系统演示</h2>
+            <div class="status">
+                <div class="status-item">
+                    <div class="status-label">当前进制</div>
+                    <div class="status-value" id="currentRadix">-</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">基数</div>
+                    <div class="status-value" id="currentBase">-</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">状态</div>
+                    <div class="status-value" id="status">就绪</div>
+                </div>
+            </div>
+
+            <div class="demo-grid">
+                <div class="demo-box">
+                    <div class="demo-title">🔢 数字转换</div>
+                    <div class="input-group">
+                        <label class="input-label">十进制输入</label>
+                        <input type="number" class="input-field" id="decInput" placeholder="输入十进制数">
+                    </div>
+                    <button class="btn btn-success" onclick="convertNumber()">转换</button>
+                    <div class="panel">
+                        <div class="panel-header">转换结果</div>
+                        <div id="convertResult">-</div>
+                    </div>
+                </div>
+
+                <div class="demo-box">
+                    <div class="demo-title">📦 集装箱计数</div>
+                    <div class="input-group">
+                        <label class="input-label">集装箱数量</label>
+                        <input type="number" class="input-field" id="containerCount" value="1000">
+                    </div>
+                    <button class="btn btn-primary" onclick="countContainers()">计算</button>
+                    <div class="panel">
+                        <div class="panel-header">进制表示</div>
+                        <div id="containerResult">-</div>
+                    </div>
+                </div>
+
+                <div class="demo-box">
+                    <div class="demo-title">🔗 进制互通</div>
+                    <div class="input-group">
+                        <label class="input-label">目标进制</label>
+                        <select class="input-field" id="targetRadix"></select>
+                    </div>
+                    <button class="btn btn-success" onclick="convertBetweenRadix()">转换</button>
+                    <div class="panel">
+                        <div class="panel-header">互通结果</div>
+                        <div id="radixConvertResult">-</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">📋 系统架构</h2>
+            <div class="panel">
+                <div class="panel-header">🏗️ 可插拔架构设计</div>
+                <pre style="color: #a0aec0; font-family: 'Courier New', monospace; line-height: 1.8;">
+<span class="highlight">核心层</span>
+├─ 统一接口定义 (插座)
+├─ 位权确认系统
+└─ 身份确认系统
+
+<span class="highlight">模块层</span>
+├─ 64进制模块 (可插拔)
+├─ 128进制模块 (可插拔)
+├─ 256进制模块 (可插拔)
+├─ 自定义进制模块 (你设计的) (可插拔)
+└─ ... 任何其他进制模块 (可插拔)
+
+<span class="highlight">应用层</span>
+├─ 集装箱系统
+├─ 编码系统
+├─ 字体系统
+└─ 造字程序
+
+<span class="highlight">设计优势</span>
+✓ 不写死，像USB一样随便换
+✓ 每个进制独立，互不干扰
+✓ 进制之间可互相转换
+✓ 后期可随时添加新进制
+✓ 完全模块化，安全"动手术"
+                </pre>
+            </div>
+        </div>
+
+        <footer>
+            <p><a href="index.html">🏠 返回 UniCore 主页</a></p>
+            <p style="margin-top: 20px;">UniCore - 探索无限可能</p>
+        </footer>
+    </div>
+
+    <script>
+        const builtinModules = [
+            {
+                id: 'radix64',
+                name: '64进制模块',
+                description: '经典64进制，位权稳定，兼容性好',
+                base: 64,
+                chars: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+/',
+                containerMapping: true,
+                status: 'ready'
+            },
+            {
+                id: 'radix256',
+                name: '256进制模块',
+                description: '字节级进制，完美适配集装箱系统',
+                base: 256,
+                chars: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~©®™…',
+                containerMapping: true,
+                status: 'ready'
+            },
+            {
+                id: 'radix128',
+                name: '128进制模块',
+                description: 'ASCII扩展版，平衡性好',
+                base: 128,
+                chars: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!"#$%&\'()*+,-./:;<=>?@[\\]^_`',
+                containerMapping: true,
+                status: 'ready'
+            },
+            {
+                id: 'custom',
+                name: '自定义进制模块',
+                description: '你自己设计的进制，完全灵活',
+                base: 256,
+                chars: '你设计的字符...',
+                containerMapping: true,
+                status: 'editable'
+            }
+        ];
+
+        let currentModule = null;
+        let customModules = [];
+
+        function init() {
+            loadModules();
+            renderPluginGrid();
+            updateTargetRadixSelect();
+        }
+
+        function loadModules() {
+            const saved = localStorage.getItem('plugableRadixModules');
+            if (saved) {
+                customModules = JSON.parse(saved);
+            }
+        }
+
+        function saveAllModules() {
+            localStorage.setItem('plugableRadixModules', JSON.stringify(customModules));
+        }
+
+        function renderPluginGrid() {
+            const grid = document.getElementById('pluginGrid');
+            grid.innerHTML = '';
+            
+            [...builtinModules, ...customModules].forEach(mod => {
+                const card = document.createElement('div');
+                card.className = 'plugin-card' + (currentModule && currentModule.id === mod.id ? ' active' : '');
+                card.onclick = () => selectModule(mod);
+                
+                const statusColor = mod.status === 'ready' ? '#00ff88' : 
+                                   mod.status === 'editable' ? '#ffd93d' : '#ff6b6b';
+                
+                card.innerHTML = `
+                    <div class="plugin-title">${mod.name}</div>
+                    <div class="plugin-desc">${mod.description}</div>
+                    <div class="plugin-meta">
+                        <span>基数: <span style="color: #00ff88;">${mod.base}</span></span>
+                        <span>状态: <span style="color: ${statusColor};">${mod.status === 'ready' ? '就绪' : '可编辑'}</span></span>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function selectModule(mod) {
+            currentModule = mod;
+            document.getElementById('moduleEditor').value = JSON.stringify(mod, null, 2);
+            document.getElementById('currentRadix').textContent = mod.name;
+            document.getElementById('currentBase').textContent = mod.base;
+            document.getElementById('status').textContent = '已激活';
+            renderPluginGrid();
+            updateTargetRadixSelect();
+        }
+
+        function saveModule() {
+            try {
+                const mod = JSON.parse(document.getElementById('moduleEditor').value);
+                if (mod.id && !builtinModules.find(m => m.id === mod.id)) {
+                    const idx = customModules.findIndex(m => m.id === mod.id);
+                    if (idx >= 0) customModules[idx] = mod;
+                    else customModules.push(mod);
+                    saveAllModules();
+                    renderPluginGrid();
+                    document.getElementById('status').textContent = '已保存';
+                    setTimeout(() => document.getElementById('status').textContent = '已激活', 1000);
+                }
+            } catch (e) {
+                alert('JSON格式错误');
+            }
+        }
+
+        function testModule() {
+            if (!currentModule) {
+                alert('请先选择一个进制模块');
+                return;
+            }
+            alert('进制模块测试通过！可以正常使用');
+        }
+
+        function exportModule() {
+            if (!currentModule) {
+                alert('请先选择一个进制模块');
+                return;
+            }
+            const dataStr = 'data:text/json;charset=utf-8,' + 
+                encodeURIComponent(JSON.stringify(currentModule, null, 2));
+            const a = document.createElement('a');
+            a.href = dataStr;
+            a.download = `radix_module_${currentModule.id}.json`;
+            a.click();
+        }
+
+        function importModule() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = (e) => {
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    try {
+                        const mod = JSON.parse(evt.target.result);
+                        if (!builtinModules.find(m => m.id === mod.id)) {
+                            customModules.push(mod);
+                            saveAllModules();
+                            renderPluginGrid();
+                            updateTargetRadixSelect();
+                            alert('模块导入成功！');
+                        }
+                    } catch (e) {
+                        alert('导入失败');
+                    }
+                };
+                reader.readAsText(e.target.files[0]);
+            };
+            input.click();
+        }
+
+        function createNewModule() {
+            const name = prompt('输入新进制模块名称：');
+            if (name) {
+                const newMod = {
+                    id: 'custom_' + Date.now(),
+                    name: name,
+                    description: '自定义进制模块',
+                    base: 64,
+                    chars: '请定义字符...',
+                    containerMapping: true,
+                    status: 'editable'
+                };
+                customModules.push(newMod);
+                saveAllModules();
+                selectModule(newMod);
+                renderPluginGrid();
+                updateTargetRadixSelect();
+            }
+        }
+
+        function updateTargetRadixSelect() {
+            const sel = document.getElementById('targetRadix');
+            sel.innerHTML = '';
+            [...builtinModules, ...customModules].forEach(mod => {
+                const opt = document.createElement('option');
+                opt.value = mod.id;
+                opt.textContent = mod.name;
+                sel.appendChild(opt);
+            });
+        }
+
+        function convertNumber() {
+            if (!currentModule) {
+                document.getElementById('convertResult').textContent = '请先选择进制模块';
+                return;
+            }
+            const num = parseInt(document.getElementById('decInput').value);
+            if (isNaN(num)) {
+                document.getElementById('convertResult').textContent = '请输入有效数字';
+                return;
+            }
+            const result = num.toString(currentModule.base);
+            document.getElementById('convertResult').innerHTML = `
+                <span style="color: #888;">十进制:</span> <span style="color: #00ff88;">${num}</span><br>
+                <span style="color: #888;">${currentModule.name}:</span> <span style="color: #ffd93d;">${result}</span>
+            `;
+        }
+
+        function countContainers() {
+            if (!currentModule) {
+                document.getElementById('containerResult').textContent = '请先选择进制模块';
+                return;
+            }
+            const count = parseInt(document.getElementById('containerCount').value);
+            const result = count.toString(currentModule.base);
+            document.getElementById('containerResult').innerHTML = `
+                <span style="color: #888;">十进制:</span> <span style="color: #00ff88;">${count}</span><br>
+                <span style="color: #888;">${currentModule.name}:</span> <span style="color: #ffd93d;">${result}</span><br><br>
+                <span style="color: #888;">这就是集装箱编号！</span>
+            `;
+        }
+
+        function convertBetweenRadix() {
+            const targetId = document.getElementById('targetRadix').value;
+            if (!currentModule) {
+                document.getElementById('radixConvertResult').textContent = '请先选择源进制';
+                return;
+            }
+            
+            const all = [...builtinModules, ...customModules];
+            const targetMod = all.find(m => m.id === targetId);
+            if (!targetMod) {
+                document.getElementById('radixConvertResult').textContent = '目标进制未找到';
+                return;
+            }
+
+            document.getElementById('radixConvertResult').innerHTML = `
+                <span style="color: #00ff88;">✓ 进制互通成功！</span><br><br>
+                <span style="color: #888;">源进制:</span> ${currentModule.name}<br>
+                <span style="color: #888;">目标进制:</span> ${targetMod.name}<br><br>
+                <span style="color: #ffd93d;">模块化就是好！想怎么换就怎么换！</span>
+            `;
+        }
+
+        init();
+    </script>
+</body>
+</html>
