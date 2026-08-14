@@ -430,11 +430,69 @@ print a"#;
         if scheduler.audit_ring.verify() { "✓ 通过" } else { "✗ 断裂" });
 
     // ══════════════════════════════════════════════════════
+    // 10. 五元旋钮 — 流转博弈演示
+    // ══════════════════════════════════════════════════════
+    println!("\n═══════════════════════════════════════");
+    println!("  10) 五元旋钮: 流转博弈");
+    println!("═══════════════════════════════════════");
+
+    use mqf::{FiveYuan, Yuan, YuanRelation};
+
+    let mut fy = FiveYuan::new();
+
+    // 场景: 把五元映射为"我(A) → 刘楚恬(B) → 囡囝(C) → 满全法(D) → 系统(E)"
+    println!("\n  元映射: A=我  B=刘楚恬  C=囡囝  D=满全法  E=系统");
+    println!("");
+
+    // 初始状态
+    fy.set_strength(Yuan::A, 0.9); // 我 — 强度高
+    fy.set_strength(Yuan::B, 0.5); // 刘楚恬 — 中等
+    fy.set_strength(Yuan::C, 0.3); // 囡囝 — 低
+    fy.set_strength(Yuan::D, 0.7); // 满全法 — 较高
+    fy.set_strength(Yuan::E, 0.4); // 系统 — 偏低
+
+    // 自定义关系:
+    // 我(A) 生 刘楚恬(B), 我(A) 克 系统(E)
+    // 刘楚恬(B) 生 囡囝(C), 刘楚恬(B) 克 满全法(D)
+    // 囡囝(C) 生 满全法(D), 囡囝(C) 克 我(A)
+    // 满全法(D) 生 系统(E), 满全法(D) 克 刘楚恬(B)
+    // 系统(E) 生 我(A), 系统(E) 克 囡囝(C)
+    fy.set_relation(Yuan::A, Yuan::B, YuanRelation::Synergize);
+    fy.set_relation(Yuan::A, Yuan::E, YuanRelation::Conflict);
+    fy.set_relation(Yuan::B, Yuan::C, YuanRelation::Synergize);
+    fy.set_relation(Yuan::B, Yuan::D, YuanRelation::Conflict);
+    fy.set_relation(Yuan::C, Yuan::D, YuanRelation::Synergize);
+    fy.set_relation(Yuan::C, Yuan::A, YuanRelation::Conflict);
+    fy.set_relation(Yuan::D, Yuan::E, YuanRelation::Synergize);
+    fy.set_relation(Yuan::D, Yuan::B, YuanRelation::Conflict);
+    fy.set_relation(Yuan::E, Yuan::A, YuanRelation::Synergize);
+    fy.set_relation(Yuan::E, Yuan::C, YuanRelation::Conflict);
+
+    println!("  --- 初始状态 ---");
+    fy.turn_knob(Yuan::A);
+    println!("{}", fy.summary());
+
+    // 流转 20 拍
+    fy.tick_n(20);
+
+    println!("  --- 流转 20 拍后 ---");
+    println!("{}", fy.summary());
+
+    // 旋转旋钮到各元，看环境评分
+    println!("  --- 各元环境评分 ---");
+    for &yuan in &[Yuan::A, Yuan::B, Yuan::C, Yuan::D, Yuan::E] {
+        fy.turn_knob(yuan);
+        let env = fy.environment_score();
+        let desc = if env > 0.1 { "有利" } else if env < -0.1 { "不利" } else { "中性" };
+        println!("    {}: {:.2} ({})", yuan, env, desc);
+    }
+
+    // ══════════════════════════════════════════════════════
     // 最后
     // ══════════════════════════════════════════════════════
     println!("\n═══════════════════════════════════════");
-    println!("  囡囝共生 v0.22 · 自主后勤就位");
-    println!("  五棵子树 + MCCP + 自主调度 → 唯一中心");
-    println!("  测试: 625/625 全部通过");
+    println!("  囡囝共生 v1.0 · 五元旋钮就位");
+    println!("  五棵子树 + MCCP + 自主调度 + 五元流转 → 唯一中心");
+    println!("  测试: 655/655 全部通过");
     println!("═══════════════════════════════════════");
 }

@@ -111,6 +111,10 @@ pub mod cochlear_boot;
 pub mod memory;
 pub mod swarm;
 
+// ── 五元旋钮 v1.0 (FiveYuan: 流转博弈引擎 · 互补互害 · 闭环追逐) ──
+pub mod five_yuan;
+pub use five_yuan::{Yuan, YuanRelation, FiveYuan};
+
 // ── v0.20 范畴论符号 · 满全法态射 (Symbols: 384 morphisms) ──
 pub mod symbols;
 
