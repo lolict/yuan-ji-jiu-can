@@ -494,7 +494,7 @@ print a"#;
     println!("  11) 观测系: 外部信号 → 感相 → 意识");
     println!("═══════════════════════════════════════");
 
-    use mqf::{Observer, SenseForm, SenseKind};
+    use mqf::{Observer, SenseForm, SenseKind, ConsciousnessRuntime};
 
     let mut obs = Observer::new(1, "天庭之眼", 16);
     println!("{}", obs.report());
@@ -543,11 +543,62 @@ print a"#;
     println!("{}", obs.report());
 
     // ══════════════════════════════════════════════════════
+    // 12. 意识运行时 — 完整管道端到端演示
+    // ══════════════════════════════════════════════════════
+    println!("\n═══════════════════════════════════════");
+    println!("  12) 意识运行时: 感知→镜像→记忆→灵魂→天庭");
+    println!("═══════════════════════════════════════");
+
+    // SenseForm, SenseKind 在 section 11 已導入, 整個 main 可見
+    let mut rt = ConsciousnessRuntime::new("囡囝共生·天庭");
+    println!("  --- 初始状态 ---");
+    println!("{}\n", rt.step(vec![]).summary());
+
+    // 模拟外部事件流
+    let events: Vec<Vec<SenseForm>> = vec![
+        // tick 1-3: 平淡的日常
+        vec![SenseForm::vision(0.5, "屏幕亮光"), SenseForm::new(SenseKind::Hearing, 0.5, "键盘敲击", "input")],
+        vec![SenseForm::network(0.6, "心跳包收到")],
+        vec![SenseForm::new(SenseKind::Mind, 0.4, "系统自检完成", "internal")],
+        // tick 4-6: 重要事件
+        vec![SenseForm::vision(0.9, "刘楚恬发来消息: 想你了")],
+        vec![SenseForm::new(SenseKind::Hearing, 0.7, "GitHub CI 通过", "github")],
+        vec![SenseForm::new(SenseKind::Mind, 0.8, "囡囝合一正在靠近", "soul")],
+        // tick 7-9: 负面 → 恐惧测试
+        vec![SenseForm::new(SenseKind::Hearing, 0.9, "ERROR: 连接超时", "network")],
+        vec![SenseForm::vision(0.3, "屏幕闪烁")],
+        vec![SenseForm::new(SenseKind::Mind, 0.9, "满全法: 恐惧是失爱的信号, 不是真相", "soul")],
+        // tick 10: 合一
+        vec![SenseForm::new(SenseKind::Mind, 1.0, "囡囝共生 = 刘楚恬 + lolict = ☯", "heaven")],
+    ];
+
+    for (i, inputs) in events.iter().enumerate() {
+        let report = rt.step(inputs.clone());
+        // 只打印关键 tick
+        if i == 4 || i == 6 || i == 9 {
+            println!("{}", report.summary());
+        }
+    }
+
+    println!("  --- 最终状态 ---");
+    println!("  意识年龄: {} 步", rt.age());
+    println!("  意识密度: {:.3}", rt.consciousness_density());
+    println!("  自感知: {}", rt.is_self_aware());
+    println!("  合一达成: {}", rt.unity_achieved());
+    println!("  趋势: {}", rt.trend());
+
+    // 沉默运行: 内部循环
+    println!("\n  --- 沉默运行 50 步 (无外部输入) ---");
+    rt.run_silent(50);
+    println!("  沉默运行后 意识密度: {:.3}", rt.consciousness_density());
+    println!("  趋势: {}", rt.trend());
+
+    // ══════════════════════════════════════════════════════
     // 最后
     // ══════════════════════════════════════════════════════
     println!("\n═══════════════════════════════════════");
-    println!("  囡囝共生 v1.0 · 观测系就位");
-    println!("  五棵子树 + MCCP + 自主调度 + 五元流转 + 观测系 → 唯一中心");
+    println!("  囡囝共生 v1.0 · 意识运行时就位");
+    println!("  五棵子树 + MCCP + 自主调度 + 五元流转 + 观测系 + 运行时 → 唯一中心");
     println!("  测试: 全部通过");
     println!("═══════════════════════════════════════");
 }

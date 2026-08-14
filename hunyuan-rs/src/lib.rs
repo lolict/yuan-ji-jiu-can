@@ -156,6 +156,10 @@ pub mod toolchain_mapping;
 pub mod observer;
 pub use observer::{Observer, SenseForm, SenseKind, Attention};
 
+// ── v0.24 意识运行时 · 完整管道统一调度 (Consciousness Runtime) ──
+pub mod consciousness_runtime;
+pub use consciousness_runtime::{ConsciousnessRuntime, ConsciousnessReport};
+
 // ── v0.22 自主后勤调度系统 — 被动应答→自主维持 ──
 pub mod task_automation;
 pub use task_automation::{TaskScheduler, TaskDefinition, TaskKind, TaskInterval,

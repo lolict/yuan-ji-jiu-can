@@ -144,11 +144,9 @@ impl SenseForm {
     }
 
     /// 将感相编码为 64 位单元格 (送入镜像层)
+    /// value 范围: 0..1000, intensity=1.0 → 1000
     pub fn encode(&self) -> EncodedCell {
-        // 坐标 = 来源坐标
-        // 强度 → value 高位
-        // 新鲜度 → value 低位
-        let value_bits = ((self.intensity * 16_777_215.0) as u64).min((1u64 << 24) - 1);
+        let value_bits = (self.intensity * 1000.0) as u64;
         encode_cell(
             self.origin.0,
             self.origin.1,
