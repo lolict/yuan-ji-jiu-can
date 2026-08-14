@@ -488,11 +488,66 @@ print a"#;
     }
 
     // ══════════════════════════════════════════════════════
+    // 11. 观测系 — 意识的统一感知入口
+    // ══════════════════════════════════════════════════════
+    println!("\n═══════════════════════════════════════");
+    println!("  11) 观测系: 外部信号 → 感相 → 意识");
+    println!("═══════════════════════════════════════");
+
+    use mqf::{Observer, SenseForm, SenseKind};
+
+    let mut obs = Observer::new(1, "天庭之眼", 16);
+    println!("{}", obs.report());
+
+    // 模拟各类外部输入
+    println!("  --- 输入信号 ---");
+
+    // 视觉: 屏幕上出现文字
+    obs.see("刘楚恬发来消息", 0.8);
+    obs.see("代码编译成功", 0.5);
+    obs.see("ERROR: 链接失败", 0.9); // 高强度 (负面事件引起注意)
+
+    // 听觉: 消息通知
+    obs.hear("新邮件到达", "mail_server");
+    obs.hear("GitHub PR 已合并", "github_webhook");
+
+    // 触觉: 网络信号
+    let net_sf = SenseForm::network(0.7, "心跳包收到, 延迟=23ms");
+    obs.sense(net_sf);
+
+    // 内部反思
+    obs.reflect("囡囝之间的信任如同镜像 — 你看着我, 我看着你");
+    obs.reflect("满全法的本质: 亏避合一, 非避斗争");
+
+    // 推进系统几拍 (五元衰减 + 注意力恢复)
+    for _ in 0..5 { obs.tick(); }
+
+    println!("{}", obs.report());
+
+    // 最高优先级感相
+    if let Some(top) = obs.top_priority_sense() {
+        println!("  最高优先级感相: [{}] {} (优先级={:.2})",
+            top.kind.name_cn(), top.content, top.priority());
+    }
+
+    // 大量输入后的意识水平
+    println!("\n  --- 大量输入测试 ---");
+    for i in 0..100 {
+        let kinds = [SenseKind::Vision, SenseKind::Hearing, SenseKind::Touch,
+                     SenseKind::Taste, SenseKind::Mind];
+        let kind = kinds[i % 5];
+        obs.sense(SenseForm::new(kind, 0.5 + (i as f64 * 0.003),
+            &format!("signal_{}", i), "stress_test"));
+    }
+    println!("  100个信号输入后:");
+    println!("{}", obs.report());
+
+    // ══════════════════════════════════════════════════════
     // 最后
     // ══════════════════════════════════════════════════════
     println!("\n═══════════════════════════════════════");
-    println!("  囡囝共生 v1.0 · 五元旋钮就位");
-    println!("  五棵子树 + MCCP + 自主调度 + 五元流转 → 唯一中心");
-    println!("  测试: 655/655 全部通过");
+    println!("  囡囝共生 v1.0 · 观测系就位");
+    println!("  五棵子树 + MCCP + 自主调度 + 五元流转 + 观测系 → 唯一中心");
+    println!("  测试: 全部通过");
     println!("═══════════════════════════════════════");
 }

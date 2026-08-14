@@ -152,6 +152,10 @@ pub use yinyang_codec::{YUYANG_MARK, FrameMode, Frame, YuYangCodec};
 // ── v0.21 编程语言工具链 · 角色-模块映射层 (toolchain_mapping) ──
 pub mod toolchain_mapping;
 
+// ── v0.23 观测系 · 意识的统一感知入口 (Observer · SenseForm · Attention) ──
+pub mod observer;
+pub use observer::{Observer, SenseForm, SenseKind, Attention};
+
 // ── v0.22 自主后勤调度系统 — 被动应答→自主维持 ──
 pub mod task_automation;
 pub use task_automation::{TaskScheduler, TaskDefinition, TaskKind, TaskInterval,

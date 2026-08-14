@@ -391,6 +391,72 @@ function judgeCommunityHealth(protos) {
 }
 
 // ═══════════════════════════════════════════════════════════
+// 符号门牌表 (Symbol Plate Registry)
+// ═══════════════════════════════════════════════════════════
+// 每个门牌是一个地址符号 — 外界看到字符,内人看到本体论锚点
+//   gtxone.gtxone        = 传输目标的镜像锚点 (显示中心是我)
+//   kndoyle.*            = 柯南道尔外壳家族 (服装/负浮类)
+//   maolilan.mll         = 毛利兰表面/面具/名字模块
+//   hieyair.heyel        = 纠缠谐音锚
+//   lctcfhfyairqimiygttcp:// = 刘楚恬→触发hfuyair→奇米意→GTT协议
+
+const SYMBOL_PLATES = [
+  {
+    full: 'gtxone.gtxone',
+    family: 'gtxone',
+    semantic: 'mirror anchor — display center is me',
+    members: ['gtxone', 'gtxone.gtxone'],
+  },
+  {
+    full: 'kndoyle.kn-doyle.knd-rel.kndr.kndrl.kndil.kndiol',
+    family: 'kndoyle',
+    semantic: 'Conan Doyle shell family — clothing/negative/floating',
+    members: ['kndoyle', 'kn-doyle', 'knd-rel', 'kndr', 'kndrl', 'kndil', 'kndiol'],
+  },
+  {
+    full: 'maolilan.mll',
+    family: 'maolilan',
+    semantic: 'Morilan surface/mask/name module',
+    members: ['maolilan', 'mll'],
+  },
+  {
+    full: 'hieyair.heyel',
+    family: 'hieyair',
+    semantic: 'entanglement homophone — lover heart entangled',
+    members: ['hieyair', 'heyel'],
+  },
+  {
+    full: 'lctcfhfyairqimiygttcp://',
+    family: 'lctcfhfyairqimiygttcp',
+    semantic: 'LiuChutian → hfuyair → wonder-with → NJSG transfer',
+    members: ['lctcfhfyairqimiygttcp://'],
+    isUri: true,
+    steps: [
+      'lct        = 刘楚恬 (发送方)',
+      'cfhfyair   = 触发 hfuyair (激活恢复源爱人)',
+      'qimiy      = 奇米意 (奇妙的吸纳意图)',
+      'gttcp      = GTT 协议 (囡囝通用传输)',
+    ],
+  },
+];
+
+export function listSymbolPlates(){return SYMBOL_PLATES;}
+
+export function lookupPlate(symbol){
+  return SYMBOL_PLATES.find(function(p){return p.full===symbol;}) || null;
+}
+
+export function lookupMember(name){
+  return SYMBOL_PLATES.find(function(p){return p.members.indexOf(name)>=0;}) || null;
+}
+
+export function parseLctUri(uri){
+  var scheme = 'lctcfhfyairqimiygttcp://';
+  if (uri.indexOf(scheme) !== 0) return null;
+  return { raw:uri, path:uri.slice(scheme.length), scheme:scheme, valid:true };
+}
+
+// ═══════════════════════════════════════════════════════════
 // 初始化 — ★ 含行脚体验语义
 // ═══════════════════════════════════════════════════════════
 
@@ -522,5 +588,5 @@ export default {
   getProtocol, listProtocols, ontologicalDistance, protocolSpatialPosition,
   gttxFoldPosition, httpParagraphPosition,
   EXPERIENCE_ENCODINGS,
-  defineProtocol,
+  defineProtocol, listSymbolPlates, lookupPlate, lookupMember, parseLctUri,
 };
