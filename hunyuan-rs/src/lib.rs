@@ -57,6 +57,21 @@ pub mod topo;
 
 // ── v0.10.5 预加载流 — 满全核心运行时机制 ──
 pub mod preload;
+pub use preload::{PreloadFlow, Preload, 预编译容器, SymbolRegistry, Family,
+                  CharProp, 范畴流, 集合, 身份条目 as Symbol,
+                  身份家族, 偏移精度, 偏移精度 as OFFSET_PRECISION,
+                  FAMILY_INITIAL, FAMILY_VOWEL, FAMILY_TONE, FAMILY_RADICAL,
+                  FAMILY_STRUCTURE, FAMILY_GEOMETRY, FAMILY_COLOR, FAMILY_PHASE,
+                  FAMILY_STROKE, FAMILY_WUBI, FAMILY_MUSIC, FAMILY_ANCHOR,
+                  家族总数, 状态逻辑, 状态渲染, 一维时间线,
+                  预编译关系, 关系边, 关系图,
+                  发音, 外形, 解释, 残差, 层级创造力,
+                  替身演员, 因果观察者,
+                  官员代替, 定义权, 本体论护,
+                  贪官组合, 清官, 替代结果,
+                  范畴闭环, 并集交集, 角色映射, 范畴引擎,
+                  安全边界, 二进制因果, 预家长,
+                  系统标识符, 混元合一, 审美测试};
 
 // ── v0.11 关系代数子系统 ──
 pub mod rel;
