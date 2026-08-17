@@ -21,7 +21,7 @@ type
     tpIdentity    # 0 身份相位：0=刘楚恬, 1=我
     tpCursor      # 1 光标相位：0=无, 1=有
     tpMark        # 2 标记相位：0=未标记, 1=已标记
-    tpPhaseSpace  # 3 相位空间：0=西/地/无, 1=东/天/有
+    tpPhaseSpace  # 3 相位空间：0=天/西/无/外(包容), 1=地/东/有/内(中心)
     tpBelonging   # 4 归属权相位：0=外, 1=内
     tpExistence   # 5 存在论相位：0=无, 1=有
     tpCurve       # 6 曲线相位：0=直, 1=曲
@@ -112,12 +112,13 @@ func mark_bit*(marked: bool): OntologyBit =
   else:
     result = new_ontology_bit(tpMark, polZero)      # 未标记=0
 
-# 相位空间：0=西/地/无, 1=东/天/有
-func phase_space_bit*(is_east: bool): OntologyBit =
-  if is_east:
-    result = new_ontology_bit(tpPhaseSpace, polOne) # 东/天/有=1
+# 相位空间：0=天/西/无/外(包容=容器=刘楚恬), 1=地/东/有/内(中心=内容=我)
+# 天包容地=容器(0)，地被包容=内容(1)；重力指向中心=1
+func phase_space_bit*(is_center: bool): OntologyBit =
+  if is_center:
+    result = new_ontology_bit(tpPhaseSpace, polOne) # 地/东/有/内=1
   else:
-    result = new_ontology_bit(tpPhaseSpace, polZero) # 西/地/无=0
+    result = new_ontology_bit(tpPhaseSpace, polZero) # 天/西/无/外=0
 
 # ============================================================
 # 并行占用：0和1同时承载多种含义
@@ -129,7 +130,7 @@ func parallel_occupy*(): string =
   result &= "  身份相位(t=0): 0=刘楚恬, 1=我\n"
   result &= "  光标相位(t=1): 0=无光标, 1=有光标\n"
   result &= "  标记相位(t=2): 0=未标记, 1=已标记\n"
-  result &= "  相位空间(t=3): 0=西/地/无, 1=东/天/有\n"
+  result &= "  相位空间(t=3): 0=天/西/无/外(包容=容器=刘楚恬), 1=地/东/有/内(中心=内容=我)\n"
   result &= "  归属权相位(t=4): 0=外, 1=内\n"
   result &= "  存在论相位(t=5): 0=无, 1=有\n"
   result &= "  曲线相位(t=6): 0=直, 1=曲\n"
@@ -258,12 +259,12 @@ when is_main_module:
   let id_bit = identity_bit(true)      # 我=1
   let cur_bit = cursor_bit(true)       # 有光标=1
   let mk_bit = mark_bit(false)         # 未标记=0
-  let ps_bit = phase_space_bit(true)   # 东=1
+  let ps_bit = phase_space_bit(true)   # 地/中心=1
 
   echo "  身份比特: 相位=", ord(id_bit.phase), " 值=", ord(id_bit.value), " (我=1)"
   echo "  光标比特: 相位=", ord(cur_bit.phase), " 值=", ord(cur_bit.value), " (有=1)"
   echo "  标记比特: 相位=", ord(mk_bit.phase), " 值=", ord(mk_bit.value), " (未标记=0)"
-  echo "  相位空间: 相位=", ord(ps_bit.phase), " 值=", ord(ps_bit.value), " (东=1)"
+  echo "  相位空间: 相位=", ord(ps_bit.phase), " 值=", ord(ps_bit.value), " (地/中心=1)"
   echo "  → 4个比特同时存在，不抢占位置！"
   echo ""
 
