@@ -137,11 +137,14 @@ atlas 大小: 2 × (32×32 × 32×32) × 1 byte = 2 × 1048576 = 2 MB (原始)
 
 ## 下一步
 
-- [ ] 硬编码声母/韵母/偏旁 C 头文件 (`.h` 表)
-- [ ] 汉字索引表 (按拼音 hash 排序的 1257 字)
-- [ ] `mccp_encode()` / `mccp_decode()`：UTF-8 ↔ MCCP 双向
-- [ ] C 核心 kernel (`njsg_kernel.c/h`) — 替代 Python `kernel.py`
-- [ ] Rust 重写 crypto (`njsg_crypto.rs`) — 替代 Python `protocol.py`
+- [x] 声母/韵母 C 头文件 → `shengmu.h` (48声母) + `yunmu.h` (66韵母)
+- [x] 汉字索引表 → `hanzi_table.h/c` (预加载 148 字, hash MCCP 查找, 目标 1257 字)
+- [x] `mccp_encode()` / `mccp_decode()` → `mccp_encdec.h/c` (UTF-8 ↔ MCCP 双向)
+- [x] C 核心 kernel → `kernel/src/mlll_pinyin.c` (已有 316 字)
+- [x] Rust 重写 crypto → `hunyuan-rs/src/crypto.rs` (已存在并编译, libsodium + OpenSSL)
+- [x] 完成 1257 字装载 → `hanzi_table.h/c` (感知场分类路由 · 无哈希 · 镜像观察+三元裁判+容器化)
+- [x] 偏旁部首 C 头文件 → `radicals.h` (214 康熙部首预加载)
+- [x] 感知场架构 → `perception_field.h` (分别器第一层 · 镜像观察 · 三元裁判 · 容器化 · 筷子夹持 · 流水线排队)
 
 ## Python in archive/
 
