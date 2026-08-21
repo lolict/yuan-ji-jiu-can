@@ -352,9 +352,9 @@ proc category_radiation*(src_id: int, society: Society, max_depth: int): seq[Rel
         queue.add((i, dist + 1, transmitted))
 
 # ═══════════════════════════════════════════════════════════════
-# 创建社会 · 七层预装
+# 创建社会 · 七层预装 · 可配置容器数
 # ═══════════════════════════════════════════════════════════════
-proc create_society*(): Society =
+proc create_society*(num_containers: int = 15): Society =
   let sms = ["b", "p", "m", "f", "d", "t", "n", "l", "g", "k", "h", "w",
              "j", "q", "x", "y", "z", "c", "s", "r", "ȥ", "ç", "ş", "ŋ"]
   let yms = ["a", "ȍ", "ӗ", "i", "u", "ü", "ꞟ", "ɘ", "ɒ", "౪",
@@ -373,50 +373,51 @@ proc create_society*(): Society =
   var sp_i = 0
   var mi_i = 0
   var mu_i = 0
-  for tier in 1..3:
-    for sub in 0..4:
-      let code = FQCode(
-        family: families[fam_i mod 3],
-        polarity: polarities[pl_i mod 2],
-        shengmu: sms[sm_i mod sms.len],
-        yunmu: yms[ym_i mod yms.len],
-        tone: tones[tn_i mod 4],
-      )
-      let cc = ClockCoord(
-        miao: clock_starts[cl_i mod clock_starts.len],
-        fen: clock_starts[(cl_i + 1) mod clock_starts.len],
-        shi: clock_starts[(cl_i + 2) mod clock_starts.len],
-      )
-      var wall_char = "knd"[(tier-1) mod 3]
-      var desc = ""
-      desc.add(code.family)
-      desc.add(code.polarity)
-      desc.add(code.shengmu)
-      desc.add(code.yunmu)
-      desc.add(code.tone)
-      result.containers.add(Container(
-        id: result.containers.len,
-        tier: tier,
-        wall: [wall_char, wall_char],
-        polarity: code.polarity,
-        code: code,
-        clock: cc,
-        color: COLORS42[co_i mod COLORS42.len],
-        space: SPACE18[sp_i mod SPACE18.len],
-        mirror: MIRROR10[mi_i mod MIRROR10.len],
-        music: MUSIC3[mu_i mod MUSIC3.len],
-        descriptor: desc,
-      ))
-      sm_i += 1
-      ym_i += 1
-      tn_i += 1
-      fam_i += 1
-      pl_i += 1
-      cl_i += 1
-      co_i += 1
-      sp_i += 1
-      mi_i += 1
-      mu_i += 1
+  let tiers = max(1, num_containers div 5)
+  for i in 0..<num_containers:
+    let tier = (i mod tiers) + 1
+    let code = FQCode(
+      family: families[fam_i mod 3],
+      polarity: polarities[pl_i mod 2],
+      shengmu: sms[sm_i mod sms.len],
+      yunmu: yms[ym_i mod yms.len],
+      tone: tones[tn_i mod 4],
+    )
+    let cc = ClockCoord(
+      miao: clock_starts[cl_i mod clock_starts.len],
+      fen: clock_starts[(cl_i + 1) mod clock_starts.len],
+      shi: clock_starts[(cl_i + 2) mod clock_starts.len],
+    )
+    var wall_char = "knd"[(tier-1) mod 3]
+    var desc = ""
+    desc.add(code.family)
+    desc.add(code.polarity)
+    desc.add(code.shengmu)
+    desc.add(code.yunmu)
+    desc.add(code.tone)
+    result.containers.add(Container(
+      id: result.containers.len,
+      tier: tier,
+      wall: [wall_char, wall_char],
+      polarity: code.polarity,
+      code: code,
+      clock: cc,
+      color: COLORS42[co_i mod COLORS42.len],
+      space: SPACE18[sp_i mod SPACE18.len],
+      mirror: MIRROR10[mi_i mod MIRROR10.len],
+      music: MUSIC3[mu_i mod MUSIC3.len],
+      descriptor: desc,
+    ))
+    sm_i += 1
+    ym_i += 1
+    tn_i += 1
+    fam_i += 1
+    pl_i += 1
+    cl_i += 1
+    co_i += 1
+    sp_i += 1
+    mi_i += 1
+    mu_i += 1
   result.state.tick = 0
   result.state.phase = "秒"
 
@@ -545,3 +546,78 @@ echo "  时刻200:  ", addr200, " → 容器(色:ị 空:S 镜:ȍ 乐:段落)"
 advance_clock(society, 300)
 var addr300 = block_addressing("b", "a", '1', "ọ", "N", "Ȍ", "原子", society)
 echo "  时刻300:  ", addr300, " → 容器(色:ọ 空:N 镜:Ȍ 乐:原子)"
+
+# ═══════════════════════════════════════════════════════════════
+# 分布均匀性测试 · 多容器数 + 非15倍数时钟偏移
+# ═══════════════════════════════════════════════════════════════
+echo ""
+echo "═══════════════════════════════════════════════════════════════"
+echo "  分布均匀性测试 · 多容器规模"
+echo "═══════════════════════════════════════════════════════════════"
+
+proc distribution_test*(num_containers: int, num_samples: int) =
+  var soc = create_society(num_containers)
+  var counts = newSeq[int](num_containers)
+  let sms = ["b", "p", "m", "f", "d", "t", "n", "l", "g", "k", "h", "w"]
+  let yms = ["a", "ȍ", "ӗ", "i", "u", "ü", "ꞟ", "ɘ"]
+  let colors = ["ạ", "ẹ", "ị", "ọ", "ụ", "ȃ", "ȅ"]
+  let spaces = ["E", "W", "S", "N", "H", "D"]
+  let mirrors = ["a", "A", "ȍ", "Ȍ", "ӗ", "Ӗ"]
+  let musics = ["原子", "短语", "段落"]
+  for i in 0..<num_samples:
+    let sm = sms[i mod sms.len]
+    let ym = yms[(i * 3) mod yms.len]
+    let tn = char(ord('1') + (i mod 4))
+    let co = colors[(i * 2) mod colors.len]
+    let sp = spaces[(i * 3) mod spaces.len]
+    let mi = mirrors[(i * 5) mod mirrors.len]
+    let mu = musics[i mod musics.len]
+    # 非15倍数时钟偏移: 使用质数偏移 7, 13, 17, 23
+    let offsets = [7, 13, 17, 23]
+    soc.state.tick = offsets[i mod offsets.len] + (i div 4) * 11
+    let addr_val = block_addressing(sm, ym, tn, co, sp, mi, mu, soc)
+    if addr_val >= 0 and addr_val < num_containers:
+      counts[addr_val] += 1
+  let expected = num_samples / num_containers
+  var min_hit = num_samples + 1
+  var max_hit = 0
+  for c in counts:
+    if c < min_hit: min_hit = c
+    if c > max_hit: max_hit = c
+  let variance = float(max_hit - min_hit) / expected * 100.0
+  echo "  容器数=" & $num_containers & " · 采样=" & $num_samples &
+    " · 期望=" & $expected & " · 最小=" & $min_hit & " · 最大=" & $max_hit &
+    " · 偏差=" & $variance & "%"
+
+distribution_test(15, 300)
+distribution_test(17, 340)
+distribution_test(23, 460)
+distribution_test(31, 620)
+distribution_test(37, 740)
+distribution_test(53, 1060)
+
+echo ""
+echo "═══ 非15倍数时钟偏移选址测试 ═══"
+var soc23 = create_society(23)
+echo "容器数=23 (质数 · 非15倍数):"
+let test_offsets = [1, 7, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97]
+for off in test_offsets:
+  soc23.state.tick = off
+  let addr_val = block_addressing("b", "a", '1', "ạ", "E", "a", "原子", soc23)
+  echo "  tick=" & $off & " → 容器#" & $addr_val
+
+echo ""
+echo "═══ 大规模容器测试 (101容器) ═══"
+var soc101 = create_society(101)
+echo "容器数=101 (质数):"
+soc101.state.tick = 0
+var hits101 = newSeq[int](101)
+for t in 0..<1010:
+  soc101.state.tick = t * 7 + 13
+  let addr_val = block_addressing("b", "a", '1', "ạ", "E", "a", "原子", soc101)
+  if addr_val >= 0 and addr_val < 101:
+    hits101[addr_val] += 1
+var empty101 = 0
+for h in hits101:
+  if h == 0: empty101 += 1
+echo "  1010次采样 · 未命中容器数=" & $empty101 & " · 命中率=" & $(100.0 - float(empty101) / 101.0 * 100.0) & "%"
