@@ -104,12 +104,12 @@ typedef struct {
     uint16_t        wall_count;
 
     /* 渲染参数 */
-    cylinder_coord_t base_coord;         ·/* 圆筒基准坐标 */
+    cylinder_coord_t base_coord;         /* 圆筒基准坐标 */
     uint8_t          color_palette;      /* 颜色模板索引 */
     uint8_t          phase_curvature;    /* 相位曲线度 */
 
     /* 统计 */
-    uint32_t        total_chars;         ·/* 总共封装字数 */
+    uint32_t        total_chars;         /* 总共封装字数 */
     uint32_t        bits_used;           /* 实际占用比特数 (≈frame_count) */
 } container_codec_t;
 

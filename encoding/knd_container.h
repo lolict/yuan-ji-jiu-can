@@ -36,17 +36,21 @@ typedef struct {
     uint32_t   screen_z;      /* Z坐标 */
 } knd_void_t;
 
-/* 容器 */
-typedef struct {
+/* 前向声明 */
+struct knd_container;
+typedef struct knd_container knd_container_t;
+
+/* 容器定义 */
+struct knd_container {
     knd_point_t wall;         /* knd墙点 */
     knd_void_t  left_void;    /* 左虚空 · 旧容器 */
     knd_void_t  right_void;   /* 右虚空 · 新容器 */
     uint8_t     tier;         /* 层级 · knd次数 */
     uint8_t     width;        /* 位宽 · 容量 */
-    struct knd_container *parent;
-    struct knd_container *child_left;
-    struct knd_container *child_right;
-} knd_container_t;
+    knd_container_t *parent;
+    knd_container_t *child_left;
+    knd_container_t *child_right;
+};
 
 /* 操作 */
 

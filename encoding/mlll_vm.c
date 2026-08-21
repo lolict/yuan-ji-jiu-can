@@ -31,7 +31,6 @@ int mlll_vm_step(mlll_vm_t *vm) {
     uint8_t op = slot->modulus;
     uint8_t a0 = slot->face;
     uint8_t a1 = slot->name;
-    uint8_t a2 = slot->container;
 
     switch (op) {
     case MLLL_OP_NOP:

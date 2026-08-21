@@ -22,7 +22,7 @@ fq_container_t *fq_create(char tier) {
 /* 装字 */
 int fq_seal(fq_container_t *c, fq_code_t *words, char count, char movable) {
     if (!c || !words || count == 0 || count > 4) return -1;
-    for (char i = 0; i < count; i++) c->right_data[i] = words[i];
+    for (int i = 0; i < count; i++) c->right_data[i] = words[i];
     c->right_count = count;
     c->movable = movable;
     return 0;
