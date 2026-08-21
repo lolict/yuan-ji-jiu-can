@@ -13,13 +13,38 @@
 
 /* ── 测试用UTF-8汉字常量 ── */
 static const char *TEST_HANZI[] = {
-    "回",   /* huí · FAMILY_CONTAINER · STRUCT_FULL_WRAP */
-    "好",   /* hǎo  · FAMILY_COUPLE · STRUCT_LEFT_RIGHT */
-    "一",   /* yī   · FAMILY_BOUNDARY · STRUCT_SINGLE */
+    "回",   /* huí · FAMILY_CONTAINER */
+    "好",   /* hǎo  · FAMILY_COUPLE */
+    "一",   /* yī   · FAMILY_BOUNDARY */
     "国",   /* guó  · FAMILY_CONTAINER */
     "人",   /* rén  · FAMILY_BOUNDARY */
     "我",   /* wǒ   · FAMILY_COUPLE */
     "你",   /* nǐ   · FAMILY_COUPLE */
+    "明",   /* míng · FAMILY_COUPLE */
+    "看",   /* kàn  · FAMILY_COUPLE */
+    "想",   /* xiǎng· FAMILY_COUPLE */
+    "说",   /* shuō · FAMILY_COUPLE */
+    "话",   /* huà  · FAMILY_COUPLE */
+    "语",   /* yǔ   · FAMILY_COUPLE */
+    "二",   /* èr   · FAMILY_BOUNDARY */
+    "三",   /* sān  · FAMILY_BOUNDARY */
+    "十",   /* shí  · FAMILY_BOUNDARY */
+    "上",   /* shàng· FAMILY_BOUNDARY */
+    "下",   /* xià  · FAMILY_BOUNDARY */
+    "中",   /* zhōng· FAMILY_BOUNDARY */
+    "天",   /* tiān · FAMILY_BOUNDARY */
+    "地",   /* dì   · FAMILY_BOUNDARY */
+    "网",   /* wǎng · FAMILY_WEB */
+    "开",   /* kāi  · FAMILY_WEB */
+    "关",   /* guān · FAMILY_WEB */
+    "时",   /* shí  · FAMILY_NEUTRAL */
+    "间",   /* jiān · FAMILY_NEUTRAL */
+    "的",   /* de   · FAMILY_NEUTRAL */
+    "是",   /* shì  · FAMILY_NEUTRAL */
+    "不",   /* bù   · FAMILY_NEUTRAL */
+    "在",   /* zài  · FAMILY_NEUTRAL */
+    "有",   /* yǒu  · FAMILY_NEUTRAL */
+    "和",   /* hé   · FAMILY_NEUTRAL */
     NULL
 };
 
