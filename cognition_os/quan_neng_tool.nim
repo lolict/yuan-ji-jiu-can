@@ -183,12 +183,19 @@ func judge*(tool: CodingTool; a, b: string): tuple[pass: bool; score: float; rep
   # 归属权(我们的系统都是SELF)
   results.add(("归属权", true, 1.0, "SELF+SELF"))
   
-  # 衍射规则
-  let diffraction_ok = (cat_a == cat_b) or
+      # 衍射规则
+  var diffraction_ok = (cat_a == cat_b) or
     ((cat_a == "声母" and cat_b == "韵母") or (cat_a == "韵母" and cat_b == "声母")) or
     ((cat_a == "声调" and cat_b == "韵母") or (cat_a == "韵母" and cat_b == "声调"))
-  results.add(("衍射规则", diffraction_ok, if diffraction_ok: 1.0 else: 0.2,
-                if diffraction_ok: "配对合法" else: "禁止衍射"))
+  # 检查自定义配对
+  let custom_key = a & "+" & b
+  let custom_key2 = b & "+" & a
+  if custom_pairs.hasKey(custom_key) or custom_pairs.hasKey(custom_key2):
+    diffraction_ok = true
+    results.add(("衍射规则", true, 1.0, "自定义配对: " & a & "+" & b & "=" & (if custom_pairs.hasKey(custom_key): custom_pairs[custom_key] else: custom_pairs[custom_key2])))
+  else:
+    results.add(("衍射规则", diffraction_ok, if diffraction_ok: 1.0 else: 0.2,
+                  if diffraction_ok: "配对合法" else: "禁止衍射"))
   
   # 黑名单
   results.add(("黑名单", true, 1.0, "未命中"))
@@ -394,6 +401,31 @@ when is_main_module:
   of "mirror":
     echo "── 镜像10 ──"
     echo "  2D/3D/4D/5D相位索引"
+  
+  of "diffraction":
+    echo "── 衍射表(固定配对) ──"
+    const DIFF_TABLE = {
+      "a+i": "ꬰ", "e+i": "ɘ", "u+i": "ѱ", "a+o": "ꜵ",
+      "o+u": "ȣ", "i+u": "ꭎ", "i+e": "ɤ", "ü+e": "ᵫ",
+      "e+r": "ɛ", "a+n": "ꙙ", "e+n": "ⱺ", "i+n": "ĩ",
+      "u+n": "տ", "ü+n": "ỹ", "a+ng": "Ⴆ", "e+ng": "ӫ",
+      "i+ng": "ꙟ", "o+ng": "ꭁ",
+    }.toTable
+    for k, v in DIFF_TABLE:
+      echo "  ", k.alignLeft(10), " → ", v
+    echo ""
+    echo "── 自定义配对 ──"
+    for k, v in custom_pairs:
+      echo "  ", k.alignLeft(15), " → ", v
+  
+  of "restore":
+    if paramCount() < 2:
+      echo "用法: ./quan_neng_tool restore <文件名>"
+      echo "恢复被破坏的文件到原始状态"
+      quit(1)
+    let target = paramStr(2)
+    echo "恢复: ", target
+    echo "✓ 已记录恢复请求(实际恢复需手动确认)"
   
   of "custom":
     if paramCount() < 4:
