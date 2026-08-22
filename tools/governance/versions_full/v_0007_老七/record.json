@@ -1,0 +1,87 @@
+{
+  "version_name": "老七",
+  "version_number": 7,
+  "action": "原版",
+  "judgment": {
+    "owner": "赵",
+    "verdict": "不通过",
+    "score": -18.0,
+    "reward": 0.0,
+    "penalty": 9.0,
+    "reflection": {
+      "reflections": [
+        {
+          "label": "干净",
+          "expected": true,
+          "actual": false,
+          "matched": false
+        },
+        {
+          "label": "晒干",
+          "expected": true,
+          "actual": false,
+          "matched": false
+        },
+        {
+          "label": "无虫",
+          "expected": false,
+          "actual": true,
+          "matched": false
+        },
+        {
+          "label": "无沙",
+          "expected": false,
+          "actual": true,
+          "matched": false
+        },
+        {
+          "label": "能吃",
+          "expected": true,
+          "actual": false,
+          "matched": false
+        },
+        {
+          "label": "已洗",
+          "expected": true,
+          "actual": false,
+          "matched": false
+        }
+      ],
+      "passed": 0,
+      "total": 6,
+      "score": -18.0,
+      "mirror_rate": 0.0
+    },
+    "timestamp": 1787385862.9987812
+  },
+  "aesthetics": {
+    "owner": "赵",
+    "score": -9.0,
+    "grade": "废品",
+    "aspects": [
+      [
+        "污浊",
+        -1
+      ],
+      [
+        "潮湿",
+        -1
+      ],
+      [
+        "虫害",
+        -2
+      ],
+      [
+        "废弃",
+        -5
+      ],
+      [
+        "平价",
+        0
+      ]
+    ]
+  },
+  "passed_filter": false,
+  "timestamp": 1787385862.9987853,
+  "is_selected": false
+}

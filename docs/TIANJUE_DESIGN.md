@@ -256,7 +256,8 @@ float njsg_tianjue_inherited_quality(int bag_id);          // 继承品质基线
 ---
 
 文件：docs/TIANJUE_DESIGN.md
-版本：v1.0
-状态：已定稿
+版本：v1.1（已实现并通过 demo 验证）
+状态：✅ 已实现
 设计师：lolict
 实现者：CatPaw
+验证：2026-08-22（6 个场景全部通过）

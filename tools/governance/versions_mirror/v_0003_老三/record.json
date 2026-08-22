@@ -1,0 +1,33 @@
+{
+  "version_name": "老三",
+  "version_number": 3,
+  "action": "原版",
+  "judgment": {
+    "owner": "李",
+    "verdict": "不通过",
+    "score": -5.0,
+    "passed": 0,
+    "total": 5,
+    "reward": 0.0,
+    "penalty": 2.5,
+    "details": [
+      "听觉拒绝：发现 3 个问题 [脏、含沙、没洗]"
+    ]
+  },
+  "perception": {
+    "owner": "李",
+    "value": 80,
+    "content": "江南糯米",
+    "clean": false,
+    "dry": true,
+    "has_worm": false,
+    "has_sand": true,
+    "edible": true,
+    "washed": false
+  },
+  "mirror_details": [
+    "听觉拒绝：发现 3 个问题 [脏、含沙、没洗]"
+  ],
+  "timestamp": 1787385508.4824507,
+  "is_selected": false
+}

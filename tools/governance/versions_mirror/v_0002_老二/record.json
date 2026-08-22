@@ -1,0 +1,42 @@
+{
+  "version_name": "老二",
+  "version_number": 2,
+  "action": "修正版",
+  "judgment": {
+    "owner": "张",
+    "verdict": "通过",
+    "score": 10.0,
+    "passed": 5,
+    "total": 5,
+    "reward": 5.0,
+    "penalty": 0.0,
+    "details": [
+      "  ✓ 干净：映出公约数",
+      "  ✓ 晒干：映出公约数",
+      "  ✓ 无虫：映出公约数",
+      "  ✓ 无沙：映出公约数",
+      "  ✓ 能吃：映出公约数"
+    ],
+    "timestamp": 1787385508.482181
+  },
+  "perception": {
+    "owner": "张",
+    "value": 100,
+    "content": "东北大米",
+    "clean": true,
+    "dry": true,
+    "has_worm": false,
+    "has_sand": false,
+    "edible": true,
+    "washed": true
+  },
+  "mirror_details": [
+    "  ✓ 干净：映出公约数",
+    "  ✓ 晒干：映出公约数",
+    "  ✓ 无虫：映出公约数",
+    "  ✓ 无沙：映出公约数",
+    "  ✓ 能吃：映出公约数"
+  ],
+  "timestamp": 1787385508.4821846,
+  "is_selected": false
+}

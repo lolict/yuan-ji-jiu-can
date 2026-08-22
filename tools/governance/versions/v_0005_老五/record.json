@@ -1,0 +1,43 @@
+{
+  "version_name": "老五",
+  "version_number": 5,
+  "action": "修正版",
+  "judgment": {
+    "owner": "王",
+    "verdict": "通过",
+    "score": 13.0,
+    "reward": 6.5,
+    "penalty": 0.0,
+    "reasons_good": [
+      "干净",
+      "晒干",
+      "无虫",
+      "无沙",
+      "能吃",
+      "已洗"
+    ],
+    "reasons_bad": [],
+    "timestamp": 1787384965.5121832
+  },
+  "perception": {
+    "owner": "王",
+    "status": "完好",
+    "clean": true,
+    "dry": true,
+    "has_worm": false,
+    "has_sand": false,
+    "edible": true,
+    "washed": true,
+    "value": 120,
+    "content": "泰国香米"
+  },
+  "hearing": {
+    "owner": "王",
+    "issues": [],
+    "issue_count": 0,
+    "clear": true
+  },
+  "timestamp": 1787384965.5121844,
+  "is_valid": true,
+  "is_selected": false
+}

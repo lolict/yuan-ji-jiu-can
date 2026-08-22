@@ -1,0 +1,33 @@
+{
+  "version_name": "老八",
+  "version_number": 8,
+  "action": "修正版",
+  "judgment": {
+    "owner": "赵",
+    "verdict": "不通过",
+    "score": -5.0,
+    "passed": 0,
+    "total": 5,
+    "reward": 0.0,
+    "penalty": 2.5,
+    "details": [
+      "听觉拒绝：发现 1 个问题 [变质不能吃]"
+    ]
+  },
+  "perception": {
+    "owner": "赵",
+    "value": 60,
+    "content": "陈年旧米",
+    "clean": true,
+    "dry": true,
+    "has_worm": false,
+    "has_sand": false,
+    "edible": false,
+    "washed": true
+  },
+  "mirror_details": [
+    "听觉拒绝：发现 1 个问题 [变质不能吃]"
+  ],
+  "timestamp": 1787385508.483585,
+  "is_selected": false
+}

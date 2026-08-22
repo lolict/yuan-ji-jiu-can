@@ -1,0 +1,47 @@
+{
+  "version_name": "老四",
+  "version_number": 4,
+  "action": "原版",
+  "judgment": {
+    "owner": "王",
+    "verdict": "不通过",
+    "score": -0.5,
+    "reward": 0.0,
+    "penalty": 0.25,
+    "reasons_good": [
+      "干净",
+      "无沙",
+      "能吃"
+    ],
+    "reasons_bad": [
+      "没晒干",
+      "生虫"
+    ],
+    "timestamp": 1787384965.5119762
+  },
+  "perception": {
+    "owner": "王",
+    "status": "生虫",
+    "clean": true,
+    "dry": false,
+    "has_worm": true,
+    "has_sand": false,
+    "edible": true,
+    "washed": false,
+    "value": 120,
+    "content": "泰国香米"
+  },
+  "hearing": {
+    "owner": "王",
+    "issues": [
+      "没晒干",
+      "生虫",
+      "没洗"
+    ],
+    "issue_count": 3,
+    "clear": false
+  },
+  "timestamp": 1787384965.5119772,
+  "is_valid": true,
+  "is_selected": false
+}

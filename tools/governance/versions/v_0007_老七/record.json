@@ -1,0 +1,46 @@
+{
+  "version_name": "老七",
+  "version_number": 7,
+  "action": "修正版",
+  "judgment": {
+    "owner": "赵",
+    "verdict": "不通过",
+    "score": -0.5,
+    "reward": 0.0,
+    "penalty": 0.25,
+    "reasons_good": [
+      "干净",
+      "晒干",
+      "无虫",
+      "无沙",
+      "已洗"
+    ],
+    "reasons_bad": [
+      "变质不能吃"
+    ],
+    "timestamp": 1787384965.5126114
+  },
+  "perception": {
+    "owner": "赵",
+    "status": "变质",
+    "clean": true,
+    "dry": true,
+    "has_worm": false,
+    "has_sand": false,
+    "edible": false,
+    "washed": true,
+    "value": 60,
+    "content": "陈年旧米"
+  },
+  "hearing": {
+    "owner": "赵",
+    "issues": [
+      "变质不能吃"
+    ],
+    "issue_count": 1,
+    "clear": false
+  },
+  "timestamp": 1787384965.5126123,
+  "is_valid": true,
+  "is_selected": false
+}

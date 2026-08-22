@@ -1,0 +1,42 @@
+{
+  "version_name": "老九",
+  "version_number": 9,
+  "action": "原版",
+  "judgment": {
+    "owner": "刘",
+    "verdict": "通过",
+    "score": 10.0,
+    "passed": 5,
+    "total": 5,
+    "reward": 5.0,
+    "penalty": 0.0,
+    "details": [
+      "  ✓ 干净：映出公约数",
+      "  ✓ 晒干：映出公约数",
+      "  ✓ 无虫：映出公约数",
+      "  ✓ 无沙：映出公约数",
+      "  ✓ 能吃：映出公约数"
+    ],
+    "timestamp": 1787385508.4838247
+  },
+  "perception": {
+    "owner": "刘",
+    "value": 150,
+    "content": "有机新米",
+    "clean": true,
+    "dry": true,
+    "has_worm": false,
+    "has_sand": false,
+    "edible": true,
+    "washed": true
+  },
+  "mirror_details": [
+    "  ✓ 干净：映出公约数",
+    "  ✓ 晒干：映出公约数",
+    "  ✓ 无虫：映出公约数",
+    "  ✓ 无沙：映出公约数",
+    "  ✓ 能吃：映出公约数"
+  ],
+  "timestamp": 1787385508.4838269,
+  "is_selected": false
+}

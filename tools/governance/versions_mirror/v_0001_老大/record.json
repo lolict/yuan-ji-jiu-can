@@ -1,0 +1,33 @@
+{
+  "version_name": "老大",
+  "version_number": 1,
+  "action": "原版",
+  "judgment": {
+    "owner": "张",
+    "verdict": "不通过",
+    "score": -5.0,
+    "passed": 0,
+    "total": 5,
+    "reward": 0.0,
+    "penalty": 2.5,
+    "details": [
+      "听觉拒绝：发现 1 个问题 [没洗]"
+    ]
+  },
+  "perception": {
+    "owner": "张",
+    "value": 100,
+    "content": "东北大米",
+    "clean": true,
+    "dry": true,
+    "has_worm": false,
+    "has_sand": false,
+    "edible": true,
+    "washed": false
+  },
+  "mirror_details": [
+    "听觉拒绝：发现 1 个问题 [没洗]"
+  ],
+  "timestamp": 1787385508.4819353,
+  "is_selected": false
+}

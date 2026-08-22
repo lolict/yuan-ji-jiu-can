@@ -1,0 +1,49 @@
+{
+  "version_name": "老六",
+  "version_number": 6,
+  "action": "原版",
+  "judgment": {
+    "owner": "赵",
+    "verdict": "不通过",
+    "score": -23.0,
+    "reward": 0.0,
+    "penalty": 11.5,
+    "reasons_good": [],
+    "reasons_bad": [
+      "脏",
+      "没晒干",
+      "生虫",
+      "含沙",
+      "变质不能吃"
+    ],
+    "timestamp": 1787384965.5124078
+  },
+  "perception": {
+    "owner": "赵",
+    "status": "变质",
+    "clean": false,
+    "dry": false,
+    "has_worm": true,
+    "has_sand": true,
+    "edible": false,
+    "washed": false,
+    "value": 60,
+    "content": "陈年旧米"
+  },
+  "hearing": {
+    "owner": "赵",
+    "issues": [
+      "脏",
+      "没晒干",
+      "生虫",
+      "含沙",
+      "变质不能吃",
+      "没洗"
+    ],
+    "issue_count": 6,
+    "clear": false
+  },
+  "timestamp": 1787384965.5124087,
+  "is_valid": true,
+  "is_selected": false
+}

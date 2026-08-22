@@ -1,0 +1,33 @@
+{
+  "version_name": "老七",
+  "version_number": 7,
+  "action": "原版",
+  "judgment": {
+    "owner": "赵",
+    "verdict": "不通过",
+    "score": -5.0,
+    "passed": 0,
+    "total": 5,
+    "reward": 0.0,
+    "penalty": 2.5,
+    "details": [
+      "听觉拒绝：发现 6 个问题 [脏、没晒干、生虫、含沙、变质不能吃、没洗]"
+    ]
+  },
+  "perception": {
+    "owner": "赵",
+    "value": 60,
+    "content": "陈年旧米",
+    "clean": false,
+    "dry": false,
+    "has_worm": true,
+    "has_sand": true,
+    "edible": false,
+    "washed": false
+  },
+  "mirror_details": [
+    "听觉拒绝：发现 6 个问题 [脏、没晒干、生虫、含沙、变质不能吃、没洗]"
+  ],
+  "timestamp": 1787385508.4833915,
+  "is_selected": false
+}

@@ -1,0 +1,87 @@
+{
+  "version_name": "老五",
+  "version_number": 5,
+  "action": "原版",
+  "judgment": {
+    "owner": "王",
+    "verdict": "不通过",
+    "score": -3.0,
+    "reward": 0.0,
+    "penalty": 1.5,
+    "reflection": {
+      "reflections": [
+        {
+          "label": "干净",
+          "expected": true,
+          "actual": true,
+          "matched": true
+        },
+        {
+          "label": "晒干",
+          "expected": true,
+          "actual": false,
+          "matched": false
+        },
+        {
+          "label": "无虫",
+          "expected": false,
+          "actual": true,
+          "matched": false
+        },
+        {
+          "label": "无沙",
+          "expected": false,
+          "actual": false,
+          "matched": true
+        },
+        {
+          "label": "能吃",
+          "expected": true,
+          "actual": true,
+          "matched": true
+        },
+        {
+          "label": "已洗",
+          "expected": true,
+          "actual": false,
+          "matched": false
+        }
+      ],
+      "passed": 3,
+      "total": 6,
+      "score": -3.0,
+      "mirror_rate": 0.5
+    },
+    "timestamp": 1787385862.9981852
+  },
+  "aesthetics": {
+    "owner": "王",
+    "score": 3.0,
+    "grade": "下品",
+    "aspects": [
+      [
+        "清洁",
+        2
+      ],
+      [
+        "潮湿",
+        -1
+      ],
+      [
+        "虫害",
+        -2
+      ],
+      [
+        "可用",
+        3
+      ],
+      [
+        "贵重",
+        1
+      ]
+    ]
+  },
+  "passed_filter": false,
+  "timestamp": 1787385862.9981892,
+  "is_selected": false
+}

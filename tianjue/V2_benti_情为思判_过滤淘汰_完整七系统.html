@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>囡囝共生操作系统 · V2 本体 — 七系统完整版 · 情·为·思·审·奖·罚·过滤</title>
+<style>
+:root{
+  --bg:#06060c;--panel:#0c0c16;--border:#1a1a2a;
+  --gold:#c8a24e;--gold-dim:#7a6230;
+  --blue:#4a7ab5;--green:#3a9a6a;--red:#a54a4a;
+  --purple:#7a4ab5;--cyan:#4ab5a0;--orange:#b57a3a;
+  --text:#d8d8e0;--text-dim:#5a5a7a;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Courier New',monospace;min-height:100vh}
+
+/* ── 顶栏 ── */
+.topbar{padding:14px 20px;background:linear-gradient(180deg,rgba(200,162,78,0.06),transparent);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.topbar h1{font-size:1em;color:var(--gold);letter-spacing:0.12em}
+.vbadge{padding:3px 12px;border:1px solid var(--gold-dim);border-radius:10px;font-size:0.7em;color:var(--gold)}
+
+/* ── 版本栏 ── */
+.vbar{padding:8px 20px;background:var(--panel);border-bottom:1px solid var(--border);display:flex;gap:6px;align-items:center;overflow-x:auto}
+.vbar .lbl{font-size:0.7em;color:var(--text-dim)}
+.vbtn{padding:3px 10px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--text-dim);font-family:inherit;font-size:0.7em;cursor:pointer}
+.vbtn.active{border-color:var(--gold);color:var(--gold)}
+.vbtn:hover{border-color:var(--gold-dim)}
+.vbtn.mu{opacity:0.35;cursor:not-allowed}
+
+/* ── 七系统导航 ── */
+.sysnav{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--border)}
+.syn{font-size:0.7em;padding:10px 4px;text-align:center;background:var(--bg);color:var(--text-dim);cursor:pointer;transition:all .15s;border-bottom:2px solid transparent}
+.syn:hover{color:var(--text);background:rgba(200,162,78,0.04)}
+.syn.active{color:var(--gold);border-bottom-color:var(--gold);background:rgba(200,162,78,0.06)}
+
+/* ── 主体 ── */
+.body{padding:20px;max-width:1100px;margin:0 auto}
+.syspane{display:none}.syspane.active{display:block}
+.ptr{color:var(--text-dim);font-size:0.8em;margin-bottom:16px;line-height:1.6}
+.ptr strong{color:var(--gold)}
+
+/* ── 卡片 ── */
+.card{border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:10px;background:var(--panel)}
+.card-n{font-size:0.9em;color:var(--gold);font-weight:bold;margin-bottom:10px}
+.card-body{font-size:0.82em;line-height:1.8;color:var(--text-dim)}
+.card-body .f{display:flex;justify-content:space-between}
+.card-body .f .v{color:var(--text)}
+.card-body .f .v.g{color:var(--green)}.card-body .f .v.r{color:var(--red)}.card-body .f .v.gl{color:var(--gold)}
+
+/* ── 感知条 ── */
+.srow{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.slb{width:60px;font-size:0.7em;color:var(--text-dim)}
+.sbar{flex:1;height:6px;background:var(--bg);border-radius:3px;overflow:hidden}
+.sfill{height:100%;border-radius:3px;transition:width .4s}
+.sv{width:24px;text-align:right;font-size:0.65em;color:var(--text-dim)}
+
+/* ── 判题卡 ── */
+.jcard{border:1px solid var(--border);border-radius:6px;padding:14px;margin-bottom:8px;background:var(--panel)}
+.jq{color:var(--text);font-size:0.85em;margin-bottom:8px;line-height:1.5}
+.jmeta{font-size:0.7em;color:var(--gold);margin-bottom:6px}
+.jopts{display:flex;gap:6px}
+.jopt{flex:1;padding:6px;border:1px solid var(--border);border-radius:4px;background:transparent;color:var(--text-dim);font-family:inherit;font-size:0.78em;cursor:pointer;transition:all .15s;text-align:center}
+.jopt:hover{border-color:var(--text-dim)}
+.jopt.co{border-color:var(--green);color:var(--green);background:rgba(58,154,106,0.06)}
+.jopt.wr{border-color:var(--red);color:var(--red);background:rgba(165,74,74,0.06)}
+.jopt.disabled{pointer-events:none;opacity:0.6}
+
+/* ── 计分 ── */
+.scr{display:flex;gap:16px;margin-bottom:14px;padding:8px 12px;background:var(--panel);border:1px solid var(--border);border-radius:6px;font-size:0.78em}
+.sc{display:flex;align-items:center;gap:5px}
+.scn{font-size:1.2em}.scn.r{color:var(--green)}.scn.p{color:var(--red)}.scn.t{color:var(--gold)}
+
+/* ── 层级树 ── */
+.tier{padding:6px 10px;border-left:2px solid var(--gold-dim);margin-bottom:4px;font-size:0.78em;background:rgba(200,162,78,0.02)}
+.tn{color:var(--gold);font-weight:bold;font-size:0.9em}
+.td{color:var(--text-dim);margin-top:1px;font-size:0.9em}
+
+/* ── 历史 ── */
+.hitem{padding:6px 8px;border-bottom:1px solid var(--border);font-size:0.75em}
+.ht{color:var(--text-dim);font-size:0.82em}
+.he{margin-top:1px}
+.he.ok{color:var(--green)}.he.err{color:var(--red)}
+
+/* ── 矩栅 ── */
+.mgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;text-align:center}
+.mcell{padding:8px 4px;border:1px solid var(--border);border-radius:4px;font-size:0.7em}
+.mcell .ic{font-size:1.4em;margin-bottom:2px}
+.mcell.g{border-color:var(--green);color:var(--green)}
+.mcell.b{border-color:var(--red);color:var(--red)}
+.mcell.n{border-color:var(--text-dim);color:var(--text-dim)}
+
+/* ── 行为面板 ── */
+.act-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.act{padding:10px;border:1px solid var(--border);border-radius:6px;font-size:0.78em}
+.act-n{color:var(--gold);font-weight:bold;margin-bottom:4px}
+.act-d{color:var(--text-dim);font-size:0.9em;line-height:1.5}
+
+/* ── 过滤面板 ── */
+.filt-stat{display:flex;gap:12px;margin-bottom:14px}
+.filt-box{flex:1;padding:10px;border:1px solid var(--border);border-radius:6px;text-align:center}
+.filt-n{font-size:1.6em;margin-bottom:2px}
+.filt-l{font-size:0.7em;color:var(--text-dim)}
+.filt-box.pass{border-color:var(--green)}.filt-box.pass .filt-n{color:var(--green)}
+.filt-box.fail{border-color:var(--red)}.filt-box.fail .filt-n{color:var(--red)}
+
+/* ── 底栏 ── */
+.bar{padding:6px 20px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:0.7em;color:var(--text-dim)}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>囡囝共生操作系统 · 天觉引擎 · V2</h1>
+  <span class="vbadge">七系统完整版</span>
+</div>
+
+<!-- 版本栏 -->
+<div class="vbar">
+  <span class="lbl">历史版本：</span>
+  <button class="vbtn" onclick="location.href='V1_benti_听觉系统_层级审判引擎.html'">V1 听觉·层级</button>
+  <button class="vbtn active">V2 七系统 ◀ 当前</button>
+  <button class="vbtn mu">V3 （待建）</button>
+  <button class="vbtn mu">V4 （待建）</button>
+  <button class="vbtn mu">V5 （待建）</button>
+</div>
+
+<!-- 七系统导航 -->
+<div class="sysnav">
+  <div class="syn active" data-sys="visual">视觉</div>
+  <div class="syn" data-sys="audio">听觉</div>
+  <div class="syn" data-sys="emotion">情进</div>
+  <div class="syn" data-sys="behavior">行为</div>
+  <div class="syn" data-sys="thought">思考</div>
+  <div class="syn" data-sys="judgment">审判</div>
+  <div class="syn" data-sys="filter">过滤淘汰</div>
+</div>
+
+<div class="body">
+
+  <!-- ═══════ 1. 视觉 ═══════ -->
+  <div class="syspane active" id="sys-visual">
+    <div class="ptr"><strong>视觉系统</strong> — 识别符号的形态、颜色、边界、关系。不数粒、不问粒，只看袋好不好看、整不整齐、界限清不清。</div>
+    <div class="card">
+      <div class="card-n">感知通道</div>
+      <div class="card-body">
+        <div class="srow"><div class="slb">色彩</div><div class="sbar"><div class="sfill" style="width:82%;background:var(--gold)"></div></div><div class="sv">82%</div></div>
+        <div class="srow"><div class="slb">形态</div><div class="sbar"><div class="sfill" style="width:68%;background:var(--blue)"></div></div><div class="sv">68%</div></div>
+        <div class="srow"><div class="slb">边界</div><div class="sbar"><div class="sfill" style="width:75%;background:var(--green)"></div></div><div class="sv">75%</div></div>
+        <div class="srow"><div class="slb">对称</div><div class="sbar"><div class="sfill" style="width:71%;background:var(--purple)"></div></div><div class="sv">71%</div></div>
+        <div class="srow"><div class="slb">可读</div><div class="sbar"><div class="sfill" style="width:58%;background:var(--cyan)"></div></div><div class="sv">58%</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-n">审美栅 — 美丑判断（不过滤，只判断）</div>
+      <div class="card-body"><div class="mgrid">
+        <div class="mcell g"><div class="ic">♡</div>美<br><span style="font-size:0.75em">通过保留</span></div>
+        <div class="mcell n"><div class="ic">◇</div>可<br><span style="font-size:0.75em">待定观察</span></div>
+        <div class="mcell b"><div class="ic">△</div>丑<br><span style="font-size:0.75em">标记淘汰</span></div>
+        <div class="mcell b"><div class="ic">✗</div>废<br><span style="font-size:0.75em">立即删除</span></div>
+      </div></div>
+    </div>
+  </div>
+
+  <!-- ═══════ 2. 听觉 ═══════ -->
+  <div class="syspane" id="sys-audio">
+    <div class="ptr"><strong>听觉系统</strong> — 辨别声调、节奏、音色、韵律。韵母的声音袋：音高纯不纯？节奏对不对？有没有杂音（沙子）？</div>
+    <div class="card">
+      <div class="card-n">感知通道</div>
+      <div class="card-body">
+        <div class="srow"><div class="slb">音高</div><div class="sbar"><div class="sfill" style="width:70%;background:var(--cyan)"></div></div><div class="sv">70%</div></div>
+        <div class="srow"><div class="slb">声调</div><div class="sbar"><div class="sfill" style="width:78%;background:var(--green)"></div></div><div class="sv">78%</div></div>
+        <div class="srow"><div class="slb">音色</div><div class="sbar"><div class="sfill" style="width:62%;background:var(--gold)"></div></div><div class="sv">62%</div></div>
+        <div class="srow"><div class="slb">节奏</div><div class="sbar"><div class="sfill" style="width:55%;background:var(--orange)"></div></div><div class="sv">55%</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-n">嗅觉/味觉栅 — 香臭判断</div>
+      <div class="card-body"><div class="mgrid">
+        <div class="mcell g"><div class="ic">☘</div>香<br><span style="font-size:0.75em">可用好吃</span></div>
+        <div class="mcell n"><div class="ic">○</div>平<br><span style="font-size:0.75em">中性未定</span></div>
+        <div class="mcell b"><div class="ic">✘</div>臭<br><span style="font-size:0.75em">不可用</span></div>
+        <div class="mcell b"><div class="ic">☠</div>毒<br><span style="font-size:0.75em">危险删除</span></div>
+      </div></div>
+    </div>
+  </div>
+
+  <!-- ═══════ 3. 情进系统 ═══════ -->
+  <div class="syspane" id="sys-emotion">
+    <div class="ptr"><strong>情进系统</strong> — 感知与系统之间的关系。此袋让我开心还是烦恼？与我亲近还是疏远？我要不要靠近它、相信它、丢弃它？</div>
+    <div class="card">
+      <div class="card-n">情进维度</div>
+      <div class="card-body">
+        <div class="srow"><div class="slb">亲密度</div><div class="sbar"><div class="sfill" style="width:85%;background:var(--green)"></div></div><div class="sv">85%</div></div>
+        <div class="srow"><div class="slb">信任度</div><div class="sbar"><div class="sfill" style="width:42%;background:var(--orange)"></div></div><div class="sv">42%</div></div>
+        <div class="srow"><div class="slb">厌恶感</div><div class="sbar"><div class="sfill" style="width:18%;background:var(--red)"></div></div><div class="sv">18%</div></div>
+        <div class="srow"><div class="slb">敬畏感</div><div class="sbar"><div class="sfill" style="width:65%;background:var(--purple)"></div></div><div class="sv">65%</div></div>
+        <div class="srow"><div class="slb">欢喜感</div><div class="sbar"><div class="sfill" style="width:72%;background:var(--gold)"></div></div><div class="sv">72%</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-n">情进反应规则</div>
+      <div class="card-body" style="line-height:2">
+        ☘ 亲密度高 + 信任 → 靠近、接纳、纳入自己家族<br>
+        ◇ 亲密度低 + 敬畏 → 保持距离，观察，不轻易相信<br>
+        ✘ 厌恶感高 → 疏远，不再触碰，但不一定丢弃<br>
+        ☠ 信任崩塌 → 彻底断绝，标记为不可再信
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ 4. 行为系统 ═══════ -->
+  <div class="syspane" id="sys-behavior">
+    <div class="ptr"><strong>行为系统</strong> — 袋子的行为：晒、洗、捡、买、卖、补、扔、收。袋子收到信号后怎么动？</div>
+    <div class="card">
+      <div class="card-n">八大行为</div>
+      <div class="card-body"><div class="act-grid">
+        <div class="act"><div class="act-n">☀ 晒</div><div class="act-d">把袋中的米拿出来晒。定型、定版、确定不再变了。</div></div>
+        <div class="act"><div class="act-n">💧 洗</div><div class="act-d">清洗袋子。洗掉脏符号、错误配对的符号。</div></div>
+        <div class="act"><div class="act-n">✋ 捡</div><div class="act-d">把沙子捡出去。坏符号一个一個挑出来扔掉。</div></div>
+        <div class="act"><div class="act-n">💰 买</div><div class="act-d">此袋值不值？值就买（纳入自己的系统）。</div></div>
+        <div class="act"><div class="act-n">🚫 卖</div><div class="act-d">我不要了，给需要的人。从此无关。</div></div>
+        <div class="act"><div class="act-n">🔨 补</div><div class="act-d">袋子破了就补。有缺失符号就补进去。</div></div>
+        <div class="act"><div class="act-n">🗑 扔</div><div class="act-d">烂袋不可补。彻底丢弃。删除此袋全部内容。</div></div>
+        <div class="act"><div class="act-n">📦 收</div><div class="act-d">洗干净、晒干了、捡好了。收入仓库待用。</div></div>
+      </div></div>
+    </div>
+  </div>
+
+  <!-- ═══════ 5. 思考系统 ═══════ -->
+  <div class="syspane" id="sys-thought">
+    <div class="ptr"><strong>思考系统</strong> — 袋与袋之间的关系推理。A袋和B袋是什么关系？能不能合并？谁是谁的上级？谁证明谁？</div>
+    <div class="card">
+      <div class="card-n">思考模式</div>
+      <div class="card-body" style="line-height:2">
+        <div style="color:var(--gold);margin-bottom:6px">五种思考模式：</div>
+        <div><span style="color:var(--gold)">① 类比：</span>这个袋长得跟袋0差不多 → 可能同源</div>
+        <div><span style="color:var(--blue)">② 因果：</span>袋1配对错了 → 袋2也跟着错（同宗同源）</div>
+        <div><span style="color:var(--green)">③ 层级：</span>袋0的祖先是谁？一代一代往上追</div>
+        <div><span style="color:var(--purple)">④ 对立：</span>袋0 vs 袋1 — 它们互斥还是互补？</div>
+        <div><span style="color:var(--cyan)">⑤ 合一：</span>袋0 + 袋1 合并成更大的袋中袋</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-n">关系图（当前四袋之间）</div>
+      <div class="card-body">
+        <div class="f"><span>袋0 ↔ 袋1</span><span class="v">平行 · 无血缘</span></div>
+        <div class="f"><span>袋1 ↔ 袋2</span><span class="v g">同源 · 都是变体池</span></div>
+        <div class="f"><span>袋1 ↔ 袋5</span><span class="v">平行 · 功能不同</span></div>
+        <div class="f"><span>袋2 ↔ 袋5</span><span class="v r">互斥 · 一类一类不容</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ 6. 审判系统（含奖励惩罚） ═══════ -->
+  <div class="syspane" id="sys-judgment">
+    <div class="ptr"><strong>审判系统</strong> — 逐袋审判。每袋出若干题，答对奖励（绿），答错惩罚（红）。审判完了自动归档进历史记忆。</div>
+    <div class="scr">
+      <div class="sc"><span class="scn r" id="rc">0</span> 正确+奖励</div>
+      <div class="sc"><span class="scn p" id="pc">0</span> 错误+惩罚</div>
+      <div class="sc"><span class="scn t" id="tc">0</span> 累计审判</div>
+    </div>
+    <div id="jArea"></div>
+  </div>
+
+  <!-- ═══════ 7. 过滤淘汰系统 ═══════ -->
+  <div class="syspane" id="sys-filter">
+    <div class="ptr"><strong>过滤淘汰系统</strong> — 按照层级审判的结果，自动决定每个袋的命运：通过 / 待定 / 淘汰 / 删除。</div>
+    <div class="filt-stat">
+      <div class="filt-box pass"><div class="filt-n">1</div><div class="filt-l">通过<br><span style="font-size:0.75em">袋0</span></div></div>
+      <div class="filt-box pass"><div class="filt-n">1</div><div class="filt-l">待定<br><span style="font-size:0.75em">袋1</span></div></div>
+      <div class="filt-box fail"><div class="filt-n">1</div><div class="filt-l">淘汰候选<br><span style="font-size:0.75em">袋2</span></div></div>
+      <div class="filt-box fail"><div class="filt-n">1</div><div class="filt-l">删除候选<br><span style="font-size:0.75em">袋5</span></div></div>
+    </div>
+    <div class="card">
+      <div class="card-n">淘汰规则</div>
+      <div class="card-body" style="line-height:2">
+        <div><span class="g">✦ 通过：</span>全部审判问题答对 → 收入仓库</div>
+        <div><span style="color:var(--orange)">◇ 待定：</span>部分答对 → 暂存、待重审</div>
+        <div><span class="r">✧ 淘汰：</span>关键问题答错 → 移出系统但保留历史</div>
+        <div><span class="r">☠ 删除：</span>确认有毒（不可修复）→ 彻底抹除</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-n">高维层级轴 — 七维袋级认知</div>
+      <div class="card-body">
+        <div class="tier"><div class="tn">T0·袋核</div><div class="td">谁家的袋？编号几？叫啥名？</div></div>
+        <div class="tier"><div class="tn">T1·袋质</div><div class="td">袋本身好不好？脏不脏？坏没坏？</div></div>
+        <div class="tier"><div class="tn">T2·袋属</div><div class="td">归哪个家族？跟谁有血缘？</div></div>
+        <div class="tier"><div class="tn">T3·袋位</div><div class="td">在哪一层？上下左右是谁？</div></div>
+        <div class="tier"><div class="tn">T4·袋用</div><div class="td">干什么用？装什么？值多少钱？</div></div>
+        <div class="tier"><div class="tn">T5·袋命</div><div class="td">还能用多久？要不要补？</div></div>
+        <div class="tier"><div class="tn">T6·袋净</div><div class="td">有没有沙子？虫？米还能吃？</div></div>
+        <div class="tier"><div class="tn">T7·袋食</div><div class="td">米香不香？干不干？好不好吃？</div></div>
+      </div>
+    </div>
+
+    <!-- 历史记忆 -->
+    <div class="card" style="margin-top:14px">
+      <div class="card-n">⟡ 历史记忆长廊 — 永不遗忘</div>
+      <div id="histArea"></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="bar">
+  <span>囡囝共生操作系统 · NJSG · 天觉引擎 V2</span>
+  <span>七系统：视觉·听觉·情进·行为·思考·审判·过滤淘汰</span>
+</div>
+
+<script>
+// ── 七系统切换 ──
+document.querySelectorAll('.syn').forEach(function(s){
+  s.onclick=function(){
+    document.querySelectorAll('.syn').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.syspane').forEach(x=>x.classList.remove('active'));
+    this.classList.add('active');
+    document.getElementById('sys-'+this.dataset.sys).classList.add('active');
+  };
+});
+
+// ── 审判题库 ──
+const J=[
+  {bag:0,q:"此袋是否干净？无虫无沙无脏物？",opts:["干净","有脏"],a:0},
+  {bag:0,q:"此袋中的符号是否都能吃（可用）？",opts:["全部可用","有坏的"],a:0},
+  {bag:0,q:"此袋需不需要洗？",opts:["不需要","需要洗"],a:0},
+  {bag:1,q:"此袋内符号配对是否正确？",opts:["正确","有错"],a:0},
+  {bag:1,q:"此袋是否混入不属于它的符号？",opts:["没有","有混入"],a:0},
+  {bag:1,q:"此袋的谷子晒干了没有？（定型了吗？）",opts:["已干","未干"],a:0},
+  {bag:1,q:"此袋完好无损？没有破洞？",opts:["完好","有破"],a:0},
+  {bag:2,q:"此袋已经分类完毕？",opts:["已分类","未分类"],a:0},
+  {bag:2,q:"此袋有没有虫（不可用的坏符号）？",opts:["无虫","有虫"],a:0},
+  {bag:2,q:"此袋的米（符号）好不好用？",opts:["好用","不好用"],a:0},
+  {bag:5,q:"此袋是否全为声母类符号？",opts:["全是声母","不全是"],a:1},
+  {bag:5,q:"此袋有没有重复（两颗一样的米）？",opts:["无重复","有重复"],a:0},
+  {bag:5,q:"此袋有没有沙子（误植符号）？",opts:["无沙子","有沙子"],a:0},
+  {bag:5,q:"此袋值不值钱（高价值编码意义）？",opts:["值钱","不值钱"],a:0},
+];
+
+let qi=0,rc=0,pc=0,hist=[];
+
+function render(){
+  const a=document.getElementById('jArea');
+  if(qi>=J.length){
+    a.innerHTML='<div style="padding:18px;text-align:center;color:var(--green);border:1px solid var(--green);border-radius:6px;font-size:0.9em">✦ 全部审判完毕 ✦<br><span style="color:var(--text-dim);font-size:0.85em">奖励:'+rc+' 惩罚:'+pc+'</span></div>';
+    return;
+  }
+  const j=J[qi];
+  a.innerHTML='<div class="jcard"><div class="jmeta">【袋'+j.bag+'】第'+(qi+1)+'题 / 共'+J.length+'题</div>'+
+    '<div class="jq">'+j.q+'</div>'+
+    '<div class="jopts"><div class="jopt" onclick="ans(0,this)">'+j.opts[0]+'</div><div class="jopt" onclick="ans(1,this)">'+j.opts[1]+'</div></div></div>';
+}
+
+function ans(sel,el){
+  const j=J[qi];
+  const correct=(sel===j.a);
+  const btns=el.parentNode.querySelectorAll('.jopt');
+  btns.forEach(function(b){b.classList.add('disabled')});
+  el.classList.add(correct?'co':'wr');
+  if(correct){rc++;hist.unshift({t:tm(),e:'袋'+j.bag+' 第'+(qi+1)+'题 ✓',ok:true});}
+  else{pc++;hist.unshift({t:tm(),e:'袋'+j.bag+' 第'+(qi+1)+'题 ✗',ok:false});}
+  document.getElementById('rc').textContent=rc;
+  document.getElementById('pc').textContent=pc;
+  document.getElementById('tc').textContent=rc+pc;
+  renderHist();
+  qi++;
+  setTimeout(render,350);
+}
+
+function tm(){const d=new Date();return d.toLocaleTimeString('zh-CN',{hour12:false})}
+
+function renderHist(){
+  const a=document.getElementById('histArea');
+  if(hist.length===0){a.innerHTML='<div style="color:var(--text-dim);font-size:0.8em">暂无记录</div>';return;}
+  a.innerHTML=hist.slice(0,20).map(function(h){
+    return '<div class="hitem"><div class="ht">'+h.t+'</div><div class="he '+(h.ok?'ok':'err')+'">'+h.e+'</div></div>';
+  }).join('');
+}
+
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,91 @@
+{
+  "version_name": "老二",
+  "version_number": 2,
+  "action": "修正版",
+  "judgment": {
+    "owner": "张",
+    "verdict": "通过",
+    "score": 12.0,
+    "reward": 6.0,
+    "penalty": 0.0,
+    "reflection": {
+      "reflections": [
+        {
+          "label": "干净",
+          "expected": true,
+          "actual": true,
+          "matched": true
+        },
+        {
+          "label": "晒干",
+          "expected": true,
+          "actual": true,
+          "matched": true
+        },
+        {
+          "label": "无虫",
+          "expected": false,
+          "actual": false,
+          "matched": true
+        },
+        {
+          "label": "无沙",
+          "expected": false,
+          "actual": false,
+          "matched": true
+        },
+        {
+          "label": "能吃",
+          "expected": true,
+          "actual": true,
+          "matched": true
+        },
+        {
+          "label": "已洗",
+          "expected": true,
+          "actual": true,
+          "matched": true
+        }
+      ],
+      "passed": 6,
+      "total": 6,
+      "score": 12.0,
+      "mirror_rate": 1.0
+    },
+    "timestamp": 1787385862.997375
+  },
+  "aesthetics": {
+    "owner": "张",
+    "score": 12.0,
+    "grade": "上品",
+    "aspects": [
+      [
+        "清洁",
+        2
+      ],
+      [
+        "干爽",
+        2
+      ],
+      [
+        "纯净",
+        3
+      ],
+      [
+        "可用",
+        3
+      ],
+      [
+        "贵重",
+        1
+      ],
+      [
+        "精细",
+        1
+      ]
+    ]
+  },
+  "passed_filter": true,
+  "timestamp": 1787385862.997381,
+  "is_selected": false
+}

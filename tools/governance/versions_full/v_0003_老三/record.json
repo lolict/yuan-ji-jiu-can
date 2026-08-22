@@ -1,0 +1,87 @@
+{
+  "version_name": "老三",
+  "version_number": 3,
+  "action": "原版",
+  "judgment": {
+    "owner": "李",
+    "verdict": "不通过",
+    "score": -3.0,
+    "reward": 0.0,
+    "penalty": 1.5,
+    "reflection": {
+      "reflections": [
+        {
+          "label": "干净",
+          "expected": true,
+          "actual": false,
+          "matched": false
+        },
+        {
+          "label": "晒干",
+          "expected": true,
+          "actual": true,
+          "matched": true
+        },
+        {
+          "label": "无虫",
+          "expected": false,
+          "actual": false,
+          "matched": true
+        },
+        {
+          "label": "无沙",
+          "expected": false,
+          "actual": true,
+          "matched": false
+        },
+        {
+          "label": "能吃",
+          "expected": true,
+          "actual": true,
+          "matched": true
+        },
+        {
+          "label": "已洗",
+          "expected": true,
+          "actual": false,
+          "matched": false
+        }
+      ],
+      "passed": 3,
+      "total": 6,
+      "score": -3.0,
+      "mirror_rate": 0.5
+    },
+    "timestamp": 1787385862.9976616
+  },
+  "aesthetics": {
+    "owner": "李",
+    "score": 5.0,
+    "grade": "中品",
+    "aspects": [
+      [
+        "污浊",
+        -1
+      ],
+      [
+        "干爽",
+        2
+      ],
+      [
+        "微瑕",
+        1
+      ],
+      [
+        "可用",
+        3
+      ],
+      [
+        "平价",
+        0
+      ]
+    ]
+  },
+  "passed_filter": false,
+  "timestamp": 1787385862.997666,
+  "is_selected": false
+}

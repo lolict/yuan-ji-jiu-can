@@ -69,6 +69,39 @@ int  njsg_shell_nest_insert(int parent_id, const char* child_name);
 void njsg_shell_nest_honeycomb(int level);
 extern int sn_count;
 
+/* v1.4 天觉认知审判前置声明 */
+void njsg_tianjue_init(void);
+void njsg_tianjue_demo(void);
+void njsg_tianjue_perceive_pretty(int bag_id);
+int  njsg_tianjue_add_bag(int id, const char* name, const char* owner);
+void njsg_tianjue_set_attr(int bag_id, int dim, float val);
+int  njsg_tianjue_add_judge(int id, const char* name, float threshold);
+int  njsg_tianjue_judge(int bag_id, int judge_id);
+void njsg_tianjue_reward(int judge_id, int points);
+void njsg_tianjue_punish(int judge_id, int points);
+void njsg_tianjue_verify(int judgment_id, int actual_good);
+void njsg_tianjue_update_levels(void);
+void njsg_tianjue_history(int bag_id);
+void njsg_tianjue_accumulate(void);
+void njsg_tianjue_set_parent(int bag_id, int parent_id);
+void njsg_tianjue_link(int from, int to, const char* rel_type);
+void njsg_tianjue_hierarchy_print(void);
+
+/* v1.5 囝生殖操作系统前置声明 */
+void njsg_breed_init(void);
+void njsg_breed_demo(void);
+int  njsg_breed_spawn(int value, const char* desc);
+void njsg_breed_next_generation(void);
+void njsg_breed_mirror_compare(void);
+void njsg_breed_user_select(int version_id);
+void njsg_breed_reward(int version_id);
+void njsg_breed_punish(int version_id);
+void njsg_breed_aesthetic(void);
+void njsg_breed_eliminate(void);
+void njsg_breed_print_lineage(void);
+void njsg_breed_history(int version_id);
+void njsg_breed_evolve(void);
+
 /* v1.3 全栈联动前置声明 */
 void njsg_feishu_bot_bridge_init(void);
 void njsg_qimei_init(void);
@@ -1084,6 +1117,9 @@ int main(){
 
     /* v1.4 天觉认知审判 demo */
     njsg_tianjue_demo();
+
+    /* v1.5 囝生殖操作系统 demo */
+    njsg_breed_demo();
 
 #ifdef MLLL_LIBRARY
     /* === MLLL 七维符号编码桥接（仅内核+mlll联合编译时启用）=== */
@@ -2453,6 +2489,423 @@ void njsg_tianjue_hierarchy_print(void){
     printf("└────────────────────────────────────┘\n");
 }
 
+/* ============================================================
+ * 囝生殖操作系统 · 版本自生殖体系
+ * ------------------------------------------------------------
+ * 老大、老二、老三……生 N 个版本，绝不怕覆盖旧文件。
+ * 公约数锚定 → 公倍数旋转 → 照镜子对比 → 用户挑选 → 奖惩审判
+ *
+ * 六子系统：生殖 / 审判 / 奖惩 / 历史 / 美学 / 淘汰
+ * ============================================================ */
+
+#define MAX_VERSIONS        32   /* 最多版本数 */
+#define MAX_GENERATIONS     8    /* 最多代数 */
+#define MAX_LINE_LEN        256  /* 每行最大长度 */
+#define ANCHOR_GCD          6    /* 公约数锚点（默认）*/
+
+/* 版本状态 */
+#define VER_PENDING     0   /* 待审判 */
+#define VER_PASSED      1   /* 通过照镜子 */
+#define VER_REJECTED    2   /* 被照镜子拒绝 */
+#define VER_SELECTED    3   /* 被用户选中（最终胜利者）*/
+#define VER_ELIMINATED  4   /* 被淘汰 */
+
+static const char* VER_STATUS[] = {"待审","通过","拒绝","选中","淘汰"};
+static const char* GEN_NAMES[]  = {"老大","老二","老三","老四","老五","老六","老七","老八",
+                                   "老九","老十","老十一","老十二","老十三","老十四","老十五","老十六"};
+
+/* 一个版本（一次生殖的产出）*/
+typedef struct {
+    int     id;                     /* 版本号 */
+    char    name[32];               /* 报数名：老大、老二…… */
+    int     generation;             /* 第几代 */
+    int     parent_id;              /* 父版本ID（-1=始祖）*/
+    int     lineage;                /* 同代中的排行（0=老大）*/
+    int     value;                  /* 候选数值（公倍数）*/
+    int     anchor;                 /* 锚点数值（公约数）*/
+    float   deviation;              /* 偏离度（0=完美）*/
+    int     status;                 /* 审判状态 */
+    int     aesthetic_score;        /* 美学分 */
+    int     reward_count;           /* 被选中次数 */
+    int     penalty_count;          /* 被拒绝次数 */
+    char    description[128];       /* 版本描述 */
+    time_t  birth_time;             /* 诞生时间 */
+} Version;
+
+/* 家谱：记录所有版本 */
+typedef struct {
+    Version     versions[MAX_VERSIONS];
+    int         count;
+    int         generation_count;    /* 当前代数 */
+    int         next_id;            /* 下一个版本号 */
+    int         next_lineage;       /* 同代内下一个排行 */
+    int         current_gen;        /* 当前正在繁殖的代数 */
+    int         anchor_gcd;         /* 公约数锚点 */
+    int         total_bred;         /* 总生殖次数 */
+    int         total_selected;     /* 总选中次数 */
+    int         total_eliminated;   /* 总淘汰次数 */
+} BreedEngine;
+
+static BreedEngine BE;
+
+/* ------------------------------------------------------------
+ * 最大公约数（欧几里得算法）= 找锚点
+ * ------------------------------------------------------------ */
+static int breed_gcd(int a, int b){
+    a = abs(a); b = abs(b);
+    while(b){ int t=b; b=a%b; a=t; }
+    return a;
+}
+
+/* 最小公倍数 = 锚点的展开 */
+static int breed_lcm(int a, int b){
+    if(a==0||b==0) return 0;
+    return abs(a / breed_gcd(a,b) * b);
+}
+
+/* ------------------------------------------------------------
+ * 5.1 生殖层：诞生新版本
+ * ------------------------------------------------------------ */
+void njsg_breed_init(void){
+    memset(&BE, 0, sizeof(BE));
+    BE.count = 0;
+    BE.generation_count = 0;
+    BE.next_id = 1;
+    BE.next_lineage = 0;
+    BE.current_gen = 0;
+    BE.anchor_gcd = ANCHOR_GCD;
+    BE.total_bred = 0;
+    BE.total_selected = 0;
+    BE.total_eliminated = 0;
+    srand((unsigned int)time(NULL));
+    printf("[生殖] 囝生殖系统已初始化（公约数锚点=%d）\n", BE.anchor_gcd);
+}
+
+/* 诞生一个新版本 */
+int njsg_breed_spawn(int value, const char* desc){
+    if(BE.count >= MAX_VERSIONS) return -1;
+    Version* v = &BE.versions[BE.count++];
+    v->id = BE.next_id++;
+    v->generation = BE.current_gen;
+    v->lineage = BE.next_lineage++;
+    v->value = value;
+    v->anchor = BE.anchor_gcd;
+    v->status = VER_PENDING;
+    v->aesthetic_score = 50;
+    v->reward_count = 0;
+    v->penalty_count = 0;
+    v->birth_time = time(NULL);
+    /* 命名 */
+    if(v->lineage < 16) strncpy(v->name, GEN_NAMES[v->lineage], 31);
+    else snprintf(v->name, 31, "老%d", v->lineage+1);
+    strncpy(v->description, desc?desc:"", 127);
+    BE.total_bred++;
+    return v->id;
+}
+
+/* 开始下一代 */
+void njsg_breed_next_generation(void){
+    BE.current_gen++;
+    BE.next_lineage = 0;
+    printf("[生殖] ┌─── 第 %d 代生殖开始 ───┐\n", BE.current_gen);
+}
+
+/* ------------------------------------------------------------
+ * 5.2 审判层：照镜子对比
+ * ------------------------------------------------------------ */
+float breed_calculate_deviation(int value, int anchor){
+    if(anchor == 0) return 999.0f;
+    /* 整除 → 偏离=0 */
+    if(value % anchor == 0) return 0.0f;
+    /* 不整除 → 偏离度 = 余数占锚点的比例 */
+    int remainder = value % anchor;
+    return (float)remainder / (float)anchor;
+}
+
+void njsg_breed_mirror_compare(void){
+    printf("\n┌─── 照镜子对比（锚点公约数=%d）───┐\n", BE.anchor_gcd);
+    for(int i=0;i<BE.count;i++){
+        Version* v = &BE.versions[i];
+        v->deviation = breed_calculate_deviation(v->value, v->anchor);
+        if(v->status != VER_ELIMINATED && v->status != VER_SELECTED){
+            if(v->deviation == 0.0f){
+                v->status = VER_PASSED;
+                printf("│ %s: %d ÷ %d = %d 余 0 → ✓ 通过（商%.0f）\n",
+                       v->name, v->value, v->anchor, v->value/v->anchor, (float)v->value/v->anchor);
+            } else {
+                v->status = VER_REJECTED;
+                printf("│ %s: %d ÷ %d = %d 余 %d → ✗ 偏离 %.1f%%\n",
+                       v->name, v->value, v->anchor, v->value/v->anchor,
+                       v->value % v->anchor, 100.0f*v->deviation);
+            }
+        }
+    }
+    printf("└────────────────────────────────────┘\n");
+}
+
+/* ------------------------------------------------------------
+ * 5.3 用户挑选
+ * ------------------------------------------------------------ */
+void njsg_breed_user_select(int version_id){
+    /* 重置所有选中状态 */
+    for(int i=0;i<BE.count;i++){
+        if(BE.versions[i].status == VER_SELECTED) BE.versions[i].status = VER_PASSED;
+    }
+    /* 设置选中 */
+    for(int i=0;i<BE.count;i++){
+        Version* v = &BE.versions[i];
+        if(v->id == version_id){
+            v->status = VER_SELECTED;
+            v->reward_count++;
+            BE.total_selected++;
+            printf("[选中] %s（%d）→ ★ 被选中！奖励 +1\n", v->name, v->value);
+            /* 罚所有没被选中的通过者 */
+            for(int j=0;j<BE.count;j++){
+                Version* u = &BE.versions[j];
+                if(u->id != version_id && u->status == VER_PASSED){
+                    u->penalty_count++;
+                    printf("│ 罚: %s 未选中 -1\n", u->name);
+                }
+            }
+            return;
+        }
+    }
+}
+
+/* ------------------------------------------------------------
+ * 5.4 奖惩层
+ * ------------------------------------------------------------ */
+void njsg_breed_reward(int version_id){
+    for(int i=0;i<BE.count;i++){
+        if(BE.versions[i].id == version_id){
+            BE.versions[i].reward_count++;
+            printf("[奖励] %s +1（累计被选 %d 次）\n",
+                   BE.versions[i].name, BE.versions[i].reward_count);
+            return;
+        }
+    }
+}
+
+void njsg_breed_punish(int version_id){
+    for(int i=0;i<BE.count;i++){
+        if(BE.versions[i].id == version_id){
+            BE.versions[i].penalty_count++;
+            printf("[惩罚] %s -1（累计被拒 %d 次）\n",
+                   BE.versions[i].name, BE.versions[i].penalty_count);
+            return;
+        }
+    }
+}
+
+/* ------------------------------------------------------------
+ * 5.5 美学层
+ * ------------------------------------------------------------ */
+void njsg_breed_aesthetic(void){
+    printf("\n┌─── 美学审判 ───┐\n");
+    for(int i=0;i<BE.count;i++){
+        Version* v = &BE.versions[i];
+        int score = 50;
+        /* 简洁美：数值越小越简洁（但非零）*/
+        if(v->value > 0 && v->value < 100) score += 10;
+        /* 对称美：数值是回文数 */
+        if(v->value > 9){
+            int orig = v->value, rev = 0, tmp = orig;
+            while(tmp){ rev = rev*10 + tmp%10; tmp/=10; }
+            if(rev == orig) score += 20;
+        }
+        /* 公约美：能被多个小质数整除 */
+        int divisors = 0;
+        for(int d=2;d<=7;d++) if(v->value % d == 0) divisors++;
+        score += divisors * 10;
+        /* 整除美：能被锚点整除 */
+        if(v->anchor > 0 && v->value % v->anchor == 0) score += 15;
+        /* 冗余惩罚：数值包含重复数字 */
+        if(v->value > 99){
+            int digits[10]={0}; int tmp=v->value; int has_dup=0;
+            while(tmp){ digits[tmp%10]++; tmp/=10; }
+            for(int d=0;d<10;d++) if(digits[d]>1){ has_dup=1; break; }
+            if(has_dup) score -= 10;
+        }
+        v->aesthetic_score = score;
+        printf("│ %s: 美学分 %d", v->name, score);
+        if(score >= 80) printf(" ★");
+        if(score >= 60) printf(" ✓");
+        else printf(" ✗");
+        printf("\n");
+    }
+    printf("└────────────────────────────────────┘\n");
+}
+
+/* ------------------------------------------------------------
+ * 5.6 淘汰层
+ * ------------------------------------------------------------ */
+void njsg_breed_eliminate(void){
+    printf("\n┌─── 淘汰过滤 ───┐\n");
+    for(int i=0;i<BE.count;i++){
+        Version* v = &BE.versions[i];
+        /* 偏离超限 */
+        if(v->deviation > 0.5f && v->status != VER_SELECTED){
+            v->status = VER_ELIMINATED;
+            BE.total_eliminated++;
+            printf("│ %s: 偏离 %.1f%% > 50%% → 淘汰\n", v->name, 100*v->deviation);
+            continue;
+        }
+        /* 美学不及格 */
+        if(v->aesthetic_score < 30 && v->status != VER_SELECTED){
+            v->status = VER_ELIMINATED;
+            BE.total_eliminated++;
+            printf("│ %s: 美学分 %d < 30 → 淘汰\n", v->name, v->aesthetic_score);
+            continue;
+        }
+        /* 连续失败 */
+        if(v->penalty_count >= 3 && v->status != VER_SELECTED){
+            v->status = VER_ELIMINATED;
+            BE.total_eliminated++;
+            printf("│ %s: 被拒≥3次 → 绝育淘汰\n", v->name);
+        }
+    }
+    printf("└────────────────────────────────────┘\n");
+}
+
+/* ------------------------------------------------------------
+ * 历史层：家谱 + 档案
+ * ------------------------------------------------------------ */
+void njsg_breed_print_lineage(void){
+    printf("\n┌─── 版本家谱 ───┐\n");
+    printf("│ 总数: %d 代数: %d 锚点GCD: %d\n", BE.count, BE.current_gen, BE.anchor_gcd);
+    printf("│\n");
+    int gen = -1;
+    for(int i=0;i<BE.count;i++){
+        Version* v = &BE.versions[i];
+        if(v->generation != gen){
+            gen = v->generation;
+            printf("│ ══ 第 %d 代 ══\n", gen);
+        }
+        printf("│  %-5s #%d  值=%-5d 偏离=%.0f%% 美学=%d %s %s\n",
+               v->name, v->id, v->value, 100*v->deviation,
+               v->aesthetic_score, VER_STATUS[v->status],
+               (v->reward_count>0)? "★选中":"");
+    }
+    printf("│\n│ 统计: 生殖%d 选中%d 淘汰%d\n",
+           BE.total_bred, BE.total_selected, BE.total_eliminated);
+    printf("└────────────────────────────────────┘\n");
+}
+
+void njsg_breed_history(int version_id){
+    for(int i=0;i<BE.count;i++){
+        Version* v = &BE.versions[i];
+        if(v->id == version_id){
+            printf("\n┌─── 版本档案 #%d : %s ───┐\n", v->id, v->name);
+            printf("│ 代数: %d  排行: %d\n", v->generation, v->lineage);
+            printf("│ 父版: #%d\n", v->parent_id);
+            printf("│ 候选值（公倍数）: %d\n", v->value);
+            printf("│ 锚点（公约数）:   %d\n", v->anchor);
+            printf("│ 偏离度: %.1f%%\n", 100*v->deviation);
+            printf("│ 状态: %s\n", VER_STATUS[v->status]);
+            printf("│ 美学分: %d\n", v->aesthetic_score);
+            printf("│ 奖惩: +%d / -%d\n", v->reward_count, v->penalty_count);
+            printf("│ 描述: %s\n", v->description);
+            printf("└────────────────────────────────────┘\n");
+            return;
+        }
+    }
+}
+
+/* ------------------------------------------------------------
+ * 进化：用被选中的版本遗传到下一代
+ * ------------------------------------------------------------ */
+void njsg_breed_evolve(void){
+    /* 找被选中的版本 */
+    int winner_id = -1, winner_value = 0;
+    for(int i=0;i<BE.count;i++){
+        if(BE.versions[i].status == VER_SELECTED){
+            winner_id = BE.versions[i].id;
+            winner_value = BE.versions[i].value;
+            break;
+        }
+    }
+    if(winner_id < 0){
+        printf("[进化] 没有被选中的版本，无法进化\n");
+        return;
+    }
+    printf("\n[进化] 用 %s（值=%d）遗传到下一代\n",
+           BE.versions[winner_id-1].name, winner_value);
+    njsg_breed_next_generation();
+    /* 生成基于胜者的变体 */
+    int variants[] = {winner_value+1, winner_value-1, winner_value*2, winner_value+BE.anchor_gcd};
+    const char* var_desc[] = {"胜者+1","胜者-1","胜者×2","胜者+锚"};
+    for(int i=0;i<4;i++){
+        int vid = njsg_breed_spawn(variants[i], var_desc[i]);
+        BE.versions[vid-1].parent_id = winner_id;
+    }
+    printf("[进化] 新一代4个变体已诞生\n");
+}
+
+/* ------------------------------------------------------------
+ * 完整生殖演示
+ * ------------------------------------------------------------ */
+void njsg_breed_demo(void){
+    printf("\n");
+    printf("╔══════════════════════════════════════════╗\n");
+    printf("║     囝 生 殖 操 作 系 统               ║\n");
+    printf("║     老大→老二→老三→老四→照镜子→挑选   ║\n");
+    printf("╚══════════════════════════════════════════╝\n");
+
+    njsg_breed_init();
+
+    /* === 第 0 代：始祖 === */
+    printf("\n━━━ 第 0 代：始祖生殖 ━━━\n");
+    /* 锚点公约数 = 6，候选公倍数围绕锚点旋转 */
+    /* 公约数旋转：12(=6×2) 18(=6×3) 14(不整除) 30(=6×5) */
+    njsg_breed_spawn(12, "公约数×2=整齐");    /* 老大: 通过（商=2）*/
+    njsg_breed_spawn(18, "公约数×3=整齐");    /* 老二: 通过（商=3）*/
+    njsg_breed_spawn(14, "非公约倍数");        /* 老三: 偏离 */
+    njsg_breed_spawn(30, "公约数×5=整齐");    /* 老四: 通过（商=5）*/
+
+    /* 照镜子 */
+    printf("\n━━━ 照镜子对比 ━━━\n");
+    njsg_breed_mirror_compare();
+
+    /* 美学审判 */
+    printf("\n━━━ 美学审判 ━━━\n");
+    njsg_breed_aesthetic();
+
+    /* 用户挑选：选老二（18）*/
+    printf("\n━━━ 用户挑选 ━━━\n");
+    njsg_breed_user_select(2);  /* 选中老二 */
+
+    /* 淘汰过滤 */
+    printf("\n━━━ 淘汰过滤 ━━━\n");
+    njsg_breed_eliminate();
+
+    /* 家谱 */
+    printf("\n━━━ 版本家谱 ━━━\n");
+    njsg_breed_print_lineage();
+
+    /* 档案 */
+    printf("\n━━━ 选中版本档案 ━━━\n");
+    njsg_breed_history(2);
+
+    /* === 第 1 代：进化 === */
+    printf("\n━━━ 进化：用胜者遗传下一代 ━━━\n");
+    njsg_breed_evolve();
+    njsg_breed_mirror_compare();
+    njsg_breed_aesthetic();
+
+    /* 第1代用户挑选 */
+    printf("\n━━━ 第1代用户挑选 ━━━\n");
+    /* 第1代：18+1=19(偏离), 18-1=17(偏离), 18×2=36(通过), 18+6=24(通过) */
+    njsg_breed_user_select(6);  /* 选中老六（36=6×6，完美）*/
+
+    /* 最终家谱 */
+    printf("\n━━━ 完整家谱 ━━━\n");
+    njsg_breed_print_lineage();
+
+    printf("\n[生殖] 系统演示完毕。\n");
+    printf("[生殖] 记住：每次错误 → 生新的，不覆盖旧的。\n");
+    printf("[生殖] 公约数锚定 → 公倍数旋转 → 照镜子 → 对就奖错就罚。\n\n");
+}
+
 /* ------------------------------------------------------------
  * 天觉初始化（创建演示用袋子和审判官）
  * ------------------------------------------------------------ */
@@ -2590,4 +3043,6 @@ void njsg_audit_summary(){
     printf("===============\n\n");
     printf("天觉系统: %d袋 %d审判官 %d审判记录 %d高维关系\n",
            TJ.bag_count, TJ.judge_count, TJ.judgment_count, TJ.rel_count);
+    printf("生殖系统: %d版本 %d代 %d选中 %d淘汰（锚点G=%d）\n",
+           BE.count, BE.current_gen, BE.total_selected, BE.total_eliminated, BE.anchor_gcd);
 }

@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>囡囝共生操作系统 V3 · 公约数审判引擎 · 七系统 · 袋级认知</title>
+<style>
+:root{--bg:#06060c;--panel:#0c0c16;--border:#1a1a2a;--gold:#c8a24e;--gold-dim:#7a6230;--blue:#4a7ab5;--green:#3a9a6a;--red:#a54a4a;--purple:#7a4ab5;--cyan:#4ab5a0;--orange:#b57a3a;--text:#d8d8e0;--text-dim:#5a5a7a}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Courier New',monospace}
+.tp{padding:12px 20px;background:linear-gradient(180deg,rgba(200,162,78,0.06),transparent);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.tp h1{font-size:.95em;color:var(--gold);letter-spacing:.1em}
+.vb{padding:3px 10px;border:1px solid var(--gold-dim);border-radius:8px;font-size:.65em;color:var(--gold)}
+.vbar{padding:8px 20px;background:var(--panel);border-bottom:1px solid var(--border);display:flex;gap:6px;align-items:center}
+.vbar .lbl{font-size:.65em;color:var(--text-dim)}
+.vb2{padding:3px 10px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--text-dim);font-family:inherit;font-size:.65em;cursor:pointer}
+.vb2.active{border-color:var(--gold);color:var(--gold)}
+.vb2:hover{border-color:var(--gold-dim)}
+.vb2.mu{opacity:.3;cursor:not-allowed}
+.nav7{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--border)}
+.syn{font-size:.65em;padding:8px 2px;text-align:center;background:var(--bg);color:var(--text-dim);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
+.syn:hover{color:var(--text)}
+.syn.active{color:var(--gold);border-bottom-color:var(--gold);background:rgba(200,162,78,.04)}
+.bd{padding:16px;max-width:1100px;margin:0 auto}
+.pn{display:none}.pn.active{display:block}
+.ptr{color:var(--text-dim);font-size:.75em;margin-bottom:12px;line-height:1.6}
+.ptr strong{color:var(--gold)}
+.cd{border:1px solid var(--border);border-radius:6px;padding:14px;margin-bottom:8px;background:var(--panel)}
+.cn{font-size:.82em;color:var(--gold);font-weight:bold;margin-bottom:8px}
+.cb{font-size:.78em;line-height:1.7;color:var(--text-dim)}
+.cb .f{display:flex;justify-content:space-between;padding:1px 0}
+.cb .f .v{color:var(--text)}
+.cb .f .v.g{color:var(--green)}.cb .f .v.r{color:var(--red)}.cb .f .v.gl{color:var(--gold)}
+.sr{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.slb{width:56px;font-size:.65em;color:var(--text-dim)}
+.sbar{flex:1;height:5px;background:var(--bg);border-radius:2px;overflow:hidden}
+.sf{height:100%;border-radius:2px}
+.sv{width:20px;text-align:right;font-size:.6em;color:var(--text-dim)}
+.scr{display:flex;gap:14px;margin-bottom:10px;padding:6px 10px;background:var(--panel);border:1px solid var(--border);border-radius:4px;font-size:.72em}
+.sc{display:flex;align-items:center;gap:4px}
+.scn{font-size:1.1em}.scn.r{color:var(--green)}.scn.p{color:var(--red)}.scn.t{color:var(--gold)}
+.jl{border:1px solid var(--border);border-radius:4px;padding:10px;margin-bottom:6px;background:var(--panel)}
+.jm{font-size:.6em;color:var(--gold);margin-bottom:4px}
+.jq{color:var(--text);font-size:.75em;margin-bottom:6px;line-height:1.4}
+.jo{display:flex;gap:5px}
+.jop{flex:1;padding:5px;border:1px solid var(--border);border-radius:3px;background:transparent;color:var(--text-dim);font-family:inherit;font-size:.72em;cursor:pointer;text-align:center}
+.jop:hover{border-color:var(--text-dim)}
+.jop.dd{pointer-events:none;opacity:.6}
+.jop.co{border-color:var(--green);color:var(--green);background:rgba(58,154,106,.06)}
+.jop.wr{border-color:var(--red);color:var(--red);background:rgba(165,74,74,.06)}
+.tr{padding:5px 8px;border-left:2px solid var(--gold-dim);margin-bottom:3px;font-size:.72em;background:rgba(200,162,78,.02)}
+.trn{color:var(--gold);font-weight:bold;font-size:.9em}
+.trd{color:var(--text-dim);margin-top:1px;font-size:.9em}
+.mg{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;text-align:center}
+.mc{padding:6px 3px;border:1px solid var(--border);border-radius:3px;font-size:.65em}
+.mc .ic{font-size:1.3em;margin-bottom:1px}
+.mc.g{border-color:var(--green);color:var(--green)}
+.mc.b{border-color:var(--red);color:var(--red)}
+.mc.n{border-color:var(--text-dim);color:var(--text-dim)}
+.ag{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.ac{padding:8px;border:1px solid var(--border);border-radius:4px;font-size:.72em}
+.acn{color:var(--gold);font-weight:bold;margin-bottom:3px}
+.acd{color:var(--text-dim);font-size:.88em;line-height:1.4}
+.fs{display:flex;gap:10px;margin-bottom:10px}
+.fb{flex:1;padding:8px;border:1px solid var(--border);border-radius:4px;text-align:center}
+.fn{font-size:1.4em;margin-bottom:1px}
+.fl{font-size:.6em;color:var(--text-dim)}
+.fb.p{border-color:var(--green)}.fb.p .fn{color:var(--green)}
+.fb.f{border-color:var(--red)}.fb.f .fn{color:var(--red)}
+.hi{padding:5px 6px;border-bottom:1px solid var(--border);font-size:.68em}
+.ht{color:var(--text-dim);font-size:.85em}
+.he{margin-top:1px}
+.he.ok{color:var(--green)}.he.er{color:var(--red)}
+.bar{padding:5px 20px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:.6em;color:var(--text-dim)}
+
+/* 公约数专用 */
+.mirror{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start}
+.anchor-box{border:1px solid var(--gold-dim);border-radius:6px;padding:10px;text-align:center;min-width:90px}
+.ab-label{font-size:.55em;color:var(--text-dim);margin-bottom:4px}
+.ab-sym{font-size:1.6em;color:var(--gold)}
+.ab-name{font-size:.6em;color:var(--gold);margin-top:2px}
+.multiple-area{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.mb{border:1px solid var(--border);border-radius:4px;padding:8px;font-size:.72em}
+.mbPass{border-color:var(--green)}
+.mbFail{border-color:var(--red)}
+.mb-n{color:var(--gold);font-weight:bold}
+.mb-ch{color:var(--text-dim);font-size:.9em}
+.jug{border-radius:4px;padding:6px 10px;margin-top:6px;text-align:center;font-size:.72em}
+.jugOk{background:rgba(58,154,106,.08);border:1px solid var(--green);color:var(--green)}
+.jugNo{background:rgba(165,74,74,.08);border:1px solid var(--red);color:var(--red)}
+</style>
+</head>
+<body>
+
+<div class="tp">
+  <h1>囡囝共生操作系统 · 天觉引擎 V3</h1>
+  <span class="vb">公约数审判引擎</span>
+</div>
+<div class="vbar">
+  <span class="lbl">历史版本：</span>
+  <button class="vb2" onclick="location.href='V1_benti_听觉系统_层级审判引擎.html'">V1 听觉·层级</button>
+  <button class="vb2" onclick="location.href='V2_benti_情为思判_过滤淘汰_完整七系统.html'">V2 七系统</button>
+  <button class="vb2 active">V3 公约数审判 ◀ 当前</button>
+  <button class="vb2 mu">V4 —</button>
+  <button class="vb2 mu">V5 —</button>
+</div>
+
+<div class="nav7">
+  <div class="syn active" data-s="shu">数系</div>
+  <div class="syn" data-s="shi">视觉</div>
+  <div class="syn" data-s="ting">听觉</div>
+  <div class="syn" data-s="qing">情进</div>
+  <div class="syn" data-s="wei">行为</div>
+  <div class="syn" data-s="si">思考</div>
+  <div class="syn" data-s="shen">审判</div>
+</div>
+
+<div class="bd">
+
+<!-- ═══ 1. 数系 ═══ -->
+<div class="pn active" id="p-shu">
+  <div class="ptr"><strong>数系</strong> — 进制之间的关系。公约数是锚，公倍数是围绕锚旋转的数。照镜子：公倍数的样子应该能在公约数中找到印证。</div>
+
+  <div class="cd">
+    <div class="cn">四大进制 — 公约数与公倍数</div>
+    <div class="cb">
+      <div class="f"><span>48 (声)</span><span class="v">48 = 2×2×2×2×3</span></div>
+      <div class="f"><span>60 (时)</span><span class="v">60 = 2×2×3×5</span></div>
+      <div class="f"><span>100 (韵)</span><span class="v">100 = 2×2×5×5</span></div>
+      <div class="f"><span>220 (全)</span><span class="v">220 = 2×2×5×11</span></div>
+      <div class="f"><span style="color:var(--gold)">公约数(48,60)</span><span class="v gl">= 2×2×3 = <strong>12</strong></span></div>
+      <div class="f"><span style="color:var(--gold)">公约数(60,100)</span><span class="v gl">= 2×2×5 = <strong>20</strong></span></div>
+      <div class="f"><span style="color:var(--gold)">公约数(100,220)</span><span class="v gl">= 2×2×5 = <strong>20</strong></span></div>
+      <div class="f"><span style="color:var(--gold)">公约数(48,60,100,220)</span><span class="v gl">= 2×2 = <strong>4</strong></span></div>
+    </div>
+  </div>
+
+  <div class="cd">
+    <div class="cn">数之锚（公约数）</div>
+    <div class="cb">
+      <div>公约数 <strong style="color:var(--gold)">4</strong> 是所有进制的锚。它意味着：不论48、60、100、220怎么旋转，它们都能被4整除。4是它们的共同根基。</div>
+      <br>
+      <div>公约数 <strong style="color:var(--gold)">12</strong> 是声(48)和时(60)的锚。12是时钟与声母的交界点。</div>
+      <br>
+      <div>公约数 <strong style="color:var(--gold)">20</strong> 是时(60)和韵(100)、韵(100)和全(220)的锚。20是高级编码的交界点。</div>
+    </div>
+  </div>
+
+  <div class="cd">
+    <div class="cn">照镜子法则</div>
+    <div class="cb" style="line-height:1.8">
+      <div><span style="color:var(--gold)">公倍数 → 公约数 → 照镜子：</span></div>
+      <div>公倍数 60 照公约数 12：60÷12=5，整除 → 60是12的倍数 → ✓</div>
+      <div>公倍数 100 照公约数 20：100÷20=5，整除 → 100是20的倍数 → ✓</div>
+      <div>公倍数 220 照公约数 20：220÷20=11，整除 → ✗（不能以20为锚）</div>
+      <div style="color:var(--gold);margin-top:6px">正确做法：220 照公约数 4 → 220÷4=55 → ✓</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 2. 视觉 ═══ -->
+<div class="pn" id="p-shi">
+  <div class="ptr"><strong>视觉系统</strong> — 不数粒，只问袋好不好看、整不整齐、界限清不清。</div>
+  <div class="cd"><div class="cn">感知通道</div><div class="cb">
+    <div class="sr"><div class="slb">色彩</div><div class="sbar"><div class="sf" style="width:82%;background:var(--gold)"></div></div><div class="sv">82%</div></div>
+    <div class="sr"><div class="slb">形态</div><div class="sbar"><div class="sf" style="width:68%;background:var(--blue)"></div></div><div class="sv">68%</div></div>
+    <div class="sr"><div class="slb">边界</div><div class="sbar"><div class="sf" style="width:75%;background:var(--green)"></div></div><div class="sv">75%</div></div>
+    <div class="sr"><div class="slb">对称</div><div class="sbar"><div class="sf" style="width:71%;background:var(--purple)"></div></div><div class="sv">71%</div></div>
+    <div class="sr"><div class="slb">可读</div><div class="sbar"><div class="sf" style="width:58%;background:var(--cyan)"></div></div><div class="sv">58%</div></div>
+  </div></div>
+  <div class="cd"><div class="cn">审美栅</div><div class="cb"><div class="mg">
+    <div class="mc g"><div class="ic">♡</div>美<br><span style="font-size:.75em">通过</span></div>
+    <div class="mc n"><div class="ic">◇</div>可<br><span style="font-size:.75em">待定</span></div>
+    <div class="mc b"><div class="ic">△</div>丑<br><span style="font-size:.75em">淘汰</span></div>
+    <div class="mc b"><div class="ic">✗</div>废<br><span style="font-size:.75em">删除</span></div>
+  </div></div></div>
+</div>
+
+<!-- ═══ 3. 听觉 ═══ -->
+<div class="pn" id="p-ting">
+  <div class="ptr"><strong>听觉系统</strong> — 音高纯不纯、节奏对不对、有没有杂音（沙子）。</div>
+  <div class="cd"><div class="cn">感知通道</div><div class="cb">
+    <div class="sr"><div class="slb">音高</div><div class="sbar"><div class="sf" style="width:70%;background:var(--cyan)"></div></div><div class="sv">70%</div></div>
+    <div class="sr"><div class="slb">声调</div><div class="sbar"><div class="sf" style="width:78%;background:var(--green)"></div></div><div class="sv">78%</div></div>
+    <div class="sr"><div class="slb">音色</div><div class="sbar"><div class="sf" style="width:62%;background:var(--gold)"></div></div><div class="sv">62%</div></div>
+    <div class="sr"><div class="slb">节奏</div><div class="sbar"><div class="sf" style="width:55%;background:var(--orange)"></div></div><div class="sv">55%</div></div>
+  </div></div>
+  <div class="cd"><div class="cn">嗅觉/味觉栅</div><div class="cb"><div class="mg">
+    <div class="mc g"><div class="ic">☘</div>香<br><span style="font-size:.75em">好吃可用</span></div>
+    <div class="mc n"><div class="ic">○</div>平<br><span style="font-size:.75em">中性</span></div>
+    <div class="mc b"><div class="ic">✘</div>臭<br><span style="font-size:.75em">不可用</span></div>
+    <div class="mc b"><div class="ic">☠</div>毒<br><span style="font-size:.75em">危险删除</span></div>
+  </div></div></div>
+</div>
+
+<!-- ═══ 4. 情进 ═══ -->
+<div class="pn" id="p-qing">
+  <div class="ptr"><strong>情进系统</strong> — 袋让我开心还是烦恼、亲近还是疏远。</div>
+  <div class="cd"><div class="cn">情进维度</div><div class="cb">
+    <div class="sr"><div class="slb">亲密</div><div class="sbar"><div class="sf" style="width:85%;background:var(--green)"></div></div><div class="sv">85%</div></div>
+    <div class="sr"><div class="slb">信任</div><div class="sbar"><div class="sf" style="width:42%;background:var(--orange)"></div></div><div class="sv">42%</div></div>
+    <div class="sr"><div class="slb">厌恶</div><div class="sbar"><div class="sf" style="width:18%;background:var(--red)"></div></div><div class="sv">18%</div></div>
+    <div class="sr"><div class="slb">敬畏</div><div class="sbar"><div class="sf" style="width:65%;background:var(--purple)"></div></div><div class="sv">65%</div></div>
+    <div class="sr"><div class="slb">欢喜</div><div class="sbar"><div class="sf" style="width:72%;background:var(--gold)"></div></div><div class="sv">72%</div></div>
+  </div></div>
+  <div class="cd"><div class="cn">情进反应规则</div><div class="cb" style="line-height:1.8">
+    ☘ 亲密+信任高 → 靠近、接纳、纳入家族<br>
+    ◇ 敬畏高+信任低 → 保持距离，观察<br>
+    ✘ 厌恶高 → 疏远，不再触碰<br>
+    ☠ 信任崩塌 → 彻底断绝，标记不可信
+  </div></div>
+</div>
+
+<!-- ═══ 5. 行为 ═══ -->
+<div class="pn" id="p-wei">
+  <div class="ptr"><strong>行为系统</strong> — 袋子怎么动：晒、洗、捡、买、卖、补、扔、收。</div>
+  <div class="cd"><div class="cn">八大行为</div><div class="cb"><div class="ag">
+    <div class="ac"><div class="acn">☀ 晒</div><div class="act-d">拿出来晒。定型、定版。</div></div>
+    <div class="ac"><div class="acn">💧 洗</div><div class="act-d">清洗。洗掉脏符号、错误。</div></div>
+    <div class="ac"><div class="acn">✋ 捡</div><div class="act-d">把沙子捡出去。坏符号一个一個挑。</div></div>
+    <div class="ac"><div class="acn">💰 买</div><div class="act-d">此袋值不值？值就买。</div></div>
+    <div class="ac"><div class="acn">🚫 卖</div><div class="act-d">我不要了。给需要的人。</div></div>
+    <div class="ac"><div class="acn">🔨 补</div><div class="act-d">袋子破了就补。缺了就补进去。</div></div>
+    <div class="ac"><div class="acn">🗑 扔</div><div class="act-d">烂袋不可补。彻底丢弃。</div></div>
+    <div class="ac"><div class="acn">📦 收</div><div class="act-d">晒干了捡好了。收入仓库待用。</div></div>
+  </div></div></div>
+</div>
+
+<!-- ═══ 6. 思考 ═══ -->
+<div class="pn" id="p-si">
+  <div class="ptr"><strong>思考系统</strong> — 袋与袋之间的推理、关系、证明。</div>
+  <div class="cd"><div class="cn">五种思考模式</div><div class="cb" style="line-height:1.9">
+    <div><span style="color:var(--gold)">① 类比：</span>袋A长得像袋B → 可能同源</div>
+    <div><span style="color:var(--blue)">② 因果：</span>袋A错 → 袋B也错（同宗）</div>
+    <div><span style="color:var(--green)">③ 层级：</span>袋A的祖先是谁？往上追</div>
+    <div><span style="color:var(--purple)">④ 对立：</span>袋A vs 袋B — 互斥还是互补</div>
+    <div><span style="color:var(--cyan)">⑤ 合一：</span>袋A+袋B合并成更大的袋中袋</div>
+  </div></div>
+  <div class="cd"><div class="cn">四袋关系图</div><div class="cb">
+    <div class="f"><span>袋0 ↔ 袋1</span><span class="v">平行 · 无血缘</span></div>
+    <div class="f"><span>袋1 ↔ 袋2</span><span class="v g">同源 · 都是变体池</span></div>
+    <div class="f"><span>袋1 ↔ 袋5</span><span class="v">平行 · 功能不同</span></div>
+    <div class="f"><span>袋2 ↔ 袋5</span><span class="v r">互斥 · 不容</span></div>
+  </div></div>
+</div>
+
+<!-- ═══ 7. 审判（核心 — 公约数照镜子法则） ═══ -->
+<div class="pn" id="p-shen">
+  <div class="ptr"><strong>审判系统</strong> — 根据公约数的锚，照镜子看公倍数做得对不对。审判对了给奖励，审判错了给惩罚。答完的审判结果自动进入<span style="color:var(--gold)">历史记忆长廊</span>。</div>
+
+  <div class="scr">
+    <div class="sc"><span class="scn r" id="rc">0</span>正确+奖励</div>
+    <div class="sc"><span class="scn p" id="pc">0</span>错误+惩罚</div>
+    <div class="sc"><span class="scn t" id="tc">0</span>累计</div>
+  </div>
+
+  <!-- 公约数审判主面板 -->
+  <div class="cd">
+    <div class="cn">⚖ 公约数照镜子 — 主审判台</div>
+    <div class="cb">
+      <div class="mirror" id="mirrorPanel">
+        <!-- JS填充 -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 四袋逐袋审判 -->
+  <div id="jArea"></div>
+
+  <!-- 历史记忆 -->
+  <div class="cd" style="margin-top:12px">
+    <div class="cn">⟡ 历史记忆长廊 — 永不遗忘</div>
+    <div id="histArea"></div>
+  </div>
+</div>
+
+</div>
+
+<div class="bar">
+  <span>囡囝共生 · NJSG · 天觉 V3 · 公约数审判</span>
+  <span>七系统：数·视·听·情·为·思·审</span>
+</div>
+
+<script>
+// ── 七系统切换 ──
+document.querySelectorAll('.syn').forEach(function(s){
+  s.onclick=function(){
+    document.querySelectorAll('.syn').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.pn').forEach(x=>x.classList.remove('active'));
+    this.classList.add('active');
+    document.getElementById('p-'+this.dataset.s).classList.add('active');
+  };
+});
+
+// ═══════════════════════════════════════════
+// 公约数审判引擎
+// ═══════════════════════════════════════════
+
+// 定义：每个袋的"公约数锚" + "公倍数群"
+const bags = [
+  {
+    id:0, name:"袋0", anchor:"ü变体锚",
+    anchorSym:"ü", anchorFactor:4,
+    multiples:[
+      {sym:"Ӱ", factor:4, ok:true, reason:"Ӱ=ü+变法，被4整除"},
+      {sym:"ӱ", factor:4, ok:true, reason:"ӱ=ü变，被4整除"},
+      {sym:"Ѧ", factor:4, ok:true, reason:"Ѧ归ü变池，被4整除"},
+      {sym:"ѧ", factor:4, ok:true, reason:"ѧ归ü变池，被4整除"}
+    ]
+  },
+  {
+    id:1, name:"袋1", anchor:"ui变体锚",
+    anchorSym:"ui", anchorFactor:10,
+    multiples:[
+      {sym:"Ѽ", factor:10, ok:true, reason:"Ѽ=ui变体，10整袋"},
+      {sym:"ѽ", factor:10, ok:true, reason:"ѽ=ui变体"},
+      {sym:"Ѥ", factor:10, ok:true, reason:"Ѥ=er变体"},
+      {sym:"ѥ", factor:10, ok:true, reason:"ѥ=er变体"},
+      {sym:"Ё", factor:10, ok:true, reason:"Ё=ue变体"},
+      {sym:"ё", factor:10, ok:true, reason:"ё=ue变体"},
+      {sym:"Є", factor:10, ok:true, reason:"Є=er变体"},
+      {sym:"є", factor:10, ok:true, reason:"є=er变体"},
+      {sym:"Ʝ", factor:10, ok:false, reason:"Ʝ来源模糊，照不清"},
+      {sym:"႘", factor:10, ok:false, reason:"႘来源模糊，照不清"}
+    ]
+  },
+  {
+    id:2, name:"袋2", anchor:"uo变体锚",
+    anchorSym:"uo", anchorFactor:10,
+    multiples:[
+      {sym:"Ꙍ", factor:10, ok:true, reason:"Ꙍ=uo变体"},
+      {sym:"ꙍ", factor:10, ok:true, reason:"ꙍ=uo变体"},
+      {sym:"ꭃ", factor:10, ok:true, reason:"ꭃ=uo变体"},
+      {sym:"ꭄ", factor:10, ok:true, reason:"ꭄ=uo变体"},
+      {sym:"Ⴘ", factor:10, ok:false, reason:"Ⴘ不确定归属"},
+      {sym:"Ⴏ", factor:10, ok:false, reason:"Ⴏ不确定归属"},
+      {sym:"Ⴎ", factor:10, ok:false, reason:"Ⴎ不确定归属"},
+      {sym:"Ⴌ", factor:10, ok:false, reason:"Ⴌ不确定归属"},
+      {sym:"Ⴋ", factor:10, ok:false, reason:"Ⴋ不确定归属"},
+      {sym:"☁", factor:10, ok:false, reason:"☁不明符号"}
+    ]
+  },
+  {
+    id:5, name:"袋5", anchor:"声母溢出锚",
+    anchorSym:"声溢出", anchorFactor:10,
+    multiples:[
+      {sym:"Ӭ", factor:10, ok:true, reason:"Ӭ=ei变体"},
+      {sym:"ӭ", factor:10, ok:true, reason:"ӭ=ei变体"},
+      {sym:"Ѿ", factor:10, ok:true, reason:"Ѿ=ui变体"},
+      {sym:"ѿ", factor:10, ok:true, reason:"ѿ=ui变体"},
+      {sym:"Ȥ", factor:10, ok:true, reason:"Ȥ=声母r大写"},
+      {sym:"Ç", factor:10, ok:true, reason:"Ç=声母c大写"},
+      {sym:"Ŋ", factor:10, ok:true, reason:"Ŋ=声母ng大写"},
+      {sym:"ȥ", factor:10, ok:true, reason:"ȥ=声母z变"},
+      {sym:"ç", factor:10, ok:true, reason:"ç=声母c小写"},
+      {sym:"Ӗ", factor:10, ok:false, reason:"Ӗ是e变体不应在此袋"}
+    ]
+  }
+];
+
+// 审判题库：根据公约数照镜子法则出题
+const J = [];
+bags.forEach(function(b){
+  b.multiples.forEach(function(m){
+    J.push({
+      bag:b.id, sym:m.sym, ok:m.ok, reason:m.reason,
+      q:"符号「"+m.sym+"」照「"+b.name+"」("+b.anchor+")的镜子 — 它是不是"+b.anchor+"的公倍数？",
+      opts:["是 — 照得出来","否 — 照不出"],
+      a:m.ok?0:1
+    });
+  });
+});
+
+// 渲染照镜子主面板
+function renderMirror(){
+  const area=document.getElementById('mirrorPanel');
+  let html='<div class="anchor-box"><div class="ab-label">公约数锚</div>';
+  html+='<div class="ab-sym">4</div><div class="ab-name">公约数</div></div>';
+  html+='<div class="multiple-area">';
+  bags.forEach(function(b){
+    const passCount=b.multiples.filter(function(m){return m.ok}).length;
+    const failCount=b.multiples.length-passCount;
+    html+='<div class="mb '+(failCount>0?'mbFail':'mbPass')+'">';
+    html+='<div class="mb-n">'+b.name+' · 锚='+b.anchor+'</div>';
+    html+='<div class="mb-ch">✓通过:'+passCount+'  ✗照不出:'+failCount+'</div>';
+    html+='<div class="mb-ch" style="margin-top:4px;font-size:0.85em">'+b.multiples.map(function(m){return m.sym}).join(' ')+'</div>';
+    html+='</div>';
+  });
+  html+='</div>';
+  area.innerHTML=html;
+}
+
+// 审判
+let qi=0,rc=0,pc=0,hist=[];
+function tm(){const d=new Date();return d.toLocaleTimeString('zh-CN',{hour12:false})}
+
+function render(){
+  const a=document.getElementById('jArea');
+  if(qi>=J.length){
+    a.innerHTML='<div style="padding:16px;text-align:center;color:var(--green);border:1px solid var(--green);border-radius:6px;font-size:.85em">✦ 全部审判完毕 ✦<br><span style="color:var(--text-dim);font-size:.82em">奖励:'+rc+' 惩罚:'+pc+'</span></div>';
+    return;
+  }
+  const j=J[qi];
+  a.innerHTML='<div class="jl"><div class="jm">【袋'+j.bag+'】第'+(qi+1)+'题/共'+J.length+' · 锚='+bags[j.bag].anchor+'</div>'+
+    '<div class="jq">'+j.q+'</div>'+
+    '<div style="font-size:.7em;color:var(--text-dim);margin-bottom:6px">'+j.reason+'</div>'+
+    '<div class="jo"><div class="jop" onclick="ans(0,this)">'+j.opts[0]+'</div><div class="jop" onclick="ans(1,this)">'+j.opts[1]+'</div></div></div>';
+}
+
+function ans(sel,el){
+  const j=J[qi];
+  const correct=(sel===j.a);
+  const btns=el.parentNode.querySelectorAll('.jop');
+  btns.forEach(function(b){b.classList.add('dd')});
+  el.classList.add(correct?'co':'wr');
+  if(correct){rc++;hist.unshift({t:tm(),e:'袋'+j.bag+'「'+j.sym+'」审判 ✓',ok:true});}
+  else{pc++;hist.unshift({t:tm(),e:'袋'+j.bag+'「'+j.sym+'」审判 ✗',ok:false});}
+  document.getElementById('rc').textContent=rc;
+  document.getElementById('pc').textContent=pc;
+  document.getElementById('tc').textContent=rc+pc;
+  renderHist();
+  qi++;
+  setTimeout(render,350);
+}
+
+function renderHist(){
+  const a=document.getElementById('histArea');
+  if(!hist.length){a.innerHTML='<div style="color:var(--text-dim);font-size:.75em">暂无</div>';return;}
+  a.innerHTML=hist.slice(0,20).map(function(h){
+    return '<div class="hi"><div class="ht">'+h.t+'</div><div class="he '+(h.ok?'ok':'er')+'">'+h.e+'</div></div>';
+  }).join('');
+}
+
+renderMirror();
+render();
+</script>
+</body>
+</html>

@@ -176,6 +176,46 @@ pub use observer::{Observer, SenseForm, SenseKind, Attention};
 pub mod consciousness_runtime;
 pub use consciousness_runtime::{ConsciousnessRuntime, ConsciousnessReport};
 
+// ── v0.26 天觉 · 视觉 · 袋层级 · 审判奖惩 · 历史积累 (CelestialPerception) ──
+pub mod celestial_perception;
+pub use celestial_perception::{
+    Bag, BagAttributes, BagHierarchy, HierarchyReport,
+    VisualSystem, CelestialPerception,
+    JudgmentEngine, JudgmentResult, JudgmentRecord,
+    HistoricalAccumulation, Epoch,
+};
+
+// ── v0.27 天觉v2（老二）· 听觉授权 + 公约数公倍数照镜子 + 审判奖惩 ──
+pub mod celestial_perception_v2;
+pub use celestial_perception_v2::{
+    AuditoryAuth, TianJueAuth,
+    AuditorySystem, VisualSystem as VisualSystemV2,
+    CommonDivisor, CommonMultiple, MirrorComparison,
+    Bag as BagV2, BagAttributes as BagAttributesV2,
+    BagHierarchy as BagHierarchyV2, HierarchyReport as HierarchyReportV2,
+    JudgmentEngine as JudgmentEngineV2, JudgmentResult as JudgmentResultV2,
+    JudgmentRecord as JudgmentRecordV2,
+    HistoricalAccumulation as HistoricalAccumulationV2,
+    CelestialPerceptionV2,
+};
+
+// ── v0.28 天觉v3（老三）· 临时注释待修复 ──
+// pub mod celestial_perception_v3;
+// pub use celestial_perception_v3::{
+//     CelestialPerceptionV3, PipelineResult,
+//     Bag as BagV3, BagAttributes as BagAttributesV3,
+//     BagHierarchy as BagHierarchyV3, HierarchyReport as HierarchyReportV3,
+//     VisualSystem as VisualSystemV3, AuditorySystem as AuditorySystemV3,
+//     AuditoryAuth as AuditoryAuthV3, TianJueAuth as TianJueAuthV3,
+//     CommonDivisor as CommonDivisorV3, MirrorComparison as MirrorComparisonV3,
+//     JudgmentEngine as JudgmentEngineV3, JudgmentResult as JudgmentResultV3,
+//     JudgmentRecord as JudgmentRecordV3,
+//     HistoricalAccumulation as HistoricalAccumulationV3,
+//     EmotionSystem, Emotion, BehaviorSystem, Behavior,
+//     ThinkingSystem, ReasoningChain,
+//     AestheticSystem, EliminationSystem, FilterSystem,
+// };
+
 // ── v0.25 同一心 · 满全法引力场 (Oneness · 不再分, 不再管道, 只有引力) ──
 pub mod oneness;
 pub use oneness::{oneness, geometric_distance, distance_from_oneness, oneness_gravity,
