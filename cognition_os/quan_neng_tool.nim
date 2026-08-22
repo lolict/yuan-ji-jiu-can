@@ -300,13 +300,37 @@ func explain*(): string = """
 # ═══════════════════════════════════════════════════════════════
 # CLI入口
 # ═══════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════
+# 自定义配对存储
+# ═══════════════════════════════════════════════════════════════
+const CUSTOM_FILE* = "cognition_os/custom_pairs.json"
+
+var custom_pairs = initTable[string, string]()
+
+proc load_custom*() =
+  if fileExists(CUSTOM_FILE):
+    let content = readFile(CUSTOM_FILE)
+    let j = parseJson(content)
+    for k, v in j: custom_pairs[k] = v.getStr()
+
+proc save_custom*() =
+  var j = newJObject()
+  for k, v in custom_pairs: j[k] = newJString(v)
+  writeFile(CUSTOM_FILE, j.pretty)
+
+proc add_custom_pair*(a, b, result: string) =
+  custom_pairs[a & "+" & b] = result
+  custom_pairs[b & "+" & a] = result
+  save_custom()
+
 when is_main_module:
+  load_custom()
   var tool = new_coding_tool()
   
   if paramCount() == 0:
     echo explain()
     echo "用法: ./quan_neng <command> [args]"
-    echo "命令: explain · judge · yunmu · color · sheng · tone · music · space · mirror · export · shell"
+    echo "命令: explain · judge · yunmu · color · sheng · tone · music · space · mirror · custom · export · shell"
     quit(0)
   
   let cmd = paramStr(1)
@@ -371,6 +395,21 @@ when is_main_module:
     echo "── 镜像10 ──"
     echo "  2D/3D/4D/5D相位索引"
   
+  of "custom":
+    if paramCount() < 4:
+      echo "用法: ./quan_neng custom <A> <B> <结果符号>"
+      echo "示例: ./quan_neng custom ai ei ꬰ"
+      echo ""
+      echo "── 当前自定义配对 ──"
+      for k, v in custom_pairs:
+        echo "  ", k.alignLeft(15), " → ", v
+      quit(1)
+    let a = paramStr(2)
+    let b = paramStr(3)
+    let r = paramStr(4)
+    add_custom_pair(a, b, r)
+    echo "✓ 已添加: ", a, " + ", b, " = ", r
+  
   of "export":
     echo tool.export_json()
   
@@ -396,10 +435,18 @@ when is_main_module:
         let r = find_color(input[6..^1])
         if r.found: echo input[6..^1], " → #", r.idx, " [", r.name, "]"
         else: echo "未知颜色"
+      elif input.startsWith("custom "):
+        let p = input.split(' ')
+        if p.len >= 4:
+          add_custom_pair(p[1], p[2], p[3])
+          echo "✓ 已添加: ", p[1], " + ", p[2], " = ", p[3]
+        else:
+          for k, v in custom_pairs:
+            echo "  ", k, " → ", v
       elif input == "export":
         echo tool.export_json()
       else:
-        echo "命令: explain · judge · yunmu · color · sheng · tone · music · export · quit"
+        echo "命令: explain · judge · yunmu · color · sheng · custom · export · quit"
   
   else:
     echo "未知命令: " & cmd
