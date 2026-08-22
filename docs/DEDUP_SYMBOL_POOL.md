@@ -1,0 +1,539 @@
+# 零维码 · 去重符号池（P0-1 产出）
+
+- 提取总数：426
+去重后：387
+预组合可用：387
+组合不可用：0
+家族数量：28
+
+---
+
+## 可用符号池（按家族聚类）
+
+### 家族 A（27 个）
+
+| 编码序号 | 符号 | 码点 | Unicode名称 | 相位 |
+|---------|------|------|-------------|------|
+| 1 | a | U+0061 | LATIN SMALL LETTER A | P0_原态 |
+| 2 | á | U+00E1 | LATIN SMALL LETTER A WITH ACUTE | P0_带装饰 |
+| 3 | à | U+00E0 | LATIN SMALL LETTER A WITH GRAVE | P0_带装饰 |
+| 4 | â | U+00E2 | LATIN SMALL LETTER A WITH CIRCUMFLEX | P0_带装饰 |
+| 5 | ã | U+00E3 | LATIN SMALL LETTER A WITH TILDE | P0_带装饰 |
+| 6 | ä | U+00E4 | LATIN SMALL LETTER A WITH DIAERESIS | P0_带装饰 |
+| 7 | å | U+00E5 | LATIN SMALL LETTER A WITH RING ABOVE | P0_带装饰 |
+| 8 | ā | U+0101 | LATIN SMALL LETTER A WITH MACRON | P0_带装饰 |
+| 9 | ă | U+0103 | LATIN SMALL LETTER A WITH BREVE | P0_带装饰 |
+| 10 | ą | U+0105 | LATIN SMALL LETTER A WITH OGONEK | P0_带装饰 |
+| 11 | ǎ | U+01CE | LATIN SMALL LETTER A WITH CARON | P0_带装饰 |
+| 12 | ǻ | U+01FB | LATIN SMALL LETTER A WITH RING ABOVE AND ACUTE | P0_带装饰 |
+| 13 | ȧ | U+0227 | LATIN SMALL LETTER A WITH DOT ABOVE | P0_带装饰 |
+| 14 | ạ | U+1EA1 | LATIN SMALL LETTER A WITH DOT BELOW | P0_带装饰 |
+| 15 | ả | U+1EA3 | LATIN SMALL LETTER A WITH HOOK ABOVE | P0_带装饰 |
+| 16 | ǟ | U+01DF | LATIN SMALL LETTER A WITH DIAERESIS AND MACRON | P0_带装饰 |
+| 17 | ǡ | U+01E1 | LATIN SMALL LETTER A WITH DOT ABOVE AND MACRON | P0_带装饰 |
+| 18 | ḁ | U+1E01 | LATIN SMALL LETTER A WITH RING BELOW | P0_带装饰 |
+| 19 | ȁ | U+0201 | LATIN SMALL LETTER A WITH DOUBLE GRAVE | P0_带装饰 |
+| 20 | ȃ | U+0203 | LATIN SMALL LETTER A WITH INVERTED BREVE | P3_前后翻转 |
+| 21 | ɑ | U+0251 | LATIN SMALL LETTER ALPHA | P0_带装饰 |
+| 22 | æ | U+00E6 | LATIN SMALL LETTER AE | P0_带装饰 |
+| 23 | ꜳ | U+A733 | LATIN SMALL LETTER AA | P0_带装饰 |
+| 24 | ꜵ | U+A735 | LATIN SMALL LETTER AO | P0_带装饰 |
+| 25 | ꜷ | U+A737 | LATIN SMALL LETTER AU | P0_带装饰 |
+| 26 | ꬱ | U+AB31 | LATIN SMALL LETTER A REVERSED-SCHWA | P1_左右镜像 |
+| 27 | A | U+0041 | LATIN CAPITAL LETTER A | P0_原态 |
+
+### 家族 B（9 个）
+
+| 编码序号 | 符号 | 码点 | Unicode名称 | 相位 |
+|---------|------|------|-------------|------|
+| 1 | ḃ | U+1E03 | LATIN SMALL LETTER B WITH DOT ABOVE | P0_带装饰 |
+| 2 | b | U+0062 | LATIN SMALL LETTER B | P0_原态 |
+| 3 | ḅ | U+1E05 | LATIN SMALL LETTER B WITH DOT BELOW | P0_带装饰 |
+| 4 | ḇ | U+1E07 | LATIN SMALL LETTER B WITH LINE BELOW | P0_带装饰 |
+| 5 | ɓ | U+0253 | LATIN SMALL LETTER B WITH HOOK | P0_带装饰 |
+| 6 | ƃ | U+0183 | LATIN SMALL LETTER B WITH TOPBAR | P0_带装饰 |
+| 7 | ƀ | U+0180 | LATIN SMALL LETTER B WITH STROKE | P0_带装饰 |
+| 8 | ɵ | U+0275 | LATIN SMALL LETTER BARRED O | P0_带装饰 |
+| 9 | B | U+0042 | LATIN CAPITAL LETTER B | P0_原态 |
+
+### 家族 C（10 个）
+
+| 编码序号 | 符号 | 码点 | Unicode名称 | 相位 |
+|---------|------|------|-------------|------|
+| 1 | c | U+0063 | LATIN SMALL LETTER C | P0_原态 |
+| 2 | ć | U+0107 | LATIN SMALL LETTER C WITH ACUTE | P0_带装饰 |
+| 3 | ĉ | U+0109 | LATIN SMALL LETTER C WITH CIRCUMFLEX | P0_带装饰 |
+| 4 | ċ | U+010B | LATIN SMALL LETTER C WITH DOT ABOVE | P0_带装饰 |
+| 5 | č | U+010D | LATIN SMALL LETTER C WITH CARON | P0_带装饰 |
+| 6 | ç | U+00E7 | LATIN SMALL LETTER C WITH CEDILLA | P0_带装饰 |
+| 7 | ȼ | U+023C | LATIN SMALL LETTER C WITH STROKE | P0_带装饰 |
+| 8 | ḉ | U+1E09 | LATIN SMALL LETTER C WITH CEDILLA AND ACUTE | P0_带装饰 |
+| 9 | ƈ | U+0188 | LATIN SMALL LETTER C WITH HOOK | P0_带装饰 |
+| 10 | C | U+0043 | LATIN CAPITAL LETTER C | P0_原态 |
+
+### 家族 D（16 个）
+
+| 编码序号 | 符号 | 码点 | Unicode名称 | 相位 |
+|---------|------|------|-------------|------|
+| 1 | d | U+0064 | LATIN SMALL LETTER D | P0_原态 |
+| 2 | ď | U+010F | LATIN SMALL LETTER D WITH CARON | P0_带装饰 |
+| 3 | đ | U+0111 | LATIN SMALL LETTER D WITH STROKE | P0_带装饰 |
+| 4 | ḋ | U+1E0B | LATIN SMALL LETTER D WITH DOT ABOVE | P0_带装饰 |
+| 5 | ḍ | U+1E0D | LATIN SMALL LETTER D WITH DOT BELOW | P0_带装饰 |
+| 6 | ḏ | U+1E0F | LATIN SMALL LETTER D WITH LINE BELOW | P0_带装饰 |
+| 7 | ḑ | U+1E11 | LATIN SMALL LETTER D WITH CEDILLA | P0_带装饰 |
+| 8 | ḓ | U+1E13 | LATIN SMALL LETTER D WITH CIRCUMFLEX BELOW | P0_带装饰 |
+| 9 | ɗ | U+0257 | LATIN SMALL LETTER D WITH HOOK | P0_带装饰 |
+| 10 | ɖ | U+0256 | LATIN SMALL LETTER D WITH TAIL | P0_带装饰 |
+| 11 | ƌ | U+018C | LATIN SMALL LETTER D WITH TOPBAR | P0_带装饰 |
+| 12 | ȸ | U+0238 | LATIN SMALL LETTER DB DIGRAPH | P0_带装饰 |
+| 13 | ı | U+0131 | LATIN SMALL LETTER DOTLESS I | P0_带装饰 |
+| 14 | ȷ | U+0237 | LATIN SMALL LETTER DOTLESS J | P0_带装饰 |
+| 15 | ɟ | U+025F | LATIN SMALL LETTER DOTLESS J WITH STROKE | P0_带装饰 |
+| 16 | D | U+0044 | LATIN CAPITAL LETTER D | P0_原态 |
+
+### 家族 E（28 个）
+
+| 编码序号 | 符号 | 码点 | Unicode名称 | 相位 |
+|---------|------|------|-------------|------|
+| 1 | e | U+0065 | LATIN SMALL LETTER E | P0_原态 |
+| 2 | é | U+00E9 | LATIN SMALL LETTER E WITH ACUTE | P0_带装饰 |
+| 3 | è | U+00E8 | LATIN SMALL LETTER E WITH GRAVE | P0_带装饰 |
+| 4 | ê | U+00EA | LATIN SMALL LETTER E WITH CIRCUMFLEX | P0_带装饰 |
+| 5 | ë | U+00EB | LATIN SMALL LETTER E WITH DIAERESIS | P0_带装饰 |
+| 6 | ē | U+0113 | LATIN SMALL LETTER E WITH MACRON | P0_带装饰 |
+| 7 | ĕ | U+0115 | LATIN SMALL LETTER E WITH BREVE | P0_带装饰 |
+| 8 | ė | U+0117 | LATIN SMALL LETTER E WITH DOT ABOVE | P0_带装饰 |
+| 9 | ę | U+0119 | LATIN SMALL LETTER E WITH OGONEK | P0_带装饰 |
+| 10 | ě | U+011B | LATIN SMALL LETTER E WITH CARON | P0_带装饰 |
+| 11 | ȅ | U+0205 | LATIN SMALL LETTER E WITH DOUBLE GRAVE | P0_带装饰 |
+| 12 | ȇ | U+0207 | LATIN SMALL LETTER E WITH INVERTED BREVE | P3_前后翻转 |
+| 13 | ȩ | U+0229 | LATIN SMALL LETTER E WITH CEDILLA | P0_带装饰 |
+| 14 | ḕ | U+1E15 | LATIN SMALL LETTER E WITH MACRON AND GRAVE | P0_带装饰 |
+| 15 | ḗ | U+1E17 | LATIN SMALL LETTER E WITH MACRON AND ACUTE | P0_带装饰 |
+| 16 | ḙ | U+1E19 | LATIN SMALL LETTER E WITH CIRCUMFLEX BELOW | P0_带装饰 |
+| 17 | ḛ | U+1E1B | LATIN SMALL LETTER E WITH TILDE BELOW | P0_带装饰 |
+| 18 | ẹ | U+1EB9 | LATIN SMALL LETTER E WITH DOT BELOW | P0_带装饰 |
+| 19 | ẻ | U+1EBB | LATIN SMALL LETTER E WITH HOOK ABOVE | P0_带装饰 |
+| 20 | ẽ | U+1EBD | LATIN SMALL LETTER E WITH TILDE | P0_带装饰 |
+| 21 | ề | U+1EC1 | LATIN SMALL LETTER E WITH CIRCUMFLEX AND GRAVE | P0_带装饰 |
+| 22 | ể | U+1EC3 | LATIN SMALL LETTER E WITH CIRCUMFLEX AND HOOK ABOVE | P0_带装饰 |
+| 23 | ễ | U+1EC5 | LATIN SMALL LETTER E WITH CIRCUMFLEX AND TILDE | P0_带装饰 |
+| 24 | ệ | U+1EC7 | LATIN SMALL LETTER E WITH CIRCUMFLEX AND DOT BELOW | P0_带装饰 |
+| 25 | ŋ | U+014B | LATIN SMALL LETTER ENG | P0_带装饰 |
+| 26 | ʃ | U+0283 | LATIN SMALL LETTER ESH | P0_带装饰 |
+| 27 | ʆ | U+0286 | LATIN SMALL LETTER ESH WITH CURL | P0_带装饰 |
+| 28 | E | U+0045 | LATIN CAPITAL LETTER E | P0_原态 |
+
+### 家族 F（4 个）
+
+| 编码序号 | 符号 | 码点 | Unicode名称 | 相位 |
+|---------|------|------|-------------|------|
+| 1 | f | U+0066 | LATIN SMALL LETTER F | P0_原态 |
+| 2 | ḟ | U+1E1F | LATIN SMALL LETTER F WITH DOT ABOVE | P0_带装饰 |
+| 3 | ƒ | U+0192 | LATIN SMALL LETTER F WITH HOOK | P0_带装饰 |
+| 4 | F | U+0046 | LATIN CAPITAL LETTER F | P0_原态 |
+
+### 家族 G（11 个）
+
+| 编码序号 | 符号 | 码点 | Unicode名称 | 相位 |
+|---------|------|------|-------------|------|
+| 1 | g | U+0067 | LATIN SMALL LETTER G | P0_原态 |
+| 2 | ĝ | U+011D | LATIN SMALL LETTER G WITH CIRCUMFLEX | P0_带装饰 |
+| 3 | ğ | U+011F | LATIN SMALL LETTER G WITH BREVE | P0_带装饰 |
+| 4 | ġ | U+0121 | LATIN SMALL LETTER G WITH DOT ABOVE | P0_带装饰 |
+| 5 | ģ | U+0123 | LATIN SMALL LETTER G WITH CEDILLA | P0_带装饰 |
+| 6 | ǧ | U+01E7 | LATIN SMALL LETTER G WITH CARON | P0_带装饰 |
+| 7 | ǥ | U+01E5 | LATIN SMALL LETTER G WITH STROKE | P0_带装饰 |
+| 8 | ḡ | U+1E21 | LATIN SMALL LETTER G WITH MACRON | P0_带装饰 |
+| 9 | ɠ | U+0260 | LATIN SMALL LETTER G WITH HOOK | P0_带装饰 |
+| 10 | ɣ | U+0263 | LATIN SMALL LETTER GAMMA | P0_带装饰 |
+| 11 | G | U+0047 | LATIN CAPITAL LETTER G | P0_原态 |
+
+### 家族 H（15 个）
+
+| 编码序号 | 符号 | 码点 | Unicode名称 | 相位 |
+|---------|------|------|-------------|------|
+| 1 | h | U+0068 | LATIN SMALL LETTER H | P0_原态 |
+| 2 | ĥ | U+0125 | LATIN SMALL LETTER H WITH CIRCUMFLEX | P0_带装饰 |
+| 3 | ħ | U+0127 | LATIN SMALL LETTER H WITH STROKE | P0_带装饰 |
+| 4 | ȟ | U+021F | LATIN SMALL LETTER H WITH CARON | P0_带装饰 |
+| 5 | ḣ | U+1E23 | LATIN SMALL LETTER H WITH DOT ABOVE | P0_带装饰 |
+| 6 | ḥ | U+1E25 | LATIN SMALL LETTER H WITH DOT BELOW | P0_带装饰 |
+| 7 | ḧ | U+1E27 | LATIN SMALL LETTER H WITH DIAERESIS | P0_带装饰 |
+| 8 | ḩ | U+1E29 | LATIN SMALL LETTER H WITH CEDILLA | P0_带装饰 |
+| 9 | ḫ | U+1E2B | LATIN SMALL LETTER H WITH BREVE BELOW | P0_带装饰 |
+| 10 | ɦ | U+0266 | LATIN SMALL LETTER H WITH HOOK | P0_带装饰 |
+| 11 | ɧ | U+0267 | LATIN SMALL LETTER HENG WITH HOOK | P0_带装饰 |
+| 12 | ꜧ | U+A727 | LATIN SMALL LETTER HENG | P0_带装饰 |
+| 13 | ƕ | U+0195 | LATIN SMALL LETTER HV | P0_带装饰 |
+| 14 | Ƕ | U+01F6 | LATIN CAPITAL LETTER HWAIR | P0_带装饰 |
+| 15 | H | U+0048 | LATIN CAPITAL LETTER H | P0_原态 |
+
+### 家族 I（18 个）
+
+| 编码序号 | 符号 | 码点 | Unicode名称 | 相位 |
+|---------|------|------|-------------|------|
+| 1 | i | U+0069 | LATIN SMALL LETTER I | P0_原态 |
+| 2 | í | U+00ED | LATIN SMALL LETTER I WITH ACUTE | P0_带装饰 |
+| 3 | ì | U+00EC | LATIN SMALL LETTER I WITH GRAVE | P0_带装饰 |
+| 4 | î | U+00EE | LATIN SMALL LETTER I WITH CIRCUMFLEX | P0_带装饰 |
+| 5 | ï | U+00EF | LATIN SMALL LETTER I WITH DIAERESIS | P0_带装饰 |
+| 6 | ĩ | U+0129 | LATIN SMALL LETTER I WITH TILDE | P0_带装饰 |
+| 7 | ī | U+012B | LATIN SMALL LETTER I WITH MACRON | P0_带装饰 |
+| 8 | ĭ | U+012D | LATIN SMALL LETTER I WITH BREVE | P0_带装饰 |
+| 9 | į | U+012F | LATIN SMALL LETTER I WITH OGONEK | P0_带装饰 |
+| 10 | ǐ | U+01D0 | LATIN SMALL LETTER I WITH CARON | P0_带装饰 |
+| 11 | ȉ | U+0209 | LATIN SMALL LETTER I WITH DOUBLE GRAVE | P0_带装饰 |
+| 12 | ȋ | U+020B | LATIN SMALL LETTER I WITH INVERTED BREVE | P3_前后翻转 |
+| 13 | ḭ | U+1E2D | LATIN SMALL LETTER I WITH TILDE BELOW | P0_带装饰 |
+| 14 | ḯ | U+1E2F | LATIN SMALL LETTER I WITH DIAERESIS AND ACUTE | P0_带装饰 |
+| 15 | ị | U+1ECB | LATIN SMALL LETTER I WITH DOT BELOW | P0_带装饰 |
+| 16 | ỉ | U+1EC9 | LATIN SMALL LETTER I WITH HOOK ABOVE | P0_带装饰 |
+| 17 | ɨ | U+0268 | LATIN SMALL LETTER I WITH STROKE | P0_带装饰 |
+| 18 | I | U+0049 | LATIN CAPITAL LETTER I | P0_原态 |
+
+### 家族 J（5 个）
+
+| 编码序号 | 符号 | 码点 | Unicode名称 | 相位 |
+|---------|------|------|-------------|------|
+| 1 | j | U+006A | LATIN SMALL LETTER J | P0_原态 |
+| 2 | ĵ | U+0135 | LATIN SMALL LETTER J WITH CIRCUMFLEX | P0_带装饰 |
+| 3 | ǰ | U+01F0 | LATIN SMALL LETTER J WITH CARON | P0_带装饰 |
+| 4 | ʝ | U+029D | LATIN SMALL LETTER J WITH CROSSED-TAIL | P0_带装饰 |
+| 5 | J | U+004A | LATIN CAPITAL LETTER J | P0_原态 |
+
+### 家族 K（8 个）
+
+| 编码序号 | 符号 | 码点 | Unicode名称 | 相位 |
+|---------|------|------|-------------|------|
+| 1 | k | U+006B | LATIN SMALL LETTER K | P0_原态 |
+| 2 | ķ | U+0137 | LATIN SMALL LETTER K WITH CEDILLA | P0_带装饰 |
+| 3 | ǩ | U+01E9 | LATIN SMALL LETTER K WITH CARON | P0_带装饰 |
+| 4 | ḱ | U+1E31 | LATIN SMALL LETTER K WITH ACUTE | P0_带装饰 |
+| 5 | ḳ | U+1E33 | LATIN SMALL LETTER K WITH DOT BELOW | P0_带装饰 |
+| 6 | ḵ | U+1E35 | LATIN SMALL LETTER K WITH LINE BELOW | P0_带装饰 |
+| 7 | ƙ | U+0199 | LATIN SMALL LETTER K WITH HOOK | P0_带装饰 |
+| 8 | K | U+004B | LATIN CAPITAL LETTER K | P0_原态 |
+
+### 家族 L（16 个）
+
+| 编码序号 | 符号 | 码点 | Unicode名称 | 相位 |
+|---------|------|------|-------------|------|
+| 1 | ꬵ | U+AB35 | LATIN SMALL LETTER LENIS F | P0_带装饰 |
+| 2 | l | U+006C | LATIN SMALL LETTER L | P0_原态 |
+| 3 | ĺ | U+013A | LATIN SMALL LETTER L WITH ACUTE | P0_带装饰 |
+| 4 | ļ | U+013C | LATIN SMALL LETTER L WITH CEDILLA | P0_带装饰 |
+| 5 | ľ | U+013E | LATIN SMALL LETTER L WITH CARON | P0_带装饰 |
+| 6 | ŀ | U+0140 | LATIN SMALL LETTER L WITH MIDDLE DOT | P0_带装饰 |
+| 7 | ł | U+0142 | LATIN SMALL LETTER L WITH STROKE | P0_带装饰 |
+| 8 | ƛ | U+019B | LATIN SMALL LETTER LAMBDA WITH STROKE | P0_带装饰 |
+| 9 | ḷ | U+1E37 | LATIN SMALL LETTER L WITH DOT BELOW | P0_带装饰 |
+| 10 | ḹ | U+1E39 | LATIN SMALL LETTER L WITH DOT BELOW AND MACRON | P0_带装饰 |
+| 11 | ḻ | U+1E3B | LATIN SMALL LETTER L WITH LINE BELOW | P0_带装饰 |
+| 12 | ḽ | U+1E3D | LATIN SMALL LETTER L WITH CIRCUMFLEX BELOW | P0_带装饰 |
+| 13 | ɫ | U+026B | LATIN SMALL LETTER L WITH MIDDLE TILDE | P0_带装饰 |
+| 14 | ɬ | U+026C | LATIN SMALL LETTER L WITH BELT | P0_带装饰 |
+| 15 | ɭ | U+026D | LATIN SMALL LETTER L WITH RETROFLEX HOOK | P0_带装饰 |
+| 16 | L | U+004C | LATIN CAPITAL LETTER L | P0_原态 |
+
+### 家族 M（6 个）
+
+| 编码序号 | 符号 | 码点 | Unicode名称 | 相位 |
+|---------|------|------|-------------|------|
+| 1 | m | U+006D | LATIN SMALL LETTER M | P0_原态 |
+| 2 | ḿ | U+1E3F | LATIN SMALL LETTER M WITH ACUTE | P0_带装饰 |
+| 3 | ṃ | U+1E43 | LATIN SMALL LETTER M WITH DOT BELOW | P0_带装饰 |
+| 4 | ṁ | U+1E41 | LATIN SMALL LETTER M WITH DOT ABOVE | P0_带装饰 |
+| 5 | ɱ | U+0271 | LATIN SMALL LETTER M WITH HOOK | P0_带装饰 |
+| 6 | M | U+004D | LATIN CAPITAL LETTER M | P0_原态 |
+
+### 家族 N（13 个）
+
+| 编码序号 | 符号 | 码点 | Unicode名称 | 相位 |
+|---------|------|------|-------------|------|
+| 1 | n | U+006E | LATIN SMALL LETTER N | P0_原态 |
+| 2 | ń | U+0144 | LATIN SMALL LETTER N WITH ACUTE | P0_带装饰 |
+| 3 | ņ | U+0146 | LATIN SMALL LETTER N WITH CEDILLA | P0_带装饰 |
+| 4 | ň | U+0148 | LATIN SMALL LETTER N WITH CARON | P0_带装饰 |
+| 5 | ǹ | U+01F9 | LATIN SMALL LETTER N WITH GRAVE | P0_带装饰 |
+| 6 | ṅ | U+1E45 | LATIN SMALL LETTER N WITH DOT ABOVE | P0_带装饰 |
+| 7 | ṇ | U+1E47 | LATIN SMALL LETTER N WITH DOT BELOW | P0_带装饰 |
+| 8 | ṉ | U+1E49 | LATIN SMALL LETTER N WITH LINE BELOW | P0_带装饰 |
+| 9 | ṋ | U+1E4B | LATIN SMALL LETTER N WITH CIRCUMFLEX BELOW | P0_带装饰 |
+| 10 | ɲ | U+0272 | LATIN SMALL LETTER N WITH LEFT HOOK | P0_带装饰 |
+| 11 | ɳ | U+0273 | LATIN SMALL LETTER N WITH RETROFLEX HOOK | P0_带装饰 |
+| 12 | ꬻ | U+AB3B | LATIN SMALL LETTER N WITH CROSSED-TAIL | P0_带装饰 |
+| 13 | N | U+004E | LATIN CAPITAL LETTER N | P0_原态 |
+
+### 家族 O（34 个）
+
+| 编码序号 | 符号 | 码点 | Unicode名称 | 相位 |
+|---------|------|------|-------------|------|
+| 1 | ɔ | U+0254 | LATIN SMALL LETTER OPEN O | P0_带装饰 |
+| 2 | ɛ | U+025B | LATIN SMALL LETTER OPEN E | P0_带装饰 |
+| 3 | o | U+006F | LATIN SMALL LETTER O | P0_原态 |
+| 4 | ó | U+00F3 | LATIN SMALL LETTER O WITH ACUTE | P0_带装饰 |
+| 5 | ò | U+00F2 | LATIN SMALL LETTER O WITH GRAVE | P0_带装饰 |
+| 6 | ô | U+00F4 | LATIN SMALL LETTER O WITH CIRCUMFLEX | P0_带装饰 |
+| 7 | õ | U+00F5 | LATIN SMALL LETTER O WITH TILDE | P0_带装饰 |
+| 8 | ö | U+00F6 | LATIN SMALL LETTER O WITH DIAERESIS | P0_带装饰 |
+| 9 | ø | U+00F8 | LATIN SMALL LETTER O WITH STROKE | P0_带装饰 |
+| 10 | ō | U+014D | LATIN SMALL LETTER O WITH MACRON | P0_带装饰 |
+| 11 | ŏ | U+014F | LATIN SMALL LETTER O WITH BREVE | P0_带装饰 |
+| 12 | ő | U+0151 | LATIN SMALL LETTER O WITH DOUBLE ACUTE | P0_带装饰 |
+| 13 | ǒ | U+01D2 | LATIN SMALL LETTER O WITH CARON | P0_带装饰 |
+| 14 | ǿ | U+01FF | LATIN SMALL LETTER O WITH STROKE AND ACUTE | P0_带装饰 |
+| 15 | ȫ | U+022B | LATIN SMALL LETTER O WITH DIAERESIS AND MACRON | P0_带装饰 |
+| 16 | ȭ | U+022D | LATIN SMALL LETTER O WITH TILDE AND MACRON | P0_带装饰 |
+| 17 | ȯ | U+022F | LATIN SMALL LETTER O WITH DOT ABOVE | P0_带装饰 |
+| 18 | ȱ | U+0231 | LATIN SMALL LETTER O WITH DOT ABOVE AND MACRON | P0_带装饰 |
+| 19 | ọ | U+1ECD | LATIN SMALL LETTER O WITH DOT BELOW | P0_带装饰 |
+| 20 | ỏ | U+1ECF | LATIN SMALL LETTER O WITH HOOK ABOVE | P0_带装饰 |
+| 21 | ố | U+1ED1 | LATIN SMALL LETTER O WITH CIRCUMFLEX AND ACUTE | P0_带装饰 |
+| 22 | ồ | U+1ED3 | LATIN SMALL LETTER O WITH CIRCUMFLEX AND GRAVE | P0_带装饰 |
+| 23 | ổ | U+1ED5 | LATIN SMALL LETTER O WITH CIRCUMFLEX AND HOOK ABOVE | P0_带装饰 |
+| 24 | ỗ | U+1ED7 | LATIN SMALL LETTER O WITH CIRCUMFLEX AND TILDE | P0_带装饰 |
+| 25 | ộ | U+1ED9 | LATIN SMALL LETTER O WITH CIRCUMFLEX AND DOT BELOW | P0_带装饰 |
+| 26 | ớ | U+1EDB | LATIN SMALL LETTER O WITH HORN AND ACUTE | P0_带装饰 |
+| 27 | ờ | U+1EDD | LATIN SMALL LETTER O WITH HORN AND GRAVE | P0_带装饰 |
+| 28 | ở | U+1EDF | LATIN SMALL LETTER O WITH HORN AND HOOK ABOVE | P0_带装饰 |
+| 29 | ỡ | U+1EE1 | LATIN SMALL LETTER O WITH HORN AND TILDE | P0_带装饰 |
+| 30 | ợ | U+1EE3 | LATIN SMALL LETTER O WITH HORN AND DOT BELOW | P0_带装饰 |
+| 31 | ȣ | U+0223 | LATIN SMALL LETTER OU | P0_带装饰 |
+| 32 | Ȣ | U+0222 | LATIN CAPITAL LETTER OU | P0_带装饰 |
+| 33 | ꝏ | U+A74F | LATIN SMALL LETTER OO | P0_带装饰 |
+| 34 | O | U+004F | LATIN CAPITAL LETTER O | P0_原态 |
+
+### 家族 P（5 个）
+
+| 编码序号 | 符号 | 码点 | Unicode名称 | 相位 |
+|---------|------|------|-------------|------|
+| 1 | p | U+0070 | LATIN SMALL LETTER P | P0_原态 |
+| 2 | ṕ | U+1E55 | LATIN SMALL LETTER P WITH ACUTE | P0_带装饰 |
+| 3 | ṗ | U+1E57 | LATIN SMALL LETTER P WITH DOT ABOVE | P0_带装饰 |
+| 4 | ƥ | U+01A5 | LATIN SMALL LETTER P WITH HOOK | P0_带装饰 |
+| 5 | P | U+0050 | LATIN CAPITAL LETTER P | P0_原态 |
+
+### 家族 Q（4 个）
+
+| 编码序号 | 符号 | 码点 | Unicode名称 | 相位 |
+|---------|------|------|-------------|------|
+| 1 | ʠ | U+02A0 | LATIN SMALL LETTER Q WITH HOOK | P0_带装饰 |
+| 2 | q | U+0071 | LATIN SMALL LETTER Q | P0_原态 |
+| 3 | ȹ | U+0239 | LATIN SMALL LETTER QP DIGRAPH | P0_带装饰 |
+| 4 | Q | U+0051 | LATIN CAPITAL LETTER Q | P0_原态 |
+
+### 家族 R（17 个）
+
+| 编码序号 | 符号 | 码点 | Unicode名称 | 相位 |
+|---------|------|------|-------------|------|
+| 1 | ɜ | U+025C | LATIN SMALL LETTER REVERSED OPEN E | P1_左右镜像 |
+| 2 | ɘ | U+0258 | LATIN SMALL LETTER REVERSED E | P1_左右镜像 |
+| 3 | r | U+0072 | LATIN SMALL LETTER R | P0_原态 |
+| 4 | ŕ | U+0155 | LATIN SMALL LETTER R WITH ACUTE | P0_带装饰 |
+| 5 | ŗ | U+0157 | LATIN SMALL LETTER R WITH CEDILLA | P0_带装饰 |
+| 6 | ř | U+0159 | LATIN SMALL LETTER R WITH CARON | P0_带装饰 |
+| 7 | ȑ | U+0211 | LATIN SMALL LETTER R WITH DOUBLE GRAVE | P0_带装饰 |
+| 8 | ȓ | U+0213 | LATIN SMALL LETTER R WITH INVERTED BREVE | P3_前后翻转 |
+| 9 | ṙ | U+1E59 | LATIN SMALL LETTER R WITH DOT ABOVE | P0_带装饰 |
+| 10 | ṛ | U+1E5B | LATIN SMALL LETTER R WITH DOT BELOW | P0_带装饰 |
+| 11 | ṝ | U+1E5D | LATIN SMALL LETTER R WITH DOT BELOW AND MACRON | P0_带装饰 |
+| 12 | ṟ | U+1E5F | LATIN SMALL LETTER R WITH LINE BELOW | P0_带装饰 |
+| 13 | ɍ | U+024D | LATIN SMALL LETTER R WITH STROKE | P0_带装饰 |
+| 14 | ɼ | U+027C | LATIN SMALL LETTER R WITH LONG LEG | P0_带装饰 |
+| 15 | ɽ | U+027D | LATIN SMALL LETTER R WITH TAIL | P0_带装饰 |
+| 16 | ɾ | U+027E | LATIN SMALL LETTER R WITH FISHHOOK | P0_带装饰 |
+| 17 | R | U+0052 | LATIN CAPITAL LETTER R | P0_原态 |
+
+### 家族 S（26 个）
+
+| 编码序号 | 符号 | 码点 | Unicode名称 | 相位 |
+|---------|------|------|-------------|------|
+| 1 | ᴀ | U+1D00 | LATIN LETTER SMALL CAPITAL A | P0_带装饰 |
+| 2 | ʙ | U+0299 | LATIN LETTER SMALL CAPITAL B | P0_带装饰 |
+| 3 | ə | U+0259 | LATIN SMALL LETTER SCHWA | P0_带装饰 |
+| 4 | ɚ | U+025A | LATIN SMALL LETTER SCHWA WITH HOOK | P0_带装饰 |
+| 5 | ɡ | U+0261 | LATIN SMALL LETTER SCRIPT G | P0_带装饰 |
+| 6 | ɪ | U+026A | LATIN LETTER SMALL CAPITAL I | P0_带装饰 |
+| 7 | ʟ | U+029F | LATIN LETTER SMALL CAPITAL L | P0_带装饰 |
+| 8 | ɴ | U+0274 | LATIN LETTER SMALL CAPITAL N | P0_带装饰 |
+| 9 | ɶ | U+0276 | LATIN LETTER SMALL CAPITAL OE | P0_带装饰 |
+| 10 | ʁ | U+0281 | LATIN LETTER SMALL CAPITAL INVERTED R | P3_前后翻转 |
+| 11 | s | U+0073 | LATIN SMALL LETTER S | P0_原态 |
+| 12 | ś | U+015B | LATIN SMALL LETTER S WITH ACUTE | P0_带装饰 |
+| 13 | ŝ | U+015D | LATIN SMALL LETTER S WITH CIRCUMFLEX | P0_带装饰 |
+| 14 | ş | U+015F | LATIN SMALL LETTER S WITH CEDILLA | P0_带装饰 |
+| 15 | š | U+0161 | LATIN SMALL LETTER S WITH CARON | P0_带装饰 |
+| 16 | ș | U+0219 | LATIN SMALL LETTER S WITH COMMA BELOW | P0_带装饰 |
+| 17 | ṡ | U+1E61 | LATIN SMALL LETTER S WITH DOT ABOVE | P0_带装饰 |
+| 18 | ṣ | U+1E63 | LATIN SMALL LETTER S WITH DOT BELOW | P0_带装饰 |
+| 19 | ṥ | U+1E65 | LATIN SMALL LETTER S WITH ACUTE AND DOT ABOVE | P0_带装饰 |
+| 20 | ṧ | U+1E67 | LATIN SMALL LETTER S WITH CARON AND DOT ABOVE | P0_带装饰 |
+| 21 | ṩ | U+1E69 | LATIN SMALL LETTER S WITH DOT BELOW AND DOT ABOVE | P0_带装饰 |
+| 22 | ʂ | U+0282 | LATIN SMALL LETTER S WITH HOOK | P0_带装饰 |
+| 23 | ʅ | U+0285 | LATIN SMALL LETTER SQUAT REVERSED ESH | P1_左右镜像 |
+| 24 | ʏ | U+028F | LATIN LETTER SMALL CAPITAL Y | P0_带装饰 |
+| 25 | ᴢ | U+1D22 | LATIN LETTER SMALL CAPITAL Z | P0_带装饰 |
+| 26 | S | U+0053 | LATIN CAPITAL LETTER S | P0_原态 |
+
+### 家族 T（26 个）
+
+| 编码序号 | 符号 | 码点 | Unicode名称 | 相位 |
+|---------|------|------|-------------|------|
+| 1 | ɐ | U+0250 | LATIN SMALL LETTER TURNED A | P2_上下颠倒 |
+| 2 | ɒ | U+0252 | LATIN SMALL LETTER TURNED ALPHA | P2_上下颠倒 |
+| 3 | ǝ | U+01DD | LATIN SMALL LETTER TURNED E | P2_上下颠倒 |
+| 4 | ʞ | U+029E | LATIN SMALL LETTER TURNED K | P2_上下颠倒 |
+| 5 | ɯ | U+026F | LATIN SMALL LETTER TURNED M | P2_上下颠倒 |
+| 6 | ɰ | U+0270 | LATIN SMALL LETTER TURNED M WITH LONG LEG | P2_上下颠倒 |
+| 7 | ɹ | U+0279 | LATIN SMALL LETTER TURNED R | P2_上下颠倒 |
+| 8 | ɺ | U+027A | LATIN SMALL LETTER TURNED R WITH LONG LEG | P2_上下颠倒 |
+| 9 | ɻ | U+027B | LATIN SMALL LETTER TURNED R WITH HOOK | P2_上下颠倒 |
+| 10 | t | U+0074 | LATIN SMALL LETTER T | P0_原态 |
+| 11 | ť | U+0165 | LATIN SMALL LETTER T WITH CARON | P0_带装饰 |
+| 12 | ŧ | U+0167 | LATIN SMALL LETTER T WITH STROKE | P0_带装饰 |
+| 13 | ț | U+021B | LATIN SMALL LETTER T WITH COMMA BELOW | P0_带装饰 |
+| 14 | ṫ | U+1E6B | LATIN SMALL LETTER T WITH DOT ABOVE | P0_带装饰 |
+| 15 | ṭ | U+1E6D | LATIN SMALL LETTER T WITH DOT BELOW | P0_带装饰 |
+| 16 | ṯ | U+1E6F | LATIN SMALL LETTER T WITH LINE BELOW | P0_带装饰 |
+| 17 | ṱ | U+1E71 | LATIN SMALL LETTER T WITH CIRCUMFLEX BELOW | P0_带装饰 |
+| 18 | ʈ | U+0288 | LATIN SMALL LETTER T WITH RETROFLEX HOOK | P0_带装饰 |
+| 19 | ʦ | U+02A6 | LATIN SMALL LETTER TS DIGRAPH | P0_带装饰 |
+| 20 | ʧ | U+02A7 | LATIN SMALL LETTER TESH DIGRAPH | P0_带装饰 |
+| 21 | ʨ | U+02A8 | LATIN SMALL LETTER TC DIGRAPH WITH CURL | P0_带装饰 |
+| 22 | ʌ | U+028C | LATIN SMALL LETTER TURNED V | P2_上下颠倒 |
+| 23 | ʍ | U+028D | LATIN SMALL LETTER TURNED W | P2_上下颠倒 |
+| 24 | ʎ | U+028E | LATIN SMALL LETTER TURNED Y | P2_上下颠倒 |
+| 25 | ꭂ | U+AB42 | LATIN SMALL LETTER TURNED OE WITH HORIZONTAL STROKE | P2_上下颠倒 |
+| 26 | T | U+0054 | LATIN CAPITAL LETTER T | P0_原态 |
+
+### 家族 U（35 个）
+
+| 编码序号 | 符号 | 码点 | Unicode名称 | 相位 |
+|---------|------|------|-------------|------|
+| 1 | u | U+0075 | LATIN SMALL LETTER U | P0_原态 |
+| 2 | ú | U+00FA | LATIN SMALL LETTER U WITH ACUTE | P0_带装饰 |
+| 3 | ù | U+00F9 | LATIN SMALL LETTER U WITH GRAVE | P0_带装饰 |
+| 4 | û | U+00FB | LATIN SMALL LETTER U WITH CIRCUMFLEX | P0_带装饰 |
+| 5 | ü | U+00FC | LATIN SMALL LETTER U WITH DIAERESIS | P0_带装饰 |
+| 6 | ũ | U+0169 | LATIN SMALL LETTER U WITH TILDE | P0_带装饰 |
+| 7 | ū | U+016B | LATIN SMALL LETTER U WITH MACRON | P0_带装饰 |
+| 8 | ŭ | U+016D | LATIN SMALL LETTER U WITH BREVE | P0_带装饰 |
+| 9 | ů | U+016F | LATIN SMALL LETTER U WITH RING ABOVE | P0_带装饰 |
+| 10 | ű | U+0171 | LATIN SMALL LETTER U WITH DOUBLE ACUTE | P0_带装饰 |
+| 11 | ų | U+0173 | LATIN SMALL LETTER U WITH OGONEK | P0_带装饰 |
+| 12 | ǔ | U+01D4 | LATIN SMALL LETTER U WITH CARON | P0_带装饰 |
+| 13 | ǖ | U+01D6 | LATIN SMALL LETTER U WITH DIAERESIS AND MACRON | P0_带装饰 |
+| 14 | ǘ | U+01D8 | LATIN SMALL LETTER U WITH DIAERESIS AND ACUTE | P0_带装饰 |
+| 15 | ǚ | U+01DA | LATIN SMALL LETTER U WITH DIAERESIS AND CARON | P0_带装饰 |
+| 16 | ǜ | U+01DC | LATIN SMALL LETTER U WITH DIAERESIS AND GRAVE | P0_带装饰 |
+| 17 | ȕ | U+0215 | LATIN SMALL LETTER U WITH DOUBLE GRAVE | P0_带装饰 |
+| 18 | ȗ | U+0217 | LATIN SMALL LETTER U WITH INVERTED BREVE | P3_前后翻转 |
+| 19 | ṳ | U+1E73 | LATIN SMALL LETTER U WITH DIAERESIS BELOW | P0_带装饰 |
+| 20 | ṵ | U+1E75 | LATIN SMALL LETTER U WITH TILDE BELOW | P0_带装饰 |
+| 21 | ṷ | U+1E77 | LATIN SMALL LETTER U WITH CIRCUMFLEX BELOW | P0_带装饰 |
+| 22 | ṹ | U+1E79 | LATIN SMALL LETTER U WITH TILDE AND ACUTE | P0_带装饰 |
+| 23 | ṻ | U+1E7B | LATIN SMALL LETTER U WITH MACRON AND DIAERESIS | P0_带装饰 |
+| 24 | ụ | U+1EE5 | LATIN SMALL LETTER U WITH DOT BELOW | P0_带装饰 |
+| 25 | ủ | U+1EE7 | LATIN SMALL LETTER U WITH HOOK ABOVE | P0_带装饰 |
+| 26 | ứ | U+1EE9 | LATIN SMALL LETTER U WITH HORN AND ACUTE | P0_带装饰 |
+| 27 | ừ | U+1EEB | LATIN SMALL LETTER U WITH HORN AND GRAVE | P0_带装饰 |
+| 28 | ử | U+1EED | LATIN SMALL LETTER U WITH HORN AND HOOK ABOVE | P0_带装饰 |
+| 29 | ữ | U+1EEF | LATIN SMALL LETTER U WITH HORN AND TILDE | P0_带装饰 |
+| 30 | ự | U+1EF1 | LATIN SMALL LETTER U WITH HORN AND DOT BELOW | P0_带装饰 |
+| 31 | ʉ | U+0289 | LATIN SMALL LETTER U BAR | P0_带装饰 |
+| 32 | ʊ | U+028A | LATIN SMALL LETTER UPSILON | P0_带装饰 |
+| 33 | ꭒ | U+AB52 | LATIN SMALL LETTER U WITH LEFT HOOK | P0_带装饰 |
+| 34 | ꭎ | U+AB4E | LATIN SMALL LETTER U WITH SHORT RIGHT LEG | P0_带装饰 |
+| 35 | U | U+0055 | LATIN CAPITAL LETTER U | P0_原态 |
+
+### 家族 V（5 个）
+
+| 编码序号 | 符号 | 码点 | Unicode名称 | 相位 |
+|---------|------|------|-------------|------|
+| 1 | ʋ | U+028B | LATIN SMALL LETTER V WITH HOOK | P0_带装饰 |
+| 2 | v | U+0076 | LATIN SMALL LETTER V | P0_原态 |
+| 3 | ṽ | U+1E7D | LATIN SMALL LETTER V WITH TILDE | P0_带装饰 |
+| 4 | ṿ | U+1E7F | LATIN SMALL LETTER V WITH DOT BELOW | P0_带装饰 |
+| 5 | V | U+0056 | LATIN CAPITAL LETTER V | P0_原态 |
+
+### 家族 W（9 个）
+
+| 编码序号 | 符号 | 码点 | Unicode名称 | 相位 |
+|---------|------|------|-------------|------|
+| 1 | w | U+0077 | LATIN SMALL LETTER W | P0_原态 |
+| 2 | ẁ | U+1E81 | LATIN SMALL LETTER W WITH GRAVE | P0_带装饰 |
+| 3 | ẃ | U+1E83 | LATIN SMALL LETTER W WITH ACUTE | P0_带装饰 |
+| 4 | ŵ | U+0175 | LATIN SMALL LETTER W WITH CIRCUMFLEX | P0_带装饰 |
+| 5 | ẇ | U+1E87 | LATIN SMALL LETTER W WITH DOT ABOVE | P0_带装饰 |
+| 6 | ẅ | U+1E85 | LATIN SMALL LETTER W WITH DIAERESIS | P0_带装饰 |
+| 7 | ẉ | U+1E89 | LATIN SMALL LETTER W WITH DOT BELOW | P0_带装饰 |
+| 8 | ẘ | U+1E98 | LATIN SMALL LETTER W WITH RING ABOVE | P0_带装饰 |
+| 9 | W | U+0057 | LATIN CAPITAL LETTER W | P0_原态 |
+
+### 家族 X（4 个）
+
+| 编码序号 | 符号 | 码点 | Unicode名称 | 相位 |
+|---------|------|------|-------------|------|
+| 1 | x | U+0078 | LATIN SMALL LETTER X | P0_原态 |
+| 2 | ẋ | U+1E8B | LATIN SMALL LETTER X WITH DOT ABOVE | P0_带装饰 |
+| 3 | ẍ | U+1E8D | LATIN SMALL LETTER X WITH DIAERESIS | P0_带装饰 |
+| 4 | X | U+0058 | LATIN CAPITAL LETTER X | P0_原态 |
+
+### 家族 Y（16 个）
+
+| 编码序号 | 符号 | 码点 | Unicode名称 | 相位 |
+|---------|------|------|-------------|------|
+| 1 | y | U+0079 | LATIN SMALL LETTER Y | P0_原态 |
+| 2 | ý | U+00FD | LATIN SMALL LETTER Y WITH ACUTE | P0_带装饰 |
+| 3 | ỳ | U+1EF3 | LATIN SMALL LETTER Y WITH GRAVE | P0_带装饰 |
+| 4 | ŷ | U+0177 | LATIN SMALL LETTER Y WITH CIRCUMFLEX | P0_带装饰 |
+| 5 | ÿ | U+00FF | LATIN SMALL LETTER Y WITH DIAERESIS | P0_带装饰 |
+| 6 | ỹ | U+1EF9 | LATIN SMALL LETTER Y WITH TILDE | P0_带装饰 |
+| 7 | ȳ | U+0233 | LATIN SMALL LETTER Y WITH MACRON | P0_带装饰 |
+| 8 | ỵ | U+1EF5 | LATIN SMALL LETTER Y WITH DOT BELOW | P0_带装饰 |
+| 9 | ỷ | U+1EF7 | LATIN SMALL LETTER Y WITH HOOK ABOVE | P0_带装饰 |
+| 10 | ẏ | U+1E8F | LATIN SMALL LETTER Y WITH DOT ABOVE | P0_带装饰 |
+| 11 | ẙ | U+1E99 | LATIN SMALL LETTER Y WITH RING ABOVE | P0_带装饰 |
+| 12 | ɏ | U+024F | LATIN SMALL LETTER Y WITH STROKE | P0_带装饰 |
+| 13 | ƴ | U+01B4 | LATIN SMALL LETTER Y WITH HOOK | P0_带装饰 |
+| 14 | Ƴ | U+01B3 | LATIN CAPITAL LETTER Y WITH HOOK | P0_带装饰 |
+| 15 | ỿ | U+1EFF | LATIN SMALL LETTER Y WITH LOOP | P0_带装饰 |
+| 16 | Y | U+0059 | LATIN CAPITAL LETTER Y | P0_原态 |
+
+### 家族 Z（13 个）
+
+| 编码序号 | 符号 | 码点 | Unicode名称 | 相位 |
+|---------|------|------|-------------|------|
+| 1 | z | U+007A | LATIN SMALL LETTER Z | P0_原态 |
+| 2 | ź | U+017A | LATIN SMALL LETTER Z WITH ACUTE | P0_带装饰 |
+| 3 | ż | U+017C | LATIN SMALL LETTER Z WITH DOT ABOVE | P0_带装饰 |
+| 4 | ž | U+017E | LATIN SMALL LETTER Z WITH CARON | P0_带装饰 |
+| 5 | ẑ | U+1E91 | LATIN SMALL LETTER Z WITH CIRCUMFLEX | P0_带装饰 |
+| 6 | ẓ | U+1E93 | LATIN SMALL LETTER Z WITH DOT BELOW | P0_带装饰 |
+| 7 | ẕ | U+1E95 | LATIN SMALL LETTER Z WITH LINE BELOW | P0_带装饰 |
+| 8 | ƶ | U+01B6 | LATIN SMALL LETTER Z WITH STROKE | P0_带装饰 |
+| 9 | ȥ | U+0225 | LATIN SMALL LETTER Z WITH HOOK | P0_带装饰 |
+| 10 | ⱬ | U+2C6C | LATIN SMALL LETTER Z WITH DESCENDER | P0_带装饰 |
+| 11 | ʐ | U+0290 | LATIN SMALL LETTER Z WITH RETROFLEX HOOK | P0_带装饰 |
+| 12 | ʑ | U+0291 | LATIN SMALL LETTER Z WITH CURL | P0_带装饰 |
+| 13 | Z | U+005A | LATIN CAPITAL LETTER Z | P0_原态 |
+
+### 家族 其他（6 个）
+
+| 编码序号 | 符号 | 码点 | Unicode名称 | 相位 |
+|---------|------|------|-------------|------|
+| 1 | - | U+002D | HYPHEN-MINUS | P0_带装饰 |
+| 2 | ᵎ | U+1D4E | MODIFIER LETTER SMALL TURNED I | P2_上下颠倒 |
+| 3 | 连 | U+8FDE | CJK UNIFIED IDEOGRAPH-8FDE | P0_带装饰 |
+| 4 | - | U+002D | HYPHEN-MINUS | P0_带装饰 |
+| 5 | 家 | U+5BB6 | CJK UNIFIED IDEOGRAPH-5BB6 | P0_带装饰 |
+| 6 | * | U+002A | ASTERISK | P0_带装饰 |
+
+### 家族 连体_OE（1 个）
+
+| 编码序号 | 符号 | 码点 | Unicode名称 | 相位 |
+|---------|------|------|-------------|------|
+| 1 | œ | U+0153 | LATIN SMALL LIGATURE OE | P0_带装饰 |
+

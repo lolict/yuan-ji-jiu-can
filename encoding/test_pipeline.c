@@ -45,6 +45,80 @@ static const char *TEST_HANZI[] = {
     "在",   /* zài  · FAMILY_NEUTRAL */
     "有",   /* yǒu  · FAMILY_NEUTRAL */
     "和",   /* hé   · FAMILY_NEUTRAL */
+    /* WEB 新增: 半包围 */
+    "往",   /* wǎng · FAMILY_WEB */
+    "径",   /* jìng · FAMILY_WEB */
+    "待",   /* dài  · FAMILY_WEB */
+    "徒",   /* tú   · FAMILY_WEB */
+    "得",   /* dé   · FAMILY_WEB */
+    "微",   /* wēi  · FAMILY_WEB */
+    "户",   /* hù   · FAMILY_WEB */
+    "房",   /* fáng · FAMILY_WEB */
+    "所",   /* suǒ  · FAMILY_WEB */
+    "扇",   /* shàn · FAMILY_WEB */
+    /* NEUTRAL 新增: 五行 */
+    "木",   /* mù   · FAMILY_NEUTRAL */
+    "火",   /* huǒ  · FAMILY_NEUTRAL */
+    "土",   /* tǔ   · FAMILY_NEUTRAL */
+    "金",   /* jīn  · FAMILY_NEUTRAL */
+    "水",   /* shuǐ · FAMILY_NEUTRAL */
+    /* NEUTRAL 新增: 方位 */
+    "东",   /* dōng · FAMILY_NEUTRAL */
+    "西",   /* xī   · FAMILY_NEUTRAL */
+    "南",   /* nán  · FAMILY_NEUTRAL */
+    "北",   /* běi  · FAMILY_NEUTRAL */
+    /* NEUTRAL 新增: 颜色 */
+    "红",   /* hóng · FAMILY_NEUTRAL */
+    "黄",   /* huáng· FAMILY_NEUTRAL */
+    "蓝",   /* lán  · FAMILY_NEUTRAL */
+    "绿",   /* lǜ   · FAMILY_NEUTRAL */
+    "白",   /* bái  · FAMILY_NEUTRAL */
+    "黑",   /* hēi  · FAMILY_NEUTRAL */
+    /* BOUNDARY 新增 */
+    "风",   /* fēng · FAMILY_BOUNDARY */
+    "云",   /* yún  · FAMILY_BOUNDARY */
+    "雨",   /* yǔ   · FAMILY_BOUNDARY */
+    "电",   /* diàn · FAMILY_BOUNDARY */
+    "末",   /* mò   · FAMILY_BOUNDARY */
+    "未",   /* wèi  · FAMILY_BOUNDARY */
+    "之",   /* zhī  · FAMILY_BOUNDARY */
+    "予",   /* yǔ   · FAMILY_BOUNDARY */
+    "即",   /* jí   · FAMILY_BOUNDARY */
+    /* COUPLE 新增 */
+    "她",   /* tā   · FAMILY_COUPLE """
+    "吧",   /* ba   · FAMILY_COUPLE */
+    "呢",   /* ne   · FAMILY_COUPLE */
+    "宝",   /* bǎo  · FAMILY_COUPLE """
+    "家",   /* jiā  · FAMILY_COUPLE """
+    "树",   /* shù  · FAMILY_COUPLE */
+    "永",   /* yǒng · FAMILY_COUPLE """
+    "求",   /* qiú  · FAMILY_COUPLE """
+    "传",   /* chuán· FAMILY_COUPLE """
+    "体",   /* tǐ   · FAMILY_COUPLE """
+    "李",   /* lǐ   · FAMILY_COUPLE */
+    "果",   /* guǒ  · FAMILY_COUPLE */
+    /* WEB 新增 */
+    "病",   /* bìng · FAMILY_WEB */
+    "痛",   /* tòng · FAMILY_WEB */
+    "建",   /* jiàn · FAMILY_WEB */
+    "庭",   /* tíng · FAMILY_WEB */
+    "处",   /* chù  · FAMILY_WEB */
+    "庆",   /* qìng · FAMILY_WEB */
+    "递",   /* dì   · FAMILY_WEB */
+    "通",   /* tōng · FAMILY_WEB """
+    "遇",   /* yù   · FAMILY_WEB */
+    "广",   /* guǎng· FAMILY_WEB */
+    "去",   /* qù   · FAMILY_WEB */
+    "办",   /* bàn  · FAMILY_WEB */
+    /* NEUTRAL 新增 */
+    "爱",   /* ài   · FAMILY_NEUTRAL */
+    "情",   /* qíng · FAMILY_NEUTRAL """
+    "想",   /* xiǎng· FAMILY_NEUTRAL """
+    "知",   /* zhī  · FAMILY_NEUTRAL */
+    "今",   /* jīn  · FAMILY_NEUTRAL */
+    "同",   /* tóng · FAMILY_NEUTRAL */
+    "面",   /* miàn · FAMILY_NEUTRAL */
+    "身",   /* shēn · FAMILY_NEUTRAL */
     NULL
 };
 
