@@ -1,0 +1,8 @@
+# 编译产物
+cb_cli
+cb_repl
+*.ppm
+*.png
+
+# Nim 缓存
+nimcache/
