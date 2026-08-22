@@ -31,6 +31,7 @@
 
 import tables
 import math
+import strutils
 import ./rongqi
 
 type
@@ -114,9 +115,9 @@ func add_to_tree*(tree: var CengJiTree; bag: RongQi; level: CengJiLevel; parent_
     let siblings = tree.nodes[parent_id].child_ids
     for sid in siblings:
       if sid != bag.id:
-        if sid not in tree.nodes[bag.id].sibling_ids:
+        if sid notin tree.nodes[bag.id].sibling_ids:
           tree.nodes[bag.id].sibling_ids.add(sid)
-        if bag.id not in tree.nodes[sid].sibling_ids:
+        if bag.id notin tree.nodes[sid].sibling_ids:
           tree.nodes[sid].sibling_ids.add(bag.id)
 
   result = bag.id
@@ -139,7 +140,7 @@ func compute_depths*(tree: var CengJiTree) =
         for child_id in tree.nodes[cur].child_ids:
           tree.nodes[child_id].depth = tree.nodes[cur].depth + 1
           # 计算路径
-          tree.nodes[child_id].path = tree.nodes[cur].path & [cur]
+          tree.nodes[child_id].path = tree.nodes[cur].path & @[cur]
           stack.add(child_id)
           if tree.nodes[child_id].depth > tree.max_depth:
             tree.max_depth = tree.nodes[child_id].depth
@@ -278,17 +279,17 @@ when is_main_module:
   xd2.value_coin = 15.0
 
   # --- 装配 ---
-  tree.add_to_tree(tianDi, clTianDi)
-  tree.add_to_tree(ku1, clKu, parent_id="td1")
-  tree.add_to_tree(cang1, clCang, parent_id="ku1")
-  tree.add_to_tree(cang2, clCang, parent_id="ku1")
-  tree.add_to_tree(md1, clMaDai, parent_id="cg1")
-  tree.add_to_tree(md2, clMaDai, parent_id="cg1")
-  tree.add_to_tree(dd1, clDaDai, parent_id="md1")
-  tree.add_to_tree(dd2, clDaDai, parent_id="md1")
-  tree.add_to_tree(zd1, clZhongDai, parent_id="dd1")
-  tree.add_to_tree(xd1, clXiaoDai, parent_id="zd1")
-  tree.add_to_tree(xd2, clXiaoDai, parent_id="zd1")
+  discard tree.add_to_tree(tianDi, clTianDi)
+  discard tree.add_to_tree(ku1, clKu, parent_id="td1")
+  discard tree.add_to_tree(cang1, clCang, parent_id="ku1")
+  discard tree.add_to_tree(cang2, clCang, parent_id="ku1")
+  discard tree.add_to_tree(md1, clMaDai, parent_id="cg1")
+  discard tree.add_to_tree(md2, clMaDai, parent_id="cg1")
+  discard tree.add_to_tree(dd1, clDaDai, parent_id="md1")
+  discard tree.add_to_tree(dd2, clDaDai, parent_id="md1")
+  discard tree.add_to_tree(zd1, clZhongDai, parent_id="dd1")
+  discard tree.add_to_tree(xd1, clXiaoDai, parent_id="zd1")
+  discard tree.add_to_tree(xd2, clXiaoDai, parent_id="zd1")
 
   tree.compute_depths()
 

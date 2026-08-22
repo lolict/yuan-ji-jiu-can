@@ -12,6 +12,7 @@ import ./lishi
 import ./cengji
 
 import strutils
+import tables
 
 
 # ============================================================
@@ -39,9 +40,9 @@ func new_system*(name: string): RongQiTianTi =
 # ============================================================
 # 注册一袋子
 # ============================================================
-func register_bag*(sys: var RongQiTianTi; bag: RongQi; level: CengJiLevel; parent_id: string = "") =
+proc register_bag*(sys: var RongQiTianTi; bag: RongQi; level: CengJiLevel; parent_id: string = "") =
   sys.registry.bags[bag.id] = bag
-  sys.hierarchy.add_to_tree(bag, level, parent_id)
+  discard sys.hierarchy.add_to_tree(bag, level, parent_id)
 
 
 # ============================================================
@@ -67,7 +68,7 @@ func process_one*(sys: var RongQiTianTi; bag: RongQi; tick: int): string =
   return r
 
 
-func process_batch*(sys: var RongQiTianTi; bags: seq[RongQi]; tick: int) =
+proc process_batch*(sys: var RongQiTianTi; bags: seq[RongQi]; tick: int) =
   for bag in bags:
     let r = sys.process_one(bag, tick)
     echo "  ", r
@@ -79,7 +80,7 @@ func process_batch*(sys: var RongQiTianTi; bags: seq[RongQi]; tick: int) =
 # ============================================================
 # 系统报告
 # ============================================================
-func system_report*(sys: RongQiTianTi): string =
+proc system_report*(sys: RongQiTianTi): string =
   var s = "═══ " & sys.system_name & " · 系统报告 ═══\n"
   s &= "\n【袋子注册】共 " & $sys.registry.bags.len & " 袋\n"
 

@@ -10,6 +10,7 @@
 import tables
 import math
 import strutils
+import algorithm
 import ./rongqi
 
 type
@@ -173,8 +174,8 @@ func learn_patterns*(ls: var LiShiJiYi) =
       wisdom: wisdom
     ))
 
-  # 按wisdom排序
-  ls.patterns.sort((a, b) => cmp(b.wisdom, a.wisdom))
+  # 按wisdom降序排序(大在前)
+  ls.patterns.sort(proc (a, b: LiShiPattern): int = cmp(a.wisdom, b.wisdom), Descending)
 
 
 # ============================================================
