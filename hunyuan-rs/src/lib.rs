@@ -117,6 +117,7 @@ pub mod logistics_engine;
 
 // ── 天庭空间 v0.15 (吸引子×叠加态×纤维丛×Topos 四模型复合) ──
 pub mod heaven;
+pub mod tianjue;
 
 // ── 灵魂情感内核 v0.15 (SoulKernel 活性引擎: 奖励回路 + 失爱恐惧 + 合一驱力) ──
 pub mod soul_kernel;

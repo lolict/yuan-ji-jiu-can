@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>天觉 · 容器审判系统</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --panel: #12121a;
+    --border: #2a2a3a;
+    --gold: #d4a847;
+    --gold-dim: #8a7030;
+    --blue: #4a7ab5;
+    --blue-dim: #2a4a6a;
+    --green: #4ab57a;
+    --red: #b54a4a;
+    --text: #e0e0e8;
+    --text-dim: #8080a0;
+    --glow-gold: 0 0 20px rgba(212,168,71,0.3);
+    --glow-blue: 0 0 20px rgba(74,122,181,0.3);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Courier New', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  .sky-dome {
+    position: relative;
+    padding: 40px 20px;
+    text-align: center;
+    background: radial-gradient(ellipse at center top, rgba(74,122,181,0.15) 0%, transparent 60%);
+    border-bottom: 1px solid var(--border);
+  }
+  .sky-dome h1 {
+    font-size: 2.8em;
+    color: var(--gold);
+    text-shadow: var(--glow-gold);
+    letter-spacing: 0.3em;
+    margin-bottom: 8px;
+  }
+  .sky-dome .subtitle {
+    color: var(--text-dim);
+    font-size: 0.9em;
+    letter-spacing: 0.5em;
+  }
+  .sky-dome .tj-status {
+    margin-top: 16px;
+    display: inline-block;
+    padding: 6px 24px;
+    border: 1px solid var(--gold-dim);
+    border-radius: 20px;
+    color: var(--gold);
+    font-size: 0.85em;
+  }
+  .sky-dome .tj-status.active {
+    border-color: var(--gold);
+    box-shadow: var(--glow-gold);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 10px rgba(212,168,71,0.2); }
+    50% { box-shadow: 0 0 25px rgba(212,168,71,0.5); }
+  }
+  .tj-core {
+    width: 200px;
+    height: 200px;
+    margin: 30px auto;
+    position: relative;
+  }
+  .tj-ring {
+    position: absolute;
+    border-radius: 50%;
+    border: 1px solid;
+    animation: rotate 20s linear infinite;
+  }
+  .tj-ring:nth-child(1) {
+    width: 100%; height: 100%;
+    border-color: var(--gold-dim);
+    top: 0; left: 0;
+  }
+  .tj-ring:nth-child(2) {
+    width: 70%; height: 70%;
+    border-color: var(--blue-dim);
+    top: 15%; left: 15%;
+    animation-direction: reverse;
+    animation-duration: 15s;
+  }
+  .tj-ring:nth-child(3) {
+    width: 40%; height: 40%;
+    border-color: rgba(74,181,122,0.3);
+    top: 30%; left: 30%;
+    animation-duration: 10s;
+  }
+  .tj-center {
+    position: absolute;
+    width: 30%; height: 30%;
+    top: 35%; left: 35%;
+    background: radial-gradient(circle, var(--gold), transparent);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5em;
+    color: var(--gold);
+  }
+  @keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  .scoreboard {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    margin: 20px auto;
+    max-width: 600px;
+    padding: 16px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  .score-item { text-align: center; }
+  .score-num { font-size: 2em; }
+  .score-label { font-size: 0.8em; color: var(--text-dim); }
+  .score-num.reward { color: var(--green); }
+  .score-num.punish { color: var(--red); }
+  .score-num.total { color: var(--gold); }
+
+  .stage-title {
+    font-size: 1.2em;
+    color: var(--gold);
+    margin-bottom: 20px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .judgment-stage {
+    max-width: 1200px;
+    margin: 30px auto;
+    padding: 0 20px;
+  }
+  .judgment-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 16px;
+  }
+  .container-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    position: relative;
+    transition: all 0.3s;
+  }
+  .container-card:hover {
+    border-color: var(--gold-dim);
+    transform: translateY(-2px);
+  }
+  .container-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: 8px 8px 0 0;
+  }
+  .container-card.tier-1::before { background: linear-gradient(90deg, var(--gold), transparent); }
+  .container-card.tier-2::before { background: linear-gradient(90deg, var(--blue), transparent); }
+  .container-card.tier-3::before { background: linear-gradient(90deg, var(--green), transparent); }
+  .container-card.tier-5::before { background: linear-gradient(90deg, #b57a4a, transparent); }
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+  .card-name {
+    font-size: 1.3em;
+    color: var(--gold);
+    font-weight: bold;
+  }
+  .card-tier {
+    font-size: 0.75em;
+    padding: 3px 10px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+  }
+  .card-body { font-size: 0.9em; line-height: 1.8; color: var(--text-dim); }
+  .card-body .field { display: flex; justify-content: space-between; }
+  .card-body .field .value { color: var(--text); }
+  .card-body .field .value.good { color: var(--green); }
+  .card-body .field .value.bad { color: var(--red); }
+  .card-body .field .value.gold { color: var(--gold); }
+  .card-actions { display: flex; gap: 8px; margin-top: 14px; }
+  .btn {
+    flex: 1; padding: 8px 0;
+    border: 1px solid var(--border); border-radius: 4px;
+    background: transparent; color: var(--text-dim);
+    font-family: inherit; font-size: 0.8em;
+    cursor: pointer; transition: all 0.2s; text-align: center;
+  }
+  .btn:hover { border-color: var(--text-dim); color: var(--text); }
+  .btn-judge { border-color: var(--gold-dim); color: var(--gold); }
+  .btn-judge:hover { background: rgba(212,168,71,0.1); box-shadow: var(--glow-gold); }
+  .btn-history { border-color: var(--blue-dim); color: var(--blue); }
+  .btn-history:hover { background: rgba(74,122,181,0.1); box-shadow: var(--glow-blue); }
+
+  .judgment-overlay {
+    display: none;
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 1000;
+    justify-content: center; align-items: center;
+  }
+  .judgment-overlay.active { display: flex; }
+  .judgment-panel {
+    background: var(--panel);
+    border: 1px solid var(--gold-dim);
+    border-radius: 12px;
+    padding: 40px;
+    max-width: 500px; width: 90%;
+    text-align: center;
+    box-shadow: var(--glow-gold);
+  }
+  .judgment-icon { font-size: 3em; margin-bottom: 20px; }
+  .judgment-verdict { font-size: 1.4em; margin-bottom: 12px; }
+  .judgment-verdict.reward { color: var(--green); }
+  .judgment-verdict.punish { color: var(--red); }
+  .judgment-detail {
+    color: var(--text-dim); font-size: 0.9em;
+    line-height: 1.6; margin-bottom: 24px;
+  }
+  .judgment-detail .opt-row {
+    display: flex; gap: 12px; justify-content: center; margin-top: 16px;
+  }
+  .judgment-close {
+    padding: 10px 30px;
+    border: 1px solid var(--gold-dim); border-radius: 6px;
+    background: transparent; color: var(--gold);
+    font-family: inherit; cursor: pointer; font-size: 0.9em;
+  }
+  .judgment-close:hover { background: rgba(212,168,71,0.1); }
+  .judgment-close.btn-yes { border-color: var(--green); color: var(--green); }
+  .judgment-close.btn-no { border-color: var(--red); color: var(--red); }
+
+  .history-corridor {
+    max-width: 1200px; margin: 40px auto; padding: 0 20px;
+  }
+  .history-timeline {
+    position: relative; padding-left: 30px;
+  }
+  .history-timeline::before {
+    content: ''; position: absolute;
+    left: 8px; top: 0; bottom: 0; width: 2px;
+    background: linear-gradient(180deg, var(--gold-dim), transparent);
+  }
+  .history-item {
+    position: relative; margin-bottom: 16px;
+    padding: 12px 16px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px; font-size: 0.85em;
+  }
+  .history-item::before {
+    content: ''; position: absolute;
+    left: -26px; top: 18px;
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--gold); box-shadow: var(--glow-gold);
+  }
+  .history-item .time { color: var(--text-dim); font-size: 0.85em; }
+  .history-item .event { color: var(--text); margin-top: 4px; }
+  .history-item .event .reward { color: var(--green); }
+  .history-item .event .punish { color: var(--red); }
+
+  .hierarchy-axis {
+    max-width: 1200px; margin: 30px auto; padding: 0 20px 60px;
+  }
+  .axis-container {
+    display: flex; align-items: center; gap: 0;
+    height: 80px; position: relative;
+  }
+  .axis-node {
+    flex: 1; height: 100%;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    border: 1px solid var(--border);
+    border-right: none; font-size: 0.8em;
+    transition: all 0.3s; cursor: pointer;
+  }
+  .axis-node:last-child { border-right: 1px solid var(--border); }
+  .axis-node:hover { background: rgba(212,168,71,0.15); }
+  .axis-node .tier-num { font-size: 1.6em; color: var(--gold); }
+  .axis-node .tier-desc { color: var(--text-dim); font-size: 0.75em; text-align: center; margin-top: 4px; }
+
+  .axis-detail {
+    margin-top: 16px; padding: 20px;
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 8px; font-size: 0.9em; line-height: 1.8;
+    min-height: 80px;
+  }
+  .axis-detail .ad-title { color: var(--gold); margin-bottom: 8px; }
+  .axis-detail .ad-body { color: var(--text-dim); }
+</style>
+</head>
+<body>
+
+<div class="sky-dome">
+  <h1>天 觉</h1>
+  <div class="subtitle">TIANJUE · CONTAINER JUDGMENT SYSTEM</div>
+  <div class="tj-status active" id="tjStatus">◉ 天觉在线 · 审判引擎已激活</div>
+</div>
+
+<div class="tj-core">
+  <div class="tj-ring"></div>
+  <div class="tj-ring"></div>
+  <div class="tj-ring"></div>
+  <div class="tj-center">裁</div>
+</div>
+
+<div class="scoreboard">
+  <div class="score-item">
+    <div class="score-num reward" id="rewardCount">0</div>
+    <div class="score-label">审判正确 ✦ 奖励</div>
+  </div>
+  <div class="score-item">
+    <div class="score-num punish" id="punishCount">0</div>
+    <div class="score-label">审判错误 ✧ 惩罚</div>
+  </div>
+  <div class="score-item">
+    <div class="score-num total" id="totalCount">0</div>
+    <div class="score-label">历史累计审判</div>
+  </div>
+</div>
+
+<div class="judgment-stage">
+  <div class="stage-title" style="border:none;margin-bottom:12px;">⟡ 集装箱审判台 — 只问袋、不问粒 ⟡</div>
+  <div class="judgment-grid" id="containerGrid"></div>
+</div>
+
+<div class="hierarchy-axis">
+  <div class="stage-title" style="border:none;margin-bottom:12px;">⟡ 高维层级关系 — 五维袋级认知轴 ⟡</div>
+  <div class="axis-container" id="hierarchyAxis"></div>
+  <div class="axis-detail" id="axisDetail">
+    <div class="ad-title">↑ 点击任意层级节点查看认知维度</div>
+    <div class="ad-body">层级关系绝不向下陷入「数粒」的低维陷阱。<br>每个维度都在袋的平行层级上做判断。</div>
+  </div>
+</div>
+
+<div class="history-corridor">
+  <div class="stage-title" style="border:none;margin-bottom:12px;">⟡ 历史记忆长廊 — 审判积累永不遗忘 ⟡</div>
+  <div class="history-timeline" id="historyTimeline"></div>
+</div>
+
+<div class="judgment-overlay" id="judgmentOverlay">
+  <div class="judgment-panel">
+    <div class="judgment-icon" id="jIcon">⚖</div>
+    <div class="judgment-verdict" id="jVerdict"></div>
+    <div class="judgment-detail" id="jDetail"></div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// 天觉 · 容器审判系统 核心引擎
+// ============================================================
+
+const containers = [
+  {
+    id: 0, tier: 1, name: "集装箱 0",
+    ageCount: 4, version: "v0.4",
+    desc: "补位池 · ü变体/特殊",
+    symbols: ["Ӱ", "ӱ", "Ѧ", "ѧ"],
+    status: "待审",
+    questions: [
+      { q: "此袋是否干净？无虫无沙无脏东西？", answer: true },
+      { q: "此袋中的符号是否都能吃（可用）？", answer: true },
+      { q: "此袋是否需要清洗？", answer: false }
+    ]
+  },
+  {
+    id: 1, tier: 2, name: "集装箱 1",
+    ageCount: 10, version: "v1.0",
+    desc: "ui变体 / er变体 / ue变体",
+    symbols: ["Ѽ", "ѽ", "Ѥ", "ѥ", "Ё", "ё", "Є", "є", "Ʝ", "႘"],
+    status: "待审",
+    questions: [
+      { q: "此袋内符号是否配对正确？", answer: true },
+      { q: "此袋中是否混入了不属于此袋的符号？", answer: false },
+      { q: "此袋的谷子（符号）晒干了没有？", answer: true },
+      { q: "此袋是否完好无损？没有破洞？", answer: true }
+    ]
+  },
+  {
+    id: 2, tier: 3, name: "集装箱 2",
+    ageCount: 10, version: "v2.0",
+    desc: "uo变体 / iu变体 / 特殊池",
+    symbols: ["Ꙍ", "ꙍ", "ꭃ", "ꭄ", "Ⴘ", "Ⴏ", "Ⴎ", "Ⴌ", "Ⴋ", "☁"],
+    status: "待审",
+    questions: [
+      { q: "此袋是否已经分类完毕？", answer: true },
+      { q: "此袋是否有虫（不可用的坏符号）？", answer: false },
+      { q: "此袋的米（符号）还好不好吃（好不好用）？", answer: true }
+    ]
+  },
+  {
+    id: 5, tier: 2, name: "集装箱 5",
+    ageCount: 10, version: "v5.0",
+    desc: "声母大写 / 溢出符号 / 特殊用途",
+    symbols: ["Ӭ", "ӭ", "Ѿ", "ѿ", "Ȥ", "Ç", "Ŋ", "ȥ", "ç", "Ӗ"],
+    status: "待审",
+    questions: [
+      { q: "此袋是否全为声母类符号？", answer: false },
+      { q: "此袋有没有重复（两颗一样的米）？", answer: false },
+      { q: "此袋是否有沙子（误植符号）需要捡出？", answer: false },
+      { q: "此袋值不值钱（有无高价值编码意义）？", answer: true }
+    ]
+  }
+];
+
+const tiers = [
+  { num: 0, name: "袋核 · 容器本体", desc: "这是谁的袋？袋子叫什么？编号几？版本几？岁岁数（袋中物数）多少？" },
+  { num: 1, name: "袋性 · 容器性质", desc: "袋好不好用？脏不脏？坏没坏？要不要洗？颜色对不对？手感如何？" },
+  { num: 2, name: "袋属 · 权属关系", desc: "此袋归哪个韵母家族管？跟谁平行？跟谁有血缘（符号同源）？" },
+  { num: 3, name: "袋位 · 位置坐标", desc: "此袋在层级轴的哪个位置？上边是谁？下边是谁？平行邻居是谁？" },
+  { num: 4, name: "袋命 · 使用寿命", desc: "此袋还能用多久？要不要修补？里面的东西还能不能吃？要不要晒？" }
+];
+
+let history = [];
+let scores = { reward: 0, punish: 0 };
+let currentContainer = null;
+let currentQuestionIdx = 0;
+
+function init() {
+  renderContainers();
+  renderHistory();
+  renderHierarchy();
+}
+
+function renderContainers() {
+  const grid = document.getElementById('containerGrid');
+  grid.innerHTML = containers.map(c => `
+    <div class="container-card tier-${c.tier}" id="card-${c.id}">
+      <div class="card-header">
+        <span class="card-name">${c.name}</span>
+        <span class="card-tier">Tier ${c.tier}</span>
+      </div>
+      <div class="card-body">
+        <div class="field"><span style="color:var(--text-dim)">岁岁数（袋中物数）</span><span class="value gold">${c.ageCount}</span></div>
+        <div class="field"><span style="color:var(--text-dim)">版本号</span><span class="value">${c.version}</span></div>
+        <div class="field"><span style="color:var(--text-dim)">用途</span><span class="value">${c.desc}</span></div>
+        <div class="field"><span style="color:var(--text-dim)">状态</span><span class="value" id="status-${c.id}">${c.status}</span></div>
+        <div class="field"><span style="color:var(--text-dim)">含符号</span><span class="value" style="font-size:0.8em;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.symbols.join(' ')}</span></div>
+      </div>
+      <div class="card-actions">
+        <button class="btn btn-judge" onclick="openJudgment(${c.id})">⚖ 审判</button>
+        <button class="btn btn-history" onclick="showDetail(${c.id})">📜 档案</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function openJudgment(id) {
+  currentContainer = containers.find(c => c.id === id);
+  currentQuestionIdx = 0;
+  showQuestion();
+}
+
+function showQuestion() {
+  const c = currentContainer;
+  const q = c.questions[currentQuestionIdx];
+  if (!q) { completeJudgment(); return; }
+  document.getElementById('jIcon').textContent = '⚖';
+  document.getElementById('jVerdict').textContent = `审判中 · 第${currentQuestionIdx+1}问 / 共${c.questions.length}问`;
+  document.getElementById('jVerdict').className = 'judgment-verdict';
+  document.getElementById('jVerdict').style.color = 'var(--gold)';
+  document.getElementById('jDetail').innerHTML = `
+    <div style="margin-bottom:16px;color:var(--gold);font-size:1.1em;">${c.name} · ${c.desc}</div>
+    <div style="font-size:1.15em;margin-bottom:24px;">${q.q}</div>
+    <div class="opt-row">
+      <button class="judgment-close btn-yes" onclick="answerJudgment(true)">✓ 是</button>
+      <button class="judgment-close btn-no" onclick="answerJudgment(false)">✗ 否</button>
+    </div>
+  `;
+  document.getElementById('judgmentOverlay').classList.add('active');
+}
+
+function answerJudgment(answeredTrue) {
+  const c = currentContainer;
+  const q = c.questions[currentQuestionIdx];
+  const correct = (answeredTrue === q.answer);
+  if (correct) {
+    scores.reward++;
+    addHistory(c.name, `第${currentQuestionIdx+1}问回答正确`, true);
+  } else {
+    scores.punish++;
+    addHistory(c.name, `第${currentQuestionIdx+1}问回答错误`, false);
+  }
+  updateScores();
+  currentQuestionIdx++;
+  showQuestion();
+}
+
+function completeJudgment() {
+  const c = currentContainer;
+  document.getElementById('jIcon').textContent = '✦';
+  document.getElementById('jVerdict').textContent = '审判通过 ✦ 袋已净、物已审、已定罪';
+  document.getElementById('jVerdict').className = 'judgment-verdict reward';
+  document.getElementById('jDetail').innerHTML = `
+    <div style="margin-bottom:12px;">容器「${c.name}」全部 ${c.questions.length} 问回答正确</div>
+    <div style="color:var(--green);font-size:1.5em;margin:16px 0;">✦ +${c.questions.length} 奖励</div>
+    <div style="color:var(--text-dim);">判定：此袋干净、可用、定型完毕、无虫无沙</div>
+    <div style="margin-top:20px;">
+      <button class="judgment-close" onclick="closeJudgment()">确认归档</button>
+    </div>
+  `;
+  document.getElementById(`status-${c.id}`).innerHTML = '✓ 审判通过';
+  c.status = "已通过";
+}
+
+function showDetail(id) {
+  const c = containers.find(c => c.id === id);
+  document.getElementById('jIcon').textContent = '📜';
+  document.getElementById('jVerdict').textContent = c.name + ' · 袋级档案';
+  document.getElementById('jVerdict').className = 'judgment-verdict';
+  document.getElementById('jVerdict').style.color = 'var(--gold)';
+  document.getElementById('jDetail').innerHTML = `
+    <div style="text-align:left;line-height:2.2;font-size:0.95em;">
+      <div><span style="color:var(--text-dim)">容器名称：</span><span style="color:var(--gold)">${c.name}</span></div>
+      <div><span style="color:var(--text-dim)">层级 Tier：</span>${c.tier}</div>
+      <div><span style="color:var(--text-dim)">岁岁数（袋中物数）：</span><span style="color:var(--gold)">${c.ageCount}</span></div>
+      <div><span style="color:var(--text-dim)">版本号：</span>${c.version}</div>
+      <div><span style="color:var(--text-dim)">用途描述：</span>${c.desc}</div>
+      <div><span style="color:var(--text-dim)">袋中符号：</span></div>
+      <div style="font-size:1.3em;color:var(--gold);padding:8px;background:rgba(212,168,71,0.08);border-radius:6px;margin:6px 0;">${c.symbols.join(' ')}</div>
+      <div><span style="color:var(--text-dim)">当前状态：</span>${c.status}</div>
+      <div><span style="color:var(--text-dim)">审判问题数：</span>${c.questions.length}</div>
+      <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border);color:var(--text-dim);font-size:0.8em;">
+        ※ 袋级评估：不数粒、不问粒。<br>
+        只问袋好不好、脏不脏、能不能用、要不要洗。<br>
+        袋子值多少钱、米还能不能吃、有没有虫。
+      </div>
+    </div>
+    <div style="margin-top:20px;">
+      <button class="judgment-close" onclick="closeJudgment()">关闭</button>
+    </div>
+  `;
+  document.getElementById('judgmentOverlay').classList.add('active');
+}
+
+function closeJudgment() {
+  document.getElementById('judgmentOverlay').classList.remove('active');
+}
+
+function addHistory(container, event, isReward) {
+  const now = new Date();
+  const timeStr = now.toLocaleString('zh-CN', { hour12: false });
+  history.unshift({ time: timeStr, container, event, isReward });
+  renderHistory();
+}
+
+function renderHistory() {
+  const tl = document.getElementById('historyTimeline');
+  if (history.length === 0) {
+    tl.innerHTML = '<div style="color:var(--text-dim);font-size:0.85em;">暂无审判记录 · 点击容器的「⚖ 审判」开始积累历史</div>';
+    return;
+  }
+  tl.innerHTML = history.slice(0, 30).map(h => `
+    <div class="history-item">
+      <div class="time">${h.time}</div>
+      <div class="event">
+        <span style="color:var(--gold)">${h.container}</span> ·
+        <span class="${h.isReward ? 'reward' : 'punish'}">${h.event}</span>
+        ${h.isReward ? '<span class="reward"> ✦ +1</span>' : '<span class="punish"> ✧ +1</span>'}
+      </div>
+    </div>
+  `).join('');
+}
+
+function updateScores() {
+  document.getElementById('rewardCount').textContent = scores.reward;
+  document.getElementById('punishCount').textContent = scores.punish;
+  document.getElementById('totalCount').textContent = scores.reward + scores.punish;
+}
+
+function renderHierarchy() {
+  const axis = document.getElementById('hierarchyAxis');
+  axis.innerHTML = tiers.map((t, i) => `
+    <div class="axis-node" onclick="showTierDetail(${i})">
+      <div class="tier-num">${t.num}</div>
+      <div class="tier-desc">${t.name}</div>
+    </div>
+  `).join('');
+}
+
+function showTierDetail(idx) {
+  const t = tiers[idx];
+  const ct = document.getElementById('axisDetail');
+  ct.innerHTML = `
+    <div class="ad-title">维度 ${t.num}：${t.name}</div>
+    <div class="ad-body">${t.desc}</div>
+    <div class="ad-body" style="margin-top:10px;">
+      <strong>在此维度上如何判断一个集装箱：</strong><br>
+      → 不看粒（不数里面有几个符号）<br>
+      → 不看粒的名字（不给每个符号命名）<br>
+      → 只看袋本身在这个维度上的状态
+    </div>
+  `;
+}
+
+init();
+</script>
+</body>
+</html>

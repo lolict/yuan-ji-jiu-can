@@ -119,6 +119,50 @@ static const char *TEST_HANZI[] = {
     "同",   /* tóng · FAMILY_NEUTRAL */
     "面",   /* miàn · FAMILY_NEUTRAL */
     "身",   /* shēn · FAMILY_NEUTRAL */
+    /* ─── 新增批次验证: BOUNDARY ─── */
+    "斗",   /* dòu  · FAMILY_BOUNDARY */
+    "瓦",   /* wǎ   · FAMILY_BOUNDARY */
+    "互",   /* hù   · FAMILY_BOUNDARY */
+    "册",   /* cè   · FAMILY_BOUNDARY */
+    "凸",   /* tū   · FAMILY_BOUNDARY */
+    "凹",   /* āo   · FAMILY_BOUNDARY */
+    "亮",   /* liàng· FAMILY_BOUNDARY */
+    "麦",   /* mài  · FAMILY_BOUNDARY */
+    "酋",   /* qiú  · FAMILY_BOUNDARY */
+    "雯",   /* wén  · FAMILY_BOUNDARY */
+    /* ─── 新增批次验证: COUPLE ─── */
+    "谁",   /* shéi · FAMILY_COUPLE */
+    "那",   /* nà   · FAMILY_COUPLE */
+    "哪",   /* nǎ   · FAMILY_COUPLE */
+    "这",   /* zhè  · FAMILY_COUPLE */
+    "进",   /* jìn  · FAMILY_COUPLE */
+    "两",   /* liǎng· FAMILY_COUPLE */
+    "被",   /* bèi  · FAMILY_COUPLE */
+    "满",   /* mǎn  · FAMILY_COUPLE */
+    "解",   /* jiě  · FAMILY_COUPLE */
+    "啊",   /* a    · FAMILY_COUPLE */
+    /* ─── 新增批次验证: WEB ─── */
+    "医",   /* yī   · FAMILY_WEB */
+    "匣",   /* xiá  · FAMILY_WEB */
+    "匪",   /* fěi  · FAMILY_WEB */
+    "匿",   /* nì   · FAMILY_WEB */
+    "匙",   /* chí  · FAMILY_WEB */
+    "厌",   /* yàn  · FAMILY_WEB */
+    "厢",   /* xiāng· FAMILY_WEB */
+    "厨",   /* chú  · FAMILY_WEB */
+    "厉",   /* lì   · FAMILY_WEB */
+    "宠",   /* chǒng· FAMILY_WEB */
+    /* ─── 新增批次验证: NEUTRAL ─── */
+    "候",   /* hòu  · FAMILY_NEUTRAL */
+    "先",   /* xiān · FAMILY_NEUTRAL */
+    "来",   /* lái  · FAMILY_NEUTRAL */
+    "出",   /* chū  · FAMILY_NEUTRAL */
+    "入",   /* rù   · FAMILY_NEUTRAL */
+    "放",   /* fàng · FAMILY_NEUTRAL */
+    "收",   /* shōu · FAMILY_NEUTRAL */
+    "答",   /* dá   · FAMILY_NEUTRAL */
+    "给",   /* gěi  · FAMILY_NEUTRAL */
+    "写",   /* xiě  · FAMILY_NEUTRAL */
     NULL
 };
 
