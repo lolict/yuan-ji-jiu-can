@@ -118,7 +118,7 @@ proc clock_value(c: string): int =
 # Color-42 · 满全法颜色42进制
 # 7主色 × 6色阶 = 42
 # ═══════════════════════════════════════════════════════════════
-const COLORS42 = [
+const COLORS42* = [
   # 红色系 (#0-#5)
   "ạ", "a̋", "å", "ã", "â", "ă",
   # 橙色系 (#6-#11)
@@ -144,7 +144,7 @@ proc color_pos(c: string): int =
 # Space-18 · 满全法空间18进制
 # 6方位 + 4斜角 + 8天地角 = 18站位
 # ═══════════════════════════════════════════════════════════════
-const SPACE18 = [
+const SPACE18* = [
   "E", "W", "S", "N", "H", "D",       # 6方位
   "ES", "WS", "EN", "WN",              # 4斜角
   "HN", "DN", "HS", "DS",              # 4天地角
@@ -160,7 +160,7 @@ proc space_pos(s: string): int =
 # Mirror-10 · 满全法镜像10进制
 # 10符号 · 对偶反射
 # ═══════════════════════════════════════════════════════════════
-const MIRROR10 = [
+const MIRROR10* = [
   "a", "A", "ȍ", "Ȍ", "ӗ", "Ӗ", "i", "I", "u", "U",
 ]
 
@@ -177,7 +177,7 @@ proc mirror_reflect*(idx: int): int =
 # Music-3 · 满全法音乐3进制
 # 原子(0) → 短语(1) → 段落(2)
 # ═══════════════════════════════════════════════════════════════
-const MUSIC3 = ["原子", "短语", "段落"]
+const MUSIC3* = ["原子", "短语", "段落"]
 
 proc music_pos(m: string): int =
   case m
@@ -246,7 +246,7 @@ type
 proc clock_ticks*(c: ClockCoord): int =
   result = clock_value(c.shi) * 3600 + clock_value(c.fen) * 60 + clock_value(c.miao)
 
-proc clock_from_ticks(ticks: int): ClockCoord =
+proc clock_from_ticks*(ticks: int): ClockCoord =
   let miao = ticks mod 60
   let fen = (ticks div 60) mod 60
   let shi = (ticks div 3600) mod 24
