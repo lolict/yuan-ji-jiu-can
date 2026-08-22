@@ -54,6 +54,17 @@ test-mlll: kernel/src/mlll_test.c kernel/src/mlll_symbols.c kernel/src/mlll_kern
 	@echo "═══ MLLL 九维测拭启动 ═══"
 	./kernel/src/mlll_test.elf
 
+# 编码系统 → 内核桥接测试
+encoding-bridge-kernel: kernel/src/encoding_bridge_kernel.c kernel/src/encoding_bridge_kernel.h
+	$(CC) $(CFLAGS) -DMLLL_LIBRARY -Iencoding -Iencoding/include \
+	  kernel/src/encoding_bridge_kernel.c \
+	  encoding/container_pipeline.c encoding/mccp_encdec.c encoding/fullquan_code.c \
+	  encoding/mlll_vm.c encoding/mlll_cart.c encoding/hanzi_table.c \
+	  encoding/husk_compiler.c encoding/container_codec.c encoding/knd_container.c \
+	  kernel/src/mlll_symbols.c \
+	  -o kernel/src/encoding_bridge_kernel.elf -lm
+	./kernel/src/encoding_bridge_kernel.elf
+
 # MLLL 汉字拼音知识库 demo + 夫妻对偶查询
 mlll-pinyin: kernel/src/mlll_pinyin_demo.c kernel/src/mlll_pinyin.c kernel/src/mlll_symbols.c
 	$(CC) $(CFLAGS) -DMLLL_LIBRARY $^ -o kernel/src/mlll_pinyin_demo.elf -lm

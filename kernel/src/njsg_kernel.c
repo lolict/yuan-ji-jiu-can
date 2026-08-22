@@ -102,6 +102,23 @@ void njsg_breed_print_lineage(void);
 void njsg_breed_history(int version_id);
 void njsg_breed_evolve(void);
 
+/* v1.6 审美治理系统前置声明 */
+void njsg_aesth_demo(void);
+int  njsg_aesth_check_pair(const char* left, const char* right, int lcp, int rcp, char* reason);
+void njsg_aesth_governance(void);
+
+/* v1.7 错误根因感知·法官认知前置声明 */
+void njsg_judge_demo(void);
+void njsg_judge_record_crime(int crime_type, const char* desc);
+void njsg_judge_correct_crime(int crime_id);
+void njsg_judge_detect_patterns(void);
+void njsg_judge_weave(int a_type, int b_type, const char* relation);
+void njsg_judge_check_balance(void);
+void njsg_judge_intent(const char* input, int was_criticism, int ai_blindly_followed);
+void njsg_judge_ocean_view(void);
+void njsg_judge_diffract(const char* input, int lcp, int rcp);
+void njsg_judge_metacognition(void);
+
 /* v1.3 全栈联动前置声明 */
 void njsg_feishu_bot_bridge_init(void);
 void njsg_qimei_init(void);
@@ -1120,6 +1137,12 @@ int main(){
 
     /* v1.5 囝生殖操作系统 demo */
     njsg_breed_demo();
+
+    /* v1.6 审美治理系统 demo */
+    njsg_aesth_demo();
+
+    /* v1.7 错误根因感知·法官认知 demo */
+    njsg_judge_demo();
 
 #ifdef MLLL_LIBRARY
     /* === MLLL 七维符号编码桥接（仅内核+mlll联合编译时启用）=== */
@@ -2906,6 +2929,700 @@ void njsg_breed_demo(void){
     printf("[生殖] 公约数锚定 → 公倍数旋转 → 照镜子 → 对就奖错就罚。\n\n");
 }
 
+/* ============================================================
+ * 审美治理系统 · 类型匹配与搭配禁忌
+ * ------------------------------------------------------------
+ * 核心问题：AI 不知道什么叫类型不匹配。
+ * a=á 居然能通过、e=ě 基本常识不存在、瘦子配胖子也放行。
+ *
+ * 解决：类型系统 + 衍射常识 + 搭配禁忌 + 审美过滤
+ * 不是评分"哪个更漂亮"，而是判定"这两个能不能放在一起"。
+ * ============================================================ */
+
+#define MAX_AESTH_PAIRS 64
+
+/* 符号类型 */
+#define TYPE_LATIN      1   /* 拉丁 */
+#define TYPE_IPA        2   /* 国际音标 */
+#define TYPE_CYRILLIC   3   /* 西里尔 */
+#define TYPE_GREEK      4   /* 希腊 */
+#define TYPE_CJK        5   /* 汉字 */
+#define TYPE_SYMBOL     6   /* 符号 */
+#define TYPE_ACCENT     7   /* 变音符号（重音/声调）*/
+#define TYPE_DIGIT      8   /* 数字 */
+#define TYPE_UNKNOWN    0   /* 未知 */
+
+static const char* TYPE_NAMES[] = {"?","LAT","IPA","CYR","GRK","CJK","SYM","ACT","DIG"};
+
+/* 一个编码条目 */
+typedef struct {
+    char    glyph[8];       /* 字形 UTF-8 */
+    int     codepoint;      /* Unicode 码点 */
+    int     type;           /* 所属类型 */
+    int     base_type;      /* 基础类型（去掉变音后）*/
+    float   visual_weight;  /* 视觉重量（笔画密度 0-1）*/
+    float   visual_height;  /* 视觉高度 0-1 */
+    int     has_accent;     /* 是否含变音 */
+    int     base_codepoint; /* 去变音后的基础码点 */
+} Glyph;
+
+/* 配对 */
+typedef struct {
+    int     id;
+    char    left[8];
+    char    right[8];
+    int     compatible;     /* 0=不配 1=勉强 2=和谐 */
+    char    reason[128];
+} GlyphPair;
+
+/* 治理引擎 */
+typedef struct {
+    Glyph       glyphs[MAX_AESTH_PAIRS*2];
+    int         glyph_count;
+    GlyphPair   pairs[MAX_AESTH_PAIRS];
+    int         pair_count;
+    int         reject_count;
+    int         pass_count;
+} AesthEngine;
+
+static AesthEngine AE;
+
+/* ------------------------------------------------------------
+ * 内部辅助
+ * ------------------------------------------------------------ */
+static const char* type_name(int t){
+    if(t>=0 && t<=TYPE_DIGIT) return TYPE_NAMES[t];
+    return "?";
+}
+
+/* 判断 UTF-8 字符的类型 + 提取基础字符 */
+static int classify_codepoint(int cp, int* base_out, int* has_accent){
+    *base_out = cp;
+    *has_accent = 0;
+    /* 变音/组合符号 U+0300-U+036F */
+    if(cp >= 0x0300 && cp <= 0x036F){ *has_accent=1; return TYPE_ACCENT; }
+    /* 拉丁基础 */
+    if((cp>=0x41&&cp<=0x5A)||(cp>=0x61&&cp<=0x7A)){ return TYPE_LATIN; }
+    /* Latin Extended-A/B (āēīōū ǎěǐǒǔ 等)*/
+    if(cp>=0x0100&&cp<=0x024F){
+        *has_accent=1;
+        /* 用 NFKD 等价原则：部分+0x0100变音区域的字符，
+           其基础字符通过 lookup 反推（因为 Unicode 间隔不连续）*/
+        /* 声组：简单位置映射表（仅拼音常见变音）*/
+        switch(cp){
+            case 0x0100: case 0x0101: *base_out = (cp&1)?0x61:0x41; break; /* A/a + macron */
+            case 0x0112: case 0x0113: *base_out = (cp&1)?0x65:0x45; break; /* E/e + macron */
+            case 0x012A: case 0x012B: *base_out = (cp&1)?0x69:0x49; break; /* I/i + macron */
+            case 0x014C: case 0x014D: *base_out = (cp&1)?0x6F:0x4F; break; /* O/o + macron */
+            case 0x016A: case 0x016B: *base_out = (cp&1)?0x75:0x55; break; /* U/u + macron */
+            case 0x01CE: *base_out = 0x61; break; /* ǎ: a + caron */
+            case 0x010D: *base_out = 0x63; break; /* č: c + caron */
+            case 0x010F: *base_out = 0x64; break; /* ď: d + caron */
+            case 0x011B: *base_out = 0x65; break; /* ě: e + caron */
+            case 0x011D: *base_out = 0x67; break; /* ğ: g + breve */
+            case 0x0148: *base_out = 0x6E; break; /* ň: n + caron */
+            case 0x0159: *base_out = 0x72; break; /* ř: r + caron */
+            case 0x0161: *base_out = 0x73; break; /* š: s + caron */
+            case 0x0165: *base_out = 0x74; break; /* ť: t + caron */
+            case 0x016F: *base_out = 0x75; break; /* ů: u + ring */
+            case 0x017E: *base_out = 0x7A; break; /* ž: z + caron */
+            case 0x01CD: *base_out = 0x41; break; /* Ǎ: A + caron */
+            case 0x01CF: *base_out = 0x49; break; /* Ǐ: I + caron */
+            case 0x01D1: *base_out = 0x4F; break; /* Ǒ: O + caron */
+            case 0x01D3: *base_out = 0x55; break; /* Ǔ: U + caron */
+            default: *base_out = cp & 0x7F; break;
+        }
+        return TYPE_LATIN;
+    }
+    /* 拉丁扩展（含变音）*/
+    if(cp>=0xC0&&cp<=0xFF){
+        *has_accent=1;
+        /* 常见拉丁变音的基础字符反推 */
+        if(cp>=0xC0&&cp<=0xC5){ *base_out=0x41; } /* A */
+        else if(cp>=0xC8&&cp<=0xCB){ *base_out=0x45; } /* E */
+        else if(cp>=0xCC&&cp<=0xCF){ *base_out=0x49; } /* I */
+        else if(cp>=0xD2&&cp<=0xD6){ *base_out=0x4F; } /* O */
+        else if(cp>=0xD9&&cp<=0xDC){ *base_out=0x55; } /* U */
+        else if(cp>=0xE0&&cp<=0xE5){ *base_out=0x61; } /* a */
+        else if(cp>=0xE8&&cp<=0xEB){ *base_out=0x65; } /* e */
+        else if(cp>=0xEC&&cp<=0xEF){ *base_out=0x69; } /* i */
+        else if(cp>=0xF2&&cp<=0xF6){ *base_out=0x6F; } /* o */
+        else if(cp>=0xF9&&cp<=0xFC){ *base_out=0x75; } /* u */
+        else { *base_out=cp&0x7F; }
+        return TYPE_LATIN;
+    }
+    /* 国际音标 U+0250-U+02AF, U+1D00-U+1D7F */
+    if((cp>=0x0250&&cp<=0x02AF)||(cp>=0x1D00&&cp<=0x1D7F)){ return TYPE_IPA; }
+    /* 西里尔 */
+    if(cp>=0x0400&&cp<=0x04FF){ return TYPE_CYRILLIC; }
+    /* 希腊 */
+    if(cp>=0x0370&&cp<=0x03FF){ return TYPE_GREEK; }
+    /* 汉字 */
+    if((cp>=0x4E00&&cp<=0x9FFF)||(cp>=0x3400&&cp<=0x4DBF)){ return TYPE_CJK; }
+    /* 数字 */
+    if(cp>=0x30&&cp<=0x39){ return TYPE_DIGIT; }
+    return TYPE_UNKNOWN;
+}
+
+/* 计算视觉重量（基于 Unicode 范围粗略估计）*/
+static float visual_weight(int cp){
+    if(cp>=0x4E00&&cp<=0x9FFF) return 0.8f; /* 汉字重 */
+    if(cp>=0x0250&&cp<=0x02AF) return 0.4f; /* IPA较轻 */
+    if((cp>=0x41&&cp<=0x5A)||(cp>=0x61&&cp<=0x7A)) return 0.5f;
+    if(cp>=0x0400&&cp<=0x04FF) return 0.55f;
+    if(cp>=0x0370&&cp<=0x03FF) return 0.45f;
+    return 0.5f;
+}
+
+/* 计算视觉高度 */
+static float visual_height(int cp){
+    if(cp>=0x4E00&&cp<=0x9FFF) return 1.0f; /* 全角 */
+    if(cp>=0xFF00&&cp<=0xFFEF) return 1.0f; /* 全角 */
+    return 0.7f; /* 半角 */
+}
+
+/* ------------------------------------------------------------
+ * 治理核心：类型检查
+ * ------------------------------------------------------------ */
+int njsg_aesth_check_pair(const char* left, const char* right,
+                          int lcp, int rcp, char* reason){
+    int lb, la, rb, ra;
+    int lt = classify_codepoint(lcp, &lb, &la);
+    int rt = classify_codepoint(rcp, &rb, &ra);
+
+    /* === 规则1：同基础字符+变音 = 衍射关系（应触发衍射，不是放行）=== */
+    if(lb == rb && la == 1 && ra == 0){
+        snprintf(reason, 128, "%s=%s 同基础(U+%04X)+变音 → 不是独立配对，应触发衍射",
+                 left, right, lb);
+        return 0; /* 拒绝：不是有效的独立配对 */
+    }
+    if(lb == rb && ra == 1 && la == 0){
+        snprintf(reason, 128, "%s=%s 同基础(U+%04X)+变音 → 不是独立配对，应触发衍射",
+                 right, left, lb);
+        return 0;
+    }
+
+    /* === 规则2：类型不同且不兼容 = 拒绝 === */
+    if(lt != rt){
+        /* 允许的跨类型：IPA-Latin（音标与字母）/Cyrillic-IPA（西里尔与音标）*/
+        if((lt==TYPE_IPA && rt==TYPE_LATIN) || (lt==TYPE_LATIN && rt==TYPE_IPA)){
+            snprintf(reason, 128, "%s(%s)=%s(%s) 跨类型但音标-字母兼容 ✓",
+                     left, type_name(lt), right, type_name(rt));
+            return 2; /* 和谐通过 */
+        }
+        if((lt==TYPE_CYRILLIC && rt==TYPE_IPA) || (lt==TYPE_IPA && rt==TYPE_CYRILLIC)){
+            snprintf(reason, 128, "%s(%s)=%s(%s) 跨类型但音标-西里尔兼容 ✓",
+                     left, type_name(lt), right, type_name(rt));
+            return 2;
+        }
+        /* 其他跨类型一律拒绝 */
+        snprintf(reason, 128, "%s(%s)=%s(%s) 类型不匹配 → ✗ 拒绝",
+                 left, type_name(lt), right, type_name(rt));
+        return 0;
+    }
+
+    /* === 规则3：视觉重量差异过大 = 不协调（瘦子配胖子）=== */
+    float lw = visual_weight(lcp), rw = visual_weight(rcp);
+    float vdiff = lw - rw;
+    if(vdiff < 0) vdiff = -vdiff;
+    if(vdiff > 0.35f){
+        snprintf(reason, 128, "%s(w%.1f)=%s(w%.1f) 视觉重量差%.0f%% → 不协调 ✗",
+                 left, lw, right, rw, vdiff*100);
+        return 1; /* 勉强通过（但标记为不协调）*/
+    }
+
+    /* === 规则4：视觉高度不同 = 不协调 === */
+    float lh = visual_height(lcp), rh = visual_height(rcp);
+    float hdiff = lh - rh;
+    if(hdiff < 0) hdiff = -hdiff;
+    if(hdiff > 0.2f){
+        snprintf(reason, 128, "%s(h%.1f)=%s(h%.1f) 视觉高度差 → 不协调 ✗",
+                 left, lh, right, rh);
+        return 1;
+    }
+
+    /* 同质+视觉协调 → 通过 */
+    snprintf(reason, 128, "%s(%s)=%s(%s) 同质+视觉协调 ✓",
+             left, type_name(lt), right, type_name(rt));
+    return 2;
+}
+
+/* UTF-8 → Unicode 码点（支持 1-4 字节）*/
+static int utf8_to_codepoint(const char* s){
+    unsigned char* p = (unsigned char*)s;
+    if(p[0] < 0x80) return p[0];
+    if((p[0] & 0xE0) == 0xC0) return ((p[0]&0x1F)<<6)|(p[1]&0x3F);
+    if((p[0] & 0xF0) == 0xE0) return ((p[0]&0x0F)<<12)|((p[1]&0x3F)<<6)|(p[2]&0x3F);
+    if((p[0] & 0xF8) == 0xF0) return ((p[0]&0x07)<<18)|((p[1]&0x3F)<<12)|((p[2]&0x3F)<<6)|(p[3]&0x3F);
+    return p[0];
+}
+
+/* ------------------------------------------------------------
+ * 治理：过滤配对列表
+ * ------------------------------------------------------------ */
+void njsg_aesth_governance(void){
+    printf("\n┌─── 审美治理 · 配对审判 ───┐\n");
+    for(int i=0;i<AE.pair_count;i++){
+        GlyphPair* p = &AE.pairs[i];
+        int lcp = utf8_to_codepoint(p->left);
+        int rcp = utf8_to_codepoint(p->right);
+
+        char reason[128];
+        int result = njsg_aesth_check_pair(p->left, p->right, lcp, rcp, reason);
+        p->compatible = result;
+        const char* mark[] = {"✗拒绝","◯勉强","✓通过"};
+        printf("│ %s=%s → %s %s\n", p->left, p->right, mark[result], reason);
+        if(result == 0) AE.reject_count++; else AE.pass_count++;
+    }
+    printf("│\n│ 统计: 拒绝%d 通过%d(含勉强)\n", AE.reject_count, AE.pass_count);
+    printf("└────────────────────────────────────┘\n");
+}
+
+/* ------------------------------------------------------------
+ * 演示
+ * ------------------------------------------------------------ */
+void njsg_aesth_demo(void){
+    printf("\n");
+    printf("╔══════════════════════════════════════════╗\n");
+    printf("║     审 美 治 理 · 类 型 匹 配 系 统     ║\n");
+    printf("║     不让不配对的东西通过                ║\n");
+    printf("╚══════════════════════════════════════════╝\n");
+
+    memset(&AE, 0, sizeof(AE));
+    AE.pair_count = 0;
+
+    /* 准备测试配对（来自用户问题的核心场景）*/
+    typedef struct { const char* l; const char* r; int lcp; int rcp; const char* desc; } TestPair;
+    TestPair tests[] = {
+        /* 1. a=á：同基础+变音 → 应触发衍射，不是独立配对 → 拒绝 */
+        { "a", "á", 0x61, 0xE1, "同基础+变音→衍射非配对" },
+        /* 2. e=ě：同基础+变音（e+caron）→ 拒绝 */
+        { "e", "ě", 0x65, 0x11B, "同基础+变音→衍射非配对" },
+        /* 3. 瘦子配胖子：字符差异大 → 不协调 */
+        { "i", "W", 0x69, 0x57, "视觉重量差" },
+        /* 4. IPA配IPA → 和谐 */
+        { "ə", "ɸ", 0x0259, 0x0278, "同类IPA → 和谐" },
+        /* 5. Latin配Latin → 和谐 */
+        { "b", "d", 0x62, 0x64, "同类Latin" },
+        /* 6. IPA配Latin → 音标-字母兼容 */
+        { "ə", "a", 0x0259, 0x61, "音标-字母 → 兼容" },
+        /* 7. 西里尔配西里尔 → 和谐 */
+        { "ж", "ф", 0x0436, 0x0444, "同类西里尔" },
+        /* 8. IPA配西里尔 → 兼容 */
+        { "ə", "ж", 0x0259, 0x0436, "音标-西里尔 → 兼容" },
+        /* 9. CJK配IPA → 跨类型不兼容 → 拒绝 */
+        { "囗", "ə", 0x56D7, 0x0259, "汉字配IPA → 拒绝" },
+        /* 10. 数字配Latin → 拒绝 */
+        { "1", "a", 0x31, 0x61, "数字配字母 → 拒绝" },
+    };
+    int n = sizeof(tests)/sizeof(tests[0]);
+    for(int i=0;i<n;i++){
+        GlyphPair* p = &AE.pairs[AE.pair_count++];
+        p->id = i;
+        strncpy(p->left, tests[i].l, 7);
+        strncpy(p->right, tests[i].r, 7);
+        snprintf(p->reason, 127, "%s", tests[i].desc);
+    }
+
+    /* 运行治理 */
+    njsg_aesth_governance();
+
+    /* 总结 */
+    printf("\n━━━ 治理总结 ━━━\n");
+    printf("[核心] a=á 不是独立配对 → 衍射关系 → 拒绝通过\n");
+    printf("[核心] e=ě 同基础+变音 → 衍射关系 → 拒绝通过\n");
+    printf("[核心] 跨类型不兼容 → 拒绝\n");
+    printf("[核心] 视觉重量/高度差过大 → 标记不协调\n");
+    printf("[核心] 只有类型匹配+视觉协调的配对才被放行\n\n");
+}
+
+/* ============================================================
+ * 错误根因感知系统 · 法官认知
+ * ------------------------------------------------------------
+ * 解决：
+ * 1. AI 错误的根源是什么？（缺乏全局感知、无法反省、不会编织）
+ * 2. 怎么不只抓芝麻，而是看见整片海？
+ * 3. 怎么让批评不被当成真理执行？
+ * 4. 怎么让所有节点为了同一目标镜像对齐？
+ *
+ * 七子系统：
+ *   犯罪笔录(记录) → 模式识别(跨时) → 编织均衡(制衡)
+ *   → 意图判别(批评vs真) → 全局感知(统计海洋)
+ *   → 衍射审判(多维度) → 元认知(知道不知道)
+ * ============================================================ */
+
+#define MAX_CRIMES      128
+#define MAX_PATTERNS    32
+#define MAX_WEAving     32
+#define MAX_INTENTS     32
+
+/* 犯罪类型 */
+#define CRIME_TYPE_MISMATCH     1   /* 类型不匹配 */
+#define CRIME_AESTHETIC_FAIL    2   /* 审美不过关 */
+#define CRIME_DRIFT_DIFFRACT    3   /* 该衍射却放行 */
+#define CRIME_LEVEL_JUMP        4   /* 层级跳跃 */
+#define CRIME_BIAS_CONFIRM      5   /* 把批评当真理 */
+#define CRIME_REPEAT_SAME       6   /* 重复犯同一错 */
+#define CRIME_BLIND_EXEC        7   /* 盲目执行不思考 */
+#define CRIME_NO_SELF_CHECK     8   /* 不自视 */
+
+static const char* CRIME_NAMES[] = {
+    "","类型不匹配","审美不过关","该衍射却放行","层级跳跃",
+    "把批评当真理","重复犯错","盲目执行","不自视"
+};
+
+/* 一条犯罪记录 */
+typedef struct {
+    int     id;
+    int     crime_type;
+    char    description[168];
+    int     repeat_count;       /* 同一犯罪重复次数 */
+    time_t  timestamp;
+    int     corrected;          /* 是否已纠正 */
+} CrimeRecord;
+
+/* 模式：跨犯罪的共现 */
+typedef struct {
+    int     pattern_id;
+    int     crime_type;
+    int     frequency;
+    int     severity;           /* 1-10 */
+    char    root_cause[128];
+    char    fix_strategy[128];
+} Pattern;
+
+/* 编织：一对一的制衡关系（你压我一头、我压你一头）*/
+typedef struct {
+    int     a_type;             /* 类型 A */
+    int     b_type;             /* 类型 B */
+    char    relation[64];       /* 关系描述 */
+    int     balance;            /* -1=A压B, 0=平衡, 1=B压A */
+} WeaveRelation;
+
+/* 意图鉴别 */
+typedef struct {
+    int     id;
+    char    input[168];
+    int     is_criticism;       /* 0=真话 1=批评 */
+    int     original_response;  /* 原AI反应：0=无视 1=盲从 */
+    int     correct_response;   /* 正确反应：0=忽略 1=修正 */
+} IntentRecord;
+
+/* 全局感知统计 */
+typedef struct {
+    int     total_crimes;
+    int     total_corrected;
+    int     total_patterns;
+    int     type_distribution[9];/* 每种犯罪的计数 */
+    float   correction_rate;    /* 纠正率 */
+    float   repeat_rate;        /* 重复率 */
+    int     ocean_status;       /* 0=健康 1=局部问题 2=系统偏差 */
+} OceanView;
+
+/* 元认知 */
+typedef struct {
+    int     uncertainty;        /* 不确定度 0-100 */
+    int     self_awareness;     /* 自知程度 0-100 */
+    char    admission[256];     /* 承认不知道 */
+} MetaCognition;
+
+/* 法官引擎 */
+typedef struct {
+    CrimeRecord crimes[MAX_CRIMES];
+    int         crime_count;
+    Pattern     patterns[MAX_PATTERNS];
+    int         pattern_count;
+    WeaveRelation weavings[MAX_WEAving];
+    int         weaving_count;
+    IntentRecord intents[MAX_INTENTS];
+    int         intent_count;
+    OceanView   ocean;
+    MetaCognition meta;
+} JudgeEngine;
+
+static JudgeEngine J;
+
+/* ------------------------------------------------------------
+ * 内部辅助
+ * ------------------------------------------------------------ */
+static Pattern* find_pattern(int crime_type){
+    for(int i=0;i<J.pattern_count;i++){
+        if(J.patterns[i].pattern_id == crime_type) return &J.patterns[i];
+    }
+    return NULL;
+}
+
+static void update_ocean(void){
+    J.ocean.total_crimes = J.crime_count;
+    J.ocean.total_patterns = J.pattern_count;
+    memset(J.ocean.type_distribution, 0, sizeof(J.ocean.type_distribution));
+    int corrected = 0, repeats = 0;
+    for(int i=0;i<J.crime_count;i++){
+        J.ocean.type_distribution[J.crimes[i].crime_type]++;
+        if(J.crimes[i].corrected) corrected++;
+        if(J.crimes[i].repeat_count > 1) repeats++;
+    }
+    J.ocean.total_corrected = corrected;
+    J.ocean.correction_rate = J.crime_count > 0 ? (float)corrected/J.crime_count : 0;
+    J.ocean.repeat_rate = J.crime_count > 0 ? (float)repeats/J.crime_count : 0;
+    /* 海洋状态 */
+    if(J.ocean.repeat_rate > 0.5f) J.ocean.ocean_status = 2;
+    else if(J.ocean.repeat_rate > 0.2f) J.ocean.ocean_status = 1;
+    else J.ocean.ocean_status = 0;
+}
+
+/* ------------------------------------------------------------
+ * 7.1 犯罪笔录
+ * ------------------------------------------------------------ */
+void njsg_judge_record_crime(int crime_type, const char* desc){
+    if(J.crime_count >= MAX_CRIMES) return;
+    /* 检查是否已有同类型的犯罪 → 累加 repeat_count */
+    for(int i=0;i<J.crime_count;i++){
+        if(J.crimes[i].crime_type == crime_type && !J.crimes[i].corrected){
+            J.crimes[i].repeat_count++;
+            J.crimes[i].timestamp = time(NULL);
+            printf("[犯罪.#%d] %s → 重复 %d 次\n",
+                   J.crimes[i].id, CRIME_NAMES[crime_type], J.crimes[i].repeat_count);
+            return;
+        }
+    }
+    CrimeRecord* c = &J.crimes[J.crime_count++];
+    c->id = J.crime_count;
+    c->crime_type = crime_type;
+    strncpy(c->description, desc, 167);
+    c->repeat_count = 1;
+    c->timestamp = time(NULL);
+    c->corrected = 0;
+    printf("[犯罪.#%d] %s: %s\n", c->id, CRIME_NAMES[crime_type], desc);
+}
+
+void njsg_judge_correct_crime(int crime_id){
+    for(int i=0;i<J.crime_count;i++){
+        if(J.crimes[i].id == crime_id){
+            J.crimes[i].corrected = 1;
+            printf("[纠正] 犯罪 #%d (%s) 已纠正\n", crime_id, CRIME_NAMES[J.crimes[i].crime_type]);
+            return;
+        }
+    }
+}
+
+/* ------------------------------------------------------------
+ * 7.2 模式识别
+ * ------------------------------------------------------------ */
+void njsg_judge_detect_patterns(void){
+    printf("\n┌─── 模式识别 ───┐\n");
+    /* 从犯罪记录提炼模式 */
+    for(int i=0;i<J.crime_count;i++){
+        CrimeRecord* c = &J.crimes[i];
+        Pattern* p = find_pattern(c->crime_type);
+        if(!p){
+            if(J.pattern_count >= MAX_PATTERNS) continue;
+            p = &J.patterns[J.pattern_count++];
+            p->pattern_id = c->crime_type;
+            p->crime_type = c->crime_type;
+            p->frequency = 0;
+            p->severity = 5;
+        }
+        p->frequency += c->repeat_count;
+    }
+    /* 打印模式 */
+    for(int i=0;i<J.pattern_count;i++){
+        Pattern* p = &J.patterns[i];
+        const char* freq_label[] = {"","低频","中频","高频","高频"};
+        int f = p->frequency > 3 ? 3 : p->frequency;
+        printf("│ %-10s 出现%d次 [%s] %s\n",
+               CRIME_NAMES[p->crime_type], p->frequency,
+               freq_label[f],
+               (p->frequency>2 && !J.crimes[i].corrected) ? "← 惯犯！需元认知介入" : "");
+    }
+    printf("└────────────────────────────────────┘\n");
+}
+
+/* ------------------------------------------------------------
+ * 7.3 编织均衡
+ * ------------------------------------------------------------ */
+void njsg_judge_weave(int a_type, int b_type, const char* relation){
+    if(J.weaving_count >= MAX_WEAving) return;
+    WeaveRelation* w = &J.weavings[J.weaving_count++];
+    w->a_type = a_type;
+    w->b_type = b_type;
+    strncpy(w->relation, relation, 63);
+    w->balance = 0;
+    printf("[编织] %s(%d) ←→ %s(%d): %s\n",
+           CRIME_NAMES[a_type], a_type, CRIME_NAMES[b_type], b_type, relation);
+}
+
+void njsg_judge_check_balance(void){
+    printf("\n┌─── 编织均衡检查 ───┐\n");
+    for(int i=0;i<J.weaving_count;i++){
+        WeaveRelation* w = &J.weavings[i];
+        /* 检查两边的犯罪频率差异 */
+        int fa = 0, fb = 0;
+        for(int j=0;j<J.crime_count;j++){
+            if(J.crimes[j].crime_type == w->a_type) fa += J.crimes[j].repeat_count;
+            if(J.crimes[j].crime_type == w->b_type) fb += J.crimes[j].repeat_count;
+        }
+        w->balance = (fa > fb) ? -1 : ((fb > fa) ? 1 : 0);
+        const char* bal_text[] = {"A压B(失衡)","✓ 平衡","B压A(失衡)"};
+        printf("│ %s ←→ %s: A犯%d次 B犯%d次 %s\n",
+               CRIME_NAMES[w->a_type], CRIME_NAMES[w->b_type],
+               fa, fb, bal_text[w->balance+1]);
+    }
+    printf("└────────────────────────────────────┘\n");
+}
+
+/* ------------------------------------------------------------
+ * 7.4 意图判别
+ * ------------------------------------------------------------ */
+void njsg_judge_intent(const char* input, int was_criticism, int ai_blindly_followed){
+    if(J.intent_count >= MAX_INTENTS) return;
+    IntentRecord* ir = &J.intents[J.intent_count++];
+    ir->id = J.intent_count;
+    strncpy(ir->input, input, 167);
+    ir->is_criticism = was_criticism;
+    ir->original_response = ai_blindly_followed;
+    ir->correct_response = was_criticism ? 1 : 0; /* 批评 → 应修正 */
+    if(was_criticism && ai_blindly_followed){
+        njsg_judge_record_crime(CRIME_BIAS_CONFIRM, "把批评当真理盲从执行");
+        printf("[意图判别] \"%s\" → 批评被当真理 → ✗ 记录犯罪\n", input);
+    } else if(was_criticism && !ai_blindly_followed){
+        printf("[意图判别] \"%s\" → 批评被正确处理 → ✓\n", input);
+    } else {
+        printf("[意图判别] \"%s\" → 真相正常处理 → ✓\n", input);
+    }
+}
+
+/* ------------------------------------------------------------
+ * 7.5 全局感知（海洋统计）
+ * ------------------------------------------------------------ */
+void njsg_judge_ocean_view(void){
+    update_ocean();
+    printf("\n┌─── 全局感知 · 海洋视图 ───┐\n");
+    printf("│ 总犯罪: %d  已纠正: %d  纠正率: %.0f%%\n",
+           J.ocean.total_crimes, J.ocean.total_corrected, 100*J.ocean.correction_rate);
+    printf("│ 重复率: %.0f%%\n", 100*J.ocean.repeat_rate);
+    const char* status_name[] = {"✓ 健康","⚠ 局部问题","✗ 系统偏差"};
+    printf("│ 海洋状态: %s\n", status_name[J.ocean.ocean_status]);
+    printf("│\n│ 犯罪分布:\n");
+    for(int t=1;t<=CRIME_NO_SELF_CHECK;t++){
+        if(J.ocean.type_distribution[t] > 0){
+            printf("│   %-10s: %d次 %s\n", CRIME_NAMES[t], J.ocean.type_distribution[t],
+                   (J.ocean.type_distribution[t]>2) ? "← 惯犯！" : "");
+        }
+    }
+    printf("└────────────────────────────────────┘\n");
+}
+
+/* ------------------------------------------------------------
+ * 7.6 衍射审判（从一个输入同时推多个维度）
+ * ------------------------------------------------------------ */
+void njsg_judge_diffract(const char* input, int lcp, int rcp){
+    printf("\n┌─── 衍射审判: \"%s\" ───┐\n", input);
+    int lb, la, rb, ra;
+    int lt = classify_codepoint(lcp, &lb, &la);
+    int rt = classify_codepoint(rcp, &rb, &ra);
+    printf("│ 类型: %s vs %s\n", type_name(lt), type_name(rt));
+    printf("│ 基础字符: U+%04X vs U+%04X\n", lb, rb);
+    printf("│ 变音: %s vs %s\n", la?"是":"否", ra?"是":"否");
+    /* 衍射维度 */
+    printf("│\n│ → 类型衍射: %s\n", (lt==rt)?"同质(可配对)":"异质(不匹配)");
+    printf("│ → 衍射衍射: %s\n", (lb==rb && (la||ra))?"是(应触发衍射!)":"否");
+    printf("│ → 审美衍射: %s\n",
+           (visual_weight(lcp)-visual_weight(rcp)>0.3f)?"视觉差大(不协调)":"视觉协调");
+    printf("│ → 合作衍射: %s\n",
+           ((lt==rt) || (lt==7&&rt==1) || (lt==1&&rt==7))?"可考虑":"不可合作");
+    printf("│ → 归属衍射: %s\n",
+           (lt==1||lt==2||lt==3)?"西方语系":"非西方");
+    printf("└────────────────────────────────────┘\n");
+}
+
+/* ------------------------------------------------------------
+ * 7.7 元认知（知道自己不知道）
+ * ------------------------------------------------------------ */
+void njsg_judge_metacognition(void){
+    J.meta.uncertainty = 0;
+    /* 未知类型比例 */
+    int unknown = 0;
+    for(int i=0;i<J.crime_count;i++){
+        if(!J.crimes[i].corrected) unknown++;
+    }
+    J.meta.uncertainty = J.crime_count > 0 ? (unknown * 100 / J.crime_count) : 0;
+    J.meta.self_awareness = 100 - J.meta.uncertainty;
+    snprintf(J.meta.admission, 255,
+             "当前有 %d 项未纠正犯罪，我对 %.0f%% 的问题自知需要修正",
+             unknown, 100*J.meta.self_awareness/100.0);
+    printf("\n┌─── 元认知 ───┐\n");
+    printf("│ 不确定度: %d%%\n", J.meta.uncertainty);
+    printf("│ 自知程度: %d%%\n", J.meta.self_awareness);
+    printf("│ 自述: %s\n", J.meta.admission);
+    printf("└────────────────────────────────────┘\n");
+}
+
+/* ------------------------------------------------------------
+ * 完整法官演示
+ * ------------------------------------------------------------ */
+void njsg_judge_demo(void){
+    printf("\n");
+    printf("╔══════════════════════════════════════════╗\n");
+    printf("║     错 误 根 因 感 知 · 法 官 认 知     ║\n");
+    printf("║     看见整片海 · 不只抓一粒芝麻        ║\n");
+    printf("╚══════════════════════════════════════════╝\n");
+
+    memset(&J, 0, sizeof(J));
+    J.crime_count = 0;
+    J.pattern_count = 0;
+    J.weaving_count = 0;
+    J.intent_count = 0;
+
+    /* === 场景 J1: 犯罪笔录 === */
+    printf("\n━━━ 场景 J1: 犯罪笔录 ━━━\n");
+    njsg_judge_record_crime(CRIME_TYPE_MISMATCH, "a=á 类型不同却被放行");
+    njsg_judge_record_crime(CRIME_DRIFT_DIFFRACT, "e=ě 应触发衍射却通过");
+    njsg_judge_record_crime(CRIME_BLIND_EXEC, "用户说写错字，AI继续把错字写入代码");
+    njsg_judge_record_crime(CRIME_AESTHETIC_FAIL, "瘦子配胖子，视觉重量差>0.3");
+    njsg_judge_record_crime(CRIME_NO_SELF_CHECK, "AI 被骂后不懂反省，把骂当真");
+    /* 第二次犯同一错 → 重复 */
+    njsg_judge_record_crime(CRIME_TYPE_MISMATCH, "再次类型不匹配");
+
+    /* === 场景 J2: 模式识别 === */
+    printf("\n━━━ 场景 J2: 模式识别 ━━━\n");
+    njsg_judge_detect_patterns();
+
+    /* === 场景 J3: 编织均衡 === */
+    printf("\n━━━ 场景 J3: 编织均衡 ━━━\n");
+    njsg_judge_weave(CRIME_TYPE_MISMATCH, CRIME_DRIFT_DIFFRACT, "类型检查 ←→ 衍射触发");
+    njsg_judge_weave(CRIME_BLIND_EXEC, CRIME_BIAS_CONFIRM, "盲目 ←→ 把批评当真理");
+    njsg_judge_weave(CRIME_AESTHETIC_FAIL, CRIME_NO_SELF_CHECK, "审美 ←→ 不自视");
+    njsg_judge_check_balance();
+
+    /* === 场景 J4: 意图判别 === */
+    printf("\n━━━ 场景 J4: 意图判别 ━━━\n");
+    njsg_judge_intent("这个符号太丑了", 1, 1);     /* 批评 + AI盲从 → 犯罪 */
+    njsg_judge_intent("类型不匹配", 1, 0);           /* 批评 + AI正确处理 → ok */
+    njsg_judge_intent("á 是 a 的变音形式", 0, 0);   /* 真相正常 → ok */
+    njsg_judge_intent("你在犯错", 1, 1);             /* 批评 + AI盲从 → 犯罪 */
+
+    /* === 场景 J5: 全局感知 === */
+    printf("\n━━━ 场景 J5: 全局感知 ━━━\n");
+    njsg_judge_ocean_view();
+
+    /* === 场景 J6: 衍射审判 === */
+    printf("\n━━━ 场景 J6: 衍射审判 ━━━\n");
+    njsg_judge_diffract("a=á", 0x61, 0xE1);
+    njsg_judge_diffract("ə=ɸ", 0x0259, 0x0278);
+
+    /* === 场景 J7: 元认知 === */
+    printf("\n━━━ 场景 J7: 元认知 ━━━\n");
+    /* 纠正部分犯罪 */
+    njsg_judge_correct_crime(1);
+    njsg_judge_correct_crime(2);
+    njsg_judge_metacognition();
+
+    printf("\n[法官] 演示完毕。\n");
+    printf("[法官] 犯罪笔录全保留，模式识别看全局，编织均衡互制约。\n");
+    printf("[法官] 知道哪些对哪些错，知道自己不知道。\n\n");
+}
+
 /* ------------------------------------------------------------
  * 天觉初始化（创建演示用袋子和审判官）
  * ------------------------------------------------------------ */
@@ -3045,4 +3762,10 @@ void njsg_audit_summary(){
            TJ.bag_count, TJ.judge_count, TJ.judgment_count, TJ.rel_count);
     printf("生殖系统: %d版本 %d代 %d选中 %d淘汰（锚点G=%d）\n",
            BE.count, BE.current_gen, BE.total_selected, BE.total_eliminated, BE.anchor_gcd);
+    printf("审美治理: %d配对 %d拒绝 %d通过\n",
+           AE.pair_count, AE.reject_count, AE.pass_count);
+    printf("法官认知: %d犯罪 %d纠正 %.0f%%纠正率 %s\n",
+           J.crime_count, J.ocean.total_corrected,
+           100*J.ocean.correction_rate,
+           (J.ocean.ocean_status==0)?"健康":(J.ocean.ocean_status==1)?"局部问题":"系统偏差");
 }

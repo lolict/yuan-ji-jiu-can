@@ -163,6 +163,37 @@ static const char *TEST_HANZI[] = {
     "答",   /* dá   · FAMILY_NEUTRAL */
     "给",   /* gěi  · FAMILY_NEUTRAL */
     "写",   /* xiě  · FAMILY_NEUTRAL */
+    /* ─── 满全法全量验证: 新增高频字 ─── */
+    "丑",   /* chǒu · FAMILY_BOUNDARY */
+    "丰",   /* fēng · FAMILY_BOUNDARY */
+    "为",   /* wéi  · FAMILY_BOUNDARY */
+    "举",   /* jǔ   · FAMILY_BOUNDARY */
+    "乐",   /* lè   · FAMILY_BOUNDARY */
+    "亚",   /* yà   · FAMILY_BOUNDARY */
+    "产",   /* chǎn · FAMILY_BOUNDARY */
+    "今",   /* jīn  · FAMILY_BOUNDARY */
+    "以",   /* yǐ   · FAMILY_BOUNDARY */
+    "传",   /* chuán· FAMILY_BOUNDARY */
+    "住",   /* zhù  · FAMILY_BOUNDARY */
+    "作",   /* zuò  · FAMILY_BOUNDARY */
+    "便",   /* biàn · FAMILY_BOUNDARY */
+    "信",   /* xìn  · FAMILY_BOUNDARY */
+    "倒",   /* dào  · FAMILY_BOUNDARY */
+    "元",   /* yuán · FAMILY_BOUNDARY */
+    "先",   /* xiān · FAMILY_BOUNDARY */
+    "克",   /* kè   · FAMILY_BOUNDARY */
+    "免",   /* miǎn · FAMILY_BOUNDARY */
+    "入",   /* rù   · FAMILY_BOUNDARY */
+    "般",   /* bān  · FAMILY_BOUNDARY */
+    "颁",   /* bān  · FAMILY_BOUNDARY */
+    "版",   /* bǎn  · FAMILY_BOUNDARY */
+    "扮",   /* bàn  · FAMILY_BOUNDARY */
+    "拌",   /* bàn  · FAMILY_BOUNDARY */
+    "瓣",   /* bàn  · FAMILY_BOUNDARY */
+    "邦",   /* bāng · FAMILY_BOUNDARY */
+    "懂",   /* dǒng · FAMILY_NEUTRAL */
+    "教",   /* jiào · FAMILY_NEUTRAL */
+    "放",   /* fàng · FAMILY_NEUTRAL */
     NULL
 };
 

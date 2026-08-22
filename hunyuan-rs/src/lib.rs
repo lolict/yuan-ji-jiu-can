@@ -199,22 +199,57 @@ pub use celestial_perception_v2::{
     CelestialPerceptionV2,
 };
 
-// ── v0.28 天觉v3（老三）· 临时注释待修复 ──
-// pub mod celestial_perception_v3;
-// pub use celestial_perception_v3::{
-//     CelestialPerceptionV3, PipelineResult,
-//     Bag as BagV3, BagAttributes as BagAttributesV3,
-//     BagHierarchy as BagHierarchyV3, HierarchyReport as HierarchyReportV3,
-//     VisualSystem as VisualSystemV3, AuditorySystem as AuditorySystemV3,
-//     AuditoryAuth as AuditoryAuthV3, TianJueAuth as TianJueAuthV3,
-//     CommonDivisor as CommonDivisorV3, MirrorComparison as MirrorComparisonV3,
-//     JudgmentEngine as JudgmentEngineV3, JudgmentResult as JudgmentResultV3,
-//     JudgmentRecord as JudgmentRecordV3,
-//     HistoricalAccumulation as HistoricalAccumulationV3,
-//     EmotionSystem, Emotion, BehaviorSystem, Behavior,
-//     ThinkingSystem, ReasoningChain,
-//     AestheticSystem, EliminationSystem, FilterSystem,
-// };
+// ── v0.28 天觉v3（老三）· 完整子系统: 情进+行为+思考+审美+淘汰+过滤 ──
+pub mod celestial_perception_v3;
+pub use celestial_perception_v3::{
+    CelestialPerceptionV3, PipelineResult,
+    Bag as BagV3, BagAttributes as BagAttributesV3,
+    BagHierarchy as BagHierarchyV3, HierarchyReport as HierarchyReportV3,
+    VisualSystem as VisualSystemV3, AuditorySystem as AuditorySystemV3,
+    AuditoryAuth as AuditoryAuthV3, TianJueAuth as TianJueAuthV3,
+    CommonDivisor as CommonDivisorV3, MirrorComparison as MirrorComparisonV3,
+    JudgmentEngine as JudgmentEngineV3, JudgmentResult as JudgmentResultV3,
+    JudgmentRecord as JudgmentRecordV3,
+    HistoricalAccumulation as HistoricalAccumulationV3,
+    EmotionSystem, Emotion, BehaviorSystem, Behavior,
+    ThinkingSystem, ReasoningChain,
+    AestheticSystem, EliminationSystem, FilterSystem,
+};
+
+// ── v0.30 字形像素加法器 · 颜色相位加减乘除 ──
+pub mod glyph_pixel_algebra;
+pub use glyph_pixel_algebra::{
+    GlyphPixel, GlyphImage, GlyphTemplates, SerPixel, SerGlyph,
+};
+pub use glyph_pixel_algebra::Phase;
+
+// ── v0.32 颜色进制 · 相位画图 · 区块链纠缠 · 分布式制衡 (PhaseEncoding) ──
+pub mod phase_encoding;
+pub use phase_encoding::{
+    // 第一层: 相位画布
+    PhaseUnit, PhaseCanvas, CanvasMetadata,
+    // 第二层: 区块链纠缠
+    EntangledNode, EntanglementNetwork, NodeAnnotation,
+    // 第三层: 制衡网络
+    WeavingBalanceNetwork, BalanceOutput, BalanceDimension, DimensionResult,
+    // 第四层: 知识库
+    KnowledgeBase, GlobalGoal, OntologyEntry, ReferenceEntry,
+    BlacklistEntry, DiscardEntry, KnowledgeStats,
+    // 第五层: 绘图引擎
+    DrawingEngine, OperationRecord,
+};
+
+// ── v0.29 犯罪笔录 · 全局衍射裁判系统 ──
+pub mod crime_transcript;
+pub use crime_transcript::{
+    DiffractionMirror, DiffractionPattern, DiffractionDimension,
+    EntityFeatures, TypeTopology, WeavingGraph, WeavingEdge,
+    GlobalWaterQuality, WaterSample,
+    CrimeTranscript, CrimeType, Judge, JudgeVerdict,
+};
+
+// ── v0.31 编码桥接 · C编码系统 → Rust FFI ──
+pub mod encoding_bridge;
 
 // ── v0.25 同一心 · 满全法引力场 (Oneness · 不再分, 不再管道, 只有引力) ──
 pub mod oneness;
