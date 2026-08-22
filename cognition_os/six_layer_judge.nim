@@ -9,7 +9,7 @@
 ## 层级6: 编织制衡 — 各节点拉力均衡吗?
 ## ═══════════════════════════════════════════════════════════════
 
-import tables, math, strutils
+import tables, math, strutils, unicode
 
 # ═══════════════════════════════════════════════════════════════
 # 层级1: 字符过滤 · 芝麻级
@@ -34,13 +34,42 @@ func is_base_char*(c: string): bool =
   for b in BASE_CHARS:
     if c == b: return true
 
+func to_runes*(s: string): seq[int] =
+  var i = 0
+  while i < s.len:
+    let r = s.runeAt(i)
+    result.add(int(r))
+    i += runeLenAt(s, i)
+
 func is_accented_char*(c: string): bool =
-  for a in ACCENTED_CHARS:
-    if c == a: return true
+  let rs = to_runes(c)
+  if rs.len != 1: return false
+  let cp = rs[0]
+  # 有变音符号的拉丁字符 · 非基元
+  if cp >= 0x00C0 and cp <= 0x024F: return true  # 拉丁扩展
+  if cp >= 0x1E00 and cp <= 0x1EFF: return true  # 拉丁扩展附加
+  if cp >= 0x0300 and cp <= 0x036F: return true  # 组合变音标记
+
+func to_base*(s: string): string =
+  # 去除变音符号 · 返回基元
+  # 先NFC正规化 · 再尝试匹配
+  let nfc_s = normalize(s)
+  for i in 0..<nfc_s.len:
+    let cp = ord(nfc_s[i])
+    # 移除 Combining Diacritical Marks (U+0300-U+036F)
+    if cp >= 0x0300 and cp <= 0x036F:
+      continue
+    result.add(nfc_s[i])
+
+func is_equivalent*(a, b: string): bool =
+  # 两个字符在去除变音后是否等价
+  to_base(a) == to_base(b)
 
 func layer1_char_filter*(a, b: string): tuple[pass: bool; reason: string] =
-  # 基元 ≠ 变音
-  if a.len == 1 and b.len == 1:
+  # 基元 ≠ 变音 · 用rune数而非byte len
+  let rs_a = to_runes(a)
+  let rs_b = to_runes(b)
+  if rs_a.len == 1 and rs_b.len == 1:
     if is_base_char(a) and is_accented_char(b):
       return (false, "层级1拒绝: 基元" & a & "≠变音" & b)
     if is_accented_char(a) and is_base_char(b):
@@ -210,7 +239,7 @@ func layer6_weaving*(pairs: seq[tuple[a: string; b: string]]): tuple[pass: bool;
 # ═══════════════════════════════════════════════════════════════
 # 六层审判主函数
 # ═══════════════════════════════════════════════════════════════
-func six_layer_judge*(a, b: string; layer_name: string = "韵母"): tuple[pass: bool; reason: string; layer: int] =
+proc six_layer_judge*(a, b: string; layer_name: string = "韵母"): tuple[pass: bool; reason: string; layer: int] =
   # 层级1
   let r1 = layer1_char_filter(a, b)
   if not r1.pass: return (false, r1.reason, 1)
