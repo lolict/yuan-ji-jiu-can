@@ -1,0 +1,6 @@
+# 编译产物
+bc_cli
+bc_repl
+
+# Nim 缓存
+nimcache/
