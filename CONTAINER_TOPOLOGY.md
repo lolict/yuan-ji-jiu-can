@@ -72,6 +72,7 @@
 | kndoyle | 柯南道尔斯外壳 |
 | maolilan | 毛利兰立体进制 |
 | phase-radix | Python 相位编译器 |
+| radix-star | 部首星图（真实字典数据·50汉字演示通过） |
 
 ---
 

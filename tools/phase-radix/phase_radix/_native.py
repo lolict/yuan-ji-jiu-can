@@ -378,6 +378,55 @@ class HanziGeomRef:
         return _lib.hanzi_geom_packed(self._buf, idx)
 
 
+# ── 负样本容器 (免疫记忆库) ──────────────────────────────
+
+NEGATIVE_SAMPLE_SIZE = 5128  # sizeof(negative_sample_t)
+
+REASON_CROSS_LEVEL = 1
+REASON_CROSS_TYPE = 2
+REASON_CROSS_ANCHOR = 3
+REASON_AESTHETIC_FAIL = 4
+REASON_WEAVING_FAIL = 5
+REASON_BLACKLIST = 6
+REASON_REPEAT = 7
+REASON_DEGRADATION = 8
+
+
+_lib.negative_init.argtypes = [ctypes.c_void_p]
+_lib.negative_init.restype = None
+
+_lib.negative_judge.argtypes = [ctypes.c_void_p, ctypes.c_uint32, ctypes.c_uint32, ctypes.POINTER(ctypes.c_uint8)]
+_lib.negative_judge.restype = ctypes.c_int
+
+_lib.negative_writeback.argtypes = [ctypes.c_void_p, ctypes.c_uint32, ctypes.c_uint32, ctypes.c_uint8]
+_lib.negative_writeback.restype = ctypes.c_int
+
+_lib.negative_law_judge.argtypes = [ctypes.c_void_p, ctypes.c_int32, ctypes.c_int32]
+_lib.negative_law_judge.restype = ctypes.c_int
+
+
+class NegativeRef:
+    """负样本容器的 Python 封装"""
+    
+    def __init__(self):
+        self._buf = ctypes.create_string_buffer(NEGATIVE_SAMPLE_SIZE + 100)
+        _lib.negative_init(self._buf)
+    
+    def judge(self, sym_a: int, sym_b: int) -> tuple:
+        """裁定一对符号:返回 (判定, 原因)"""
+        reason = ctypes.c_uint8(0)
+        v = _lib.negative_judge(self._buf, sym_a, sym_b, ctypes.byref(reason))
+        return v, reason.value
+    
+    def writeback(self, sym_a: int, sym_b: int, reason: int) -> bool:
+        """回写记忆库"""
+        return _lib.negative_writeback(self._buf, sym_a, sym_b, reason) == 0
+    
+    def law_judge(self, vA: int, vB: int) -> bool:
+        """判定树: vA + vB == 2·v_core"""
+        return _lib.negative_law_judge(self._buf, vA, vB) == 1
+
+
 class SoundRadixRef:
     """声音进制 C 核心的 Python 封装"""
     

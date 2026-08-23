@@ -30,9 +30,11 @@ from phase_radix._native import (
     GongyueshuRef,
     DimensionRef,
     HanziGeomRef,
+    NegativeRef,
     STRUCT_LEFT_RIGHT, STRUCT_TOP_BOTTOM, STRUCT_SURROUND, STRUCT_SEMI,
     STRUCT_LCR, STRUCT_TMB, STRUCT_PINZI, STRUCT_SINGLE,
     STROKE_HENG, STROKE_SHU, STROKE_PIE, STROKE_NA, STROKE_ZHE,
+    REASON_CROSS_LEVEL, REASON_CROSS_TYPE, REASON_CROSS_ANCHOR,
     CONTOUR_FLAT, CONTOUR_RISE, CONTOUR_FALL, CONTOUR_DIP,
 )
 
@@ -214,6 +216,49 @@ def cmd_dim(ds: DimensionRef, args: list):
     print(f"  → 遍历路径: 声母{sm_name} → 遍历韵母{ym_name} → 叠加声调{tone}")
 
 
+def cmd_negative(ns: NegativeRef, args: list):
+    """负样本: mhz neg <符号A> <符号B> [reason]"""
+    if len(args) < 2:
+        print("用法: mhz neg <符号A hex> <符号B hex> [拒绝原因]")
+        print("示例: mhz neg 0x61 0xE1    → 裁定 a vs á")
+        print("      mhz neg 0x61 0xE1 1  → 回写 a vs á 到记忆库(原因=跨层级)")
+        return
+    sym_a = int(args[0], 0)
+    sym_b = int(args[1], 0)
+    
+    if len(args) >= 3:
+        # 直接回写
+        reason = int(args[2])
+        ns.writeback(sym_a, sym_b, reason)
+        reason_names = ["无","跨层级","跨类型","跨锚点","审美失败",
+                        "编织失败","黑名单","重复","降解"]
+        print(f"回写记忆库: ({hex(sym_a)},{hex(sym_b)}) 原因={reason_names[reason]}")
+    else:
+        # 裁定
+        v, reason = ns.judge(sym_a, sym_b)
+        verdict_names = ["通过","已知负样本","新拒绝","申诉"]
+        reason_names = ["无","跨层级","跨类型","跨锚点","审美失败",
+                        "编织失败","黑名单","重复","降解"]
+        print(f"裁定 ({hex(sym_a)} vs {hex(sym_b)}):")
+        print(f"  判定: {verdict_names[v]}")
+        if v > 0:
+            print(f"  原因: {reason_names[reason] if reason < len(reason_names) else '?'}")
+
+
+def cmd_law(ns: NegativeRef, args: list):
+    """判定树: mhz law <vA> <vB>"""
+    if len(args) < 2:
+        print("用法: mhz law <vA> <vB>")
+        print("示例: mhz law 100 100  → vA+vB == 2·v_core ?")
+        return
+    vA = int(args[0])
+    vB = int(args[1])
+    result = ns.law_judge(vA, vB)
+    print(f"{vA} + {vB} = {vA+vB}")
+    print(f"  2·v_core = 200")
+    print(f"  → {'通过 (产权合法)' if result else '负样本 (侵权)'}")
+
+
 def cmd_hanzi(hg: HanziGeomRef, args: list):
     """汉字几何: mhz hanzi <Unicode> <部首1> <部首2> <结构> <笔画数> <笔顺...>"""
     if len(args) < 5:
@@ -352,6 +397,14 @@ def main():
     elif command == "hanzi":
         hg = HanziGeomRef()
         cmd_hanzi(hg, args)
+    
+    elif command == "neg":
+        ns = NegativeRef()
+        cmd_negative(ns, args)
+    
+    elif command == "law":
+        ns = NegativeRef()
+        cmd_law(ns, args)
     
     elif command == "sound":
         sound = SoundRadixRef()

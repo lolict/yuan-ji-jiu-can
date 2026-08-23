@@ -121,6 +121,22 @@
 
 ---
 
+## 部首星图（radix-star）
+
+| 符号 | 含义 | 定义处 |
+|------|------|--------|
+| RadicalStarMap | 部首星图引擎（部首=恒星，汉字=行星） | hunyuan-rs/src/radical_star_map.rs |
+| StarMap | Nim 版星图引擎 | radix-star/radixstar/starmap.nim |
+| CharEntry | 汉字条目（character/radical_index/residual_strokes/pinyin/meaning） | 同上 |
+| StarPosition | 星图位置（radical_name/orbit/siblings_count） | 同上 |
+| 部首共振 | 两部首序号公约数 > 1 → 星图共振 | 同上 → radical_gcd / radicals_resonate |
+| 轨道计算 | orbit = (residual_strokes mod 8) + (siblings div 10) | 同上 |
+| 轨道层 | 8 层轨道（0-7），余笔画决定基础轨道 | 同上 |
+| load_dictionary | 从 JSON 文件加载真实字典数据 | radix-star/radixstar/loader.nim |
+| build_star_map | 从条目序列构建星图索引 | radix-star/radixstar/starmap.nim |
+
+---
+
 ## 其他独立工具
 
 | 工具 | 路径 | 功能 |
