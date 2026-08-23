@@ -105,6 +105,22 @@
 
 ---
 
+## 负样本容器（negative）
+
+| 符号 | 含义 | 定义处 |
+|------|------|--------|
+| NegativeSample | 负样本记录（容器 + 拒绝原因 + 申诉状态） | manquanfa/mq/negative.nim |
+| NegativeStore | 负样本存储（容量 + 累计统计） | 同上 |
+| RejectCause | 拒绝原因枚举：rcEmpty/rcAnchor/rcReservedSlot/rcUnwitnessed | 同上 |
+| record_rejection | 记录拒绝：被拒绝时调用，返回负样本 ID | 同上 |
+| appeal | 申诉：对单负样本重新裁判（条件可能已变） | 同上 |
+| reactivate_on_condition | 条件变化时批量尝试激活 | 同上 |
+| 可回写 | 非空袋拒绝 → 允许重新激活 | 同上 |
+| 不可回写 | 空袋拒绝 → 永久记录，无米可救 | 同上 |
+| max_appeals = 3 | 每个负样本最多申诉 3 次 | 同上 |
+
+---
+
 ## 其他独立工具
 
 | 工具 | 路径 | 功能 |
