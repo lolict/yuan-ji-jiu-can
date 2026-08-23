@@ -1,0 +1,19 @@
+{
+  "version_name": "老二",
+  "version_number": 2,
+  "shipper": "我",
+  "receiver": "商家",
+  "component": {
+    "comp_type": "SCREEN",
+    "name": "电脑显示屏",
+    "source_type": "COMPUTER_DESKTOP",
+    "target_type": "PHONE_ANDROID",
+    "value": 500
+  },
+  "from_device": "COMPUTER_DESKTOP",
+  "to_device": "PHONE_ANDROID",
+  "product_value": 500,
+  "payment": 600,
+  "net_flow": 100,
+  "timestamp": 1787386911.7011695
+}

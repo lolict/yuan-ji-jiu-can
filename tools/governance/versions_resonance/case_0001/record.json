@@ -1,0 +1,72 @@
+{
+  "case_name": "健康编码系统",
+  "version": "老一",
+  "timestamp": 1787414312.8377438,
+  "node_count": 4,
+  "resonance_score": 70.92,
+  "health_verdict": "亚健康（轻微偏斜）",
+  "charges": [
+    {
+      "level": "维度偏斜",
+      "charge": "type_purity: 实际0.75，期望0.95",
+      "severity": "中度",
+      "evidence": "同容器内出现了类型混染，比如a=á这种跨容器配对"
+    },
+    {
+      "level": "对齐失败",
+      "charge": "类型混淆：跨容器元素被当成同类处理",
+      "severity": "高度",
+      "evidence": "对齐率20%低于70%阈值"
+    }
+  ],
+  "alignment": {
+    "alignments": {
+      "type_purity": {
+        "expected": 0.95,
+        "actual": 0.75,
+        "aligned": false,
+        "deviation": 0.2
+      },
+      "aesthetic_homogeneity": {
+        "expected": 0.9,
+        "actual": 0.9776393202250021,
+        "aligned": true,
+        "deviation": 0.0776
+      },
+      "layer_balance": {
+        "expected": 0.85,
+        "actual": 1.0,
+        "aligned": false,
+        "deviation": 0.15
+      },
+      "tension_uniformity": {
+        "expected": 0.8,
+        "actual": 1.0,
+        "aligned": false,
+        "deviation": 0.2
+      },
+      "goal_alignment": {
+        "expected": 0.8,
+        "actual": 1.0,
+        "aligned": false,
+        "deviation": 0.2
+      }
+    },
+    "alignment_rate": 0.2,
+    "is_equivalent": false,
+    "diagnosis": "类型混淆：跨容器元素被当成同类处理"
+  },
+  "weave": {
+    "overall_balance": 1.0,
+    "unbalanced_count": 0
+  },
+  "waveform": {
+    "type_purity": 0.75,
+    "aesthetic_homogeneity": 0.9776393202250021,
+    "layer_balance": 1.0,
+    "tension_uniformity": 1.0,
+    "goal_alignment": 1.0,
+    "cross_container_contamination": 1.0,
+    "insult_detection": 1.0
+  }
+}

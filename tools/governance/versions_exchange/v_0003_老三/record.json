@@ -1,0 +1,19 @@
+{
+  "version_name": "老三",
+  "version_number": 3,
+  "shipper": "我",
+  "receiver": "商家",
+  "component": {
+    "comp_type": "CASE",
+    "name": "安卓后盖",
+    "source_type": "PHONE_ANDROID",
+    "target_type": "COMPUTER_LAPTOP",
+    "value": 100
+  },
+  "from_device": "PHONE_ANDROID",
+  "to_device": "COMPUTER_LAPTOP",
+  "product_value": 100,
+  "payment": 150,
+  "net_flow": 50,
+  "timestamp": 1787386911.7012727
+}

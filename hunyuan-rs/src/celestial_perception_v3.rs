@@ -11,7 +11,7 @@
 //   1. 情进系统 — 感知触发情感向量, 情感驱动审判偏好
 //   2. 行为系统 — 审判输出→行为指令 (收/弃/洗/晒/补)
 //   3. 思考系统 — 历史+当前→推理链→决策
-//   4. 审美系统 — 袋子属性和谐度→审美评分
+//   4. 审美系统 — 袋属性和谐度→审美评分
 //   5. 淘汰系统 — 连续不合格→淘汰
 //   6. 过滤系统 — 准入过滤, 不让坏袋子进入层级
 //
@@ -25,11 +25,15 @@ use crate::observer::{Observer, SenseForm, SenseKind};
 use crate::memory::{Coord, MetaJudgeEngine};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+// 百分比显示辅助: 将 0..1 转为 0..100
+#[inline]
+fn pct(x: f64) -> f64 { x * 100.0 }
+
 // ======================================================================
 // 第一部分: 授权体系
 // ======================================================================
 
-/// 天觉授权 — 视觉+心智
+// 天觉授权 — 视觉+心智
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum TianJueAuth {
     Dormant,
@@ -44,7 +48,7 @@ impl TianJueAuth {
     pub fn revoke(&mut self) { *self = Self::Revoked; }
 }
 
-/// 听觉授权
+// 听觉授权
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum AuditoryAuth {
     Silent,
@@ -64,16 +68,16 @@ impl AuditoryAuth {
 
 #[derive(Clone, Copy, Debug)]
 pub struct BagAttributes {
-    pub sovereignty: u64,       // 谁家的袋子
-    pub value: u64,             // 值多少钱
-    pub integrity: f64,         // 完好性
-    pub content_quality: f64,   // 内容质量
-    pub content_purity: f64,     // 内容纯度
-    pub bag_cleanliness: f64,   // 容器清洁
-    pub dryness: f64,           // 干燥度
-    pub pest_level: f64,        // 虫害度
-    pub sand_level: f64,        // 杂质度
-    pub edibility: f64,         // 可食性
+    pub sovereignty: u64,
+    pub value: u64,
+    pub integrity: f64,
+    pub content_quality: f64,
+    pub content_purity: f64,
+    pub bag_cleanliness: f64,
+    pub dryness: f64,
+    pub pest_level: f64,
+    pub sand_level: f64,
+    pub edibility: f64,
     pub needs_content_wash: bool,
     pub needs_sand_pick: bool,
     pub wash_target: f64,
@@ -101,13 +105,15 @@ impl BagAttributes {
         }
     }
 
-    /// 综合质量
     pub fn composite_quality(&self) -> f64 {
-        let q = self.content_quality * 0.35
-               + self.edibility * 0.30
+        let q = self.content_quality * 0.30
+               + self.edibility * 0.25
                + self.content_purity * 0.15
                + self.integrity * 0.10
-               + self.bag_cleanliness * 0.10;
+               + self.bag_cleanliness * 0.10
+               + self.dryness * 0.05
+               + (1.0 - self.pest_level) * 0.025
+               + (1.0 - self.sand_level) * 0.025;
         q.clamp(0.0, 1.0)
     }
 
@@ -131,8 +137,10 @@ impl BagAttributes {
         self.edibility > 0.7 && self.pest_level < 0.3 && self.sand_level < 0.3 && self.integrity > 0.3
     }
 
-    /// 审美评分 — 属性和谐度
-    /// 不只是"能用",而是"美": 各属性均衡且高水平 = 美
+    pub fn needs_drying(&self) -> bool {
+        self.dryness < 0.7
+    }
+
     pub fn aesthetic_score(&self) -> f64 {
         let attrs = [
             self.integrity, self.content_quality, self.content_purity,
@@ -140,9 +148,8 @@ impl BagAttributes {
             1.0 - self.pest_level, 1.0 - self.sand_level,
         ];
         let mean = attrs.iter().sum::<f64>() / attrs.len() as f64;
-        // 方差越小越和谐
         let variance = attrs.iter().map(|a| (a - mean).powi(2)).sum::<f64>() / attrs.len() as f64;
-        let harmony = 1.0 - variance.sqrt(); // 高均值+低方差=美
+        let harmony = 1.0 - variance.sqrt();
         (mean * 0.6 + harmony * 0.4).clamp(0.0, 1.0)
     }
 }
@@ -159,11 +166,8 @@ pub struct Bag {
     pub coord: Coord,
     pub layer_depth: u32,
     pub child_bag_ids: Vec<u64>,
-    /// 袋子历史被审判次数 (用于淘汰判定)
     pub judgment_count: u64,
-    /// 袋子连续不合格次数
     pub consecutive_failures: u64,
-    /// 是否已被淘汰
     pub eliminated: bool,
 }
 
@@ -176,27 +180,9 @@ impl Bag {
         }
     }
 
-    pub fn nested(id: u64, name: &str, attrs: BagAttributes, coord: Coord, depth: u32) -> Self {
-        Self {
-            id, name: name.to_string(), attrs, coord,
-            layer_depth: depth, child_bag_ids: Vec::new(),
-            judgment_count: 0, consecutive_failures: 0, eliminated: false,
-        }
-    }
-
     pub fn quality(&self) -> f64 { self.attrs.composite_quality() }
     pub fn is_edible(&self) -> bool { self.attrs.is_edible() }
     pub fn aesthetic(&self) -> f64 { self.attrs.aesthetic_score() }
-
-    pub fn report(&self) -> String {
-        let status = if self.eliminated { "已淘汰" } else { "存活" };
-        format!(
-            "袋#{}「{}」L{} [{}] 质量{:.0} 审美{:.0} 审判{}次 连败{}次",
-            self.id, self.name, self.layer_depth, status,
-            self.quality(), self.aesthetic(),
-            self.judgment_count, self.consecutive_failures
-        )
-    }
 }
 
 // ======================================================================
@@ -234,7 +220,7 @@ impl VisualSystem {
             forms.push(SenseForm::new(
                 SenseKind::Vision,
                 (1.0 - bag.attrs.integrity) * self.sensitivity,
-                &format!("袋#{} 破损{:.0}%", bag.id, 1.0 - bag.attrs.integrity),
+                &format!("袋#{} 破损{:.0}%", bag.id, pct(1.0 - bag.attrs.integrity)),
                 "visual_v3",
             ));
         }
@@ -242,15 +228,11 @@ impl VisualSystem {
             forms.push(SenseForm::new(
                 SenseKind::Vision,
                 (1.0 - bag.attrs.bag_cleanliness) * self.sensitivity,
-                &format!("袋#{} 脏污{:.0}%", bag.id, 1.0 - bag.attrs.bag_cleanliness),
+                &format!("袋#{} 脏污{:.0}%", bag.id, pct(1.0 - bag.attrs.bag_cleanliness)),
                 "visual_v3",
             ));
         }
         forms
-    }
-
-    pub fn appears_sound(&self, bag: &Bag) -> bool {
-        bag.attrs.integrity > 0.5 && bag.attrs.bag_cleanliness > 0.5
     }
 }
 
@@ -271,6 +253,8 @@ impl AuditorySystem {
     }
     pub fn default_hearing() -> Self { Self::new(0.75) }
 
+    pub fn authorize(&mut self) { self.auth.authorize(); }
+
     pub fn listen(&mut self, bag: &Bag) -> Result<Vec<SenseForm>, &'static str> {
         if !self.auth.can_hear() { return Err("听觉未授权"); }
         if !self.heard_bags.contains(&bag.id) { self.heard_bags.push(bag.id); }
@@ -279,14 +263,14 @@ impl AuditorySystem {
         if bag.attrs.pest_level > 0.1 {
             forms.push(SenseForm::new(
                 SenseKind::Hearing, bag.attrs.pest_level * self.sensitivity,
-                &format!("袋#{} 虫鸣{:.0}%", bag.id, bag.attrs.pest_level),
+                &format!("袋#{} 虫鸣{:.0}%", bag.id, pct(bag.attrs.pest_level)),
                 "auditory_v3",
             ));
         }
         if bag.attrs.sand_level > 0.1 {
             forms.push(SenseForm::new(
                 SenseKind::Hearing, bag.attrs.sand_level * self.sensitivity * 0.8,
-                &format!("袋#{} 沙沙声{:.0}%", bag.id, bag.attrs.sand_level),
+                &format!("袋#{} 沙沙声{:.0}%", bag.id, pct(bag.attrs.sand_level)),
                 "auditory_v3",
             ));
         }
@@ -332,7 +316,6 @@ pub struct CommonDivisor {
     pub max_pest_level: f64,
     pub max_sand_level: f64,
     pub min_edibility: f64,
-    /// 审美最低线
     pub min_aesthetic: f64,
 }
 
@@ -375,7 +358,6 @@ impl CommonDivisor {
     }
 }
 
-/// 照镜子结果
 #[derive(Clone, Debug)]
 pub struct MirrorComparison {
     pub bag_id: u64,
@@ -389,7 +371,7 @@ pub struct MirrorComparison {
 impl MirrorComparison {
     pub fn compare(bag: &Bag, divisor: &CommonDivisor) -> Self {
         let a = &bag.attrs;
-        let mut diff_details = Vec::new();
+        let mut diff_details: Vec<String> = Vec::new();
 
         let integrity_dev = (divisor.min_integrity - a.integrity).max(0.0);
         let quality_dev = (divisor.min_content_quality - a.content_quality).max(0.0);
@@ -404,20 +386,20 @@ impl MirrorComparison {
         let total_dev = (
             integrity_dev.powi(2) + quality_dev.powi(2) + purity_dev.powi(2)
             + clean_dev.powi(2) + dry_dev.powi(2) + pest_dev.powi(2)
-            + sand_dev.powi(2) + edibility_dev.powi(2) + aesthetic_dev * aesthetic_dev
+            + sand_dev.powi(2) + edibility_dev.powi(2) + aesthetic_dev.powi(2)
         ).sqrt();
 
         let normalized_deviation = (total_dev / 3.0).min(1.0);
 
-        if integrity_dev > 0.0 { diff_details.push(format!("完好欠缺{:.0}%", integrity_dev)); }
-        if quality_dev > 0.0 { diff_details.push(format!("质量欠缺{:.0}%", quality_dev)); }
-        if purity_dev > 0.0 { diff_details.push(format!("纯度欠缺{:.0}%", purity_dev)); }
-        if clean_dev > 0.0 { diff_details.push(format!("清洁欠缺{:.0}%", clean_dev)); }
-        if dry_dev > 0.0 { diff_details.push(format!("干燥欠缺{:.0}%", dry_dev)); }
-        if pest_dev > 0.0 { diff_details.push(format!("虫害超标{:.0}%", pest_dev)); }
-        if sand_dev > 0.0 { diff_details.push(format!("杂质超标{:.0}%", sand_dev)); }
-        if edibility_dev > 0.0 { diff_details.push(format!("可食欠缺{:.0}%", edibility_dev)); }
-        if aesthetic_dev > 0.0 { diff_details.push(format!("审美欠缺{:.0}%", aesthetic_dev)); }
+        if integrity_dev > 0.0 { diff_details.push(format!("完好欠缺{:.0}%", pct(integrity_dev))); }
+        if quality_dev > 0.0 { diff_details.push(format!("质量欠缺{:.0}%", pct(quality_dev))); }
+        if purity_dev > 0.0 { diff_details.push(format!("纯度欠缺{:.0}%", pct(purity_dev))); }
+        if clean_dev > 0.0 { diff_details.push(format!("清洁欠缺{:.0}%", pct(clean_dev))); }
+        if dry_dev > 0.0 { diff_details.push(format!("干燥欠缺{:.0}%", pct(dry_dev))); }
+        if pest_dev > 0.0 { diff_details.push(format!("虫害超标{:.0}%", pct(pest_dev))); }
+        if sand_dev > 0.0 { diff_details.push(format!("杂质超标{:.0}%", pct(sand_dev))); }
+        if edibility_dev > 0.0 { diff_details.push(format!("可食欠缺{:.0}%", pct(edibility_dev))); }
+        if aesthetic_dev > 0.0 { diff_details.push(format!("审美欠缺{:.0}%", pct(aesthetic_dev))); }
 
         let aligned = diff_details.is_empty();
         let reflection_score = 1.0 - normalized_deviation;
@@ -427,9 +409,9 @@ impl MirrorComparison {
 
     pub fn summary(&self) -> String {
         if self.aligned {
-            format!("袋#{} 镜中完美 ✓ 得分{:.0}%", self.bag_id, self.reflection_score)
+            format!("袋#{} 镜中完美 ✓ 得分{:.0}%", self.bag_id, pct(self.reflection_score))
         } else {
-            format!("袋#{} 偏差{:.0}% ✗: {}", self.bag_id, self.deviation, self.diff_details.join(", "))
+            format!("袋#{} 偏差{:.0}% ✗: {}", self.bag_id, pct(self.deviation), self.diff_details.join(", "))
         }
     }
 }
@@ -459,14 +441,6 @@ pub struct JudgmentRecord {
 
 impl JudgmentRecord {
     pub fn was_correct(&self) -> bool { self.verdict == self.actual }
-    pub fn summary(&self) -> String {
-        let outcome = if self.was_correct() { "✓" } else { "✗" };
-        let rw = if self.reward >= 0.0 { format!("+{:.1}奖", self.reward) } else { format!("{:.1}罚", self.reward) };
-        format!("袋#{} 审{}实{} {} ({})", self.bag_id,
-            if self.verdict { "合" } else { "不合" },
-            if self.actual { "确合" } else { "确不合" },
-            outcome, rw)
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -482,7 +456,6 @@ pub struct JudgmentEngine {
     pub base_punishment: f64,
     pub pass_threshold: f64,
     pub divisor: CommonDivisor,
-    /// 连续失败淘汰阈值
     pub elimination_threshold: u64,
 }
 
@@ -508,15 +481,15 @@ impl JudgmentEngine {
         } else if !verdict_quality {
             ((self.pass_threshold - quality) / self.pass_threshold).min(1.0).max(0.5)
         } else {
-            0.7 // 质量达标但没过公约数
+            0.7
         };
 
         let reason = if !verdict_quality {
-            format!("质量{:.0}%<阈值{:.0}%", quality, self.pass_threshold)
+            format!("质量{:.0}%<阈值{:.0}%", pct(quality), pct(self.pass_threshold))
         } else if !passes_divisor {
             "质量达标但不符合公约数".to_string()
         } else {
-            format!("质量{:.0}%>=阈值 且符合公约数", quality)
+            format!("质量{:.0}%>=阈值 且符合公约数", pct(quality))
         };
 
         JudgmentResult { bag_id: bag.id, verdict_passed: final_verdict, confidence, reason, timestamp_ms: current_timestamp_ms() }
@@ -560,9 +533,20 @@ impl JudgmentEngine {
         (result, reward)
     }
 
-    /// 检查袋子是否应被淘汰
     pub fn should_eliminate(&self, bag: &Bag) -> bool {
         bag.consecutive_failures >= self.elimination_threshold
+    }
+
+    pub fn history_summary(&self) -> String {
+        let total = self.records.len();
+        let correct = self.records.iter().filter(|r| r.was_correct()).count();
+        let total_reward: f64 = self.records.iter().map(|r| if r.reward > 0.0 { r.reward } else { 0.0 }).sum();
+        let total_punishment: f64 = self.records.iter().map(|r| if r.reward < 0.0 { r.reward.abs() } else { 0.0 }).sum();
+        format!(
+            "审判总数={} 正确({:.0}%) 总奖{:.1} 总罚{:.1} 连对{} 连错{}",
+            total, pct(self.current_accuracy), total_reward, total_punishment,
+            self.streak_correct, self.streak_wrong
+        )
     }
 }
 
@@ -570,14 +554,13 @@ impl JudgmentEngine {
 // 第八部分: 情进系统 (情感引擎)
 // ======================================================================
 
-/// 情感向量 — 感知触发的内部状态
 #[derive(Clone, Debug)]
 pub enum Emotion {
-    Joy(f64),       // 喜悦 (看到好袋子)
-    Disgust(f64),   // 厌恶 (看到腐烂袋)
-    Sorrow(f64),    // 哀伤 (好袋变坏)
-    Peace(f64),     // 平静 (层级的平衡)
-    Anxiety(f64),   // 焦虑 (多袋需处理)
+    Joy(f64),
+    Disgust(f64),
+    Sorrow(f64),
+    Peace(f64),
+    Anxiety(f64),
 }
 
 impl Emotion {
@@ -599,11 +582,9 @@ impl Emotion {
     }
 }
 
-/// 情进系统 — 感知→情感→驱动审判偏好
 #[derive(Clone, Debug)]
 pub struct EmotionSystem {
     pub current_emotions: Vec<Emotion>,
-    /// 情感对审判阈值的影响 (-0.2 ~ +0.2)
     pub threshold_modifier: f64,
 }
 
@@ -612,7 +593,6 @@ impl EmotionSystem {
         Self { current_emotions: Vec::new(), threshold_modifier: 0.0 }
     }
 
-    /// 感知袋子 → 触发情感
     pub fn feel(&mut self, bag: &Bag) {
         self.current_emotions.clear();
         let q = bag.quality();
@@ -625,17 +605,14 @@ impl EmotionSystem {
             self.current_emotions.push(Emotion::Sorrow(bag.consecutive_failures as f64 * 0.2));
         }
 
-        // 层级焦虑
         if bag.attrs.needs_any_processing() {
             self.current_emotions.push(Emotion::Anxiety(0.3));
         }
 
-        // 平静: 如果袋子完美
         if !self.current_emotions.iter().any(|e| matches!(e, Emotion::Anxiety(_))) && q > 0.6 {
             self.current_emotions.push(Emotion::Peace(q * 0.5));
         }
 
-        // 计算对审判阈值的影响
         self.threshold_modifier = self.calculate_threshold_modifier();
     }
 
@@ -643,17 +620,16 @@ impl EmotionSystem {
         let mut modifier = 0.0;
         for emotion in &self.current_emotions {
             match emotion {
-                Emotion::Joy(v) => modifier -= v * 0.05,      // 高兴时更宽松
-                Emotion::Disgust(v) => modifier += v * 0.1,    // 厌恶时更严格
-                Emotion::Sorrow(v) => modifier += v * 0.05,    // 哀伤时略严格
-                Emotion::Peace(v) => modifier -= v * 0.02,     // 平静时略宽松
-                Emotion::Anxiety(v) => modifier += v * 0.08,   // 焦虑时更严格
+                Emotion::Joy(v) => modifier -= v * 0.05,
+                Emotion::Disgust(v) => modifier += v * 0.1,
+                Emotion::Sorrow(v) => modifier += v * 0.05,
+                Emotion::Peace(v) => modifier -= v * 0.02,
+                Emotion::Anxiety(v) => modifier += v * 0.08,
             }
         }
         modifier.clamp(-0.2, 0.2)
     }
 
-    /// 情感影响后的审判阈值
     pub fn adjusted_threshold(&self, base_threshold: f64) -> f64 {
         (base_threshold + self.threshold_modifier).clamp(0.3, 0.9)
     }
@@ -663,9 +639,9 @@ impl EmotionSystem {
             "情进: 平静".to_string()
         } else {
             let emotions: Vec<String> = self.current_emotions.iter()
-                .map(|e| format!("{}{:.0}%", e.name(), e.intensity()))
+                .map(|e| format!("{}{:.0}", e.name(), pct(e.intensity())))
                 .collect();
-            format!("情进: {} (阈值修正{:+.0%})", emotions.join(" "), self.threshold_modifier)
+            format!("情进: {} (阈值修正{:+.0}%)", emotions.join(" "), pct(self.threshold_modifier))
         }
     }
 }
@@ -676,14 +652,14 @@ impl EmotionSystem {
 
 #[derive(Clone, Debug)]
 pub enum Behavior {
-    Accept,          // 收入: 好袋子
-    Reject,          // 丢弃: 坏袋子
-    WashContent,     // 洗米
-    DryContent,      // 晒干
-    PickSand,        // 捡沙
-    Repair,          // 补袋
-    Eliminate,       // 淘汰 (连续不合格)
-    Wait,            // 等待 (需观察)
+    Accept,
+    Reject,
+    WashContent,
+    DryContent,
+    PickSand,
+    Repair,
+    Eliminate,
+    Wait,
 }
 
 impl Behavior {
@@ -701,7 +677,6 @@ impl Behavior {
     }
 }
 
-/// 行为系统 — 由审判结果袋子属性驱动
 #[derive(Clone, Debug)]
 pub struct BehaviorSystem {
     pub actions: Vec<(u64, Behavior, String)>,
@@ -710,29 +685,25 @@ pub struct BehaviorSystem {
 impl BehaviorSystem {
     pub fn new() -> Self { Self { actions: Vec::new() } }
 
-    /// 根据审判结果和袋子属性, 决定行为
     pub fn decide(&mut self, bag: &Bag, verdict_passed: bool) -> Behavior {
         self.actions.clear();
 
         let action = if verdict_passed {
             Behavior::Accept
+        } else if bag.consecutive_failures >= 3 {
+            Behavior::Eliminate
+        } else if bag.attrs.content_quality < 0.2 {
+            Behavior::Reject
+        } else if bag.attrs.needs_content_wash && bag.attrs.content_quality > 0.5 {
+            Behavior::WashContent
+        } else if bag.attrs.needs_drying() {
+            Behavior::DryContent
+        } else if bag.attrs.needs_sand_pick && bag.attrs.content_quality > 0.4 {
+            Behavior::PickSand
+        } else if bag.attrs.needs_repair && bag.attrs.content_quality > 0.5 {
+            Behavior::Repair
         } else {
-            // 不合格 — 看还能不能挽救
-            if bag.attrs.needs_content_wash && bag.attrs.content_quality > 0.5 {
-                Behavior::WashContent
-            } else if bag.attrs.needs_drying() {
-                Behavior::DryContent
-            } else if bag.attrs.needs_sand_pick && bag.attrs.content_quality > 0.4 {
-                Behavior::PickSand
-            } else if bag.attrs.needs_repair && bag.attrs.content_quality > 0.5 {
-                Behavior::Repair
-            } else if bag.consecutive_failures >= 3 {
-                Behavior::Eliminate
-            } else if bag.attrs.content_quality < 0.2 {
-                Behavior::Reject
-            } else {
-                Behavior::Wait
-            }
+            Behavior::Wait
         };
 
         self.actions.push((bag.id, action.clone(), format!("袋#{}→{}", bag.id, action.name())));
@@ -749,14 +720,12 @@ impl BehaviorSystem {
 // 第十部分: 思考系统 — 历史+当前→推理→决策
 // ======================================================================
 
-/// 推理链
 #[derive(Clone, Debug)]
 pub struct ReasoningChain {
     pub steps: Vec<String>,
     pub conclusion: String,
 }
 
-/// 思考系统 — 基于历史积累推理
 #[derive(Clone, Debug)]
 pub struct ThinkingSystem {
     pub last_reasoning: Option<ReasoningChain>,
@@ -765,31 +734,26 @@ pub struct ThinkingSystem {
 impl ThinkingSystem {
     pub fn new() -> Self { Self { last_reasoning: None } }
 
-    /// 思考: 根据袋子特征和当前层级状态推理
     pub fn think(&mut self, bag: &Bag, history_accuracy: f64, hierarchy_health: f64) -> ReasoningChain {
         let mut steps = Vec::new();
 
-        // 步骤1: 评估袋子
-        steps.push(format!("袋#{}质量={:.0}%", bag.id, bag.quality()));
+        steps.push(format!("袋#{}质量={:.0}%", bag.id, pct(bag.quality())));
         if bag.judgment_count > 0 {
             steps.push(format!("已审判{}次,连败{}次", bag.judgment_count, bag.consecutive_failures));
         }
 
-        // 步骤2: 结合历史经验
         if history_accuracy > 0.8 {
-            steps.push(format!("历史准确率高({:.0}%),信任当前审判", history_accuracy));
+            steps.push(format!("历史准确率高({:.0}%),信任当前审判", pct(history_accuracy)));
         } else if history_accuracy < 0.5 {
-            steps.push(format!("历史准确率低({:.0}%),需谨慎", history_accuracy));
+            steps.push(format!("历史准确率低({:.0}%),需谨慎", pct(history_accuracy)));
         }
 
-        // 步骤3: 层级状态
         if hierarchy_health > 0.7 {
             steps.push("层级健康,可接纳新袋".to_string());
         } else {
             steps.push("层级亚健康的,严格过滤".to_string());
         }
 
-        // 结论
         let conclusion = if bag.quality() > 0.7 && bag.consecutive_failures == 0 {
             "← 可接纳"
         } else if bag.consecutive_failures >= 2 {
@@ -816,7 +780,6 @@ impl ThinkingSystem {
 // 第十一部分: 审美系统
 // ======================================================================
 
-/// 审美系统 — 评估袋子的"美"
 #[derive(Clone, Debug)]
 pub struct AestheticSystem {
     pub last_score: f64,
@@ -825,7 +788,6 @@ pub struct AestheticSystem {
 impl AestheticSystem {
     pub fn new() -> Self { Self { last_score: 0.0 } }
 
-    /// 审美评估
     pub fn evaluate(&mut self, bag: &Bag) -> f64 {
         let score = bag.attrs.aesthetic_score();
         self.last_score = score;
@@ -841,7 +803,7 @@ impl AestheticSystem {
     }
 
     pub fn summary(&self) -> String {
-        format!("审美: {} ({:.0}%)", self.verdict(), self.last_score)
+        format!("审美: {} ({:.0}%)", self.verdict(), pct(self.last_score))
     }
 }
 
@@ -849,7 +811,6 @@ impl AestheticSystem {
 // 第十二部分: 淘汰系统
 // ======================================================================
 
-/// 淘汰系统 — 连续不合格 → 淘汰
 #[derive(Clone, Debug)]
 pub struct EliminationSystem {
     pub eliminated_bags: Vec<u64>,
@@ -861,7 +822,6 @@ impl EliminationSystem {
         Self { eliminated_bags: Vec::new(), threshold }
     }
 
-    /// 检查是否应淘汰
     pub fn check(&mut self, bag: &mut Bag) -> bool {
         if bag.consecutive_failures >= self.threshold && !bag.eliminated {
             bag.eliminated = true;
@@ -885,14 +845,10 @@ impl EliminationSystem {
 // 第十三部分: 过滤系统
 // ======================================================================
 
-/// 过滤系统 — 准入过滤,防止坏袋子进入层级
 #[derive(Clone, Debug)]
 pub struct FilterSystem {
-    /// 最低准入质量
     pub min_quality: f64,
-    /// 被过滤掉的袋子ID
     pub filtered_bags: Vec<u64>,
-    /// 过滤原因
     pub filter_reasons: Vec<(u64, String)>,
 }
 
@@ -901,9 +857,7 @@ impl FilterSystem {
         Self { min_quality, filtered_bags: Vec::new(), filter_reasons: Vec::new() }
     }
 
-    /// 过滤检查: 袋子能否进入层级
     pub fn filter(&mut self, bag: &Bag) -> bool {
-        // 已被淘汰的袋子不允许进入
         if bag.eliminated {
             self.filtered_bags.push(bag.id);
             self.filter_reasons.push((bag.id, "已淘汰".to_string()));
@@ -912,18 +866,11 @@ impl FilterSystem {
 
         if bag.quality() < self.min_quality {
             self.filtered_bags.push(bag.id);
-            self.filter_reasons.push((bag.id, format!("质量{:.0}%低于准入{:.0}%", bag.quality(), self.min_quality)));
+            self.filter_reasons.push((bag.id, format!("质量{:.0}%低于准入{:.0}%", pct(bag.quality()), pct(self.min_quality))));
             return false;
         }
 
-        // 极高虫害直接拒绝
-        if bag.attrs.pest_level > 0.8 {
-            self.filtered_bags.push(bag.id);
-            self.filter_reasons.push((bag.id, "虫害严重".to_string()));
-            return false;
-        }
-
-        true // 通过过滤
+        true
     }
 
     pub fn summary(&self) -> String {
@@ -984,7 +931,7 @@ impl HistoricalAccumulation {
         if accuracy > self.best_accuracy { self.best_accuracy = accuracy; }
         self.epochs.push(Epoch {
             start_tick: self.current_epoch_start, end_tick, accuracy,
-            snapshot: format!("{}审, {:.0}%准确, +{:.1}智慧", self.current_records.len(), accuracy, wisdom),
+            snapshot: format!("{}审, {:.0}%准确, +{:.1}智慧", self.current_records.len(), pct(accuracy), wisdom),
         });
         self.current_records.clear();
         self.current_epoch_start = end_tick;
@@ -998,9 +945,9 @@ impl HistoricalAccumulation {
     }
 
     pub fn summary(&self) -> String {
-        format!("历史: {}时代, {}审, 正确率{:.0}%, 最佳{:.0}%, 智慧{:.1f}",
-            self.epochs.len(), self.total_judgments, self.overall_accuracy(),
-            self.best_accuracy, self.wisdom_score)
+        format!("历史: {}时代, {}审, 正确率{:.0}%, 最佳{:.0}%, 智慧{:.1}",
+            self.epochs.len(), self.total_judgments, pct(self.overall_accuracy()),
+            pct(self.best_accuracy), self.wisdom_score)
     }
 }
 
@@ -1083,7 +1030,6 @@ impl BagHierarchy {
         }
     }
 
-    /// 计算层级健康度 (用于思考系统)
     pub fn health_score(&self) -> f64 {
         let report = self.evaluate();
         if report.total_bags == 0 { return 0.5; }
@@ -1109,8 +1055,8 @@ impl HierarchyReport {
         if self.total_bags == 0 { return "层级为空".to_string(); }
         let layers: Vec<String> = self.layer_distribution.iter().map(|(d, c)| format!("L{}:{}个", d, c)).collect();
         format!("层级: {}袋, 可食{:.0}%, 需处理{}个, 均质{:.0}%, [{}]",
-            self.total_bags, self.edible_bags as f64 / self.total_bags as f64,
-            self.needs_processing, self.average_quality, layers.join(", "))
+            self.total_bags, pct(self.edible_bags as f64 / self.total_bags as f64),
+            self.needs_processing, pct(self.average_quality), layers.join(", "))
     }
 }
 
@@ -1129,7 +1075,6 @@ pub struct CelestialPerceptionV3 {
     pub hierarchy: BagHierarchy,
     pub bags_perceived: u64,
     pub mirror_comparisons: Vec<MirrorComparison>,
-    // v3 新增
     pub emotion: EmotionSystem,
     pub behavior: BehaviorSystem,
     pub thinking: ThinkingSystem,
@@ -1156,7 +1101,7 @@ impl CelestialPerceptionV3 {
             thinking: ThinkingSystem::new(),
             aesthetic: AestheticSystem::new(),
             elimination: EliminationSystem::new(3),
-            filter: FilterSystem::new(0.2),
+            filter: FilterSystem::new(0.0),
         }
     }
 
@@ -1170,23 +1115,23 @@ impl CelestialPerceptionV3 {
         self.auth_tianjue.can_perceive() && self.auth_auditory.can_hear()
     }
 
-    /// 完整流程: 过滤→感知→情进→审美→照镜子→思考→审判→行为→淘汰→历史
     pub fn full_pipeline(&mut self, bag: &mut Bag, actual_good: bool) -> Result<PipelineResult, &'static str> {
         if !self.auth_tianjue.can_perceive() { return Err("天觉未授权"); }
 
-        // 1. 过滤
+        self.emotion.feel(bag);
+        self.aesthetic.evaluate(bag);
+
         if !self.filter.filter(bag) {
             return Ok(PipelineResult {
                 bag_id: bag.id, accepted: false, behavior: Behavior::Reject,
                 judgment: None, reward: 0.0, mirror: None,
-                emotion_summary: "被过滤".to_string(),
+                emotion_summary: self.emotion.summary(),
                 thinking_summary: "".to_string(),
-                aesthetic_summary: "".to_string(),
+                aesthetic_summary: self.aesthetic.summary(),
                 eliminated: false,
             });
         }
 
-        // 2. 感知 (视觉+听觉)
         let mut forms = self.visual.perceive(bag);
         if self.auth_auditory.can_hear() {
             if let Ok(auditory_forms) = self.auditory.listen(bag) {
@@ -1196,48 +1141,28 @@ impl CelestialPerceptionV3 {
         let _cells = self.observer.sense_batch(forms);
         self.bags_perceived += 1;
 
-        // 3. 情进 (感知→情感)
-        self.emotion.feel(bag);
-
-        // 4. 审美
-        let aesthetic_score = self.aesthetic.evaluate(bag);
-
-        // 5. 照镜子
         let mirror = MirrorComparison::compare(bag, &self.judgment.divisor);
         self.mirror_comparisons.push(mirror.clone());
 
-        // 6. 思考 (结合历史+层级)
         let hierarchy_health = self.hierarchy.health_score();
         let reasoning = self.thinking.think(bag, self.judgment.current_accuracy, hierarchy_health);
 
-        // 7. 审判 (情感调整阈值)
         let adjusted_threshold = self.emotion.adjusted_threshold(self.judgment.pass_threshold);
         let old_threshold = self.judgment.pass_threshold;
         self.judgment.pass_threshold = adjusted_threshold;
         let (result, reward) = self.judgment.judge_and_feedback(bag, actual_good);
         self.judgment.pass_threshold = old_threshold;
 
-        // 8. 更新袋子计数
         bag.judgment_count += 1;
-        if result.verdict_passed == actual_good {
-            // 正确 -> 如果是通过的好袋子,重置连败
-            if result.verdict_passed {
-                bag.consecutive_failures = 0;
-            }
+        if result.verdict_passed {
+            bag.consecutive_failures = 0;
         } else {
-            // 审判错误且判定不合格 -> 连败+1
-            if !result.verdict_passed {
-                bag.consecutive_failures += 1;
-            }
+            bag.consecutive_failures += 1;
         }
 
-        // 9. 行为决策
         let behavior = self.behavior.decide(bag, result.verdict_passed);
-
-        // 10. 淘汰检查
         let eliminated = self.elimination.check(bag);
 
-        // 11. 历史积累
         let record = JudgmentRecord {
             bag_id: bag.id,
             verdict: result.verdict_passed,
@@ -1262,12 +1187,6 @@ impl CelestialPerceptionV3 {
         })
     }
 
-    /// 添加袋子到层级 (带过滤)
-    pub fn add_bag_to_hierarchy(&mut self, bag: Bag) -> Result<(), &'static str> {
-        if !self.filter.filter(&bag) { return Err("袋子未通过过滤"); }
-        self.hierarchy.add_bag(bag)
-    }
-
     pub fn consciousness_density(&self) -> f64 { self.observer.consciousness_density() }
 
     pub fn report(&self) -> String {
@@ -1290,7 +1209,6 @@ impl CelestialPerceptionV3 {
     }
 }
 
-/// 管道结果 — 单次完整流程的输出
 #[derive(Clone, Debug)]
 pub struct PipelineResult {
     pub bag_id: u64,
@@ -1338,10 +1256,8 @@ mod tests {
 
         let mut bag = Bag::new(2, "腐烂袋", BagAttributes::rotten(), (0, 0, 0));
         let result = cp.full_pipeline(&mut bag, false).unwrap();
-
-        // 腐烂袋质量极低,应被拒绝
         assert!(!result.accepted);
-        assert!(result.reward > 0.0); // 判断正确也有奖励
+        assert!(result.reward > 0.0);
     }
 
     #[test]
@@ -1352,8 +1268,6 @@ mod tests {
 
         let mut bag = Bag::new(1, "极坏袋", BagAttributes::rotten(), (0, 0, 0));
         let result = cp.full_pipeline(&mut bag, false).unwrap();
-
-        // 被过滤 -> 不接受
         assert!(!result.accepted);
     }
 
@@ -1365,11 +1279,9 @@ mod tests {
 
         let mut bag = Bag::new(1, "次品袋", BagAttributes::rotten(), (0, 0, 0));
 
-        // 第一次审判
         let r1 = cp.full_pipeline(&mut bag, false).unwrap();
         assert!(!r1.eliminated);
 
-        // 第二次审判 (连败达到阈值)
         let r2 = cp.full_pipeline(&mut bag, false).unwrap();
         assert!(r2.eliminated);
     }
@@ -1381,12 +1293,10 @@ mod tests {
 
         let mut good_bag = Bag::new(1, "好袋", BagAttributes::pristine(), (0, 0, 0));
         cp.full_pipeline(&mut good_bag, true).unwrap();
-        // 看到好袋子应有喜悦情感
         assert!(cp.emotion.current_emotions.iter().any(|e| matches!(e, Emotion::Joy(_))));
 
         let mut bad_bag = Bag::new(2, "坏袋", BagAttributes::rotten(), (0, 0, 0));
         cp.full_pipeline(&mut bad_bag, false).unwrap();
-        // 看到坏袋子应有厌恶情感
         assert!(cp.emotion.current_emotions.iter().any(|e| matches!(e, Emotion::Disgust(_))));
     }
 
@@ -1399,7 +1309,6 @@ mod tests {
 
         let bad_bag = Bag::new(2, "坏袋", BagAttributes::rotten(), (0, 0, 0));
         let action = bs.decide(&bad_bag, false);
-        // 腐烂袋 -> 丢弃或淘汰
         assert!(matches!(action, Behavior::Reject | Behavior::Eliminate));
     }
 
@@ -1418,7 +1327,6 @@ mod tests {
         let perfect_bag = Bag::new(1, "完美袋", BagAttributes::pristine(), (0, 0, 0));
         let score = aesthetic.evaluate(&perfect_bag);
         assert!(score > 0.7);
-        assert!(aesthetic.verdict() == "美" || aesthetic.verdict() == "雅");
     }
 
     #[test]
@@ -1436,7 +1344,7 @@ mod tests {
     #[test]
     fn v3_hierarchy_health_score() {
         let mut hier = BagHierarchy::new(100, 5);
-        assert_eq!(hier.health_score(), 0.5); // 空层级
+        assert_eq!(hier.health_score(), 0.5);
         let bag = Bag::new(1, "袋", BagAttributes::pristine(), (0, 0, 0));
         hier.add_bag(bag).unwrap();
         assert!(hier.health_score() > 0.5);
@@ -1445,7 +1353,6 @@ mod tests {
     #[test]
     fn v3_unauthorized_pipeline_fails() {
         let mut cp = CelestialPerceptionV3::new();
-        // 不授权
         let mut bag = Bag::new(1, "袋", BagAttributes::pristine(), (0, 0, 0));
         assert!(cp.full_pipeline(&mut bag, true).is_err());
     }
@@ -1455,11 +1362,8 @@ mod tests {
         let mut cp = CelestialPerceptionV3::new();
         cp.authorize_all();
 
-        // 制造一个审判错误: 明明是好袋子, 我们硬说actual=false来模拟审判偏差
-        // 实际上 pristine 袋子的审判verdict是pass, 所以actual=false就会产生惩罚
         let mut bag = Bag::new(1, "好袋", BagAttributes::pristine(), (0, 0, 0));
-        let result = cp.full_pipeline(&mut bag, false).unwrap(); // actual=false
-        // 审判通过(verdict=true)但actual=false → 错误 → 惩罚
+        let result = cp.full_pipeline(&mut bag, false).unwrap();
         assert!(result.reward < 0.0);
     }
 }

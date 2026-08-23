@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mhz"
+version = "0.1.0"
+description = "满全法 · 颜色进制 — 可编译可解释可打包的工具"
+readme = "README.md"
+license = { text = "Proprietary" }
+authors = [
+    { name = "lolict & 刘楚恬" },
+]
+requires-python = ">=3.8"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "License :: Other/Proprietary License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: C",
+    "Topic :: Scientific/Engineering",
+]
+
+[project.scripts]
+mhz = "mhz:main"
+
+[tool.setuptools]
+packages = ["phase_radix"]
+py-modules = ["mhz"]
+
+[tool.setuptools.package-data]
+phase_radix = ["*.py"]

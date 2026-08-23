@@ -1,0 +1,39 @@
+# Makefile — 颜色进制总控工具 (单文件版)
+#
+# 编译:
+#   make              ← 编译
+#   make test         ← 自检测试
+#   make clean        ← 清理
+#
+# 使用:
+#   ./cs a á          ← 审判一对符号
+#   ./cs -i           ← 交互解释器
+#   ./cs -d a á       ← 衍射分析
+#   ./cs -t           ← 运行测试
+
+CC = cc
+CFLAGS = -Wall -Wextra -std=c99 -O2
+LDFLAGS = -lm
+TARGET = cs
+SRC = color_system_standalone.c
+
+.PHONY: all test clean
+
+all: $(TARGET)
+
+$(TARGET): $(SRC)
+	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS)
+
+test: $(TARGET)
+	./$(TARGET)
+
+# 清理
+clean:
+	rm -f $(TARGET) *.o
+
+# 运行完整测试套件
+check: $(TARGET)
+	@echo "=== 自检测试 ===" && ./$(TARGET) -t
+	@echo "" && echo "=== a vs á (核心拒绝) ===" && ./$(TARGET) a á ; true
+	@echo "" && echo "=== e vs ě (核心拒绝) ===" && ./$(TARGET) e ě ; true
+	@echo "" && echo "=== a vs o (锚不同) ===" && ./$(TARGET) a o ; true

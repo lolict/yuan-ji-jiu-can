@@ -1,0 +1,19 @@
+{
+  "version_name": "老五",
+  "version_number": 5,
+  "shipper": "我",
+  "receiver": "商家",
+  "component": {
+    "comp_type": "KEYBOARD",
+    "name": "电脑键盘",
+    "source_type": "COMPUTER_DESKTOP",
+    "target_type": "PHONE_ANDROID",
+    "value": 80
+  },
+  "from_device": "COMPUTER_DESKTOP",
+  "to_device": "PHONE_ANDROID",
+  "product_value": 80,
+  "payment": 120,
+  "net_flow": 40,
+  "timestamp": 1787386911.701465
+}

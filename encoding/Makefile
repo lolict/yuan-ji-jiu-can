@@ -1,0 +1,74 @@
+CC = cc
+CFLAGS = -Wall -Wextra -std=c99 -O2
+LDFLAGS = -lm
+
+COLOR_SRCS = color_system.c type_discipline.c diffraction_engine.c weaving_balancer.c
+COLOR_OBJS = $(COLOR_SRCS:.c=.o)
+
+TEST_COLOR = test_color_system
+TEST_LEVEL = test_level_stack
+TEST_TYPE  = test_type_discipline
+TEST_DIFF  = test_diffraction
+TEST_WOV   = test_weaving
+
+ALL = $(TEST_COLOR) $(TEST_LEVEL) $(TEST_TYPE) $(TEST_DIFF) $(TEST_WOV)
+
+.PHONY: all clean test lib
+
+all: $(ALL)
+
+color_system.o: color_system.c color_system.h type_discipline.h diffraction_engine.h weaving_balancer.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
+type_discipline.o: type_discipline.c type_discipline.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
+diffraction_engine.o: diffraction_engine.c diffraction_engine.h type_discipline.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
+weaving_balancer.o: weaving_balancer.c weaving_balancer.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(TEST_COLOR): test_color_system.o $(COLOR_OBJS)
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+
+$(TEST_LEVEL): test_level_stack.o type_discipline.o
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+
+$(TEST_TYPE): test_type_discipline.o type_discipline.o
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+
+$(TEST_DIFF): test_diffraction.o type_discipline.o diffraction_engine.o
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+
+$(TEST_WOV): test_weaving.o weaving_balancer.o
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+
+test_%.o: test_%.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+test: all
+	@echo ""
+	@echo "====== Running All Tests ====="
+	@echo ""
+	@echo "--- Type Discipline ---"
+	@./$(TEST_TYPE) || true
+	@echo ""
+	@echo "--- Level Stack ---"
+	@./$(TEST_LEVEL) || true
+	@echo ""
+	@echo "--- Diffraction Engine ---"
+	@./$(TEST_DIFF) || true
+	@echo ""
+	@echo "--- Weaving Balancer ---"
+	@./$(TEST_WOV) || true
+	@echo ""
+	@echo "--- Color System Full ---"
+	@./$(TEST_COLOR) || true
+	@echo ""
+
+clean:
+	rm -f $(ALL) *.o
+
+lib: $(COLOR_OBJS)
+	@echo "Color system library: $(COLOR_OBJS)"

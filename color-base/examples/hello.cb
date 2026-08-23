@@ -1,0 +1,8 @@
+# 颜色进制示例: Hello Phase
+# 演示相位画布的创建、加减运算和审判
+
+canvas 16x16 "hello_phase"
+phase 64 weight 0.5 level L1 family ipa_extend
+rect 0 0 8 8 family latin level L1 phase 100 weight 0.4
+rect 8 0 8 8 family ipa_extend level L2 phase 200 weight 0.7
+pixel 4 4 phase 255 weight 1.0 level L3 family assembled

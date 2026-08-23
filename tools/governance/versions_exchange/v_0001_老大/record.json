@@ -1,0 +1,19 @@
+{
+  "version_name": "老大",
+  "version_number": 1,
+  "shipper": "我",
+  "receiver": "商家",
+  "component": {
+    "comp_type": "SCREEN",
+    "name": "老人机大屏",
+    "source_type": "PHONE_ELDER",
+    "target_type": "PHONE_ANDROID",
+    "value": 200
+  },
+  "from_device": "PHONE_ELDER",
+  "to_device": "PHONE_ANDROID",
+  "product_value": 200,
+  "payment": 300,
+  "net_flow": 100,
+  "timestamp": 1787386911.7010038
+}

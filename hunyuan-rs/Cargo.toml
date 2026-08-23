@@ -27,6 +27,10 @@ path = "src/main.rs"
 name = "glyph"
 path = "src/bin/glyph.rs"
 
+[[bin]]
+name = "court"
+path = "src/bin/court.rs"
+
 [profile.release]
 opt-level = "z"      # 体积优先
 lto = true           # 链接期优化

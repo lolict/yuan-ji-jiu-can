@@ -1,0 +1,19 @@
+{
+  "version_name": "老六",
+  "version_number": 6,
+  "shipper": "商家",
+  "receiver": "我",
+  "component": {
+    "comp_type": "SCREEN",
+    "name": "苹果原装屏",
+    "source_type": "PHONE_IOS",
+    "target_type": "COMPUTER_DESKTOP",
+    "value": 800
+  },
+  "from_device": "PHONE_IOS",
+  "to_device": "COMPUTER_DESKTOP",
+  "product_value": 800,
+  "payment": 900,
+  "net_flow": 100,
+  "timestamp": 1787386911.7015638
+}

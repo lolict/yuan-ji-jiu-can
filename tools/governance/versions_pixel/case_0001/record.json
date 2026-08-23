@@ -1,0 +1,15 @@
+{
+  "case_name": "健康系统",
+  "version": "老1",
+  "node_count": 3,
+  "resonance_score": 99.87,
+  "verdict": "系统健康（全局共振谐调）",
+  "rhythm": "正常梯度（近强远弱，平滑衰减）",
+  "details": {
+    "type_resonance": 1.0,
+    "aesthetic_resonance": 0.987,
+    "goal_resonance": 1.0,
+    "level_resonance": 1.0
+  },
+  "timestamp": 1787391048.923251
+}

@@ -216,6 +216,10 @@ pub use celestial_perception_v3::{
     AestheticSystem, EliminationSystem, FilterSystem,
 };
 
+// ── v0.31 大审判庭 · 全链路整合裁判系统 ──
+pub mod grand_court;
+pub use grand_court::{GrandCourt, GrandCourtVerdict};
+
 // ── v0.30 字形像素加法器 · 颜色相位加减乘除 ──
 pub mod glyph_pixel_algebra;
 pub use glyph_pixel_algebra::{
@@ -237,6 +241,33 @@ pub use phase_encoding::{
     BlacklistEntry, DiscardEntry, KnowledgeStats,
     // 第五层: 绘图引擎
     DrawingEngine, OperationRecord,
+};
+
+// ── v0.35 产权流侵权自动判定树 (PropertyFlowJudge) ──
+pub mod property_flow_judge;
+pub use property_flow_judge::{
+    PropertyState, FlowType, Authorization, InfringementType,
+    PropertyFlow, ContainerInfo, ContainerRegistry, Judgment, PropertyFlowJudge,
+};
+
+// ── v0.34 部首星图 · 汉字部首分类与星状检索 (RadicalStarMap) ──
+pub mod radical_star_map;
+pub use radical_star_map::{
+    Radical, RadicalStarMap, CharEntry, StarPosition, StarMapStats,
+    radical_gcd_distance, radicals_resonate, radical_depth,
+};
+
+// ── v0.33 负样本容器 · 回写协议 · 免疫过滤环 (NegativeImmune) ──
+pub mod negative_immune;
+pub use negative_immune::{
+    // 负样本容器
+    NegativeSampleVessel, ErrorPattern, ErrorSource, DepositResult, VesselStats,
+    // 回写协议
+    WriteBackProtocol, ProtocolConfig, ImmuneResponse, InteractionRecord, WriteBackResult,
+    // 免疫过滤环
+    ImmuneFilterRing, CheckRecord, CheckAction, FilterStats,
+    // 预置与工厂
+    preset_error_patterns, create_immune_ring_with_presets,
 };
 
 // ── v0.29 犯罪笔录 · 全局衍射裁判系统 ──

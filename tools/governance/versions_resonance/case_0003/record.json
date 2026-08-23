@@ -1,0 +1,84 @@
+{
+  "case_name": "瘦子配胖子案",
+  "version": "老三",
+  "timestamp": 1787414312.8385084,
+  "node_count": 4,
+  "resonance_score": 66.75,
+  "health_verdict": "病态（系统偏斜）",
+  "charges": [
+    {
+      "level": "维度偏斜",
+      "charge": "type_purity: 实际0.75，期望0.95",
+      "severity": "中度",
+      "evidence": "同容器内出现了类型混染，比如a=á这种跨容器配对"
+    },
+    {
+      "level": "维度偏斜",
+      "charge": "aesthetic_homogeneity: 实际0.35，期望0.90",
+      "severity": "轻度",
+      "evidence": "同层节点的审美权重分布太散，瘦子胖子被配一起"
+    },
+    {
+      "level": "编织偏斜",
+      "charge": "节点压力不均：['☁']",
+      "severity": "中轻度",
+      "evidence": "存在单向压制，不是互压均匀的编织"
+    },
+    {
+      "level": "对齐失败",
+      "charge": "审美冲突：视觉形态差异大的被配在一起",
+      "severity": "高度",
+      "evidence": "对齐率40%低于70%阈值"
+    }
+  ],
+  "alignment": {
+    "alignments": {
+      "type_purity": {
+        "expected": 0.95,
+        "actual": 0.75,
+        "aligned": false,
+        "deviation": 0.2
+      },
+      "aesthetic_homogeneity": {
+        "expected": 0.9,
+        "actual": 0.3503270053326827,
+        "aligned": false,
+        "deviation": 0.5497
+      },
+      "layer_balance": {
+        "expected": 0.85,
+        "actual": 1.0,
+        "aligned": false,
+        "deviation": 0.15
+      },
+      "tension_uniformity": {
+        "expected": 0.8,
+        "actual": 0.95,
+        "aligned": true,
+        "deviation": 0.15
+      },
+      "goal_alignment": {
+        "expected": 0.8,
+        "actual": 0.75,
+        "aligned": true,
+        "deviation": 0.05
+      }
+    },
+    "alignment_rate": 0.4,
+    "is_equivalent": false,
+    "diagnosis": "审美冲突：视觉形态差异大的被配在一起"
+  },
+  "weave": {
+    "overall_balance": 0.7251157407407407,
+    "unbalanced_count": 1
+  },
+  "waveform": {
+    "type_purity": 0.75,
+    "aesthetic_homogeneity": 0.3503270053326827,
+    "layer_balance": 1.0,
+    "tension_uniformity": 0.95,
+    "goal_alignment": 0.75,
+    "cross_container_contamination": 1.0,
+    "insult_detection": 1.0
+  }
+}

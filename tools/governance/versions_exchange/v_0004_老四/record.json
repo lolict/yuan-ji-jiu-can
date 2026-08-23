@@ -1,0 +1,19 @@
+{
+  "version_name": "老四",
+  "version_number": 4,
+  "shipper": "我",
+  "receiver": "商家",
+  "component": {
+    "comp_type": "BATTERY",
+    "name": "安卓电池",
+    "source_type": "PHONE_ANDROID",
+    "target_type": "COMPUTER_LAPTOP",
+    "value": 150
+  },
+  "from_device": "PHONE_ANDROID",
+  "to_device": "COMPUTER_LAPTOP",
+  "product_value": 150,
+  "payment": 200,
+  "net_flow": 50,
+  "timestamp": 1787386911.7013643
+}

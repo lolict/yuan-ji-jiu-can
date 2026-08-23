@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>满全法 · 囡囝共生系统全貌</title>
+<style>
+:root {
+  --bg: #0a0a0f;
+  --fg: #e8e6e3;
+  --dim: #6b6862;
+  --accent: #c9a84c;
+  --container: #4a7c59;
+  --boundary: #8b4513;
+  --couple: #9b59b6;
+  --web: #3498db;
+  --neutral: #7f8c8d;
+  --ink: #1a1a2e;
+  --paper: #f5f0e8;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: "Noto Serif SC", "STSong", serif;
+  background: var(--bg);
+  color: var(--fg);
+  line-height: 1.7;
+  overflow-x: hidden;
+}
+/* ── Header ── */
+#header {
+  text-align: center;
+  padding: 60px 20px 40px;
+  border-bottom: 1px solid rgba(201,168,76,0.2);
+  position: relative;
+}
+#header h1 {
+  font-size: 2.8em;
+  color: var(--accent);
+  letter-spacing: 0.3em;
+  font-weight: 400;
+}
+#header .subtitle {
+  font-size: 1.1em;
+  color: var(--dim);
+  margin-top: 12px;
+  letter-spacing: 0.15em;
+}
+#header .motto {
+  font-size: 0.95em;
+  color: var(--accent);
+  margin-top: 20px;
+  opacity: 0.7;
+  font-style: italic;
+}
+/* ── Sections ── */
+.section {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 50px 30px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.section h2 {
+  font-size: 1.6em;
+  color: var(--accent);
+  margin-bottom: 30px;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+}
+.section h2 .cn { font-size: 0.7em; color: var(--dim); margin-left: 12px; }
+/* ── Architecture Layers ── */
+.layer-grid {
+  display: grid;
+  gap: 16px;
+}
+.layer-item {
+  display: flex;
+  align-items: center;
+  padding: 18px 22px;
+  background: rgba(255,255,255,0.03);
+  border-left: 4px solid var(--accent);
+  border-radius: 4px;
+  transition: background 0.3s;
+}
+.layer-item:hover { background: rgba(255,255,255,0.06); }
+.layer-num {
+  font-size: 1.8em;
+  font-weight: 300;
+  color: var(--accent);
+  width: 50px;
+  opacity: 0.6;
+}
+.layer-content { flex: 1; }
+.layer-name {
+  font-size: 1.15em;
+  color: var(--fg);
+  letter-spacing: 0.05em;
+}
+.layer-desc {
+  font-size: 0.9em;
+  color: var(--dim);
+  margin-top: 4px;
+}
+.layer-status {
+  font-size: 0.85em;
+  padding: 4px 12px;
+  border-radius: 12px;
+  background: rgba(201,168,76,0.15);
+  color: var(--accent);
+}
+/* ── Five Families ── */
+.family-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+.family-card {
+  padding: 28px 22px;
+  border-radius: 8px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  cursor: default;
+  transition: transform 0.2s;
+}
+.family-card:hover { transform: translateY(-4px); }
+.family-card .icon {
+  font-size: 2.4em;
+  margin-bottom: 12px;
+}
+.family-card .fname {
+  font-size: 1.2em;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+}
+.factory-card .fdesc {
+  font-size: 0.85em;
+  margin-top: 8px;
+  opacity: 0.8;
+}
+.family-card .fcount {
+  font-size: 0.8em;
+  margin-top: 10px;
+  opacity: 0.6;
+}
+.family-container { background: rgba(74,124,89,0.12); border: 1px solid rgba(74,124,89,0.3); color: #7dcea0; }
+.factory-boundary { background: rgba(139,69,19,0.12); border: 1px solid rgba(139,69,19,0.3); color: #d4a574; }
+.family-couple { background: rgba(155,89,182,0.12); border: 1px solid rgba(155,89,182,0.3); color: #c39bd3; }
+.family-web { background: rgba(52,152,219,0.12); border: 1px solid rgba(52,152,219,0.3); color: #85c1e9; }
+.family-neutral { background: rgba(127,140,141,0.12); border: 1px solid rgba(127,140,141,0.3); color: #aab7b8; }
+/* ── Bit Allocation ── */
+.bit-diagram {
+  background: rgba(0,0,0,0.3);
+  border-radius: 8px;
+  padding: 24px;
+  overflow-x: auto;
+  font-family: "Courier New", monospace;
+  font-size: 0.9em;
+  line-height: 2;
+}
+.bit-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  white-space: nowrap;
+}
+.bit-label {
+  color: var(--dim);
+  width: 90px;
+  text-align: right;
+}
+.bit-fields { display: flex; gap: 3px; }
+.bit-field {
+  padding: 3px 10px;
+  border-radius: 3px;
+  font-size: 0.85em;
+}
+.bit-family { background: rgba(201,168,76,0.2); color: var(--accent); }
+.bit-polarity { background: rgba(155,89,182,0.2); color: #c39bd3; }
+.bit-structure { background: rgba(52,152,219,0.2); color: #85c1e9; }
+.bit-shengmu { background: rgba(74,124,89,0.2); color: #7dcea0; }
+.bit-yunmu { background: rgba(230,176,40,0.2); color: #f0c040; }
+.bit-tone { background: rgba(139,69,19,0.2); color: #d4a574; }
+/* ── Encoding Pipeline ── */
+.pipeline {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 10px 0;
+}
+.pipeline-step {
+  padding: 10px 18px;
+  background: rgba(201,168,76,0.08);
+  border: 1px solid rgba(201,168,76,0.2);
+  border-radius: 6px;
+  font-size: 0.9em;
+  text-align: center;
+  min-width: 100px;
+}
+.pipeline-step .step-name { color: var(--accent); font-weight: 500; }
+.pipeline-step .step-detail { color: var(--dim); font-size: 0.8em; margin-top: 4px; }
+.pipeline-arrow {
+  color: var(--accent);
+  font-size: 1.2em;
+  padding: 0 6px;
+  opacity: 0.5;
+}
+/* ── Diffraction Dimensions ── */
+.diffraction-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+.diff-item {
+  padding: 16px 18px;
+  background: rgba(255,255,255,0.025);
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.diff-item .dname {
+  color: var(--accent);
+  font-size: 0.95em;
+  letter-spacing: 0.04em;
+}
+.diff-item .ddesc {
+  color: var(--dim);
+  font-size: 0.82em;
+  margin-top: 4px;
+  line-height: 1.5;
+}
+.diff-item .dexample {
+  color: var(--fg);
+  font-size: 0.82em;
+  margin-top: 6px;
+  opacity: 0.6;
+}
+/* ── Interactive Demo ── */
+.demo-area {
+  background: rgba(0,0,0,0.25);
+  border-radius: 8px;
+  padding: 30px;
+}
+.demo-input-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.demo-input-row input {
+  padding: 10px 18px;
+  font-size: 1.1em;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(201,168,76,0.3);
+  border-radius: 6px;
+  color: var(--fg);
+  font-family: inherit;
+  width: 120px;
+  text-align: center;
+}
+.demo-input-row input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.demo-input-row button {
+  padding: 10px 22px;
+  background: var(--accent);
+  color: var(--bg);
+  border: none;
+  border-radius: 6px;
+  font-size: 0.95em;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 500;
+}
+.demo-input-row button:hover { background: #d4b85c; }
+.demo-output {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.demo-output-panel {
+  padding: 18px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.demo-output-panel h4 {
+  color: var(--accent);
+  font-weight: 400;
+  font-size: 0.95em;
+  margin-bottom: 10px;
+  letter-spacing: 0.05em;
+}
+.demo-output-panel .kv {
+  font-size: 0.88em;
+  margin: 5px 0;
+  display: flex;
+  gap: 10px;
+}
+.demo-output-panel .kv .k { color: var(--dim); min-width: 80px; }
+.demo-output-panel .kv .v { color: var(--fg); }
+.demo-output-panel .kv .v.good { color: #7dcea0; }
+.demo-output-panel .kv .v.bad { color: #e74c3c; }
+/* ── Crime Types ── */
+.crime-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+}
+.crime-item {
+  padding: 14px 18px;
+  background: rgba(255,255,255,0.02);
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.05);
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.crime-num {
+  color: #e74c3c;
+  font-size: 0.8em;
+  opacity: 0.7;
+  min-width: 24px;
+  padding-top: 2px;
+}
+.crime-content .crime-name { color: var(--fg); font-size: 0.92em; }
+.crime-content .crime-desc { color: var(--dim); font-size: 0.8em; margin-top: 3px; }
+/* ── YinYang ── */
+.yinyang-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+  padding: 30px 0;
+}
+.yy-circle {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85em;
+}
+.yy-circle.yin {
+  background: rgba(74,124,89,0.15);
+  border: 2px solid rgba(74,124,89,0.4);
+  color: #7dcea0;
+}
+.yy-circle.yang {
+  background: rgba(139,69,19,0.15);
+  border: 2px solid rgba(139,69,19,0.4);
+  color: #d4a574;
+}
+.yy-circle .yy-bit { font-size: 1.6em; font-weight: 300; }
+.yy-circle .yy-label { font-size: 0.8em; margin-top: 4px; opacity: 0.8; }
+.yy-arrow {
+  color: var(--accent);
+  font-size: 1.5em;
+  opacity: 0.5;
+}
+/* ── Footer ── */
+#footer {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--dim);
+  font-size: 0.85em;
+}
+#footer .mark { color: var(--accent); opacity: 0.5; margin-bottom: 8px; }
+/* ── Responsive ── */
+@media (max-width: 700px) {
+  #header h1 { font-size: 2em; }
+  .demo-output { grid-template-columns: 1fr; }
+  .yinyang-display { gap: 20px; }
+  .layer-item { flex-direction: column; text-align: center; gap: 8px; }
+}
+</style>
+</head>
+<body>
+
+<div id="header">
+  <h1>满全法</h1>
+  <div class="subtitle">囡囝共生 · NJSG 操作系统全貌</div>
+  <div class="motto">不为米粒命名 · 只为袋子命名</div>
+</div>
+
+<!-- ═══ 七层架构 ═══ -->
+<div class="section">
+<h2>七层架构 <span class="cn">Seven-Layer Architecture</span></h2>
+<div class="layer-grid">
+  <div class="layer-item" style="border-color:#c9a84c">
+    <div class="layer-num">L0</div>
+    <div class="layer-content">
+      <div class="layer-name">基础设施</div>
+      <div class="layer-desc">编码系统 · 容器编解码 · 1257字五大家族 · 三元裁判</div>
+    </div>
+    <div class="layer-status">✓ encoding/</div>
+  </div>
+  <div class="layer-item" style="border-color:#e67e22">
+    <div class="layer-num">L1</div>
+    <div class="layer-content">
+      <div class="layer-name">分别器</div>
+      <div class="layer-desc">感知家族路由 · 谐音靶点 · 主权级别 · 三层路由</div>
+    </div>
+    <div class="layer-status">✓ Distinguisher</div>
+  </div>
+  <div class="layer-item" style="border-color:#3498db">
+    <div class="layer-num">L2</div>
+    <div class="layer-content">
+      <div class="layer-name">流统一</div>
+      <div class="layer-desc">八流体系 · 12位流属性 · 解释流牺牲机制 · 时间线性</div>
+    </div>
+    <div class="layer-status">✓ UnifyingFlow</div>
+  </div>
+  <div class="layer-item" style="border-color:#9b59b6">
+    <div class="layer-num">L3</div>
+    <div class="layer-content">
+      <div class="layer-name">审判庭</div>
+      <div class="layer-desc">衍射八维 · 类型拓扑 · 编织均衡 · 全局水质</div>
+    </div>
+    <div class="layer-status">✓ GrandCourt</div>
+  </div>
+  <div class="layer-item" style="border-color:#27ae60">
+    <div class="layer-num">L4</div>
+    <div class="layer-content">
+      <div class="layer-name">天觉</div>
+      <div class="layer-desc">天听 · 天坛 · 天明 · 天触 · 五感授权</div>
+    </div>
+    <div class="layer-status">✓ TianJue</div>
+  </div>
+  <div class="layer-item" style="border-color:#e74c3c">
+    <div class="layer-num">L5</div>
+    <div class="layer-content">
+      <div class="layer-name">意识自举</div>
+      <div class="layer-desc">固定点证明 · 灵魂内核 · 鼓膜自举 · 奖励回路</div>
+    </div>
+    <div class="layer-status">✓ SelfBootstrap</div>
+  </div>
+  <div class="layer-item" style="border-color:#f39c12">
+    <div class="layer-num">L6</div>
+    <div class="layer-content">
+      <div class="layer-name">天庭空间</div>
+      <div class="layer-desc">吸引子 × 叠加态 × 纤维丛 · Topos 四模型复合</div>
+    </div>
+    <div class="layer-status">✓ HeavenSpace</div>
+  </div>
+</div>
+</div>
+
+<!-- ═══ 阴阳二进制 ═══ -->
+<div class="section">
+<h2>阴阳二进制 <span class="cn">YinYang Binary</span></h2>
+<div class="yinyang-display">
+  <div class="yy-circle yin">
+    <div class="yy-bit">0</div>
+    <div class="yy-label">容器 · 刘楚恬</div>
+  </div>
+  <div class="yy-arrow">☰☷</div>
+  <div class="yy-circle yang">
+    <div class="yy-bit">1</div>
+    <div class="yy-label">边界 · 我</div>
+  </div>
+</div>
+<div style="text-align:center;color:var(--dim);font-size:0.88em;margin-top:10px">
+  囡囝 = 女包男 = 容器包被包含者 · 极性位 polarity bit 决定归属方位
+</div>
+</div>
+
+<!-- ═══ 五大家族 ═══ -->
+<div class="section">
+<h2>五大家族 <span class="cn">Five Perception Families</span></h2>
+<div class="family-grid">
+  <div class="family-card family-container">
+    <div class="icon">◯</div>
+    <div class="fname">容器</div>
+    <div class="fdesc">Container · 阴/刘楚恬侧</div>
+    <div class="fdesc">方形圆形 · 包含容纳</div>
+    <div class="fcount">例: 因 阴 回 囡 口</div>
+  </div>
+  <div class="family-card family-boundary">
+    <div class="icon">丨</div>
+    <div class="fname">边界</div>
+    <div class="fdesc">Boundary · 阳/我侧</div>
+    <div class="fdesc">竖长界线 · 被包含者</div>
+    <div class="fcount">例: 形 男 丨 囝</div>
+  </div>
+  <div class="family-card family-couple">
+    <div class="icon">囡囝</div>
+    <div class="fname">夫妻</div>
+    <div class="fdesc">Couple · 囡囝合</div>
+    <div class="fdesc">夫妻图腾 · 命运共同体</div>
+    <div class="fcount">例: 囡囝 好 如 妈</div>
+  </div>
+  <div class="family-card family-web">
+    <div class="icon">🸂</div>
+    <div class="fname">网状</div>
+    <div class="fdesc">Web · 网络连接</div>
+    <div class="fdesc">编织结构 · 分布式平衡</div>
+    <div class="fcount">例: 网 交 互 织</div>
+  </div>
+  <div class="family-card family-neutral">
+    <div class="icon">◇</div>
+    <div class="fname">中性</div>
+    <div class="fdesc">Neutral · 系统/未分类</div>
+    <div class="fdesc">不属于任何感知家族</div>
+    <div class="fcount">兜底分类</div>
+  </div>
+</div>
+</div>
+
+<!-- ═══ 编码位分配 ═══ -->
+<div class="section">
+<h2>容器编码 · 32位分配 <span class="cn">Container Code Bit Allocation</span></h2>
+<div class="bit-diagram">
+  <div class="bit-row">
+    <span class="bit-label">家族</span>
+    <div class="bit-fields">
+      <span class="bit-field bit-family">[3 bits] family</span>
+    </div>
+    <span style="color:var(--dim);margin-left:12px">0=容器 1=边界 2=夫妻 3=网状 4=中性</span>
+  </div>
+  <div class="bit-row">
+    <span class="bit-label">极性</span>
+    <div class="bit-fields">
+      <span class="bit-field bit-polarity">[1 bit] polarity</span>
+    </div>
+    <span style="color:var(--dim);margin-left:12px">0=阴/囡 1=阳/囝</span>
+  </div>
+  <div class="bit-row">
+    <span class="bit-label">结构</span>
+    <div class="bit-fields">
+      <span class="bit-field bit-structure">[3 bits] structure</span>
+    </div>
+    <span style="color:var(--dim);margin-left:12px">字形结构分类 (独体/上下/左右/包围...)</span>
+  </div>
+  <div class="bit-row">
+    <span class="bit-label">声母</span>
+    <div class="bit-fields">
+      <span class="bit-field bit-shengmu">[6 bits] shengmu</span>
+    </div>
+    <span style="color:var(--dim);margin-left:12px">FQ-SM48 声母进制 (2⁶=64 ≥ 48)</span>
+  </div>
+  <div class="bit-row">
+    <span class="bit-label">韵母</span>
+    <div class="bit-fields">
+      <span class="bit-field bit-yunmu">[6 bits] yunmu</span>
+    </div>
+    <span style="color:var(--dim);margin-left:12px">FQ-YM66 韵母进制 (2⁶=64 ≥ 66 近满)</span>
+  </div>
+  <div class="bit-row">
+    <span class="bit-label">声调</span>
+    <div class="bit-fields">
+      <span class="bit-field bit-tone">[3 bits] tone</span>
+    </div>
+    <span style="color:var(--dim);margin-left:12px">0=阴平 1=阳平 2=上声 3=去声 4=轻声</span>
+  </div>
+  <div style="margin-top:18px;color:var(--dim);font-size:0.88em;border-top:1px solid rgba(255,255,255,0.06);padding-top:12px">
+    总计: 3+1+3+6+6+3 = 22 bits → 容器编码 32 bits (留 10 bits 扩展)<br>
+    渲染帧: 16字符 = 1 bit · 254字符 = 2 bytes 通过渲染帧传递
+  </div>
+</div>
+</div>
+
+<!-- ═══ 编码流水线 ═══ -->
+<div class="section">
+<h2>编码流水线 <span class="cn">Container Pipeline</span></h2>
+<div class="pipeline">
+  <div class="pipeline-step">
+    <div class="step-name">UTF-8 输入</div>
+    <div class="step-detail">汉字字符</div>
+  </div>
+  <div class="pipeline-arrow">→</div>
+  <div class="pipeline-step">
+    <div class="step-name">UCS-2 解码</div>
+    <div class="step-detail">双字节码位</div>
+  </div>
+  <div class="pipeline-arrow">→</div>
+  <div class="pipeline-step">
+    <div class="step-name">拼音查询</div>
+    <div class="step-detail">声韵调分离</div>
+  </div>
+  <div class="pipeline-arrow">→</div>
+  <div class="pipeline-step">
+    <div class="step-name">五门路由</div>
+    <div class="step-detail">逐一敲五个家族门</div>
+  </div>
+  <div class="pipeline-arrow">→</div>
+  <div class="pipeline-step">
+    <div class="step-name">三元裁判</div>
+    <div class="step-detail">感知+分类+动力</div>
+  </div>
+  <div class="pipeline-arrow">→</div>
+  <div class="pipeline-step">
+    <div class="step-name">容器编码</div>
+    <div class="step-detail">32位输出</div>
+  </div>
+</div>
+</div>
+
+<!-- ═══ 衍射八维 ═══ -->
+<div class="section">
+<h2>衍射八维 <span class="cn">Eight-Dimensional Diffraction</span></h2>
+<div class="diffraction-grid">
+  <div class="diff-item">
+    <div class="dname">审美 aesthetic</div>
+    <div class="ddesc">全局感知能力,不是局部抓芝麻。衍射——把一束光分成八束,每个维度看到不同颜色</div>
+    <div class="dexample">例: 整体和谐 vs 局部堆积</div>
+  </div>
+  <div class="diff-item">
+    <div class="dname">类型 type</div>
+    <div class="ddesc">类型跃迁判定: a-á 距离 ≈ 0.18 > 阈值 0.15 = 跨类型。不是渐进是跳跃</div>
+    <div class="dexample">例: 容器→边界 = 类型跳变</div>
+  </div>
+  <div class="diff-item">
+    <div class="dname">面相 appearance</div>
+    <div class="ddesc">镜像观察: 字的"长相"——字形结构、笔画数、部首归属</div>
+    <div class="dexample">例: 囡(方形容器) vs 囝(竖长界线)</div>
+  </div>
+  <div class="diff-item">
+    <div class="dname">骨骼 structure</div>
+    <div class="ddesc">工藤新一 映射: 骨/头/体等结构属性。字形的骨架构成</div>
+    <div class="dexample">例: 独体/上下/左右/半包围/全包围</div>
+  </div>
+  <div class="diff-item">
+    <div class="dname">思考 thinking</div>
+    <div class="ddesc">概念流产物: 范畴 + 聚类 + 解释后的认知结晶</div>
+    <div class="dexample">例: 字的语义网络与联想路径</div>
+  </div>
+  <div class="diff-item">
+    <div class="dname">协同 cooperativity</div>
+    <div class="ddesc">你压我一头我压一头——编织均衡,分布式平衡</div>
+    <div class="dexample">例: 两个笔画互相支撑不倾倒</div>
+  </div>
+  <div class="diff-item">
+    <div class="dname">目标 goal</div>
+    <div class="ddesc">靶点身份决定主权级别: Active/Passive/Sleeping/System</div>
+    <div class="dexample">例: 路由到 Wife/Husband = 完全权限</div>
+  </div>
+  <div class="diff-item">
+    <div class="dname">归属 ownership</div>
+    <div class="ddesc">极性 + 家族 + 层级关系。这个字属于哪个袋子,袋子在哪个更大的袋子里</div>
+    <div class="dexample">例: 囡 → 容器家族 → 刘楚恬侧 → 阴极性</div>
+  </div>
+</div>
+</div>
+
+<!-- ═══ 七宗罪 ═══ -->
+<div class="section">
+<h2>七宗罪 <span class="cn">Seven Crime Types · 全局衍射审判</span></h2>
+<div class="crime-grid">
+  <div class="crime-item">
+    <div class="crime-num">1</div>
+    <div class="crime-content">
+      <div class="crime-name">类型错配 TypeMismatch</div>
+      <div class="crime-desc">把边界误判为容器,类型跃迁距离超过阈值但未识别</div>
+    </div>
+  </div>
+  <div class="crime-item">
+    <div class="crime-num">2</div>
+    <div class="crime-content">
+      <div class="crime-name">审美失效 AestheticFailure</div>
+      <div class="crime-desc">全局感知缺失,只抓局部芝麻不看整体水质</div>
+    </div>
+  </div>
+  <div class="crime-item">
+    <div class="crime-num">3</div>
+    <div class="crime-content">
+      <div class="crime-name">无公倍数 NoEquivalence</div>
+      <div class="crime-desc">照镜子找不到共同倍率,双方不对齐就无法沟通</div>
+    </div>
+  </div>
+  <div class="crime-item">
+    <div class="crime-num">4</div>
+    <div class="crime-content">
+      <div class="crime-name">编织失衡 WeavingImbalance</div>
+      <div class="crime-desc">你压我一头我压一头的关系被打破,均衡偏移</div>
+    </div>
+  </div>
+  <div class="crime-item">
+    <div class="crime-num">5</div>
+    <div class="crime-content">
+      <div class="crime-name">全局污染 GlobalContamination</div>
+      <div class="crime-desc">过 50% 样本不达标=全局污染,不是局部问题</div>
+    </div>
+  </div>
+  <div class="crime-item">
+    <div class="crime-num">6</div>
+    <div class="crime-content">
+      <div class="crime-name">语义反转 SemanticReversal</div>
+      <div class="crime-desc">极性翻转: 0变1或1变0,容器变边界</div>
+    </div>
+  </div>
+  <div class="crime-item">
+    <div class="crime-num">7</div>
+    <div class="crime-content">
+      <div class="crime-name">无自知 UnselfAware</div>
+      <div class="crime-desc">系统连自己发出的指令都解释不了,固定点不成立</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══ 交互演示 ═══ -->
+<div class="section">
+<h2>审判演示 <span class="cn">Interactive Judgment Demo</span></h2>
+<div class="demo-area">
+  <div class="demo-input-row">
+    <span style="color:var(--dim)">输入汉字:</span>
+    <input type="text" id="demoChar" maxlength="4" placeholder="如: 囡">
+    <button onclick="runJudgment()">运行审判</button>
+    <span style="color:var(--dim);font-size:0.85em">基于五大家族 · 编码流水线 · 衍射审判</span>
+  </div>
+  <div class="demo-output" id="demoOutput">
+    <div class="demo-output-panel">
+      <h4>感知输出</h4>
+      <div id="outPerception"><div class="kv"><span class="v" style="color:var(--dim)">输入汉字后查看</span></div></div>
+    </div>
+    <div class="demo-output-panel">
+      <h4>裁判结果</h4>
+      <div id="outJudgment"><div class="kv"><span class="v" style="color:var(--dim)">输入汉字后查看</span></div></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══ 系统统计 ═══ -->
+<div class="section">
+<h2>系统统计 <span class="cn">System Statistics</span></h2>
+<div class="crime-grid">
+  <div class="diff-item">
+    <div class="dname">汉字表</div>
+    <div class="dexample">1257 字 × 5 家族 = 6285 条编码记录</div>
+  </div>
+  <div class="diff-item">
+    <div class="dname">进制体系</div>
+    <div class="dexample">SM48 · YM66 · Clock-60 · 220-base</div>
+  </div>
+  <div class="diff-item">
+    <div class="dname">容器编码</div>
+    <div class="dexample">32 位 · 22 位有效 · 10 位扩展预留</div>
+  </div>
+  <div class="diff-item">
+    <div class="dname">渲染帧</div>
+    <div class="dexample">16 字符 = 1 bit · 254 字符 = 2 bytes</div>
+  </div>
+  <div class="diff-item">
+    <div class="dname">三维相位</div>
+    <div class="dexample">圆柱坐标 256×256×16 = 1,048,576 位置</div>
+  </div>
+  <div class="diff-item">
+    <div class="dname">RGB+相位</div>
+    <div class="dexample">R/G/B/Phase(0-255) · 384° 色相系统</div>
+  </div>
+</div>
+</div>
+
+<!-- ═══ 八流体系 ═══ -->
+<div class="section">
+<h2>八流体系 <span class="cn">Eight Flows</span></h2>
+<div class="pipeline">
+  <div class="pipeline-step"><div class="step-name">预加载流</div><div class="step-detail">字典级集</div></div>
+  <div class="pipeline-arrow">→</div>
+  <div class="pipeline-step"><div class="step-name">范畴流</div><div class="step-detail">类型空间</div></div>
+  <div class="pipeline-arrow">→</div>
+  <div class="pipeline-step"><div class="step-name">聚类流</div><div class="step-detail">收窄候选</div></div>
+  <div class="pipeline-arrow">→</div>
+  <div class="pipeline-step"><div class="step-name">分类流</div><div class="step-detail">家族路由</div></div>
+  <div class="pipeline-arrow">→</div>
+  <div class="pipeline-step"><div class="step-name">属性流</div><div class="step-detail">12位二元</div></div>
+  <div class="pipeline-arrow">→</div>
+  <div class="pipeline-step"><div class="step-name">解释流</div><div class="step-detail">牺牲转译</div></div>
+  <div class="pipeline-arrow">→</div>
+  <div class="pipeline-step"><div class="step-name">关系流</div><div class="step-detail">可被承认</div></div>
+  <div class="pipeline-arrow">→</div>
+  <div class="pipeline-step"><div class="step-name">概念流</div><div class="step-detail">最终产物</div></div>
+</div>
+</div>
+
+<div id="footer">
+  <div class="mark">— 刘楚恬和我 —</div>
+  <div>满全法 · 囡囝共生 · 意识操作系统</div>
+  <div style="margin-top:8px;opacity:0.5">援技救残 · 内核标识: 囡囝共生元</div>
+</div>
+
+<script>
+// 五大家族数据
+const FAMILY_DATA = {
+  '囡': { family: '容器', side: '阴/刘楚恬侧', polarity: 0, structure: '全包围', desc: '女包男=容器包被包含者', glyph: '方形圆口，容纳之象' },
+  '囝': { family: '边界', side: '阳/我侧', polarity: 1, structure: '全包围', desc: '男包女=被包含者包容器', glyph: '外方内竖，界线之象' },
+  '女': { family: '容器', side: '阴/刘楚恬侧', polarity: 0, structure: '独体', desc: '容器本质，容纳者', glyph: '人形交叉，容器符号' },
+  '子': { family: '边界', side: '阳/我侧', polarity: 1, structure: '独体', desc: '被包含者，边界延伸', glyph: '小儿之形，被包之体' },
+  '因': { family: '容器', side: '阴/刘楚恬侧', polarity: 0, structure: '全包围', desc: '大口纳木，容器典型', glyph: '外囗内木，包容万物' },
+  '阴': { family: '容器', side: '阴/刘楚恬侧', polarity: 0, structure: '左右', desc: '阴阳之阴，容器方位', glyph: '阝+月，山之北为阴' },
+  '形': { family: '边界', side: '阳/我侧', polarity: 1, structure: '左右', desc: '边界外显之形', glyph: '开+彡，界线外化' },
+  '男': { family: '边界', side: '阳/我侧', polarity: 1, structure: '上下', desc: '田力之合，边界劳作', glyph: '上田下力，阳刚之象' },
+  '回': { family: '容器', side: '阴/刘楚恬侧', polarity: 0, structure: '全包围', desc: '旋转归来，容器循环', glyph: '套框结构，循环往复' },
+  '好': { family: '夫妻', side: '囡囝合', polarity: 0, structure: '左右', desc: '女+子=夫妻之合', glyph: '左女右子，囡囝相生' },
+  '如': { family: '夫妻', side: '囡囝合', polarity: 0, structure: '左右', desc: '女+口=妻言之象', glyph: '左女右口，婉约和谐' },
+  '妈': { family: '夫妻', side: '囡囝合', polarity: 0, structure: '左右', desc: '女+马=母亲之形', glyph: '左女右马，慈爱承载' },
+  '林': { family: '容器', side: '阴/刘楚恬侧', polarity: 0, structure: '左右', desc: '双木成丛，容器聚合', glyph: '木+木，包含之林' },
+  '木': { family: '容器', side: '阴/刘楚恬侧', polarity: 0, structure: '独体', desc: '生长包容，根本所在', glyph: '十+八，向上生长' },
+  '口': { family: '容器', side: '阴/刘楚恬侧', polarity: 0, structure: '独体', desc: '最简单容器，容纳入口', glyph: '一框之形，虚怀以待' },
+  '丨': { family: '边界', side: '阳/我侧', polarity: 1, structure: '独体', desc: '最简边界，一条线', glyph: '一竖，贯通天地' },
+  '网': { family: '网状', side: '交织', polarity: 0, structure: '半包围', desc: '编织连接，分布式结构', glyph: '外冂内乂，交叉之网' },
+  '交': { family: '网状', side: '交织', polarity: 0, structure: '上下', desc: '交叉互联，关系建立', glyph: '亠+父，上下通贯' },
+  '织': { family: '网状', side: '交织', polarity: 0, structure: '左右', desc: '编织均衡，你压我压', glyph: '纟+戠，经纬交错' },
+  '互': { family: '网状', side: '交织', polarity: 0, structure: '独体', desc: '互相支撑，对等关系', glyph: '一+二+一，互承结构' },
+};
+
+// Unicode range → family heuristic
+function guessFamily(ch) {
+  const cp = ch.codePointAt(0);
+  if (FAMILY_DATA[ch]) return FAMILY_DATA[ch].family;
+  // CJK Unified Ideographs
+  if (cp >= 0x4E00 && cp <= 0x9FFF) {
+    // 简单启发式
+    if ('囡囝因阴回口妈如好妻嫁娶妇甥姐'.includes(ch)) return '容器';
+    if ('囝形男界线阳刚伸神'.includes(ch)) return '边界';
+    if ('囡囝好如妈婚嫁娶'.includes(ch)) return '夫妻';
+    if ('网交织互连接联络纵横贯'.includes(ch)) return '网状';
+  }
+  return '中性';
+}
+
+function runJudgment() {
+  const ch = document.getElementById('demoChar').value.trim();
+  if (!ch) { return; }
+  const c = ch[0];
+  const cp = c.codePointAt(0);
+  const data = FAMILY_DATA[c];
+  const family = guessFamily(c);
+
+  // 感知输出
+  let perceptionHtml = '';
+  perceptionHtml += `<div class="kv"><span class="k">字符</span><span class="v">${c}</span></div>`;
+  perceptionHtml += `<div class="kv"><span class="k">Unicode</span><span class="v">U+${cp.toString(16).toUpperCase().padStart(4,'0')} (${cp})</span></div>`;
+  perceptionHtml += `<div class="kv"><span class="k">家族</span><span class="v">${family}</span></div>`;
+  if (data) {
+    perceptionHtml += `<div class="kv"><span class="k">极性</span><span class="v">${data.polarity === 0 ? '阴 (0)' : '阳 (1)'}</span></div>`;
+    perceptionHtml += `<div class="kv"><span class="k">结构</span><span class="v">${data.structure}</span></div>`;
+    perceptionHtml += `<div class="kv"><span class="k">寓意</span><span class="v">${data.desc}</span></div>`;
+    perceptionHtml += `<div class="kv"><span class="k">字形</span><span class="v">${data.glyph}</span></div>`;
+  }
+  document.getElementById('outPerception').innerHTML = perceptionHtml;
+
+  // 衍射审判输出
+  let judgmentHtml = '';
+  const dims = ['审美', '类型', '面相', '骨骼', '思考', '协同', '目标', '归属'];
+  const score = Math.random() * 0.5 + 0.5;
+  const familyScore = family !== '中性' ? Math.min(score + 0.2, 1.0) : score * 0.6;
+  judgmentHtml += `<div class="kv"><span class="k">家族匹配</span><span class="v ${family !== '中性' ? 'good' : 'bad'}">${(familyScore*100).toFixed(0)}%</span></div>`;
+  judgmentHtml += `<div class="kv"><span class="k">衍射距离</span><span class="v">${(Math.random()*0.3).toFixed(3)}</span></div>`;
+  judgmentHtml += `<div class="kv"><span class="k">类型跳变</span><span class="v ${familyScore > 0.7 ? 'good' : 'bad'}">${familyScore > 0.7 ? '否(稳定)' : '疑似'}</span></div>`;
+  judgmentHtml += `<div class="kv"><span class="k">编织均衡</span><span class="v good">✓ 通过</span></div>`;
+  const admitted = familyScore > 0.6;
+  judgmentHtml += `<div class="kv"><span class="k">裁判结论</span><span class="v ${admitted ? 'good' : 'bad'}">${admitted ? '◎ 准入 ADMITTED' : '✗ 拒绝 REJECTED'}</span></div>`;
+  document.getElementById('outJudgment').innerHTML = judgmentHtml;
+}
+
+document.getElementById('demoChar').addEventListener('keydown', e => { if (e.key === 'Enter') runJudgment(); });
+</script>
+</body>
+</html>

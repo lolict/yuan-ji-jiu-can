@@ -1,0 +1,15 @@
+{
+  "case_name": "瘦子配胖子",
+  "version": "老2",
+  "node_count": 4,
+  "resonance_score": 98.45,
+  "verdict": "系统健康（全局共振谐调）",
+  "rhythm": "正常梯度（近强远弱，平滑衰减）",
+  "details": {
+    "type_resonance": 1.0,
+    "aesthetic_resonance": 0.845,
+    "goal_resonance": 1.0,
+    "level_resonance": 1.0
+  },
+  "timestamp": 1787391048.923904
+}

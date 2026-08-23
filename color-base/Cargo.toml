@@ -1,0 +1,19 @@
+[package]
+name = "color-base"
+version = "1.0.0"
+edition = "2021"
+authors = ["lolict"]
+description = "颜色进制 · 相位编码系统 — 可编译 + 可解释 + 可打包"
+
+[dependencies]
+sha-1 = "0.10"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[[bin]]
+name = "colorbase"
+path = "src/main.rs"
+
+[lib]
+name = "color_base"
+path = "src/lib.rs"
