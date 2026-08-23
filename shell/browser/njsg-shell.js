@@ -179,7 +179,12 @@ const NjsgCore = {
    */
   verdict(request) {
     if (this.mode === 'wasm' && this.wasmReady) {
-      return this._verdictWasm(request);
+      const r = this._verdictWasm(request);
+      if (r && r.ok) return r;
+    }
+    // 优先使用编码感知裁决 (需 njsg-encoding.js 先加载)
+    if (typeof njsgEncodingVerdict === 'function') {
+      return njsgEncodingVerdict(request);
     }
     return njsgVerdictEngine(request);
   },
@@ -519,5 +524,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // 导出供外部调用 (Node / WebView / 测试环境)
 if (typeof module !== 'undefined') {
-  module.exports = { njsgVerdictEngine, NjsgCore, ShellNest, NjsgShellController, NJSG_SHELL_VERSION };
+  module.exports = { njsgVerdictEngine, njsgEncodingVerdict, analyzeUTF8, decideRouting, NjsgCore, ShellNest, NjsgShellController, NJSG_SHELL_VERSION };
 }
