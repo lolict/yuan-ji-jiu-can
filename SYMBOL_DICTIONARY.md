@@ -121,6 +121,28 @@
 
 ---
 
+## 符号引擎（symbol-engine）
+
+| 符号 | 含义 | 定义处 |
+|------|------|--------|
+| SymbolTable | 符号表（entries + meaning_index + category_index） | symbol-engine/symbol_engine/types.nim |
+| SymbolEntry | 符号条目（code/meaning/category/synonyms/description） | 同上 |
+| ResolveResult | 解析结果（found/entry/alternatives/path） | 同上 |
+| engine.resolve | 核心解析：编码 → 含义 | symbol-engine/symbol_engine/engine.nim |
+| engine.add | 添加符号（支持近义词） | 同上 |
+| engine.remove | 移除符号 | 同上 |
+| engine.lookup_meaning | 反向查找：含义 → 所有编码 | 同上 |
+| engine.lookup_category | 按类别检索 | 同上 |
+| engine.search | 模糊搜索 | 同上 |
+| engine.link_synonyms | 动态链接近义词 | 同上 |
+| loader.load_from_json | 运行时从 JSON 加载符号表（不编译） | symbol-engine/symbol_engine/loader.nim |
+| loader.save_to_json | 保存符号表到 JSON | 同上 |
+| 近义词 | 多个编码指向同一含义，避免冲突 | 同上 |
+| 动态加载 | 符号表是数据，随时可改，不需重编译 | 同上 |
+| symbols.json | 符号表数据文件（纯数据，非代码） | symbol-engine/symbols.json |
+
+---
+
 ## 产权流侵权判定树（property-judge）
 
 | 符号 | 含义 | 定义处 |

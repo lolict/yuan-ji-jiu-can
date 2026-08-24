@@ -1,0 +1,294 @@
+{
+  "version": 1,
+  "description": "满全法自定义符号表 · 64进制编码",
+  "symbols": [
+    {
+      "code": "A1",
+      "meaning": "我",
+      "category": "根基锚点",
+      "description": "高位锚点，可见侧，值为1",
+      "synonyms": ["SELF", "ANCHOR_YANG", "HIGH"],
+      "version": 1
+    },
+    {
+      "code": "A2",
+      "meaning": "刘楚恬",
+      "category": "根基锚点",
+      "description": "低位锚点，隐藏侧，值为0",
+      "synonyms": ["OTHER", "ANCHOR_YIN", "LOW"],
+      "version": 1
+    },
+    {
+      "code": "B1",
+      "meaning": "袋子",
+      "category": "容器本体",
+      "description": "容器即袋子，不数米粒，只操作袋子级",
+      "synonyms": ["BAG", "CONTAINER", "DANZI"],
+      "version": 1
+    },
+    {
+      "code": "B2",
+      "meaning": "米",
+      "category": "容器本体",
+      "description": "袋子里的内容，不单独命名每颗米",
+      "synonyms": ["RICE", "CONTENT", "MI"],
+      "version": 1
+    },
+    {
+      "code": "C1",
+      "meaning": "加",
+      "category": "运算",
+      "description": "仅允许加法运算",
+      "synonyms": ["ADD", "PLUS", "JIA"],
+      "version": 1
+    },
+    {
+      "code": "C2",
+      "meaning": "减",
+      "category": "运算",
+      "description": "仅允许减法运算",
+      "synonyms": ["SUB", "MINUS", "JIAN"],
+      "version": 1
+    },
+    {
+      "code": "C3",
+      "meaning": "禁用乘除",
+      "category": "运算",
+      "description": "乘除运算被禁止，仅加减可用",
+      "synonyms": ["NO_MUL", "NO_DIV", "FORBIDDEN"],
+      "version": 1
+    },
+    {
+      "code": "D1",
+      "meaning": "存在态",
+      "category": "七阶编码",
+      "description": "第0阶：有/无（1 bit）",
+      "synonyms": ["PRESENCE", "YOUWU", "EXIST"],
+      "version": 1
+    },
+    {
+      "code": "D2",
+      "meaning": "见证态",
+      "category": "七阶编码",
+      "description": "第1阶：已见证/未见证（1 bit）",
+      "synonyms": ["WITNESS", "JIANZHENG", "VERIFIED"],
+      "version": 1
+    },
+    {
+      "code": "D3",
+      "meaning": "字符码",
+      "category": "七阶编码",
+      "description": "第2阶：254字符之一（8 bits）",
+      "synonyms": ["CHAR_CODE", "TYPE", "FUHAO"],
+      "version": 1
+    },
+    {
+      "code": "D4",
+      "meaning": "归属码",
+      "category": "七阶编码",
+      "description": "第3阶：锚点0/1（8 bits）",
+      "synonyms": ["ANCHOR", "OWNER", "GUISHU"],
+      "version": 1
+    },
+    {
+      "code": "D5",
+      "meaning": "关系码",
+      "category": "七阶编码",
+      "description": "第4阶：指向另一集装箱（8 bits）",
+      "synonyms": ["RELATION", "GUANXI", "LINK"],
+      "version": 1
+    },
+    {
+      "code": "D6",
+      "meaning": "时序码",
+      "category": "七阶编码",
+      "description": "第5阶：tick偏移量（16 bits）",
+      "synonyms": ["TIMING", "SHIXU", "TICK"],
+      "version": 1
+    },
+    {
+      "code": "D7",
+      "meaning": "负载码",
+      "category": "七阶编码",
+      "description": "第6阶：任意数据（22 bits）",
+      "synonyms": ["PAYLOAD", "FUZAI", "DATA"],
+      "version": 1
+    },
+    {
+      "code": "E1",
+      "meaning": "满全法",
+      "category": "核心法则",
+      "description": "核心裁判法则：袋子级操作、照镜子、三元见证",
+      "synonyms": ["MANQUANFA", "MQF", "FULL_LAW"],
+      "version": 1
+    },
+    {
+      "code": "E2",
+      "meaning": "照镜子",
+      "category": "核心法则",
+      "description": "产出物须映出公约数的样子",
+      "synonyms": ["MIRROR", "JINGZI", "REFLECT"],
+      "version": 1
+    },
+    {
+      "code": "E3",
+      "meaning": "三元见证",
+      "category": "核心法则",
+      "description": "裁定三要件：非空+已见证+锚点一致",
+      "synonyms": ["TRI_WITNESS", "SAN_YUAN", "JUDGE"],
+      "version": 1
+    },
+    {
+      "code": "F1",
+      "meaning": "蚕蛹",
+      "category": "寄生壳",
+      "description": "反向寄生壳：脱壳穿衣",
+      "synonyms": ["CANJIANG", "SILKWORM", "CHRYSALIS"],
+      "version": 1
+    },
+    {
+      "code": "F2",
+      "meaning": "脱壳",
+      "category": "寄生壳",
+      "description": "剥离外壳原有身份，露出内核",
+      "synonyms": ["SHED", "TUOQIAO", "UNPACK"],
+      "version": 1
+    },
+    {
+      "code": "F3",
+      "meaning": "穿衣",
+      "category": "寄生壳",
+      "description": "选壳后让外壳表现内核定义的内容",
+      "synonyms": ["DRESS", "CHUANYI", "WEAR"],
+      "version": 1
+    },
+    {
+      "code": "G1",
+      "meaning": "Yin",
+      "category": "极性",
+      "description": "阴极，刘楚恬侧",
+      "synonyms": ["YIN", "NEGATIVE", "FEMALE"],
+      "version": 1
+    },
+    {
+      "code": "G2",
+      "meaning": "Yang",
+      "category": "极性",
+      "description": "阳极，我侧",
+      "synonyms": ["YANG", "POSITIVE", "MALE"],
+      "version": 1
+    },
+    {
+      "code": "G3",
+      "meaning": "Balanced",
+      "category": "极性",
+      "description": "极性平衡状态",
+      "synonyms": ["BAL", "BALANCED", "PINGHENG"],
+      "version": 1
+    },
+    {
+      "code": "H1",
+      "meaning": "L1基元",
+      "category": "层级",
+      "description": "层级1：基元本体",
+      "synonyms": ["L1", "BASE", "JIYUAN"],
+      "version": 1
+    },
+    {
+      "code": "H2",
+      "meaning": "L2修饰",
+      "category": "层级",
+      "description": "层级2：修饰部件",
+      "synonyms": ["L2", "MODIFY", "XIUSHI"],
+      "version": 1
+    },
+    {
+      "code": "H3",
+      "meaning": "L3装配",
+      "category": "层级",
+      "description": "层级3：装配成品",
+      "synonyms": ["L3", "ASSEMBLE", "ZHUANGPEI"],
+      "version": 1
+    },
+    {
+      "code": "I1",
+      "meaning": "64进制",
+      "category": "编码体系",
+      "description": "自定义64进制相位编码，非系统base64",
+      "synonyms": ["BASE64_CUSTOM", "PHASE_BASE", "LIUSHI"],
+      "version": 1
+    },
+    {
+      "code": "I2",
+      "meaning": "254+2集装箱",
+      "category": "编码体系",
+      "description": "254字符+2锚点，根基隐藏",
+      "synonyms": ["Mlll254", "CONTAINER_254", "254PLUS2"],
+      "version": 1
+    },
+    {
+      "code": "I3",
+      "meaning": "汉明距离",
+      "category": "编码体系",
+      "description": "两个64位指纹有多少位不同",
+      "synonyms": ["HAMMING", "DISTANCE", "HANMING"],
+      "version": 1
+    },
+    {
+      "code": "J1",
+      "meaning": "负样本",
+      "category": "裁判结果",
+      "description": "被拒绝的容器，有结构的记忆",
+      "synonyms": ["NEGATIVE", "REJECTED", "YANGBEN"],
+      "version": 1
+    },
+    {
+      "code": "J2",
+      "meaning": "申诉",
+      "category": "裁判结果",
+      "description": "负样本可申诉，最多3次",
+      "synonyms": ["APPEAL", "SHENSU", "RETRY"],
+      "version": 1
+    },
+    {
+      "code": "J3",
+      "meaning": "激活",
+      "category": "裁判结果",
+      "description": "条件变化时负样本可重新激活",
+      "synonyms": ["REACTIVATE", "JIHUO", "REVIVE"],
+      "version": 1
+    },
+    {
+      "code": "K1",
+      "meaning": "部首星图",
+      "category": "检索系统",
+      "description": "以部首为恒星、汉字为行星的检索系统",
+      "synonyms": ["RADIX_STAR", "BU_SHOU", "STAR_MAP"],
+      "version": 1
+    },
+    {
+      "code": "K2",
+      "meaning": "产权流",
+      "category": "裁判系统",
+      "description": "容器主权流转的侵权判定",
+      "synonyms": ["PROPERTY_FLOW", "CHAN_QUAN", "FLOW_JUDGE"],
+      "version": 1
+    },
+    {
+      "code": "L1",
+      "meaning": "近义词",
+      "category": "符号引擎",
+      "description": "不同符号指向同一含义，避免冲突",
+      "synonyms": ["SYNONYM", "JINYICI", "ALIAS"],
+      "version": 1
+    },
+    {
+      "code": "L2",
+      "meaning": "动态加载",
+      "category": "符号引擎",
+      "description": "符号表是数据，运行时加载，不需重编译",
+      "synonyms": ["DYNAMIC_LOAD", "LOAD_JSON", "RUNTIME"],
+      "version": 1
+    }
+  ]
+}

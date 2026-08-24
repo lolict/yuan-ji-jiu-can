@@ -60,6 +60,7 @@
 | 18 | governance | tools/governance/ | ✅ |
 | 19 | radix-star | tools/radix-star/ | ✅ 部首星图·50汉字演示 |
 | 20 | property-judge | tools/property-judge/ | ✅ 产权判定·10场景全覆盖 |
+| 21 | symbol-engine | tools/symbol-engine/ | ✅ 符号引擎·36符号动态加载 |
 
 ---
 

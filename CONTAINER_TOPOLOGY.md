@@ -74,6 +74,7 @@
 | phase-radix | Python 相位编译器 |
 | radix-star | 部首星图（真实字典数据·50汉字演示通过） |
 | property-judge | 产权流侵权判定树（10场景全覆盖通过） |
+| symbol-engine | 符号引擎（36符号动态加载·近义词系统通过） |
 
 ---
 
