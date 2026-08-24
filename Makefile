@@ -65,6 +65,26 @@ encoding-bridge-kernel: kernel/src/encoding_bridge_kernel.c kernel/src/encoding_
 	  -o kernel/src/encoding_bridge_kernel.elf -lm
 	./kernel/src/encoding_bridge_kernel.elf
 
+# 全局控制容器 → 内核桥接测试
+test-global-control-kernel: kernel/src/global_control_bridge_kernel.c \
+                            kernel/include/global_control_bridge_kernel.h \
+                            encoding/global_control.c encoding/global_control.h
+	$(CC) $(CFLAGS) -DMLLL_LIBRARY -DBRIDGE_TEST -Iencoding -Ikernel/include \
+	  kernel/src/global_control_bridge_kernel.c \
+	  encoding/global_control.c \
+	  -o kernel/src/global_control_bridge_kernel.elf -lm
+	@echo "═══ 全局控制容器 · 内核桥接 ═══"
+	./kernel/src/global_control_bridge_kernel.elf
+
+# 全局控制容器测试 (声母遍历韵母 + 聂小倩借尸还魂 + 决策树)
+test-global-control: encoding/global_control.c encoding/global_control.h encoding/test_global_control.c
+	$(CC) $(CFLAGS) -DMLLL_LIBRARY -Iencoding \
+	  encoding/test_global_control.c \
+	  encoding/global_control.c \
+	  -o encoding/test_global_control.elf -lm
+	@echo "═══ 全局控制容器 — 声母遍历韵母 端到端 ═══"
+	./encoding/test_global_control.elf
+
 # MLLL 汉字拼音知识库 demo + 夫妻对偶查询
 mlll-pinyin: kernel/src/mlll_pinyin_demo.c kernel/src/mlll_pinyin.c kernel/src/mlll_symbols.c
 	$(CC) $(CFLAGS) -DMLLL_LIBRARY $^ -o kernel/src/mlll_pinyin_demo.elf -lm

@@ -87,12 +87,12 @@
 #ifndef STRUCT_LEFT_RIGHT
 #define STRUCT_LEFT_RIGHT       0x01
 #define STRUCT_TOP_BOTTOM       0x02
-#define STRUCT_SURROUND         0x03
-#define STRUCT_SEMI             0x04
-#define STRUCT_LCR              0x05
-#define STRUCT_TMB              0x06
-#define STRUCT_PINZI            0x07
-#define STRUCT_SINGLE           0x08
+#define STRUCT_FULL_WRAP        0x04
+#define STRUCT_SEMI_WRAP        0x03
+#define STRUCT_PIN              0x05
+#define STRUCT_LMR              0x06
+#define STRUCT_TMB              0x07
+#define STRUCT_SINGLE           0x00
 #endif
 
 /* 全局统一笔画 */
@@ -225,5 +225,8 @@ int     interlock_check_file_symbols(const char *filename);
 #ifdef __cplusplus
 }
 #endif
+
+/* ── 历史符号登记 (可选 include) ── */
+/* #include "history_symbols.h" */
 
 #endif /* NJSG_GLOBAL_INTERLOCK_H */
