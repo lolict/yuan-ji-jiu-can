@@ -226,6 +226,7 @@
 | hieyair | tools/hieyair/ | 合并工具 |
 | page64 | tools/page64/ | 64 页系统 |
 | phase-radix | tools/phase-radix/ | Nim版64进制编码转换器（自定义符号表+可变长Unicode编码） |
+| mltt-cipher | tools/mltt-cipher/ | Nim版命名密码表（家庭命名+动漫角色映射+极性标注） |
 | governance | tools/governance/ | 版本化工作流、像素共振、裁决引擎 |
 
 ---
@@ -269,6 +270,49 @@
 | verify_utf8 | 编解码正确性验证 | 同上 |
 
 **核心价值：每个符号都有独立含义（满/全/袋/米/加/减），不是乱码，是可读的符号系统。**
+
+---
+
+## mltt 命名密码表（mltt-cipher）
+
+短码 ↔ 含义的双向映射，每个短码都有极性（阴阳平衡）和类别：
+
+**家庭命名（核心条目）：**
+
+| 短码 | 含义 | 极性 | 类别 |
+|------|------|------|------|
+| mlll | 集装箱 | 阴(容器) | 容器 |
+| mlnn | 囡囝 | 平衡 | 容器 |
+| mlnnn | 囡囡 | 阴(容器) | 容器 |
+| mlnnnn | 囝囝 | 阳(界线) | 容器 |
+| mlnnnnn | 囝囡 | 平衡 | 容器 |
+| mltt | 从体 | 阳(界线) | 流 |
+| mlct | 岔途 | 阴(容器) | 流 |
+| gtt | 音韵态射 | 平衡 | 流 |
+| mlgy | 世俗归一 | 平衡 | 流 |
+| lctqf | 零岔途全法 | 平衡 | 谐音桥 |
+
+**动漫角色映射：**
+
+| 短码 | 角色 | 映射属性 |
+|------|------|----------|
+| maolilan | 毛利兰 | 表面属性（模/面/名） |
+| gouteng | 工藤新一 | 结构属性（骨/头/体） |
+| huiyuanai | 灰原哀 | 横向属性（行/页/业） |
+
+**极性分布：** 阴(容器)=5, 阳(界线)=4, 平衡=11
+
+**核心符号：**
+
+| 符号 | 含义 | 定义处 |
+|------|------|--------|
+| CipherEntry | 密码条目（code/meaning/polarity/category/description） | mltt-cipher/mltt/types.nim |
+| Polarity | 极性枚举（yin/yang/balanced） | 同上 |
+| register | 注册新密码 | mltt-cipher/mltt/cipher.nim |
+| lookup / reverse_lookup | 双向查询 | 同上 |
+| by_polarity / by_category | 按极性/类别筛选 | 同上 |
+| search | 模糊搜索 | 同上 |
+| load_defaults | 加载默认密码表（20条） | mltt-cipher/mltt/defaults.nim |
 
 ---
 

@@ -63,6 +63,7 @@
 | 21 | symbol-engine | tools/symbol-engine/ | ✅ 符号引擎·36符号动态加载 |
 | 22 | symbol-registry | tools/symbol-registry/ | ✅ 统一注册·35符号10工具 |
 | 23 | boundary-engine | tools/boundary-engine/ | ✅ 边界分析·加法拆分乘法 |
+| 24 | mltt-cipher | tools/mltt-cipher/ | ✅ 命名密码表·20条目+动态新增 |
 
 ---
 
