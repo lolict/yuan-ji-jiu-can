@@ -9,6 +9,29 @@
 import tables, strutils, json, os, parseopt, terminal, math, unicode
 
 # ═══════════════════════════════════════════════════════════════
+# 自定义配对存储(必须在使用前声明)
+# ═══════════════════════════════════════════════════════════════
+const CUSTOM_FILE* = "cognition_os/custom_pairs.json"
+
+var custom_pairs = initTable[string, string]()
+
+proc load_custom*() =
+  if fileExists(CUSTOM_FILE):
+    let content = readFile(CUSTOM_FILE)
+    let j = parseJson(content)
+    for k, v in j: custom_pairs[k] = v.getStr()
+
+proc save_custom*() =
+  var j = newJObject()
+  for k, v in custom_pairs: j[k] = newJString(v)
+  writeFile(CUSTOM_FILE, j.pretty)
+
+proc add_custom_pair*(a, b, result: string) =
+  custom_pairs[a & "+" & b] = result
+  custom_pairs[b & "+" & a] = result
+  save_custom()
+
+# ═══════════════════════════════════════════════════════════════
 # 你的真实数据(从现有文件直接导入)
 # ═══════════════════════════════════════════════════════════════
 
@@ -78,13 +101,49 @@ const TONE_NAMES* = ["阴平", "阳平", "上声", "去声", "轻声"]
 const MUSIC_NAMES* = ["原子", "短语", "段落"]
 
 # ═══════════════════════════════════════════════════════════════
+# 基元冻结 · 白名单(死规矩 · 不可增删)
+# ═══════════════════════════════════════════════════════════════
+const FROZEN_SHENGMU* = [
+  "b", "p", "m", "f", "d", "t", "n", "l", "g", "k", "h",
+  "j", "q", "x", "y", "z", "c", "s", "r", "ȥ", "ç", "ş", "ŋ", "w",
+]
+const FROZEN_SHENGMU_UPPER* = [
+  "B", "P", "M", "F", "D", "T", "N", "L", "G", "K", "H",
+  "J", "Q", "X", "Y", "Z", "C", "S", "R", "Ȥ", "Ç", "Ŋ", "W",
+]
+const FROZEN_YUNMU_NAMES* = [
+  "a", "o", "e", "i", "u", "ü", "ai", "ei", "ui", "ao", "ou", "iu",
+  "ie", "üe", "er", "an", "en", "in", "un", "ün", "ang", "eng", "ing", "ong",
+  "ia", "iao", "ua", "uai", "uo", "ian", "uan", "üan", "iang", "uang", "iong",
+]
+const FROZEN_TONES* = ["ˉ", "ˊ", "ˇ", "ˋ"]
+const FROZEN_COLORS* = COLOR_SYMBOLS
+const FROZEN_SPACE* = [
+  "东", "南", "西", "北", "上", "下", "天", "地", "人",
+  "前", "后", "左", "右", "中", "内", "外", "高", "低",
+]
+const FROZEN_MUSIC* = ["原子", "短语", "段落"]
+
+# 白名单合集(手动拼接 · 不用&)
+const WHITELIST* = block:
+  var result: seq[string] = @[]
+  for s in FROZEN_SHENGMU: result.add(s)
+  for s in FROZEN_SHENGMU_UPPER: result.add(s)
+  for s in FROZEN_TONES: result.add(s)
+  for s in FROZEN_COLORS: result.add(s)
+  for s in FROZEN_SPACE: result.add(s)
+  for s in FROZEN_MUSIC: result.add(s)
+  result
+
+# ═══════════════════════════════════════════════════════════════
 # 工具状态
 # ═══════════════════════════════════════════════════════════════
 type
   CodingTool* = object
     name*: string
-    layers*: Table[string, int]      # 层名 → 进制数
-    symbol_to_layer*: Table[string, string]  # 符号 → 层名
+    layers*: Table[string, int]
+    symbol_to_layer*: Table[string, string]
+    blacklist*: seq[string]  # 负样本(被越权造字的记录)
 
 func new_coding_tool*(): CodingTool =
   result.name = "满全法编码工具"
@@ -97,13 +156,33 @@ func new_coding_tool*(): CodingTool =
   result.layers["镜像"] = 10
   result.layers["音乐"] = 3
   result.symbol_to_layer = initTable[string, string]()
+  result.blacklist = @[]
   
-  # 注册所有符号
+  # 注册白名单符号
+  for s in FROZEN_SHENGMU: result.symbol_to_layer[s] = "声母"
+  for s in FROZEN_SHENGMU_UPPER: result.symbol_to_layer[s] = "声母"
   for s in SYMBOLS66: result.symbol_to_layer[s] = "韵母"
-  for s in SHENGMU48: result.symbol_to_layer[s] = "声母"
-  for s in SHENGMU48_UPPER: result.symbol_to_layer[s] = "声母"
-  for s in COLOR_SYMBOLS: result.symbol_to_layer[s] = "颜色"
-  for s in TONE_SYMBOLS: result.symbol_to_layer[s] = "声调"
+  for s in FROZEN_TONES: result.symbol_to_layer[s] = "声调"
+  for s in FROZEN_COLORS: result.symbol_to_layer[s] = "颜色"
+  for s in FROZEN_SPACE: result.symbol_to_layer[s] = "空间"
+  for s in FROZEN_MUSIC: result.symbol_to_layer[s] = "音乐"
+
+# ═══════════════════════════════════════════════════════════════
+# 基元冻结检查
+# ═══════════════════════════════════════════════════════════════
+func is_frozen*(tool: CodingTool; s: string): bool =
+  for w in WHITELIST:
+    if s == w: return true
+  return false
+
+func get_violations*(tool: CodingTool; text: string): seq[string] =
+  var i = 0
+  while i < text.len:
+    let r = text.runeAt(i)
+    let rs = $r
+    if not tool.is_frozen(rs):
+      result.add(rs)
+    i += len(rs)
 
 # ═══════════════════════════════════════════════════════════════
 # 六层审判
@@ -154,7 +233,7 @@ func judge_aesthetic*(a, b: string): tuple[pass: bool; score: float; detail: str
     return (true, 0.9, "双变音: 水位平衡")
   return (true, 1.0, "双基元: 水位平衡")
 
-func judge*(tool: CodingTool; a, b: string): tuple[pass: bool; score: float; report: string] =
+proc judge*(tool: CodingTool; a, b: string): tuple[pass: bool; score: float; report: string] =
   var lines: seq[string] = @[]
   lines.add("═══ 审判报告 ═══")
   lines.add("配对: " & a & " + " & b)
@@ -307,29 +386,6 @@ func explain*(): string = """
 # ═══════════════════════════════════════════════════════════════
 # CLI入口
 # ═══════════════════════════════════════════════════════════════
-# ═══════════════════════════════════════════════════════════════
-# 自定义配对存储
-# ═══════════════════════════════════════════════════════════════
-const CUSTOM_FILE* = "cognition_os/custom_pairs.json"
-
-var custom_pairs = initTable[string, string]()
-
-proc load_custom*() =
-  if fileExists(CUSTOM_FILE):
-    let content = readFile(CUSTOM_FILE)
-    let j = parseJson(content)
-    for k, v in j: custom_pairs[k] = v.getStr()
-
-proc save_custom*() =
-  var j = newJObject()
-  for k, v in custom_pairs: j[k] = newJString(v)
-  writeFile(CUSTOM_FILE, j.pretty)
-
-proc add_custom_pair*(a, b, result: string) =
-  custom_pairs[a & "+" & b] = result
-  custom_pairs[b & "+" & a] = result
-  save_custom()
-
 when is_main_module:
   load_custom()
   var tool = new_coding_tool()
@@ -350,8 +406,35 @@ when is_main_module:
     if paramCount() < 3:
       echo "用法: ./quan_neng judge <符号A> <符号B>"
       quit(1)
-    let r = tool.judge(paramStr(2), paramStr(3))
+    let a = paramStr(2)
+    let b = paramStr(3)
+    # 基元冻结检查
+    let viol_a = tool.get_violations(a)
+    let viol_b = tool.get_violations(b)
+    if viol_a.len > 0 or viol_b.len > 0:
+      echo "═══ 基元冻结违规 ═══"
+      if viol_a.len > 0:
+        echo "  A(", a, ") 含白名单外字符: ", viol_a.join(", ")
+      if viol_b.len > 0:
+        echo "  B(", b, ") 含白名单外字符: ", viol_b.join(", ")
+      echo "  判决: ✗拒绝(违反基元冻结)"
+      quit(1)
+    let r = tool.judge(a, b)
     echo r.report
+  
+  of "frozen":
+    if paramCount() < 2:
+      echo "用法: ./quan_neng frozen <符号>"
+      echo "检查符号是否在白名单(冻结基元)中"
+      quit(1)
+    let s = paramStr(2)
+    if tool.is_frozen(s):
+      echo "  ✓ ", s, " 是冻结基元"
+    else:
+      echo "  ✗ ", s, " 不在白名单中 · 禁止使用"
+    let viols = tool.get_violations(s)
+    if viols.len > 0:
+      echo "  违规字符: ", viols.join(", ")
   
   of "yunmu":
     if paramCount() < 2:
