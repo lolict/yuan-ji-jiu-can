@@ -59,6 +59,7 @@
 | 17 | phase-radix | tools/phase-radix/ | ✅ Python |
 | 18 | governance | tools/governance/ | ✅ |
 | 19 | radix-star | tools/radix-star/ | ✅ 部首星图·50汉字演示 |
+| 20 | property-judge | tools/property-judge/ | ✅ 产权判定·10场景全覆盖 |
 
 ---
 
@@ -118,12 +119,13 @@ git push gitee main
 
 1. ✅ **负样本容器的数据结构与回写协议** —— tools/manquanfa/mq/negative.nim | Demo 已通过
 2. ✅ **部首星图算法在真实字典数据上的运行样例** —— tools/radix-star/ | 50汉字演示通过
-3. ⬜ **产权流侵权自动判定的完整判定树** —— 满全法裁判的侵权应用
+3. ✅ **产权流侵权自动判定的完整判定树** —— tools/property-judge/ | 10场景全覆盖通过
 
 ### 方法论可深入方向
 
 - ~~负样本回写协议~~ ✅ 已完成
 - ~~部首星图真实数据~~ ✅ 已完成
+- ~~产权流侵权判定~~ ✅ 已完成
 - 高维代数（(n-1)×0.1 偏移率）
 - 2²⁵⁶ 等效高位对齐进位制
 - YIN-YANG-BINARY 完整映射

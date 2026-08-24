@@ -21,22 +21,18 @@
  */
 
 #include "gongyueshu_address.h"
+#include "global_interlock.h"
 #include <string.h>
+#include "symbol_chain.h"
 
 /* ═══════════════════════════════════════════════════════════════
- * 公约数常量 (6个基韵锚)
+ * 公约数常量 (6个基韵锚) — 已统一到 global_interlock.h
+ * 此处仅保留特殊路径标记
  * ═══════════════════════════════════════════════════════════════ */
 
-#define GY_a    0   /* 开央不圆唇 */
-#define GY_o    1   /* 后半高圆唇 */
-#define GY_e    2   /* 后半高不圆唇 */
-#define GY_i    3   /* 前高不圆唇 */
-#define GY_u    4   /* 后高圆唇 */
-#define GY_uu   5   /* 前高圆唇 (ü) */
-
 /* 特殊路径标记 (占用 6,7 这两个码点) */
-#define MARK_N      6   /* 前鼻音 -n 结尾 */
-#define MARK_NG     7   /* 后鼻音 -ng 结尾 */
+#define MARK_N      GY_MARK_N   /* 前鼻音 -n 结尾 */
+#define MARK_NG     GY_MARK_NG  /* 后鼻音 -ng 结尾 */
 
 static const char *GONGYUESHU_NAMES[6] = {"a","o","e","i","u","ü"};
 

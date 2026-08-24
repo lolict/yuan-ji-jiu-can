@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include "negative_sample.h"
+#include "global_interlock.h"
+#include "symbol_chain.h"
 
 int main(void) {
     negative_sample_t ns;

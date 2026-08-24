@@ -12,6 +12,7 @@
  */
 
 #include "negative_sample.h"
+#include "global_interlock.h"
 #include <string.h>
 
 /* 拒绝原因名称 */

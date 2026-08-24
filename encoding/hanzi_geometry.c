@@ -9,7 +9,9 @@
  */
 
 #include "hanzi_geometry.h"
+#include "global_interlock.h"
 #include <string.h>
+#include "symbol_chain.h"
 
 /* 结构名称 */
 static const char *STRUCT_NAMES[] = {

@@ -19,6 +19,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+/* global_interlock.h 在 enum 定义之后包含 · 避免宏展开破坏枚举 */
 
 #define HANZI_GEOMETRY_MAGIC    0x48474D54  /* "HGMT" */
 #define MAX_RADICALS            214
@@ -47,6 +48,10 @@ typedef enum {
     STROKE_NA    = 3,   /* 捺 */
     STROKE_ZHE   = 4,   /* 折 */
 } stroke_t;
+
+/* ── 全局互锁 (在所有 enum 定义之后 · 避免宏展开破坏枚举) ── */
+#include "global_interlock.h"
+#include "symbol_chain.h"
 
 /* 一个汉字的几何描述 */
 typedef struct {

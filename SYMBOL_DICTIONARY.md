@@ -121,6 +121,24 @@
 
 ---
 
+## 产权流侵权判定树（property-judge）
+
+| 符号 | 含义 | 定义处 |
+|------|------|--------|
+| PropertyJudge | 产权流侵权判定引擎 | property-judge/property_judge/tree.nim |
+| PropertyState | 容器主权状态（无主/私有/共有/集体/争议） | property-judge/property_judge/types.nim |
+| FlowType | 产权流类型（创建/转移/变换/合并/拆分/销毁/借用/租赁） | 同上 |
+| Authorization | 授权级别（完全/部分/条件/撤回/无） | 同上 |
+| InfringementType | 侵权类型（7种 + 无侵权/争议） | 同上 |
+| ContainerInfo | 容器信息（id/state/metadata） | 同上 |
+| PropertyFlow | 产权流事件（flow_id/source/operator/auth） | 同上 |
+| Judgment | 判定结果（类型/路径/置信度/建议） | property-judge/property_judge/tree.nim |
+| 判定树9路径 | 从root到最终判定的9种不同路径 | 同上 |
+| judge() | 核心判定函数：输入流 → 输出判定 | 同上 |
+| is_owner | 判断操作人是否为容器主人 | property-judge/property_judge/types.nim |
+
+---
+
 ## 部首星图（radix-star）
 
 | 符号 | 含义 | 定义处 |

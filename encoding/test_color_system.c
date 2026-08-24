@@ -10,6 +10,8 @@
 #include <stdio.h>
 #include <string.h>
 #include "color_system.h"
+#include "global_interlock.h"
+#include "symbol_chain.h"
 
 static int tc = 0, pc = 0, fc = 0;
 

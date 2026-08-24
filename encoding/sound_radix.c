@@ -21,6 +21,7 @@
  */
 
 #include "sound_radix.h"
+#include "global_interlock.h"
 #include <string.h>
 #include <math.h>
 

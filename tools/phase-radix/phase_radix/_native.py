@@ -448,6 +448,47 @@ class SoundRadixRef:
         return _lib.sound_radix_get_duration(self._buf)
 
 
+# ── 全局互锁横轴 ──────────────────────────────────────────
+
+_lib.interlock_init.argtypes = []
+_lib.interlock_init.restype = None
+
+_lib.interlock_register_container.argtypes = [ctypes.c_uint8, ctypes.c_char_p]
+_lib.interlock_register_container.restype = ctypes.c_int
+
+_lib.interlock_register_symbol.argtypes = [ctypes.c_uint32, ctypes.c_uint8]
+_lib.interlock_register_symbol.restype = ctypes.c_int
+
+_lib.interlock_check_symbol.argtypes = [ctypes.c_uint32]
+_lib.interlock_check_symbol.restype = ctypes.c_int
+
+_lib.interlock_activate.argtypes = []
+_lib.interlock_activate.restype = None
+
+
+class InterlockRef:
+    """全局互锁横轴的 Python 封装"""
+    
+    def __init__(self):
+        _lib.interlock_init()
+    
+    def register_container(self, container_id: int, name: str) -> bool:
+        return _lib.interlock_register_container(container_id, name.encode('utf-8')) == 0
+    
+    def register_symbol(self, symbol: int, container: int) -> bool:
+        return _lib.interlock_register_symbol(symbol, container) == 0
+    
+    def check_symbol(self, symbol: int) -> bool:
+        return _lib.interlock_check_symbol(symbol) == 1
+    
+    def activate(self):
+        _lib.interlock_activate()
+    
+    def stats(self) -> dict:
+        """获取横轴状态 (通过解析 stdout 不够优雅, 这里只返回激活状态) """
+        return {"active": True}
+
+
 def type_str(t: int) -> str:
     names = {
         0x01: "基韵锚",

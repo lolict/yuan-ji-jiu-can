@@ -18,6 +18,8 @@
 #include "hanzi_table.h"
 #include "perception_field.h"
 #include <string.h>
+#include "global_interlock.h"
+#include "symbol_chain.h"
 
 /* ──────────────────────────────────────────────
  * 感知家族分表

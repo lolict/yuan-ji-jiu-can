@@ -7,6 +7,8 @@
 
 #include "type_discipline.h"
 #include <string.h>
+#include "global_interlock.h"
+#include "symbol_chain.h"
 
 /* ═══════════════════════════════════════════════════════════════
  * 初始化

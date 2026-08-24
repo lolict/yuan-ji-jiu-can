@@ -10,7 +10,9 @@
  */
 
 #include "color_system.h"
+#include "global_interlock.h"
 #include <string.h>
+#include "symbol_chain.h"
 
 /* 审美阈值 */
 #define AESTHETIC_THRESHOLD 0.3f

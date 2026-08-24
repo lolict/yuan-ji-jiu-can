@@ -34,6 +34,8 @@
 #include <string.h>
 #include <stdint.h>
 #include <math.h>
+#include "global_interlock.h"
+#include "symbol_chain.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265f

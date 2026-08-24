@@ -30,6 +30,7 @@
 #define NJSG_TYPE_DISCIPLINE_H
 
 #include <stdint.h>
+/* global_interlock.h + symbol_chain.h 在 enum 定义之后包含 · 避免宏展开破坏枚举 */
 
 /* ═══════════════════════════════════════════════════════════════
  * 类型枚举
@@ -79,6 +80,10 @@ typedef enum {
     PAIR_REJECT_UNKNOWN     = 5,  /* 拒绝: 有未分类符号 */
     PAIR_REJECT_DIFFERENT   = 6,  /* 拒绝: 不同类型不可配对 */
 } pair_verdict_t;
+
+/* ── 全局互锁 (在所有 enum 定义之后 · 避免宏展开破坏枚举) ── */
+#include "global_interlock.h"
+#include "symbol_chain.h"
 
 /* ═══════════════════════════════════════════════════════════════
  * 类型纪律管理器

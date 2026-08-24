@@ -10,6 +10,7 @@
  */
 
 #include "dimension_space.h"
+#include "global_interlock.h"
 #include <string.h>
 
 /* ═══════════════════════════════════════════════════════════════

@@ -37,6 +37,7 @@
 #define NJSG_PERCEPTION_FIELD_H
 
 #include <stdint.h>
+/* global_interlock.h 在 enum 定义之后包含 · 避免宏展开破坏枚举 */
 
 /* ═══════════════════════════════════════════════════════════════
  * 感知家族 (分别器第一层 · 字形分类)
@@ -124,6 +125,10 @@ typedef enum {
     JUDGE_CLASSIFY  = 0x20,  /* 分类归属: 找到容器家族 */
     JUDGE_DYNAMIC   = 0x40   /* 动力充足: 可被筷子夹持 */
 } judge_module_t;
+
+/* ── 全局互锁 (在所有 enum 定义之后 · 避免宏展开破坏枚举) ── */
+#include "global_interlock.h"
+#include "symbol_chain.h"
 
 /* 裁判引擎 */
 typedef struct {

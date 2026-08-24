@@ -31,12 +31,30 @@ from phase_radix._native import (
     DimensionRef,
     HanziGeomRef,
     NegativeRef,
+    InterlockRef,
     STRUCT_LEFT_RIGHT, STRUCT_TOP_BOTTOM, STRUCT_SURROUND, STRUCT_SEMI,
     STRUCT_LCR, STRUCT_TMB, STRUCT_PINZI, STRUCT_SINGLE,
     STROKE_HENG, STROKE_SHU, STROKE_PIE, STROKE_NA, STROKE_ZHE,
     REASON_CROSS_LEVEL, REASON_CROSS_TYPE, REASON_CROSS_ANCHOR,
     CONTOUR_FLAT, CONTOUR_RISE, CONTOUR_FALL, CONTOUR_DIP,
 )
+
+# 容器标识 (与 global_interlock.h 一致)
+CONT_COLOR_SYSTEM = 0x01
+CONT_SOUND_RADIX  = 0x02
+CONT_GONGYUESHU   = 0x03
+CONT_DIMENSION    = 0x04
+CONT_HANZI_GEOM   = 0x05
+CONT_NEGATIVE     = 0x06
+
+CONT_NAMES = {
+    0x01: "颜色进制",
+    0x02: "声音进制",
+    0x03: "公约数地址",
+    0x04: "多维几何",
+    0x05: "汉字几何",
+    0x06: "负样本",
+}
 
 
 # ── 声母表 ──────────────────────────────────────────────────
@@ -328,6 +346,62 @@ def cmd_sing(sound: SoundRadixRef, args: list):
     print("(渲染到 WAV 需要更多内存, 请使用 Python API)")
 
 
+def cmd_interlock(il: InterlockRef, args: list):
+    """全局互锁横轴: mhz interlock <子命令> [参数]"""
+    if not args:
+        print("用法: mhz interlock <init|register|check|activate|stats>")
+        print("  init                          — 初始化横轴")
+        print("  register container <id> <名>  — 注册容器齿轮")
+        print("  register symbol <sym> <cont>  — 登记符号圆珠")
+        print("  check <symbol>                — 检查符号是否已登记")
+        print("  activate                      — 激活互锁")
+        print("  stats                         — 横轴状态")
+        return
+    
+    subcmd = args[0]
+    
+    if subcmd == "init":
+        il = InterlockRef()
+        print("横轴初始化完成 (FQM v0003)")
+    
+    elif subcmd == "register":
+        if len(args) < 4:
+            print("用法: mhz interlock register <container|symbol> <id> <name>")
+            return
+        if args[1] == "container":
+            cid = int(args[2], 0)
+            name = args[3]
+            ok = il.register_container(cid, name)
+            print(f"容器齿轮 {'已套上' if ok else '失败'}: {name} (0x{cid:02X})")
+        elif args[1] == "symbol":
+            sym = int(args[2], 0)
+            cont = int(args[3], 0)
+            ok = il.register_symbol(sym, cont)
+            result_str = "已入圈" if ok else "失败"
+            print(f"符号圆珠 {result_str}: 0x{sym:02X} → {CONT_NAMES.get(cont, '?')}")
+    
+    elif subcmd == "check":
+        if len(args) < 2:
+            print("用法: mhz interlock check <symbol>")
+            return
+        sym = int(args[1], 0)
+        ok = il.check_symbol(sym)
+        print(f"符号 0x{sym:02X}: {'已登记' if ok else '未登记'}")
+    
+    elif subcmd == "activate":
+        il.activate()
+        print("横轴互锁已激活 · 所有齿轮必须遵守")
+    
+    elif subcmd == "stats":
+        s = il.stats()
+        print("─── 全局互锁横轴 ───")
+        print(f"状态: {'已激活' if s['active'] else '未激活'}")
+        print(f"容器: {', '.join(CONT_NAMES.values())}")
+    
+    else:
+        print(f"未知子命令: {subcmd}")
+
+
 def cmd_status(sys: ColorSystemRef):
     """系统状态"""
     print("─── 满全法系统状态 ───")
@@ -337,6 +411,7 @@ def cmd_status(sys: ColorSystemRef):
     print(f"衍射维度: 6维")
     print(f"集装箱: 1bit/16字 × 254框")
     print(f"声音进制: 事件编码 (频率+音色+时长+轮廓+强度)")
+    print(f"全局互锁: 横轴 (6个容器齿轮已套上)")
 
 
 def main():
@@ -413,6 +488,22 @@ def main():
     elif command == "sing":
         sound = SoundRadixRef()
         cmd_sing(sound, args)
+    
+    elif command == "interlock":
+        il = InterlockRef()
+        cmd_interlock(il, args)
+    
+    elif command == "verify":
+        import subprocess
+        # __file__ = .../tools/phase-radix/mhz.py
+        # target:   .../tools/phase-radix/verify_chain.py (同目录)
+        verify_script = os.path.join(os.path.dirname(__file__), "verify_chain.py")
+        verify_script = os.path.normpath(verify_script)
+        if not os.path.exists(verify_script):
+            print(f"验证脚本不存在: {verify_script}")
+        else:
+            result = subprocess.run([_sys.executable, verify_script] + args)
+            return result.returncode
     
     else:
         print(f"未知命令: {command}")

@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 #include "hanzi_geometry.h"
+#include "global_interlock.h"
+#include "symbol_chain.h"
 
 int main(void) {
     hanzi_geometry_t hg;

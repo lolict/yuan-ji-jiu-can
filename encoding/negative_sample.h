@@ -30,6 +30,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+/* global_interlock.h 在 enum 定义之后包含 · 避免宏展开破坏枚举 */
 
 #define NEGATIVE_SAMPLE_MAGIC       0x4E534D50  /* "NSMP" */
 #define NEGATIVE_MEMORY_SIZE        254         /* 记忆库容量 */
@@ -74,6 +75,10 @@ typedef enum {
     VERDICT_NEW_REJECT  = 2,    /* 新拒绝 (需审判后入记忆库) */
     VERDICT_APPEAL      = 3,    /* 申诉 (要求重新审判) */
 } verdict_t;
+
+/* ── 全局互锁 (在所有 enum 定义之后 · 避免宏展开破坏枚举) ── */
+#include "global_interlock.h"
+#include "symbol_chain.h"
 
 /* 负样本容器 */
 typedef struct {
