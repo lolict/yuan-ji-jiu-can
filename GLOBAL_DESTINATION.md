@@ -62,6 +62,7 @@
 | 20 | property-judge | tools/property-judge/ | ✅ 产权判定·10场景全覆盖 |
 | 21 | symbol-engine | tools/symbol-engine/ | ✅ 符号引擎·36符号动态加载 |
 | 22 | symbol-registry | tools/symbol-registry/ | ✅ 统一注册·35符号10工具 |
+| 23 | boundary-engine | tools/boundary-engine/ | ✅ 边界分析·加法拆分乘法 |
 
 ---
 

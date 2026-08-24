@@ -121,6 +121,25 @@
 
 ---
 
+## 边界分析引擎（boundary-engine）
+
+| 符号 | 含义 | 定义处 |
+|------|------|--------|
+| BoundaryEngine | 边界分析引擎（boundary/additions/gaps） | boundary-engine/boundary_engine/engine.nim |
+| Boundary | 容器边界（name/capacity/items/rules/rejects） | boundary-engine/boundary_engine/types.nim |
+| Addition | 加法分类（name/items/logic/priority） | 同上 |
+| GapItem | 边界外项目（item/accommodation/recommendation） | 同上 |
+| Accommodation | 容纳状态（inside/outside/partially/conflict/newBoundary） | 同上 |
+| compare_addition | 加法 vs 乘法 批量对比 | boundary-engine/boundary_engine/engine.nim |
+| find_gaps | 找出乘法做不到的事情 | 同上 |
+| needs_new_boundary | 判断是否需要新边界 | 同上 |
+| fill_rate | 计算边界填充率 | 同上 |
+| gap_report | 生成对比报告（填充率+判定） | 同上 |
+| 加法拆分乘法 | 用加法分类找出乘法边界外的事情 | 同上 |
+| 边界容量 | 乘法能装多少，满了就不承认新的 | 同上 |
+
+---
+
 ## 统一符号注册中心（symbol-registry）
 
 | 符号 | 含义 | 定义处 |

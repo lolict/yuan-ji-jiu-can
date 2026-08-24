@@ -76,6 +76,7 @@
 | property-judge | 产权流侵权判定树（10场景全覆盖通过） |
 | symbol-engine | 符号引擎（36符号动态加载·近义词系统通过） |
 | symbol-registry | 统一符号注册中心（35符号·10工具大汇总通过） |
+| boundary-engine | 边界分析引擎（加法拆分乘法·填充率分析通过） |
 
 ---
 
