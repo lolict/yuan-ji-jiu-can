@@ -121,6 +121,23 @@
 
 ---
 
+## 统一符号注册中心（symbol-registry）
+
+| 符号 | 含义 | 定义处 |
+|------|------|--------|
+| SymbolRegistry | 统一注册中心（entries + by_source + by_category + by_meaning） | symbol-registry/symbol_registry/registry.nim |
+| UnifiedEntry | 统一符号条目（code/meaning/category/source/synonyms） | 同上 |
+| SymbolSource | 来源枚举（10种工具 + 用户自定义） | 同上 |
+| registry.register | 注册符号到统一表 | 同上 |
+| registry.resolve | 解析符号（支持近义词） | 同上 |
+| registry.lookup_source | 按来源工具查找 | 同上 |
+| registry.lookup_category | 按类别查找 | 同上 |
+| registry.lookup_meaning | 含义反查 | 同上 |
+| registry.search | 模糊搜索 | 同上 |
+| registry_report | 统计报告（来源分布） | 同上 |
+
+---
+
 ## 符号引擎（symbol-engine）
 
 | 符号 | 含义 | 定义处 |

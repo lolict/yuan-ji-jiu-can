@@ -61,6 +61,7 @@
 | 19 | radix-star | tools/radix-star/ | ✅ 部首星图·50汉字演示 |
 | 20 | property-judge | tools/property-judge/ | ✅ 产权判定·10场景全覆盖 |
 | 21 | symbol-engine | tools/symbol-engine/ | ✅ 符号引擎·36符号动态加载 |
+| 22 | symbol-registry | tools/symbol-registry/ | ✅ 统一注册·35符号10工具 |
 
 ---
 
