@@ -27,6 +27,8 @@
 #include <string.h>
 #include <stdint.h>
 #include <math.h>
+#include "global_interlock.h"
+#include "symbol_chain.h"
 
 /* ═══════════════════════════════════════════════════════════════════════════
  * 类型定义

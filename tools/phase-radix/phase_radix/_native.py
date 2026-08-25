@@ -448,7 +448,201 @@ class SoundRadixRef:
         return _lib.sound_radix_get_duration(self._buf)
 
 
+# ── 产权流 ────────────────────────────────────────────────
+
+# ── 产权流结构体尺寸 ────────────────────────────────────
+# sizeof(property_flow_t) = 19452 (由 C 编译时确定)
+#   records[254]: 254 × 12 = 3048
+#   requests[1024]: 1024 × 16 = 16384
+#   + 头部字段: 20
+#   = 19452
+PROPERTY_FLOW_SIZE = 19452
+
+PROPERTY_ALLOW             = 0
+PROPERTY_DENY_UNREGISTERED = 1
+PROPERTY_DENY_WRONG_OWNER  = 2
+PROPERTY_DENY_HISTORY      = 3
+PROPERTY_CONDITIONAL       = 4
+
+USE_READ    = 0x01
+USE_WRITE   = 0x02
+USE_EXPORT  = 0x03
+USE_DERIVE  = 0x04
+
+
+class PropertyFlowRef:
+    """产权流 C 核心的 Python 封装"""
+    
+    def __init__(self):
+        self._buf = ctypes.create_string_buffer(PROPERTY_FLOW_SIZE)
+        _lib.property_flow_init(self._buf)
+    
+    def register(self, symbol: int, owner: int, is_public: bool = False) -> bool:
+        return _lib.property_flow_register(self._buf, symbol, owner, is_public) == 0
+    
+    def check(self, symbol: int, requester: int, use_type: int = USE_READ) -> int:
+        return _lib.property_flow_check(self._buf, symbol, requester, use_type)
+    
+    def grant(self, symbol: int, grantee: int):
+        _lib.property_flow_grant(self._buf, symbol, grantee)
+    
+    def verdict_str(self, verdict: int) -> str:
+        names = {
+            0: "ALLOW (允许)",
+            1: "DENY (未登记)",
+            2: "DENY (产权不符)",
+            3: "DENY (侵权历史)",
+            4: "CONDITIONAL (有条件)",
+        }
+        return names.get(verdict, f"UNKNOWN ({verdict})")
+
+
+# ── WASM 内核 ──────────────────────────────────────────────
+
+import struct as _struct
+
+# sizeof(wk_kernel_t) ≈ 4+2+1+1+8+4+4 + 254*8 + 2 + 8 + 4+4+4 = ~20KB
+# 精确值通过编译时 sizeof 获取
+WK_KERNEL_SIZE = 2080   # sizeof(wk_kernel_t) = 2080 (编译时确定)
+
+WK_MAGIC     = 0x574B4E4C
+WK_VERSION   = 0x0003
+
+# 囡囝四态
+WK_STATE_NN   = 0x00
+WK_STATE_NJSG = 0x01
+WK_STATE_JJ   = 0x02
+WK_STATE_JN   = 0x03
+
+# 极性
+WK_POLARITY_WIFE    = 0x0
+WK_POLARITY_HUSBAND = 0x1
+WK_POLARITY_SYSTEM  = 0x2
+
+# 八流
+WK_FLOW_PRELOAD    = 0x00
+WK_FLOW_CATEGORY   = 0x01
+WK_FLOW_CLUSTER    = 0x02
+WK_FLOW_DISTINGUISH = 0x03
+WK_FLOW_PROPERTY   = 0x04
+WK_FLOW_INTERPRET  = 0x05
+WK_FLOW_RELATION   = 0x06
+WK_FLOW_CONCEPT    = 0x07
+
+# Cell 编码辅助
+def _wk_cell(mccp, sovereignty, polarity, witness):
+    return ((witness & 0xF) << 60) | ((polarity & 0xF) << 56) | \
+           ((sovereignty & 0xFFFFFF) << 32) | (mccp & 0xFFFFFFFF)
+
+def _wk_cell_mccp(cell):
+    return cell & 0xFFFFFFFF
+
+def _wk_cell_sovereign(cell):
+    return (cell >> 32) & 0xFFFFFF
+
+def _wk_cell_polarity(cell):
+    return (cell >> 56) & 0xF
+
+def _wk_cell_witness(cell):
+    return (cell >> 60) & 0xF
+
+
+# WASM 内核函数签名
+_lib.wk_init.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_uint32]
+_lib.wk_init.restype = None
+
+_lib.wk_add_cell.argtypes = [ctypes.c_void_p, ctypes.c_uint64]
+_lib.wk_add_cell.restype = ctypes.c_int
+
+_lib.wk_find_by_mccp.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
+_lib.wk_find_by_mccp.restype = ctypes.c_uint64
+
+_lib.wk_set_state.argtypes = [ctypes.c_void_p, ctypes.c_uint8]
+_lib.wk_set_state.restype = ctypes.c_int
+
+_lib.wk_route.argtypes = [ctypes.c_void_p, ctypes.c_uint64, ctypes.c_uint8]
+_lib.wk_route.restype = ctypes.c_int
+
+_lib.wk_stats.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_size_t]
+_lib.wk_stats.restype = None
+
+
+class WasmKernelRef:
+    """WASM 内核 C 核心的 Python 封装"""
+    
+    def __init__(self, mem_capacity=65536):
+        self._buf = (ctypes.c_uint8 * WK_KERNEL_SIZE)()
+        self._mem = (ctypes.c_uint8 * mem_capacity)()
+        _lib.wk_init(ctypes.byref(self._buf), ctypes.byref(self._mem), mem_capacity)
+    
+    def add_cell(self, mccp, sovereignty, polarity, witness):
+        """添加一个 64位 cell"""
+        cell = _wk_cell(mccp, sovereignty, polarity, witness)
+        rc = _lib.wk_add_cell(ctypes.byref(self._buf), cell)
+        return rc == 0
+    
+    def find_mccp(self, mccp):
+        """通过 MCCP 查找 cell"""
+        return _lib.wk_find_by_mccp(ctypes.byref(self._buf), mccp)
+    
+    def set_state(self, state):
+        """设置囡囝四态"""
+        return _lib.wk_set_state(ctypes.byref(self._buf), state) == 0
+    
+    @property
+    def state(self):
+        return self._buf[6]
+    
+    @property
+    def locked(self):
+        return bool(self._buf[7] & 0x02)
+    
+    @locked.setter
+    def locked(self, val):
+        if val:
+            self._buf[7] = self._buf[7] | 0x02
+        else:
+            self._buf[7] = self._buf[7] & ~0x02
+    
+    def activate_flow(self, flow_type):
+        """激活一流"""
+        flow_offset = 2058  # offsetof(wk_kernel_t, flow_state)
+        self._buf[flow_offset + flow_type] = 1
+    
+    def route(self, mccp, sovereignty, polarity, witness, flow_type):
+        """路由判决"""
+        cell = _wk_cell(mccp, sovereignty, polarity, witness)
+        return _lib.wk_route(ctypes.byref(self._buf), cell, flow_type)
+    
+    def route_str(self, rc):
+        names = {0: "ALLOW", -1: "INVALID", -2: "DENY未登记", -3: "DENY主权不符", -4: "DENY流休眠"}
+        return names.get(rc, f"UNKNOWN({rc})")
+    
+    def stats(self):
+        """获取统计字符串"""
+        buf = ctypes.create_string_buffer(256)
+        _lib.wk_stats(ctypes.byref(self._buf), buf, 256)
+        return buf.value.decode('utf-8', errors='replace')
+    
+    @staticmethod
+    def cell_str(cell):
+        return f"MCCP=0x{_wk_cell_mccp(cell):08X} SOV=0x{_wk_cell_sovereign(cell):05X} POL={_wk_cell_polarity(cell)} WIT={_wk_cell_witness(cell)}"
+
+
 # ── 全局互锁横轴 ──────────────────────────────────────────
+
+# ── 产权流函数签名 ──
+_lib.property_flow_init.argtypes = [ctypes.c_void_p]
+_lib.property_flow_init.restype = None
+
+_lib.property_flow_register.argtypes = [ctypes.c_void_p, ctypes.c_uint32, ctypes.c_uint8, ctypes.c_int]
+_lib.property_flow_register.restype = ctypes.c_int
+
+_lib.property_flow_check.argtypes = [ctypes.c_void_p, ctypes.c_uint32, ctypes.c_uint8, ctypes.c_uint8]
+_lib.property_flow_check.restype = ctypes.c_int
+
+_lib.property_flow_grant.argtypes = [ctypes.c_void_p, ctypes.c_uint32, ctypes.c_uint8]
+_lib.property_flow_grant.restype = None
 
 _lib.interlock_init.argtypes = []
 _lib.interlock_init.restype = None

@@ -87,11 +87,14 @@ int interlock_register_symbol(uint32_t symbol, uint8_t container) {
 
 int interlock_check_symbol(uint32_t symbol) {
     if (g_state.magic != FQM_MAGIC) return 0;
-    /* 简化检查: 如果横轴已激活且符号在合理范围 */
-    if (!g_state.locked) return 1;  /* 未锁定则放行 */
-    
-    /* 检查符号是否在登记范围内 */
-    return (symbol > 0 && symbol <= GLOBAL_MAX_SYMBOLS);
+
+    /* 在已登记符号表中精确查找 */
+    for (uint32_t i = 0; i < g_state.symbol_count; i++) {
+        if (g_state.symbols[i] == symbol) return 1;
+    }
+
+    /* 未找到: 未激活时放行 · 激活后拒绝 */
+    return g_state.locked ? 0 : 1;
 }
 
 /* ═══════════════════════════════════════════════════════════════

@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>满全法 · 编码流水线工具</title>
+<style>
+:root{--bg:#08080d;--fg:#e8e6e3;--dim:#6b6862;--accent:#c9a84c;--container:#4a7c59;--boundary:#8b4513;--couple:#9b59b6;--web:#3498db;--neutral:#7f8c8d;--good:#27ae60;--bad:#e74c3c}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"Noto Serif SC","STSong",serif;background:var(--bg);color:var(--fg);line-height:1.6}
+#top{text-align:center;padding:36px 20px 24px;border-bottom:1px solid rgba(201,168,76,0.15)}
+#top h1{font-size:1.8em;color:var(--accent);font-weight:400;letter-spacing:.2em}
+#top .sub{font-size:.85em;color:var(--dim);margin-top:6px}
+#main{max-width:960px;margin:0 auto;padding:30px 24px 60px}
+#input-area{text-align:center;margin-bottom:36px}
+#input-area label{font-size:.9em;color:var(--dim);display:block;margin-bottom:12px}
+#char-input{font-size:2.4em;width:100px;text-align:center;padding:14px;background:rgba(255,255,255,0.04);border:2px solid rgba(201,168,76,0.3);border-radius:10px;color:var(--fg);font-family:inherit}
+#char-input:focus{outline:none;border-color:var(--accent)}
+#run-btn{margin-left:14px;padding:14px 28px;font-size:1em;background:var(--accent);color:var(--bg);border:none;border-radius:8px;cursor:pointer;font-family:inherit;font-weight:500;vertical-align:middle}
+#run-btn:hover{background:#d4b85c}
+#quick-chars{margin-top:14px;font-size:.85em;color:var(--dim)}
+#quick-chars span{display:inline-block;margin:3px;padding:4px 10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:4px;cursor:pointer}
+#quick-chars span:hover{background:rgba(201,168,76,0.1);border-color:var(--accent)}
+/* Pipeline Steps */
+.step{display:none;margin-bottom:20px;padding:20px 24px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:8px;border-left:3px solid var(--accent)}
+.step.visible{display:block}
+.step-header{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.step-num{font-size:.8em;color:var(--bg);background:var(--accent);width:24px;height:24px;line-height:24px;text-align:center;border-radius:50%;flex-shrink:0}
+.step-title{font-size:1.05em;font-weight:500;letter-spacing:.04em}
+.step-body{font-size:.92em}
+.step-body .row{display:flex;gap:10px;margin:5px 0;align-items:flex-start}
+.step-body .k{color:var(--dim);min-width:80px;flex-shrink:0}
+.step-body .v{color:var(--fg)}
+.step-body .v.good{color:var(--good)}
+.step-body .v.bad{color:var(--bad)}
+/* Bit visualization */
+.bits{display:flex;gap:3px;flex-wrap:wrap;margin-top:8px}
+.bit-seg{padding:4px 10px;border-radius:4px;font-family:"Courier New",monospace;font-size:.82em}
+.bit-family{background:rgba(201,168,76,0.15);color:var(--accent)}
+.bit-polarity{background:rgba(155,89,182,0.15);color:#c39bd3}
+.bit-structure{background:rgba(52,152,219,0.15);color:#85c1e9}
+.bit-shengmu{background:rgba(74,124,89,0.15);color:#7dcea0}
+.bit-yunmu{background:rgba(230,176,40,0.15);color:#f0c040}
+.bit-tone{background:rgba(139,69,19,0.15);color:#d4a574}
+/* Diffraction bars */
+.diff-bar{display:flex;align-items:center;gap:8px;margin:5px 0}
+.diff-bar .dname{width:70px;font-size:.82em;color:var(--dim)}
+.diff-bar .bar-track{flex:1;height:14px;background:rgba(255,255,255,0.04);border-radius:7px;overflow:hidden}
+.diff-bar .bar-fill{height:100%;border-radius:7px;transition:width .4s ease}
+.diff-bar .bar-val{width:40px;text-align:right;font-size:.8em;font-family:monospace}
+/* Verdict */
+#verdict-box{text-align:center;padding:30px;margin-top:20px;border-radius:12px;display:none}
+#verdict-box.visible{display:block}
+#verdict-box.admitted{background:rgba(39,174,96,0.08);border:1px solid rgba(39,174,96,0.25)}
+#verdict-box.rejected{background:rgba(231,76,60,0.08);border:1px solid rgba(231,76,60,0.25)}
+#verdict-text{font-size:1.6em;font-weight:300;letter-spacing:.1em}
+.admitted #verdict-text{color:var(--good)}
+.rejected #verdict-text{color:var(--bad)}
+#verdict-detail{margin-top:10px;font-size:.88em;color:var(--dim)}
+/* Family badge */
+.fbadge{display:inline-block;padding:3px 12px;border-radius:12px;font-size:.82em}
+.fbadge.container{background:rgba(74,124,89,0.2);color:#7dcea0}
+.fbadge.boundary{background:rgba(139,69,19,0.2);color:#d4a574}
+.fbadge.couple{background:rgba(155,89,182,0.2);color:#c39bd3}
+.fbadge.web{background:rgba(52,152,219,0.2);color:#85c1e9}
+.fbadge.neutral{background:rgba(127,140,141,0.2);color:#aab7b8}
+/* Code output */
+.code-output{font-family:"Courier New",monospace;font-size:.85em;background:rgba(0,0,0,0.3);padding:10px 14px;border-radius:6px;margin-top:8px;color:var(--accent);word-break:break-all}
+/* Crime list */
+.crimes{margin-top:8px}
+.crime-tag{display:inline-block;margin:3px;padding:4px 10px;border-radius:4px;font-size:.78em;background:rgba(231,76,60,0.12);color:#e74c3c;border:1px solid rgba(231,76,60,0.2)}
+/* Render frame */
+.render-frame{font-family:"Courier New",monospace;font-size:.78em;background:rgba(0,0,0,0.4);padding:10px 14px;border-radius:6px;margin-top:8px;letter-spacing:2px;color:var(--dim);overflow-x:auto}
+/* Responsive */
+@media(max-width:600px){
+  .step-body .row{flex-direction:column;gap:2px}
+  .bits{flex-direction:column}
+  #run-btn{margin-left:0;margin-top:12px}
+  .diff-bar .dname{width:55px}
+}
+</style>
+</head>
+<body>
+
+<div id="top">
+  <h1>满全法编码流水线</h1>
+  <div class="sub">输入汉字 · 实时计算家族归属 · 容器编码 · 衍射审判</div>
+</div>
+
+<div id="main">
+  <div id="input-area">
+    <label>输入一个汉字启动全链路编码</label>
+    <div>
+      <input type="text" id="char-input" maxlength="1" placeholder="字" value="囡">
+      <button id="run-btn" onclick="runPipeline()">运行编码</button>
+    </div>
+    <div id="quick-chars">
+      快速: <span onclick="setChar('囡')">囡</span><span onclick="setChar('囝')">囝</span><span onclick="setChar('因')">因</span><span onclick="setChar('阴')">阴</span><span onclick="setChar('男')">男</span><span onclick="setChar('好')">好</span><span onclick="setChar('回')">回</span><span onclick="setChar('林')">林</span><span onclick="setChar('网')">网</span><span onclick="setChar('口')">口</span><span onclick="setChar('丨')">丨</span><span onclick="setChar('木')">木</span>
+    </div>
+  </div>
+
+  <div id="step-1" class="step">
+    <div class="step-header"><div class="step-num">1</div><div class="step-title">Unicode 码位解析</div></div>
+    <div class="step-body" id="body-1"></div>
+  </div>
+
+  <div id="step-2" class="step">
+    <div class="step-header"><div class="step-num">2</div><div class="step-title">拼音分离 · 声韵调</div></div>
+    <div class="step-body" id="body-2"></div>
+  </div>
+
+  <div id="step-3" class="step">
+    <div class="step-header"><div class="step-num">3</div><div class="step-title">五大家族路由</div></div>
+    <div class="step-body" id="body-3"></div>
+  </div>
+
+  <div id="step-4" class="step">
+    <div class="step-header"><div class="step-num">4</div><div class="step-title">容器编码 · 32位组装</div></div>
+    <div class="step-body" id="body-4"></div>
+  </div>
+
+  <div id="step-5" class="step">
+    <div class="step-header"><div class="step-num">5</div><div class="step-title">渲染帧生成</div></div>
+    <div class="step-body" id="body-5"></div>
+  </div>
+
+  <div id="step-6" class="step">
+    <div class="step-header"><div class="step-num">6</div><div class="step-title">衍射八维分析</div></div>
+    <div class="step-body" id="body-6"></div>
+  </div>
+
+  <div id="step-7" class="step">
+    <div class="step-header"><div class="step-num">7</div><div class="step-title">审判 · 判决</div></div>
+    <div class="step-body" id="body-7"></div>
+  </div>
+
+  <div id="verdict-box">
+    <div id="verdict-text"></div>
+    <div id="verdict-detail"></div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// 编码数据表
+// ══════════════════════════════════════════════════════
+
+// 声母表 (SM48)
+const SHENGMU = ['b','p','m','f','d','t','n','l','g','k','h','j','q','x','zh','ch','sh','r','z','c','s','y','w','','','','','','','','','','','','','','','','','','','','','','','','','',''];
+
+// 韵母表 (YM66)
+const YUNMU = ['a','o','e','i','u','ü','ai','ei','ui','ao','ou','iu','ie','üe','er','an','en','in','un','ün','ang','eng','ing','ong','ia','iao','ian','iang','iong','ua','uo','uai','uan','uang','ueng','üan','üe','ia','ou','ei','ue','iu','ong','ing','en','an','in','un','ang','eng','ai','ao','ui','ian','iao','uang','uai','uan','uo','a','o','e','i','u','ü','er','ia','ua','uo'];
+
+// 核心汉字完整数据: {shengmu_idx, yunmu_idx, tone, family, structure}
+const HANZI_DB = {
+  '囡':{sm:0,ym:15,tone:1,family:0,structure:3,desc:'女包男=容器包被包含者'},
+  '囝':{sm:10,ym:24,tone:1,family:1,structure:3,desc:'方框竖线=边界'},
+  '女':{sm:6,ym:3,tone:3,family:0,structure:0,desc:'容器本质'},
+  '子':{sm:19,ym:3,tone:3,family:1,structure:0,desc:'被包含者'},
+  '因':{sm:21,ym:17,tone:1,family:0,structure:3,desc:'大口纳木=容器'},
+  '阴':{sm:21,ym:17,tone:1,family:0,structure:2,desc:'阴阳之阴'},
+  '阳':{sm:21,ym:23,tone:2,family:1,structure:2,desc:'阴阳之阳'},
+  '形':{sm:12,ym:22,tone:2,family:1,structure:2,desc:'边界外显'},
+  '男':{sm:6,ym:15,tone:2,family:1,structure:1,desc:'田力=边界'},
+  '回':{sm:10,ym:7,tone:2,family:0,structure:3,desc:'旋转归来'},
+  '好':{sm:10,ym:8,tone:3,family:2,structure:2,desc:'女+子=夫妻'},
+  '如':{sm:17,ym:4,tone:2,family:2,structure:2,desc:'女+口'},
+  '妈':{sm:2,ym:0,tone:1,family:2,structure:2,desc:'女+马=母亲'},
+  '林':{sm:7,ym:17,tone:2,family:0,structure:2,desc:'双木=容器聚合'},
+  '木':{sm:2,ym:4,tone:4,family:0,structure:0,desc:'生长包容'},
+  '口':{sm:9,ym:10,tone:3,family:0,structure:0,desc:'最简容器'},
+  '丨':{sm:0,ym:3,tone:0,family:1,structure:0,desc:'最简边界'},
+  '网':{sm:22,ym:23,tone:3,family:3,structure:4,desc:'编织结构'},
+  '交':{sm:11,ym:25,tone:1,family:3,structure:1,desc:'交叉互联'},
+  '织':{sm:14,ym:3,tone:1,family:3,structure:2,desc:'经纬交错'},
+  '互':{sm:10,ym:4,tone:4,family:3,structure:0,desc:'互相支撑'},
+  '中':{sm:14,ym:23,tone:1,family:0,structure:3,desc:'口+丨=容器'},
+  '王':{sm:22,ym:23,tone:2,family:1,structure:0,desc:'三横一竖'},
+  '土':{sm:5,ym:4,tone:3,family:0,structure:0,desc:'大地之基'},
+  '火':{sm:10,ym:30,tone:3,family:1,structure:0,desc:'燃烧边界'},
+  '水':{sm:16,ym:7,tone:3,family:1,structure:0,desc:'流动边界'},
+  '心':{sm:12,ym:17,tone:4,family:0,structure:0,desc:'核心容器'},
+  '日':{sm:17,ym:3,tone:4,family:0,structure:0,desc:'太阳容器'},
+  '月':{sm:21,ym:35,tone:4,family:0,structure:0,desc:'太阴容器'},
+  '山':{sm:15,ym:15,tone:1,family:1,structure:0,desc:'边界稳固'},
+  '石':{sm:15,ym:3,tone:2,family:1,structure:0,desc:'坚硬边界'},
+  '天':{sm:5,ym:26,tone:1,family:0,structure:1,desc:'一大覆盖'},
+  '地':{sm:3,ym:3,tone:4,family:0,structure:2,desc:'土也=包容'},
+  '人':{sm:17,ym:16,tone:2,family:4,structure:0,desc:'独立存在'},
+  '大':{sm:3,ym:0,tone:4,family:4,structure:0,desc:'展开之形'},
+  '小':{sm:12,ym:25,tone:3,family:4,structure:0,desc:'收缩之形'},
+  '上':{sm:15,ym:23,tone:4,family:4,structure:0,desc:'方位'},
+  '下':{sm:12,ym:28,tone:4,family:4,structure:0,desc:'方位'},
+  '一':{sm:21,ym:3,tone:1,family:4,structure:0,desc:'初始'},
+  '二':{sm:0,ym:31,tone:4,family:4,structure:0,desc:'对偶'},
+  '三':{sm:18,ym:15,tone:1,family:4,structure:0,desc:'聚合'},
+  '十':{sm:15,ym:3,tone:2,family:4,structure:0,desc:'交叉完整'},
+  '国':{sm:8,ym:30,tone:2,family:0,structure:3,desc:'玉在口中=容器'},
+  '囗':{sm:22,ym:7,tone:2,family:0,structure:3,desc:'围框=容器符号'},
+};
+
+// 家族配置
+const FAMILIES = [
+  {name:'容器',side:'阴',person:'刘楚恬',cls:'container'},
+  {name:'边界',side:'阳',person:'我(lolict)',cls:'boundary'},
+  {name:'夫妻',side:'囡囝合',person:'命运共同体',cls:'couple'},
+  {name:'网状',side:'交织',person:'分布式',cls:'web'},
+  {name:'中性',side:'系统',person:'未分类',cls:'neutral'},
+];
+
+// 字形结构
+const STRUCTURES = ['独体','上下','左右','半包围','全包围','品字','嵌套','框架'];
+
+// 声调
+const TONES = ['阴平ˉ','阳平ˊ','上声ˇ','去声ˋ','轻声'];
+
+// 七宗罪
+const CRIMES = ['类型错配','审美失效','无公倍数','编织失衡','全局污染','语义反转','无自知'];
+
+// 衍射维度
+const DIFFRACT_DIMENSIONS = [
+  {key:'aesthetic',name:'审美'},
+  {key:'type',name:'类型'},
+  {key:'appearance',name:'面相'},
+  {key:'structure',name:'骨骼'},
+  {key:'thinking',name:'思考'},
+  {key:'cooperativity',name:'协同'},
+  {key:'goal',name:'目标'},
+  {key:'ownership',name:'归属'},
+];
+
+// ══════════════════════════════════════════════════════
+// 流水线运行
+// ══════════════════════════════════════════════════════
+
+function setChar(c) {
+  document.getElementById('char-input').value = c;
+  runPipeline();
+}
+
+function runPipeline() {
+  const input = document.getElementById('char-input').value.trim();
+  if (!input) return;
+  const ch = input[0];
+  const cp = ch.codePointAt(0);
+  const data = HANZI_DB[ch];
+
+  // 显示所有步骤
+  for (let i = 1; i <= 7; i++) {
+    document.getElementById('step-' + i).classList.add('visible');
+  }
+
+  // ── Step 1: Unicode ──
+  let b1 = '';
+  b1 += row('字符', ch);
+  b1 += row('Unicode', 'U+'+cp.toString(16).toUpperCase().padStart(4,'0')+' (十进制 '+cp+')');
+  if (cp >= 0x4E00 && cp <= 0x9FFF) {
+    b1 += row('区块', 'CJK统一汉字 (U+4E00–U+9FFF)', 'good');
+  } else if (cp >= 0x3400 && cp <= 0x4DBF) {
+    b1 += row('区块', 'CJK扩展A区', 'good');
+  } else {
+    b1 += row('区块', '非CJK汉字区', 'bad');
+  }
+  b1 += row('UTF-8', cpToUtf8Hex(ch));
+  b1 += row('UTF-16', '0x'+cp.toString(16).toUpperCase().padStart(4,'0'));
+  document.getElementById('body-1').innerHTML = b1;
+
+  // ── Step 2: 拼音 ──
+  let b2 = '';
+  if (data) {
+    b2 += row('声母 ['+data.sm+']', SHENGMU[data.sm] || '(零声母)', 'good');
+    b2 += row('韵母 ['+data.ym+']', YUNMU[data.ym] || '?', 'good');
+    b2 += row('声调', TONES[data.tone] || '未知', 'good');
+    b2 += row('音节', (SHENGMU[data.sm]||'') + (YUNMU[data.ym]||'') + ' · ' + (TONES[data.tone]||''));
+  } else {
+    b2 += row('状态', '该字不在本地数据库中 · 使用启发式推测', 'bad');
+    b2 += row('推测声母', SHENGMU[guessShengmu(ch)] || '(未知)');
+    b2 += row('推测韵母', YUNMU[guessYunmu(ch)] || '(未知)');
+    b2 += row('推测声调', '默认阴平');
+  }
+  document.getElementById('body-2').innerHTML = b2;
+
+  // ── Step 3: 五大家族 ──
+  const family = data ? data.family : guessFamily(ch);
+  const fam = FAMILIES[family];
+  let b3 = '';
+  b3 += row('判定家族', '<span class="fbadge '+fam.cls+'">'+fam.name+' · '+fam.side+' · '+fam.person+'</span>');
+  b3 += row('家族编号', family+' (二进制 '+family.toString(2).padStart(3,'0')+')');
+  // 简单规则说明
+  const rules = [
+    '容器(0): 方框/包围结构 → 囡 因 回 口 囗',
+    '边界(1): 竖线/刚性结构 → 囝 丨 山 石',
+    '夫妻(2): 阴阳组合 → 好 如 妈',
+    '网状(3): 交叉连接 → 网 交 织',
+    '中性(4): 无法归类 → 一 二 人',
+  ];
+  b3 += row('分类规则', rules[family]);
+  if (data && data.desc) b3 += row('注释', data.desc);
+  document.getElementById('body-3').innerHTML = b3;
+
+  // ── Step 4: 容器编码 ──
+  const smIdx = data ? data.sm : guessShengmu(ch);
+  const ymIdx = data ? data.ym : guessYunmu(ch);
+  const tone = data ? data.tone : 0;
+  const structure = data ? data.structure : guessStructure(ch);
+  const polarity = family === 0 || family === 2 ? 0 : (family === 1 ? 1 : 0);
+
+  // 组装32位: [家族3][极性1][结构3][声母6][韵母6][声调3] + 10位保留
+  const code = (family << 29) | (polarity << 28) | (structure << 25) | (smIdx << 19) | (ymIdx << 13) | (tone << 10);
+
+  let b4 = '';
+  b4 += row('32位容器编码', '');
+  b4 += '<div class="bits">';
+  b4 += '<span class="bit-seg bit-family">家族 '+family.toString(2).padStart(3,'0')+'</span>';
+  b4 += '<span class="bit-seg bit-polarity">极性 '+polarity+'</span>';
+  b4 += '<span class="bit-seg bit-structure">结构 '+structure.toString(2).padStart(3,'0')+'</span>';
+  b4 += '<span class="bit-seg bit-shengmu">声母 '+smIdx.toString(2).padStart(6,'0')+'</span>';
+  b4 += '<span class="bit-seg bit-yunmu">韵母 '+ymIdx.toString(2).padStart(6,'0')+'</span>';
+  b4 += '<span class="bit-seg bit-tone">声调 '+tone.toString(2).padStart(3,'0')+'</span>';
+  b4 += '<span class="bit-seg" style="background:rgba(127,140,141,0.15);color:#aab7b8">保留 0000000000</span>';
+  b4 += '</div>';
+  b4 += '<div class="code-output">0x'+code.toString(16).toUpperCase().padStart(8,'0')+' · 二进制: '+code.toString(2).padStart(32,'0')+' · 十进制: '+code+'</div>';
+  b4 += row('在位提取', 'family='+((code>>>29)&7)+' polarity='+((code>>>28)&1)+' structure='+((code>>>25)&7)+' sm='+((code>>>19)&63)+' ym='+((code>>>13)&63)+' tone='+((code>>>10)&7));
+  document.getElementById('body-4').innerHTML = b4;
+
+  // ── Step 5: 渲染帧 ──
+  // 渲染帧: 16字符 = 1 bit, 32位 = 32×16 = 512字符的帧
+  const frameLen = 16;
+  let frame = '';
+  const bits = code.toString(2).padStart(32,'0');
+  for (let i = 0; i < bits.length; i++) {
+    const bit = bits[i];
+    // 每个bit用16个字符表示: '█' for 1, '░' for 0
+    const ch_render = bit === '1' ? '█' : '░';
+    frame += ch_render.repeat(frameLen) + ' ';
+  }
+  let b5 = '';
+  b5 += row('帧参数', '1 bit = 16字符渲染 · 32 bits = 512字符');
+  b5 += row('帧编码', '');
+  b5 += '<div class="render-frame">'+frame.trim()+'</div>';
+  b5 += row('帧校验', 'bit1数量='+bits.split('1').length-1+' bit0数量='+bits.split('0').length-1);
+  document.getElementById('body-5').innerHTML = b5;
+
+  // ── Step 6: 衍射八维 ──
+  const diffScores = computeDiffraction(family, structure, polarity, smIdx, ymIdx, tone);
+  let b6 = '';
+  b6 += row('衍射计算', '基于家族+结构+极性+声韵调 → 八维投影');
+  b6 += '<div style="margin-top:10px">';
+  const colors = ['#c9a84c','#e67e22','#3498db','#9b59b6','#27ae60','#e74c3c','#f39c12','#1abc9c'];
+  diffScores.forEach((d, i) => {
+    const pct = Math.round(d.score * 100);
+    b6 += '<div class="diff-bar">';
+    b6 += '<span class="dname">'+d.name+'</span>';
+    b6 += '<span class="bar-track"><span class="bar-fill" style="width:'+pct+'%;background:'+colors[i]+'"></span></span>';
+    b6 += '<span class="bar-val" style="color:'+colors[i]+'">'+pct+'%</span>';
+    b6 += '</div>';
+  });
+  b6 += '</div>';
+  const avgScore = diffScores.reduce((a,b)=>a+b.score,0)/8;
+  b6 += row('衍射均值', (avgScore*100).toFixed(1)+'%', avgScore > 0.6 ? 'good' : 'bad');
+  b6 += row('衍射距离', diffScores[0].dist.toFixed(4), diffScores[0].dist < 0.15 ? 'good' : 'bad');
+  document.getElementById('body-6').innerHTML = b6;
+
+  // ── Step 7: 审判 ──
+  const crimes = detectCrimes(diffScores, family, polarity);
+  const verdict = crimes.length === 0;
+  let b7 = '';
+  b7 += row('衍射均值', (avgScore*100).toFixed(1)+'%');
+  b7 += row('类型跳变', diffScores[0].dist > 0.15 ? '是 (距离='+diffScores[0].dist.toFixed(3)+')' : '否 (稳定)', diffScores[0].dist <= 0.15 ? 'good' : 'bad');
+  b7 += row('编织均衡', '✓ 通过', 'good');
+  if (crimes.length > 0) {
+    b7 += row('触犯罪名', '');
+    b7 += '<div class="crimes">';
+    crimes.forEach(c => { b7 += '<span class="crime-tag">'+c+'</span>'; });
+    b7 += '</div>';
+  } else {
+    b7 += row('触犯罪名', '无', 'good');
+  }
+  b7 += row('衍射合格', crimes.length === 0 ? '◎ 全部维度通过' : '✗ '+crimes.length+'项未通过', crimes.length === 0 ? 'good' : 'bad');
+  document.getElementById('body-7').innerHTML = b7;
+
+  // ── Verdict ──
+  const vbox = document.getElementById('verdict-box');
+  vbox.classList.add('visible');
+  vbox.className = verdict ? 'admitted visible' : 'rejected visible';
+  document.getElementById('verdict-text').textContent = verdict ? '◎ 准入 ADMITTED' : '✗ 拒绝 REJECTED';
+  document.getElementById('verdict-detail').textContent = verdict ? ch+' → '+fam.name+'('+fam.side+') → 编码 0x'+code.toString(16).toUpperCase().padStart(8,'0')+' → 全部维度通过' : ch+' → '+fam.name+'('+fam.side+') → 触犯: '+crimes.join(' · ');
+}
+
+// ══════════════════════════════════════════════════════
+// 辅助函数
+// ══════════════════════════════════════════════════════
+
+function row(k, v, cls) {
+  const c = cls || '';
+  return '<div class="row"><span class="k">'+k+'</span><span class="v '+c+'">'+v+'</span></div>';
+}
+
+function cpToUtf8Hex(ch) {
+  const cp = ch.codePointAt(0);
+  if (cp <= 0x7F) return '0x'+cp.toString(16).toUpperCase();
+  if (cp <= 0x7FF) {
+    const b1 = 0xC0 | (cp >> 6);
+    const b2 = 0x80 | (cp & 0x3F);
+    return '0x'+b1.toString(16).toUpperCase()+' 0x'+b2.toString(16).toUpperCase();
+  }
+  const b1 = 0xE0 | (cp >> 12);
+  const b2 = 0x80 | ((cp >> 6) & 0x3F);
+  const b3 = 0x80 | (cp & 0x3F);
+  return '0x'+b1.toString(16).toUpperCase()+' 0x'+b2.toString(16).toUpperCase()+' 0x'+b3.toString(16).toUpperCase();
+}
+
+function guessFamily(ch) {
+  if ('囡因阴回口囗国土中日月心十容器包围框圈内含纳'.includes(ch)) return 0;
+  if ('囝形男界线阳刚山石水火王上下刃切分刚列'.includes(ch)) return 1;
+  if ('好如妈婚嫁娶妻孩妇姐妹娘姑嫂婆媳姨'.includes(ch)) return 2;
+  if ('网交织互连接联络纵横贯纶绳丝绸缀'.includes(ch)) return 3;
+  return 4;
+}
+
+function guessShengmu(ch) {
+  // 基于首字符的简单推断
+  const map = {b:0,p:1,m:2,f:3,d:3,t:5,n:6,l:7,g:8,k:9,h:10,j:11,q:12,x:13,zh:14,ch:15,sh:16,r:17,z:18,c:19,s:20,y:21,w:22};
+  const first = ch[0];
+  return map[first] !== undefined ? map[first] : 0;
+}
+
+function guessYunmu(ch) { return 0; }
+function guessStructure(ch) { return 0; }
+
+function computeDiffraction(family, structure, polarity, sm, ym, tone) {
+  // 基于编码参数计算八维投影分数
+  const baseScore = 0.5 + family * 0.05 + (1-polarity) * 0.08;
+  const dimScores = [];
+
+  DIFFRACT_DIMENSIONS.forEach((dim, i) => {
+    // 每个维度的得分基于编码参数在不同维度上的"投影"
+    let score = baseScore;
+    switch(dim.key) {
+      case 'aesthetic': score += (structure === 3 ? 0.2 : 0.1) + (family === 0 ? 0.15 : 0); break;
+      case 'type': score += (family < 4 ? 0.2 : 0); break;
+      case 'appearance': score += (sm < 24 ? 0.15 : 0.05); break;
+      case 'structure': score += (structure < 5 ? 0.2 : 0.05); break;
+      case 'thinking': score += (ym < 40 ? 0.1 : 0.05) + (tone < 4 ? 0.05 : 0); break;
+      case 'cooperativity': score += (family === 2 ? 0.25 : 0.1); break;
+      case 'goal': score += (polarity === 0 ? 0.15 : 0.1); break;
+      case 'ownership': score += (family < 4 ? 0.18 : 0); break;
+    }
+    score = Math.min(score, 1.0);
+    const dist = (1.0 - score) * 0.3; // 衍射距离
+    dimScores.push({name: dim.name, score: score, dist: dist});
+  });
+  return dimScores;
+}
+
+function detectCrimes(scores, family, polarity) {
+  const crimes = [];
+  const avg = scores.reduce((a,b)=>a+b.score,0)/8;
+
+  // 类型错配: type维度距离过大
+  if (scores[1].dist > 0.15) crimes.push(CRIMES[0]);
+  // 审美失效: aesthetic低于0.6
+  if (scores[0].score < 0.6) crimes.push(CRIMES[1]);
+  // 无公倍数: 均值低于0.5
+  if (avg < 0.5) crimes.push(CRIMES[2]);
+  // 编织失衡: 协同维度低于0.55
+  if (scores[5].score < 0.55) crimes.push(CRIMES[3]);
+  // 全局污染: 超过4个维度低于0.6
+  const lowDims = scores.filter(s => s.score < 0.6).length;
+  if (lowDims >= 4) crimes.push(CRIMES[4]);
+  // 语义反转: 极性为1但家族为容器
+  if (polarity === 1 && family === 0) crimes.push(CRIMES[5]);
+  // 无自知: 全部维度低于0.4
+  if (scores.every(s => s.score < 0.4)) crimes.push(CRIMES[6]);
+
+  return crimes;
+}
+
+// 初始化
+document.getElementById('char-input').addEventListener('keydown', e => { if (e.key === 'Enter') runPipeline(); });
+runPipeline();
+</script>
+</body>
+</html>

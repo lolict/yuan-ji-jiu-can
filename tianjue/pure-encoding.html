@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>满全法 · 纯编码工作站</title>
+<style>
+:root{--bg:#06060a;--fg:#e8e6e3;--dim:#5a5852;--accent:#c9a84c;--container:#4a7c59;--boundary:#8b4513;--couple:#9b59b6;--web:#3498db;--neutral:#7f8c8d;--good:#27ae60;--bad:#e74c3c}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:monospace;background:var(--bg);color:var(--fg);line-height:1.5;font-size:14px}
+#top{text-align:center;padding:28px 16px 20px;border-bottom:1px solid rgba(201,168,76,0.12)}
+#top h1{font-size:1.6em;color:var(--accent);font-weight:400;letter-spacing:.15em}
+#top .sub{font-size:.78em;color:var(--dim);margin-top:4px}
+#top .principle{font-size:.72em;color:var(--accent);margin-top:8px;opacity:.5;letter-spacing:.05em}
+#main{display:grid;grid-template-columns:340px 1fr;gap:0;min-height:calc(100vh - 100px)}
+#left{padding:20px;border-right:1px solid rgba(255,255,255,0.04);overflow-y:auto}
+#right{padding:20px;display:flex;flex-direction:column;align-items:center;gap:16px}
+.panel{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:6px;padding:14px;margin-bottom:14px}
+.panel h3{font-size:.82em;color:var(--accent);font-weight:400;margin-bottom:10px;letter-spacing:.06em}
+.input-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.input-row label{font-size:.78em;color:var(--dim);min-width:60px}
+.input-row input,.input-row select{background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);border-radius:4px;color:var(--fg);padding:6px 10px;font-family:inherit;font-size:.82em}
+.input-row input:focus,.input-row select:focus{border-color:var(--accent);outline:none}
+.input-row input.hex{width:140px;font-family:monospace}
+.input-row select{width:100%}
+.input-row .val{font-size:.78em;color:var(--accent);min-width:30px}
+#code-out{font-family:monospace;font-size:.78em;background:rgba(0,0,0,0.4);padding:10px;border-radius:4px;color:var(--accent);word-break:break-all;line-height:1.6}
+#glyph-canvas{border:1px solid rgba(201,168,76,0.15);border-radius:8px;background:#0a0a12}
+.bits{display:flex;gap:2px;flex-wrap:wrap;margin-top:6px}
+.bit{padding:3px 8px;border-radius:3px;font-size:.72em;font-family:monospace}
+.bit-f{background:rgba(201,168,76,0.15);color:var(--accent)}
+.bit-p{background:rgba(155,89,182,0.15);color:#c39bd3}
+.bit-s{background:rgba(52,152,219,0.15);color:#85c1e9}
+.bit-sm{background:rgba(74,124,89,0.15);color:#7dcea0}
+.bit-ym{background:rgba(230,176,40,0.15);color:#f0c040}
+.bit-t{background:rgba(139,69,19,0.15);color:#d4a574}
+.diff-bar{display:flex;align-items:center;gap:6px;margin:4px 0}
+.diff-bar .dn{width:56px;font-size:.72em;color:var(--dim)}
+.diff-bar .track{flex:1;height:10px;background:rgba(255,255,255,0.03);border-radius:5px;overflow:hidden}
+.diff-bar .fill{height:100%;border-radius:5px}
+.diff-bar .pct{width:34px;text-align:right;font-size:.72em;font-family:monospace}
+.verdict{text-align:center;padding:16px;border-radius:8px;margin-top:10px}
+.verdict.admitted{background:rgba(39,174,96,0.06);border:1px solid rgba(39,174,96,0.2)}
+.verdict.rejected{background:rgba(231,76,60,0.06);border:1px solid rgba(231,76,60,0.2)}
+.verdict .v-text{font-size:1.3em;font-weight:300;letter-spacing:.08em}
+.verdict.admitted .v-text{color:var(--good)}
+.verdict.rejected .v-text{color:var(--bad)}
+.verdict .v-detail{margin-top:6px;font-size:.78em;color:var(--dim)}
+.fbadge{display:inline-block;padding:2px 10px;border-radius:10px;font-size:.78em}
+.fbadge.container{background:rgba(74,124,89,0.2);color:#7dcea0}
+.fbadge.boundary{background:rgba(139,69,19,0.2);color:#d4a574}
+.fbadge.couple{background:rgba(155,89,182,0.2);color:#c39bd3}
+.fbadge.web{background:rgba(52,152,219,0.2);color:#85c1e9}
+.fbadge.neutral{background:rgba(127,140,141,0.2);color:#aab7b8}
+.crime{display:inline-block;margin:2px;padding:2px 8px;border-radius:3px;font-size:.72em;background:rgba(231,76,60,0.1);color:#e74c3c;border:1px solid rgba(231,76,60,0.15)}
+.kv{display:flex;gap:8px;margin:3px 0;font-size:.78em}
+.kv .k{color:var(--dim);min-width:70px}
+.kv .v{color:var(--fg)}
+.kv .v.good{color:var(--good)}
+.kv .v.bad{color:var(--bad)}
+.no-system{font-size:.72em;color:var(--dim);opacity:.6;margin-top:6px;text-align:center}
+@media(max-width:800px){
+  #main{grid-template-columns:1fr}
+  #right{border-top:1px solid rgba(255,255,255,0.04)}
+}
+</style>
+</head>
+<body>
+
+<div id="top">
+  <h1>满全法 · 纯编码工作站</h1>
+  <div class="sub">Pure Encoding Workstation · 无系统依赖</div>
+  <div class="principle">不靠Unicode · 不靠ASCII · 不靠系统字体 · 容器码即字形 · 像素代数即渲染</div>
+</div>
+
+<div id="main">
+  <div id="left">
+    <div class="panel">
+      <h3>▌ 32位容器编码</h3>
+      <div class="input-row">
+        <label>HEX</label>
+        <input type="text" class="hex" id="code-hex" value="0601E400" maxlength="8" oninput="fromHex()">
+      </div>
+      <div class="input-row">
+        <label>十进制</label>
+        <input type="text" class="hex" id="code-dec" value="100856832" oninput="fromDec()">
+      </div>
+      <div id="code-out"></div>
+      <div class="bits" id="bits-vis"></div>
+    </div>
+
+    <div class="panel">
+      <h3>▌ 字段分解</h3>
+      <div class="input-row"><label>家族</label>
+        <select id="f-family" onchange="fromFields()">
+          <option value="0">0 容器 · 阴</option>
+          <option value="1">1 边界 · 阳</option>
+          <option value="2">2 夫妻 · 合</option>
+          <option value="3">3 网状 · 交织</option>
+          <option value="4">4 中性 · 系统</option>
+        </select>
+        <span class="val" id="v-family">0</span>
+      </div>
+      <div class="input-row"><label>极性</label>
+        <select id="f-polarity" onchange="fromFields()">
+          <option value="0">0 阴/囡</option>
+          <option value="1">1 阳/囝</option>
+        </select>
+        <span class="val" id="v-polarity">0</span>
+      </div>
+      <div class="input-row"><label>结构</label>
+        <select id="f-structure" onchange="fromFields()">
+          <option value="0">0 独体</option>
+          <option value="1">1 上下</option>
+          <option value="2">2 左右</option>
+          <option value="3">3 半包围</option>
+          <option value="4">4 全包围</option>
+          <option value="5">5 品字</option>
+          <option value="6">6 嵌套</option>
+          <option value="7">7 框架</option>
+        </select>
+        <span class="val" id="v-structure">3</span>
+      </div>
+      <div class="input-row"><label>声母</label>
+        <select id="f-sm" onchange="fromFields()"></select>
+        <span class="val" id="v-sm">0</span>
+      </div>
+      <div class="input-row"><label>韵母</label>
+        <select id="f-ym" onchange="fromFields()"></select>
+        <span class="val" id="v-ym">15</span>
+      </div>
+      <div class="input-row"><label>声调</label>
+        <select id="f-tone" onchange="fromFields()">
+          <option value="0">0 阴平 ˉ</option>
+          <option value="1">1 阳平 ˊ</option>
+          <option value="2">2 上声 ˇ</option>
+          <option value="3">3 去声 ˋ</option>
+          <option value="4">4 轻声</option>
+        </select>
+        <span class="val" id="v-tone">1</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>▌ 衍射八维</h3>
+      <div id="diff-output"></div>
+    </div>
+
+    <div class="panel">
+      <h3>▌ 审判</h3>
+      <div id="crime-output"></div>
+      <div id="verdict-output"></div>
+    </div>
+  </div>
+
+  <div id="right">
+    <div class="panel" style="width:100%">
+      <h3>▌ 字形渲染 · 像素代数直接绘制</h3>
+      <canvas id="glyph-canvas" width="300" height="300"></canvas>
+      <div class="no-system">↑ 此字形由容器码的家族+结构字段通过像素代数生成 · 不调用系统字体 · 不依赖Unicode</div>
+    </div>
+    <div class="panel" style="width:100%">
+      <h3>▌ 渲染帧 · 16字符=1bit</h3>
+      <div id="render-frame" style="font-family:monospace;font-size:.68em;letter-spacing:1px;color:var(--dim);background:rgba(0,0,0,0.3);padding:10px;border-radius:4px;overflow-x:auto;white-space:pre;line-height:1.4"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// 满全法纯编码系统 · 零系统依赖
+// ══════════════════════════════════════════════════════
+
+const SHENGMU = ['b','p','m','f','d','t','n','l','g','k','h','j','q','x','zh','ch','sh','r','z','c','s','y','w',''];
+const YUNMU = ['a','o','e','i','u','ü','ai','ei','ui','ao','ou','iu','ie','üe','er','an','en','in','un','ün','ang','eng','ing','ong','ia','iao','ian','iang','iong','ua','uo','uai','uan','uang','ueng','üan','üe2'];
+const FAMILIES = [
+  {name:'容器',side:'阴',person:'刘楚恬',cls:'container'},
+  {name:'边界',side:'阳',person:'我',cls:'boundary'},
+  {name:'夫妻',side:'囡囝合',person:'共同体',cls:'couple'},
+  {name:'网状',side:'交织',person:'分布式',cls:'web'},
+  {name:'中性',side:'系统',person:'未分类',cls:'neutral'},
+];
+const STRUCTURES = ['独体','上下','左右','半包围','全包围','品字','嵌套','框架'];
+const TONES = ['阴平ˉ','阳平ˊ','上声ˇ','去声ˋ','轻声'];
+const CRIMES = ['类型错配','审美失效','无公倍数','编织失衡','全局污染','语义反转','无自知'];
+const DIFF_NAMES = ['审美','类型','面相','骨骼','思考','协同','目标','归属'];
+const DIFF_COLORS = ['#c9a84c','#e67e22','#3498db','#9b59b6','#27ae60','#e74c3c','#f39c12','#1abc9c'];
+
+// ── 初始化下拉框 ──
+const smSel = document.getElementById('f-sm');
+SHENGMU.forEach((s,i) => { if(s){ const o=document.createElement('option'); o.value=i; o.textContent=i+' '+s; smSel.appendChild(o); }});
+smSel.value = 0;
+
+const ymSel = document.getElementById('f-ym');
+YUNMU.forEach((y,i) => { const o=document.createElement('option'); o.value=i; o.textContent=i+' '+y; ymSel.appendChild(o); });
+ymSel.value = 15;
+
+// ── 编码/解码 ──
+let currentCode = 0x0601E400;
+
+function fromHex() {
+  const h = document.getElementById('code-hex').value.replace(/[^0-9a-fA-F]/g,'');
+  if (h.length === 0) return;
+  currentCode = parseInt(h, 16) & 0xFFFFFFFF;
+  document.getElementById('code-dec').value = currentCode;
+  syncFieldsFromCode();
+  render();
+}
+
+function fromDec() {
+  const d = parseInt(document.getElementById('code-dec').value) || 0;
+  currentCode = d & 0xFFFFFFFF;
+  document.getElementById('code-hex').value = currentCode.toString(16).toUpperCase().padStart(8,'0');
+  syncFieldsFromCode();
+  render();
+}
+
+function fromFields() {
+  const f = +document.getElementById('f-family').value;
+  const p = +document.getElementById('f-polarity').value;
+  const s = +document.getElementById('f-structure').value;
+  const sm = +document.getElementById('f-sm').value;
+  const ym = +document.getElementById('f-ym').value;
+  const t = +document.getElementById('f-tone').value;
+  currentCode = (f << 29) | (p << 28) | (s << 25) | (sm << 19) | (ym << 13) | (t << 10);
+  document.getElementById('code-hex').value = currentCode.toString(16).toUpperCase().padStart(8,'0');
+  document.getElementById('code-dec').value = currentCode;
+  render();
+}
+
+function syncFieldsFromCode() {
+  const f = (currentCode >>> 29) & 7;
+  const p = (currentCode >>> 28) & 1;
+  const s = (currentCode >>> 25) & 7;
+  const sm = (currentCode >>> 19) & 63;
+  const ym = (currentCode >>> 13) & 63;
+  const t = (currentCode >>> 10) & 7;
+  document.getElementById('f-family').value = Math.min(f, 4);
+  document.getElementById('f-polarity').value = p;
+  document.getElementById('f-structure').value = Math.min(s, 7);
+  document.getElementById('f-sm').value = Math.min(sm, SHENGMU.length-1);
+  document.getElementById('f-ym').value = Math.min(ym, YUNMU.length-1);
+  document.getElementById('f-tone').value = Math.min(t, 4);
+  document.getElementById('v-family').textContent = f;
+  document.getElementById('v-polarity').textContent = p;
+  document.getElementById('v-structure').textContent = s;
+  document.getElementById('v-sm').textContent = sm;
+  document.getElementById('v-ym').textContent = ym;
+  document.getElementById('v-tone').textContent = t;
+}
+
+// ── 像素代数渲染 ──
+function renderGlyph(ctx, code, size) {
+  const f = (code >>> 29) & 7;
+  const p = (code >>> 28) & 1;
+  const s = (code >>> 25) & 7;
+  const sm = (code >>> 19) & 63;
+  const ym = (code >>> 13) & 63;
+  const t = (code >>> 10) & 7;
+
+  ctx.clearRect(0, 0, size, size);
+  ctx.fillStyle = '#0a0a12';
+  ctx.fillRect(0, 0, size, size);
+
+  const margin = size * 0.15;
+  const inner = size - margin * 2;
+  const cx = size / 2;
+  const cy = size / 2;
+
+  // 墨色基于声母+韵母
+  const inkR = (sm * 7) % 60;
+  const inkG = (ym * 5) % 40;
+  const inkB = (t * 30) % 80;
+  const inkColor = `rgb(${inkR},${inkG},${inkB})`;
+  const lightColor = `rgba(${inkR+60},${inkG+60},${inkB+60},0.3)`;
+
+  ctx.strokeStyle = inkColor;
+  ctx.fillStyle = inkColor;
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  // 结构决定布局, 家族决定笔画类型
+  const layouts = {
+    0: () => drawUnit(ctx, cx, cy, inner, inkColor, p, f),      // 独体
+    1: () => drawVertical(ctx, cx, cy, inner, inkColor, p, f),    // 上下
+    2: () => drawHorizontal(ctx, cx, cy, inner, inkColor, p, f),  // 左右
+    3: () => drawSemiWrap(ctx, cx, cy, inner, inkColor, p, f),    // 半包围
+    4: () => drawFullWrap(ctx, cx, cy, inner, inkColor, p, f),    // 全包围
+    5: () => drawPinzi(ctx, cx, cy, inner, inkColor, p, f),        // 品字
+    6: () => drawNested(ctx, cx, cy, inner, inkColor, p, f),       // 嵌套
+    7: () => drawFrame(ctx, cx, cy, inner, inkColor, p, f),        // 框架
+  };
+
+  (layouts[s] || layouts[0])();
+
+  // 极性标记
+  if (p === 1) {
+    ctx.fillStyle = lightColor;
+    ctx.beginPath();
+    ctx.arc(cx, margin * 0.5, 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+// 家族笔画原语
+function familyStroke(ctx, x, y, len, color, family, dir) {
+  ctx.strokeStyle = color;
+  switch(family) {
+    case 0: // 容器: 圆润封闭
+      ctx.beginPath();
+      if (dir === 'h') {
+        ctx.moveTo(x - len/2, y);
+        ctx.quadraticCurveTo(x, y - len*0.15, x + len/2, y);
+        ctx.quadraticCurveTo(x, y + len*0.15, x - len/2, y);
+      } else {
+        ctx.moveTo(x, y - len/2);
+        ctx.quadraticCurveTo(x + len*0.15, y, x, y + len/2);
+        ctx.quadraticCurveTo(x - len*0.15, y, x, y - len/2);
+      }
+      ctx.stroke();
+      break;
+    case 1: // 边界: 刚直线条
+      ctx.beginPath();
+      if (dir === 'h') { ctx.moveTo(x - len/2, y); ctx.lineTo(x + len/2, y); }
+      else { ctx.moveTo(x, y - len/2); ctx.lineTo(x, y + len/2); }
+      ctx.stroke();
+      break;
+    case 2: // 夫妻: 阴阳组合(曲线+直线)
+      ctx.beginPath();
+      if (dir === 'h') {
+        ctx.moveTo(x - len/2, y);
+        ctx.lineTo(x - len*0.1, y);
+        ctx.moveTo(x + len*0.1, y);
+        ctx.quadraticCurveTo(x, y - len*0.1, x + len/2, y);
+      } else {
+        ctx.moveTo(x, y - len/2);
+        ctx.lineTo(x, y - len*0.1);
+        ctx.moveTo(x, y + len*0.1);
+        ctx.quadraticCurveTo(x + len*0.1, y, x, y + len/2);
+      }
+      ctx.stroke();
+      break;
+    case 3: // 网状: 交叉线
+      ctx.beginPath();
+      ctx.moveTo(x - len*0.3, y - len*0.3); ctx.lineTo(x + len*0.3, y + len*0.3);
+      ctx.moveTo(x + len*0.3, y - len*0.3); ctx.lineTo(x - len*0.3, y + len*0.3);
+      ctx.stroke();
+      break;
+    default: // 中性: 点
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(x, y, len * 0.08, 0, Math.PI * 2);
+      ctx.fill();
+  }
+}
+
+// 结构布局
+function drawUnit(ctx, cx, cy, inner, color, p, f) {
+  const r = inner * 0.35;
+  if (f === 0) { // 容器: 圆
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx, cy, r * 0.5, 0, Math.PI*2); ctx.stroke();
+  } else if (f === 1) { // 边界: 竖线
+    ctx.beginPath(); ctx.moveTo(cx, cy - r); ctx.lineTo(cx, cy + r); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx - r*0.4, cy); ctx.lineTo(cx + r*0.4, cy); ctx.stroke();
+  } else if (f === 2) { // 夫妻: 圆+竖
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx, cy - r*0.6); ctx.lineTo(cx, cy + r*0.6); ctx.stroke();
+  } else if (f === 3) { // 网状: 交叉
+    ctx.beginPath();
+    ctx.moveTo(cx-r,cy-r); ctx.lineTo(cx+r,cy+r);
+    ctx.moveTo(cx+r,cy-r); ctx.lineTo(cx-r,cy+r);
+    ctx.moveTo(cx,cy-r); ctx.lineTo(cx,cy+r);
+    ctx.moveTo(cx-r,cy); ctx.lineTo(cx+r,cy);
+    ctx.stroke();
+  } else { // 中性: 方
+    ctx.strokeRect(cx-r, cy-r, r*2, r*2);
+  }
+}
+
+function drawVertical(ctx, cx, cy, inner, color, p, f) {
+  const h = inner * 0.35;
+  ctx.save();
+  familyStroke(ctx, cx, cy - h*0.5, h*0.8, color, f, 'h');
+  familyStroke(ctx, cx, cy + h*0.5, h*0.8, color, f, 'h');
+  if (f === 0) { ctx.beginPath(); ctx.moveTo(cx-h, cy); ctx.lineTo(cx+h, cy); ctx.stroke(); }
+  ctx.restore();
+}
+
+function drawHorizontal(ctx, cx, cy, inner, color, p, f) {
+  const w = inner * 0.35;
+  familyStroke(ctx, cx - w*0.5, cy, w*0.7, color, f, 'v');
+  familyStroke(ctx, cx + w*0.5, cy, w*0.7, color, f, 'v');
+  if (f === 0) { ctx.beginPath(); ctx.moveTo(cx, cy-w*0.3); ctx.lineTo(cx, cy+w*0.3); ctx.stroke(); }
+}
+
+function drawSemiWrap(ctx, cx, cy, inner, color, p, f) {
+  const r = inner * 0.35;
+  ctx.beginPath();
+  ctx.moveTo(cx - r, cy + r);
+  ctx.lineTo(cx - r, cy - r);
+  ctx.lineTo(cx + r, cy - r);
+  ctx.lineTo(cx + r, cy + r);
+  ctx.stroke();
+  familyStroke(ctx, cx, cy, r*0.6, color, f, 'v');
+}
+
+function drawFullWrap(ctx, cx, cy, inner, color, p, f) {
+  const r = inner * 0.38;
+  ctx.strokeRect(cx - r, cy - r, r * 2, r * 2);
+  if (f === 0) {
+    ctx.beginPath(); ctx.arc(cx, cy, r * 0.4, 0, Math.PI*2); ctx.stroke();
+  } else if (f === 1) {
+    ctx.beginPath(); ctx.moveTo(cx, cy - r*0.5); ctx.lineTo(cx, cy + r*0.5); ctx.stroke();
+  } else if (f === 2) {
+    ctx.beginPath(); ctx.arc(cx, cy, r*0.35, 0, Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx, cy-r*0.3); ctx.lineTo(cx, cy+r*0.3); ctx.stroke();
+  } else {
+    familyStroke(ctx, cx, cy, r*0.5, color, f, 'v');
+  }
+}
+
+function drawPinzi(ctx, cx, cy, inner, color, p, f) {
+  const d = inner * 0.18;
+  familyStroke(ctx, cx, cy - d*1.2, d*0.8, color, f, 'v');
+  familyStroke(ctx, cx - d*0.9, cy + d*0.7, d*0.7, color, f, 'v');
+  familyStroke(ctx, cx + d*0.9, cy + d*0.7, d*0.7, color, f, 'v');
+}
+
+function drawNested(ctx, cx, cy, inner, color, p, f) {
+  const r = inner * 0.35;
+  ctx.strokeRect(cx - r, cy - r, r*2, r*2);
+  ctx.strokeRect(cx - r*0.6, cy - r*0.6, r*1.2, r*1.2);
+  ctx.beginPath(); ctx.arc(cx, cy, r*0.25, 0, Math.PI*2); ctx.stroke();
+}
+
+function drawFrame(ctx, cx, cy, inner, color, p, f) {
+  const r = inner * 0.38;
+  ctx.strokeRect(cx - r, cy - r, r*2, r*2);
+  ctx.beginPath();
+  ctx.moveTo(cx - r, cy); ctx.lineTo(cx + r, cy);
+  ctx.moveTo(cx, cy - r); ctx.lineTo(cx, cy + r);
+  ctx.stroke();
+}
+
+// ── 衍射计算 ──
+function computeDiffraction(code) {
+  const f = (code >>> 29) & 7;
+  const p = (code >>> 28) & 1;
+  const s = (code >>> 25) & 7;
+  const sm = (code >>> 19) & 63;
+  const ym = (code >>> 13) & 63;
+  const t = (code >>> 10) & 7;
+  const base = 0.5 + f * 0.05 + (1-p) * 0.08;
+  const scores = [];
+  for (let i = 0; i < 8; i++) {
+    let sc = base;
+    switch(i) {
+      case 0: sc += (s === 4 ? 0.2 : 0.1) + (f === 0 ? 0.15 : 0.05); break;
+      case 1: sc += (f < 4 ? 0.2 : 0); break;
+      case 2: sc += (sm < 24 ? 0.15 : 0.05); break;
+      case 3: sc += (s < 5 ? 0.2 : 0.05); break;
+      case 4: sc += (ym < 35 ? 0.1 : 0.05) + (t < 4 ? 0.05 : 0); break;
+      case 5: sc += (f === 2 ? 0.25 : 0.1); break;
+      case 6: sc += (p === 0 ? 0.15 : 0.1); break;
+      case 7: sc += (f < 4 ? 0.18 : 0); break;
+    }
+    scores.push(Math.min(sc, 1.0));
+  }
+  return scores;
+}
+
+function detectCrimes(scores, f, p) {
+  const crimes = [];
+  const avg = scores.reduce((a,b)=>a+b,0)/8;
+  if (scores[1] < 0.55) crimes.push(CRIMES[0]);
+  if (scores[0] < 0.6) crimes.push(CRIMES[1]);
+  if (avg < 0.5) crimes.push(CRIMES[2]);
+  if (scores[5] < 0.55) crimes.push(CRIMES[3]);
+  if (scores.filter(s=>s<0.6).length >= 4) crimes.push(CRIMES[4]);
+  if (p === 1 && f === 0) crimes.push(CRIMES[5]);
+  if (scores.every(s=>s<0.4)) crimes.push(CRIMES[6]);
+  return crimes;
+}
+
+// ── 渲染帧 ──
+function renderFrame(code) {
+  const bits = code.toString(2).padStart(32, '0');
+  let frame = '';
+  for (let i = 0; i < bits.length; i++) {
+    frame += (bits[i] === '1' ? '█' : '░').repeat(12);
+    if ((i + 1) % 8 === 0 && i < 31) frame += ' | ';
+  }
+  return frame;
+}
+
+// ── 主渲染 ──
+function render() {
+  const code = currentCode;
+  const f = (code >>> 29) & 7;
+  const p = (code >>> 28) & 1;
+  const s = (code >>> 25) & 7;
+  const sm = (code >>> 19) & 63;
+  const ym = (code >>> 13) & 63;
+  const t = (code >>> 10) & 7;
+  const fam = FAMILIES[Math.min(f, 4)];
+
+  // 编码输出
+  document.getElementById('code-out').innerHTML =
+    '0x' + code.toString(16).toUpperCase().padStart(8,'0') + '<br>' +
+    '二进制: ' + code.toString(2).padStart(32,'0').replace(/(.{8})/g,'$1 ').trim() + '<br>' +
+    '十进制: ' + code;
+
+  // 位可视化
+  document.getElementById('bits-vis').innerHTML =
+    '<span class="bit bit-f">家族' + f.toString(2).padStart(3,'0') + '</span>' +
+    '<span class="bit bit-p">极性' + p + '</span>' +
+    '<span class="bit bit-s">结构' + s.toString(2).padStart(3,'0') + '</span>' +
+    '<span class="bit bit-sm">声' + sm.toString(2).padStart(6,'0') + '</span>' +
+    '<span class="bit bit-ym">韵' + ym.toString(2).padStart(6,'0') + '</span>' +
+    '<span class="bit bit-t">调' + t.toString(2).padStart(3,'0') + '</span>';
+
+  // 字形渲染
+  const canvas = document.getElementById('glyph-canvas');
+  const ctx = canvas.getContext('2d');
+  renderGlyph(ctx, code, 300);
+
+  // 渲染帧
+  document.getElementById('render-frame').textContent = renderFrame(code);
+
+  // 衍射
+  const scores = computeDiffraction(code);
+  const avg = scores.reduce((a,b)=>a+b,0)/8;
+  let diffHtml = '';
+  scores.forEach((sc, i) => {
+    const pct = Math.round(sc * 100);
+    diffHtml += '<div class="diff-bar"><span class="dn">'+DIFF_NAMES[i]+'</span>' +
+      '<span class="track"><span class="fill" style="width:'+pct+'%;background:'+DIFF_COLORS[i]+'"></span></span>' +
+      '<span class="pct" style="color:'+DIFF_COLORS[i]+'">'+pct+'%</span></div>';
+  });
+  diffHtml += '<div class="kv" style="margin-top:8px"><span class="k">均值</span><span class="v '+(avg>0.6?'good':'bad')+'">'+(avg*100).toFixed(1)+'%</span></div>';
+  document.getElementById('diff-output').innerHTML = diffHtml;
+
+  // 审判
+  const crimes = detectCrimes(scores, f, p);
+  const admitted = crimes.length === 0;
+  let crimeHtml = '<div class="kv"><span class="k">罪名</span><span class="v">'+(crimes.length>0?crimes.map(c=>'<span class="crime">'+c+'</span>').join(' '):'<span class="good">无</span>')+'</span></div>';
+  document.getElementById('crime-output').innerHTML = crimeHtml;
+
+  document.getElementById('verdict-output').innerHTML =
+    '<div class="verdict '+(admitted?'admitted':'rejected')+'" style="margin-top:10px">' +
+    '<div class="v-text">'+(admitted?'◎ 准入 ADMITTED':'✗ 拒绝 REJECTED')+'</div>' +
+    '<div class="v-detail"><span class="fbadge '+fam.cls+'">'+fam.name+' · '+fam.side+'</span> → '+(admitted?'全部维度通过':'触犯 '+crimes.length+' 项')+'</div></div>';
+}
+
+// ── 初始化 ──
+syncFieldsFromCode();
+render();
+</script>
+</body>
+</html>

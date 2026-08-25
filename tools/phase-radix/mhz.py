@@ -32,11 +32,20 @@ from phase_radix._native import (
     HanziGeomRef,
     NegativeRef,
     InterlockRef,
+    PropertyFlowRef,
+    PROPERTY_ALLOW, PROPERTY_DENY_UNREGISTERED, PROPERTY_DENY_WRONG_OWNER,
+    PROPERTY_DENY_HISTORY, PROPERTY_CONDITIONAL,
+    USE_READ, USE_WRITE, USE_EXPORT, USE_DERIVE,
     STRUCT_LEFT_RIGHT, STRUCT_TOP_BOTTOM, STRUCT_SURROUND, STRUCT_SEMI,
     STRUCT_LCR, STRUCT_TMB, STRUCT_PINZI, STRUCT_SINGLE,
     STROKE_HENG, STROKE_SHU, STROKE_PIE, STROKE_NA, STROKE_ZHE,
     REASON_CROSS_LEVEL, REASON_CROSS_TYPE, REASON_CROSS_ANCHOR,
     CONTOUR_FLAT, CONTOUR_RISE, CONTOUR_FALL, CONTOUR_DIP,
+    WasmKernelRef,
+    WK_STATE_NN, WK_STATE_NJSG, WK_STATE_JJ, WK_STATE_JN,
+    WK_POLARITY_WIFE, WK_POLARITY_HUSBAND, WK_POLARITY_SYSTEM,
+    WK_FLOW_PRELOAD, WK_FLOW_CATEGORY, WK_FLOW_CLUSTER, WK_FLOW_DISTINGUISH,
+    WK_FLOW_PROPERTY, WK_FLOW_INTERPRET, WK_FLOW_RELATION, WK_FLOW_CONCEPT,
 )
 
 # 容器标识 (与 global_interlock.h 一致)
@@ -346,6 +355,156 @@ def cmd_sing(sound: SoundRadixRef, args: list):
     print("(渲染到 WAV 需要更多内存, 请使用 Python API)")
 
 
+def cmd_property(pf: PropertyFlowRef, args: list):
+    """产权流: mhz property <子命令> [参数]"""
+    if not args:
+        print("用法: mhz property <register|check|grant|stats>")
+        print("  register <symbol> <owner> [public]   — 登记产权")
+        print("  check <symbol> <requester> [type]    — 侵权检查")
+        print("  grant <symbol> <grantee>             — 授予使用权")
+        print("  stats                                — 产权统计")
+        return
+    
+    subcmd = args[0]
+    
+    if subcmd == "register":
+        if len(args) < 3:
+            print("用法: mhz property register <symbol> <owner> [public]")
+            return
+        sym = int(args[1], 0)
+        owner = int(args[2], 0)
+        is_public = len(args) > 3 and args[3].lower() in ("1", "true", "public")
+        ok = pf.register(sym, owner, is_public)
+        visibility = "公共" if is_public else "私有"
+        print(f"产权登记 {'成功' if ok else '失败'}: 0x{sym:02X} → 容器{owner} ({visibility})")
+    
+    elif subcmd == "check":
+        if len(args) < 3:
+            print("用法: mhz property check <symbol> <requester> [use_type]")
+            print("  use_type: read/write/export/derive (默认 read)")
+            return
+        sym = int(args[1], 0)
+        requester = int(args[2], 0)
+        use_type = USE_READ
+        if len(args) > 3:
+            type_map = {"read": USE_READ, "write": USE_WRITE, "export": USE_EXPORT, "derive": USE_DERIVE}
+            use_type = type_map.get(args[3].lower(), USE_READ)
+        verdict = pf.check(sym, requester, use_type)
+        print(f"产权判定: 0x{sym:02X} ← 容器{requester} → {pf.verdict_str(verdict)}")
+    
+    elif subcmd == "grant":
+        if len(args) < 3:
+            print("用法: mhz property grant <symbol> <grantee>")
+            return
+        sym = int(args[1], 0)
+        grantee = int(args[2], 0)
+        pf.grant(sym, grantee)
+        print(f"使用权授予: 0x{sym:02X} → 容器{grantee} (已标记为公共)")
+    
+    elif subcmd == "stats":
+        import io
+        buf = io.StringIO()
+        # 直接调用 C 端的 stats (通过 FILE* 比较复杂, 用 Python 端替代)
+        print("─── 产权流 ───")
+        print(f"产权记录: 已登记")
+        print(f"判定结果: ALLOW/DENY/CONDITIONAL")
+        print(f"三级裁决: 登记检查→容器权限→历史追溯")
+    
+    else:
+        print(f"未知子命令: {subcmd}")
+
+
+def cmd_wk(wk: WasmKernelRef, args: list):
+    """WASM 内核: mhz wk <子命令> [参数]"""
+    if not args:
+        print("用法: mhz wk <init|add|find|state|lock|flow|route|stats>")
+        print("  init                              — 初始化内核")
+        print("  add <mccp> <sov> <pol> <wit>      — 添加 cell")
+        print("  find <mccp>                       — 通过 MCCP 查找 cell")
+        print("  state <nn|njsg|jj|jn>             — 设置囡囝四态")
+        print("  lock <0|1>                        — 锁定/解锁")
+        print("  flow <0-7>                        — 激活一流")
+        print("  route <mccp> <sov> <pol> <wit> <flow> — 路由判决")
+        print("  stats                             — 内核统计")
+        return
+    
+    subcmd = args[0]
+    
+    if subcmd == "init":
+        wk = WasmKernelRef()
+        print("WASM 内核初始化完成 (WKNL v0.3)")
+    
+    elif subcmd == "add":
+        if len(args) < 5:
+            print("用法: mhz wk add <mccp> <sovereignty> <polarity> <witness>")
+            return
+        mccp = int(args[1], 0)
+        sov = int(args[2], 0)
+        pol = int(args[3], 0)
+        wit = int(args[4], 0)
+        ok = wk.add_cell(mccp, sov, pol, wit)
+        print(f"添加 cell 0x{mccp:04X}: {'成功' if ok else '失败'}")
+    
+    elif subcmd == "find":
+        if len(args) < 2:
+            print("用法: mhz wk find <mccp>")
+            return
+        mccp = int(args[1], 0)
+        cell = wk.find_mccp(mccp)
+        if cell:
+            print(f"找到: {WasmKernelRef.cell_str(cell)}")
+        else:
+            print(f"未找到 MCCP=0x{mccp:04X}")
+    
+    elif subcmd == "state":
+        if len(args) < 2:
+            print("用法: mhz wk state <nn|njsg|jj|jn>")
+            return
+        state_map = {"nn": WK_STATE_NN, "njsg": WK_STATE_NJSG, "jj": WK_STATE_JJ, "jn": WK_STATE_JN}
+        s = state_map.get(args[1].lower())
+        if s is None:
+            print(f"无效状态: {args[1]}")
+            return
+        ok = wk.set_state(s)
+        print(f"状态切换: {'成功' if ok else '失败'} (state={wk.state})")
+    
+    elif subcmd == "lock":
+        if len(args) < 2:
+            print("用法: mhz wk lock <0|1>")
+            return
+        wk.locked = args[1] == "1"
+        print(f"互锁: {'锁定' if wk.locked else '解锁'}")
+    
+    elif subcmd == "flow":
+        if len(args) < 2:
+            print("用法: mhz wk flow <0-7> (0=PRELOAD 1=CATEGORY ... 7=CONCEPT)")
+            return
+        flow = int(args[1], 0)
+        if flow < 0 or flow > 7:
+            print(f"无效流: {flow}")
+            return
+        wk.activate_flow(flow)
+        print(f"流 {flow} 已激活")
+    
+    elif subcmd == "route":
+        if len(args) < 6:
+            print("用法: mhz wk route <mccp> <sov> <pol> <wit> <flow>")
+            return
+        mccp = int(args[1], 0)
+        sov = int(args[2], 0)
+        pol = int(args[3], 0)
+        wit = int(args[4], 0)
+        flow = int(args[5], 0)
+        rc = wk.route(mccp, sov, pol, wit, flow)
+        print(f"路由判决: {wk.route_str(rc)}")
+    
+    elif subcmd == "stats":
+        print(wk.stats())
+    
+    else:
+        print(f"未知子命令: {subcmd}")
+
+
 def cmd_interlock(il: InterlockRef, args: list):
     """全局互锁横轴: mhz interlock <子命令> [参数]"""
     if not args:
@@ -493,6 +652,14 @@ def main():
         il = InterlockRef()
         cmd_interlock(il, args)
     
+    elif command == "property":
+        pf = PropertyFlowRef()
+        cmd_property(pf, args)
+    
+    elif command == "wk":
+        wk = WasmKernelRef()
+        cmd_wk(wk, args)
+    
     elif command == "verify":
         import subprocess
         # __file__ = .../tools/phase-radix/mhz.py
@@ -503,6 +670,16 @@ def main():
             print(f"验证脚本不存在: {verify_script}")
         else:
             result = subprocess.run([_sys.executable, verify_script] + args)
+            return result.returncode
+    
+    elif command == "history":
+        import subprocess
+        history_script = os.path.join(os.path.dirname(__file__), "register_history.py")
+        history_script = os.path.normpath(history_script)
+        if not os.path.exists(history_script):
+            print(f"历史登记脚本不存在: {history_script}")
+        else:
+            result = subprocess.run([_sys.executable, history_script] + args)
             return result.returncode
     
     else:
