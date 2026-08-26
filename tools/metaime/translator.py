@@ -15,23 +15,20 @@ AI输出"class" → 翻译器拒绝 → AI必须用我们的符号重写。
 import os
 import sys
 import re
-from loader import FQMLoader
-from linker import FQMLinker, OntologyPath
 
 
 class FQMTranslator:
     """FQM 翻译器"""
     
-    def __init__(self, linker):
+    def __init__(self, linker=None):
         self.linker = linker
-        self.foreign_map = {}      # 外部符号 → 本体论路径
-        self.rejected = []         # 被拒绝的符号
-        self.translated = []       # 成功翻译的符号
+        self.foreign_map = {}
+        self.rejected = []
+        self.translated = []
         self._build_foreign_map()
     
     def _build_foreign_map(self):
         """构建外部符号到本体论的映射表"""
-        # 编程关键字 → 本体论操作
         self.foreign_map = {
             # Python
             "class":    "袋.定义.容器",
@@ -50,6 +47,7 @@ class FQMTranslator:
             "True":     "袋.值.阳",
             "False":    "袋.值.阴",
             "None":     "袋.值.空",
+            "self":     "袋.自指.本体",
             
             # C
             "int":      "袋.类型.整数",
@@ -128,11 +126,9 @@ class FQMTranslator:
         return "\n".join(result)
     
     def get_rejected(self):
-        """获取被拒绝的符号"""
         return self.rejected
     
     def get_translated(self):
-        """获取成功翻译的符号"""
         return self.translated
     
     def display_translation(self):
@@ -161,47 +157,6 @@ class FQMTranslator:
 
 
 # ============================================================
-# 完整管道：加载 → 链接 → 翻译
-# ============================================================
-
-class FQMPipeline:
-    """FQM 完整管道"""
-    
-    def __init__(self, fqm_file):
-        self.loader = FQMLoader()
-        self.linker = None
-        self.translator = None
-        self.fqm_file = fqm_file
-    
-    def run(self):
-        """运行完整管道"""
-        if not self.loader.load_file(self.fqm_file):
-            print("加载失败")
-            return False
-        
-        self.linker = FQMLinker(self.loader)
-        self.linker.build_ontology_index()
-        self.linker.resolve_links()
-        
-        self.translator = FQMTranslator(self.linker)
-        
-        return True
-    
-    def translate(self, code):
-        """翻译外部代码"""
-        if self.translator is None:
-            return "管道未运行"
-        return self.translator.translate_code(code)
-    
-    def display_all(self):
-        """显示全部结果"""
-        self.loader.display_summary()
-        self.linker.display_ontology()
-        self.linker.display_resolution()
-        self.translator.display_translation()
-
-
-# ============================================================
 # 入口
 # ============================================================
 
@@ -221,7 +176,7 @@ class Container:
     print("原始代码:")
     print(sample_code)
     
-    translator = FQMTranslator(None)
+    translator = FQMTranslator()
     result = translator.translate_code(sample_code)
     
     print("\n翻译后:")

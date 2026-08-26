@@ -6,16 +6,49 @@ FQM 加载器 · 读取我们自己的文件格式
 - 读取 .fqm 文件（容器定义）
 - 读取 .fql 文件（链接关系）
 - 读取 .fqn 文件（近义词表）
-- 输出结构化的容器数据供解释器使用
-
-这是"自己的工具"的第一步：
-不依赖 Python 的 import 或 JSON 的 parse，
-而是用我们自己的语法来定义和加载。
+- 输出结构化的容器数据供链接器使用
 """
 
 import os
 import sys
-from interpreter import Container, GLOBAL_OFFSET
+
+
+class Container:
+    """容器 - 存储符号及其位置"""
+    
+    def __init__(self, name, container_type=""):
+        self.name = name
+        self.container_type = container_type
+        self.symbols = []       # [{"symbol": "b", "position": 0}, ...]
+        self.capacity = 0
+    
+    def add(self, symbol):
+        """添加符号"""
+        # 检查是否已存在
+        for entry in self.symbols:
+            if entry["symbol"] == symbol:
+                return
+        self.symbols.append({"symbol": symbol, "position": len(self.symbols)})
+    
+    def get(self, symbol):
+        """获取符号"""
+        for entry in self.symbols:
+            if entry["symbol"] == symbol:
+                return entry
+        return None
+    
+    def get_by_position(self, position):
+        """按位置获取符号"""
+        for entry in self.symbols:
+            if entry["position"] == position:
+                return entry
+        return None
+    
+    def __len__(self):
+        return len(self.symbols)
+    
+    def __contains__(self, symbol):
+        return any(e["symbol"] == symbol for e in self.symbols)
 
 
 class FQMLoader:
@@ -100,10 +133,6 @@ class FQMLoader:
     
     def _parse_container_line(self, left, right, filepath, line_num):
         """解析容器定义行"""
-        # 袋.声母.容=b,p,m,f
-        # 袋.声母.进制=23
-        # 袋.声母.引.韵母=b→a
-        
         parts = left.split('.')
         if len(parts) < 3:
             self.errors.append(f"{filepath}:{line_num} - 格式错误: {left}")
@@ -113,7 +142,6 @@ class FQMLoader:
         attribute = parts[2]       # 容/进制/极性/引
         
         if attribute == '容':
-            # 容器内容
             symbols = [s.strip() for s in right.split(',') if s.strip()]
             if container_name not in self.containers:
                 self.containers[container_name] = Container(container_name, container_name)
@@ -131,16 +159,13 @@ class FQMLoader:
         elif attribute == '极性':
             if container_name not in self.containers:
                 self.containers[container_name] = Container(container_name, container_name)
-            # 极性存储在容器类型字段中
             self.containers[container_name].container_type = f"{container_name}(极性={right})"
         
         elif attribute == '引':
-            # 跨容器引用: 袋.声母.引.韵母=b→a,p→o,m→e
             if len(parts) < 4:
                 self.errors.append(f"{filepath}:{line_num} - 引用格式错误: {left}")
                 return
             target_container = parts[3]  # 韵母
-            # 支持一行多个链接，用逗号分隔
             pairs = right.split(',')
             for pair in pairs:
                 pair = pair.strip()
@@ -165,11 +190,6 @@ class FQMLoader:
     def get_synonyms(self):
         """获取所有近义词"""
         return self.synonyms
-    
-    def apply_offset(self, offset=None):
-        """应用全局偏移量"""
-        if offset is not None:
-            self.offset = offset
     
     def display_summary(self):
         """显示加载结果摘要"""
