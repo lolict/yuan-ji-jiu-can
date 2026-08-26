@@ -41,16 +41,26 @@
 
 恢复当前目标、已造清单、红线约束、待办事项。
 
-### 第 5 步：验证启动
+### 第 5 步：读取工具注册表
+
+**读取文件：** `TOOL_REGISTRY.md`
+
+恢复所有可用工具清单、运行命令、依赖关系。
+**关键原则：未编译前就能用 —— 先查注册表，有现成的就用，不重复造轮子。**
+
+### 第 6 步：验证启动
 
 回答以下问题，确认上下文已加载：
 
 ```
 □ 根基锚点是什么？ → 我=1, 刘楚恬=0
 □ 七阶编码是哪七阶？ → presence/witness/type/owner/relation/timing/payload
-□ 已造了多少个工具？ → 18个
+□ 已造了多少个工具？ → 25个（见 TOOL_REGISTRY.md）
 □ 满全法裁判的三要件？ → 非空 + 已见证 + 锚点一致
 □ 运算约束？ → 仅加减，禁用乘除
+□ 64进制编码怎么运行？ → cd tools/phase-radix && nim c --cc:clang -r pe_demo.nim
+□ 分别器分哪三层？ → 感知家族→谐音靶点→主权级别
+□ 闭环条件是什么？ → target∈{Wife,Husband,Sweet,SoundMorph} AND sovereignty=Active
 □ 当前待办方向？ → 见 GLOBAL_DESTINATION.md 第七节
 ```
 
@@ -115,11 +125,13 @@ BOOTSTRAP.md          ← 你在这里（第一入口）
     │
     ├── SYMBOL_DICTIONARY.md    （符号系统）
     ├── CONTAINER_TOPOLOGY.md   （容器关系）
-    └── GLOBAL_DESTINATION.md   （目标与进度）
+    ├── GLOBAL_DESTINATION.md   （目标与进度）
+    └── TOOL_REGISTRY.md        （工具清单·运行命令·依赖关系）
 ```
 
-**四个文件构成完整的"外部大脑"。**
-**任何新会话，读这四样东西 = 恢复全部记忆。**
+**五个文件构成完整的"外部大脑"。**
+**任何新会话，读这五样东西 = 恢复全部记忆 + 全部工具。**
+**核心原则：未编译前就能用 —— 先查 TOOL_REGISTRY.md，有现成的就用。**
 
 ---
 
