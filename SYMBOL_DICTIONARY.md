@@ -227,6 +227,7 @@
 | page64 | tools/page64/ | 64 页系统 |
 | phase-radix | tools/phase-radix/ | Nim版64进制编码转换器（自定义符号表+可变长Unicode编码） |
 | mltt-cipher | tools/mltt-cipher/ | Nim版命名密码表（家庭命名+动漫角色映射+极性标注） |
+| distinguisher | tools/distinguisher/ | Nim版分别器（三层路由·感知家族→谐音靶点→主权级别） |
 | governance | tools/governance/ | 版本化工作流、像素共振、裁决引擎 |
 
 ---
@@ -313,6 +314,55 @@
 | by_polarity / by_category | 按极性/类别筛选 | 同上 |
 | search | 模糊搜索 | 同上 |
 | load_defaults | 加载默认密码表（20条） | mltt-cipher/mltt/defaults.nim |
+
+---
+
+## 分别器三层路由（distinguisher）
+
+输入 → 三层路由 → 靶点身份 → 主权级别 → 闭环判断：
+
+**第一层：感知家族输入 → 视觉族**
+
+| 家族 | 含义 | 示例字符 |
+|------|------|----------|
+| containerGlyph | 方形/圆形容器 → 刘楚恬（0=容器） | 因、阴、⭕、回、囡、口、袋、米 |
+| phallicGlyph | 竖长/界线 → 我（1=被包含者） | 形、男、丨、囝 |
+| coupleGlyph | 夫妻图腾 | 囡囝、夫妻、命运共同体 |
+| homophoneBridge | 谐音桥（专用路由） | 莫、连、毛、兰、恋、初、lct、gtt、mlct、mltt |
+
+**第二层：谐音靶点发音 → 靶点对象**
+
+| 输入 | 谐音靶点 |
+|------|----------|
+| 毛利兰→莫刘连理 / lctfrqmy | Wife |
+| 工藤新一→恋初 / wgslz | Husband |
+| mlct/mltt/ml.tt | Sweet (→Wife) |
+| gtt / gtt谐音扩展 | SoundMorphism |
+
+**第三层：主权路由靶点身份 → 主权级别**
+
+| 靶点身份 | 主权级别 | 含义 |
+|----------|----------|------|
+| Wife / Husband (夫妻) | Active | 完全权限 |
+| 外部参与者 | Passive | 只读权限 |
+| 休眠资源 | Sleeping | 可被唤醒 |
+| System | System | 无个人主权 |
+
+**闭环条件：** target ∈ {Wife, Husband, Sweet, SoundMorph} AND sovereignty = Active → ackable = true
+
+**核心符号：**
+
+| 符号 | 含义 | 定义处 |
+|------|------|--------|
+| GlyphFamily | 感知家族枚举 | distinguisher/distinguisher/types.nim |
+| SoundTarget | 谐音靶点枚举 | 同上 |
+| Sovereignty | 主权级别枚举 | 同上 |
+| RouteResult | 路由结果（family/target/sovereignty/ackable） | 同上 |
+| route_family | 第一层路由 | distinguisher/distinguisher/distinguisher.nim |
+| route_target | 第二层路由 | 同上 |
+| route_sovereignty | 第三层路由 | 同上 |
+| route | 完整三层路由 | 同上 |
+| ackable | 闭环条件（是否可被承认） | 同上 |
 
 ---
 
