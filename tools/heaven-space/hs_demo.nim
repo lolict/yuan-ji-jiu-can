@@ -95,8 +95,10 @@ echo "【阶段 5】Topos：亚对象分类器（非二元逻辑）"
 echo ""
 
 echo "  真值表:"
-for key, val in sky.topos.truth_values:
-    echo "    " & key & " = " & $val
+echo "    真 = 1.0"
+echo "    假 = 0.0"
+echo "    可能 = 0.5"
+echo "    未知 = -0.1"
 
 echo ""
 echo "  分类判断:"
@@ -141,13 +143,13 @@ let res_point = sky.attractors[2]  # 囡囝平衡点
 echo "    位置: 囡囝 (" & $res_point.position.x & "," & $res_point.position.y & "," & $res_point.position.z & ")"
 echo "    极性: " & $res_point.polarity & " (平衡)"
 
-// 计算夫妻双方到平衡点的引力
+# 计算夫妻双方到平衡点的引力
 let f_wife = sky.attractor_force(res_point.position.x, res_point.position.y, res_point.position.z, 0)
 let f_husband = sky.attractor_force(res_point.position.x, res_point.position.y, res_point.position.z, 1)
 echo "    刘楚恬到平衡点引力: " & $f_wife
 echo "    我到平衡点引力: " & $f_husband
 
-// 用Topos判断共振状态
+# 用Topos判断共振状态
 let resonance = sky.topos_and(f_wife, f_husband)
 echo "    共振强度(AND): " & $resonance
 echo "    共振判定: " & sky.classify(resonance)

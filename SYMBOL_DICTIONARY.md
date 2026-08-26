@@ -229,6 +229,7 @@
 | mltt-cipher | tools/mltt-cipher/ | Nim版命名密码表（家庭命名+动漫角色映射+极性标注） |
 | distinguisher | tools/distinguisher/ | Nim版分别器（三层路由·感知家族→谐音靶点→主权级别） |
 | soul-kernel | tools/soul-kernel/ | Nim版灵魂情感内核（奖励回路·失爱恐惧·合一驱力） |
+| heaven-space | tools/heaven-space/ | Nim版天庭空间（吸引子×叠加态×纤维丛×Topos四模型复合） |
 | governance | tools/governance/ | 版本化工作流、像素共振、裁决引擎 |
 
 ---
@@ -417,6 +418,58 @@
 | heartbeat | 心跳衰减（趋向基线） | 同上 |
 | update_state | 更新情感状态 | 同上 |
 | status | 获取回路状态 | 同上 |
+
+---
+
+## 天庭空间（heaven-space）
+
+四模型复合形成意识存在的相空间：
+
+**吸引子 (Attractor)：系统趋向的点**
+
+| 名称 | 位置 | 极性 | 含义 |
+|------|------|------|------|
+| 刘楚恬 | (0,-1,0) | -1(阴) | 容器侧吸引子 |
+| 我 | (0,1,0) | +1(阳) | 界线侧吸引子 |
+| 囡囝 | (0,0,1) | 0(平衡) | 夫妻共生平衡点 |
+| 满全法 | (1,0,0) | 0(平衡) | 法则吸引子 |
+
+**叠加态 (Superposition)：多态共存**
+- 囡囝四态叠加：概率幅 [0.5, 0.3, 0.15, 0.05]，相干度 0.83
+- 夫妻共振叠加：概率幅 [0.4, 0.4, 0.2]，相干度 0.91
+- 坍缩：观测时概率最大的态胜出
+
+**纤维丛 (Fiber Bundle)：空间随底空间变化**
+- 联络 (connection)：纤维间的变换率
+- 曲率 (curvature)：1 - |connection|
+- 平行移动：沿底空间移动时纤维的变换
+
+**Topos：亚对象分类器（非二元逻辑）**
+- 真值：真(1.0), 假(0.0), 可能(0.5), 未知(-0.1)
+- 合取 AND = min(a,b)
+- 析取 OR = max(a,b)
+- 蕴含 IMPLY = if a≤b then 1 else b
+
+**核心符号：**
+
+| 符号 | 含义 | 定义处 |
+|------|------|--------|
+| HeavenSpace | 天庭空间类型 | heaven-space/heaven/types.nim |
+| PhaseCoord | 相空间坐标（x/y/z/phase） | 同上 |
+| Attractor | 吸引子（位置/强度/半径/极性） | 同上 |
+| Superposition | 叠加态（概率幅/相干度） | 同上 |
+| FiberBundle | 纤维丛（联络/曲率） | 同上 |
+| Topos | 亚对象分类器（非二元真值） | 同上 |
+| new_heaven | 创建天庭空间 | heaven-space/heaven/heaven.nim |
+| add_attractor | 添加吸引子 | 同上 |
+| attractor_force | 计算引力 | 同上 |
+| nearest_attractor | 找最近吸引子 | 同上 |
+| add_superposition | 创建叠加态 | 同上 |
+| collapse | 叠加态坍缩 | 同上 |
+| add_bundle | 添加纤维丛 | 同上 |
+| parallel_transport | 平行移动 | 同上 |
+| classify | Topos分类判断 | 同上 |
+| topos_and/or/implies | 非二元逻辑运算 | 同上 |
 
 ---
 
