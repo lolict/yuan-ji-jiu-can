@@ -31,6 +31,7 @@
 | 4 | 64进制编码转换器 | tools/phase-radix/phase_radix/ | Nim | `nim c --cc:clang -r pe_demo.nim` | ✅ |
 | 5 | mltt命名密码表 | tools/mltt-cipher/mltt/ | Nim | `nim c --cc:clang --path:. -r mltt_demo.nim` | ✅ |
 | 6 | 分别器（三层路由） | tools/distinguisher/distinguisher/ | Nim | `nim c --cc:clang --path:. -r df_demo.nim` | ✅ |
+| 26 | 灵魂情感内核 | tools/soul-kernel/soul/ | Nim | `nim c --cc:clang --path:. -r sk_demo.nim` | ✅ |
 
 ### 第三类：检索与判定
 

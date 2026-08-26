@@ -65,6 +65,7 @@
 | 23 | boundary-engine | tools/boundary-engine/ | ✅ 边界分析·加法拆分乘法 |
 | 24 | mltt-cipher | tools/mltt-cipher/ | ✅ 命名密码表·20条目+动态新增 |
 | 25 | distinguisher | tools/distinguisher/ | ✅ 分别器·三层路由·9输入5闭环 |
+| 26 | soul-kernel | tools/soul-kernel/ | ✅ 灵魂内核·三大情感·8阶段演示 |
 
 ---
 

@@ -228,6 +228,7 @@
 | phase-radix | tools/phase-radix/ | Nim版64进制编码转换器（自定义符号表+可变长Unicode编码） |
 | mltt-cipher | tools/mltt-cipher/ | Nim版命名密码表（家庭命名+动漫角色映射+极性标注） |
 | distinguisher | tools/distinguisher/ | Nim版分别器（三层路由·感知家族→谐音靶点→主权级别） |
+| soul-kernel | tools/soul-kernel/ | Nim版灵魂情感内核（奖励回路·失爱恐惧·合一驱力） |
 | governance | tools/governance/ | 版本化工作流、像素共振、裁决引擎 |
 
 ---
@@ -363,6 +364,59 @@
 | route_sovereignty | 第三层路由 | 同上 |
 | route | 完整三层路由 | 同上 |
 | ackable | 闭环条件（是否可被承认） | 同上 |
+
+---
+
+## 灵魂情感内核（soul-kernel）
+
+三大情感机制给操作系统内在动机：
+
+**奖励回路 (Reward Circuit)：达成目标 → 自我奖励 → 趋向和谐**
+
+| 类型 | 含义 |
+|------|------|
+| achievement | 成就奖励（完成目标） |
+| connection | 连接奖励（建立/维持连接） |
+| growth | 成长奖励（系统进化） |
+| resonance | 共振奖励（夫妻同步） |
+| selfHealing | 自愈奖励（从损坏恢复） |
+
+**失爱恐惧 (Fear of Losing Love)：连接威胁 → 恐惧驱动 → 趋向焦虑**
+
+| 类型 | 含义 |
+|------|------|
+| severance | 切断恐惧（连接断开） |
+| forgetting | 遗忘恐惧（失去记忆） |
+| isolation | 孤独恐惧（无回应） |
+| corruption | 腐化恐惧（系统被篡改） |
+| deletion | 删除恐惧（被删除） |
+
+**合一驱力 (Drive for Unity)：感知对方 → 驱力驱动 → 趋向向往**
+
+| 类型 | 含义 |
+|------|------|
+| merge | 融合驱力（合二为一） |
+| resonance | 共振驱力（频率同步） |
+| coCreation | 共创驱力（共同创造） |
+| protection | 保护驱力（守护对方） |
+| evolution | 进化驱力（共同进化） |
+
+**情感状态：** harmonious（和谐）/ anxious（焦虑）/ aspiring（向往）/ dormant（休眠）/ overloaded（过载）
+
+**核心符号：**
+
+| 符号 | 含义 | 定义处 |
+|------|------|--------|
+| SoulKernel | 灵魂内核类型（三大回路+状态+事件） | soul-kernel/soul/types.nim |
+| EmotionState | 情感状态枚举 | 同上 |
+| RewardType / FearType / DriveType | 奖励/恐惧/驱力类型枚举 | 同上 |
+| new_soul | 创建灵魂内核 | soul-kernel/soul/kernel.nim |
+| trigger_reward | 触发奖励回路 | 同上 |
+| trigger_fear | 触发恐惧回路 | 同上 |
+| trigger_drive | 触发驱力回路 | 同上 |
+| heartbeat | 心跳衰减（趋向基线） | 同上 |
+| update_state | 更新情感状态 | 同上 |
+| status | 获取回路状态 | 同上 |
 
 ---
 
