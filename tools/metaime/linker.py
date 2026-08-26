@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 """
-FQM 链接器 · 按坐标定位符号，解析跨容器引用
+FQM 链接器 · 本体论量化版
 
-核心功能：
-- 接收加载器输出的容器和链接
-- 按坐标索引定位符号（不是搜索，是索引）
-- 解析跨容器引用，生成可执行的地址对
-- 检测冲突（重复定义、未定义引用）
+核心改变：不用代数地址，用本体论路径。
 
-这是"自己的工具"的第二步：
-加载器负责读，链接器负责连。
+旧方式（代数）:
+  addr = base + offset → 0x00, 0x01, 0x02
+  
+新方式（本体论）:
+  位置 = 域.身份 → 声母.首, 声母.次, 韵母.首
+
+符号的"地址"不是数字，是它在 ontology 树中的身份路径。
+链接不是地址映射，是本质与本质之间的连接。
 """
 
 import os
@@ -17,33 +19,65 @@ import sys
 from loader import FQMLoader
 
 
+class OntologyPath:
+    """本体论路径 - 替代数字地址"""
+    
+    def __init__(self, domain, identity):
+        self.domain = domain        # 声母/韵母/声调
+        self.identity = identity    # 首/次/末 或 具体符号
+    
+    def __str__(self):
+        return f"{self.domain}.{self.identity}"
+    
+    def __repr__(self):
+        return f"OntologyPath({self.domain}.{self.identity})"
+    
+    def __eq__(self, other):
+        return self.domain == other.domain and self.identity == other.identity
+    
+    def __hash__(self):
+        return hash((self.domain, self.identity))
+
+
 class FQMLinker:
-    """FQM 链接器"""
+    """FQM 链接器 - 本体论量化版"""
     
     def __init__(self, loader):
         self.loader = loader
-        self.index = {}           # (container, symbol) -> address
-        self.resolved = []        # 已解析的引用
-        self.unresolved = []      # 未解析的引用
-        self.conflicts = []       # 冲突
+        self.ontology_index = {}    # OntologyPath -> symbol
+        self.symbol_to_path = {}    # (domain, symbol) -> OntologyPath
+        self.resolved = []          # 已解析的链接
+        self.unresolved = []        # 未解析的链接
+        self.conflicts = []         # 冲突
     
-    def build_index(self):
-        """构建坐标索引"""
-        self.index = {}
-        offset = self.loader.offset
+    def build_ontology_index(self):
+        """构建本体论索引 - 按身份而非数字"""
+        self.ontology_index = {}
+        self.symbol_to_path = {}
         
-        for name, container in self.loader.get_all_containers().items():
-            for entry in container.symbols:
-                key = (name, entry["symbol"])
-                addr = offset + entry["position"]
-                if key in self.index:
-                    self.conflicts.append(f"重复定义: {name}.{entry['symbol']}")
-                self.index[key] = addr
+        identity_names = ["首", "次", "三", "四", "五", "六", "七", "八", "九", "十",
+                        "十一", "十二", "十三", "十四", "十五", "十六", "十七", "十八", "十九", "二十",
+                        "二十一", "二十二", "二十三", "二十四"]
+        
+        for domain_name, container in self.loader.get_all_containers().items():
+            for idx, entry in enumerate(container.symbols):
+                symbol = entry["symbol"]
+                # 身份 = 首/次/三... 而非 0/1/2...
+                identity = identity_names[idx] if idx < len(identity_names) else f"第{idx+1}"
+                
+                path = OntologyPath(domain_name, identity)
+                
+                key = (domain_name, symbol)
+                if key in self.symbol_to_path:
+                    self.conflicts.append(f"重复定义: {domain_name}.{symbol}")
+                
+                self.ontology_index[path] = symbol
+                self.symbol_to_path[key] = path
         
         return len(self.conflicts) == 0
     
     def resolve_links(self):
-        """解析所有跨容器引用"""
+        """解析跨容器链接 - 本质对本质"""
         self.resolved = []
         self.unresolved = []
         
@@ -51,65 +85,66 @@ class FQMLinker:
             from_key = (from_c, from_s)
             to_key = (to_c, to_s)
             
-            from_addr = self.index.get(from_key)
-            to_addr = self.index.get(to_key)
+            from_path = self.symbol_to_path.get(from_key)
+            to_path = self.symbol_to_path.get(to_key)
             
-            if from_addr is None:
+            if from_path is None:
                 self.unresolved.append(f"未定义: {from_c}.{from_s}")
                 continue
             
-            if to_addr is None:
+            if to_path is None:
                 self.unresolved.append(f"未定义: {to_c}.{to_s}")
                 continue
             
             self.resolved.append({
-                "from": {"container": from_c, "symbol": from_s, "address": from_addr},
-                "to": {"container": to_c, "symbol": to_s, "address": to_addr},
-                "link": f"{from_c}.{from_s}(0x{from_addr:02X}) → {to_c}.{to_s}(0x{to_addr:02X})"
+                "from": {"domain": from_c, "symbol": from_s, "path": from_path},
+                "to": {"domain": to_c, "symbol": to_s, "path": to_path},
+                "link": f"{from_path} → {to_path}"
             })
         
         return len(self.unresolved) == 0
     
-    def lookup(self, container, symbol):
-        """按坐标查找符号地址"""
-        return self.index.get((container, symbol))
+    def lookup(self, domain, symbol):
+        """按域和符号查找本体论路径"""
+        return self.symbol_to_path.get((domain, symbol))
     
-    def get_index(self):
-        """获取完整索引"""
-        return self.index
+    def get_ontology_index(self):
+        """获取完整本体论索引"""
+        return self.ontology_index
     
-    def display_index(self):
-        """显示索引表"""
+    def display_ontology(self):
+        """显示本体论树"""
         print(f"\n{'='*60}")
-        print("坐标索引表")
+        print("本体论树")
         print(f"{'-'*60}")
         
-        # 按容器分组
-        containers = {}
-        for (container, symbol), addr in self.index.items():
-            if container not in containers:
-                containers[container] = []
-            containers[container].append((symbol, addr))
+        # 按域分组
+        domains = {}
+        for path, symbol in self.ontology_index.items():
+            if path.domain not in domains:
+                domains[path.domain] = []
+            domains[path.domain].append((path.identity, symbol))
         
-        for container in sorted(containers.keys()):
-            symbols = containers[container]
-            print(f"\n  [{container}]")
-            for symbol, addr in sorted(symbols, key=lambda x: x[1]):
-                print(f"    0x{addr:02X}  {symbol}")
+        for domain in sorted(domains.keys()):
+            entries = domains[domain]
+            print(f"\n  ┌─ {domain}")
+            for identity, symbol in sorted(entries, key=lambda x: x[0]):
+                print(f"  │  {identity}: {symbol}")
+            print(f"  └─")
         
         print(f"\n{'='*60}\n")
     
     def display_resolution(self):
-        """显示解析结果"""
+        """显示链接解析结果"""
         print(f"\n{'='*60}")
-        print("链接解析结果")
+        print("本体论链接")
         print(f"{'-'*60}")
         print(f"已解析: {len(self.resolved)}")
         print(f"未解析: {len(self.unresolved)}")
         print(f"冲突: {len(self.conflicts)}")
         
         if self.resolved:
-            print(f"\n已解析链接:")
+            print(f"\n本质连接:")
             for r in self.resolved:
                 print(f"  {r['link']}")
         
@@ -145,8 +180,8 @@ if __name__ == "__main__":
     
     # 链接
     linker = FQMLinker(loader)
-    linker.build_index()
+    linker.build_ontology_index()
     linker.resolve_links()
     
-    linker.display_index()
+    linker.display_ontology()
     linker.display_resolution()
