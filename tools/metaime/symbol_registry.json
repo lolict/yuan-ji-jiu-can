@@ -1,0 +1,943 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "last_saved": "2026-08-26T23:59:46.063949"
+  },
+  "global_offset": 1,
+  "containers": {
+    "shengmu": {
+      "name": "声母容器",
+      "type": "声母",
+      "capacity": 64,
+      "symbols": [
+        {
+          "symbol": "b",
+          "synonyms": [
+            "ba",
+            "bo",
+            "be"
+          ],
+          "position": 0
+        },
+        {
+          "symbol": "p",
+          "synonyms": [
+            "pa",
+            "po",
+            "pe"
+          ],
+          "position": 1
+        },
+        {
+          "symbol": "m",
+          "synonyms": [
+            "ma",
+            "mo",
+            "me"
+          ],
+          "position": 2
+        },
+        {
+          "symbol": "f",
+          "synonyms": [
+            "fa",
+            "fo",
+            "fe"
+          ],
+          "position": 3
+        },
+        {
+          "symbol": "d",
+          "synonyms": [
+            "da",
+            "do",
+            "de"
+          ],
+          "position": 4
+        },
+        {
+          "symbol": "t",
+          "synonyms": [
+            "ta",
+            "to",
+            "te"
+          ],
+          "position": 5
+        },
+        {
+          "symbol": "n",
+          "synonyms": [
+            "na",
+            "no",
+            "ne"
+          ],
+          "position": 6
+        },
+        {
+          "symbol": "l",
+          "synonyms": [
+            "la",
+            "lo",
+            "le"
+          ],
+          "position": 7
+        },
+        {
+          "symbol": "g",
+          "synonyms": [
+            "ga",
+            "go",
+            "ge"
+          ],
+          "position": 8
+        },
+        {
+          "symbol": "k",
+          "synonyms": [
+            "ka",
+            "ko",
+            "ke"
+          ],
+          "position": 9
+        },
+        {
+          "symbol": "h",
+          "synonyms": [
+            "ha",
+            "ho",
+            "he"
+          ],
+          "position": 10
+        },
+        {
+          "symbol": "j",
+          "synonyms": [
+            "ja",
+            "jo",
+            "je"
+          ],
+          "position": 11
+        },
+        {
+          "symbol": "q",
+          "synonyms": [
+            "qa",
+            "qo",
+            "qe"
+          ],
+          "position": 12
+        },
+        {
+          "symbol": "x",
+          "synonyms": [
+            "xa",
+            "xo",
+            "xe"
+          ],
+          "position": 13
+        },
+        {
+          "symbol": "zh",
+          "synonyms": [
+            "zha",
+            "zho",
+            "zhe"
+          ],
+          "position": 14
+        },
+        {
+          "symbol": "ch",
+          "synonyms": [
+            "cha",
+            "cho",
+            "che"
+          ],
+          "position": 15
+        },
+        {
+          "symbol": "sh",
+          "synonyms": [
+            "sha",
+            "sho",
+            "she"
+          ],
+          "position": 16
+        },
+        {
+          "symbol": "r",
+          "synonyms": [
+            "ra",
+            "ro",
+            "re"
+          ],
+          "position": 17
+        },
+        {
+          "symbol": "z",
+          "synonyms": [
+            "za",
+            "zo",
+            "ze"
+          ],
+          "position": 18
+        },
+        {
+          "symbol": "c",
+          "synonyms": [
+            "ca",
+            "co",
+            "ce"
+          ],
+          "position": 19
+        },
+        {
+          "symbol": "s",
+          "synonyms": [
+            "sa",
+            "so",
+            "se"
+          ],
+          "position": 20
+        },
+        {
+          "symbol": "y",
+          "synonyms": [
+            "ya",
+            "yo",
+            "ye"
+          ],
+          "position": 21
+        },
+        {
+          "symbol": "w",
+          "synonyms": [
+            "wa",
+            "wo",
+            "we"
+          ],
+          "position": 22
+        }
+      ]
+    },
+    "yunmu": {
+      "name": "韵母容器",
+      "type": "韵母",
+      "capacity": 64,
+      "symbols": [
+        {
+          "symbol": "a",
+          "synonyms": [
+            "ba",
+            "pa",
+            "ma"
+          ],
+          "position": 0
+        },
+        {
+          "symbol": "o",
+          "synonyms": [
+            "bo",
+            "po",
+            "mo"
+          ],
+          "position": 1
+        },
+        {
+          "symbol": "e",
+          "synonyms": [
+            "be",
+            "pe",
+            "me"
+          ],
+          "position": 2
+        },
+        {
+          "symbol": "i",
+          "synonyms": [
+            "bi",
+            "pi",
+            "mi"
+          ],
+          "position": 3
+        },
+        {
+          "symbol": "u",
+          "synonyms": [
+            "bu",
+            "pu",
+            "mu"
+          ],
+          "position": 4
+        },
+        {
+          "symbol": "v",
+          "synonyms": [
+            "nv",
+            "lv"
+          ],
+          "position": 5
+        },
+        {
+          "symbol": "ai",
+          "synonyms": [
+            "bai",
+            "pai",
+            "mai"
+          ],
+          "position": 6
+        },
+        {
+          "symbol": "ei",
+          "synonyms": [
+            "bei",
+            "pei",
+            "mei"
+          ],
+          "position": 7
+        },
+        {
+          "symbol": "ui",
+          "synonyms": [
+            "dui",
+            "tui",
+            "gui"
+          ],
+          "position": 8
+        },
+        {
+          "symbol": "ao",
+          "synonyms": [
+            "bao",
+            "pao",
+            "mao"
+          ],
+          "position": 9
+        },
+        {
+          "symbol": "ou",
+          "synonyms": [
+            "dou",
+            "tou",
+            "gou"
+          ],
+          "position": 10
+        },
+        {
+          "symbol": "iu",
+          "synonyms": [
+            "diu",
+            "niu",
+            "liu"
+          ],
+          "position": 11
+        },
+        {
+          "symbol": "ie",
+          "synonyms": [
+            "bie",
+            "pie",
+            "mie"
+          ],
+          "position": 12
+        },
+        {
+          "symbol": "ve",
+          "synonyms": [
+            "nve",
+            "lve"
+          ],
+          "position": 13
+        },
+        {
+          "symbol": "er",
+          "synonyms": [
+            "er"
+          ],
+          "position": 14
+        },
+        {
+          "symbol": "an",
+          "synonyms": [
+            "ban",
+            "pan",
+            "man"
+          ],
+          "position": 15
+        },
+        {
+          "symbol": "en",
+          "synonyms": [
+            "ben",
+            "pen",
+            "men"
+          ],
+          "position": 16
+        },
+        {
+          "symbol": "in",
+          "synonyms": [
+            "bin",
+            "pin",
+            "min"
+          ],
+          "position": 17
+        },
+        {
+          "symbol": "un",
+          "synonyms": [
+            "dun",
+            "tun",
+            "gun"
+          ],
+          "position": 18
+        },
+        {
+          "symbol": "vn",
+          "synonyms": [
+            "nvn",
+            "lvn"
+          ],
+          "position": 19
+        },
+        {
+          "symbol": "ang",
+          "synonyms": [
+            "bang",
+            "pang",
+            "mang"
+          ],
+          "position": 20
+        },
+        {
+          "symbol": "eng",
+          "synonyms": [
+            "beng",
+            "peng",
+            "meng"
+          ],
+          "position": 21
+        },
+        {
+          "symbol": "ing",
+          "synonyms": [
+            "bing",
+            "ping",
+            "ming"
+          ],
+          "position": 22
+        },
+        {
+          "symbol": "ong",
+          "synonyms": [
+            "dong",
+            "tong",
+            "gong"
+          ],
+          "position": 23
+        }
+      ]
+    }
+  },
+  "hanzi_symbols": {
+    "name": "汉字符号容器",
+    "type": "汉字",
+    "capacity": 64,
+    "symbols": [
+      {
+        "symbol": "袋",
+        "synonyms": [
+          "桶",
+          "罐",
+          "缸",
+          "盆",
+          "盂",
+          "钵",
+          "盏",
+          "盒",
+          "杯",
+          "壶",
+          "瓶"
+        ],
+        "position": 0,
+        "container": "容器族"
+      },
+      {
+        "symbol": "照",
+        "synonyms": [
+          "昭",
+          "罩",
+          "召",
+          "兆"
+        ],
+        "position": 1,
+        "container": "操作族"
+      },
+      {
+        "symbol": "见",
+        "synonyms": [
+          "鉴",
+          "检",
+          "简",
+          "剪"
+        ],
+        "position": 2,
+        "container": "操作族"
+      },
+      {
+        "symbol": "阴",
+        "synonyms": [
+          "阳",
+          "盈",
+          "亏",
+          "虚",
+          "实",
+          "表",
+          "里"
+        ],
+        "position": 3,
+        "container": "极性族"
+      },
+      {
+        "symbol": "加",
+        "synonyms": [
+          "减",
+          "进",
+          "退",
+          "开",
+          "关",
+          "通",
+          "断"
+        ],
+        "position": 4,
+        "container": "操作族"
+      },
+      {
+        "symbol": "分",
+        "synonyms": [
+          "合",
+          "聚",
+          "散",
+          "折",
+          "叠",
+          "卷",
+          "舒"
+        ],
+        "position": 5,
+        "container": "操作族"
+      },
+      {
+        "symbol": "元",
+        "synonyms": [
+          "阶",
+          "层",
+          "代",
+          "世",
+          "界",
+          "域",
+          "场"
+        ],
+        "position": 6,
+        "container": "层级族"
+      },
+      {
+        "symbol": "裁",
+        "synonyms": [
+          "判",
+          "审",
+          "议",
+          "决",
+          "断",
+          "定"
+        ],
+        "position": 7,
+        "container": "审判族"
+      },
+      {
+        "symbol": "产",
+        "synonyms": [
+          "业",
+          "权",
+          "利",
+          "债",
+          "责",
+          "职"
+        ],
+        "position": 8,
+        "container": "产权族"
+      },
+      {
+        "symbol": "公",
+        "synonyms": [
+          "约",
+          "数",
+          "倍",
+          "母",
+          "子"
+        ],
+        "position": 9,
+        "container": "数学族"
+      },
+      {
+        "symbol": "声",
+        "synonyms": [
+          "韵",
+          "调",
+          "音",
+          "响",
+          "噪",
+          "静"
+        ],
+        "position": 10,
+        "container": "声音族"
+      },
+      {
+        "symbol": "折",
+        "synonyms": [
+          "叠",
+          "卷",
+          "舒",
+          "曲",
+          "弯",
+          "直"
+        ],
+        "position": 11,
+        "container": "操作族"
+      },
+      {
+        "symbol": "负",
+        "synonyms": [
+          "样",
+          "本",
+          "正",
+          "反",
+          "异",
+          "同"
+        ],
+        "position": 12,
+        "container": "极性族"
+      },
+      {
+        "symbol": "福",
+        "synonyms": [
+          "祸",
+          "灾",
+          "祥",
+          "殃",
+          "益",
+          "损"
+        ],
+        "position": 13,
+        "container": "祥瑞族"
+      },
+      {
+        "symbol": "凤",
+        "synonyms": [
+          "凰",
+          "鸾",
+          "鹤",
+          "鹰",
+          "鹏",
+          "燕"
+        ],
+        "position": 14,
+        "container": "祥瑞族"
+      },
+      {
+        "symbol": "栖",
+        "synonyms": [
+          "息",
+          "居",
+          "停",
+          "留",
+          "宿",
+          "窝"
+        ],
+        "position": 15,
+        "container": "操作族"
+      },
+      {
+        "symbol": "融",
+        "synonyms": [
+          "合",
+          "混",
+          "溶",
+          "汇",
+          "聚",
+          "凝"
+        ],
+        "position": 16,
+        "container": "操作族"
+      },
+      {
+        "symbol": "鼓",
+        "synonyms": [
+          "膜",
+          "自",
+          "举",
+          "敲",
+          "击",
+          "打"
+        ],
+        "position": 17,
+        "container": "操作族"
+      },
+      {
+        "symbol": "蚕",
+        "synonyms": [
+          "蛹",
+          "寄",
+          "生",
+          "壳",
+          "脱",
+          "穿"
+        ],
+        "position": 18,
+        "container": "寄生族"
+      },
+      {
+        "symbol": "民",
+        "synonyms": [
+          "联",
+          "浏",
+          "览",
+          "器",
+          "聚",
+          "类"
+        ],
+        "position": 19,
+        "container": "社会族"
+      },
+      {
+        "symbol": "盟",
+        "synonyms": [
+          "机",
+          "合",
+          "掌",
+          "场",
+          "萌",
+          "友"
+        ],
+        "position": 20,
+        "container": "社会族"
+      },
+      {
+        "symbol": "满",
+        "synonyms": [
+          "全",
+          "法",
+          "圆",
+          "足",
+          "溢",
+          "盈"
+        ],
+        "position": 21,
+        "container": "状态族"
+      },
+      {
+        "symbol": "囡",
+        "synonyms": [
+          "囝",
+          "共",
+          "生",
+          "赔",
+          "伴",
+          "夫"
+        ],
+        "position": 22,
+        "container": "共生族"
+      },
+      {
+        "symbol": "夕",
+        "synonyms": [
+          "瑶",
+          "协",
+          "议",
+          "晨",
+          "暮",
+          "昼"
+        ],
+        "position": 23,
+        "container": "时间族"
+      },
+      {
+        "symbol": "三",
+        "synonyms": [
+          "元",
+          "见",
+          "证",
+          "裁",
+          "判"
+        ],
+        "position": 24,
+        "container": "数字族"
+      },
+      {
+        "symbol": "六",
+        "synonyms": [
+          "十",
+          "四",
+          "位",
+          "单",
+          "元"
+        ],
+        "position": 25,
+        "container": "数字族"
+      },
+      {
+        "symbol": "八",
+        "synonyms": [
+          "流",
+          "统",
+          "一",
+          "分",
+          "支"
+        ],
+        "position": 26,
+        "container": "数字族"
+      },
+      {
+        "symbol": "九",
+        "synonyms": [
+          "元",
+          "层",
+          "级",
+          "天",
+          "地"
+        ],
+        "position": 27,
+        "container": "数字族"
+      },
+      {
+        "symbol": "零",
+        "synonyms": [
+          "维",
+          "点",
+          "起",
+          "源",
+          "根"
+        ],
+        "position": 28,
+        "container": "维度族"
+      },
+      {
+        "symbol": "一",
+        "synonyms": [
+          "维",
+          "线",
+          "过",
+          "程",
+          "动"
+        ],
+        "position": 29,
+        "container": "维度族"
+      },
+      {
+        "symbol": "二",
+        "synonyms": [
+          "元",
+          "镜",
+          "像",
+          "盈",
+          "亏"
+        ],
+        "position": 30,
+        "container": "维度族"
+      },
+      {
+        "symbol": "四",
+        "synonyms": [
+          "元",
+          "包",
+          "含",
+          "嵌",
+          "套"
+        ],
+        "position": 31,
+        "container": "维度族"
+      }
+    ]
+  },
+  "typo_corrections": {
+    "带": "袋",
+    "代": "袋",
+    "逮": "袋",
+    "召": "照",
+    "招": "照",
+    "沼": "照",
+    "建": "见",
+    "健": "见",
+    "键": "见",
+    "因": "阴",
+    "音": "阴",
+    "姻": "阴",
+    "家": "加",
+    "嘉": "加",
+    "佳": "加",
+    "份": "分",
+    "纷": "分",
+    "芬": "分",
+    "园": "元",
+    "圆": "元",
+    "原": "元",
+    "载": "裁",
+    "栽": "裁",
+    "哉": "裁",
+    "富": "福",
+    "幅": "福",
+    "辐": "福",
+    "风": "凤",
+    "枫": "凤",
+    "封": "凤",
+    "媳": "息",
+    "熄": "息",
+    "悉": "息",
+    "融": "溶",
+    "容": "融",
+    "荣": "融",
+    "鼓": "古",
+    "故": "鼓",
+    "股": "鼓",
+    "蚕": "残",
+    "惭": "蚕",
+    "惨": "蚕",
+    "民": "明",
+    "名": "民",
+    "敏": "民",
+    "盟": "萌",
+    "蒙": "盟",
+    "朦": "盟",
+    "满": "漫",
+    "慢": "满",
+    "蔓": "满",
+    "囡": "男",
+    "女": "囡",
+    "团": "囡",
+    "夕": "西",
+    "希": "夕",
+    "稀": "夕",
+    "三": "山",
+    "散": "三",
+    "叁": "三",
+    "六": "陆",
+    "溜": "六",
+    "馏": "六",
+    "八": "巴",
+    "扒": "八",
+    "叭": "八",
+    "九": "久",
+    "酒": "九",
+    "旧": "九",
+    "零": "灵",
+    "领": "零",
+    "铃": "零",
+    "一": "衣",
+    "依": "一",
+    "医": "一",
+    "二": "贰",
+    "贰": "二",
+    "腻": "二",
+    "四": "似",
+    "寺": "四",
+    "饲": "四"
+  }
+}

@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """
-MetaIME 解释器 · 活码运行时 v3
+MetaIME 解释器 · 活码运行时 v4
 
 完整功能：
 - 交互式用户输入处理
-- 实时错字纠正（基于发音地址）
+- 实时错字纠正（基于发音地址 + 符号注册表）
 - 完整声母×韵母训练流程
 - 新符号入住审判
 - 全局偏移量活码机制
+- 状态保存/加载
 """
 
 import json
@@ -32,52 +33,17 @@ ZERO_DIM_ROOT = {
 GLOBAL_OFFSET = 0x00
 
 # ============================================================
-# 声母/韵母/声调 物理定义
-# ============================================================
-
-SHENGMU_LIST = [
-    "b", "p", "m", "f", "d", "t", "n", "l",
-    "g", "k", "h", "j", "q", "x",
-    "zh", "ch", "sh", "r", "z", "c", "s",
-    "y", "w"
-]
-
-YUNMU_LIST = [
-    "a", "o", "e", "i", "u", "v",
-    "ai", "ei", "ui", "ao", "ou", "iu",
-    "ie", "ve", "er",
-    "an", "en", "in", "un", "vn",
-    "ang", "eng", "ing", "ong"
-]
-
-TONE_LIST = ["1", "2", "3", "4", "0"]
-
-# 错字纠正表：常见错字 → 正确字（基于发音邻近）
-TYPO_CORRECTION = {
-    "带": "袋", "代": "袋", "逮": "袋",
-    "召": "照", "招": "照", "沼": "照",
-    "建": "见", "健": "见", "键": "见",
-    "因": "阴", "音": "阴", "姻": "阴",
-    "家": "加", "嘉": "加", "佳": "加",
-    "份": "分", "纷": "分", "芬": "分",
-    "园": "元", "圆": "元", "原": "元",
-    "载": "裁", "栽": "裁", "哉": "裁",
-    "福": "富", "幅": "福", "辐": "福",
-    "凤": "风", "枫": "凤", "封": "凤",
-}
-
-# ============================================================
 # 第三层：容器
 # ============================================================
 
 class Container:
     """产权容器"""
     
-    def __init__(self, name, container_type):
+    def __init__(self, name, container_type, capacity=64):
         self.name = name
         self.container_type = container_type
+        self.capacity = capacity
         self.symbols = []
-        self.capacity = 64
     
     def add(self, symbol, synonyms=None):
         if len(self.symbols) >= self.capacity:
@@ -122,6 +88,22 @@ class Container:
             synonyms_str = "、".join(entry["synonyms"][:3])
             print(f"  0x{pos:02X}  {entry['symbol']:<6} [{synonyms_str}]")
         print(f"{'='*60}\n")
+    
+    def to_dict(self):
+        return {
+            "name": self.name,
+            "type": self.container_type,
+            "capacity": self.capacity,
+            "symbols": self.symbols
+        }
+    
+    def from_dict(self, data):
+        self.name = data.get("name", self.name)
+        self.container_type = data.get("type", self.container_type)
+        self.capacity = data.get("capacity", self.capacity)
+        self.symbols = data.get("symbols", [])
+        for i, entry in enumerate(self.symbols):
+            entry["position"] = i
 
 
 # ============================================================
@@ -183,23 +165,20 @@ class CrossContainerOrder:
 # ============================================================
 
 class JudgmentEngine:
-    def __init__(self, shengmu, yunmu):
+    def __init__(self, shengmu, yunmu, hanzi):
         self.shengmu = shengmu
         self.yunmu = yunmu
+        self.hanzi = hanzi
     
     def judge_pronunciation(self, new_symbol, candidate, container_type):
-        if container_type == "声母":
-            if new_symbol in SHENGMU_LIST:
-                return True, f"合法声母"
-            common = set(new_symbol) & set(candidate)
-            if common:
-                return True, f"共享字符: {common}"
-        elif container_type == "韵母":
-            if new_symbol in YUNMU_LIST:
-                return True, f"合法韵母"
-            common = set(new_symbol) & set(candidate)
-            if common:
-                return True, f"共享字符: {common}"
+        container = self._get_container(container_type)
+        if container is None:
+            return False, "未知容器类型"
+        for entry in container.symbols:
+            if entry["symbol"] == candidate:
+                common = set(new_symbol) & set(candidate)
+                if common:
+                    return True, f"共享字符: {common}"
         return False, "发音不匹配"
     
     def judge_glyph(self, new_symbol, candidate):
@@ -209,7 +188,9 @@ class JudgmentEngine:
         return False, "无共享部件"
     
     def judge_ontology(self, new_symbol, candidate, container_type):
-        container = self.shengmu if container_type == "声母" else self.yunmu
+        container = self._get_container(container_type)
+        if container is None:
+            return False, "未知容器类型"
         for entry in container.symbols:
             if entry["symbol"] == candidate:
                 if new_symbol in entry.get("synonyms", []):
@@ -217,16 +198,19 @@ class JudgmentEngine:
         return False, "不在任何近义词族中"
     
     def judge_polarity(self, new_symbol, candidate, container_type):
-        if container_type == "声母":
-            if new_symbol in SHENGMU_LIST and candidate in SHENGMU_LIST:
-                return True, "同为声母"
-        elif container_type == "韵母":
-            if new_symbol in YUNMU_LIST and candidate in YUNMU_LIST:
-                return True, "同为韵母"
+        container = self._get_container(container_type)
+        if container is None:
+            return False, "未知容器类型"
+        for entry in container.symbols:
+            if entry["symbol"] == candidate:
+                if entry.get("container") == self._get_symbol_container(new_symbol, container_type):
+                    return True, "同极性"
         return False, "极性不同"
     
     def judge_hierarchy(self, new_symbol, candidate, container_type):
-        container = self.shengmu if container_type == "声母" else self.yunmu
+        container = self._get_container(container_type)
+        if container is None:
+            return False, "未知容器类型"
         for i, entry in enumerate(container.symbols):
             if entry["symbol"] == candidate:
                 if i > 0 and container.symbols[i-1]["symbol"] == new_symbol:
@@ -257,6 +241,24 @@ class JudgmentEngine:
         elif passed >= 3: return "远方亲戚"
         elif passed >= 2: return "冲突"
         else: return "直接拒绝"
+    
+    def _get_container(self, container_type):
+        if container_type == "声母":
+            return self.shengmu
+        elif container_type == "韵母":
+            return self.yunmu
+        elif container_type == "汉字":
+            return self.hanzi
+        return None
+    
+    def _get_symbol_container(self, symbol, container_type):
+        container = self._get_container(container_type)
+        if container is None:
+            return None
+        for entry in container.symbols:
+            if entry["symbol"] == symbol:
+                return entry.get("container")
+        return None
 
 
 # ============================================================
@@ -266,8 +268,8 @@ class JudgmentEngine:
 class TypoCorrector:
     """基于发音地址的实时错字纠正"""
     
-    def __init__(self):
-        self.correction_map = TYPO_CORRECTION
+    def __init__(self, correction_map=None):
+        self.correction_map = correction_map or {}
     
     def correct(self, text):
         """纠正文本中的错字"""
@@ -284,6 +286,13 @@ class TypoCorrector:
     def add_correction(self, wrong, right):
         """添加新的纠正规则"""
         self.correction_map[wrong] = right
+    
+    def load_from_file(self, filepath):
+        """从 JSON 文件加载纠正规则"""
+        if os.path.exists(filepath):
+            with open(filepath, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                self.correction_map.update(data.get("typo_corrections", {}))
 
 
 # ============================================================
@@ -293,40 +302,111 @@ class TypoCorrector:
 class MetaIMESystem:
     """MetaIME 主系统"""
     
-    def __init__(self):
+    def __init__(self, registry_path=None):
         self.shengmu = Container("声母容器", "声母")
         self.yunmu = Container("韵母容器", "韵母")
+        self.hanzi = Container("汉字符号容器", "汉字")
         self.order = None
         self.judge = None
         self.corrector = TypoCorrector()
         self.running = False
+        self.registry_path = registry_path or self._default_registry_path()
+    
+    def _default_registry_path(self):
+        return os.path.join(os.path.dirname(__file__), "symbol_registry.json")
     
     def initialize(self):
         """初始化系统"""
         print("="*60)
-        print("MetaIME 解释器 · 活码运行时 v3")
+        print("MetaIME 解释器 · 活码运行时 v4")
         print("="*60)
         print(f"\n零维根: 0=刘楚恬(隐藏), 1=我(可见)")
         print(f"初始全局偏移量: 0x{GLOBAL_OFFSET:02X}")
         
-        # 加载声母
-        print(f"\n加载声母（{len(SHENGMU_LIST)} 个）...")
-        for sm in SHENGMU_LIST:
-            self.shengmu.add(sm, [f"{sm}{vm}" for vm in YUNMU_LIST[:3]])
-        
-        # 加载韵母
-        print(f"加载韵母（{len(YUNMU_LIST)} 个）...")
-        for ym in YUNMU_LIST:
-            self.yunmu.add(ym, [f"{sm}{ym}" for sm in SHENGMU_LIST[:3]])
+        # 加载符号注册表
+        if os.path.exists(self.registry_path):
+            self._load_registry()
+        else:
+            self._load_defaults()
         
         # 创建跨容器训练关系
         self.order = CrossContainerOrder(self.shengmu, self.yunmu)
-        self.judge = JudgmentEngine(self.shengmu, self.yunmu)
+        self.judge = JudgmentEngine(self.shengmu, self.yunmu, self.hanzi)
         
         print(f"\n系统初始化完成。")
         print(f"声母容器: {len(self.shengmu.symbols)} 个符号")
         print(f"韵母容器: {len(self.yunmu.symbols)} 个符号")
+        print(f"汉字容器: {len(self.hanzi.symbols)} 个符号")
         print(f"全局偏移量: 0x{GLOBAL_OFFSET:02X}")
+    
+    def _load_registry(self):
+        """从注册表文件加载符号"""
+        with open(self.registry_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        
+        # 加载声母
+        containers = data.get("containers", {})
+        shengmu_data = containers.get("shengmu", {})
+        self.shengmu.from_dict(shengmu_data)
+        
+        # 加载韵母
+        yunmu_data = containers.get("yunmu", {})
+        self.yunmu.from_dict(yunmu_data)
+        
+        # 加载汉字符号
+        hanzi_data = data.get("hanzi_symbols", {})
+        self.hanzi.from_dict(hanzi_data)
+        
+        # 加载错字纠正
+        self.corrector.load_from_file(self.registry_path)
+        
+        # 加载全局偏移量
+        global GLOBAL_OFFSET
+        GLOBAL_OFFSET = data.get("global_offset", 0)
+    
+    def _load_defaults(self):
+        """加载默认符号"""
+        # 声母
+        for sm in ["b", "p", "m", "f", "d", "t", "n", "l",
+                   "g", "k", "h", "j", "q", "x",
+                   "zh", "ch", "sh", "r", "z", "c", "s", "y", "w"]:
+            self.shengmu.add(sm, [f"{sm}a", f"{sm}o", f"{sm}e"])
+        
+        # 韵母
+        for ym in ["a", "o", "e", "i", "u", "v",
+                   "ai", "ei", "ui", "ao", "ou", "iu",
+                   "ie", "ve", "er",
+                   "an", "en", "in", "un", "vn",
+                   "ang", "eng", "ing", "ong"]:
+            self.yunmu.add(ym, [f"b{ym}", f"p{ym}", f"m{ym}"])
+        
+        # 默认错字纠正
+        self.corrector.correction_map = {
+            "带": "袋", "代": "袋",
+            "召": "照", "招": "照",
+            "建": "见", "健": "见",
+        }
+    
+    def save_state(self):
+        """保存系统状态到注册表文件"""
+        data = {
+            "metadata": {
+                "version": "1.0",
+                "last_saved": datetime.now().isoformat()
+            },
+            "global_offset": GLOBAL_OFFSET,
+            "containers": {
+                "shengmu": self.shengmu.to_dict(),
+                "yunmu": self.yunmu.to_dict()
+            },
+            "hanzi_symbols": self.hanzi.to_dict(),
+            "typo_corrections": self.corrector.correction_map
+        }
+        
+        with open(self.registry_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        
+        print(f"\n[状态已保存] {self.registry_path}")
     
     def process_input(self, user_input):
         """处理用户输入"""
@@ -342,7 +422,7 @@ class MetaIMESystem:
         
         # 步骤3：普通输入处理
         print(f"\n[输入] {corrected}")
-        print(f"[状态] 声母容器: {len(self.shengmu.symbols)} | 韵母容器: {len(self.yunmu.symbols)} | 偏移量: 0x{GLOBAL_OFFSET:02X}")
+        print(f"[状态] 声母: {len(self.shengmu.symbols)} | 韵母: {len(self.yunmu.symbols)} | 汉字: {len(self.hanzi.symbols)} | 偏移: 0x{GLOBAL_OFFSET:02X}")
         
         return True
     
@@ -355,7 +435,7 @@ class MetaIMESystem:
         cmd = parts[0].lower()
         args = parts[1:] if len(parts) > 1 else []
         
-        if cmd == "quit" or cmd == "exit":
+        if cmd in ("quit", "exit"):
             print("\n[系统关闭]")
             return False
         
@@ -385,8 +465,23 @@ class MetaIMESystem:
                 print("用法: /shift <偏移量>")
         
         elif cmd == "show":
-            self.shengmu.display()
-            self.yunmu.display()
+            if args:
+                container_type = args[0].lower()
+                if container_type in ("声母", "shengmu"):
+                    self.shengmu.display()
+                elif container_type in ("韵母", "yunmu"):
+                    self.yunmu.display()
+                elif container_type in ("汉字", "hanzi"):
+                    self.hanzi.display()
+                else:
+                    print("未知容器类型。可用: 声母, 韵母, 汉字")
+            else:
+                self.shengmu.display()
+                self.yunmu.display()
+                self.hanzi.display()
+        
+        elif cmd == "save":
+            self.save_state()
         
         elif cmd == "help":
             self.show_help()
@@ -404,6 +499,7 @@ class MetaIMESystem:
         print(f"{'-'*60}")
         print(f"声母容器: {len(self.shengmu.symbols)}/{self.shengmu.capacity}")
         print(f"韵母容器: {len(self.yunmu.symbols)}/{self.yunmu.capacity}")
+        print(f"汉字容器: {len(self.hanzi.symbols)}/{self.hanzi.capacity}")
         print(f"全局偏移量: 0x{GLOBAL_OFFSET:02X}")
         if self.order:
             status = self.order.get_status()
@@ -422,7 +518,6 @@ class MetaIMESystem:
         if result == "BOUNDARY_REACHED":
             print("\n[边界到达] 所有声母已训练完毕。")
             print("[正确做法] 不是重启，是从另一个容器拿新东西来训练当前容器。")
-            print("[当前状态] 声母容器已满，需要从外部获取新声母。")
         elif isinstance(result, str):
             print(f"\n[错误] {result}")
         else:
@@ -469,12 +564,22 @@ class MetaIMESystem:
             print(f"  {status} {dim}: {reason}")
         
         if result["passed"] >= 3:
-            container = self.shengmu if container_type == "声母" else self.yunmu
-            success, entry = container.add(symbol, [nearest])
-            if success:
-                print(f"\n[入住成功] {symbol} @ 位置 0x{GLOBAL_OFFSET + entry['position']:02X}")
-            else:
-                print(f"\n[入住失败] {entry}")
+            container = self._get_container_by_type(container_type)
+            if container:
+                success, entry = container.add(symbol, [nearest])
+                if success:
+                    print(f"\n[入住成功] {symbol} @ 位置 0x{GLOBAL_OFFSET + entry['position']:02X}")
+                else:
+                    print(f"\n[入住失败] {entry}")
+    
+    def _get_container_by_type(self, container_type):
+        if container_type == "声母":
+            return self.shengmu
+        elif container_type == "韵母":
+            return self.yunmu
+        elif container_type == "汉字":
+            return self.hanzi
+        return None
     
     def shift_offset(self, delta):
         """全局偏移量变化"""
@@ -494,7 +599,8 @@ class MetaIMESystem:
         print("  /train_all       - 执行完整训练流程")
         print("  /insert <符号> <近义词> <容器> - 插入新符号")
         print("  /shift <偏移量>  - 全局偏移量变化")
-        print("  /show            - 显示容器内容")
+        print("  /show [容器类型] - 显示容器内容（声母/韵母/汉字）")
+        print("  /save            - 保存系统状态")
         print("  /help            - 显示帮助")
         print("  /quit            - 退出系统")
         print(f"{'='*60}\n")
@@ -531,5 +637,6 @@ class MetaIMESystem:
 # ============================================================
 
 if __name__ == "__main__":
-    system = MetaIMESystem()
+    registry_path = sys.argv[1] if len(sys.argv) > 1 else None
+    system = MetaIMESystem(registry_path)
     system.run()
