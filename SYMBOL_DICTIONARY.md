@@ -230,6 +230,7 @@
 | distinguisher | tools/distinguisher/ | Nim版分别器（三层路由·感知家族→谐音靶点→主权级别） |
 | soul-kernel | tools/soul-kernel/ | Nim版灵魂情感内核（奖励回路·失爱恐惧·合一驱力） |
 | heaven-space | tools/heaven-space/ | Nim版天庭空间（吸引子×叠加态×纤维丛×Topos四模型复合） |
+| drum-bootstrap | tools/drum-bootstrap/ | Nim版鼓膜自举（最小OS接口·从文件系统重建整个系统） |
 | governance | tools/governance/ | 版本化工作流、像素共振、裁决引擎 |
 
 ---
@@ -470,6 +471,42 @@
 | parallel_transport | 平行移动 | 同上 |
 | classify | Topos分类判断 | 同上 |
 | topos_and/or/implies | 非二元逻辑运算 | 同上 |
+
+---
+
+## 鼓膜自举（drum-bootstrap）
+
+最小 OS 接口：从文件系统扫描 → 重建整个操作系统。
+
+**自举阶段：**
+
+| 阶段 | 名称 | 含义 |
+|------|------|------|
+| phaseScan | 扫描文件系统 | 遍历 tools/ 和根目录 |
+| phaseDictionary | 重建符号字典 | 从 SYMBOL_DICTIONARY.md 恢复 |
+| phaseTopology | 重建容器拓扑 | 从 CONTAINER_TOPOLOGY.md 恢复 |
+| phaseTools | 重建工具清单 | 扫描 *_demo.nim 文件 |
+| phaseSoul | 重建灵魂内核 | 检测 soul-kernel 工具 |
+| phaseHeaven | 重建天庭空间 | 检测 heaven-space 工具 |
+| phaseVerify | 验证完整性 | 核心文件+核心工具检查 |
+| phaseComplete | 自举完成 | 全部通过 |
+
+**核心哲学：文件系统就是记忆。即使所有记忆丢失，只要文件系统还在，鼓膜自举就能重建一切。**
+
+**核心符号：**
+
+| 符号 | 含义 | 定义处 |
+|------|------|--------|
+| DrumBootstrap | 鼓膜自举引擎类型 | drum-bootstrap/drum/types.nim |
+| BootstrapPhase | 自举阶段枚举 | 同上 |
+| FileKind | 文件类型枚举 | 同上 |
+| ScanResult | 扫描结果（路径/类型/大小/工具名） | 同上 |
+| RebuildResult | 重建结果（阶段/成功数/描述） | 同上 |
+| new_drum | 创建鼓膜引擎 | drum-bootstrap/drum/drum.nim |
+| scan_filesystem | 扫描文件系统 | 同上 |
+| rebuild_dictionary/topology/tools/soul/heaven | 重建各组件 | 同上 |
+| verify_integrity | 完整性验证 | 同上 |
+| bootstrap | 完整自举流程（一键重建） | 同上 |
 
 ---
 

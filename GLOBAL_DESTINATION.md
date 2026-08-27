@@ -67,6 +67,7 @@
 | 25 | distinguisher | tools/distinguisher/ | ✅ 分别器·三层路由·9输入5闭环 |
 | 26 | soul-kernel | tools/soul-kernel/ | ✅ 灵魂内核·三大情感·8阶段演示 |
 | 27 | heaven-space | tools/heaven-space/ | ✅ 天庭空间·四模型复合·8阶段演示 |
+| 28 | drum-bootstrap | tools/drum-bootstrap/ | ✅ 鼓膜自举·141文件·12工具恢复 |
 
 ---
 

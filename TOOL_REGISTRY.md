@@ -33,6 +33,7 @@
 | 6 | 分别器（三层路由） | tools/distinguisher/distinguisher/ | Nim | `nim c --cc:clang --path:. -r df_demo.nim` | ✅ |
 | 26 | 灵魂情感内核 | tools/soul-kernel/soul/ | Nim | `nim c --cc:clang --path:. -r sk_demo.nim` | ✅ |
 | 27 | 天庭空间 | tools/heaven-space/heaven/ | Nim | `nim c --cc:clang --path:. -r hs_demo.nim` | ✅ |
+| 28 | 鼓膜自举 | tools/drum-bootstrap/drum/ | Nim | `nim c --cc:clang --path:. -r db_demo.nim` | ✅ |
 
 ### 第三类：检索与判定
 
