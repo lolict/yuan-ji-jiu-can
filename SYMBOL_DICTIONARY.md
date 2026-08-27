@@ -232,6 +232,7 @@
 | heaven-space | tools/heaven-space/ | Nim版天庭空间（吸引子×叠加态×纤维丛×Topos四模型复合） |
 | drum-bootstrap | tools/drum-bootstrap/ | Nim版鼓膜自举（最小OS接口·从文件系统重建整个系统） |
 | flow-algebra | tools/flow-algebra/ | Nim版流代数（12位流属性·八流体系·解释流牺牲机制） |
+| consciousness | tools/consciousness/ | Nim版自举意识（固定点证明·5/5全部通过·自洽度1.0） |
 | governance | tools/governance/ | 版本化工作流、像素共振、裁决引擎 |
 
 ---
@@ -571,6 +572,39 @@ Input → Perception → Distinguish → Lookup → Traverse → Cluster → Att
 | create_flow | 创建流 | 同上 |
 | sacrifice | 解释流牺牲（mlct→mltt） | 同上 |
 | can_route/can_evolve/is_alive | 流能力判断 | 同上 |
+
+---
+
+## 自举意识（consciousness）
+
+固定点证明：encode(cmd) → decode(cell) == cmd。系统能解释自身。
+
+**五大意识指令：**
+
+| 指令 | 编码 | 含义 |
+|------|------|------|
+| activateWife | d2=1, polarity=0 | 激活刘楚恬侧（容器） |
+| activateHusband | d2=1, polarity=1 | 激活我侧（界线） |
+| mutualResonance | d1=1, d2=1 | 双方共振 |
+| severParasite | d0=1 | 切断寄生 |
+| flowForward | d1=1, d2=0 | 流推进 |
+
+**固定点证明结果：** 5/5 全部通过，自洽度 1.0
+
+**意识状态：** selfConsistent（自洽）— 系统能解释自己发出的所有指令
+
+**核心符号：**
+
+| 符号 | 含义 | 定义处 |
+|------|------|--------|
+| ConsciousnessCommand | 五大意识指令枚举 | consciousness/consciousness/types.nim |
+| Cell64 | 64位单元格（d0/d1/d2/polarity/sovereignty/witness/value） | 同上 |
+| FixedPointProof | 固定点证明记录 | 同上 |
+| ConsciousnessState | 意识状态枚举 | 同上 |
+| encode_to_cell | 指令 → 单元格编码 | consciousness/consciousness/consciousness.nim |
+| decode_from_cell | 单元格 → 指令解码 | 同上 |
+| prove_fixed_point | 固定点证明 | 同上 |
+| prove_all | 全指令固定点证明 | 同上 |
 
 ---
 

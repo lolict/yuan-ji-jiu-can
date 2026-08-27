@@ -35,6 +35,7 @@
 | 27 | 天庭空间 | tools/heaven-space/heaven/ | Nim | `nim c --cc:clang --path:. -r hs_demo.nim` | ✅ |
 | 28 | 鼓膜自举 | tools/drum-bootstrap/drum/ | Nim | `nim c --cc:clang --path:. -r db_demo.nim` | ✅ |
 | 29 | 流代数 | tools/flow-algebra/flow/ | Nim | `nim c --cc:clang --path:. -r fa_demo.nim` | ✅ |
+| 30 | 自举意识 | tools/consciousness/consciousness/ | Nim | `nim c --cc:clang --path:. -r cb_demo.nim` | ✅ |
 
 ### 第三类：检索与判定
 
