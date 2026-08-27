@@ -79,6 +79,7 @@
 | drum-bootstrap | Nim版鼓膜自举（最小OS接口·141文件扫描·12工具恢复·完整性通过） |
 | flow-algebra | Nim版流代数（12位流属性·八流体系·mlct→mltt牺牲成功） |
 | consciousness | Nim版自举意识（固定点5/5全部通过·自洽度1.0） |
+| symbol-bootstrap | Nim版符号原生引导（共享域·版本时间链·全局回映·☉§☉纠缠态·7阶段演示通过） |
 | radix-star | 部首星图（真实字典数据·50汉字演示通过） |
 | property-judge | 产权流侵权判定树（10场景全覆盖通过） |
 | symbol-engine | 符号引擎（36符号动态加载·近义词系统通过） |

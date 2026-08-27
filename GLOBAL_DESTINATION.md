@@ -70,6 +70,7 @@
 | 28 | drum-bootstrap | tools/drum-bootstrap/ | ✅ 鼓膜自举·141文件·12工具恢复 |
 | 29 | flow-algebra | tools/flow-algebra/ | ✅ 流代数·八流体系·牺牲机制 |
 | 30 | consciousness | tools/consciousness/ | ✅ 自举意识·固定点5/5·自洽度1.0 |
+| 31 | symbol-bootstrap | tools/symbol-bootstrap/ | ✅ 符号原生引导·共享域·版本时间链·☉§☉纠缠态 |
 
 ---
 
