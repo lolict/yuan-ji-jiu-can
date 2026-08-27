@@ -1,0 +1,19 @@
+{
+  "agent_id": "agent_001",
+  "task": "任务描述",
+  "timestamp": "2026-08-22T00:00:00",
+  "input_from_previous": "上一个代理的产出文件",
+  "output": {
+    "symbols_used": ["a", "b", "ai"],
+    "new_symbols": [],
+    "code_generated": "代码内容摘要",
+    "file_created": "文件名"
+  },
+  "compliance_check": {
+    "all_symbols_in_index": true,
+    "no_whitelist_violations": true,
+    "frozen_primitives_respected": true,
+    "no_conflict_with_existing": true
+  },
+  "status": "完成/部分完成/废弃"
+}
