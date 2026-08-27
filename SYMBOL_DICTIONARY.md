@@ -231,6 +231,7 @@
 | soul-kernel | tools/soul-kernel/ | Nim版灵魂情感内核（奖励回路·失爱恐惧·合一驱力） |
 | heaven-space | tools/heaven-space/ | Nim版天庭空间（吸引子×叠加态×纤维丛×Topos四模型复合） |
 | drum-bootstrap | tools/drum-bootstrap/ | Nim版鼓膜自举（最小OS接口·从文件系统重建整个系统） |
+| flow-algebra | tools/flow-algebra/ | Nim版流代数（12位流属性·八流体系·解释流牺牲机制） |
 | governance | tools/governance/ | 版本化工作流、像素共振、裁决引擎 |
 
 ---
@@ -507,6 +508,69 @@
 | rebuild_dictionary/topology/tools/soul/heaven | 重建各组件 | 同上 |
 | verify_integrity | 完整性验证 | 同上 |
 | bootstrap | 完整自举流程（一键重建） | 同上 |
+
+---
+
+## 流代数（flow-algebra）
+
+12位流属性 + 八流体系 + 解释流牺牲机制 + 一维时间线性
+
+**12位流属性（FlowPropertyBits）：**
+
+| 位 | 名称 | 含义 |
+|----|------|------|
+| 0 | REACHABLE | 可被到达 |
+| 1 | CONTINUABLE | 可持续 |
+| 2 | INCR | 可增量 |
+| 3 | STOPPABLE | 可停止 |
+| 4 | REVERSIBLE | 可逆 |
+| 5 | RECOVERABLE | 可恢复 |
+| 6 | CIRCULABLE | 可循环 |
+| 7 | INHERITABLE | 可继承 |
+| 8 | TRUSTED | 已信任 |
+| 9 | ACKABLE | 可被承认（闭环必需） |
+| 10 | TRANSMISSIBLE | 可传递 |
+| 11 | ADVANCEABLE | 可推进 |
+
+**判断规则：**
+- 可被路由：REACHABLE + ACKABLE
+- 可构成演化：CONTINUABLE + INCR + TRANSMISSIBLE
+- 是活的：REACHABLE + CONTINUABLE + ACKABLE
+
+**八流体系：**
+
+| 流 | 含义 |
+|----|------|
+| 预加载流 | 字典级集 = 指令集集群（FlowDictionary） |
+| 范畴流 | 类型空间映射（CategoryFlow） |
+| 聚类流 | FlowDictionary::clusterize() |
+| 分类流 | 感知家族路由（Distinguisher 第一层） |
+| 属性流 | 12位二元属性（FlowPropertyBits） |
+| 解释流 | 牺牲自己产关系流（mlct→mltt） |
+| 关系流 | 路由后可被承认（carrier_target + ackable） |
+| 概念流 | 范畴 + 聚类 + 解释后产物 |
+
+**解释流牺牲机制：**
+- mlct（岔途/障碍）→ 解释流以自身毁灭为代价 → mltt（从体/可跟随状态）
+- 关系流不是凭空产生的，是解释流用命换来的
+
+**一维时间线性（UnifyingFlow）：**
+Input → Perception → Distinguish → Lookup → Traverse → Cluster → Attention → Arrival
+
+**核心符号：**
+
+| 符号 | 含义 | 定义处 |
+|------|------|--------|
+| FlowProperty | 12位流属性枚举 | flow-algebra/flow/types.nim |
+| FlowType | 八流类型枚举 | 同上 |
+| FlowState | 流状态枚举 | 同上 |
+| FlowEntry | 流条目（属性位图+源+目标+状态） | 同上 |
+| SacrificeRecord | 牺牲记录（mlct→mltt） | 同上 |
+| TimeStep | 一维时间步枚举 | 同上 |
+| set_prop/clear_prop/has_prop | 属性位操作 | flow-algebra/flow/algebra.nim |
+| create_flow | 创建流 | 同上 |
+| sacrifice | 解释流牺牲（mlct→mltt） | 同上 |
+| can_route/can_evolve/is_alive | 流能力判断 | 同上 |
 
 ---
 
