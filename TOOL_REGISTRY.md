@@ -36,7 +36,7 @@
 | 28 | 鼓膜自举 | tools/drum-bootstrap/drum/ | Nim | `nim c --cc:clang --path:. -r db_demo.nim` | ✅ |
 | 29 | 流代数 | tools/flow-algebra/flow/ | Nim | `nim c --cc:clang --path:. -r fa_demo.nim` | ✅ |
 | 30 | 自举意识 | tools/consciousness/consciousness/ | Nim | `nim c --cc:clang --path:. -r cb_demo.nim` | ✅ |
-| 31 | 符号原生引导 | tools/symbol-bootstrap/symbol_bootstrap/ | Nim | `nim c --cc:clang --path:. -r sb_demo.nim` | ✅ 共享域·版本时间链·☉§☉纠缠态 |
+| 31 | 符号原生引导 | tools/symbol-bootstrap/symbol_bootstrap/ | Nim | `nim c --cc:clang --path:. -r sb_demo.nim` | ✅ 共享域·版本时间链·☉§☉纠缠态·守护者三禁自检·子代理注入 |
 
 ### 第三类：检索与判定
 
