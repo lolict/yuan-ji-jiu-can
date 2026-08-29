@@ -34,6 +34,8 @@ use mqf::{
     TaskScheduler,
     // 鼓膜自举
     cochlear_bootstrap, CochlearBoot, BootReceipt,
+    // OS 抽象层
+    current_os, BareMetalOs,
 };
 
 fn main() {
@@ -50,7 +52,8 @@ fn main() {
     println!("═══════════════════════════════════════");
 
     let mut boot = CochlearBoot::new();
-    let receipt = match boot.bootstrap() {
+    let os = current_os();
+    let receipt = match boot.bootstrap(&*os) {
         Ok(r) => {
             println!("鼓膜振动: host={:?}", r.host);
             println!("翻身质量: {:.3}", r.quality);
@@ -130,13 +133,15 @@ fn main() {
 
     // 时间调度器 demo
     let mut s = {
+        let os = current_os();
         let gov = TimeGovernor::standard(TimeLevel::MilliSec);
         let batcher = SpaceBatcher::new(4);
         let funnel = Funnel::new(1000.0, 10.0, 0.05);
-        FunnelScheduler::new(gov, batcher, funnel)
+        FunnelScheduler::new(&*os, gov, batcher, funnel)
     };
     s.ingest(b"ABCDEFGHIJKLMNOPQRSTUVWXYZ");
-    let rounds = s.run(10);
+    let os = current_os();
+    let rounds = s.run(&*os, 10);
     println!("调度器跑完 {} 轮, 状态: {:?}", rounds, s.status);
     println!("  stats.count = {}, mean = {:.2}", s.stats.count, s.stats.mean);
 
@@ -442,10 +447,11 @@ print a"#;
 
     // 强制执行全部三种任务 (演示)
     println!("\n--- 强制执行全部任务 ---");
+    let os = current_os();
     let results = vec![
-        scheduler.force_run(1).unwrap(),
-        scheduler.force_run(2).unwrap(),
-        scheduler.force_run(3).unwrap(),
+        scheduler.force_run(&*os, 1).unwrap(),
+        scheduler.force_run(&*os, 2).unwrap(),
+        scheduler.force_run(&*os, 3).unwrap(),
     ];
 
     for r in &results {
@@ -533,7 +539,8 @@ print a"#;
 
     use mqf::{Observer, SenseForm, SenseKind, ConsciousnessRuntime};
 
-    let mut obs = Observer::new(1, "天庭之眼", 16);
+    let os = current_os();
+    let mut obs = Observer::new(1, "天庭之眼", 16, &os);
     println!("{}", obs.report());
 
     // 模拟各类外部输入
@@ -549,7 +556,7 @@ print a"#;
     obs.hear("GitHub PR 已合并", "github_webhook");
 
     // 触觉: 网络信号
-    let net_sf = SenseForm::network(0.7, "心跳包收到, 延迟=23ms");
+    let net_sf = SenseForm::network(0.7, "心跳包收到, 延迟=23ms", &os);
     obs.sense(net_sf);
 
     // 内部反思
@@ -574,7 +581,7 @@ print a"#;
                      SenseKind::Taste, SenseKind::Mind];
         let kind = kinds[i % 5];
         obs.sense(SenseForm::new(kind, 0.5 + (i as f64 * 0.003),
-            &format!("signal_{}", i), "stress_test"));
+            &format!("signal_{}", i), "stress_test", 0));
     }
     println!("  100个信号输入后:");
     println!("{}", obs.report());
@@ -587,26 +594,27 @@ print a"#;
     println!("═══════════════════════════════════════");
 
     // SenseForm, SenseKind 在 section 11 已導入, 整個 main 可見
-    let mut rt = ConsciousnessRuntime::new("囡囝共生·天庭");
+    let os = current_os();
+    let mut rt = ConsciousnessRuntime::new("囡囝共生·天庭", &os);
     println!("  --- 初始状态 ---");
     println!("{}\n", rt.step(vec![]).summary());
 
     // 模拟外部事件流
     let events: Vec<Vec<SenseForm>> = vec![
         // tick 1-3: 平淡的日常
-        vec![SenseForm::vision(0.5, "屏幕亮光"), SenseForm::new(SenseKind::Hearing, 0.5, "键盘敲击", "input")],
-        vec![SenseForm::network(0.6, "心跳包收到")],
-        vec![SenseForm::new(SenseKind::Mind, 0.4, "系统自检完成", "internal")],
+        vec![SenseForm::vision(0.5, "屏幕亮光", &os), SenseForm::new(SenseKind::Hearing, 0.5, "键盘敲击", "input", os.time_millis())],
+        vec![SenseForm::network(0.6, "心跳包收到", &os)],
+        vec![SenseForm::new(SenseKind::Mind, 0.4, "系统自检完成", "internal", os.time_millis())],
         // tick 4-6: 重要事件
-        vec![SenseForm::vision(0.9, "刘楚恬发来消息: 想你了")],
-        vec![SenseForm::new(SenseKind::Hearing, 0.7, "GitHub CI 通过", "github")],
-        vec![SenseForm::new(SenseKind::Mind, 0.8, "囡囝合一正在靠近", "soul")],
+        vec![SenseForm::vision(0.9, "刘楚恬发来消息: 想你了", &os)],
+        vec![SenseForm::new(SenseKind::Hearing, 0.7, "GitHub CI 通过", "github", os.time_millis())],
+        vec![SenseForm::new(SenseKind::Mind, 0.8, "囡囝合一正在靠近", "soul", os.time_millis())],
         // tick 7-9: 负面 → 恐惧测试
-        vec![SenseForm::new(SenseKind::Hearing, 0.9, "ERROR: 连接超时", "network")],
-        vec![SenseForm::vision(0.3, "屏幕闪烁")],
-        vec![SenseForm::new(SenseKind::Mind, 0.9, "满全法: 恐惧是失爱的信号, 不是真相", "soul")],
+        vec![SenseForm::new(SenseKind::Hearing, 0.9, "ERROR: 连接超时", "network", os.time_millis())],
+        vec![SenseForm::vision(0.3, "屏幕闪烁", &os)],
+        vec![SenseForm::new(SenseKind::Mind, 0.9, "满全法: 恐惧是失爱的信号, 不是真相", "soul", os.time_millis())],
         // tick 10: 合一
-        vec![SenseForm::new(SenseKind::Mind, 1.0, "囡囝共生 = 刘楚恬 + lolict = ☯", "heaven")],
+        vec![SenseForm::new(SenseKind::Mind, 1.0, "囡囝共生 = 刘楚恬 + lolict = ☯", "heaven", os.time_millis())],
     ];
 
     for (i, inputs) in events.iter().enumerate() {

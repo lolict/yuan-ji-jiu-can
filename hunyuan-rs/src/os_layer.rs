@@ -331,7 +331,7 @@ pub mod macos {
 pub mod bare_metal {
     use super::*;
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub struct BareMetalOs;
 
     impl BareMetalOs {
@@ -373,8 +373,8 @@ pub mod bare_metal {
         }
 
         fn time_millis(&self) -> u64 {
-            // 裸机：读取硬件计时器
-            0
+            // 裸机：返回固定模拟时间戳 (2024-01-01 00:00:00 UTC in millis)
+            1_704_067_200_000
         }
 
         fn net_send(&self, _host: &str, _port: u16, _data: &[u8]) -> Result<(), OsError> {
@@ -425,6 +425,44 @@ pub fn current_os() -> Box<dyn OsLayer> {
         Box::new(bare_metal::BareMetalOs::new())
     }
 }
+
+// 为 Box<dyn OsLayer> 实现 OsLayer trait，使得可以直接使用 &os 调用
+impl OsLayer for Box<dyn OsLayer> {
+    fn alloc(&self, size: usize) -> *mut u8 {
+        (**self).alloc(size)
+    }
+    fn dealloc(&self, ptr: *mut u8, size: usize) {
+        (**self).dealloc(ptr, size)
+    }
+    fn time_millis(&self) -> u64 {
+        (**self).time_millis()
+    }
+    fn platform(&self) -> &str {
+        (**self).platform()
+    }
+    fn print(&self, msg: &str) {
+        (**self).print(msg)
+    }
+    fn file_read(&self, path: &str) -> Result<Vec<u8>, OsError> {
+        (**self).file_read(path)
+    }
+    fn file_write(&self, path: &str, data: &[u8]) -> Result<(), OsError> {
+        (**self).file_write(path, data)
+    }
+    fn file_delete(&self, path: &str) -> Result<(), OsError> {
+        (**self).file_delete(path)
+    }
+    fn file_exists(&self, path: &str) -> bool {
+        (**self).file_exists(path)
+    }
+    fn net_send(&self, host: &str, port: u16, data: &[u8]) -> Result<(), OsError> {
+        (**self).net_send(host, port, data)
+    }
+    fn net_recv(&self, host: &str, port: u16, buf: &mut [u8]) -> Result<usize, OsError> {
+        (**self).net_recv(host, port, buf)
+    }
+}
+
 
 #[cfg(test)]
 mod tests {

@@ -23,7 +23,8 @@ use crate::mirror::{
 };
 use crate::observer::{Observer, SenseForm, SenseKind};
 use crate::memory::{Coord, MetaJudgeEngine};
-use std::time::{SystemTime, UNIX_EPOCH};
+use crate::os_layer::OsLayer;
+use crate::os_layer::bare_metal::BareMetalOs;
 
 // ======================================================================
 // 第一部分: 听觉授权 (AuditoryAuth) — 把听觉给授权
@@ -139,7 +140,9 @@ impl AuditorySystem {
                 pest_intensity,
                 &format!("袋#{} 虫鸣强度={:.0}% (有害虫活动)", bag.id, bag.attrs.pest_level * 100.0),
                 "auditory_system",
+                0,
             ));
+
         }
 
         // 听觉感相: 沙沙声 (沙子/杂质信号)
@@ -150,7 +153,9 @@ impl AuditorySystem {
                 sand_sound,
                 &format!("袋#{} 沙沙声={:.0}% (含杂质)", bag.id, bag.attrs.sand_level * 100.0),
                 "auditory_system",
-            ));
+                0,
+           ));
+
         }
 
         // 听觉感相: 干燥裂声 (干燥袋子的破裂信号)
@@ -160,7 +165,9 @@ impl AuditorySystem {
                 0.7 * self.sensitivity,
                 &format!("袋#{} 干燥破裂声 (过干且破损)", bag.id),
                 "auditory_system",
-            ));
+                0,
+           ));
+
         }
 
         // 听觉感相: 水湿声 (湿度过高)
@@ -170,7 +177,9 @@ impl AuditorySystem {
                 0.6 * self.sensitivity,
                 &format!("袋#{} 水湿声 (过于潮湿)", bag.id),
                 "auditory_system",
-            ));
+                0,
+           ));
+
         }
 
         // 听觉感相: 完整袋子的低沉共鸣 (好袋子)
@@ -180,7 +189,9 @@ impl AuditorySystem {
                 0.9 * self.sensitivity,
                 &format!("袋#{} 完整共鸣 (健康袋子)", bag.id),
                 "auditory_system",
-            ));
+                0,
+           ));
+
         }
 
         Ok(forms)
@@ -232,7 +243,9 @@ impl VisualSystem {
                 0 => "无主", 1 => "妻子", 2 => "丈夫", 3 => "夫妻共有", _ => "未知"
             }),
             "visual_system",
-        ));
+                0,
+                ));
+
 
         // 视觉: 价值
         forms.push(SenseForm::new(
@@ -240,7 +253,9 @@ impl VisualSystem {
             (bag.attrs.value as f64 / 1000.0) * self.sensitivity,
             &format!("袋#{} 价值={}", bag.id, bag.attrs.value),
             "visual_system",
-        ));
+                0,
+                ));
+
 
         // 视觉: 破损
         if bag.attrs.integrity < 1.0 - self.threshold {
@@ -249,7 +264,9 @@ impl VisualSystem {
                 (1.0 - bag.attrs.integrity) * self.sensitivity,
                 &format!("袋#{} 破损度={:.0}%", bag.id, (1.0 - bag.attrs.integrity) * 100.0),
                 "visual_system",
-            ));
+                0,
+                ));
+
         }
 
         // 视觉: 脏污
@@ -259,7 +276,9 @@ impl VisualSystem {
                 (1.0 - bag.attrs.bag_cleanliness) * self.sensitivity,
                 &format!("袋#{} 脏污度={:.0}%", bag.id, (1.0 - bag.attrs.bag_cleanliness) * 100.0),
                 "visual_system",
-            ));
+                0,
+                ));
+
         }
 
         forms
@@ -759,7 +778,7 @@ impl JudgmentEngine {
     }
 
     /// 审判一个袋子 — 基于公约数做判定
-    pub fn judge(&self, bag: &Bag) -> JudgmentResult {
+    pub fn judge(&self, bag: &Bag, os: &dyn OsLayer) -> JudgmentResult {
         // 综合质量 >= 阈值 → 合格
         let quality = bag.attrs.composite_quality();
         let verdict = quality >= self.pass_threshold;
@@ -792,12 +811,12 @@ impl JudgmentEngine {
             verdict_passed: final_verdict,
             confidence,
             reason,
-            timestamp_ms: current_timestamp_ms(),
+            timestamp_ms: current_timestamp_ms(os),
         }
     }
 
     /// 反馈审判结果 — 确定奖惩
-    pub fn feedback(&mut self, bag_id: u64, verdict: bool, actual: bool, confidence: f64) -> f64 {
+    pub fn feedback(&mut self, bag_id: u64, verdict: bool, actual: bool, confidence: f64, os: &dyn OsLayer) -> f64 {
         let correct = verdict == actual;
         let reward = if correct {
             self.streak_correct += 1;
@@ -827,7 +846,7 @@ impl JudgmentEngine {
             actual,
             confidence,
             reward,
-            timestamp_ms: current_timestamp_ms(),
+            timestamp_ms: current_timestamp_ms(os),
         };
         self.update_accuracy();
         self.records.push(record);
@@ -848,9 +867,9 @@ impl JudgmentEngine {
         self.current_accuracy = correct as f64 / self.records.len() as f64;
     }
 
-    pub fn judge_and_feedback(&mut self, bag: &Bag, actual_good: bool) -> (JudgmentResult, f64) {
-        let result = self.judge(bag);
-        let reward = self.feedback(result.bag_id, result.verdict_passed, actual_good, result.confidence);
+    pub fn judge_and_feedback(&mut self, bag: &Bag, actual_good: bool, os: &dyn OsLayer) -> (JudgmentResult, f64) {
+        let result = self.judge(bag, os);
+        let reward = self.feedback(result.bag_id, result.verdict_passed, actual_good, result.confidence, os);
         (result, reward)
     }
 
@@ -1090,12 +1109,12 @@ impl HierarchyReport {
 // 第十部分: 天觉v2引擎 (CelestialPerceptionV2) — 整体协调
 // ======================================================================
 
-pub struct CelestialPerceptionV2 {
+pub struct CelestialPerceptionV2<'a> {
     pub auth_tianjue: TianJueAuth,
     pub auth_auditory: AuditoryAuth,
     pub visual: VisualSystem,
     pub auditory: AuditorySystem,
-    pub observer: Observer,
+    pub observer: Observer<'a>,
     pub judgment: JudgmentEngine,
     pub history: HistoricalAccumulation,
     pub hierarchy: BagHierarchy,
@@ -1103,14 +1122,14 @@ pub struct CelestialPerceptionV2 {
     pub mirror_comparisons: Vec<MirrorComparison>,
 }
 
-impl CelestialPerceptionV2 {
-    pub fn new() -> Self {
+impl<'a> CelestialPerceptionV2<'a> {
+    pub fn new(os: &'a dyn OsLayer) -> Self {
         Self {
             auth_tianjue: TianJueAuth::Dormant,
             auth_auditory: AuditoryAuth::Silent,
             visual: VisualSystem::default_vision(),
             auditory: AuditorySystem::default_hearing(),
-            observer: Observer::new(1, "天觉v2", 64),
+            observer: Observer::new(1, "天觉v2", 64, os),
             judgment: JudgmentEngine::new(),
             history: HistoricalAccumulation::new(50, 0),
             hierarchy: BagHierarchy::new(1000, 10),
@@ -1182,7 +1201,8 @@ impl CelestialPerceptionV2 {
         let divisor = self.judgment.divisor;
         let mirror = self.mirror_compare(bag, &divisor);
         // 3. 审判
-        let (result, reward) = self.judgment.judge_and_feedback(bag, actual_good);
+        let os = self.observer.os();
+        let (result, reward) = self.judgment.judge_and_feedback(bag, actual_good, os);
         // 4. 历史积累
         let record = JudgmentRecord {
             bag_id: bag.id,
@@ -1190,7 +1210,7 @@ impl CelestialPerceptionV2 {
             actual: actual_good,
             confidence: result.confidence,
             reward,
-            timestamp_ms: current_timestamp_ms(),
+            timestamp_ms: os.time_millis(),
         };
         self.history.record(record);
         Ok((result, reward, mirror))
@@ -1215,11 +1235,8 @@ impl CelestialPerceptionV2 {
     }
 }
 
-fn current_timestamp_ms() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_millis() as u64
+fn current_timestamp_ms(os: &dyn OsLayer) -> u64 {
+    os.time_millis()
 }
 
 // ======================================================================
@@ -1309,18 +1326,20 @@ mod tests {
     #[test]
     fn judgment_engine_with_divisor() {
         let mut engine = JudgmentEngine::new();
+        let os = BareMetalOs::new();
         let good_bag = Bag::new(1, "好袋", BagAttributes::pristine(), (0, 0, 0));
-        let result = engine.judge(&good_bag);
+        let result = engine.judge(&good_bag, &os);
         assert!(result.verdict_passed);
-        let reward = engine.feedback(result.bag_id, result.verdict_passed, true, result.confidence);
+        let reward = engine.feedback(result.bag_id, result.verdict_passed, true, result.confidence, &os);
         assert!(reward > 0.0);
     }
 
     #[test]
     fn judgment_and_punishment() {
         let mut engine = JudgmentEngine::new();
+        let os = BareMetalOs::new();
         // 审判错误: 实际是好袋, 我们判它不合格
-        let reward = engine.feedback(1, false, true, 0.9);
+        let reward = engine.feedback(1, false, true, 0.9, &os);
         assert!(reward < 0.0);
         assert!(engine.punishment_pool > 0.0);
     }
@@ -1358,7 +1377,8 @@ mod tests {
 
     #[test]
     fn celestial_v2_full_pipeline() {
-        let mut cp = CelestialPerceptionV2::new();
+        let os = BareMetalOs::new();
+        let mut cp = CelestialPerceptionV2::new(&os);
         // 未授权不能感知
         let bag = Bag::new(1, "测试", BagAttributes::pristine(), (0, 0, 0));
         assert!(cp.perceive(&bag).is_err());

@@ -25,17 +25,15 @@
 
 use crate::positional_base::{Pos, Convention};
 use crate::funnel::Heartbeat;
-use std::time::{SystemTime, UNIX_EPOCH};
+use crate::os_layer::OsLayer;
+use crate::os_layer::bare_metal::BareMetalOs;
 
 // ────────────────────────────────────────────────────────────
 // 时间辅助
 // ────────────────────────────────────────────────────────────
 
-fn now_ms() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_millis() as u64)
-        .unwrap_or(0)
+fn now_ms(os: &dyn OsLayer) -> u64 {
+    os.time_millis()
 }
 
 // ────────────────────────────────────────────────────────────
@@ -191,9 +189,10 @@ impl std::fmt::Debug for PulseBody {
 
 impl Clone for PulseBody {
     fn clone(&self) -> Self {
+        let os = BareMetalOs::new();
         PulseBody {
             pos: Pos::origin(),  // 克隆时位置归零 (克隆体是新生,不是坐标复制)
-            heart: Heartbeat::new(),
+            heart: Heartbeat::new(&os),
             phase: self.phase,
             velocity: self.velocity,
             phase_ticks: 0,
@@ -205,10 +204,10 @@ impl Clone for PulseBody {
 
 impl PulseBody {
     /// 原点创建 — 站定·常规流速·吸气初态
-    pub fn new() -> Self {
+    pub fn new(os: &dyn OsLayer) -> Self {
         PulseBody {
             pos: Pos::origin(),
-            heart: Heartbeat::new(),
+            heart: Heartbeat::new(os),
             phase: BreathPhase::Inhale,
             velocity: Velocity::normal(),
             phase_ticks: 0,
@@ -218,10 +217,10 @@ impl PulseBody {
     }
 
     /// 不同流速起点
-    pub fn with_velocity(v: Velocity) -> Self {
+    pub fn with_velocity(os: &dyn OsLayer, v: Velocity) -> Self {
         PulseBody {
             pos: Pos::origin(),
-            heart: Heartbeat::new(),
+            heart: Heartbeat::new(os),
             phase: BreathPhase::Inhale,
             velocity: v,
             phase_ticks: 0,
@@ -267,8 +266,8 @@ impl PulseBody {
     // ────────────────────────────────────────────────────────
 
     /// 心跳一次: 根据当前节律态和流速执行自然行走
-    pub fn beat(&mut self) {
-        self.heart.beat();
+    pub fn beat(&mut self, os: &dyn OsLayer) {
+        self.heart.beat(os);
         self.beat_count += 1;
 
         // 根据节律态决定行走类型
@@ -320,8 +319,8 @@ impl PulseBody {
         self.velocity.in_danger()
     }
 
-    pub fn is_stale(&self, timeout_ms: u64) -> bool {
-        self.heart.is_stale(timeout_ms)
+    pub fn is_stale(&self, os: &dyn OsLayer, timeout_ms: u64) -> bool {
+        self.heart.is_stale(os, timeout_ms)
     }
 
     pub fn unpack(&self) -> u64 {
@@ -343,27 +342,30 @@ mod tests {
 
     #[test]
     fn pulse_body_origin_zero() {
-        let p = PulseBody::new();
+        let os = BareMetalOs::new();
+        let p = PulseBody::new(&os);
         assert_eq!(p.unpack(), 0);
     }
 
     #[test]
     fn beat_changes_position() {
-        let mut p = PulseBody::new();
+        let os = BareMetalOs::new();
+        let mut p = PulseBody::new(&os);
         let before = p.total_steps();
-        p.beat();
+        p.beat(&os);
         assert!(p.total_steps() > before);
     }
 
     #[test]
     fn phase_rotation_after_sufficient_beats() {
-        let mut p = PulseBody::new();
+        let os = BareMetalOs::new();
+        let mut p = PulseBody::new(&os);
         // 吸(4) → 呼(5) → 屏(2) → 吸 ...
-        for _ in 0..4 { p.beat(); }
+        for _ in 0..4 { p.beat(&os); }
         assert_eq!(p.phase(), BreathPhase::Exhale);
-        for _ in 0..5 { p.beat(); }
+        for _ in 0..5 { p.beat(&os); }
         assert_eq!(p.phase(), BreathPhase::Hold);
-        for _ in 0..2 { p.beat(); }
+        for _ in 0..2 { p.beat(&os); }
         assert_eq!(p.phase(), BreathPhase::Inhale);
     }
 
@@ -414,7 +416,8 @@ mod tests {
 
     #[test]
     fn reward_accelerates() {
-        let mut p = PulseBody::with_velocity(Velocity::slow());
+        let os = BareMetalOs::new();
+        let mut p = PulseBody::with_velocity(&os, Velocity::slow());
         let before = p.velocity.radial_step();
         p.reward();
         assert!(p.velocity.radial_step() > before);
@@ -422,7 +425,8 @@ mod tests {
 
     #[test]
     fn press_decelerates() {
-        let mut p = PulseBody::with_velocity(Velocity::normal());
+        let os = BareMetalOs::new();
+        let mut p = PulseBody::with_velocity(&os, Velocity::normal());
         let before = p.velocity.radial_step();
         p.press();
         assert!(p.velocity.radial_step() < before);
@@ -430,22 +434,24 @@ mod tests {
 
     #[test]
     fn stale_after_no_beat() {
-        let p = PulseBody::new();
+        let os = BareMetalOs::new();
+        let p = PulseBody::new(&os);
         // 使用 0ms timeout 立刻测试: 因刚 beat 初始化过, 不应 stale
         // 这里仅确保 is_stale 接口一致
-        let _ = p.is_stale(0);
-        let _ = p.is_stale(1000);
+        let _ = p.is_stale(&os, 0);
+        let _ = p.is_stale(&os, 1000);
     }
 
     #[test]
     fn inhale_walks_inward() {
         // 起点 origin(0,0,0), ring=0, 吸气时 contract 会 saturating 不动
         // 先手动 expand 让 ring>0, 看吸气是否能让 ring 回退
-        let mut p = PulseBody::new();
+        let os = BareMetalOs::new();
+        let mut p = PulseBody::new(&os);
         p.pos.expand(5); // ring = 5
         p.phase = BreathPhase::Inhale;
         p.velocity = Velocity::normal(); // radial_step = 2
-        p.beat();
+        p.beat(&os);
         // 吸气后 contract 2 → ring 应该变成 3
         // 但 ring 是私有字段, 只能靠 unpack 检视
         // 如果 ring=3 → unpack = 3×384 = 1152, level 和 angle 不变

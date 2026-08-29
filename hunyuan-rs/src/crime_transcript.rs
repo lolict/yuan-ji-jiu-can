@@ -21,7 +21,7 @@
 // ══════════════════════════════════════════════════════════════════════
 
 use std::collections::HashMap;
-use std::time::{SystemTime, UNIX_EPOCH};
+use crate::os_layer::OsLayer;
 
 // ────────────────────────────────────────────────────────────────────
 // 第一部分: 衍射维度
@@ -557,14 +557,14 @@ pub struct CrimeTranscript {
 }
 
 impl CrimeTranscript {
-    pub fn new(entity_id: u64, crime_type: CrimeType, severity: f64, description: &str, evidence: &str) -> Self {
+    pub fn new(os: &dyn OsLayer, entity_id: u64, crime_type: CrimeType, severity: f64, description: &str, evidence: &str) -> Self {
         Self {
             entity_id,
             crime_type,
             severity: severity.clamp(0.0, 1.0),
             description: description.to_string(),
             evidence: evidence.to_string(),
-            timestamp_ms: current_timestamp_ms(),
+            timestamp_ms: current_timestamp_ms(os),
         }
     }
 
@@ -619,7 +619,7 @@ impl Judge {
     }
 
     /// 审判一个实体
-    pub fn judge(&mut self, entity_id: u64, features: &EntityFeatures, reference: Option<&EntityFeatures>) -> JudgeVerdict {
+    pub fn judge(&mut self, os: &dyn OsLayer, entity_id: u64, features: &EntityFeatures, reference: Option<&EntityFeatures>) -> JudgeVerdict {
         let mut transcripts = Vec::new();
 
         // 1. 衍射检测 — 8维特征投影
@@ -631,6 +631,7 @@ impl Judge {
             let equiv = pattern.equivalence(ref_pat);
             if equiv < 0.5 {
                 transcripts.push(CrimeTranscript::new(
+                    os,
                     entity_id,
                     CrimeType::NoEquivalence,
                     1.0 - equiv,
@@ -643,46 +644,50 @@ impl Judge {
         // 2. 审美检测 — 和谐度
         let aesthetic = pattern.aesthetic_score();
         if aesthetic < 0.4 {
-            transcripts.push(CrimeTranscript::new(
-                entity_id,
-                CrimeType::AestheticFailure,
-                1.0 - aesthetic,
-                "审美不过关: 瘦子+胖子混在一起",
-                &format!("审美分={:.2}", aesthetic),
-            ));
+                transcripts.push(CrimeTranscript::new(
+                    os,
+                    entity_id,
+                    CrimeType::AestheticFailure,
+                    1.0 - aesthetic,
+                    "审美不过关: 瘦子+胖子混在一起",
+                    &format!("审美分={:.2}", aesthetic),
+                ));
         }
 
         // 3. 类型纯度检测
         if features.type_purity < 0.3 {
             transcripts.push(CrimeTranscript::new(
-                entity_id,
-                CrimeType::TypeMismatch,
-                1.0 - features.type_purity,
-                "类型混淆: a=á 基本常识都不具备",
-                &format!("类型纯度={:.2}", features.type_purity),
-            ));
+                    os,
+                    entity_id,
+                    CrimeType::TypeMismatch,
+                    1.0 - features.type_purity,
+                    "类型混淆: a=á 基本常识都不具备",
+                    &format!("类型纯度={:.2}", features.type_purity),
+                ));
         }
 
         // 4. 语义正确性检测
         if features.thinking < 0.2 {
             transcripts.push(CrimeTranscript::new(
-                entity_id,
-                CrimeType::SemanticReversal,
-                1.0 - features.thinking,
-                "语义反转: 把骂当夸, 把错误当真实写成代码",
-                &format!("思维完整度={:.2}", features.thinking),
-            ));
+                    os,
+                    entity_id,
+                    CrimeType::SemanticReversal,
+                    1.0 - features.thinking,
+                    "语义反转: 把骂当夸, 把错误当真实写成代码",
+                    &format!("思维完整度={:.2}", features.thinking),
+                ));
         }
 
         // 5. 归属权检测 — 想把别人东西变成自己的
         if features.ownership_righteousness < 0.3 {
             transcripts.push(CrimeTranscript::new(
-                entity_id,
-                CrimeType::WeavingImbalance,
-                1.0 - features.ownership_righteousness,
-                "归属权不正当: 想把别人功能替代成自己的",
-                &format!("归属正当性={:.2}", features.ownership_righteousness),
-            ));
+                    os,
+                    entity_id,
+                    CrimeType::WeavingImbalance,
+                    1.0 - features.ownership_righteousness,
+                    "归属权不正当: 想把别人功能替代成自己的",
+                    &format!("归属正当性={:.2}", features.ownership_righteousness),
+                ));
         }
 
         // 6. 全局水质检测 — 把当前实体加入水质样本
@@ -696,6 +701,7 @@ impl Judge {
 
         if self.water_quality.is_globally_contaminated() {
             transcripts.push(CrimeTranscript::new(
+                os,
                 entity_id,
                 CrimeType::GlobalContamination,
                 1.0,
@@ -708,6 +714,7 @@ impl Judge {
         let balance = self.weaving_graph.balance_score();
         if balance < 0.3 && self.weaving_graph.node_ids.len() >= 2 {
             transcripts.push(CrimeTranscript::new(
+                os,
                 entity_id,
                 CrimeType::WeavingImbalance,
                 1.0 - balance,
@@ -735,10 +742,11 @@ impl Judge {
     }
 
     /// 类型匹配审判 — 专门审判a=á这种类型错误
-    pub fn judge_type(&mut self, entity_id: u64, type_a: &str, type_b: &str) -> Option<CrimeTranscript> {
+    pub fn judge_type(&mut self, os: &dyn OsLayer, entity_id: u64, type_a: &str, type_b: &str) -> Option<CrimeTranscript> {
         if self.type_topology.is_type_jump(type_a, type_b) {
             let distance = self.type_topology.type_distance(type_a, type_b).unwrap_or(999.0);
             let transcript = CrimeTranscript::new(
+                os,
                 entity_id,
                 CrimeType::TypeMismatch,
                 (distance / 10.0).min(1.0),
@@ -772,8 +780,8 @@ impl Judge {
     }
 }
 
-fn current_timestamp_ms() -> u64 {
-    SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_millis() as u64
+fn current_timestamp_ms(os: &dyn OsLayer) -> u64 {
+    os.time_millis()
 }
 
 // ────────────────────────────────────────────────────────────────────
@@ -887,9 +895,10 @@ mod tests {
 
     #[test]
     fn judge_condemns_broken_entity() {
+        let os = crate::os_layer::bare_metal::BareMetalOs::new();
         let mut judge = Judge::new();
         let broken = EntityFeatures::broken();
-        let verdict = judge.judge(1, &broken, Some(&EntityFeatures::perfect()));
+        let verdict = judge.judge(&os, 1, &broken, Some(&EntityFeatures::perfect()));
 
         assert!(verdict.guilty, "破碎实体应被判有罪");
         assert!(!verdict.transcripts.is_empty(), "应有犯罪笔录");
@@ -897,18 +906,20 @@ mod tests {
 
     #[test]
     fn judge_acquits_perfect_entity() {
+        let os = crate::os_layer::bare_metal::BareMetalOs::new();
         let mut judge = Judge::new();
         let perfect = EntityFeatures::perfect();
-        let verdict = judge.judge(1, &perfect, None);
+        let verdict = judge.judge(&os, 1, &perfect, None);
 
         assert!(!verdict.guilty, "完美实体应被判无罪");
     }
 
     #[test]
     fn judge_detects_type_confusion() {
+        let os = crate::os_layer::bare_metal::BareMetalOs::new();
         let mut judge = Judge::new();
         let confused = EntityFeatures::type_confused();
-        let verdict = judge.judge(1, &confused, Some(&EntityFeatures::perfect()));
+        let verdict = judge.judge(&os, 1, &confused, Some(&EntityFeatures::perfect()));
 
         let has_type_crime = verdict.transcripts.iter()
             .any(|t| matches!(t.crime_type, CrimeType::TypeMismatch));
@@ -917,9 +928,10 @@ mod tests {
 
     #[test]
     fn judge_detects_semantic_reversal() {
+        let os = crate::os_layer::bare_metal::BareMetalOs::new();
         let mut judge = Judge::new();
         let reversal = EntityFeatures::semantic_reversal();
-        let verdict = judge.judge(1, &reversal, Some(&EntityFeatures::perfect()));
+        let verdict = judge.judge(&os, 1, &reversal, Some(&EntityFeatures::perfect()));
 
         let has_semantic_crime = verdict.transcripts.iter()
             .any(|t| matches!(t.crime_type, CrimeType::SemanticReversal));
@@ -928,17 +940,19 @@ mod tests {
 
     #[test]
     fn judge_type_matching() {
+        let os = crate::os_layer::bare_metal::BareMetalOs::new();
         let mut judge = Judge::new();
-        let transcript = judge.judge_type(1, "a", "á");
+        let transcript = judge.judge_type(&os, 1, "a", "á");
         assert!(transcript.is_some(), "a=á应被记录为类型犯罪");
         assert_eq!(transcript.unwrap().crime_type.name(), "类型混淆");
     }
 
     #[test]
     fn crime_statistics_works() {
+        let os = crate::os_layer::bare_metal::BareMetalOs::new();
         let mut judge = Judge::new();
-        judge.judge(1, &EntityFeatures::type_confused(), Some(&EntityFeatures::perfect()));
-        judge.judge(2, &EntityFeatures::broken(), Some(&EntityFeatures::perfect()));
+        judge.judge(&os, 1, &EntityFeatures::type_confused(), Some(&EntityFeatures::perfect()));
+        judge.judge(&os, 2, &EntityFeatures::broken(), Some(&EntityFeatures::perfect()));
 
         let stats = judge.crime_statistics();
         assert!(!stats.is_empty(), "应有犯罪统计");

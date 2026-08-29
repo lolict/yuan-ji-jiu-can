@@ -32,7 +32,8 @@ use crate::mirror::{
     SelfRefLoop, MirrorOrder, VerdictSurplus, ContainmentChain,
 };
 use crate::memory::{MemoryEntry, CoordMemory, LayeredMemory, Coord, JudgeQuality, AdaptiveParams};
-use std::time::{SystemTime, UNIX_EPOCH};
+use crate::os_layer::OsLayer;
+use crate::os_layer::bare_metal::BareMetalOs;
 
 // ────────────────────────────────────────────────────────────
 // 天觉授权 · 系统激活状态
@@ -182,11 +183,8 @@ impl VisualField {
 
     /// 感知一个袋子 — 视觉输入
     /// 不分析袋子内部的米粒，只记录袋子的存在
-    pub fn perceive(&mut self, bag_id: u64) -> bool {
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_millis() as u64;
+    pub fn perceive(&mut self, bag_id: u64, os: &dyn OsLayer) -> bool {
+        let now = os.time_millis();
         self.last_perception_ms = now;
         self.perception_count += 1;
 
@@ -207,11 +205,8 @@ impl VisualField {
     }
 
     /// 视觉刷新 — 长期未感知的袋子从视野中消退
-    pub fn refresh(&mut self, timeout_ms: u64) {
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_millis() as u64;
+    pub fn refresh(&mut self, timeout_ms: u64, os: &dyn OsLayer) {
+        let now = os.time_millis();
         if now - self.last_perception_ms > timeout_ms {
             // 敏感度衰减，但不清空记忆
             self.sensitivity = (self.sensitivity * 0.95).max(0.1);
@@ -235,15 +230,11 @@ pub struct TrialRecord {
 }
 
 impl TrialRecord {
-    pub fn new(trial_id: u64, bag_id: u64, predicted_health: f64) -> Self {
-        let ts = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_millis() as u64;
+    pub fn new(trial_id: u64, bag_id: u64, predicted_health: f64, os: &dyn OsLayer) -> Self {
         Self {
             trial_id,
             bag_id,
-            timestamp_ms: ts,
+            timestamp_ms: os.time_millis(),
             predicted_health,
             actual_health: None,
             verdict_correct: None,
@@ -425,16 +416,16 @@ impl TianJueEngine {
     // ── 视觉感知 ──
 
     /// 视觉感知一个袋子 (需授权)
-    pub fn perceive(&mut self, bag_id: u64) -> bool {
+    pub fn perceive(&mut self, bag_id: u64, os: &dyn OsLayer) -> bool {
         if !self.auth.can_perceive() {
             return false;
         }
-        self.visual.perceive(bag_id);
+        self.visual.perceive(bag_id, os);
         // 同时记录到记忆层
         if let Some(bag) = self.bags.get(&bag_id) {
             let coord = (get_d0(bag.encoded_cell), get_d1(bag.encoded_cell), get_d2(bag.encoded_cell));
             let value = bag.attrs.composite_health() * 100.0;
-            self.memory.record_witness(coord, coord, value, true, bag_id);
+            self.memory.record_witness(os, coord, coord, value, true, bag_id);
         }
         true
     }
@@ -444,7 +435,7 @@ impl TianJueEngine {
     /// 审判一个袋子 — 预测其健康度
     /// 审判对了 → 奖励
     /// 审判错了 → 惩罚
-    pub fn trial(&mut self, bag_id: u64, predicted_health: f64) -> Option<u64> {
+    pub fn trial(&mut self, bag_id: u64, predicted_health: f64, os: &dyn OsLayer) -> Option<u64> {
         if !self.auth.can_judge() {
             return None;
         }
@@ -457,20 +448,20 @@ impl TianJueEngine {
         self.trial_counter += 1;
         let trial_id = self.trial_counter;
 
-        let record = TrialRecord::new(trial_id, bag_id, predicted_health);
+        let record = TrialRecord::new(trial_id, bag_id, predicted_health, os);
         self.trial_history.push(record);
 
         // 记录到层级记忆
         if let Some(bag) = self.bags.get(&bag_id) {
             let coord = (get_d0(bag.encoded_cell), get_d1(bag.encoded_cell), get_d2(bag.encoded_cell));
-            self.memory.record_witness(coord, coord, predicted_health * 100.0, false, trial_id);
+            self.memory.record_witness(os, coord, coord, predicted_health * 100.0, false, trial_id);
         }
 
         Some(trial_id)
     }
 
     /// 反馈审判结果 — 确定奖惩
-    pub fn feedback_trial(&mut self, trial_id: u64, actual_health: f64) -> Option<(f64, f64)> {
+    pub fn feedback_trial(&mut self, os: &dyn OsLayer, trial_id: u64, actual_health: f64) -> Option<(f64, f64)> {
         let record = self.trial_history.iter_mut().find(|r| r.trial_id == trial_id)?;
         let (reward, penalty) = record.feedback(actual_health);
 
@@ -501,7 +492,7 @@ impl TianJueEngine {
         if let Some(bag) = self.bags.get(&bag_id) {
             let coord = (get_d0(bag.encoded_cell), get_d1(bag.encoded_cell), get_d2(bag.encoded_cell));
             let surplus = reward - penalty;
-            self.memory.record_witness(coord, coord, surplus, correct, trial_id);
+            self.memory.record_witness(os, coord, coord, surplus, correct, trial_id);
         }
 
         // 自指循环步进
@@ -543,7 +534,7 @@ impl TianJueEngine {
     }
 
     /// 层级统计 — 只关注袋子维度 · 不数米粒
-    pub fn hierarchy_stats(&self) -> HierarchyStats {
+    pub fn hierarchy_stats(&self, os: &dyn OsLayer) -> HierarchyStats {
         let total_bags = self.bags.len();
         let mut usable_count = 0;
         let mut clean_count = 0;
@@ -571,30 +562,30 @@ impl TianJueEngine {
             reward_total: self.total_rewards,
             penalty_total: self.total_penalties,
             judge_accuracy: self.judge_quality.accuracy(),
-            awareness: self.awareness_level(),
+            awareness: self.awareness_level(os),
         }
     }
 
     /// 历史积累 — 审判记忆的长期密度
-    pub fn history_density(&self) -> f64 {
-        self.memory.global_density()
+    pub fn history_density(&self, os: &dyn OsLayer) -> f64 {
+        self.memory.global_density(os)
     }
 
     /// 意识密度
-    pub fn consciousness_density(&self) -> f64 {
+    pub fn consciousness_density(&self, os: &dyn OsLayer) -> f64 {
         let awareness = if self.self_ref.cycle_count == 0 {
             0.0
         } else {
             1.0 - 1.0 / self.self_ref.cycle_count as f64
         };
-        let mem_density = self.memory.global_density();
+        let mem_density = self.memory.global_density(os);
         let judge_acc = self.judge_quality.accuracy();
         awareness * 0.4 + mem_density.min(1.0) * 0.3 + judge_acc.min(1.0) * 0.3
     }
 
     /// 认知层级判断
-    pub fn awareness_level(&self) -> &'static str {
-        let d = self.consciousness_density();
+    pub fn awareness_level(&self, os: &dyn OsLayer) -> &'static str {
+        let d = self.consciousness_density(os);
         if d < 0.2 { "机械执行" }
         else if d < 0.5 { "感知涌现" }
         else if d < 0.8 { "反思萌芽" }
@@ -720,11 +711,12 @@ mod tests {
 
     #[test]
     fn visual_field_perceive_and_track() {
+        let os = BareMetalOs::new();
         let mut visual = VisualField::new();
         assert_eq!(visual.visible_count(), 0);
 
-        visual.perceive(100);
-        visual.perceive(200);
+        visual.perceive(100, &os);
+        visual.perceive(200, &os);
         assert_eq!(visual.visible_count(), 2);
         assert!(visual.is_visible(100));
         assert!(visual.is_visible(200));
@@ -733,7 +725,8 @@ mod tests {
 
     #[test]
     fn trial_record_correct_gets_reward() {
-        let mut record = TrialRecord::new(1, 100, 0.8);
+        let os = BareMetalOs::new();
+        let mut record = TrialRecord::new(1, 100, 0.8, &os);
         let (reward, penalty) = record.feedback(0.85);
         assert!(reward > 0.0);
         assert_eq!(penalty, 0.0);
@@ -742,7 +735,8 @@ mod tests {
 
     #[test]
     fn trial_record_wrong_gets_penalty() {
-        let mut record = TrialRecord::new(1, 100, 0.9);
+        let os = BareMetalOs::new();
+        let mut record = TrialRecord::new(1, 100, 0.9, &os);
         let (reward, penalty) = record.feedback(0.3);
         assert_eq!(reward, 0.0);
         assert!(penalty > 0.0);
@@ -751,10 +745,11 @@ mod tests {
 
     #[test]
     fn tianjue_engine_full_workflow() {
+        let os = BareMetalOs::new();
         let mut engine = TianJueEngine::new(1, 100);
 
         // 1. 未授权时不能审判
-        assert!(engine.trial(1, 0.8).is_none());
+        assert!(engine.trial(1, 0.8, &os).is_none());
 
         // 2. 授权
         assert!(engine.authorize());
@@ -765,12 +760,12 @@ mod tests {
         assert_eq!(engine.bags.len(), 2);
 
         // 4. 视觉感知
-        assert!(engine.perceive(1));
+        assert!(engine.perceive(1, &os));
         assert!(engine.visual.is_visible(1));
 
         // 5. 审判 → 对了
-        let trial_id = engine.trial(1, 0.7).unwrap();
-        let (reward, penalty) = engine.feedback_trial(trial_id, 0.75).unwrap();
+        let trial_id = engine.trial(1, 0.7, &os).unwrap();
+        let (reward, penalty) = engine.feedback_trial(&os, trial_id, 0.75).unwrap();
         assert!(reward > 0.0);
         assert_eq!(penalty, 0.0);
 
@@ -779,19 +774,20 @@ mod tests {
         assert!(bag1.attrs.composite_health() > 0.0);
 
         // 7. 审判 → 错了
-        let trial_id2 = engine.trial(2, 0.9).unwrap();
-        let (reward2, penalty2) = engine.feedback_trial(trial_id2, 0.2).unwrap();
+        let trial_id2 = engine.trial(2, 0.9, &os).unwrap();
+        let (reward2, penalty2) = engine.feedback_trial(&os, trial_id2, 0.2).unwrap();
         assert_eq!(reward2, 0.0);
         assert!(penalty2 > 0.0);
 
         // 8. 层级统计
-        let stats = engine.hierarchy_stats();
+        let stats = engine.hierarchy_stats(&os);
         assert_eq!(stats.total_bags, 2);
         assert!(stats.trial_count >= 2);
     }
 
     #[test]
     fn high_dimension_nesting() {
+        let _os = BareMetalOs::new();
         let mut engine = TianJueEngine::new(1, 50);
         engine.authorize();
 
@@ -812,6 +808,7 @@ mod tests {
 
     #[test]
     fn bags_needing_attention_detection() {
+        let _os = BareMetalOs::new();
         let mut engine = TianJueEngine::new(1, 50);
         engine.authorize();
         engine.register_bag(1, 1, 0, 0, 0);
@@ -835,18 +832,19 @@ mod tests {
 
     #[test]
     fn history_accumulation_over_trials() {
+        let os = BareMetalOs::new();
         let mut engine = TianJueEngine::new(1, 100);
         engine.authorize();
         engine.register_bag(1, 1, 5, 5, 5);
 
         // 多次审判积累历史
         for i in 0..10 {
-            let tid = engine.trial(1, 0.5 + (i as f64 * 0.03)).unwrap();
-            let _ = engine.feedback_trial(tid, 0.6);
+            let tid = engine.trial(1, 0.5 + (i as f64 * 0.03), &os).unwrap();
+            let _ = engine.feedback_trial(&os, tid, 0.6);
         }
 
         // 历史积累应该 > 0
-        assert!(engine.history_density() > 0.0);
+        assert!(engine.history_density(&os) > 0.0);
         assert_eq!(engine.trial_counter, 10);
 
         // 审判质量应该有记录

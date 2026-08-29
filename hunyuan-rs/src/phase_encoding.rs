@@ -31,6 +31,8 @@
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use crate::os_layer::OsLayer;
+use crate::os_layer::bare_metal::BareMetalOs;
 
 // ======================================================================
 // 第一层: 相位进制画布 — 离散相位单元
@@ -151,7 +153,7 @@ pub struct CanvasMetadata {
 
 impl PhaseCanvas {
     /// 创建空白画布
-    pub fn new(width: u32, height: u32, canvas_id: &str) -> Self {
+    pub fn new(os: &dyn OsLayer, width: u32, height: u32, canvas_id: &str) -> Self {
         let pixels = vec![vec![PhaseUnit::empty(); width as usize]; height as usize];
         Self {
             width,
@@ -161,13 +163,13 @@ impl PhaseCanvas {
                 canvas_id: canvas_id.to_string(),
                 operation: "RAW".to_string(),
                 parent_sources: Vec::new(),
-                created_at: current_timestamp_ms(),
+                created_at: current_timestamp_ms(os),
             },
         }
     }
 
     /// 从像素矩阵创建画布
-    pub fn from_pixels(pixels: Vec<Vec<PhaseUnit>>, canvas_id: &str) -> Self {
+    pub fn from_pixels(os: &dyn OsLayer, pixels: Vec<Vec<PhaseUnit>>, canvas_id: &str) -> Self {
         let height = pixels.len() as u32;
         let width = if pixels.is_empty() { 0 } else { pixels[0].len() as u32 };
         Self {
@@ -178,7 +180,7 @@ impl PhaseCanvas {
                 canvas_id: canvas_id.to_string(),
                 operation: "RAW".to_string(),
                 parent_sources: Vec::new(),
-                created_at: current_timestamp_ms(),
+                created_at: current_timestamp_ms(os),
             },
         }
     }
@@ -400,7 +402,7 @@ pub struct EntangledNode {
 
 impl EntangledNode {
     /// 创建新节点
-    pub fn new(node_id: &str, signal_type: &str) -> Self {
+    pub fn new(os: &dyn OsLayer, node_id: &str, signal_type: &str) -> Self {
         Self {
             node_id: node_id.to_string(),
             signal_type: signal_type.to_string(),
@@ -409,7 +411,7 @@ impl EntangledNode {
             annotation: NodeAnnotation::default(),
             canvas_id: None,
             audio_id: None,
-            created_at: current_timestamp_ms(),
+            created_at: current_timestamp_ms(os),
         }
     }
 
@@ -1033,8 +1035,8 @@ impl DrawingEngine {
     }
 
     /// 创建画布并缓存
-    pub fn create_canvas(&mut self, width: u32, height: u32, canvas_id: &str) -> PhaseCanvas {
-        let canvas = PhaseCanvas::new(width, height, canvas_id);
+    pub fn create_canvas(&mut self, os: &dyn OsLayer, width: u32, height: u32, canvas_id: &str) -> PhaseCanvas {
+        let canvas = PhaseCanvas::new(os, width, height, canvas_id);
         self.canvas_cache.insert(canvas_id.to_string(), canvas.clone());
         canvas
     }
@@ -1047,6 +1049,7 @@ impl DrawingEngine {
     /// 执行加法操作 (部件安装)
     pub fn add_operation(
         &mut self,
+        os: &dyn OsLayer,
         base_id: &str,
         part_id: &str,
         offset_x: i32,
@@ -1064,7 +1067,7 @@ impl DrawingEngine {
                 canvas_id: result_id.to_string(),
                 operation: "ADD".to_string(),
                 parent_sources: vec![base_id.to_string(), part_id.to_string()],
-                created_at: current_timestamp_ms(),
+                created_at: current_timestamp_ms(os),
             },
         };
         self.canvas_cache.insert(result_id.to_string(), result_canvas.clone());
@@ -1072,7 +1075,7 @@ impl DrawingEngine {
             op_type: "ADD".to_string(),
             description: format!("将{}安装到{}上, 偏移({}, {})", part_id, base_id, offset_x, offset_y),
             result_canvas_id: result_id.to_string(),
-            timestamp: current_timestamp_ms(),
+            timestamp: current_timestamp_ms(os),
             passed_balance: true,
         });
         Ok(result_canvas)
@@ -1081,6 +1084,7 @@ impl DrawingEngine {
     /// 执行减法操作 (部件拆解)
     pub fn subtract_operation(
         &mut self,
+        os: &dyn OsLayer,
         base_id: &str,
         part_id: &str,
         offset_x: i32,
@@ -1098,7 +1102,7 @@ impl DrawingEngine {
                 canvas_id: result_id.to_string(),
                 operation: "SUB".to_string(),
                 parent_sources: vec![base_id.to_string(), part_id.to_string()],
-                created_at: current_timestamp_ms(),
+                created_at: current_timestamp_ms(os),
             },
         };
         self.canvas_cache.insert(result_id.to_string(), result_canvas.clone());
@@ -1106,7 +1110,7 @@ impl DrawingEngine {
             op_type: "SUB".to_string(),
             description: format!("从{}上拆解{}, 偏移({}, {})", base_id, part_id, offset_x, offset_y),
             result_canvas_id: result_id.to_string(),
-            timestamp: current_timestamp_ms(),
+            timestamp: current_timestamp_ms(os),
             passed_balance: true,
         });
         Ok(result_canvas)
@@ -1148,11 +1152,8 @@ impl DrawingEngine {
 // ======================================================================
 
 /// 获取当前时间戳 (毫秒)
-pub fn current_timestamp_ms() -> u64 {
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_millis() as u64
+pub fn current_timestamp_ms(os: &dyn OsLayer) -> u64 {
+    os.time_millis()
 }
 
 // ======================================================================
@@ -1220,7 +1221,8 @@ mod tests {
 
     #[test]
     fn phase_canvas_new() {
-        let canvas = PhaseCanvas::new(10, 10, "test");
+        let os = BareMetalOs::new();
+        let canvas = PhaseCanvas::new(&os, 10, 10, "test");
         assert_eq!(canvas.width, 10);
         assert_eq!(canvas.height, 10);
         assert_eq!(canvas.non_empty_count(), 0);
@@ -1228,7 +1230,8 @@ mod tests {
 
     #[test]
     fn phase_canvas_set_get() {
-        let mut canvas = PhaseCanvas::new(10, 10, "test");
+        let os = BareMetalOs::new();
+        let mut canvas = PhaseCanvas::new(&os, 10, 10, "test");
         let unit = PhaseUnit::new(100, 200, 150, 1, 0);
         canvas.set(5, 5, unit);
         let retrieved = canvas.get(5, 5).unwrap();
@@ -1237,10 +1240,11 @@ mod tests {
 
     #[test]
     fn phase_canvas_add() {
-        let mut base = PhaseCanvas::new(10, 10, "base");
+        let os = BareMetalOs::new();
+        let mut base = PhaseCanvas::new(&os, 10, 10, "base");
         base.set(3, 3, PhaseUnit::new(100, 200, 150, 1, 0));
 
-        let mut part = PhaseCanvas::new(3, 3, "part");
+        let mut part = PhaseCanvas::new(&os, 3, 3, "part");
         part.set(1, 1, PhaseUnit::new(50, 100, 100, 2, 1));
 
         let result = base.add(&part, 4, 4);
@@ -1250,10 +1254,11 @@ mod tests {
 
     #[test]
     fn phase_canvas_subtract() {
-        let mut base = PhaseCanvas::new(10, 10, "base");
+        let os = BareMetalOs::new();
+        let mut base = PhaseCanvas::new(&os, 10, 10, "base");
         base.set(5, 5, PhaseUnit::new(100, 200, 150, 1, 0));
 
-        let mut part = PhaseCanvas::new(3, 3, "part");
+        let mut part = PhaseCanvas::new(&os, 3, 3, "part");
         part.set(0, 0, PhaseUnit::new(50, 100, 100, 1, 0)); // 相同source_id
 
         let result = base.subtract(&part, 5, 5);
@@ -1263,10 +1268,11 @@ mod tests {
 
     #[test]
     fn phase_canvas_equivalent_distance() {
-        let mut a = PhaseCanvas::new(5, 5, "a");
+        let os = BareMetalOs::new();
+        let mut a = PhaseCanvas::new(&os, 5, 5, "a");
         a.set(2, 2, PhaseUnit::new(100, 200, 150, 1, 0));
 
-        let mut b = PhaseCanvas::new(5, 5, "b");
+        let mut b = PhaseCanvas::new(&os, 5, 5, "b");
         b.set(2, 2, PhaseUnit::new(100, 200, 150, 1, 0));
 
         let dist = a.equivalent_distance(&b);
@@ -1275,7 +1281,8 @@ mod tests {
 
     #[test]
     fn phase_canvas_harmony_score() {
-        let mut canvas = PhaseCanvas::new(10, 10, "test");
+        let os = BareMetalOs::new();
+        let mut canvas = PhaseCanvas::new(&os, 10, 10, "test");
         // 填充均匀相位
         for y in 0..10 {
             for x in 0..10 {
@@ -1288,7 +1295,8 @@ mod tests {
 
     #[test]
     fn phase_canvas_bounding_box() {
-        let mut canvas = PhaseCanvas::new(10, 10, "test");
+        let os = BareMetalOs::new();
+        let mut canvas = PhaseCanvas::new(&os, 10, 10, "test");
         canvas.set(3, 3, PhaseUnit::new(100, 200, 150, 1, 0));
         canvas.set(7, 7, PhaseUnit::new(100, 200, 150, 1, 0));
         let bbox = canvas.bounding_box();
@@ -1297,13 +1305,15 @@ mod tests {
 
     #[test]
     fn phase_canvas_empty_bounding_box() {
-        let canvas = PhaseCanvas::new(10, 10, "test");
+        let os = BareMetalOs::new();
+        let canvas = PhaseCanvas::new(&os, 10, 10, "test");
         assert_eq!(canvas.bounding_box(), None);
     }
 
     #[test]
     fn entangled_node_new() {
-        let node = EntangledNode::new("node1", "visual");
+        let os = BareMetalOs::new();
+        let node = EntangledNode::new(&os, "node1", "visual");
         assert_eq!(node.node_id, "node1");
         assert_eq!(node.signal_type, "visual");
         assert!(node.prefix_ids.is_empty());
@@ -1312,8 +1322,9 @@ mod tests {
 
     #[test]
     fn entangled_node_connections() {
-        let mut a = EntangledNode::new("a", "visual");
-        let b = EntangledNode::new("b", "visual");
+        let os = BareMetalOs::new();
+        let mut a = EntangledNode::new(&os, "a", "visual");
+        let b = EntangledNode::new(&os, "b", "visual");
         a.add_suffix("b");
         assert!(a.can_pair_with(&b));
         assert!(b.prefix_ids.contains(&"a".to_string()) == false); // b没有前缀
@@ -1321,17 +1332,19 @@ mod tests {
 
     #[test]
     fn entanglement_network_add_and_get() {
+        let os = BareMetalOs::new();
         let mut network = EntanglementNetwork::new("test");
-        let node = EntangledNode::new("node1", "visual");
+        let node = EntangledNode::new(&os, "node1", "visual");
         network.add_node(node);
         assert!(network.get_node("node1").is_some());
     }
 
     #[test]
     fn entanglement_network_connect() {
+        let os = BareMetalOs::new();
         let mut network = EntanglementNetwork::new("test");
-        network.add_node(EntangledNode::new("a", "visual"));
-        network.add_node(EntangledNode::new("b", "visual"));
+        network.add_node(EntangledNode::new(&os, "a", "visual"));
+        network.add_node(EntangledNode::new(&os, "b", "visual"));
         assert!(network.connect("a", "b").is_ok());
         assert!(network.get_node("a").unwrap().suffix_ids.contains(&"b".to_string()));
         assert!(network.get_node("b").unwrap().prefix_ids.contains(&"a".to_string()));
@@ -1339,10 +1352,11 @@ mod tests {
 
     #[test]
     fn entanglement_network_traverse() {
+        let os = BareMetalOs::new();
         let mut network = EntanglementNetwork::new("test");
-        network.add_node(EntangledNode::new("a", "visual"));
-        network.add_node(EntangledNode::new("b", "visual"));
-        network.add_node(EntangledNode::new("c", "visual"));
+        network.add_node(EntangledNode::new(&os, "a", "visual"));
+        network.add_node(EntangledNode::new(&os, "b", "visual"));
+        network.add_node(EntangledNode::new(&os, "c", "visual"));
         network.connect("a", "b").unwrap();
         network.connect("b", "c").unwrap();
         let visited = network.traverse_from("a", 10);
@@ -1351,10 +1365,11 @@ mod tests {
 
     #[test]
     fn entanglement_network_find_valid_pairs() {
+        let os = BareMetalOs::new();
         let mut network = EntanglementNetwork::new("test");
-        network.add_node(EntangledNode::new("a", "visual"));
-        network.add_node(EntangledNode::new("b", "visual"));
-        network.add_node(EntangledNode::new("c", "visual"));
+        network.add_node(EntangledNode::new(&os, "a", "visual"));
+        network.add_node(EntangledNode::new(&os, "b", "visual"));
+        network.add_node(EntangledNode::new(&os, "c", "visual"));
         network.connect("a", "b").unwrap();
         network.connect("b", "c").unwrap();
         let pairs = network.find_valid_pairs();
@@ -1363,15 +1378,16 @@ mod tests {
 
     #[test]
     fn entanglement_network_equivalent_distance() {
+        let os = BareMetalOs::new();
         let mut network = EntanglementNetwork::new("test");
-        let mut a = EntangledNode::new("a", "visual");
+        let mut a = EntangledNode::new(&os, "a", "visual");
         a.annotation.level = "L1".to_string();
         a.annotation.node_type = "声母".to_string();
         a.annotation.owner = "SELF".to_string();
         a.annotation.aesthetic_score = 0.8;
         a.annotation.family = "ipa".to_string();
 
-        let mut b = EntangledNode::new("b", "visual");
+        let mut b = EntangledNode::new(&os, "b", "visual");
         b.annotation.level = "L1".to_string();
         b.annotation.node_type = "声母".to_string();
         b.annotation.owner = "SELF".to_string();
@@ -1387,13 +1403,14 @@ mod tests {
 
     #[test]
     fn entanglement_network_is_valid_common_multiple() {
+        let os = BareMetalOs::new();
         let mut network = EntanglementNetwork::new("test");
-        let mut a = EntangledNode::new("a", "visual");
+        let mut a = EntangledNode::new(&os, "a", "visual");
         a.annotation.level = "L1".to_string();
         a.annotation.owner = "SELF".to_string();
         a.annotation.aesthetic_score = 0.8;
 
-        let mut b = EntangledNode::new("b", "visual");
+        let mut b = EntangledNode::new(&os, "b", "visual");
         b.annotation.level = "L1".to_string();
         b.annotation.owner = "SELF".to_string();
         b.annotation.aesthetic_score = 0.7;
@@ -1406,14 +1423,15 @@ mod tests {
 
     #[test]
     fn weaving_balance_level_check() {
+        let os = BareMetalOs::new();
         let network = WeavingBalanceNetwork::new();
-        let mut a = EntangledNode::new("a", "visual");
+        let mut a = EntangledNode::new(&os, "a", "visual");
         a.annotation.level = "L1".to_string();
         a.annotation.owner = "SELF".to_string();
         a.annotation.node_type = "声母".to_string();
         a.annotation.aesthetic_score = 0.8;
 
-        let mut b = EntangledNode::new("b", "visual");
+        let mut b = EntangledNode::new(&os, "b", "visual");
         b.annotation.level = "L1".to_string();
         b.annotation.owner = "SELF".to_string();
         b.annotation.node_type = "声母".to_string();
@@ -1429,14 +1447,15 @@ mod tests {
 
     #[test]
     fn weaving_balance_rejects_l3() {
+        let os = BareMetalOs::new();
         let network = WeavingBalanceNetwork::new();
-        let mut a = EntangledNode::new("a", "visual");
+        let mut a = EntangledNode::new(&os, "a", "visual");
         a.annotation.level = "L1".to_string();
         a.annotation.owner = "SELF".to_string();
         a.annotation.node_type = "声母".to_string();
         a.annotation.aesthetic_score = 0.8;
 
-        let mut b = EntangledNode::new("b", "visual");
+        let mut b = EntangledNode::new(&os, "b", "visual");
         b.annotation.level = "L3".to_string(); // L3成品
         b.annotation.owner = "SELF".to_string();
         b.annotation.node_type = "装配".to_string();
@@ -1452,14 +1471,15 @@ mod tests {
 
     #[test]
     fn weaving_balance_rejects_external() {
+        let os = BareMetalOs::new();
         let network = WeavingBalanceNetwork::new();
-        let mut a = EntangledNode::new("a", "visual");
+        let mut a = EntangledNode::new(&os, "a", "visual");
         a.annotation.level = "L1".to_string();
         a.annotation.owner = "SELF".to_string();
         a.annotation.node_type = "声母".to_string();
         a.annotation.aesthetic_score = 0.8;
 
-        let mut b = EntangledNode::new("b", "visual");
+        let mut b = EntangledNode::new(&os, "b", "visual");
         b.annotation.level = "L1".to_string();
         b.annotation.owner = "EXTERNAL".to_string(); // 外来
         b.annotation.node_type = "声母".to_string();
@@ -1475,15 +1495,16 @@ mod tests {
 
     #[test]
     fn weaving_balance_rejects_blacklist() {
+        let os = BareMetalOs::new();
         let network = WeavingBalanceNetwork::new();
-        let mut a = EntangledNode::new("a", "visual");
+        let mut a = EntangledNode::new(&os, "a", "visual");
         a.annotation.level = "L1".to_string();
         a.annotation.owner = "SELF".to_string();
         a.annotation.node_type = "声母".to_string();
         a.annotation.aesthetic_score = 0.8;
         a.annotation.is_blacklisted = true; // 黑名单
 
-        let mut b = EntangledNode::new("b", "visual");
+        let mut b = EntangledNode::new(&os, "b", "visual");
         b.annotation.level = "L1".to_string();
         b.annotation.owner = "SELF".to_string();
         b.annotation.node_type = "声母".to_string();
@@ -1570,8 +1591,9 @@ mod tests {
 
     #[test]
     fn drawing_engine_create_canvas() {
+        let os = BareMetalOs::new();
         let mut engine = DrawingEngine::new();
-        let canvas = engine.create_canvas(16, 16, "test_canvas");
+        let canvas = engine.create_canvas(&os, 16, 16, "test_canvas");
         assert_eq!(canvas.width, 16);
         assert_eq!(canvas.height, 16);
         assert!(engine.get_canvas("test_canvas").is_some());
@@ -1579,9 +1601,10 @@ mod tests {
 
     #[test]
     fn drawing_engine_add_operation() {
+        let os = BareMetalOs::new();
         let mut engine = DrawingEngine::new();
-        engine.create_canvas(16, 16, "base");
-        engine.create_canvas(4, 4, "part");
+        engine.create_canvas(&os, 16, 16, "base");
+        engine.create_canvas(&os, 4, 4, "part");
 
         // 在base上放一个像素
         let base = engine.get_canvas("base").unwrap().clone();
@@ -1595,16 +1618,17 @@ mod tests {
         part_mut.set(2, 2, PhaseUnit::new(50, 150, 100, 2, 1));
         engine.canvas_cache.insert("part".to_string(), part_mut);
 
-        let result = engine.add_operation("base", "part", 6, 6, "result");
+        let result = engine.add_operation(&os, "base", "part", 6, 6, "result");
         assert!(result.is_ok());
         assert!(engine.get_canvas("result").is_some());
     }
 
     #[test]
     fn drawing_engine_subtract_operation() {
+        let os = BareMetalOs::new();
         let mut engine = DrawingEngine::new();
-        engine.create_canvas(16, 16, "base");
-        engine.create_canvas(4, 4, "part");
+        engine.create_canvas(&os, 16, 16, "base");
+        engine.create_canvas(&os, 4, 4, "part");
 
         let base = engine.get_canvas("base").unwrap().clone();
         let mut base_mut = base.clone();
@@ -1616,14 +1640,15 @@ mod tests {
         part_mut.set(2, 2, PhaseUnit::new(50, 150, 100, 1, 0)); // 相同source_id
         engine.canvas_cache.insert("part".to_string(), part_mut);
 
-        let result = engine.subtract_operation("base", "part", 6, 6, "result");
+        let result = engine.subtract_operation(&os, "base", "part", 6, 6, "result");
         assert!(result.is_ok());
     }
 
     #[test]
     fn drawing_engine_report() {
+        let os = BareMetalOs::new();
         let mut engine = DrawingEngine::new();
-        engine.create_canvas(16, 16, "test");
+        engine.create_canvas(&os, 16, 16, "test");
         let report = engine.report();
         assert!(report.contains("颜色进制"));
         assert!(report.contains("缓存画布: 1"));
@@ -1632,11 +1657,12 @@ mod tests {
     #[test]
     fn full_pipeline_add_only() {
         // 完整管道: 创建画布 → 加法 → 制衡校验
+        let os = BareMetalOs::new();
         let mut engine = DrawingEngine::new();
 
         // 创建基元画布
-        engine.create_canvas(16, 16, "glyph_a");
-        engine.create_canvas(8, 8, "tone_mark");
+        engine.create_canvas(&os, 16, 16, "glyph_a");
+        engine.create_canvas(&os, 8, 8, "tone_mark");
 
         // 设置基元
         let base = engine.get_canvas("glyph_a").unwrap().clone();
@@ -1659,7 +1685,7 @@ mod tests {
         engine.canvas_cache.insert("tone_mark".to_string(), part_mut);
 
         // 执行加法
-        let result = engine.add_operation("glyph_a", "tone_mark", 0, 0, "glyph_a_acute");
+        let result = engine.add_operation(&os, "glyph_a", "tone_mark", 0, 0, "glyph_a_acute");
         assert!(result.is_ok());
 
         // 验证结果
@@ -1678,7 +1704,8 @@ mod tests {
 
     #[test]
     fn phase_canvas_to_rgb_bitmap() {
-        let mut canvas = PhaseCanvas::new(4, 4, "test");
+        let os = BareMetalOs::new();
+        let mut canvas = PhaseCanvas::new(&os, 4, 4, "test");
         canvas.set(1, 1, PhaseUnit::new(128, 200, 128, 1, 0));
         let bitmap = canvas.to_rgb_bitmap();
         assert_eq!(bitmap.len(), 4);
@@ -1687,15 +1714,16 @@ mod tests {
 
     #[test]
     fn weaving_balance_harmony_score() {
+        let os = BareMetalOs::new();
         let network = WeavingBalanceNetwork::new();
-        let mut a = EntangledNode::new("a", "visual");
+        let mut a = EntangledNode::new(&os, "a", "visual");
         a.annotation.level = "L1".to_string();
         a.annotation.owner = "SELF".to_string();
         a.annotation.node_type = "声母".to_string();
         a.annotation.aesthetic_score = 0.8;
         a.annotation.family = "ipa".to_string();
 
-        let mut b = EntangledNode::new("b", "visual");
+        let mut b = EntangledNode::new(&os, "b", "visual");
         b.annotation.level = "L1".to_string();
         b.annotation.owner = "SELF".to_string();
         b.annotation.node_type = "声母".to_string();
@@ -1712,13 +1740,14 @@ mod tests {
 
     #[test]
     fn entanglement_network_invalid_pair_distance() {
+        let os = BareMetalOs::new();
         let mut network = EntanglementNetwork::new("test");
-        let mut a = EntangledNode::new("a", "visual");
+        let mut a = EntangledNode::new(&os, "a", "visual");
         a.annotation.level = "L1".to_string();
         a.annotation.owner = "SELF".to_string();
         a.annotation.aesthetic_score = 0.8;
 
-        let mut b = EntangledNode::new("b", "visual");
+        let mut b = EntangledNode::new(&os, "b", "visual");
         b.annotation.level = "L3".to_string(); // 不同层级
         b.annotation.owner = "EXTERNAL".to_string(); // 外来
         b.annotation.aesthetic_score = 0.2;

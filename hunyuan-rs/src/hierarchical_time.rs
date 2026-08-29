@@ -22,6 +22,7 @@
 
 use crate::triune::{TriuneVerdict, FlowDirection, BeingState};
 use crate::soul_kernel::NamingAnchor;
+use crate::os_layer::OsLayer;
 
 // ────────────────────────────────────────────────────────────
 // 生命周期事件 (一个漂亮姑娘的 融合-坍缩-辐射 循环)
@@ -51,12 +52,8 @@ pub enum LifeEvent {
 
 impl LifeEvent {
     /// 获取事件的时间戳 (毫秒)
-    pub fn timestamp(&self) -> u64 {
-        // 简化: 使用系统时间 (实际部署可用更确定性的时钟)
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map(|d| d.as_millis() as u64)
-            .unwrap_or(0)
+    pub fn timestamp(&self, os: &dyn OsLayer) -> u64 {
+        os.time_millis()
     }
 
     /// 获取见证的流动方向

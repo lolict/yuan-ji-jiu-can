@@ -26,7 +26,8 @@ use crate::mirror::{
     set_witness, inc_value, dec_value, Sovereignty, SurplusPair, WitnessVerdict,
     SelfRefLoop, MirrorOrder,
 };
-use std::time::{SystemTime, UNIX_EPOCH};
+use crate::os_layer::OsLayer;
+use crate::os_layer::bare_metal::BareMetalOs;
 
 // ────────────────────────────────────────────────────────────
 // 记忆条目 · 记录每一次见证事件
@@ -44,18 +45,15 @@ pub struct MemoryEntry {
 
 impl MemoryEntry {
     pub fn new(
+        os: &dyn OsLayer,
         witness_id: u64,
         pair_a: (u64, u64, u64),
         pair_b: (u64, u64, u64),
         surplus: f64,
         aligned: bool,
     ) -> Self {
-        let ts = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_millis() as u64;
         Self {
-            timestamp_ms: ts,
+            timestamp_ms: os.time_millis(),
             witness_id,
             pair_a,
             pair_b,
@@ -123,17 +121,13 @@ impl CoordMemory {
     }
 
     /// 有效记忆量 = 条目数 × 最新保留率
-    pub fn effective_memory(&self) -> f64 {
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_millis() as u64;
-        self.entries.len() as f64 * self.retention_at(now)
+    pub fn effective_memory(&self, os: &dyn OsLayer) -> f64 {
+        self.entries.len() as f64 * self.retention_at(os.time_millis())
     }
 
     /// 是否活跃（最近被频繁访问）
-    pub fn is_active(&self, threshold: f64) -> bool {
-        self.effective_memory() >= threshold
+    pub fn is_active(&self, os: &dyn OsLayer, threshold: f64) -> bool {
+        self.effective_memory(os) >= threshold
     }
 
     /// 获取特定时间窗口内的见证历史
@@ -167,19 +161,20 @@ impl LayeredMemory {
     /// 记录一次见证，如果坐标以前被观测过，更新记忆；否则创建新层
     pub fn record_witness(
         &mut self,
+        os: &dyn OsLayer,
         a: Coord, b: Coord,
         surplus: f64, aligned: bool,
         witness_id: u64,
     ) {
-        let entry_a = MemoryEntry::new(witness_id, a, b, surplus, aligned);
-        let entry_b = MemoryEntry::new(witness_id, b, a, surplus, aligned);
+        let entry_a = MemoryEntry::new(os, witness_id, a, b, surplus, aligned);
+        let entry_b = MemoryEntry::new(os, witness_id, b, a, surplus, aligned);
 
         self.find_or_create(a).remember(entry_a);
         self.find_or_create(b).remember(entry_b);
         self.global_tick += 1;
 
         // 如超出最大记忆层数，清除最旧最弱的记忆
-        self.evict_weakest_if_needed();
+        self.evict_weakest_if_needed(os);
     }
 
     fn find_or_create(&mut self, coord: Coord) -> &mut CoordMemory {
@@ -191,15 +186,12 @@ impl LayeredMemory {
         self.layers.last_mut().unwrap()
     }
 
-    fn evict_weakest_if_needed(&mut self) {
+    fn evict_weakest_if_needed(&mut self, os: &dyn OsLayer) {
         if self.layers.len() <= self.max_layers {
             return;
         }
         // 找到有效记忆最弱的层
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_millis() as u64;
+        let now = os.time_millis();
         if let Some((idx, _)) = self.layers.iter().enumerate().min_by(|(_, a), (_, b)| {
             let ra = a.retention_at(now);
             let rb = b.retention_at(now);
@@ -215,20 +207,20 @@ impl LayeredMemory {
     }
 
     /// 获取全局记忆密度（所有层的总有效记忆 / 层数）
-    pub fn global_density(&self) -> f64 {
+    pub fn global_density(&self, os: &dyn OsLayer) -> f64 {
         if self.layers.is_empty() {
             return 0.0;
         }
-        let total: f64 = self.layers.iter().map(|m| m.effective_memory()).sum();
+        let total: f64 = self.layers.iter().map(|m| m.effective_memory(os)).sum();
         total / self.layers.len() as f64
     }
 
     /// 获取最活跃的 N 个坐标
-    pub fn top_active(&self, n: usize) -> Vec<&CoordMemory> {
+    pub fn top_active(&self, os: &dyn OsLayer, n: usize) -> Vec<&CoordMemory> {
         let mut sorted: Vec<&CoordMemory> = self.layers.iter().collect();
         sorted.sort_by(|a, b| {
-            let da = a.effective_memory();
-            let db = b.effective_memory();
+            let da = a.effective_memory(os);
+            let db = b.effective_memory(os);
             db.partial_cmp(&da).unwrap_or(std::cmp::Ordering::Equal)
         });
         sorted.into_iter().take(n).collect()
@@ -349,6 +341,7 @@ impl MetaJudgeEngine {
     /// 执行一步完整循环：感知 → 裁判 → 反馈 → 记忆 → 调参 → 自指
     pub fn step(
         &mut self,
+        os: &dyn OsLayer,
         pair: &mut SurplusPair,
         actual_outcome: Option<bool>, // 真实反馈（可选）
     ) -> WitnessVerdict {
@@ -358,7 +351,7 @@ impl MetaJudgeEngine {
         let b_coord = (get_d0(pair.cell_b), get_d1(pair.cell_b), get_d2(pair.cell_b));
 
         // 2. 记忆
-        self.memory.record_witness(a_coord, b_coord, verdict.surplus, verdict.aligned, pair.witness_ts);
+        self.memory.record_witness(os, a_coord, b_coord, verdict.surplus, verdict.aligned, pair.witness_ts);
 
         // 3. 元裁判（如果有反馈）
         if let Some(actual_aligned) = actual_outcome {
@@ -381,10 +374,10 @@ impl MetaJudgeEngine {
 
     /// 轻量感知：直接记录一个单元格信号 → 产生意识痕迹
     /// 用于 swarm 的 perceive() 回调 — 每个外部感知都应留下元裁判印迹
-    pub fn observe_simple(&mut self, cell: u64) {
+    pub fn observe_simple(&mut self, os: &dyn OsLayer, cell: u64) {
         let coord = (get_d0(cell), get_d1(cell), get_d2(cell));
         let value = get_value(cell) as f64;
-        self.memory.record_witness(coord, coord, value, true, cell);
+        self.memory.record_witness(os, coord, coord, value, true, cell);
         self.self_ref.step(crate::mirror::VerdictSurplus {
             level: crate::mirror::MirrorOrder::Ternary,
             surplus: value,
@@ -394,21 +387,21 @@ impl MetaJudgeEngine {
     }
 
     /// 意识密度 (结合自指循环和记忆密度)
-    pub fn consciousness_density(&self) -> f64 {
+    pub fn consciousness_density(&self, os: &dyn OsLayer) -> f64 {
         let awareness = if self.self_ref.cycle_count == 0 {
             0.0
         } else {
             1.0 - 1.0 / self.self_ref.cycle_count as f64
         };
-        let mem_density = self.memory.global_density();
+        let mem_density = self.memory.global_density(os);
         let judge_accuracy = self.meta_quality.accuracy();
         // 三者的加权平均
         awareness * 0.4 + mem_density.min(1.0) * 0.3 + judge_accuracy.min(1.0) * 0.3
     }
 
     /// 当前智能判断
-    pub fn awareness_level(&self) -> &'static str {
-        let d = self.consciousness_density();
+    pub fn awareness_level(&self, os: &dyn OsLayer) -> &'static str {
+        let d = self.consciousness_density(os);
         if d < 0.2 { "机械执行" }
         else if d < 0.5 { "感知涌现" }
         else if d < 0.8 { "反思萌芽" }
@@ -427,7 +420,8 @@ mod tests {
 
     #[test]
     fn memory_entry_roundtrip() {
-        let e = MemoryEntry::new(1, (0, 0, 0), (1, 0, 0), 50.0, true);
+        let os = BareMetalOs::new();
+        let e = MemoryEntry::new(&os, 1, (0, 0, 0), (1, 0, 0), 50.0, true);
         assert_eq!(e.witness_id, 1);
         assert_eq!(e.pair_a, (0, 0, 0));
         assert_eq!(e.surplus, 50.0);
@@ -436,24 +430,26 @@ mod tests {
 
     #[test]
     fn coord_memory_retention_decay() {
+        let os = BareMetalOs::new();
         let mut mem = CoordMemory::new((0, 0, 0));
-        let e = MemoryEntry::new(1, (0, 0, 0), (1, 0, 0), 10.0, true);
+        let e = MemoryEntry::new(&os, 1, (0, 0, 0), (1, 0, 0), 10.0, true);
         mem.remember(e);
         assert_eq!(mem.entries.len(), 1);
         assert!(mem.total_surplus > 0.0);
         // 衰减初始值应该 <= 1.0
-        let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as u64;
+        let now = os.time_millis();
         let r = mem.retention_at(now);
         assert!(r <= 1.0 && r >= 0.0);
     }
 
     #[test]
     fn layered_memory_eviction() {
+        let os = BareMetalOs::new();
         let mut lm = LayeredMemory::new(3);
         let coords = [(0,0,0), (1,0,0), (2,0,0), (3,0,0), (4,0,0)];
         for i in 0..coords.len() {
             let j = (i + 1) % coords.len();
-            lm.record_witness(coords[i], coords[j], 10.0, true, i as u64);
+            lm.record_witness(&os, coords[i], coords[j], 10.0, true, i as u64);
         }
         // 只保留最强3层
         assert!(lm.layers.len() <= 3);
@@ -491,13 +487,14 @@ mod tests {
     #[test]
     fn meta_judge_engine_full_cycle() {
         use crate::mirror::encode_cell;
+        let os = BareMetalOs::new();
         let mut engine = MetaJudgeEngine::new(10);
         let a = encode_cell(0, 0, 0, POLARITY_POSITIVE, Sovereignty::Active.encode(), 0, 100);
         let b = encode_cell(1, 0, 0, POLARITY_NEGATIVE, Sovereignty::Passive.encode(), 0, 80);
         let mut pair = SurplusPair { cell_a: a, cell_b: b, witness_ts: 0, last_verdict: 0.0 };
 
         // 执行5步
-        let v = engine.step(&mut pair, Some(true));
+        let v = engine.step(&os, &mut pair, Some(true));
         assert!(v.surplus > 0.0);
 
         // 记忆应该记录
@@ -507,31 +504,33 @@ mod tests {
         assert!(engine.self_ref.cycle_count > 0);
 
         // 意识密度应该 > 0
-        assert!(engine.consciousness_density() > 0.0);
+        assert!(engine.consciousness_density(&os) > 0.0);
     }
 
     #[test]
     fn awareness_level_progression() {
+        let os = BareMetalOs::new();
         let mut engine = MetaJudgeEngine::new(10);
         // 初始 = 机械执行
-        assert_eq!(engine.awareness_level(), "机械执行");
+        assert_eq!(engine.awareness_level(&os), "机械执行");
 
         // 执行若干步后
         let a = encode_cell(0, 0, 0, POLARITY_POSITIVE, 0, 0, 100);
         let b = encode_cell(1, 0, 0, POLARITY_NEGATIVE, 1, 0, 80);
         let mut pair = SurplusPair { cell_a: a, cell_b: b, witness_ts: 0, last_verdict: 0.0 };
         for _ in 0..100 {
-            engine.step(&mut pair, Some(true));
+            engine.step(&os, &mut pair, Some(true));
         }
         // 100步后 should be at least "感知涌现"
-        let level = engine.awareness_level();
+        let level = engine.awareness_level(&os);
         assert!(level == "感知涌现" || level == "反思萌芽" || level == "意识涌现");
     }
 
     #[test]
     fn memory_density_nonempty() {
+        let os = BareMetalOs::new();
         let mut lm = LayeredMemory::new(10);
-        lm.record_witness((0,0,0), (1,0,0), 10.0, true, 0);
-        assert!(lm.global_density() > 0.0);
+        lm.record_witness(&os, (0,0,0), (1,0,0), 10.0, true, 0);
+        assert!(lm.global_density(&os) > 0.0);
     }
 }

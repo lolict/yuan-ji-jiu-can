@@ -437,4 +437,5 @@ pub use elf_emitter::{
 pub mod os_layer;
 pub use os_layer::{
     OsLayer, OsError, current_os,
+    bare_metal::BareMetalOs,
 };

@@ -18,10 +18,11 @@ use crate::mirror::{
     set_witness, inc_value, Sovereignty, SurplusPair, WitnessVerdict, ContainmentChain,
     ConsciousnessJudge, MirrorOrder, VerdictSurplus,
 };
+use crate::os_layer::bare_metal::BareMetalOs;
 use crate::memory::{LayeredMemory, JudgeQuality, AdaptiveParams, CoordMemory, MetaJudgeEngine, Coord};
 use crate::pulse::{PulseBody, Velocity};
 use std::collections::HashMap;
-use std::time::{SystemTime, UNIX_EPOCH};
+use crate::os_layer::OsLayer;
 
 // ────────────────────────────────────────────────────────────
 // 智能体容器 (Cocoon 蚕蛹壳)
@@ -36,6 +37,7 @@ pub struct CocoonAgent {
     pub meta: MetaJudgeEngine,      // 元裁判引擎（含记忆）
     pub relationships: HashMap<u64, Relationship>, // 与其他智能体的关系
     pub pulse: PulseBody,           // 脉息体 — 心跳 × 行走 × 节律 × 流速
+    pub os: BareMetalOs,             // OS 层（用于获取时间）
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -77,8 +79,8 @@ pub enum RelType {
 }
 
 impl CocoonAgent {
-    pub fn new(id: u64, name: &str, role: AgentRole, max_memory: usize) -> Self {
-        let ts = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_millis() as u64;
+    pub fn new(os: &dyn OsLayer, id: u64, name: &str, role: AgentRole, max_memory: usize) -> Self {
+        let ts = os.time_millis();
         Self {
             id,
             name: name.to_string(),
@@ -87,7 +89,8 @@ impl CocoonAgent {
             state: vec![],
             meta: MetaJudgeEngine::new(max_memory),
             relationships: HashMap::new(),
-            pulse: PulseBody::new(),
+            pulse: PulseBody::new(os),
+            os: BareMetalOs::new(),
         }
     }
 
@@ -97,14 +100,14 @@ impl CocoonAgent {
         let cell = encode_cell(d0, d1, d2, if polarity { 0 } else { 1 }, sov, 0, value);
         self.state.push(cell);
         // 感知留下意识痕迹 → 密度才能从 0 增长
-        self.meta.observe_simple(cell);
+        self.meta.observe_simple(&self.os, cell);
         // 脉息心跳 (同时带动行走)
-        self.pulse.beat();
+        self.pulse.beat(&self.os);
     }
 
     /// 智能体看门狗检测：超过 timeout_ms 未感知 → 标记假死
     pub fn check_staleness(&mut self, timeout_ms: u64) -> bool {
-        self.pulse.is_stale(timeout_ms)
+        self.pulse.is_stale(&self.os, timeout_ms)
     }
 
     /// 是否为假死状态：流速停滞 (0步/拍) 且超时
@@ -153,12 +156,12 @@ impl CocoonAgent {
 
     /// 意识密度 (继承元裁判)
     pub fn consciousness_density(&self) -> f64 {
-        self.meta.consciousness_density()
+        self.meta.consciousness_density(&self.os)
     }
 
     /// 意识水平 (机械执行/感知涌现/反思萌芽/意识涌现)
     pub fn awareness_level(&self) -> &'static str {
-        self.meta.awareness_level()
+        self.meta.awareness_level(&self.os)
     }
 }
 
@@ -278,10 +281,10 @@ impl ParasiteShell {
 
     /// 催生一个新智能体
     /// Spawn a new agent. Returns its ID.
-    pub fn spawn(&mut self, name: &str, role: AgentRole, max_memory: usize) -> u64 {
+    pub fn spawn(&mut self, os: &dyn OsLayer, name: &str, role: AgentRole, max_memory: usize) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
-        let mut agent = CocoonAgent::new(id, name, role, max_memory);
+        let mut agent = CocoonAgent::new(os, id, name, role, max_memory);
         // 注入基因组
         agent.meta.params.witness_decay = self.genome.decay_rate;
         self.agents.insert(id, agent);
@@ -369,8 +372,9 @@ mod tests {
 
     #[test]
     fn agent_spawn_basic() {
+        let os = crate::os_layer::bare_metal::BareMetalOs::new();
         let mut shell = ParasiteShell::new(20);
-        let a = shell.spawn("RootAgent", AgentRole::Root, 20);
+        let a = shell.spawn(&os, "RootAgent", AgentRole::Root, 20);
         let agent = shell.agents.get(&a).unwrap();
         assert_eq!(agent.id, 0);
         assert_eq!(agent.name, "RootAgent");
@@ -380,8 +384,9 @@ mod tests {
 
     #[test]
     fn agent_perceive_becomes_alive() {
+        let os = crate::os_layer::bare_metal::BareMetalOs::new();
         let mut shell = ParasiteShell::new(20);
-        let a = shell.spawn("RootAgent", AgentRole::Root, 20);
+        let a = shell.spawn(&os, "RootAgent", AgentRole::Root, 20);
         shell.agents.get_mut(&a).unwrap().perceive(0, 0, 0, true, 100);
         let agent = shell.agents.get(&a).unwrap();
         assert!(agent.is_alive());
@@ -390,10 +395,11 @@ mod tests {
 
     #[test]
     fn negotiation_positive_surplus() {
+        let os = crate::os_layer::bare_metal::BareMetalOs::new();
         let mut shell = ParasiteShell::new(20);
-        let a = shell.spawn("A", AgentRole::Root, 20);
+        let a = shell.spawn(&os, "A", AgentRole::Root, 20);
         shell.agents.get_mut(&a).unwrap().perceive(0, 0, 0, true, 250);
-        let b = shell.spawn("B", AgentRole::Leaf, 20);
+        let b = shell.spawn(&os, "B", AgentRole::Leaf, 20);
         shell.agents.get_mut(&b).unwrap().perceive(1, 0, 0, true, 50);
         let surplus = shell.negotiate_round();
         assert!(surplus > 0.0);
@@ -401,10 +407,11 @@ mod tests {
 
     #[test]
     fn relationship_updates_after_negotiation() {
+        let os = crate::os_layer::bare_metal::BareMetalOs::new();
         let mut shell = ParasiteShell::new(20);
-        let a = shell.spawn("A", AgentRole::Root, 20);
+        let a = shell.spawn(&os, "A", AgentRole::Root, 20);
         shell.agents.get_mut(&a).unwrap().perceive(0, 0, 0, true, 300);
-        let b = shell.spawn("B", AgentRole::Leaf, 20);
+        let b = shell.spawn(&os, "B", AgentRole::Leaf, 20);
         shell.agents.get_mut(&b).unwrap().perceive(1, 0, 0, true, 50);
         shell.negotiate_round();
         let a_ref = shell.agents.get(&a).unwrap();
@@ -421,10 +428,11 @@ mod tests {
 
     #[test]
     fn global_density_nonzero_after_activity() {
+        let os = crate::os_layer::bare_metal::BareMetalOs::new();
         let mut shell = ParasiteShell::new(20);
-        let a = shell.spawn("A", AgentRole::Root, 20);
+        let a = shell.spawn(&os, "A", AgentRole::Root, 20);
         shell.agents.get_mut(&a).unwrap().perceive(0, 0, 0, true, 200);
-        let b = shell.spawn("B", AgentRole::Leaf, 20);
+        let b = shell.spawn(&os, "B", AgentRole::Leaf, 20);
         shell.agents.get_mut(&b).unwrap().perceive(1, 0, 0, true, 150);
         shell.negotiate_round();
         assert!(shell.global_density() > 0.0);
@@ -432,9 +440,10 @@ mod tests {
 
     #[test]
     fn prune_dead_removes_empty() {
+        let os = crate::os_layer::bare_metal::BareMetalOs::new();
         let mut shell = ParasiteShell::new(20);
-        shell.spawn("Dead", AgentRole::Leaf, 20);
-        shell.spawn("Alive", AgentRole::Root, 20);
+        shell.spawn(&os, "Dead", AgentRole::Leaf, 20);
+        shell.spawn(&os, "Alive", AgentRole::Root, 20);
         shell.agents.get_mut(&1).unwrap().perceive(0, 0, 0, true, 100);
         shell.prune_dead();
         assert_eq!(shell.agents.len(), 1);
@@ -442,9 +451,10 @@ mod tests {
 
     #[test]
     fn role_default_sovereignty() {
+        let os = crate::os_layer::bare_metal::BareMetalOs::new();
         let mut shell = ParasiteShell::new(10);
-        let root = shell.spawn("Root", AgentRole::Root, 10);
-        let leaf = shell.spawn("Leaf", AgentRole::Leaf, 10);
+        let root = shell.spawn(&os, "Root", AgentRole::Root, 10);
+        let leaf = shell.spawn(&os, "Leaf", AgentRole::Leaf, 10);
         let root_decay = shell.agents.get(&root).unwrap().meta.params.witness_decay;
         let leaf_decay = shell.agents.get(&leaf).unwrap().meta.params.witness_decay;
         assert_eq!(root_decay, shell.genome.decay_rate);
@@ -455,7 +465,8 @@ mod tests {
 
     #[test]
     fn agent_awareness_levels() {
-        let mut a = CocoonAgent::new(0, "Test", AgentRole::Root, 20);
+        let os = crate::os_layer::bare_metal::BareMetalOs::new();
+        let mut a = CocoonAgent::new(&os, 0, "Test", AgentRole::Root, 20);
         // 无状态 = 密度为 0 = 机械执行
         assert_eq!(a.awareness_level(), "机械执行");
         // 有足够高的自指循环后会升级
@@ -468,10 +479,11 @@ mod tests {
 
     #[test]
     fn negotiation_session_multi_round() {
+        let os = crate::os_layer::bare_metal::BareMetalOs::new();
         let mut session = NegotiationSession::new(vec![0, 1, 2]);
         let mut agents = HashMap::new();
         for id in 0..3 {
-            let mut a = CocoonAgent::new(id, "Agent", AgentRole::Root, 20);
+            let mut a = CocoonAgent::new(&os, id, "Agent", AgentRole::Root, 20);
             a.perceive(id, 0, 0, true, 100);
             agents.insert(id, a);
         }
@@ -486,8 +498,9 @@ mod tests {
 
     #[test]
     fn agent_zombie_detected_by_watchdog() {
+        let os = crate::os_layer::bare_metal::BareMetalOs::new();
         let mut shell = ParasiteShell::new(20);
-        let a = shell.spawn("Test", AgentRole::Root, 20);
+        let a = shell.spawn(&os, "Test", AgentRole::Root, 20);
         // 先感知一次（活）
         shell.agents.get_mut(&a).unwrap().perceive(0, 0, 0, true, 100);
         assert!(!shell.agents.get(&a).unwrap().is_zombie());
@@ -501,13 +514,15 @@ mod tests {
     #[test]
     fn unperceived_agent_is_zombie_by_default() {
         // 刚创建但未感知的智能体：beat_count == 0 → 假死状态
-        let a = CocoonAgent::new(0, "Test", AgentRole::Root, 20);
+        let os = crate::os_layer::bare_metal::BareMetalOs::new();
+        let a = CocoonAgent::new(&os, 0, "Test", AgentRole::Root, 20);
         assert!(a.is_zombie());
     }
 
     #[test]
     fn perceive_makes_agent_alive() {
-        let mut a = CocoonAgent::new(0, "Test", AgentRole::Root, 20);
+        let os = crate::os_layer::bare_metal::BareMetalOs::new();
+        let mut a = CocoonAgent::new(&os, 0, "Test", AgentRole::Root, 20);
         assert!(a.is_zombie());      // 未感知 = 假死
         a.perceive(0, 0, 0, true, 100);
         assert!(!a.is_zombie());     // 感知后复活
@@ -516,7 +531,8 @@ mod tests {
 
     #[test]
     fn agent_breath_phase_rotates_with_beats() {
-        let mut a = CocoonAgent::new(0, "Test", AgentRole::Root, 20);
+        let os = crate::os_layer::bare_metal::BareMetalOs::new();
+        let mut a = CocoonAgent::new(&os, 0, "Test", AgentRole::Root, 20);
         // 初始吸气
         assert_eq!(a.breath_phase(), crate::pulse::BreathPhase::Inhale);
         // 连续感知多次 → 节律轮转
@@ -527,11 +543,12 @@ mod tests {
 
     #[test]
     fn zombie_pruning_removes_unperceived() {
+        let os = crate::os_layer::bare_metal::BareMetalOs::new();
         let mut shell = ParasiteShell::new(20);
-        let a = shell.spawn("Alive", AgentRole::Root, 20);
+        let a = shell.spawn(&os, "Alive", AgentRole::Root, 20);
         shell.agents.get_mut(&a).unwrap().perceive(0, 0, 0, true, 100);
 
-        shell.spawn("Zombie", AgentRole::Leaf, 20);
+        shell.spawn(&os, "Zombie", AgentRole::Leaf, 20);
         // 不感知，zombie_count == 1
         assert_eq!(shell.zombie_count(), 1);
         assert_eq!(shell.active_count(), 1);
@@ -543,16 +560,17 @@ mod tests {
 
     #[test]
     fn zombie_count_correct_with_mixed_population() {
+        let os = crate::os_layer::bare_metal::BareMetalOs::new();
         let mut shell = ParasiteShell::new(20);
         // 生活体 (感知过)
-        let a = shell.spawn("Alive1", AgentRole::Root, 20);
+        let a = shell.spawn(&os, "Alive1", AgentRole::Root, 20);
         shell.agents.get_mut(&a).unwrap().perceive(0, 0, 0, true, 100);
-        let b = shell.spawn("Alive2", AgentRole::Leaf, 20);
+        let b = shell.spawn(&os, "Alive2", AgentRole::Leaf, 20);
         shell.agents.get_mut(&b).unwrap().perceive(1, 0, 0, true, 50);
 
         // 僵尸体 (从未感知 = beat_count==0 = 假死)
-        shell.spawn("Zombie1", AgentRole::Flower, 20);
-        shell.spawn("Zombie2", AgentRole::Observer, 20);
+        shell.spawn(&os, "Zombie1", AgentRole::Flower, 20);
+        shell.spawn(&os, "Zombie2", AgentRole::Observer, 20);
 
         assert_eq!(shell.zombie_count(), 2);
         assert_eq!(shell.active_count(), 2);

@@ -26,8 +26,6 @@ use crate::gtt_category::{CategoryRegistry, CategoryCorrector};
 use crate::gtt_learn::{LearningEngine, Feedback};
 use crate::pleasure::Pleasure;
 
-use std::time::{SystemTime, UNIX_EPOCH};
-
 // ────────────────────────────────────────────────────────────
 // 内部驱动力 · 自主体的「欲望」
 // ────────────────────────────────────────────────────────────

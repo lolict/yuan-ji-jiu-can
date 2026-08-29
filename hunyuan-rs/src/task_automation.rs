@@ -27,7 +27,7 @@
 use crate::time_node::{TimeNode, TimeCoord, unix_ms_to_timecoord};
 use crate::log_ring::LogRing;
 
-use std::time::{SystemTime, UNIX_EPOCH};
+use crate::os_layer::OsLayer;
 
 // ──────────────────────────────────────────────────────────────
 // 任务间隔 · mixed-radix 层级
@@ -166,11 +166,11 @@ pub struct TaskResult {
 }
 
 impl TaskResult {
-    pub fn success(task_id: u32, task_name: &str, summary: &str) -> Self {
+    pub fn success(os: &dyn OsLayer, task_id: u32, task_name: &str, summary: &str) -> Self {
         Self {
             task_id,
             task_name: task_name.to_string(),
-            executed_at_ms: current_unix_ms(),
+            executed_at_ms: current_unix_ms(os),
             success: true,
             summary: summary.to_string(),
             details: Vec::new(),
@@ -178,11 +178,11 @@ impl TaskResult {
         }
     }
 
-    pub fn failure(task_id: u32, task_name: &str, reason: &str) -> Self {
+    pub fn failure(os: &dyn OsLayer, task_id: u32, task_name: &str, reason: &str) -> Self {
         Self {
             task_id,
             task_name: task_name.to_string(),
-            executed_at_ms: current_unix_ms(),
+            executed_at_ms: current_unix_ms(os),
             success: false,
             summary: reason.to_string(),
             details: Vec::new(),
@@ -207,8 +207,9 @@ pub struct TaskExecutor;
 
 impl TaskExecutor {
     /// 代码健康检查 — 模拟执行 git status + build + test
-    pub fn run_code_health() -> TaskResult {
+    pub fn run_code_health(os: &dyn OsLayer) -> TaskResult {
         let mut r = TaskResult::success(
+            os,
             1, "代码健康",
             "日度代码健康检查完成"
         );
@@ -230,14 +231,15 @@ impl TaskExecutor {
     }
 
     /// 会话总结 — 模拟提取当日决策写入 daily/*.md
-    pub fn run_session_summary() -> TaskResult {
+    pub fn run_session_summary(os: &dyn OsLayer) -> TaskResult {
         let mut r = TaskResult::success(
+            os,
             2, "会话总结",
             "当日会话决策已归档"
         );
 
         let today = {
-            let tc = unix_ms_to_timecoord(current_unix_ms());
+            let tc = unix_ms_to_timecoord(current_unix_ms(os));
             format!("{:04}-{:02}-{:02}", tc.year, tc.mon + 1, tc.day + 1)
         };
 
@@ -252,8 +254,9 @@ impl TaskExecutor {
     }
 
     /// 仓库同步 — 模拟 git push 备份
-    pub fn run_repo_sync() -> TaskResult {
+    pub fn run_repo_sync(os: &dyn OsLayer) -> TaskResult {
         let mut r = TaskResult::success(
+            os,
             3, "仓库同步",
             "周度仓库同步完成"
         );
@@ -320,13 +323,13 @@ impl TaskScheduler {
     }
 
     /// 更新外部时间 (从系统时钟)
-    pub fn sync_time(&mut self) {
-        self.time_node.set_wall_clock(current_unix_ms());
+    pub fn sync_time(&mut self, os: &dyn OsLayer) {
+        self.time_node.set_wall_clock(current_unix_ms(os));
     }
 
     /// 检查所有到期任务并执行
-    pub fn tick(&mut self) -> Vec<TaskResult> {
-        self.sync_time();
+    pub fn tick(&mut self, os: &dyn OsLayer) -> Vec<TaskResult> {
+        self.sync_time(os);
         let coord = self.time_node.time_coord();
 
         // 收集需要执行的任务 ID (避免同时持有多处 &mut)
@@ -348,7 +351,7 @@ impl TaskScheduler {
             if let Some(idx) = self.tasks.iter().position(|t| t.id == id) {
                 let kind = self.tasks[idx].kind;
                 let desc = self.tasks[idx].description.clone();
-                let result = Self::run_task(kind);
+                let result = Self::run_task(os, kind);
                 // 记录
                 let audit_payload = format!("TASK[{}] {}: {}",
                     kind.name(), desc, result.summary);
@@ -363,20 +366,20 @@ impl TaskScheduler {
     }
 
     /// 执行具体任务逻辑 (纯函数, 不依赖 self)
-    fn run_task(kind: TaskKind) -> TaskResult {
+    fn run_task(os: &dyn OsLayer, kind: TaskKind) -> TaskResult {
         match kind {
-            TaskKind::CodeHealth => TaskExecutor::run_code_health(),
-            TaskKind::SessionSummary => TaskExecutor::run_session_summary(),
-            TaskKind::RepoSync => TaskExecutor::run_repo_sync(),
+            TaskKind::CodeHealth => TaskExecutor::run_code_health(os),
+            TaskKind::SessionSummary => TaskExecutor::run_session_summary(os),
+            TaskKind::RepoSync => TaskExecutor::run_repo_sync(os),
         }
     }
 
     /// 强制执行某任务 (忽略时间)
-    pub fn force_run(&mut self, task_id: u32) -> Option<TaskResult> {
+    pub fn force_run(&mut self, os: &dyn OsLayer, task_id: u32) -> Option<TaskResult> {
         let idx = self.tasks.iter().position(|t| t.id == task_id)?;
         let kind = self.tasks[idx].kind;
         let desc = self.tasks[idx].description.clone();
-        let result = Self::run_task(kind);
+        let result = Self::run_task(os, kind);
         // 记录
         let audit_payload = format!("TASK[{}] {}: {}",
             kind.name(), desc, result.summary);
@@ -422,11 +425,8 @@ impl TaskScheduler {
 // 辅助
 // ──────────────────────────────────────────────────────────────
 
-fn current_unix_ms() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_millis() as u64
+fn current_unix_ms(os: &dyn OsLayer) -> u64 {
+    os.time_millis()
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -488,8 +488,9 @@ mod tests {
 
     #[test]
     fn scheduler_force_run() {
+        let os = crate::os_layer::bare_metal::BareMetalOs::new();
         let mut scheduler = TaskScheduler::new(1).register_defaults();
-        let result = scheduler.force_run(1).unwrap();
+        let result = scheduler.force_run(&os, 1).unwrap();
         assert!(result.success);
         assert_eq!(result.task_name, "代码健康");
         assert!(!result.details.is_empty());
@@ -497,10 +498,11 @@ mod tests {
 
     #[test]
     fn scheduler_force_run_all() {
+        let os = crate::os_layer::bare_metal::BareMetalOs::new();
         let mut scheduler = TaskScheduler::new(1).register_defaults();
-        let r1 = scheduler.force_run(1).unwrap();
-        let r2 = scheduler.force_run(2).unwrap();
-        let r3 = scheduler.force_run(3).unwrap();
+        let r1 = scheduler.force_run(&os, 1).unwrap();
+        let r2 = scheduler.force_run(&os, 2).unwrap();
+        let r3 = scheduler.force_run(&os, 3).unwrap();
 
         assert!(r1.success && r2.success && r3.success);
         assert_eq!(scheduler.results_log.len(), 3);
@@ -508,9 +510,10 @@ mod tests {
 
     #[test]
     fn scheduler_audit_ring_records() {
+        let os = crate::os_layer::bare_metal::BareMetalOs::new();
         let mut scheduler = TaskScheduler::new(1).register_defaults();
-        scheduler.force_run(1);
-        scheduler.force_run(2);
+        scheduler.force_run(&os, 1);
+        scheduler.force_run(&os, 2);
         // 审计环应有 2 条记录
         assert_eq!(scheduler.audit_ring.entries.len(), 2);
         // 验链完整性
@@ -519,18 +522,20 @@ mod tests {
 
     #[test]
     fn task_result_success_and_failure() {
-        let ok = TaskResult::success(1, "测试", "通过");
+        let os = crate::os_layer::bare_metal::BareMetalOs::new();
+        let ok = TaskResult::success(&os, 1, "测试", "通过");
         assert!(ok.success);
         assert_eq!(ok.summary, "通过");
 
-        let fail = TaskResult::failure(1, "测试", "错误");
+        let fail = TaskResult::failure(&os, 1, "测试", "错误");
         assert!(!fail.success);
         assert!(fail.next_action.is_some());
     }
 
     #[test]
     fn task_result_details() {
-        let mut r = TaskResult::success(1, "测试", "ok");
+        let os = crate::os_layer::bare_metal::BareMetalOs::new();
+        let mut r = TaskResult::success(&os, 1, "测试", "ok");
         r.add_detail("line1");
         r.add_detail("line2");
         r.set_next_action("下一步");
@@ -551,10 +556,11 @@ mod tests {
 
     #[test]
     fn recent_results() {
+        let os = crate::os_layer::bare_metal::BareMetalOs::new();
         let mut scheduler = TaskScheduler::new(1).register_defaults();
-        scheduler.force_run(1);
-        scheduler.force_run(2);
-        scheduler.force_run(3);
+        scheduler.force_run(&os, 1);
+        scheduler.force_run(&os, 2);
+        scheduler.force_run(&os, 3);
         let recent = scheduler.recent_results(2);
         assert_eq!(recent.len(), 2);
     }

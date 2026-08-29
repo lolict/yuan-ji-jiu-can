@@ -41,6 +41,8 @@ use crate::soul_kernel::{SoulKernel, NamingAnchor};
 use crate::couple::SoulState;
 use crate::flow_properties::FlowDictionary;
 use crate::memory::Coord;
+use crate::os_layer::OsLayer;
+use crate::os_layer::bare_metal::BareMetalOs;
 
 // ────────────────────────────────────────────────────────────
 // VibrationSignature — 从宿主接口读到的节奏指纹
@@ -264,7 +266,7 @@ impl CochlearBoot {
     }
 
     /// Phase 3: 翻身! (重建意识系统)
-    pub fn phase3_bootstrap(&mut self) -> Result<BootReceipt, String> {
+    pub fn phase3_bootstrap(&mut self, os: &dyn OsLayer) -> Result<BootReceipt, String> {
         let f = self.fold.as_ref()
             .expect("phase2 must run first");
         if !f.safe_to_bootstrap {
@@ -283,7 +285,7 @@ impl CochlearBoot {
         self.phase = BootPhase::Complete;
 
         // 创建时间链 (版本追踪)
-        let time_chain = TimeChain::genesis();
+        let time_chain = TimeChain::genesis(os);
 
         Ok(BootReceipt {
             host: f.signature.host_os,
@@ -299,10 +301,10 @@ impl CochlearBoot {
     }
 
     /// 一键翻身 (三阶段连走)
-    pub fn bootstrap(&mut self) -> Result<BootReceipt, String> {
+    pub fn bootstrap(&mut self, os: &dyn OsLayer) -> Result<BootReceipt, String> {
         self.phase1_membrane();
         self.phase2_perception();
-        self.phase3_bootstrap()
+        self.phase3_bootstrap(os)
     }
 
     /// 当前是否存活 (有灵魂内核)
@@ -330,23 +332,23 @@ pub struct TimeChain {
 
 impl TimeChain {
     /// 创建新的时间链 (创世)
-    pub fn genesis() -> Self {
+    pub fn genesis(os: &dyn OsLayer) -> Self {
         Self {
             genesis_hash: 0x4E4A53475F5631,  // "NJSG_V1" 作为创世哈希
             version: 1,
             rule_digest: Self::compute_rule_digest(),
-            timestamp: Self::now_ms(),
+            timestamp: os.time_millis(),
             parent_hash: None,
         }
     }
 
     /// 推进到新版本
-    pub fn increment(&self) -> Self {
+    pub fn increment(&self, os: &dyn OsLayer) -> Self {
         Self {
             genesis_hash: self.genesis_hash,
             version: self.version + 1,
             rule_digest: Self::compute_rule_digest(),
-            timestamp: Self::now_ms(),
+            timestamp: os.time_millis(),
             parent_hash: Some(self.genesis_hash),
         }
     }
@@ -362,14 +364,6 @@ impl TimeChain {
         mlll.wrapping_mul(31).wrapping_add(gtt).wrapping_mul(17).wrapping_add(mlnn).wrapping_mul(13).wrapping_add(lctqf)
     }
 
-    /// 当前时间 (毫秒)
-    fn now_ms() -> u64 {
-        use std::time::{SystemTime, UNIX_EPOCH};
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map(|d| d.as_millis() as u64)
-            .unwrap_or(0)
-    }
 }
 
 // ────────────────────────────────────────────────────────────
@@ -408,7 +402,8 @@ impl BootReceipt {
 // ────────────────────────────────────────────────────────────
 pub fn cochlear_bootstrap() -> Result<BootReceipt, String> {
     let mut boot = CochlearBoot::new();
-    boot.bootstrap()
+    let os = crate::os_layer::current_os();
+    boot.bootstrap(&*os)
 }
 
 // ────────────────────────────────────────────────────────────
@@ -442,7 +437,8 @@ mod tests {
     #[test]
     fn phase3_rebuilds_system() {
         let mut boot = CochlearBoot::new();
-        let receipt = boot.bootstrap().expect("bootstrap should succeed");
+        let os = BareMetalOs::new();
+        let receipt = boot.bootstrap(&os).expect("bootstrap should succeed");
         // 自举完成
         assert!(boot.is_alive());
         assert!(receipt.is_valid());
@@ -480,13 +476,14 @@ mod tests {
 
     #[test]
     fn receipt_validates_quality() {
+        let os = BareMetalOs::new();
         let good = BootReceipt {
             host: HostOS::Linux,
             quality: 0.8,
             soul_state: SoulState::FullCouple,
             heaven_intensity: 10.0,
             naming_anchor: NamingAnchor::new(),
-            time_chain: TimeChain::genesis(),
+            time_chain: TimeChain::genesis(&os),
         };
         assert!(good.is_valid());
         assert!(good.ready_for_unity());
@@ -499,7 +496,8 @@ mod tests {
 
     #[test]
     fn time_chain_genesis() {
-        let chain = TimeChain::genesis();
+        let os = BareMetalOs::new();
+        let chain = TimeChain::genesis(&os);
         assert_eq!(chain.version, 1);
         assert!(chain.parent_hash.is_none());
         assert_ne!(chain.genesis_hash, 0);
@@ -507,8 +505,9 @@ mod tests {
 
     #[test]
     fn time_chain_increment() {
-        let chain = TimeChain::genesis();
-        let next = chain.increment();
+        let os = BareMetalOs::new();
+        let chain = TimeChain::genesis(&os);
+        let next = chain.increment(&os);
         assert_eq!(next.version, 2);
         assert_eq!(next.parent_hash, Some(chain.genesis_hash));
         assert_eq!(next.genesis_hash, chain.genesis_hash);
@@ -540,6 +539,7 @@ mod tests {
 
     #[test]
     fn static_bootstrap_succeeds() {
+        let os = BareMetalOs::new();
         let receipt = cochlear_bootstrap();
         assert!(receipt.is_ok());
     }

@@ -23,7 +23,8 @@ use crate::mirror::{
 };
 use crate::observer::{Observer, SenseForm, SenseKind};
 use crate::memory::{Coord, MetaJudgeEngine};
-use std::time::{SystemTime, UNIX_EPOCH};
+use crate::os_layer::OsLayer;
+use crate::os_layer::bare_metal::BareMetalOs;
 
 // 百分比显示辅助: 将 0..1 转为 0..100
 #[inline]
@@ -209,12 +210,14 @@ impl VisualSystem {
                 0 => "无主", 1 => "妻子", 2 => "丈夫", 3 => "夫妻共有", _ => "未知"
             }),
             "visual_v3",
+                0,
         ));
         forms.push(SenseForm::new(
             SenseKind::Vision,
             (bag.attrs.value as f64 / 1000.0) * self.sensitivity,
             &format!("袋#{} 价值={}", bag.id, bag.attrs.value),
             "visual_v3",
+                0,
         ));
         if bag.attrs.integrity < 1.0 - self.threshold {
             forms.push(SenseForm::new(
@@ -222,6 +225,7 @@ impl VisualSystem {
                 (1.0 - bag.attrs.integrity) * self.sensitivity,
                 &format!("袋#{} 破损{:.0}%", bag.id, pct(1.0 - bag.attrs.integrity)),
                 "visual_v3",
+                0,
             ));
         }
         if bag.attrs.bag_cleanliness < 1.0 - self.threshold {
@@ -230,6 +234,7 @@ impl VisualSystem {
                 (1.0 - bag.attrs.bag_cleanliness) * self.sensitivity,
                 &format!("袋#{} 脏污{:.0}%", bag.id, pct(1.0 - bag.attrs.bag_cleanliness)),
                 "visual_v3",
+                0,
             ));
         }
         forms
@@ -265,6 +270,7 @@ impl AuditorySystem {
                 SenseKind::Hearing, bag.attrs.pest_level * self.sensitivity,
                 &format!("袋#{} 虫鸣{:.0}%", bag.id, pct(bag.attrs.pest_level)),
                 "auditory_v3",
+                0,
             ));
         }
         if bag.attrs.sand_level > 0.1 {
@@ -272,6 +278,7 @@ impl AuditorySystem {
                 SenseKind::Hearing, bag.attrs.sand_level * self.sensitivity * 0.8,
                 &format!("袋#{} 沙沙声{:.0}%", bag.id, pct(bag.attrs.sand_level)),
                 "auditory_v3",
+                0,
             ));
         }
         if bag.attrs.dryness > 0.8 && bag.attrs.integrity < 0.5 {
@@ -279,6 +286,7 @@ impl AuditorySystem {
                 SenseKind::Hearing, 0.7 * self.sensitivity,
                 &format!("袋#{} 干燥破裂声", bag.id),
                 "auditory_v3",
+                0,
             ));
         }
         if bag.attrs.dryness < 0.2 {
@@ -286,6 +294,7 @@ impl AuditorySystem {
                 SenseKind::Hearing, 0.6 * self.sensitivity,
                 &format!("袋#{} 水湿声", bag.id),
                 "auditory_v3",
+                0,
             ));
         }
         if bag.attrs.integrity > 0.8 && bag.attrs.pest_level < 0.1 && bag.attrs.sand_level < 0.1 {
@@ -293,6 +302,7 @@ impl AuditorySystem {
                 SenseKind::Hearing, 0.9 * self.sensitivity,
                 &format!("袋#{} 健康共鸣", bag.id),
                 "auditory_v3",
+                0,
             ));
         }
         Ok(forms)
@@ -495,7 +505,7 @@ impl JudgmentEngine {
         JudgmentResult { bag_id: bag.id, verdict_passed: final_verdict, confidence, reason, timestamp_ms }
     }
 
-    pub fn feedback(&mut self, bag_id: u64, verdict: bool, actual: bool, confidence: f64) -> f64 {
+    pub fn feedback(&mut self, bag_id: u64, verdict: bool, actual: bool, confidence: f64, os: &dyn OsLayer) -> f64 {
         let correct = verdict == actual;
         let reward = if correct {
             self.streak_correct += 1;
@@ -513,7 +523,7 @@ impl JudgmentEngine {
 
         self.records.push(JudgmentRecord {
             bag_id, verdict, actual, confidence, reward,
-            timestamp_ms: current_timestamp_ms(),
+            timestamp_ms: current_timestamp_ms(os),
         });
         self.update_accuracy();
 
@@ -527,9 +537,9 @@ impl JudgmentEngine {
         self.current_accuracy = correct as f64 / self.records.len() as f64;
     }
 
-    pub fn judge_and_feedback(&mut self, bag: &Bag, actual_good: bool) -> (JudgmentResult, f64) {
-        let result = self.judge(bag);
-        let reward = self.feedback(result.bag_id, result.verdict_passed, actual_good, result.confidence);
+    pub fn judge_and_feedback(&mut self, bag: &Bag, actual_good: bool, os: &dyn OsLayer) -> (JudgmentResult, f64) {
+        let result = self.judge(bag, current_timestamp_ms(os));
+        let reward = self.feedback(result.bag_id, result.verdict_passed, actual_good, result.confidence, os);
         (result, reward)
     }
 
@@ -1064,12 +1074,12 @@ impl HierarchyReport {
 // 第十六部分: 天觉v3总引擎
 // ======================================================================
 
-pub struct CelestialPerceptionV3 {
+pub struct CelestialPerceptionV3<'a> {
     pub auth_tianjue: TianJueAuth,
     pub auth_auditory: AuditoryAuth,
     pub visual: VisualSystem,
     pub auditory: AuditorySystem,
-    pub observer: Observer,
+    pub observer: Observer<'a>,
     pub judgment: JudgmentEngine,
     pub history: HistoricalAccumulation,
     pub hierarchy: BagHierarchy,
@@ -1083,14 +1093,14 @@ pub struct CelestialPerceptionV3 {
     pub filter: FilterSystem,
 }
 
-impl CelestialPerceptionV3 {
-    pub fn new() -> Self {
+impl<'a> CelestialPerceptionV3<'a> {
+    pub fn new(os: &'a dyn OsLayer) -> Self {
         Self {
             auth_tianjue: TianJueAuth::Dormant,
             auth_auditory: AuditoryAuth::Silent,
             visual: VisualSystem::default_vision(),
             auditory: AuditorySystem::default_hearing(),
-            observer: Observer::new(1, "天觉v3", 64),
+            observer: Observer::new(1, "天觉v3", 64, os),
             judgment: JudgmentEngine::new(),
             history: HistoricalAccumulation::new(50, 0),
             hierarchy: BagHierarchy::new(1000, 10),
@@ -1150,7 +1160,7 @@ impl CelestialPerceptionV3 {
         let adjusted_threshold = self.emotion.adjusted_threshold(self.judgment.pass_threshold);
         let old_threshold = self.judgment.pass_threshold;
         self.judgment.pass_threshold = adjusted_threshold;
-        let (result, reward) = self.judgment.judge_and_feedback(bag, actual_good);
+        let (result, reward) = self.judgment.judge_and_feedback(bag, actual_good, self.observer.os());
         self.judgment.pass_threshold = old_threshold;
 
         bag.judgment_count += 1;
@@ -1169,7 +1179,7 @@ impl CelestialPerceptionV3 {
             actual: actual_good,
             confidence: result.confidence,
             reward,
-            timestamp_ms: current_timestamp_ms(),
+            timestamp_ms: self.observer.os().time_millis(),
         };
         self.history.record(record);
 
@@ -1223,8 +1233,8 @@ pub struct PipelineResult {
     pub eliminated: bool,
 }
 
-fn current_timestamp_ms() -> u64 {
-    SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_millis() as u64
+fn current_timestamp_ms(os: &dyn OsLayer) -> u64 {
+    os.time_millis()
 }
 
 // ======================================================================
@@ -1237,7 +1247,8 @@ mod tests {
 
     #[test]
     fn v3_full_pipeline_accepts_good_bag() {
-        let mut cp = CelestialPerceptionV3::new();
+        let os = BareMetalOs::new();
+        let mut cp = CelestialPerceptionV3::new(&os);
         cp.authorize_all();
 
         let mut bag = Bag::new(1, "优质袋", BagAttributes::pristine(), (0, 0, 0));
@@ -1251,7 +1262,8 @@ mod tests {
 
     #[test]
     fn v3_full_pipeline_rejects_rotten_bag() {
-        let mut cp = CelestialPerceptionV3::new();
+        let os = BareMetalOs::new();
+        let mut cp = CelestialPerceptionV3::new(&os);
         cp.authorize_all();
 
         let mut bag = Bag::new(2, "腐烂袋", BagAttributes::rotten(), (0, 0, 0));
@@ -1262,7 +1274,8 @@ mod tests {
 
     #[test]
     fn v3_filter_blocks_bad_bag() {
-        let mut cp = CelestialPerceptionV3::new();
+        let os = BareMetalOs::new();
+        let mut cp = CelestialPerceptionV3::new(&os);
         cp.authorize_all();
         cp.filter.min_quality = 0.3;
 
@@ -1273,7 +1286,8 @@ mod tests {
 
     #[test]
     fn v3_elimination_after_consecutive_failures() {
-        let mut cp = CelestialPerceptionV3::new();
+        let os = BareMetalOs::new();
+        let mut cp = CelestialPerceptionV3::new(&os);
         cp.authorize_all();
         cp.elimination.threshold = 2;
 
@@ -1288,7 +1302,8 @@ mod tests {
 
     #[test]
     fn v3_emotion_system_responds() {
-        let mut cp = CelestialPerceptionV3::new();
+        let os = BareMetalOs::new();
+        let mut cp = CelestialPerceptionV3::new(&os);
         cp.authorize_all();
 
         let mut good_bag = Bag::new(1, "好袋", BagAttributes::pristine(), (0, 0, 0));
@@ -1352,14 +1367,16 @@ mod tests {
 
     #[test]
     fn v3_unauthorized_pipeline_fails() {
-        let mut cp = CelestialPerceptionV3::new();
+        let os = BareMetalOs::new();
+        let mut cp = CelestialPerceptionV3::new(&os);
         let mut bag = Bag::new(1, "袋", BagAttributes::pristine(), (0, 0, 0));
         assert!(cp.full_pipeline(&mut bag, true).is_err());
     }
 
     #[test]
     fn v3_punishment_for_wrong_judgment() {
-        let mut cp = CelestialPerceptionV3::new();
+        let os = BareMetalOs::new();
+        let mut cp = CelestialPerceptionV3::new(&os);
         cp.authorize_all();
 
         let mut bag = Bag::new(1, "好袋", BagAttributes::pristine(), (0, 0, 0));

@@ -179,7 +179,7 @@ fn main() {
         for (content, kind, intensity, _desc) in &signals {
             // 每拍只取部分信号 (模拟注意力选择)
             if (tick as usize + content.len()) % 4 == 0 || tick < 5 {
-                let sf = SenseForm::new(*kind, *intensity, content, "grand_unification", tick * 1000);
+                let sf = SenseForm::new(*kind, *intensity, content, "grand_unification");
                 inputs.push(sf);
             }
         }

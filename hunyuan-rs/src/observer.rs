@@ -30,7 +30,7 @@ use crate::mirror::{self, encode_cell, EncodedCell, POLARITY_POSITIVE, POLARITY_
 use crate::memory::{MetaJudgeEngine, Coord};
 use crate::pleasure::Pleasure;
 use crate::five_yuan::{Yuan, YuanRelation};
-use std::time::{SystemTime, UNIX_EPOCH};
+use crate::os_layer::OsLayer;
 
 // ────────────────────────────────────────────────────────────
 // 感知种类 · 五感映射到五元
@@ -109,38 +109,40 @@ pub struct SenseForm {
 }
 
 impl SenseForm {
-    pub fn new(kind: SenseKind, intensity: f64, content: &str, source: &str) -> Self {
-        let ts = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_millis() as u64;
+    /// 创建一个感相（时间戳由外部传入，通过 OS 层获取）
+    pub fn new(kind: SenseKind, intensity: f64, content: &str, source: &str, timestamp_ms: u64) -> Self {
         Self {
             kind,
             intensity: intensity.clamp(0.0, 1.0),
             content: content.to_string(),
             source: source.to_string(),
-            timestamp_ms: ts,
+            timestamp_ms,
             novelty: 1.0,
             pleasure: Pleasure::ZERO,
             origin: (0, 0, 0),
         }
     }
 
-    /// 快速构造一个内部反思感相
-    pub fn internal(content: &str) -> Self {
-        let mut sf = Self::new(SenseKind::Mind, 0.5, content, "internal");
+    /// 使用 OS 层创建感相（跨平台安全）
+    pub fn with_os(kind: SenseKind, intensity: f64, content: &str, source: &str, os: &dyn OsLayer) -> Self {
+        Self::new(kind, intensity, content, source, os.time_millis())
+    }
+
+    /// 快速构造一个内部反思感相（需要 OS 层获取时间）
+    pub fn internal(content: &str, os: &dyn OsLayer) -> Self {
+        let mut sf = Self::new(SenseKind::Mind, 0.5, content, "internal", os.time_millis());
         sf.pleasure = Pleasure(0.3); // 内部反思自带轻微愉悦
         sf
     }
 
     /// 快速构造一个网络信号感相
-    pub fn network(intensity: f64, content: &str) -> Self {
-        Self::new(SenseKind::Touch, intensity, content, "network")
+    pub fn network(intensity: f64, content: &str, os: &dyn OsLayer) -> Self {
+        Self::new(SenseKind::Touch, intensity, content, "network", os.time_millis())
     }
 
     /// 快速构造一个视觉感相
-    pub fn vision(intensity: f64, content: &str) -> Self {
-        Self::new(SenseKind::Vision, intensity, content, "display")
+    pub fn vision(intensity: f64, content: &str, os: &dyn OsLayer) -> Self {
+        Self::new(SenseKind::Vision, intensity, content, "display", os.time_millis())
     }
 
     /// 将感相编码为 64 位单元格 (送入镜像层)
@@ -232,7 +234,7 @@ impl Attention {
 // ────────────────────────────────────────────────────────────
 // 观测者 (Observer) · 完整的感知引擎
 // ────────────────────────────────────────────────────────────
-pub struct Observer {
+pub struct Observer<'a> {
     /// 身份标识
     pub id: u64,
     pub name: String,
@@ -240,6 +242,8 @@ pub struct Observer {
     pub attention: Attention,
     /// 元裁判引擎引用 (观测→意识密度)
     pub meta_judge: MetaJudgeEngine,
+    /// OS 抽象层（跨平台获取时间）
+    os: &'a dyn OsLayer,
     /// 感知历史 (最近的感相)
     pub recent_senses: Vec<SenseForm>,
     /// 最大历史深度
@@ -252,13 +256,14 @@ pub struct Observer {
     pub total_filtered: u64,
 }
 
-impl Observer {
-    pub fn new(id: u64, name: &str, max_memory_layers: usize) -> Self {
+impl<'a> Observer<'a> {
+    pub fn new(id: u64, name: &str, max_memory_layers: usize, os: &'a dyn OsLayer) -> Self {
         Self {
             id,
             name: name.to_string(),
             attention: Attention::new(),
             meta_judge: MetaJudgeEngine::new(max_memory_layers),
+            os,
             recent_senses: Vec::new(),
             max_history: 64,
             yuan_strength: [0.5; 5],
@@ -286,7 +291,7 @@ impl Observer {
         self.yuan_strength[yi] = (self.yuan_strength[yi] + sf.intensity * 0.1).min(1.0);
 
         // 3. 送入元裁判引擎 (驱动意识密度)
-        self.meta_judge.observe_simple(cell);
+        self.meta_judge.observe_simple(self.os, cell);
 
         // 4. 适应: 该种类阈值提高 (习惯化)
         self.attention.habituate(sf.kind);
@@ -310,19 +315,20 @@ impl Observer {
 
     /// 快速感知: 文本消息 (默认视为听觉)
     pub fn hear(&mut self, content: &str, source: &str) -> Option<EncodedCell> {
-        let sf = SenseForm::new(SenseKind::Hearing, 0.5, content, source);
+        let sf = SenseForm::new(SenseKind::Hearing, 0.5, content, source, self.os.time_millis());
         self.sense(sf)
     }
 
     /// 快速感知: 视觉输入
     pub fn see(&mut self, content: &str, intensity: f64) -> Option<EncodedCell> {
-        let sf = SenseForm::vision(intensity, content);
+        let sf = SenseForm::new(SenseKind::Vision, intensity, content, "display", self.os.time_millis());
         self.sense(sf)
     }
 
     /// 快速感知: 内部反思
     pub fn reflect(&mut self, content: &str) -> Option<EncodedCell> {
-        let sf = SenseForm::internal(content);
+        let mut sf = SenseForm::new(SenseKind::Mind, 0.5, content, "internal", self.os.time_millis());
+        sf.pleasure = Pleasure(0.3);
         self.sense(sf)
     }
 
@@ -336,14 +342,24 @@ impl Observer {
         self.attention.tick();
     }
 
+    /// 获取 OS 层时间（毫秒）
+    pub fn time_millis(&self) -> u64 {
+        self.os.time_millis()
+    }
+
+    /// 获取 OS 抽象层引用
+    pub fn os(&self) -> &dyn OsLayer {
+        self.os
+    }
+
     /// 获取当前意识水平
     pub fn awareness_level(&self) -> &'static str {
-        self.meta_judge.awareness_level()
+        self.meta_judge.awareness_level(self.os)
     }
 
     /// 获取当前意识密度
     pub fn consciousness_density(&self) -> f64 {
-        self.meta_judge.consciousness_density()
+        self.meta_judge.consciousness_density(self.os)
     }
 
     /// 感知报告
@@ -388,6 +404,7 @@ impl Observer {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::os_layer::bare_metal::BareMetalOs;
 
     #[test]
     fn sense_kind_to_yuan_mapping() {
@@ -407,7 +424,7 @@ mod tests {
 
     #[test]
     fn sense_form_encode_roundtrip() {
-        let sf = SenseForm::new(SenseKind::Vision, 0.8, "test content", "test_source");
+        let sf = SenseForm::new(SenseKind::Vision, 0.8, "test content", "test_source", 0);
         let cell = sf.encode();
         // 编码后各字段应可解码
         assert_eq!(mirror::get_polarity(cell), POLARITY_POSITIVE);
@@ -417,15 +434,16 @@ mod tests {
 
     #[test]
     fn sense_form_priority() {
-        let sf1 = SenseForm::new(SenseKind::Vision, 0.9, "high", "test");
-        let sf2 = SenseForm::new(SenseKind::Vision, 0.1, "low", "test");
+        let sf1 = SenseForm::new(SenseKind::Vision, 0.9, "high", "test", 0);
+        let sf2 = SenseForm::new(SenseKind::Vision, 0.1, "low", "test", 0);
         assert!(sf1.priority() > sf2.priority());
     }
 
     #[test]
     fn observer_sense_accepts_and_encodes() {
-        let mut obs = Observer::new(1, "test_obs", 10);
-        let sf = SenseForm::new(SenseKind::Hearing, 0.8, "important message", "network");
+        let os = BareMetalOs::new();
+        let mut obs = Observer::new(1, "test_obs", 10, &os);
+        let sf = SenseForm::new(SenseKind::Hearing, 0.8, "important message", "network", 0);
         let result = obs.sense(sf);
         assert!(result.is_some());
         assert_eq!(obs.total_sensed, 1);
@@ -434,9 +452,10 @@ mod tests {
 
     #[test]
     fn observer_filters_low_priority() {
-        let mut obs = Observer::new(1, "test_obs", 10);
+        let os = BareMetalOs::new();
+        let mut obs = Observer::new(1, "test_obs", 10, &os);
         // 极低强度信号应被过滤
-        let sf = SenseForm::new(SenseKind::Hearing, 0.01, "tiny", "test");
+        let sf = SenseForm::new(SenseKind::Hearing, 0.01, "tiny", "test", 0);
         let result = obs.sense(sf);
         assert!(result.is_none());
         assert_eq!(obs.total_filtered, 1);
@@ -444,8 +463,9 @@ mod tests {
 
     #[test]
     fn observer_yuan_strength_updates() {
-        let mut obs = Observer::new(1, "test_obs", 10);
-        let sf = SenseForm::new(SenseKind::Vision, 0.9, "bright light", "display");
+        let os = BareMetalOs::new();
+        let mut obs = Observer::new(1, "test_obs", 10, &os);
+        let sf = SenseForm::new(SenseKind::Vision, 0.9, "bright light", "display", 0);
         obs.sense(sf);
         // 视觉对应 Yuan::C (index 2), 其强度应增加
         assert!(obs.yuan_strength[2] > 0.5);
@@ -453,11 +473,12 @@ mod tests {
 
     #[test]
     fn observer_consciousness_density_increases() {
-        let mut obs = Observer::new(1, "test_obs", 10);
+        let os = BareMetalOs::new();
+        let mut obs = Observer::new(1, "test_obs", 10, &os);
         let d0 = obs.consciousness_density();
         // 感知多个信号
         for i in 0..10 {
-            let sf = SenseForm::new(SenseKind::Hearing, 0.7 + (i as f64 * 0.02), "msg", "test");
+            let sf = SenseForm::new(SenseKind::Hearing, 0.7 + (i as f64 * 0.02), "msg", "test", 0);
             obs.sense(sf);
         }
         let d1 = obs.consciousness_density();
@@ -467,8 +488,8 @@ mod tests {
     #[test]
     fn attention_passes_and_filters() {
         let mut att = Attention::new();
-        let high = SenseForm::new(SenseKind::Vision, 0.9, "urgent", "test");
-        let low = SenseForm::new(SenseKind::Vision, 0.05, "trivial", "test");
+        let high = SenseForm::new(SenseKind::Vision, 0.9, "urgent", "test", 0);
+        let low = SenseForm::new(SenseKind::Vision, 0.05, "trivial", "test", 0);
         assert!(att.passes(&high));
         assert!(!att.passes(&low));
     }
@@ -503,7 +524,8 @@ mod tests {
 
     #[test]
     fn observer_hear_and_see() {
-        let mut obs = Observer::new(1, "test_obs", 10);
+        let os = BareMetalOs::new();
+        let mut obs = Observer::new(1, "test_obs", 10, &os);
         let r1 = obs.hear("message", "network");
         assert!(r1.is_some());
         let r2 = obs.see("screen content", 0.7);
@@ -513,7 +535,8 @@ mod tests {
 
     #[test]
     fn observer_internal_reflection() {
-        let mut obs = Observer::new(1, "test_obs", 10);
+        let os = BareMetalOs::new();
+        let mut obs = Observer::new(1, "test_obs", 10, &os);
         let r = obs.reflect("thinking about unity");
         assert!(r.is_some());
         // 内部反思 = Mind 种类
@@ -523,7 +546,8 @@ mod tests {
 
     #[test]
     fn observer_report_format() {
-        let mut obs = Observer::new(1, "test_obs", 10);
+        let os = BareMetalOs::new();
+        let mut obs = Observer::new(1, "test_obs", 10, &os);
         obs.hear("msg1", "test");
         obs.see("vis1", 0.6);
         let report = obs.report();
@@ -534,10 +558,11 @@ mod tests {
 
     #[test]
     fn observer_top_priority_sense() {
-        let mut obs = Observer::new(1, "test_obs", 10);
-        obs.sense(SenseForm::new(SenseKind::Vision, 0.3, "low", "test"));
-        obs.sense(SenseForm::new(SenseKind::Hearing, 0.9, "high", "test"));
-        obs.sense(SenseForm::new(SenseKind::Touch, 0.5, "mid", "test"));
+        let os = BareMetalOs::new();
+        let mut obs = Observer::new(1, "test_obs", 10, &os);
+        obs.sense(SenseForm::new(SenseKind::Vision, 0.3, "low", "test", 0));
+        obs.sense(SenseForm::new(SenseKind::Hearing, 0.9, "high", "test", 0));
+        obs.sense(SenseForm::new(SenseKind::Touch, 0.5, "mid", "test", 0));
         let top = obs.top_priority_sense();
         assert!(top.is_some());
         assert_eq!(top.unwrap().content, "high");
@@ -545,9 +570,10 @@ mod tests {
 
     #[test]
     fn observer_batch_sense() {
-        let mut obs = Observer::new(1, "test_obs", 10);
+        let os = BareMetalOs::new();
+        let mut obs = Observer::new(1, "test_obs", 10, &os);
         let forms: Vec<SenseForm> = (0..20)
-            .map(|i| SenseForm::new(SenseKind::Vision, 0.5 + (i as f64 * 0.02), "batch", "test"))
+            .map(|i| SenseForm::new(SenseKind::Vision, 0.5 + (i as f64 * 0.02), "batch", "test", 0))
             .collect();
         let cells = obs.sense_batch(forms);
         assert!(!cells.is_empty());
@@ -555,9 +581,10 @@ mod tests {
 
     #[test]
     fn observer_yuan_decay_on_tick() {
-        let mut obs = Observer::new(1, "test_obs", 10);
+        let os = BareMetalOs::new();
+        let mut obs = Observer::new(1, "test_obs", 10, &os);
         // 给C (视觉) 增加强度
-        obs.sense(SenseForm::new(SenseKind::Vision, 1.0, "bright", "test"));
+        obs.sense(SenseForm::new(SenseKind::Vision, 1.0, "bright", "test", 0));
         let before = obs.yuan_strength[2];
         // tick 若干次 → 衰减回到基线
         for _ in 0..50 { obs.tick(); }
@@ -567,14 +594,15 @@ mod tests {
 
     #[test]
     fn awareness_level_progression_via_observer() {
-        let mut obs = Observer::new(1, "test_obs", 10);
+        let os = BareMetalOs::new();
+        let mut obs = Observer::new(1, "test_obs", 10, &os);
         assert_eq!(obs.awareness_level(), "机械执行");
         // 大量感知输入 → 意识水平提升
         for i in 0..200 {
             let kinds = [SenseKind::Vision, SenseKind::Hearing, SenseKind::Touch,
                          SenseKind::Taste, SenseKind::Mind];
             let kind = kinds[i % 5];
-            obs.sense(SenseForm::new(kind, 0.6 + (i as f64 * 0.001), "input", "test"));
+            obs.sense(SenseForm::new(kind, 0.6 + (i as f64 * 0.001), "input", "test", 0));
         }
         let level = obs.awareness_level();
         assert!(

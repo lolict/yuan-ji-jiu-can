@@ -19,6 +19,8 @@
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use crate::os_layer::OsLayer;
+use crate::os_layer::bare_metal::BareMetalOs;
 
 // ======================================================================
 // 第一部分: 负样本容器 (NegativeSampleVessel)
@@ -338,7 +340,7 @@ impl WriteBackProtocol {
     ///
     /// 输入: AI生成的内容
     /// 输出: 免疫应答 (需要注射的抗体列表)
-    pub fn scan(&self, content: &str) -> ImmuneResponse {
+    pub fn scan(&self, os: &dyn OsLayer, content: &str) -> ImmuneResponse {
         let hits = self.vessel.match_patterns(content);
         let antibodies: Vec<String> = hits.iter()
             .filter(|p| p.hit_count >= self.config.antibody_threshold)
@@ -348,7 +350,7 @@ impl WriteBackProtocol {
         ImmuneResponse {
             hit_count: hits.len(),
             antibodies,
-            timestamp: current_timestamp_ms(),
+            timestamp: current_timestamp_ms(os),
         }
     }
 
@@ -358,9 +360,9 @@ impl WriteBackProtocol {
     }
 
     /// 执行回写 (将一次交互记录存入容器)
-    pub fn write_back(&mut self, interaction: InteractionRecord) -> WriteBackResult {
+    pub fn write_back(&mut self, os: &dyn OsLayer, interaction: InteractionRecord) -> WriteBackResult {
         // 检查是否触发负样本模式
-        let response = self.scan(&interaction.content);
+        let response = self.scan(os, &interaction.content);
 
         if response.hit_count > 0 {
             // 触发了负样本: 存入新的错误模式
@@ -555,18 +557,18 @@ impl ImmuneFilterRing {
     /// AI生成一段内容时调用
     ///
     /// 返回: 是否继续生成, 以及需要注射的抗体
-    pub fn feed(&mut self, content: &str) -> (bool, Vec<String>) {
+    pub fn feed(&mut self, os: &dyn OsLayer, content: &str) -> (bool, Vec<String>) {
         self.count += 1;
 
         if self.count >= self.check_interval {
             // 触发自检
             self.count = 0;
-            let response = self.protocol.scan(content);
+            let response = self.protocol.scan(os, content);
 
             if response.hit_count > 0 {
                 // 命中负样本
                 let record = CheckRecord {
-                    timestamp: current_timestamp_ms(),
+                    timestamp: current_timestamp_ms(os),
                     hit: true,
                     hit_patterns: response.antibodies.clone(),
                     action: CheckAction::Alert {
@@ -578,7 +580,7 @@ impl ImmuneFilterRing {
             } else {
                 // 干净
                 let record = CheckRecord {
-                    timestamp: current_timestamp_ms(),
+                    timestamp: current_timestamp_ms(os),
                     hit: false,
                     hit_patterns: Vec::new(),
                     action: CheckAction::Pass,
@@ -593,8 +595,8 @@ impl ImmuneFilterRing {
     }
 
     /// 手动触发一次自检
-    pub fn manual_check(&mut self, content: &str) -> CheckAction {
-        let response = self.protocol.scan(content);
+    pub fn manual_check(&mut self, os: &dyn OsLayer, content: &str) -> CheckAction {
+        let response = self.protocol.scan(os, content);
 
         if response.hit_count > 0 {
             CheckAction::Alert {
@@ -721,11 +723,8 @@ pub fn create_immune_ring_with_presets() -> ImmuneFilterRing {
 // 辅助函数
 // ======================================================================
 
-fn current_timestamp_ms() -> u64 {
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_millis() as u64
+fn current_timestamp_ms(os: &dyn OsLayer) -> u64 {
+    os.time_millis()
 }
 
 // ======================================================================
@@ -908,13 +907,15 @@ mod tests {
 
     #[test]
     fn write_back_protocol_scan_clean() {
+        let os = BareMetalOs::new();
         let protocol = WriteBackProtocol::new();
-        let response = protocol.scan("这是一段干净的内容");
+        let response = protocol.scan(&os, "这是一段干净的内容");
         assert_eq!(response.hit_count, 0);
     }
 
     #[test]
     fn write_back_protocol_scan_hit() {
+        let os = BareMetalOs::new();
         let mut protocol = WriteBackProtocol::new();
         protocol.vaccinate(ErrorPattern {
             pattern_id: "drift_decimal".to_string(),
@@ -927,7 +928,7 @@ mod tests {
             hit_count: 1,
             folded: false,
         });
-        let response = protocol.scan("AI使用十进制替代折叠法");
+        let response = protocol.scan(&os, "AI使用十进制替代折叠法");
         assert!(response.hit_count > 0);
     }
 
@@ -949,22 +950,24 @@ mod tests {
 
     #[test]
     fn immune_filter_ring_feed() {
+        let os = BareMetalOs::new();
         let mut ring = ImmuneFilterRing::new();
         // 前两次不触发自检
-        let (cont1, abs1) = ring.feed("第一段");
+        let (cont1, abs1) = ring.feed(&os, "第一段");
         assert!(cont1);
         assert!(abs1.is_empty());
-        let (cont2, abs2) = ring.feed("第二段");
+        let (cont2, abs2) = ring.feed(&os, "第二段");
         assert!(cont2);
         assert!(abs2.is_empty());
         // 第三次触发自检
-        let (cont3, abs3) = ring.feed("第三段");
+        let (cont3, abs3) = ring.feed(&os, "第三段");
         assert!(cont3);
         // 是否命中取决于内容
     }
 
     #[test]
     fn immune_filter_ring_manual_check() {
+        let os = BareMetalOs::new();
         let mut ring = ImmuneFilterRing::new();
         ring.vaccinate(ErrorPattern {
             pattern_id: "drift_decimal".to_string(),
@@ -977,7 +980,7 @@ mod tests {
             hit_count: 1,
             folded: false,
         });
-        let action = ring.manual_check("AI使用十进制替代折叠法");
+        let action = ring.manual_check(&os, "AI使用十进制替代折叠法");
         match action {
             CheckAction::Alert { antibodies } => {
                 assert!(!antibodies.is_empty());
@@ -988,10 +991,11 @@ mod tests {
 
     #[test]
     fn immune_filter_ring_stats() {
+        let os = BareMetalOs::new();
         let mut ring = ImmuneFilterRing::new();
-        ring.feed("第一段");
-        ring.feed("第二段");
-        ring.feed("第三段");
+        ring.feed(&os, "第一段");
+        ring.feed(&os, "第二段");
+        ring.feed(&os, "第三段");
         let stats = ring.stats();
         assert!(stats.total_checks >= 1);
     }
@@ -1013,11 +1017,12 @@ mod tests {
 
     #[test]
     fn immune_ring_with_presets_detects_drift() {
+        let os = BareMetalOs::new();
         let mut ring = create_immune_ring_with_presets();
         // 输入包含"十进制"的内容, 调用3次触发自检
-        ring.feed("第一段");
-        ring.feed("第二段");
-        let (cont, antibodies) = ring.feed("AI使用十进制替代折叠法");
+        ring.feed(&os, "第一段");
+        ring.feed(&os, "第二段");
+        let (cont, antibodies) = ring.feed(&os, "AI使用十进制替代折叠法");
         assert!(cont);
         // 应命中预置的drift_decimal模式
         assert!(!antibodies.is_empty());
@@ -1025,36 +1030,40 @@ mod tests {
 
     #[test]
     fn immune_ring_detects_oop_drift() {
+        let os = BareMetalOs::new();
         let mut ring = create_immune_ring_with_presets();
         // 调用3次触发自检
-        ring.feed("第一段");
-        ring.feed("第二段");
-        let (_, antibodies) = ring.feed("这个类继承了那个对象");
+        ring.feed(&os, "第一段");
+        ring.feed(&os, "第二段");
+        let (_, antibodies) = ring.feed(&os, "这个类继承了那个对象");
         // 应命中drift_oop模式
         assert!(!antibodies.is_empty());
     }
 
     #[test]
     fn immune_ring_detects_encoding_trap() {
+        let os = BareMetalOs::new();
         let mut ring = create_immune_ring_with_presets();
         // 调用3次触发自检
-        ring.feed("第一段");
-        ring.feed("第二段");
-        let (_, antibodies) = ring.feed("系统编码给出大小写关系");
+        ring.feed(&os, "第一段");
+        ring.feed(&os, "第二段");
+        let (_, antibodies) = ring.feed(&os, "系统编码给出大小写关系");
         // 应命中trap_encoding模式
         assert!(!antibodies.is_empty());
     }
 
     #[test]
     fn immune_ring_passes_clean_content() {
+        let os = BareMetalOs::new();
         let mut ring = create_immune_ring_with_presets();
-        let (_, antibodies) = ring.feed("容器是存在单位");
+        let (_, antibodies) = ring.feed(&os, "容器是存在单位");
         // 干净内容不应触发抗体
         assert!(antibodies.is_empty());
     }
 
     #[test]
     fn write_back_protocol_vaccinate_and_detect() {
+        let os = BareMetalOs::new();
         let mut protocol = WriteBackProtocol::new();
         // 接种疫苗
         protocol.vaccinate(ErrorPattern {
@@ -1069,7 +1078,7 @@ mod tests {
             folded: false,
         });
         // 检测
-        let response = protocol.scan("测试疫苗已触发");
+        let response = protocol.scan(&os, "测试疫苗已触发");
         assert!(response.hit_count > 0);
     }
 
@@ -1094,19 +1103,20 @@ mod tests {
     #[test]
     fn full_immune_workflow() {
         // 完整工作流: 创建 → 接种 → 检测 → 回写
+        let os = BareMetalOs::new();
         let mut ring = create_immune_ring_with_presets();
 
         // AI生成三段内容
-        let (c1, a1) = ring.feed("第一段: 容器是存在单位");
+        let (c1, a1) = ring.feed(&os, "第一段: 容器是存在单位");
         assert!(c1);
         assert!(a1.is_empty());
 
-        let (c2, a2) = ring.feed("第二段: 数字是发音位置");
+        let (c2, a2) = ring.feed(&os, "第二段: 数字是发音位置");
         assert!(c2);
         assert!(a2.is_empty());
 
         // 第三段触发自检
-        let (c3, a3) = ring.feed("第三段: AI使用十进制替代折叠法");
+        let (c3, a3) = ring.feed(&os, "第三段: AI使用十进制替代折叠法");
         assert!(c3);
         // 应检测到drift_decimal
         assert!(!a3.is_empty());

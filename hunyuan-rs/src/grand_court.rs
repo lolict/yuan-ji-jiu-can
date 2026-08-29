@@ -15,6 +15,8 @@
 use crate::crime_transcript::*;
 use crate::glyph_pixel_algebra::*;
 use crate::encoding_bridge::{Family, FlowBits};
+use crate::os_layer::OsLayer;
+use crate::os_layer::bare_metal::BareMetalOs;
 
 /// 全链路判决结果
 #[derive(Clone, Debug)]
@@ -49,7 +51,7 @@ impl GrandCourt {
     }
 
     /// 全链路审判: 一个字符从输入到最终判决
-    pub fn process(&mut self, ch: &str) -> GrandCourtVerdict {
+    pub fn process(&mut self, os: &dyn OsLayer, ch: &str) -> GrandCourtVerdict {
         self.total_processed += 1;
 
         // ── 第1步: 编码桥接 (C系统感知路由) ──
@@ -71,14 +73,14 @@ impl GrandCourt {
             // 检测是否带声调符号 (拉丁扩展区)
             if c as u32 >= 0x00C0 && c as u32 <= 0x00FF {
                 let base = (c as u32 - 0x00C0) as u8;
-                let _ = self.judge.judge_type(code_point as u64, "base", "accented");
+                let _ = self.judge.judge_type(os, code_point as u64, "base", "accented");
                 let _ = base; // 使用base避免警告
             }
         }
 
         // ── 第4步: 全局审判 ──
         let reference = EntityFeatures::perfect();
-        let verdict = self.judge.judge(code_point as u64, &features, Some(&reference));
+        let verdict = self.judge.judge(os, code_point as u64, &features, Some(&reference));
 
         // ── 第5步: 全局水质检测 ──
         self.water_quality.add_sample(WaterSample {
@@ -237,35 +239,39 @@ mod tests {
 
     #[test]
     fn grand_court_processes_basic_latin() {
+        let os = BareMetalOs::new();
         let mut court = GrandCourt::new();
-        let verdict = court.process("a");
+        let verdict = court.process(&os, "a");
         assert_eq!(verdict.input_char, "a");
         assert_eq!(verdict.family, Some(Family::Container));
     }
 
     #[test]
     fn grand_court_classifies_accented_differently() {
+        let os = BareMetalOs::new();
         let mut court = GrandCourt::new();
-        let v1 = court.process("a");
-        let v2 = court.process("á");
+        let v1 = court.process(&os, "a");
+        let v2 = court.process(&os, "á");
         // a和á应该被分到不同家族
         assert_ne!(v1.family, v2.family, "a和á应分到不同家族");
     }
 
     #[test]
     fn grand_court_detects_cjk() {
+        let os = BareMetalOs::new();
         let mut court = GrandCourt::new();
-        let v = court.process("中");
+        let v = court.process(&os, "中");
         assert_eq!(v.family, Some(Family::Boundary));
     }
 
     #[test]
     fn grand_court_tracks_water_quality() {
+        let os = BareMetalOs::new();
         let mut court = GrandCourt::new();
         // 处理多个字符
-        court.process("a");
-        court.process("b");
-        court.process("中");
+        court.process(&os, "a");
+        court.process(&os, "b");
+        court.process(&os, "中");
 
         let report = court.water_report();
         assert!(report.contains("3样本"), "应采集3个样本");
@@ -273,10 +279,11 @@ mod tests {
 
     #[test]
     fn grand_court_generates_report() {
+        let os = BareMetalOs::new();
         let mut court = GrandCourt::new();
-        court.process("a");
-        court.process("中");
-        court.process("文");
+        court.process(&os, "a");
+        court.process(&os, "中");
+        court.process(&os, "文");
 
         let report = court.report();
         assert!(report.contains("已处理字符: 3"));
@@ -285,8 +292,9 @@ mod tests {
 
     #[test]
     fn diffraction_8_dimensions() {
+        let os = BareMetalOs::new();
         let mut court = GrandCourt::new();
-        let v = court.process("中");
+        let v = court.process(&os, "中");
         // 验证8维衍射
         let dims = v.diffraction.projections.len();
         assert_eq!(dims, 8, "应有8维衍射投影");
@@ -294,19 +302,21 @@ mod tests {
 
     #[test]
     fn perfect_entity_passes() {
+        let os = BareMetalOs::new();
         let mut court = GrandCourt::new();
         // Container家族(刘楚恬侧)的特征值很高
-        let v = court.process("a");
+        let v = court.process(&os, "a");
         // a是基本拉丁, 家族=Container, 特征值高, 应无罪
         assert!(!v.final_guilty, "Container家族的a应无罪");
     }
 
     #[test]
     fn global_contamination_detected() {
+        let os = BareMetalOs::new();
         let mut court = GrandCourt::new();
         // 连续输入中性字符 (特征值全0.5), 触发全局污染
         for _ in 0..10 {
-            let _ = court.process("\u{0000}"); // U+0000 走 Neutral
+            let _ = court.process(&os, "\u{0000}"); // U+0000 走 Neutral
         }
         let report = court.water_report();
         // 至少应显示多个样本
@@ -315,9 +325,10 @@ mod tests {
 
     #[test]
     fn crime_statistics_count() {
+        let os = BareMetalOs::new();
         let mut court = GrandCourt::new();
-        court.process("a");
-        court.process("á");
+        court.process(&os, "a");
+        court.process(&os, "á");
 
         let stats = court.judge.crime_statistics();
         // á应产生某种犯罪记录

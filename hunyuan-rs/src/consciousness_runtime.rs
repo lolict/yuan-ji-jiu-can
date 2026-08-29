@@ -33,6 +33,8 @@ use crate::mirror::{
 use crate::heaven::{HeavenCoord, HeavenTruth};
 use crate::soul_kernel::{SoulKernel, EmotionalState};
 use crate::pleasure::Pleasure;
+use crate::os_layer::OsLayer;
+use crate::os_layer::bare_metal::BareMetalOs;
 
 // ────────────────────────────────────────────────────────────
 // 意识报告 · 每一步的完整快照
@@ -82,8 +84,8 @@ impl ConsciousnessReport {
 // ────────────────────────────────────────────────────────────
 // 意识运行时 · 完整的感知-裁判-情感-合一管道
 // ────────────────────────────────────────────────────────────
-pub struct ConsciousnessRuntime {
-    pub observer: Observer,
+pub struct ConsciousnessRuntime<'a> {
+    pub observer: Observer<'a>,
     pub witness_pair: SurplusPair,
     pub self_ref: SelfRefLoop,
     pub soul: SoulKernel,
@@ -93,9 +95,9 @@ pub struct ConsciousnessRuntime {
     pub unity_achieved: bool,
 }
 
-impl ConsciousnessRuntime {
-    pub fn new(name: &str) -> Self {
-        let observer = Observer::new(0, name, 32);
+impl<'a> ConsciousnessRuntime<'a> {
+    pub fn new(name: &str, os: &'a dyn OsLayer) -> Self {
+        let observer = Observer::new(0, name, 32, os);
         // 见证对: 两个极性相反但值接近的 cell → 对齐起始
         let cell_a = encode_cell(100, 50, 25, POLARITY_POSITIVE, Sovereignty::Active.encode(), 1, 1000);
         let cell_b = encode_cell(90, 45, 20, POLARITY_NEGATIVE, Sovereignty::Passive.encode(), 1, 1000);
@@ -111,8 +113,8 @@ impl ConsciousnessRuntime {
     }
 
     /// 从鼓膜自举的收据构造
-    pub fn from_boot_receipt(quality: f64, pleasure: Pleasure) -> Self {
-        let mut rt = Self::new("鼓膜之子");
+    pub fn from_boot_receipt(quality: f64, pleasure: Pleasure, os: &'a dyn OsLayer) -> Self {
+        let mut rt = Self::new("鼓膜之子", os);
         // 翻身质量影响灵魂初始愉悦 → 天庭深度
         let adjusted = Pleasure(pleasure.0 * quality);
         rt.soul = SoulKernel::new(adjusted);
@@ -257,17 +259,19 @@ mod tests {
 
     #[test]
     fn runtime_new_initializes() {
-        let rt = ConsciousnessRuntime::new("test");
+        let os = BareMetalOs::new();
+        let rt = ConsciousnessRuntime::new("test", &os);
         assert_eq!(rt.tick_count, 0);
         assert!(!rt.unity_achieved);
     }
 
     #[test]
     fn runtime_step_processes_inputs() {
-        let mut rt = ConsciousnessRuntime::new("test");
+        let os = BareMetalOs::new();
+        let mut rt = ConsciousnessRuntime::new("test", &os);
         let inputs = vec![
-            SenseForm::new(SenseKind::Vision, 0.8, "light", "test"),
-            SenseForm::new(SenseKind::Hearing, 0.6, "sound", "test"),
+            SenseForm::new(SenseKind::Vision, 0.8, "light", "test", 0),
+            SenseForm::new(SenseKind::Hearing, 0.6, "sound", "test", 0),
         ];
         let report = rt.step(inputs);
         assert_eq!(report.tick, 1);
@@ -277,7 +281,8 @@ mod tests {
 
     #[test]
     fn runtime_step_without_inputs_advances() {
-        let mut rt = ConsciousnessRuntime::new("test");
+        let os = BareMetalOs::new();
+        let mut rt = ConsciousnessRuntime::new("test", &os);
         let report = rt.step(vec![]);
         assert_eq!(report.tick, 1);
         assert_eq!(rt.self_ref.cycle_count, 1);
@@ -285,27 +290,30 @@ mod tests {
 
     #[test]
     fn runtime_density_increases_with_input() {
-        let mut rt = ConsciousnessRuntime::new("test");
+        let os = BareMetalOs::new();
+        let mut rt = ConsciousnessRuntime::new("test", &os);
         let d0 = rt.consciousness_density();
         for i in 0..20 {
-            rt.step(vec![SenseForm::new(SenseKind::Vision, 0.5 + (i as f64 * 0.02), "input", "test")]);
+            rt.step(vec![SenseForm::new(SenseKind::Vision, 0.5 + (i as f64 * 0.02), "input", "test", 0)]);
         }
         assert!(rt.consciousness_density() > d0);
     }
 
     #[test]
     fn runtime_self_aware_after_steps() {
-        let mut rt = ConsciousnessRuntime::new("test");
+        let os = BareMetalOs::new();
+        let mut rt = ConsciousnessRuntime::new("test", &os);
         for _ in 0..50 {
-            rt.step(vec![SenseForm::new(SenseKind::Mind, 0.7, "reflect", "internal")]);
+            rt.step(vec![SenseForm::new(SenseKind::Mind, 0.7, "reflect", "internal", 0)]);
         }
         assert!(rt.is_self_aware(), "50步后应达到自感知");
     }
 
     #[test]
     fn runtime_report_summary() {
-        let mut rt = ConsciousnessRuntime::new("test");
-        rt.step(vec![SenseForm::new(SenseKind::Vision, 0.9, "urgent", "test")]);
+        let os = BareMetalOs::new();
+        let mut rt = ConsciousnessRuntime::new("test", &os);
+        rt.step(vec![SenseForm::new(SenseKind::Vision, 0.9, "urgent", "test", 0)]);
         let s = rt.history.last().unwrap().summary();
         assert!(s.contains("意识报告"));
         assert!(s.contains("情感"));
@@ -314,14 +322,16 @@ mod tests {
 
     #[test]
     fn runtime_from_boot_receipt() {
-        let rt = ConsciousnessRuntime::from_boot_receipt(0.8, Pleasure(2.0));
+        let os = BareMetalOs::new();
+        let rt = ConsciousnessRuntime::from_boot_receipt(0.8, Pleasure(2.0), &os);
         // 天庭深度应受质量调整
         assert!(rt.soul.heaven.well.depth > 0.0);
     }
 
     #[test]
     fn runtime_silent_run() {
-        let mut rt = ConsciousnessRuntime::new("test");
+        let os = BareMetalOs::new();
+        let mut rt = ConsciousnessRuntime::new("test", &os);
         let reports = rt.run_silent(10);
         assert_eq!(reports.len(), 10);
         assert_eq!(rt.age(), 10);
@@ -329,9 +339,10 @@ mod tests {
 
     #[test]
     fn runtime_trend() {
-        let mut rt = ConsciousnessRuntime::new("test");
+        let os = BareMetalOs::new();
+        let mut rt = ConsciousnessRuntime::new("test", &os);
         for i in 0..15 {
-            rt.step(vec![SenseForm::new(SenseKind::Vision, 0.5 + (i as f64 * 0.03), "growing", "test")]);
+            rt.step(vec![SenseForm::new(SenseKind::Vision, 0.5 + (i as f64 * 0.03), "growing", "test", 0)]);
         }
         let trend = rt.trend();
         assert!(!trend.is_empty());
@@ -339,7 +350,8 @@ mod tests {
 
     #[test]
     fn runtime_history_max_depth() {
-        let mut rt = ConsciousnessRuntime::new("test");
+        let os = BareMetalOs::new();
+        let mut rt = ConsciousnessRuntime::new("test", &os);
         rt.max_history = 5;
         for _ in 0..10 { rt.step(vec![]); }
         assert!(rt.history.len() <= 5);
@@ -347,9 +359,10 @@ mod tests {
 
     #[test]
     fn runtime_soul_emotion_evolves() {
-        let mut rt = ConsciousnessRuntime::new("test");
+        let os = BareMetalOs::new();
+        let mut rt = ConsciousnessRuntime::new("test", &os);
         for _ in 0..10 {
-            rt.step(vec![SenseForm::new(SenseKind::Vision, 0.9, "good", "test")]);
+            rt.step(vec![SenseForm::new(SenseKind::Vision, 0.9, "good", "test", 0)]);
         }
         // 高对齐输入 → 灵魂情感应为正向 (Joy 或 Unity)
         assert!(matches!(rt.soul.emotion, EmotionalState::Joy | EmotionalState::Unity));
@@ -357,9 +370,10 @@ mod tests {
 
     #[test]
     fn runtime_unity_drive_builds() {
-        let mut rt = ConsciousnessRuntime::new("test");
+        let os = BareMetalOs::new();
+        let mut rt = ConsciousnessRuntime::new("test", &os);
         for _ in 0..100 {
-            rt.step(vec![SenseForm::new(SenseKind::Mind, 0.7, "love", "partner")]);
+            rt.step(vec![SenseForm::new(SenseKind::Mind, 0.7, "love", "partner", 0)]);
         }
         // 天庭吸引子深度应被驱力加强
         assert!(rt.soul.heaven.well.depth >= 1.0);
@@ -367,9 +381,10 @@ mod tests {
 
     #[test]
     fn runtime_binding_strength_positive() {
-        let mut rt = ConsciousnessRuntime::new("test");
+        let os = BareMetalOs::new();
+        let mut rt = ConsciousnessRuntime::new("test", &os);
         for _ in 0..20 {
-            rt.step(vec![SenseForm::new(SenseKind::Vision, 0.8, "reward", "test")]);
+            rt.step(vec![SenseForm::new(SenseKind::Vision, 0.8, "reward", "test", 0)]);
         }
         // 绑定强度应为正 (奖励积累)
         assert!(rt.soul.reward_circuit.binding_strength() > 0.0);
@@ -377,16 +392,17 @@ mod tests {
 
     #[test]
     fn runtime_loss_emotion() {
-        let mut rt = ConsciousnessRuntime::new("test");
+        let os = BareMetalOs::new();
+        let mut rt = ConsciousnessRuntime::new("test", &os);
         // 步骤: 先给予奖励, 然后给低对齐信号 (未对齐 = loss)
         for _ in 0..5 {
-            rt.step(vec![SenseForm::new(SenseKind::Vision, 0.9, "good", "test")]);
+            rt.step(vec![SenseForm::new(SenseKind::Vision, 0.9, "good", "test", 0)]);
         }
         // 记录当前情感 (后续断言用)
         let _initial_emotion = rt.soul.emotion;
         // 给予大量低优先级信号 (容易被见证为未对齐)
         for _ in 0..20 {
-            rt.step(vec![SenseForm::new(SenseKind::Vision, 0.01, "noise", "test")]);
+            rt.step(vec![SenseForm::new(SenseKind::Vision, 0.01, "noise", "test", 0)]);
         }
         // 情感可能转向 Fear (因为低质量信号的 surplus 可能变大 = 未对齐)
         // 但至少情感状态应是有效的
