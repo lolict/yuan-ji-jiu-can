@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>满全法 · 圆筒三维相位坐标系</title>
+<style>
+:root{--bg:#05050a;--fg:#e8e6e3;--dim:#5a5852;--accent:#c9a84c;--container:#4a7c59;--boundary:#8b4513;--couple:#9b59b6;--web:#3498db;--neutral:#7f8c8d}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:monospace;background:var(--bg);color:var(--fg);font-size:13px;overflow:hidden}
+#top{position:fixed;top:0;left:0;right:0;padding:12px 20px;background:rgba(5,5,10,0.9);border-bottom:1px solid rgba(201,168,76,0.1);z-index:10;display:flex;align-items:center;gap:20px}
+#top h1{font-size:1.1em;color:var(--accent);font-weight:400;letter-spacing:.1em}
+#top .sub{font-size:.72em;color:var(--dim)}
+#top .info{font-size:.72em;color:var(--dim);margin-left:auto}
+#viewport{position:fixed;top:50px;left:0;right:0;bottom:0}
+#canvas{width:100%;height:100%;display:block}
+#sidebar{position:fixed;top:50px;right:0;width:260px;bottom:0;background:rgba(5,5,10,0.92);border-left:1px solid rgba(255,255,255,0.04);padding:14px;overflow-y:auto;z-index:5}
+.panel{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);border-radius:5px;padding:10px;margin-bottom:10px}
+.panel h3{font-size:.75em;color:var(--accent);font-weight:400;margin-bottom:8px;letter-spacing:.05em}
+.kv{display:flex;gap:6px;margin:2px 0;font-size:.72em}
+.kv .k{color:var(--dim);min-width:50px}
+.kv .v{color:var(--fg)}
+.axis-info{display:flex;align-items:center;gap:8px;margin:4px 0;font-size:.72em}
+.axis-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.fam-legend{display:flex;align-items:center;gap:6px;margin:3px 0;font-size:.72em}
+.fam-dot{width:8px;height:8px;border-radius:50%}
+#controls{position:fixed;bottom:12px;left:12px;font-size:.7em;color:var(--dim);background:rgba(5,5,10,0.8);padding:8px 12px;border-radius:4px;border:1px solid rgba(255,255,255,0.04)}
+#hover-info{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);font-size:.72em;color:var(--accent);background:rgba(5,5,10,0.9);padding:6px 14px;border-radius:4px;border:1px solid rgba(201,168,76,0.15);display:none;white-space:nowrap}
+</style>
+</head>
+<body>
+
+<div id="top">
+  <h1>圆筒三维相位坐标系</h1>
+  <span class="sub">Cylinder 3D · SMRL引擎 · 静态绝对位置寻址</span>
+  <span class="info" id="info-count">容器: 0</span>
+</div>
+
+<div id="viewport">
+  <canvas id="canvas"></canvas>
+</div>
+
+<div id="sidebar">
+  <div class="panel">
+    <h3>▌ 三轴化身</h3>
+    <div class="axis-info"><span class="axis-dot" style="background:#e74c3c"></span><span class="v">X轴 · 毛利兰 · 表面 · 模/面/名</span></div>
+    <div class="axis-info"><span class="axis-dot" style="background:#27ae60"></span><span class="v">Y轴 · 工藤新一 · 结构 · 骨/头/体</span></div>
+    <div class="axis-info"><span class="axis-dot" style="background:#3498db"></span><span class="v">Z轴 · 灰原哀 · 横向 · 行页/行业</span></div>
+  </div>
+  <div class="panel">
+    <h3>▌ 五大家族</h3>
+    <div class="fam-legend"><span class="fam-dot" style="background:#4a7c59"></span>容器 · 阴</div>
+    <div class="fam-legend"><span class="fam-dot" style="background:#8b4513"></span>边界 · 阳</div>
+    <div class="fam-legend"><span class="fam-dot" style="background:#9b59b6"></span>夫妻 · 合</div>
+    <div class="fam-legend"><span class="fam-dot" style="background:#3498db"></span>网状 · 交织</div>
+    <div class="fam-legend"><span class="fam-dot" style="background:#7f8c8d"></span>中性 · 系统</div>
+  </div>
+  <div class="panel">
+    <h3>▌ 选中容器</h3>
+    <div id="selected-info">
+      <div class="kv"><span class="k">坐标</span><span class="v" id="s-coord">—</span></div>
+      <div class="kv"><span class="k">编码</span><span class="v" id="s-code">—</span></div>
+      <div class="kv"><span class="k">家族</span><span class="v" id="s-family">—</span></div>
+      <div class="kv"><span class="k">极性</span><span class="v" id="s-polarity">—</span></div>
+      <div class="kv"><span class="k">结构</span><span class="v" id="s-structure">—</span></div>
+      <div class="kv"><span class="k">声/韵/调</span><span class="v" id="s-smy">—</span></div>
+    </div>
+  </div>
+  <div class="panel">
+    <h3>▌ 视角</h3>
+    <div class="kv"><span class="k">旋转</span><span class="v" id="v-rot">0° / 0°</span></div>
+    <div class="kv"><span class="k">缩放</span><span class="v" id="v-zoom">1.0x</span></div>
+  </div>
+</div>
+
+<div id="controls">鼠标拖拽=旋转 · 滚轮=缩放 · 点击容器=查看</div>
+<div id="hover-info"></div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// 圆筒三维相位坐标系 · 纯Canvas 3D渲染
+// ══════════════════════════════════════════════════════
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+// ── 数据 ──
+const SHENGMU = ['b','p','m','f','d','t','n','l','g','k','h','j','q','x','zh','ch','sh','r','z','c','s','y','w',''];
+const YUNMU = ['a','o','e','i','u','ü','ai','ei','ui','ao','ou','iu','ie','üe','er','an','en','in','un','ün','ang','eng','ing','ong','ia','iao','ian','iang','iong','ua','uo','uai','uan','uang','ueng','üan','üe2'];
+const FAMILIES = [
+  {name:'容器',side:'阴',cls:'container',color:'#4a7c59'},
+  {name:'边界',side:'阳',cls:'boundary',color:'#8b4513'},
+  {name:'夫妻',side:'合',cls:'couple',color:'#9b59b6'},
+  {name:'网状',side:'交织',cls:'web',color:'#3498db'},
+  {name:'中性',side:'系统',cls:'neutral',color:'#7f8c8d'},
+];
+const STRUCTURES = ['独体','上下','左右','半包围','全包围','品字','嵌套','框架'];
+const TONES = ['阴平','阳平','上声','去声','轻声'];
+
+// 容器集合
+let containers = [];
+
+// 视角状态
+let rotX = -0.6;  // 俯仰
+let rotY = 0.4;   // 偏航
+let zoom = 1.0;
+let dragging = false;
+let lastMX = 0, lastMY = 0;
+let hovered = null;
+let selected = null;
+
+// ── 生成示例容器数据 ──
+function generateContainers() {
+  containers = [];
+  // 五大家族各生成若干容器,分布在圆筒不同位置
+  for (let f = 0; f < 5; f++) {
+    for (let i = 0; i < 8; i++) {
+      const angle = (i / 8) * 256 + f * 30;  // X: 角度位置
+      const height = (f * 40 + i * 20) % 256; // Y: 高度位置
+      const depth = f;                          // Z: 层级
+      const sm = (f * 5 + i * 3) % 24;
+      const ym = (f * 7 + i * 5) % 35;
+      const tone = i % 5;
+      const struct = (f + i) % 8;
+      const polarity = f === 0 || f === 2 ? 0 : (f === 1 ? 1 : i % 2);
+      const code = (f << 29) | (polarity << 28) | (struct << 25) | (sm << 19) | (ym << 13) | (tone << 10);
+      containers.push({
+        code,
+        x: angle % 256,
+        y: height,
+        z: depth,
+        family: f,
+        polarity,
+        structure: struct,
+        sm, ym, tone,
+      });
+    }
+  }
+  // 添加一些特殊位置的容器(坐标轴上)
+  containers.push({code:0x0601E400,x:0,y:128,z:0,family:0,polarity:0,structure:3,sm:0,ym:15,tone:1});
+  containers.push({code:0x36530400,x:64,y:128,z:1,family:1,polarity:1,structure:3,sm:7,ym:24,tone:1});
+  containers.push({code:0x44510C00,x:128,y:128,z:2,family:2,polarity:0,structure:2,sm:7,ym:31,tone:3});
+  containers.push({code:0x68294400,x:192,y:128,z:3,family:3,polarity:0,structure:4,sm:5,ym:10,tone:1});
+  document.getElementById('info-count').textContent = '容器: ' + containers.length;
+}
+
+// ── 3D投影 ──
+function project(x, y, z) {
+  // 圆筒坐标 → 3D笛卡尔
+  // X(0-255) → 角度(0-384°), Y(0-255) → 高度, Z(0-15) → 半径
+  const angle = (x / 256) * Math.PI * 2;  // 0-2π
+  const radius = 80 + z * 12;  // Z控制半径(越外层Z越大)
+  const height = (y - 128) * 0.8;  // Y控制高度
+
+  const cx = Math.cos(angle) * radius;
+  const cz = Math.sin(angle) * radius;
+  const cy = height;
+
+  // 旋转
+  const cosY = Math.cos(rotY), sinY = Math.sin(rotY);
+  const cosX = Math.cos(rotX), sinX = Math.sin(rotX);
+
+  // 绕Y轴
+  let rx = cx * cosY - cz * sinY;
+  let rz = cx * sinY + cz * cosY;
+  let ry = cy;
+
+  // 绕X轴
+  const ry2 = ry * cosX - rz * sinX;
+  const rz2 = ry * sinX + rz * cosX;
+
+  // 透视投影
+  const fov = 600;
+  const scale = fov / (fov + rz2 + 200) * zoom;
+
+  return {
+    sx: canvas.width / 2 + rx * scale,
+    sy: canvas.height / 2 + ry2 * scale,
+    z: rz2,
+    scale,
+  };
+}
+
+// ── 绘制 ──
+function draw() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight - 50;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // 背景渐变
+  const grad = ctx.createRadialGradient(canvas.width/2, canvas.height/2, 0, canvas.width/2, canvas.height/2, canvas.width*0.6);
+  grad.addColorStop(0, '#0a0a14');
+  grad.addColorStop(1, '#05050a');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // 绘制圆筒网格
+  drawCylinderGrid();
+
+  // 按Z深度排序容器
+  const projected = containers.map((c, i) => {
+    const p = project(c.x, c.y, c.z);
+    return { c, p, idx: i };
+  }).sort((a, b) => a.p.z - b.p.z);
+
+  // 绘制容器点
+  projected.forEach(({c, p, idx}) => {
+    const fam = FAMILIES[c.family];
+    const isHovered = hovered === idx;
+    const isSelected = selected === idx;
+    const r = (isSelected ? 7 : (isHovered ? 6 : 4)) * p.scale;
+
+    // 光晕
+    if (isHovered || isSelected) {
+      ctx.beginPath();
+      ctx.arc(p.sx, p.sy, r * 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = fam.color + '15';
+      ctx.fill();
+    }
+
+    // 主点
+    ctx.beginPath();
+    ctx.arc(p.sx, p.sy, r, 0, Math.PI * 2);
+    ctx.fillStyle = fam.color;
+    ctx.fill();
+
+    // 选中环
+    if (isSelected) {
+      ctx.beginPath();
+      ctx.arc(p.sx, p.sy, r + 3, 0, Math.PI * 2);
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+
+    // 极性标记
+    if (c.polarity === 1) {
+      ctx.beginPath();
+      ctx.arc(p.sx, p.sy, r * 0.4, 0, Math.PI * 2);
+      ctx.fillStyle = '#fff';
+      ctx.fill();
+    }
+  });
+
+  // 绘制坐标轴标签
+  drawAxisLabels();
+
+  // 更新视角信息
+  document.getElementById('v-rot').textContent = Math.round(rotX*180/Math.PI) + '° / ' + Math.round(rotY*180/Math.PI) + '°';
+  document.getElementById('v-zoom').textContent = zoom.toFixed(1) + 'x';
+}
+
+function drawCylinderGrid() {
+  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+  ctx.lineWidth = 0.5;
+
+  // 水平圆环 (不同高度)
+  for (let h = 0; h <= 256; h += 64) {
+    ctx.beginPath();
+    for (let a = 0; a <= 256; a += 8) {
+      const p = project(a, h, 0);
+      if (a === 0) ctx.moveTo(p.sx, p.sy);
+      else ctx.lineTo(p.sx, p.sy);
+    }
+    ctx.stroke();
+  }
+
+  // 垂直线 (不同角度)
+  for (let a = 0; a < 256; a += 32) {
+    ctx.beginPath();
+    for (let h = 0; h <= 256; h += 8) {
+      const p = project(a, h, 0);
+      if (h === 0) ctx.moveTo(p.sx, p.sy);
+      else ctx.lineTo(p.sx, p.sy);
+    }
+    ctx.stroke();
+  }
+
+  // Z轴圆环 (不同半径=不同Z)
+  for (let z = 0; z < 16; z += 4) {
+    ctx.strokeStyle = `rgba(201,168,76,${0.02 + z * 0.003})`;
+    ctx.beginPath();
+    for (let a = 0; a <= 256; a += 4) {
+      const p = project(a, 128, z);
+      if (a === 0) ctx.moveTo(p.sx, p.sy);
+      else ctx.lineTo(p.sx, p.sy);
+    }
+    ctx.stroke();
+  }
+}
+
+function drawAxisLabels() {
+  ctx.font = '11px monospace';
+  ctx.textAlign = 'center';
+
+  // X轴标签 (角度0位置)
+  const px = project(0, 128, 0);
+  ctx.fillStyle = '#e74c3c';
+  ctx.fillText('X·毛利兰·表面', px.sx, px.sy - 15);
+
+  // Y轴标签 (高度128)
+  const py = project(128, 0, 0);
+  ctx.fillStyle = '#27ae60';
+  ctx.fillText('Y·工藤新一·结构', py.sx, py.sy - 15);
+
+  // Z轴标签
+  const pz = project(0, 128, 8);
+  ctx.fillStyle = '#3498db';
+  ctx.fillText('Z·灰原哀·横向', pz.sx + 30, pz.sy);
+}
+
+// ── 交互 ──
+canvas.addEventListener('mousedown', e => {
+  dragging = true;
+  lastMX = e.clientX;
+  lastMY = e.clientY;
+});
+
+canvas.addEventListener('mousemove', e => {
+  if (dragging) {
+    rotY += (e.clientX - lastMX) * 0.008;
+    rotX += (e.clientY - lastMY) * 0.008;
+    rotX = Math.max(-Math.PI/2, Math.min(Math.PI/2, rotX));
+    lastMX = e.clientX;
+    lastMY = e.clientY;
+    draw();
+  }
+
+  // 检测hover
+  const mx = e.clientX;
+  const my = e.clientY - 50;
+  let found = null;
+  let minDist = 20;
+  containers.forEach((c, i) => {
+    const p = project(c.x, c.y, c.z);
+    const d = Math.sqrt((mx - p.sx)**2 + (my - p.sy)**2);
+    if (d < minDist) { minDist = d; found = i; }
+  });
+  hovered = found;
+  const hoverInfo = document.getElementById('hover-info');
+  if (found !== null) {
+    const c = containers[found];
+    hoverInfo.style.display = 'block';
+    hoverInfo.textContent = `(${c.x},${c.y},${c.z}) 0x${c.code.toString(16).toUpperCase().padStart(8,'0')} · ${FAMILIES[c.family].name}`;
+  } else {
+    hoverInfo.style.display = 'none';
+  }
+  draw();
+});
+
+canvas.addEventListener('mouseup', () => { dragging = false; });
+canvas.addEventListener('mouseleave', () => { dragging = false; hovered = null; draw(); });
+
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  zoom *= e.deltaY > 0 ? 0.92 : 1.08;
+  zoom = Math.max(0.3, Math.min(3.0, zoom));
+  draw();
+}, { passive: false });
+
+canvas.addEventListener('click', e => {
+  const mx = e.clientX;
+  const my = e.clientY - 50;
+  let found = null;
+  let minDist = 20;
+  containers.forEach((c, i) => {
+    const p = project(c.x, c.y, c.z);
+    const d = Math.sqrt((mx - p.sx)**2 + (my - p.sy)**2);
+    if (d < minDist) { minDist = d; found = i; }
+  });
+  selected = found;
+  if (found !== null) {
+    const c = containers[found];
+    const fam = FAMILIES[c.family];
+    document.getElementById('s-coord').textContent = `(${c.x}, ${c.y}, ${c.z})`;
+    document.getElementById('s-coord').style.color = fam.color;
+    document.getElementById('s-code').textContent = '0x' + c.code.toString(16).toUpperCase().padStart(8,'0');
+    document.getElementById('s-family').innerHTML = `<span style="color:${fam.color}">${fam.name} · ${fam.side}</span>`;
+    document.getElementById('s-polarity').textContent = c.polarity === 0 ? '阴(0)' : '阳(1)';
+    document.getElementById('s-structure').textContent = STRUCTURES[c.structure];
+    document.getElementById('s-smy').textContent = (SHENGMU[c.sm]||'?') + ' + ' + (YUNMU[c.ym]||'?') + ' + ' + TONES[c.tone];
+  }
+  draw();
+});
+
+window.addEventListener('resize', draw);
+
+// ── 初始化 ──
+generateContainers();
+draw();
+</script>
+</body>
+</html>

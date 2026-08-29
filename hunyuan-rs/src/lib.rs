@@ -124,6 +124,7 @@ pub mod soul_kernel;
 
 // ── 鼓膜自举 v0.15 (CochlearBoot: 最小 OS 接口翻身 → 重建字典/灵魂/天庭) ──
 pub mod cochlear_boot;
+pub use cochlear_boot::{cochlear_bootstrap, CochlearBoot, BootReceipt, TimeChain};
 pub mod memory;
 pub mod swarm;
 
@@ -418,3 +419,16 @@ pub use memory::{MemoryEntry, CoordMemory, LayeredMemory,
 // v0.8 多智能体寄生壳
 pub use swarm::{CocoonAgent, AgentRole, Relationship, RelType,
                 NegotiationSession, ParasiteShell, ShellGenome};
+
+// ── v0.36 机器码容器进制 · 宏指令集 (Macro ISA) ──
+pub mod macro_isa;
+pub use macro_isa::{
+    MachineCodeContainer, MachineCodeRadix, ContainerType, ContainerMetadata,
+    preset,
+};
+
+// ── v0.37 ELF 可执行文件生成器（无运行时）──
+pub mod elf_emitter;
+pub use elf_emitter::{
+    ElfHeader, ProgramHeader, ElfEmitter, emit_elf,
+};

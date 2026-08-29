@@ -566,6 +566,15 @@ _lib.wk_route.restype = ctypes.c_int
 _lib.wk_stats.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_size_t]
 _lib.wk_stats.restype = None
 
+_lib.wk_save.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
+_lib.wk_save.restype = ctypes.c_int
+
+_lib.wk_load.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
+_lib.wk_load.restype = ctypes.c_int
+
+_lib.wk_serialized_size.argtypes = []
+_lib.wk_serialized_size.restype = ctypes.c_uint32
+
 
 class WasmKernelRef:
     """WASM 内核 C 核心的 Python 封装"""
@@ -623,6 +632,14 @@ class WasmKernelRef:
         buf = ctypes.create_string_buffer(256)
         _lib.wk_stats(ctypes.byref(self._buf), buf, 256)
         return buf.value.decode('utf-8', errors='replace')
+    
+    def save(self, filename: str):
+        """保存内核状态到文件"""
+        return _lib.wk_save(ctypes.byref(self._buf), filename.encode('utf-8')) == 0
+    
+    def load(self, filename: str):
+        """从文件加载内核状态"""
+        return _lib.wk_load(ctypes.byref(self._buf), filename.encode('utf-8')) == 0
     
     @staticmethod
     def cell_str(cell):

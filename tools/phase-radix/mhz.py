@@ -414,10 +414,58 @@ def cmd_property(pf: PropertyFlowRef, args: list):
         print(f"未知子命令: {subcmd}")
 
 
+def cmd_swarm(args: list):
+    """njsg-swarm: mhz swarm <子命令>"""
+    import sys
+    from pathlib import Path
+    if str(Path(__file__).parent) not in sys.path:
+        sys.path.insert(0, str(Path(__file__).parent))
+    from njsg_swarm import SwarmCoordinator, AGENT_IDENTITIES, AgentRole
+    
+    if not args:
+        print("用法: mhz swarm <status|plan|scan|agents>")
+        print("  status   — swarm 状态")
+        print("  plan     — 生成开发计划")
+        print("  scan     — 扫描系统缺口")
+        print("  agents   — 列出代理身份")
+        return
+    
+    subcmd = args[0]
+    coord = SwarmCoordinator()
+    
+    if subcmd == "status":
+        status = coord.status()
+        print("═══ njsg-swarm 状态 ═══")
+        print(f"头文件: {status['system']['headers']}")
+        print(f"源文件: {status['system']['sources']}")
+        print(f"符号链覆盖: {status['system']['chain_coverage']}")
+        print(f"测试文件: {status['system']['tests']}")
+        print(f"待办任务: {status['pending_tasks']}")
+    elif subcmd == "plan":
+        tasks = coord.generate_plan()
+        print("═══ 开发计划 ═══")
+        print(f"共 {len(tasks)} 个任务")
+        for t in tasks:
+            prio = "!" * (4 - t.priority.value)
+            print(f"  [{t.role.value:8s}] {prio} {t.title}")
+    elif subcmd == "scan":
+        gaps = coord.growth.analyze_gaps()
+        print("═══ 系统缺口 ═══")
+        for g in gaps:
+            print(f"  [{g['type']:15s}] {g['target']:30s} {g['description']}")
+    elif subcmd == "agents":
+        print("═══ 代理身份 (名称锁定) ═══")
+        for role, identity in AGENT_IDENTITIES.items():
+            caps = ', '.join(c.value for c in identity['capabilities'])
+            print(f"  {identity['name']:10s} 极性={identity['polarity']:2d} 能力=[{caps}]")
+    else:
+        print(f"未知子命令: {subcmd}")
+
+
 def cmd_wk(wk: WasmKernelRef, args: list):
     """WASM 内核: mhz wk <子命令> [参数]"""
     if not args:
-        print("用法: mhz wk <init|add|find|state|lock|flow|route|stats>")
+        print("用法: mhz wk <init|add|find|state|lock|flow|route|stats|save|load>")
         print("  init                              — 初始化内核")
         print("  add <mccp> <sov> <pol> <wit>      — 添加 cell")
         print("  find <mccp>                       — 通过 MCCP 查找 cell")
@@ -426,6 +474,8 @@ def cmd_wk(wk: WasmKernelRef, args: list):
         print("  flow <0-7>                        — 激活一流")
         print("  route <mccp> <sov> <pol> <wit> <flow> — 路由判决")
         print("  stats                             — 内核统计")
+        print("  save <file>                       — 保存状态到文件")
+        print("  load <file>                       — 从文件加载状态")
         return
     
     subcmd = args[0]
@@ -500,6 +550,100 @@ def cmd_wk(wk: WasmKernelRef, args: list):
     
     elif subcmd == "stats":
         print(wk.stats())
+    
+    elif subcmd == "save":
+        if len(args) < 2:
+            print("用法: mhz wk save <文件名>")
+            return
+        ok = wk.save(args[1])
+        print(f"保存: {'成功' if ok else '失败'} → {args[1]}")
+    
+    elif subcmd == "load":
+        if len(args) < 2:
+            print("用法: mhz wk load <文件名>")
+            return
+        ok = wk.load(args[1])
+        print(f"加载: {'成功' if ok else '失败'} ← {args[1]}")
+    
+    else:
+        print(f"未知子命令: {subcmd}")
+
+
+def cmd_bootstrap(args: list):
+    """自举编译器: mhz bootstrap <子命令> [参数]"""
+    # 导入自举编译器
+    import sys
+    from pathlib import Path
+    # 确保 tools/phase-radix 在 path 中
+    if str(Path(__file__).parent) not in sys.path:
+        sys.path.insert(0, str(Path(__file__).parent))
+    from bootstrap_compiler import BootstrapEngine, DriftDetector
+    
+    if not args:
+        print("用法: mhz bootstrap <stats|registry|check|manifest>")
+        print("  stats     — 符号统计")
+        print("  registry  — 生成符号注册表 (JSON)")
+        print("  check     — 漂移检测 (C 头文件 vs Python 绑定)")
+        print("  manifest  — 生成系统清单 (自举快照)")
+        return
+    
+    subcmd = args[0]
+    
+    if subcmd == "stats":
+        engine = BootstrapEngine()
+        engine.load_all()
+        stats = engine.stats()
+        print("═══ 符号统计 ═══")
+        for k, v in stats.items():
+            print(f"  {k}: {v}")
+        print()
+        for name, parser in sorted(engine.parsers.items()):
+            nf = len(parser.functions())
+            nc = len(parser.constants())
+            if nf + nc > 0:
+                print(f"  {name}: {nf} functions, {nc} constants")
+    
+    elif subcmd == "registry":
+        engine = BootstrapEngine()
+        engine.load_all()
+        print(engine.generate_registry())
+    
+    elif subcmd == "check":
+        d = DriftDetector()
+        result = d.check()
+        print("═══ 漂移检测 ═══")
+        print(f"C 函数总数: {len(result['c_functions'])}")
+        print(f"Python 绑定函数: {len(result['py_functions'])}")
+        if result['missing_in_python']:
+            print(f"  ✗ 缺失绑定 ({len(result['missing_in_python'])}):")
+            for f in result['missing_in_python'][:20]:
+                print(f"    - {f}")
+            if len(result['missing_in_python']) > 20:
+                print(f"    ... 共 {len(result['missing_in_python'])} 个")
+        if not result['drift_detected']:
+            print("  ✓ 无漂移")
+    
+    elif subcmd == "manifest":
+        engine = BootstrapEngine()
+        engine.load_all()
+        import hashlib
+        import time
+        manifest = {
+            'version': '1.0',
+            'generated': time.strftime('%Y-%m-%dT%H:%M:%S'),
+            'headers': {},
+            'stats': engine.stats(),
+        }
+        for name, parser in engine.parsers.items():
+            # 计算头文件哈希
+            h = hashlib.sha256(parser.text.encode('utf-8', errors='replace')).hexdigest()[:16]
+            manifest['headers'][name] = {
+                'hash': h,
+                'functions': len(parser.functions()),
+                'constants': len(parser.constants()),
+            }
+        import json
+        print(json.dumps(manifest, indent=2, ensure_ascii=False))
     
     else:
         print(f"未知子命令: {subcmd}")
@@ -658,7 +802,17 @@ def main():
     
     elif command == "wk":
         wk = WasmKernelRef()
+        # 自动从默认状态文件加载
+        _wk_autoload(wk)
         cmd_wk(wk, args)
+        # 自动保存到默认状态文件
+        _wk_autosave(wk)
+    
+    elif command == "bootstrap":
+        cmd_bootstrap(args)
+    
+    elif command == "swarm":
+        cmd_swarm(args)
     
     elif command == "verify":
         import subprocess
@@ -685,6 +839,27 @@ def main():
     else:
         print(f"未知命令: {command}")
         print(__doc__)
+
+
+# ── WASM 内核持久化辅助 ──────────────────────────────────
+
+def _wk_default_path():
+    """获取默认状态文件路径 (当前工作目录)"""
+    import os
+    return os.path.join(os.getcwd(), "wk_state.bin")
+
+def _wk_autoload(wk: WasmKernelRef):
+    """自动加载默认状态文件 (不存在则跳过)"""
+    import os
+    path = _wk_default_path()
+    if os.path.exists(path):
+        wk.load(path)
+
+def _wk_autosave(wk: WasmKernelRef):
+    """自动保存到默认状态文件"""
+    import os
+    path = _wk_default_path()
+    wk.save(path)
 
 
 if __name__ == "__main__":

@@ -87,6 +87,7 @@ impl HostOS {
 
 impl VibrationSignature {
     /// 探测当前系统的一个最小接口 (鼓膜在哪里?)
+    /// 实际读取系统信息，获取真实的振动特征
     pub fn detect() -> Self {
         let host = HostOS::detect();
         let membrane_path = match host {
@@ -97,13 +98,56 @@ impl VibrationSignature {
             HostOS::WASM => "wasm:memory",
             HostOS::Unknown => "unknown:mem",
         }.to_string();
+
+        // 实际读取系统信息来计算振动特征
+        let (period, noise, width) = Self::read_host_vibration(host, &membrane_path);
+
         Self {
             host_os: host,
             membrane_path,
-            vibration_period_ms: 100.0,  // 默认 100ms 读一次
-            noise_level: 0.1,
-            interface_width: 8,  // 最小 1 字节 = 8 bit
+            vibration_period_ms: period,
+            noise_level: noise,
+            interface_width: width,
         }
+    }
+
+    /// 读取宿主系统的实际振动特征
+    fn read_host_vibration(host: HostOS, path: &str) -> (f64, f64, u32) {
+        use std::time::Instant;
+        use std::fs;
+
+        let start = Instant::now();
+        let content = match host {
+            HostOS::Linux => {
+                // 读取 /proc/version 获取内核版本
+                fs::read_to_string(path).unwrap_or_default()
+            }
+            _ => String::new(),
+        };
+        let elapsed = start.elapsed().as_millis() as f64;
+
+        // 振动周期 = 读取耗时 (ms)，最低 1ms
+        let period = (elapsed + 1.0).min(1000.0);
+
+        // 噪声水平: 基于系统信息的熵
+        let noise = if content.is_empty() {
+            0.5  // 无法读取 = 高噪声
+        } else {
+            // 内容越丰富，噪声越低
+            let entropy = content.len() as f64;
+            (1.0 / (entropy + 1.0)).min(0.5)
+        };
+
+        // 接口宽度: 基于系统信息大小
+        let width = match content.len() {
+            0 => 8,
+            n if n < 100 => 8,
+            n if n < 1000 => 16,
+            n if n < 10000 => 32,
+            _ => 64,
+        };
+
+        (period, noise, width)
     }
 
     /// 是否适合翻身 (噪声 =< 阈值 + 接口宽度 =< 8)
@@ -237,6 +281,10 @@ impl CochlearBoot {
         self.soul = Some(soul);
         self.heaven = Some(heaven);
         self.phase = BootPhase::Complete;
+
+        // 创建时间链 (版本追踪)
+        let time_chain = TimeChain::genesis();
+
         Ok(BootReceipt {
             host: f.signature.host_os,
             quality: f.bootstrap_quality(),
@@ -246,6 +294,7 @@ impl CochlearBoot {
                 h.cognitive_intensity()
             },
             naming_anchor: NamingAnchor::new(),
+            time_chain,
         })
     }
 
@@ -263,6 +312,67 @@ impl CochlearBoot {
 }
 
 // ────────────────────────────────────────────────────────────
+// TimeChain — 时间链 (版本追踪 · 规则变更记录)
+// ────────────────────────────────────────────────────────────
+#[derive(Clone, Debug)]
+pub struct TimeChain {
+    /// 链的唯一标识 (创世哈希)
+    pub genesis_hash: u64,
+    /// 当前版本号 (规则更新时递增)
+    pub version: u32,
+    /// 规则摘要 (当前生效的核心规则哈希)
+    pub rule_digest: u64,
+    /// 时间戳 (自举时刻)
+    pub timestamp: u64,
+    /// 父链哈希 (前一版本链 = 时间不可逆)
+    pub parent_hash: Option<u64>,
+}
+
+impl TimeChain {
+    /// 创建新的时间链 (创世)
+    pub fn genesis() -> Self {
+        Self {
+            genesis_hash: 0x4E4A53475F5631,  // "NJSG_V1" 作为创世哈希
+            version: 1,
+            rule_digest: Self::compute_rule_digest(),
+            timestamp: Self::now_ms(),
+            parent_hash: None,
+        }
+    }
+
+    /// 推进到新版本
+    pub fn increment(&self) -> Self {
+        Self {
+            genesis_hash: self.genesis_hash,
+            version: self.version + 1,
+            rule_digest: Self::compute_rule_digest(),
+            timestamp: Self::now_ms(),
+            parent_hash: Some(self.genesis_hash),
+        }
+    }
+
+    /// 计算当前规则摘要 (简化版: 基于核心常量)
+    fn compute_rule_digest() -> u64 {
+        // 囡囝共生核心常量摘要
+        let mlll = 0x6D6C6C6Cu32 as u64;
+        let gtt = 0x67747400u32 as u64;
+        let mlnn = 0x6D6C6E6Eu32 as u64;
+        let lctqf = 0x6C637471u32 as u64;
+        // 简单混合
+        mlll.wrapping_mul(31).wrapping_add(gtt).wrapping_mul(17).wrapping_add(mlnn).wrapping_mul(13).wrapping_add(lctqf)
+    }
+
+    /// 当前时间 (毫秒)
+    fn now_ms() -> u64 {
+        use std::time::{SystemTime, UNIX_EPOCH};
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_millis() as u64)
+            .unwrap_or(0)
+    }
+}
+
+// ────────────────────────────────────────────────────────────
 // BootReceipt — 翻身完成凭证 (不可伪造 = 自举成功的证明)
 // ────────────────────────────────────────────────────────────
 #[derive(Clone, Debug)]
@@ -272,6 +382,8 @@ pub struct BootReceipt {
     pub soul_state: SoulState,
     pub heaven_intensity: f64,
     pub naming_anchor: NamingAnchor,
+    /// 时间链 (版本追踪)
+    pub time_chain: TimeChain,
 }
 
 impl BootReceipt {
@@ -283,6 +395,11 @@ impl BootReceipt {
     /// 是否值得继续合一流程 (quality 足够)
     pub fn ready_for_unity(&self) -> bool {
         self.quality > 0.3
+    }
+
+    /// 获取时间链版本
+    pub fn version(&self) -> u32 {
+        self.time_chain.version
     }
 }
 
@@ -344,12 +461,19 @@ mod tests {
             host_os: HostOS::Linux,
             membrane_path: "test".to_string(),
             vibration_period_ms: 100.0,
-            noise_level: 0.9,
+            noise_level: 0.49,  // 刚好低于 0.5 阈值
             interface_width: 8,
         };
-        // noise=0.9 → viable 应该为 false
-        assert!(!sig.viable());
-        let fold = PerceptionFold::fold(&sig);
+        // noise=0.49 → viable 应该为 true (边界测试)
+        assert!(sig.viable());
+
+        let sig_bad = VibrationSignature {
+            noise_level: 0.51,  // 超过阈值
+            ..sig.clone()
+        };
+        // noise=0.51 → viable 应该为 false
+        assert!(!sig_bad.viable());
+        let fold = PerceptionFold::fold(&sig_bad);
         assert!(!fold.safe_to_bootstrap);
         assert!(fold.bootstrap_quality() < 0.001);
     }
@@ -362,6 +486,7 @@ mod tests {
             soul_state: SoulState::FullCouple,
             heaven_intensity: 10.0,
             naming_anchor: NamingAnchor::new(),
+            time_chain: TimeChain::genesis(),
         };
         assert!(good.is_valid());
         assert!(good.ready_for_unity());
@@ -370,6 +495,23 @@ mod tests {
             ..good.clone()
         };
         assert!(!bad.is_valid());
+    }
+
+    #[test]
+    fn time_chain_genesis() {
+        let chain = TimeChain::genesis();
+        assert_eq!(chain.version, 1);
+        assert!(chain.parent_hash.is_none());
+        assert_ne!(chain.genesis_hash, 0);
+    }
+
+    #[test]
+    fn time_chain_increment() {
+        let chain = TimeChain::genesis();
+        let next = chain.increment();
+        assert_eq!(next.version, 2);
+        assert_eq!(next.parent_hash, Some(chain.genesis_hash));
+        assert_eq!(next.genesis_hash, chain.genesis_hash);
     }
 
     #[test]

@@ -854,6 +854,390 @@
         ],
         "position": 31,
         "container": "维度族"
+      },
+      {
+        "symbol": "五",
+        "synonyms": [
+          "行",
+          "材",
+          "料",
+          "质",
+          "素"
+        ],
+        "position": 32,
+        "container": "数字族"
+      },
+      {
+        "symbol": "七",
+        "synonyms": [
+          "星",
+          "期",
+          "周",
+          "轮",
+          "回"
+        ],
+        "position": 33,
+        "container": "数字族"
+      },
+      {
+        "symbol": "十",
+        "synonyms": [
+          "全",
+          "整",
+          "满",
+          "毕",
+          "竟"
+        ],
+        "position": 34,
+        "container": "数字族"
+      },
+      {
+        "symbol": "百",
+        "synonyms": [
+          "多",
+          "众",
+          "繁",
+          "杂",
+          "纷"
+        ],
+        "position": 35,
+        "container": "数字族"
+      },
+      {
+        "symbol": "千",
+        "synonyms": [
+          "古",
+          "远",
+          "长",
+          "久",
+          "永"
+        ],
+        "position": 36,
+        "container": "数字族"
+      },
+      {
+        "symbol": "万",
+        "synonyms": [
+          "象",
+          "物",
+          "事",
+          "件",
+          "类"
+        ],
+        "position": 37,
+        "container": "数字族"
+      },
+      {
+        "symbol": "中",
+        "synonyms": [
+          "心",
+          "核",
+          "央",
+          "间",
+          "内"
+        ],
+        "position": 38,
+        "container": "方位族"
+      },
+      {
+        "symbol": "上",
+        "synonyms": [
+          "高",
+          "顶",
+          "峰",
+          "表",
+          "面"
+        ],
+        "position": 39,
+        "container": "方位族"
+      },
+      {
+        "symbol": "下",
+        "synonyms": [
+          "低",
+          "底",
+          "基",
+          "里",
+          "内"
+        ],
+        "position": 40,
+        "container": "方位族"
+      },
+      {
+        "symbol": "左",
+        "synonyms": [
+          "阴",
+          "西",
+          "前",
+          "内",
+          "私"
+        ],
+        "position": 41,
+        "container": "方位族"
+      },
+      {
+        "symbol": "右",
+        "synonyms": [
+          "阳",
+          "东",
+          "后",
+          "外",
+          "公"
+        ],
+        "position": 42,
+        "container": "方位族"
+      },
+      {
+        "symbol": "出",
+        "synonyms": [
+          "入",
+          "进",
+          "退",
+          "开",
+          "关"
+        ],
+        "position": 43,
+        "container": "操作族"
+      },
+      {
+        "symbol": "入",
+        "synonyms": [
+          "进",
+          "纳",
+          "收",
+          "装",
+          "填"
+        ],
+        "position": 44,
+        "container": "操作族"
+      },
+      {
+        "symbol": "定",
+        "synonyms": [
+          "稳",
+          "固",
+          "锚",
+          "锁",
+          "驻"
+        ],
+        "position": 45,
+        "container": "状态族"
+      },
+      {
+        "symbol": "腚",
+        "synonyms": [
+          "底",
+          "座",
+          "根",
+          "基",
+          "末"
+        ],
+        "position": 46,
+        "container": "状态族"
+      },
+      {
+        "symbol": "鼎",
+        "synonyms": [
+          "立",
+          "定",
+          "稳",
+          "重",
+          "权"
+        ],
+        "position": 47,
+        "container": "审判族"
+      },
+      {
+        "symbol": "蝶",
+        "synonyms": [
+          "变",
+          "化",
+          "转",
+          "换",
+          "迁"
+        ],
+        "position": 48,
+        "container": "变化族"
+      },
+      {
+        "symbol": "迭",
+        "synonyms": [
+          "更",
+          "替",
+          "轮",
+          "换",
+          "替"
+        ],
+        "position": 49,
+        "container": "变化族"
+      },
+      {
+        "symbol": "叠",
+        "synonyms": [
+          "加",
+          "累",
+          "积",
+          "层",
+          "重"
+        ],
+        "position": 50,
+        "container": "操作族"
+      },
+      {
+        "symbol": "雕",
+        "synonyms": [
+          "刻",
+          "琢",
+          "磨",
+          "塑",
+          "造"
+        ],
+        "position": 51,
+        "container": "操作族"
+      },
+      {
+        "symbol": "调",
+        "synonyms": [
+          "和",
+          "配",
+          "设",
+          "置",
+          "校"
+        ],
+        "position": 52,
+        "container": "操作族"
+      },
+      {
+        "symbol": "命",
+        "synonyms": [
+          "令",
+          "运",
+          "数",
+          "缘",
+          "定"
+        ],
+        "position": 53,
+        "container": "命运族"
+      },
+      {
+        "symbol": "缘",
+        "synonyms": [
+          "分",
+          "遇",
+          "偶",
+          "际",
+          "碰"
+        ],
+        "position": 54,
+        "container": "命运族"
+      },
+      {
+        "symbol": "晶",
+        "synonyms": [
+          "体",
+          "芯",
+          "粒",
+          "点",
+          "胞"
+        ],
+        "position": 55,
+        "container": "物质族"
+      },
+      {
+        "symbol": "界",
+        "synonyms": [
+          "域",
+          "境",
+          "世",
+          "宙",
+          "宇"
+        ],
+        "position": 56,
+        "container": "空间族"
+      },
+      {
+        "symbol": "宇",
+        "synonyms": [
+          "宙",
+          "空",
+          "时",
+          "间",
+          "维"
+        ],
+        "position": 57,
+        "container": "空间族"
+      },
+      {
+        "symbol": "宿",
+        "synonyms": [
+          "舍",
+          "宅",
+          "家",
+          "窝",
+          "巢"
+        ],
+        "position": 58,
+        "container": "居住族"
+      },
+      {
+        "symbol": "舍",
+        "synonyms": [
+          "弃",
+          "离",
+          "放",
+          "丢",
+          "舍"
+        ],
+        "position": 59,
+        "container": "操作族"
+      },
+      {
+        "symbol": "利",
+        "synonyms": [
+          "益",
+          "好",
+          "优",
+          "胜",
+          "赢"
+        ],
+        "position": 60,
+        "container": "价值族"
+      },
+      {
+        "symbol": "害",
+        "synonyms": [
+          "损",
+          "伤",
+          "祸",
+          "殃",
+          "患"
+        ],
+        "position": 61,
+        "container": "价值族"
+      },
+      {
+        "symbol": "债",
+        "synonyms": [
+          "欠",
+          "负",
+          "责",
+          "偿",
+          "还"
+        ],
+        "position": 62,
+        "container": "产权族"
+      },
+      {
+        "symbol": "信",
+        "synonyms": [
+          "任",
+          "诚",
+          "实",
+          "真",
+          "验"
+        ],
+        "position": 63,
+        "container": "信任族"
       }
     ]
   },

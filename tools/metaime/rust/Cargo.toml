@@ -1,0 +1,15 @@
+[package]
+name = "metaime"
+version = "0.1.0"
+edition = "2021"
+description = "MetaIME - FQM Ontology Quantization Engine (zero runtime memory)"
+
+[features]
+default = ["std"]
+std = []
+no_std = []
+
+[dependencies]
+
+[lib]
+path = "src/lib.rs"

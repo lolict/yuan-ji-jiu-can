@@ -1,0 +1,29 @@
+# 意交感息（isi）符号定义文件
+# 格式：名称 偏旁 笔画数 声母 韵母 声调 五笔
+#
+# 偏旁映射：
+#   贝=读取 扌=写入 讠=执行 辶=跳转 口=调用
+#   囗=返回 人=镜像 穴=空集 氵=过滤 火=传递
+
+# 基础操作
+读取 贝 4 b a 1 gm
+写入 扌 3 t ou 1 rfh
+执行 讠 2 zh i 1 yyy
+跳转 辶 3 ch u 4 pny
+调用 口 3 k ou 3 kkk
+返回 囗 3 w ei 2 lhng
+镜像 人 2 r en 2 wyy
+空集 穴 5 x ve 4 pwa
+过滤 氵 3 l i 3 iyy
+传递 火 4 h uo 3 ooo
+
+# 容器符号
+fqm 女 3 f ang 1 vll
+kn 木 4 k an 1 svb
+lchut 手 4 l iu 2 rt
+gttx 纟 3 g ai 1 xnn
+
+# 进制符号
+zero 雨 8 l ing 2 fgh
+one 横 15 h eng 1 gsk
+oneself 乙 1 y i 1 nnl

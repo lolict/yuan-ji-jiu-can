@@ -163,4 +163,25 @@ NJSG_EXPORT int  wk_route(wk_kernel_t *kernel, NJSG_uint64 symbol, wk_flow_t flo
  */
 NJSG_EXPORT void wk_stats(const wk_kernel_t *kernel, char *buf, NJSG_size buf_size);
 
+/**
+ * 持久化: 保存内核状态到文件
+ * @param kernel     内核指针
+ * @param filename   文件路径
+ * @return 0=成功 · -1=失败
+ */
+NJSG_EXPORT int  wk_save(const wk_kernel_t *kernel, const char *filename);
+
+/**
+ * 持久化: 从文件加载内核状态
+ * @param kernel     内核指针 (需先 wk_init)
+ * @param filename   文件路径
+ * @return 0=成功 · -1=失败
+ */
+NJSG_EXPORT int  wk_load(wk_kernel_t *kernel, const char *filename);
+
+/**
+ * 获取内核序列化大小 (用于预分配缓冲区)
+ */
+NJSG_EXPORT NJSG_uint32 wk_serialized_size(void);
+
 #endif /* NJSG_WASM_KERNEL_H */

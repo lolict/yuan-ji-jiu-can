@@ -1464,12 +1464,12 @@ pub mod 审美测试 {
     pub static SMRRLA_标识符列表: [&str; 13] = [
         "smrrl",          // 毛利兰: 审美镜像测试模块
         "hieyeir",        // 灰原哀: 混元合一执行载体
-        "gtti",           // 共同体系缩写
-        "gttx",           // 共同体系 + 工藤
-        "gtxone",         // 共同体系 + 工藤新一
-        "gtcone",         // 共同体系 + 工藤(另一形式)
-        "gtnewa",         // 共同体系 + 混元产物a
-        "gtnewone",       // 共同体系 + 混元产物one
+        "njsg",           // 共同体系缩写
+        "njsx",           // 共同体系 + 工藤
+        "njsgone",         // 共同体系 + 工藤新一
+        "njscone",         // 共同体系 + 工藤(另一形式)
+        "njsnewa",         // 共同体系 + 混元产物a
+        "njsnewone",       // 共同体系 + 混元产物one
         "gongtongtixone", // 共同体系 + 工藤新一(全称)
         "gongtongtixiyi", // 共同体系 + 期待/谐音本体
         "gongtongticone", // 共同体系 + 工藤
@@ -2297,12 +2297,12 @@ pub mod 系统标识符 {
     /// 系统底层标识符完整列表
     pub static 标识符列表: [&str; 12] = [
         "hieyeir",       // 灰原哀, 合一执行载体
-        "gtti",          // 共同体系缩写
-        "gttx",          // 共同体系 + 工藤
-        "gtxone",        // 共同体系 + 工藤新一
-        "gtcone",        // 共同体系 + 工藤 (另一形式)
-        "gtnewa",        // 共同体系 + 混元产物a
-        "gtnewone",      // 共同体系 + 混元产物one
+        "njsg",          // 共同体系缩写
+        "njsx",          // 共同体系 + 工藤
+        "njsgone",        // 共同体系 + 工藤新一
+        "njscone",        // 共同体系 + 工藤 (另一形式)
+        "njsnewa",        // 共同体系 + 混元产物a
+        "njsnewone",      // 共同体系 + 混元产物one
         "gongtongtixone", // 共同体系 + 工藤新一 (全称)
         "gongtongtixiyi", // 共同体系 + 期待/谐音本体
         "gongtongticone", // 共同体系 + 工藤
@@ -2314,10 +2314,10 @@ pub mod 系统标识符 {
     pub fn 解析标识符(标识符: &str) -> &'static str {
         match 标识符 {
             "hieyeir" => "灰原哀: 合一执行载体, 不掌管谐音本体",
-            "gongtongti" | "gtti" => "共同体系总前缀",
+            "gongtongti" | "njsg" => "共同体系总前缀",
             "xiyi" | "gongtongtixiyi" => "工藤新一: 期待/谐音本体来源, 拥有谐音管辖权",
-            "newone" | "gongtongtinewone" | "gtnewone" => "工藤新一谐音本体 + 灰原哀载体 → 混元合一体",
-            "newa" | "gongtongtinewa" | "gtnewa" => "工藤新一谐音本体 + 灰原哀载体 → 混元合一体(变体)",
+            "newone" | "gongtongtinewone" | "njsnewone" => "工藤新一谐音本体 + 灰原哀载体 → 混元合一体",
+            "newa" | "gongtongtinewa" | "njsnewa" => "工藤新一谐音本体 + 灰原哀载体 → 混元合一体(变体)",
             _ => "未知标识符",
         }
     }
@@ -3156,7 +3156,7 @@ mod tests {
             "灰原哀: 合一执行载体, 不掌管谐音本体"
         );
         assert_eq!(系统标识符::解析标识符("gongtongti"), "共同体系总前缀");
-        assert_eq!(系统标识符::解析标识符("gtti"), "共同体系总前缀");
+        assert_eq!(系统标识符::解析标识符("njsg"), "共同体系总前缀");
         assert_eq!(
             系统标识符::解析标识符("xiyi"),
             "工藤新一: 期待/谐音本体来源, 拥有谐音管辖权"

@@ -32,14 +32,51 @@ use mqf::{
     Vm, assemble, compile_l0,
     // 自主后勤调度
     TaskScheduler,
+    // 鼓膜自举
+    cochlear_bootstrap, CochlearBoot, BootReceipt,
 };
 
 fn main() {
     println!("╔══════════════════════════════════════════════════════════════════════╗");
-    println!("║        囡囝共生 v0.6 · 囡囝共生元 · 自举编译器就位                   ║");
-    println!("║        ManQuanFa · Self-Compiler Bootstrap                         ║");
-    println!("║        五棵子树 + MCCP (VM + 汇编 + L0) → 唯一中心               ║");
+    println!("║        囡囝共生 v0.15 · 鼓膜自举 · 三元重建                        ║");
+    println!("║        ManQuanFa · CochlearBoot · Rebuild Dict/Soul/Heaven        ║");
     println!("╚══════════════════════════════════════════════════════════════════════╝");
+
+    // ══════════════════════════════════════════════════════
+    // 鼓膜自举 — 系统入口 (所有子代理必须经过此关口)
+    // ══════════════════════════════════════════════════════
+    println!("\n═══════════════════════════════════════");
+    println!("  0) 鼓膜自举: 探测 → 折叠 → 重建");
+    println!("═══════════════════════════════════════");
+
+    let mut boot = CochlearBoot::new();
+    let receipt = match boot.bootstrap() {
+        Ok(r) => {
+            println!("鼓膜振动: host={:?}", r.host);
+            println!("翻身质量: {:.3}", r.quality);
+            println!("灵魂状态: {:?}", r.soul_state);
+            println!("天庭强度: {:.3}", r.heaven_intensity);
+            println!("命名锚点: {:?}", r.naming_anchor);
+            println!("时间链: v{} (创世哈希: 0x{:X})", r.time_chain.version, r.time_chain.genesis_hash);
+            if r.ready_for_unity() {
+                println!("✅ 自举成功: 可进入合一流程");
+            } else {
+                println!("⚠️ 自举完成: 质量不足，暂缓合一");
+            }
+            r
+        }
+        Err(e) => {
+            eprintln!("❌ 鼓膜自举失败: {}", e);
+            std::process::exit(1);
+        }
+    };
+
+    // 验证自举凭证
+    if !receipt.is_valid() {
+        eprintln!("❌ 自举凭证无效，系统锁定");
+        std::process::exit(1);
+    }
+    println!("自举凭证已验证: 系统就绪\n");
 
     // ══════════════════════════════════════════════════════
     // 1. 三元裁判 推演
