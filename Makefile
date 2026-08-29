@@ -65,6 +65,15 @@ encoding-bridge-kernel: kernel/src/encoding_bridge_kernel.c kernel/src/encoding_
 	  -o kernel/src/encoding_bridge_kernel.elf -lm
 	./kernel/src/encoding_bridge_kernel.elf
 
+# 产权流侵权判定树测试
+test-property-judge: encoding/property_judge.c encoding/property_judge.h encoding/test_property_judge.c
+	$(CC) $(CFLAGS) -DMLLL_LIBRARY -Iencoding \
+	  encoding/test_property_judge.c \
+	  encoding/property_judge.c \
+	  -o encoding/test_property_judge.elf -lm
+	@echo "═══ 产权流侵权判定树 · vA+vB==2·v_core ═══"
+	./encoding/test_property_judge.elf
+
 # 部首星图端到端测试 (水/火/言三部)
 test-radix-star: encoding/radix_star.c encoding/radix_star.h encoding/test_radix_star.c
 	$(CC) $(CFLAGS) -DMLLL_LIBRARY -Iencoding \
