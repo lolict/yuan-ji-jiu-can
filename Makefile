@@ -65,6 +65,15 @@ encoding-bridge-kernel: kernel/src/encoding_bridge_kernel.c kernel/src/encoding_
 	  -o kernel/src/encoding_bridge_kernel.elf -lm
 	./kernel/src/encoding_bridge_kernel.elf
 
+# 部首星图端到端测试 (水/火/言三部)
+test-radix-star: encoding/radix_star.c encoding/radix_star.h encoding/test_radix_star.c
+	$(CC) $(CFLAGS) -DMLLL_LIBRARY -Iencoding \
+	  encoding/test_radix_star.c \
+	  encoding/radix_star.c \
+	  -o encoding/test_radix_star.elf -lm
+	@echo "═══ 部首星图 · 水/火/言三部端到端 ═══"
+	./encoding/test_radix_star.elf
+
 # 全局控制容器 → 内核桥接测试
 test-global-control-kernel: kernel/src/global_control_bridge_kernel.c \
                             kernel/include/global_control_bridge_kernel.h \
