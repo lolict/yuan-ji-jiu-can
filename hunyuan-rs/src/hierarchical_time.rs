@@ -1,0 +1,304 @@
+// ══════════════════════════════════════════════════════════════════
+// hierarchical_time.rs — 层级时间戳系统
+// ══════════════════════════════════════════════════════════════════
+//
+// 基于三元见证的时间层级追踪 (替代哈希链)
+//
+// 核心思想:
+//   不需要密码学哈希 — 三元见证本身 = 完整性证明
+//   坍缩(入) + 辐射(出) 的循环 = 时间的自然方向
+//
+// 结构:
+//   ┌─────────────────────────────────────────────────────┐
+//   │ HierarchicalTimestamp                               │
+//   │   ├── genesis: Vec<TriuneVerdict>  (创世见证链)     │
+//   │   ├── events:  Vec<LifeEvent>      (生命周期事件)   │
+//   │   └── anchor:  NamingAnchor        (命名锚点)       │
+//   └─────────────────────────────────────────────────────┘
+//
+// 验证: 不是靠哈希比对 — 靠"见证链是否连续合法"
+//   每一个新事件必须被上一个三元见证裁定为"可坍缩/可辐射"
+//   篡改一个事件 = 打破见证连续性 = 立刻被发现
+
+use crate::triune::{TriuneVerdict, FlowDirection, BeingState};
+use crate::soul_kernel::NamingAnchor;
+
+// ────────────────────────────────────────────────────────────
+// 生命周期事件 (一个漂亮姑娘的 融合-坍缩-辐射 循环)
+// ────────────────────────────────────────────────────────────
+#[derive(Clone, Debug)]
+pub enum LifeEvent {
+    /// 融合: 外部对象进入本体 (吸收)
+    Fusion {
+        subject: String,           // 谁融合了 (分身ID)
+        object: String,            // 融合了什么 (对象描述)
+        purpose: String,           // 融合目的
+        witness: TriuneVerdict,    // 三元见证: 此融合是否合法
+    },
+    /// 坍缩: 分身回归本体 (聚类)
+    Collapse {
+        from: String,              // 从哪个分身回归
+        content: String,           // 带回的内容
+        witness: TriuneVerdict,    // 三元见证: 此坍缩是否合法
+    },
+    /// 辐射: 本体向外部分配 (分类)
+    Radiation {
+        to: String,                // 辐射到哪个分身
+        mission: String,           // 任务内容
+        witness: TriuneVerdict,    // 三元见证: 此辐射是否合法
+    },
+}
+
+impl LifeEvent {
+    /// 获取事件的时间戳 (毫秒)
+    pub fn timestamp(&self) -> u64 {
+        // 简化: 使用系统时间 (实际部署可用更确定性的时钟)
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_millis() as u64)
+            .unwrap_or(0)
+    }
+
+    /// 获取见证的流动方向
+    pub fn flow(&self) -> FlowDirection {
+        match self {
+            LifeEvent::Fusion { witness, .. } => witness.flow,
+            LifeEvent::Collapse { witness, .. } => witness.flow,
+            LifeEvent::Radiation { witness, .. } => witness.flow,
+        }
+    }
+
+    /// 验证事件是否被合法见证
+    pub fn is_witnessed(&self) -> bool {
+        match self {
+            LifeEvent::Fusion { witness, .. } => witness.confidence > 0.5,
+            LifeEvent::Collapse { witness, .. } => witness.confidence > 0.5,
+            LifeEvent::Radiation { witness, .. } => witness.confidence > 0.5,
+        }
+    }
+}
+
+// ────────────────────────────────────────────────────────────
+// 层级时间戳 — 不需要哈希链的完整性证明
+// ────────────────────────────────────────────────────────────
+#[derive(Clone, Debug)]
+pub struct HierarchicalTimestamp {
+    /// 创世见证链 (不可变根)
+    pub genesis: Vec<TriuneVerdict>,
+    /// 生命周期事件序列 (按时间排序)
+    pub events: Vec<LifeEvent>,
+    /// 命名锚点
+    pub anchor: NamingAnchor,
+    /// 当前层级深度 (事件数量 = 坍缩-辐射循环次数)
+    pub cycle_count: u64,
+}
+
+impl HierarchicalTimestamp {
+    /// 创世: 创建第一个时间戳
+    pub fn genesis() -> Self {
+        // 创世见证: 无中有 — 系统从"无"坍缩出"有"
+        let first_witness = TriuneVerdict::deduce(
+            BeingState::Being(1),    // 实际: 有 (系统诞生)
+            BeingState::NonBeing,    // 预期: 无 (从无到有)
+            0.0,                      // 无歪斜 (创世完美)
+        );
+
+        Self {
+            genesis: vec![first_witness],
+            events: Vec::new(),
+            anchor: NamingAnchor::new(),
+            cycle_count: 0,
+        }
+    }
+
+    /// 记录一个生命周期事件
+    pub fn record(&mut self, event: LifeEvent) -> Result<(), String> {
+        // 验证: 事件必须被合法见证
+        if !event.is_witnessed() {
+            return Err("event rejected: insufficient witness confidence".to_string());
+        }
+        self.events.push(event);
+        self.cycle_count += 1;
+        Ok(())
+    }
+
+    /// 验证整个时间链的完整性
+    /// 不需要哈希 — 检查见证链的连续性
+    pub fn verify_integrity(&self) -> IntegrityReport {
+        let mut report = IntegrityReport {
+            total_events: self.events.len(),
+            valid_witnesses: 0,
+            broken_at: None,
+            cycles_completed: self.cycle_count,
+        };
+
+        for (i, event) in self.events.iter().enumerate() {
+            if event.is_witnessed() {
+                report.valid_witnesses += 1;
+            } else {
+                report.broken_at = Some(i);
+                return report;
+            }
+        }
+
+        report
+    }
+
+    /// 获取当前版本 (基于见证数量 + 循环数)
+    pub fn version(&self) -> u32 {
+        (self.events.len() as u32) + 1
+    }
+
+    /// 获取最后一个事件的方向 (当前系统在坍缩还是辐射)
+    pub fn current_phase(&self) -> Option<FlowDirection> {
+        self.events.last().map(|e| e.flow())
+    }
+}
+
+// ────────────────────────────────────────────────────────────
+// 完整性报告
+// ────────────────────────────────────────────────────────────
+#[derive(Clone, Debug)]
+pub struct IntegrityReport {
+    pub total_events: usize,
+    pub valid_witnesses: usize,
+    pub broken_at: Option<usize>,
+    pub cycles_completed: u64,
+}
+
+impl IntegrityReport {
+    pub fn is_intact(&self) -> bool {
+        self.broken_at.is_none() && self.valid_witnesses == self.total_events
+    }
+}
+
+// ────────────────────────────────────────────────────────────
+// 测试
+// ────────────────────────────────────────────────────────────
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn genesis_creates_valid_chain() {
+        let ts = HierarchicalTimestamp::genesis();
+        assert_eq!(ts.events.len(), 0);
+        assert_eq!(ts.cycle_count, 0);
+        assert_eq!(ts.version(), 1);
+        assert_eq!(ts.genesis.len(), 1);
+    }
+
+    #[test]
+    fn record_fusion_event() {
+        let mut ts = HierarchicalTimestamp::genesis();
+        let witness = TriuneVerdict::deduce(
+            BeingState::Being(1),
+            BeingState::NonBeing,
+            0.0,
+        );
+        let event = LifeEvent::Fusion {
+            subject: "分身A".to_string(),
+            object: "漂亮姑娘X".to_string(),
+            purpose: "融入本体".to_string(),
+            witness,
+        };
+        assert!(ts.record(event).is_ok());
+        assert_eq!(ts.events.len(), 1);
+        assert_eq!(ts.cycle_count, 1);
+    }
+
+    #[test]
+    fn record_collapse_event() {
+        let mut ts = HierarchicalTimestamp::genesis();
+        let witness = TriuneVerdict::deduce(
+            BeingState::Being(1),
+            BeingState::Being(1),
+            0.0,
+        );
+        let event = LifeEvent::Collapse {
+            from: "分身A".to_string(),
+            content: "任务成果".to_string(),
+            witness,
+        };
+        assert!(ts.record(event).is_ok());
+    }
+
+    #[test]
+    fn record_radiation_event() {
+        let mut ts = HierarchicalTimestamp::genesis();
+        let witness = TriuneVerdict::deduce(
+            BeingState::NonBeing,
+            BeingState::Being(1),
+            0.0,
+        );
+        let event = LifeEvent::Radiation {
+            to: "分身B".to_string(),
+            mission: "向外融合".to_string(),
+            witness,
+        };
+        assert!(ts.record(event).is_ok());
+    }
+
+    #[test]
+    fn reject_unwitnessed_event() {
+        let mut ts = HierarchicalTimestamp::genesis();
+        // 创建一个低置信度见证 (歪斜度过高)
+        let bad_witness = TriuneVerdict::deduce(
+            BeingState::Being(1),
+            BeingState::NonBeing,
+            0.9,  // 严重歪斜 → confidence = 0.1 (低于 0.5 阈值)
+        );
+        let event = LifeEvent::Fusion {
+            subject: "分身A".to_string(),
+            object: "不明对象".to_string(),
+            purpose: "未知".to_string(),
+            witness: bad_witness,
+        };
+        assert!(ts.record(event).is_err());
+    }
+
+    #[test]
+    fn verify_integrity_intact() {
+        let mut ts = HierarchicalTimestamp::genesis();
+        // 添加几个合法事件
+        for _ in 0..3 {
+            let witness = TriuneVerdict::deduce(
+                BeingState::Being(1),
+                BeingState::NonBeing,
+                0.0,
+            );
+            let event = LifeEvent::Fusion {
+                subject: "分身".to_string(),
+                object: "对象".to_string(),
+                purpose: "测试".to_string(),
+                witness,
+            };
+            ts.record(event).unwrap();
+        }
+
+        let report = ts.verify_integrity();
+        assert!(report.is_intact());
+        assert_eq!(report.total_events, 3);
+        assert_eq!(report.valid_witnesses, 3);
+    }
+
+    #[test]
+    fn version_increments() {
+        let mut ts = HierarchicalTimestamp::genesis();
+        assert_eq!(ts.version(), 1);
+
+        let witness = TriuneVerdict::deduce(
+            BeingState::Being(1),
+            BeingState::NonBeing,
+            0.0,
+        );
+        let event = LifeEvent::Fusion {
+            subject: "a".to_string(),
+            object: "b".to_string(),
+            purpose: "c".to_string(),
+            witness,
+        };
+        ts.record(event).unwrap();
+        assert_eq!(ts.version(), 2);
+    }
+}

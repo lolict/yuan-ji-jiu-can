@@ -470,7 +470,7 @@ impl JudgmentEngine {
         }
     }
 
-    pub fn judge(&self, bag: &Bag) -> JudgmentResult {
+    pub fn judge(&self, bag: &Bag, timestamp_ms: u64) -> JudgmentResult {
         let quality = bag.attrs.composite_quality();
         let verdict_quality = quality >= self.pass_threshold;
         let passes_divisor = self.divisor.is_valid_multiple(bag);
@@ -492,7 +492,7 @@ impl JudgmentEngine {
             format!("质量{:.0}%>=阈值 且符合公约数", pct(quality))
         };
 
-        JudgmentResult { bag_id: bag.id, verdict_passed: final_verdict, confidence, reason, timestamp_ms: current_timestamp_ms() }
+        JudgmentResult { bag_id: bag.id, verdict_passed: final_verdict, confidence, reason, timestamp_ms }
     }
 
     pub fn feedback(&mut self, bag_id: u64, verdict: bool, actual: bool, confidence: f64) -> f64 {

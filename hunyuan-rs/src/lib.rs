@@ -432,3 +432,9 @@ pub mod elf_emitter;
 pub use elf_emitter::{
     ElfHeader, ProgramHeader, ElfEmitter, emit_elf,
 };
+
+// ── v0.38 OS 抽象层（跨平台 · Linux/Windows/macOS/Bare Metal）──
+pub mod os_layer;
+pub use os_layer::{
+    OsLayer, OsError, current_os,
+};

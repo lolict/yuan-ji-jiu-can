@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>满全法 · 自有进制圆筒坐标系</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:monospace;background:#05050a;color:#e8e6e3;font-size:13px;overflow:hidden}
+#top{position:fixed;top:0;left:0;right:0;padding:10px 18px;background:rgba(5,5,10,0.92);border-bottom:1px solid rgba(201,168,76,0.1);z-index:10;display:flex;align-items:center;gap:16px}
+#top h1{font-size:1em;color:#c9a84c;font-weight:400;letter-spacing:.08em}
+#top .sub{font-size:.7em;color:#5a5852}
+#top .base-info{font-size:.7em;color:#5a5852;margin-left:auto}
+#viewport{position:fixed;top:48px;left:0;right:0;bottom:0}
+#canvas{width:100%;height:100%}
+#side{position:fixed;top:48px;right:0;width:240px;bottom:0;background:rgba(5,5,10,0.93);border-left:1px solid rgba(255,255,255,0.04);padding:12px;overflow-y:auto;z-index:5}
+.p{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);border-radius:4px;padding:8px;margin-bottom:8px}
+.p h3{font-size:.72em;color:#c9a84c;font-weight:400;margin-bottom:6px}
+.kv{display:flex;gap:6px;margin:2px 0;font-size:.7em}
+.kv k{color:#5a5852;min-width:48px}
+.kv v{color:#e8e6e3}
+#ctl{position:fixed;bottom:10px;left:10px;font-size:.68em;color:#5a5852;background:rgba(5,5,10,0.8);padding:6px 10px;border-radius:4px;border:1px solid rgba(255,255,255,0.04)}
+#hv{position:fixed;bottom:10px;left:50%;transform:translateX(-50%);font-size:.7em;color:#c9a84c;background:rgba(5,5,10,0.9);padding:5px 12px;border-radius:4px;border:1px solid rgba(201,168,76,0.12);display:none;white-space:nowrap}
+</style>
+</head>
+<body>
+<div id="top">
+  <h1>圆筒坐标系</h1>
+  <span class="base-info">X=48 · Y=64 · Z=16</span>
+</div>
+<div id="viewport"><canvas id="canvas"></canvas></div>
+<div id="side">
+  <div class="p">
+    <h3>三轴</h3>
+    <div class="kv"><k>X 48格</k><v>毛利兰 · 表面</v></div>
+    <div class="kv"><k>Y 64格</k><v>工藤新一 · 结构</v></div>
+    <div class="kv"><k>Z 16格</k><v>灰原哀 · 横向</v></div>
+  </div>
+  <div class="p">
+    <h3>选中</h3>
+    <div class="kv"><k>坐标</k><v id="s-coord">—</v></div>
+    <div class="kv"><k>编码</k><v id="s-code">—</v></div>
+    <div class="kv"><k>家族</k><v id="s-fam">—</v></div>
+    <div class="kv"><k>声/韵/调</k><v id="s-smy">—</v></div>
+  </div>
+</div>
+<div id="ctl">拖拽=旋转 · 滚轮=缩放 · 点击=选中</div>
+<div id="hv"></div>
+
+<script>
+// 满全法自有进制圆筒坐标系
+// X=48 (声母进制) · Y=64 (几何化身) · Z=16 (层级深度)
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+const BASE_X = 48;   // 声母进制
+const BASE_Y = 64;   // 64几何化身
+const BASE_Z = 16;   // 层级深度
+
+const SHENGMU = ['b','p','m','f','d','t','n','l','g','k','h','j','q','x','zh','ch','sh','r','z','c','s','y','w',''];
+const YUNMU = ['a','o','e','i','u','ü','ai','ei','ui','ao','ou','iu','ie','üe','er','an','en','in','un','ün','ang','eng','ing','ong','ia','iao','ian','iang','iong','ua','uo','uai','uan','uang','ueng','üan','üe2'];
+const FAM = [
+  {name:'容器',side:'阴',color:'#4a7c59'},
+  {name:'边界',side:'阳',color:'#8b4513'},
+  {name:'夫妻',side:'合',color:'#9b59b6'},
+  {name:'网状',side:'交织',color:'#3498db'},
+  {name:'中性',side:'系统',color:'#7f8c8d'},
+];
+const STR = ['独体','上下','左右','半包围','全包围','品字','嵌套','框架'];
+const TONE = ['阴平','阳平','上声','去声','轻声'];
+
+let containers = [];
+let rotX = -0.6, rotY = 0.5, zoom = 1;
+let drag = false, lastX = 0, lastY = 0;
+let hover = null, sel = null;
+
+// 生成容器
+(function gen() {
+  for (let f = 0; f < 5; f++) {
+    for (let i = 0; i < 6; i++) {
+      const x = (i * 7 + f * 11) % BASE_X;
+      const y = (f * 10 + i * 9) % BASE_Y;
+      const z = f;
+      const sm = (f * 4 + i * 3) % 24;
+      const ym = (f * 6 + i * 5) % 35;
+      const tone = i % 5;
+      const st = (f + i) % 8;
+      const pol = f === 0 || f === 2 ? 0 : (f === 1 ? 1 : i % 2);
+      containers.push({code:(f<<29)|(pol<<28)|(st<<25)|(sm<<19)|(ym<<13)|(tone<<10),x,y,z,f,pol,st,sm,ym,tone});
+    }
+  }
+})();
+
+// 3D投影: X→角度, Y→高度, Z→半径
+function proj(x, y, z) {
+  const angle = (x / BASE_X) * Math.PI * 2;
+  const radius = 70 + z * 14;
+  const h = (y - BASE_Y/2) * 4;
+  const cx = Math.cos(angle) * radius;
+  const cz = Math.sin(angle) * radius;
+  const cy = h;
+  const cosY = Math.cos(rotY), sinY = Math.sin(rotY);
+  const cosX = Math.cos(rotX), sinX = Math.sin(rotX);
+  let rx = cx * cosY - cz * sinY;
+  let rz = cx * sinY + cz * cosY;
+  let ry = cy;
+  const ry2 = ry * cosX - rz * sinX;
+  const rz2 = ry * sinX + rz * cosX;
+  const fov = 600;
+  const s = fov / (fov + rz2 + 200) * zoom;
+  return {sx: canvas.width/2 + rx*s, sy: canvas.height/2 + ry2*s, z: rz2, s};
+}
+
+function draw() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight - 48;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#05050a';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // 网格
+  ctx.lineWidth = 0.4;
+  for (let h = 0; h < BASE_Y; h += 8) {
+    ctx.strokeStyle = 'rgba(255,255,255,0.025)';
+    ctx.beginPath();
+    for (let a = 0; a <= BASE_X; a += 2) {
+      const p = proj(a, h, 0);
+      if (a === 0) ctx.moveTo(p.sx, p.sy); else ctx.lineTo(p.sx, p.sy);
+    }
+    ctx.stroke();
+  }
+  for (let a = 0; a < BASE_X; a += 6) {
+    ctx.strokeStyle = 'rgba(255,255,255,0.02)';
+    ctx.beginPath();
+    for (let h = 0; h <= BASE_Y; h += 4) {
+      const p = proj(a, h, 0);
+      if (h === 0) ctx.moveTo(p.sx, p.sy); else ctx.lineTo(p.sx, p.sy);
+    }
+    ctx.stroke();
+  }
+  for (let z = 0; z < BASE_Z; z += 4) {
+    ctx.strokeStyle = `rgba(201,168,76,${0.02+z*0.004})`;
+    ctx.beginPath();
+    for (let a = 0; a <= BASE_X; a += 2) {
+      const p = proj(a, BASE_Y/2, z);
+      if (a === 0) ctx.moveTo(p.sx, p.sy); else ctx.lineTo(p.sx, p.sy);
+    }
+    ctx.stroke();
+  }
+
+  // 容器
+  const pp = containers.map((c,i) => ({c, p: proj(c.x,c.y,c.z), i}))
+    .sort((a,b) => a.p.z - b.p.z);
+
+  pp.forEach(({c,p,i}) => {
+    const f = FAM[c.f];
+    const r = (sel===i?7:(hover===i?5:3.5)) * p.s;
+    if (hover===i||sel===i) {
+      ctx.beginPath(); ctx.arc(p.sx,p.sy,r*2.5,0,Math.PI*2);
+      ctx.fillStyle = f.color+'12'; ctx.fill();
+    }
+    ctx.beginPath(); ctx.arc(p.sx,p.sy,r,0,Math.PI*2);
+    ctx.fillStyle = f.color; ctx.fill();
+    if (c.pol === 1) {
+      ctx.beginPath(); ctx.arc(p.sx,p.sy,r*0.35,0,Math.PI*2);
+      ctx.fillStyle = '#fff'; ctx.fill();
+    }
+    if (sel === i) {
+      ctx.beginPath(); ctx.arc(p.sx,p.sy,r+3,0,Math.PI*2);
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.stroke();
+    }
+  });
+}
+
+// 交互
+canvas.addEventListener('mousedown', e => {drag=true; lastX=e.clientX; lastY=e.clientY;});
+canvas.addEventListener('mousemove', e => {
+  if (drag) {
+    rotY += (e.clientX-lastX)*0.007;
+    rotX += (e.clientY-lastY)*0.007;
+    rotX = Math.max(-1.5,Math.min(1.5,rotX));
+    lastX=e.clientX; lastY=e.clientY; draw();
+  }
+  const mx=e.clientX, my=e.clientY-48;
+  let fd=null, md=18;
+  containers.forEach((c,i) => {
+    const p=proj(c.x,c.y,c.z);
+    const d=Math.sqrt((mx-p.sx)**2+(my-p.sy)**2);
+    if (d<md) {md=d; fd=i;}
+  });
+  hover=fd;
+  const hv=document.getElementById('hv');
+  if (fd!==null) {
+    const c=containers[fd];
+    hv.style.display='block';
+    hv.textContent=`(${c.x},${c.y},${c.z}) ${FAM[c.f].name}`;
+  } else { hv.style.display='none'; }
+  draw();
+});
+canvas.addEventListener('mouseup', ()=> drag=false);
+canvas.addEventListener('mouseleave', ()=> {drag=false; hover=null; draw();});
+canvas.addEventListener('wheel', e => {
+  e.preventDefault(); zoom *= e.deltaY>0?0.9:1.1;
+  zoom=Math.max(0.3,Math.min(3,zoom)); draw();
+}, {passive:false});
+canvas.addEventListener('click', e => {
+  const mx=e.clientX, my=e.clientY-48;
+  let fd=null, md=18;
+  containers.forEach((c,i) => {
+    const p=proj(c.x,c.y,c.z);
+    const d=Math.sqrt((mx-p.sx)**2+(my-p.sy)**2);
+    if (d<md) {md=d; fd=i;}
+  });
+  sel = fd;
+  if (fd!==null) {
+    const c=containers[fd];
+    document.getElementById('s-coord').textContent=`(${c.x},${c.y},${c.z})`;
+    document.getElementById('s-code').textContent='0x'+c.code.toString(16).toUpperCase().padStart(8,'0');
+    document.getElementById('s-fam').innerHTML=`<span style="color:${FAM[c.f].color}">${FAM[c.f].name}</span>`;
+    document.getElementById('s-smy').textContent=(SHENGMU[c.sm]||'?')+'+'+(YUNMU[c.ym]||'?')+'+'+TONE[c.tone];
+  }
+  draw();
+});
+window.addEventListener('resize', draw);
+draw();
+</script>
+</body>
+</html>
