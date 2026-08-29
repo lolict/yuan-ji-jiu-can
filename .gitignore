@@ -23,5 +23,6 @@ sim/life_society
 sim/life_society_fq
 sim/unified_society
 bin/
+.bin/
 tools/gtxone/
 zig-linux-x86_64-0.13.0/
