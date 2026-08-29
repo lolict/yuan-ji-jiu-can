@@ -1,0 +1,106 @@
+{
+  "version": 10,
+  "entries": [
+    {
+      "id": "mem_1",
+      "type": "mtRule",
+      "content": "基元冻结: 声母24+韵母33+声调4",
+      "source": "主人",
+      "timestamp": "2026-08-29T18:04:42+08:00",
+      "importance": 10,
+      "permanent": true
+    },
+    {
+      "id": "mem_7",
+      "type": "mtSymbol",
+      "content": "a",
+      "source": "主人",
+      "timestamp": "2026-08-29T18:04:42+08:00",
+      "importance": 10,
+      "permanent": true
+    },
+    {
+      "id": "mem_5",
+      "type": "mtError",
+      "content": "用系统编码(U+0080+)覆盖用户符号",
+      "source": "主人批评",
+      "timestamp": "2026-08-29T18:04:42+08:00",
+      "importance": 8,
+      "permanent": false
+    },
+    {
+      "id": "mem_6",
+      "type": "mtError",
+      "content": "忘记历史符号 · 重复定义",
+      "source": "主人批评",
+      "timestamp": "2026-08-29T18:04:42+08:00",
+      "importance": 7,
+      "permanent": false
+    },
+    {
+      "id": "mem_9",
+      "type": "mtSymbol",
+      "content": "ꬰ=禁止(AI发明)",
+      "source": "主人",
+      "timestamp": "2026-08-29T18:04:42+08:00",
+      "importance": 10,
+      "permanent": true
+    },
+    {
+      "id": "mem_8",
+      "type": "mtSymbol",
+      "content": "ai",
+      "source": "主人",
+      "timestamp": "2026-08-29T18:04:42+08:00",
+      "importance": 10,
+      "permanent": true
+    },
+    {
+      "id": "mem_3",
+      "type": "mtRule",
+      "content": "元老规则 > 子代理认知",
+      "source": "主人",
+      "timestamp": "2026-08-29T18:04:42+08:00",
+      "importance": 9,
+      "permanent": true
+    },
+    {
+      "id": "mem_2",
+      "type": "mtRule",
+      "content": "白名单外字符一律死刑",
+      "source": "主人",
+      "timestamp": "2026-08-29T18:04:42+08:00",
+      "importance": 10,
+      "permanent": true
+    },
+    {
+      "id": "mem_4",
+      "type": "mtError",
+      "content": "使用ꬰ等AI发明的伪符号",
+      "source": "主人批评",
+      "timestamp": "2026-08-29T18:04:42+08:00",
+      "importance": 8,
+      "permanent": false
+    },
+    {
+      "id": "mem_0",
+      "type": "mtRule",
+      "content": "符号只能从symbol_index.nim取 · 禁止自创",
+      "source": "主人",
+      "timestamp": "2026-08-29T18:04:42+08:00",
+      "importance": 10,
+      "permanent": true
+    }
+  ],
+  "rules": [
+    "符号只能从symbol_index.nim取 · 禁止自创",
+    "基元冻结: 声母24+韵母33+声调4",
+    "白名单外字符一律死刑",
+    "元老规则 > 子代理认知"
+  ],
+  "errors": [
+    "使用ꬰ等AI发明的伪符号",
+    "用系统编码(U+0080+)覆盖用户符号",
+    "忘记历史符号 · 重复定义"
+  ]
+}
