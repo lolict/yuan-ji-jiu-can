@@ -214,7 +214,7 @@ fqm.tt fqm.tif fqm.tiff fqm.jpeg
 
 **禁止使用以下词汇描述本系统**：
 
-类、对象、继承、多态、设计模式、文件、目录、进程、线程、模块、包、接口、实现、封装、override、virtual、template、generic、singleton、factory、observer、MVC、MVVM、REST、API、endpoint、microservice、monolith、函数、变量、数组、字符串、整数、null、循环、递归、遍历、并行、并发、调用、返回、参数、属性、方法、字段、实例、对象、类
+类、对象、继承、多态、设计模式、文件、目录、进程、线程、模块、包、接口、实现、封装、override、virtual、template、generic、singleton、factory、observer、MVC、MVVM、REST、API、endpoint、microservice、monolith、函数、变量、数组、字符串、整数、null、循环、递归、遍历、并行、并发、调用、返回、参数、属性、方法、字段、实例
 
 **禁止行为**：
 - 用面向对象词汇描述容器
@@ -259,10 +259,11 @@ fqm.tt fqm.tif fqm.tiff fqm.jpeg
 
 1. **本文件**（GLOBAL_PROMPT_V2.md）——确认全局提示词
 2. **GLOBAL_CHAIN_MASTER_LOCK_V2.md**——确认总开关状态
-3. **SOVEREIGNTY.md**——确认禁区名单
-4. **64_keys.md**——确认当前符号队列状态
-5. **judgment_rules.md**——确认新符号入住规则
-6. **GLOBAL_DESTINATION.md**——确认当前目标
+3. **GLOBAL_INTERLOCK_NEURAL_NETWORK.md**——确认神经网络结构
+4. **SOVEREIGNTY.md**——确认禁区名单
+5. **64_keys.md**——确认当前符号队列状态
+6. **judgment_rules.md**——确认新符号入住规则
+7. **GLOBAL_DESTINATION.md**——确认当前目标
 
 **全部读完后，输出**：
 ```

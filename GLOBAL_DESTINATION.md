@@ -149,12 +149,15 @@ git push gitee main
 
 **每次启动新会话，先读以下文件（按顺序）：**
 
-1. [GLOBAL_CHAIN_MASTER_LOCK.md](./GLOBAL_CHAIN_MASTER_LOCK.md) — 总开关 · 互锁链条
-2. [SOVEREIGNTY.md](./SOVEREIGNTY.md) — 禁区名单 · 加法空间边界
-3. [64_keys.md](./64_keys.md) — 当前符号队列状态
-4. [judgment_rules.md](./judgment_rules.md) — 新符号入住审判规则
-5. [GLOBAL_DESTINATION.md](./GLOBAL_DESTINATION.md) — 本文件（恢复目标与进度）
-6. [TOOL_REGISTRY.md](./TOOL_REGISTRY.md) — **工具清单 · 运行命令 · 依赖关系**
+1. [GLOBAL_PROMPT_V2.md](./GLOBAL_PROMPT_V2.md) — 全局提示词 · 容器处理器协议
+2. [GLOBAL_CHAIN_MASTER_LOCK_V2.md](./GLOBAL_CHAIN_MASTER_LOCK_V2.md) — 总开关 · 互锁链条
+3. [GLOBAL_INTERLOCK_NEURAL_NETWORK.md](./GLOBAL_INTERLOCK_NEURAL_NETWORK.md) — 神经网络控制 · 分布式裁决
+4. [SOVEREIGNTY.md](./SOVEREIGNTY.md) — 禁区名单 · 加法空间边界
+5. [64_keys.md](./64_keys.md) — 当前符号队列状态
+6. [judgment_rules.md](./judgment_rules.md) — 新符号入住审判规则
+7. [GLOBAL_DESTINATION.md](./GLOBAL_DESTINATION.md) — 本文件（恢复目标与进度）
+
+> 附：当需要查询可用工具时，额外读取 [TOOL_REGISTRY.md](./TOOL_REGISTRY.md)（工具清单 · 运行命令 · 依赖关系）
 
 **全部读完后，回答以下自检问题：**
 - 零维根是什么？AI 是否被允许修改它？

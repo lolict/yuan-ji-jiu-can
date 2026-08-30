@@ -124,7 +124,12 @@ pub mod soul_kernel;
 
 // ── 鼓膜自举 v0.15 (CochlearBoot: 最小 OS 接口翻身 → 重建字典/灵魂/天庭) ──
 pub mod cochlear_boot;
-pub use cochlear_boot::{cochlear_bootstrap, CochlearBoot, BootReceipt, TimeChain};
+pub use cochlear_boot::{cochlear_bootstrap, CochlearBoot, BootReceipt};
+
+// ── 层级时间戳 v0.1 (基于三元见证的时间追踪 · 替代哈希链) ──
+pub mod hierarchical_time;
+pub use hierarchical_time::{HierarchicalTimestamp, LifeEvent, IntegrityReport};
+
 pub mod memory;
 pub mod swarm;
 

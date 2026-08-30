@@ -314,10 +314,11 @@ fqm扩展名清单是全局互锁文件的**身份标记系统**：
 
 1. **GLOBAL_PROMPT_V2.md**——确认全局提示词
 2. **本文件**（GLOBAL_CHAIN_MASTER_LOCK_V2.md）——确认总开关状态
-3. **SOVEREIGNTY.md**——确认禁区名单
-4. **64_keys.md**——确认当前符号队列状态
-5. **judgment_rules.md**——确认新符号入住规则
-6. **GLOBAL_DESTINATION.md**——确认当前目标
+3. **GLOBAL_INTERLOCK_NEURAL_NETWORK.md**——确认神经网络结构
+4. **SOVEREIGNTY.md**——确认禁区名单
+5. **64_keys.md**——确认当前符号队列状态
+6. **judgment_rules.md**——确认新符号入住规则
+7. **GLOBAL_DESTINATION.md**——确认当前目标
 
 ### 9.2 启动输出
 
