@@ -115,6 +115,9 @@ pub mod temporal_engine;
 // ── 后勤引擎 v0.1 (分支同步自动机 · 任务调度 · 感知闭环) ──
 pub mod logistics_engine;
 
+// ── 感知引擎 v0.1 (认知闭环 · 信号感知 · 自主决策) ──
+pub mod perception_engine;
+
 // ── 天庭空间 v0.15 (吸引子×叠加态×纤维丛×Topos 四模型复合) ──
 pub mod heaven;
 pub mod tianjue;
@@ -387,6 +390,11 @@ pub use temporal_engine::{
 // v0.10 后勤引擎 (任务类型 · 执行引擎)
 pub use logistics_engine::{
     LogisticsTask, TaskOutcome, LogisticsEngine,
+};
+
+// v0.10 感知引擎 (信号 · 快照 · 决策)
+pub use perception_engine::{
+    SignalKind, PerceptionSnapshot, PerceptionEngine, Trend,
 };
 
 // v0.6 谐音协议
