@@ -102,7 +102,8 @@ impl VibrationSignature {
         }.to_string();
 
         // 实际读取系统信息来计算振动特征
-        let (period, noise, width) = Self::read_host_vibration(host, &membrane_path);
+        let os = crate::os_layer::current_os();
+        let (period, noise, width) = Self::read_host_vibration(&*os, host, &membrane_path);
 
         Self {
             host_os: host,
@@ -114,11 +115,10 @@ impl VibrationSignature {
     }
 
     /// 读取宿主系统的实际振动特征
-    fn read_host_vibration(host: HostOS, path: &str) -> (f64, f64, u32) {
-        use std::time::Instant;
+    fn read_host_vibration(os: &dyn OsLayer, host: HostOS, path: &str) -> (f64, f64, u32) {
         use std::fs;
 
-        let start = Instant::now();
+        let start = os.perf_counter_ns();
         let content = match host {
             HostOS::Linux => {
                 // 读取 /proc/version 获取内核版本
@@ -126,7 +126,7 @@ impl VibrationSignature {
             }
             _ => String::new(),
         };
-        let elapsed = start.elapsed().as_millis() as f64;
+        let elapsed = (os.perf_counter_ns() - start) as f64 / 1_000_000.0;
 
         // 振动周期 = 读取耗时 (ms)，最低 1ms
         let period = (elapsed + 1.0).min(1000.0);

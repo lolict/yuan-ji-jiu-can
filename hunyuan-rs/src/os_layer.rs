@@ -50,6 +50,10 @@ pub trait OsLayer: Send + Sync + Debug {
     
     /// 获取平台名称
     fn platform(&self) -> &str;
+
+    /// 获取高精度性能计数器（纳秒）
+    /// 用于测量操作耗时，不保证与 wall-clock 对齐
+    fn perf_counter_ns(&self) -> u64;
 }
 
 /// OS 错误类型
@@ -159,6 +163,16 @@ pub mod linux {
         fn platform(&self) -> &str {
             "Linux"
         }
+
+        fn perf_counter_ns(&self) -> u64 {
+            // 使用 SystemTime 获取纳秒级时间戳
+            // 在 OS 层实现中可替换为 clock_gettime(CLOCK_MONOTONIC) 等
+            use std::time::{SystemTime, UNIX_EPOCH};
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos() as u64
+        }
     }
 }
 
@@ -239,6 +253,13 @@ pub mod windows {
 
         fn platform(&self) -> &str {
             "Windows"
+        }
+
+        fn perf_counter_ns(&self) -> u64 {
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos() as u64
         }
     }
 }
@@ -321,6 +342,13 @@ pub mod macos {
         fn platform(&self) -> &str {
             "macOS"
         }
+
+        fn perf_counter_ns(&self) -> u64 {
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos() as u64
+        }
     }
 }
 
@@ -399,6 +427,11 @@ pub mod bare_metal {
         fn platform(&self) -> &str {
             "Bare Metal"
         }
+
+        fn perf_counter_ns(&self) -> u64 {
+            // 裸机：返回 time_millis() * 1_000_000 作为纳秒近似值
+            self.time_millis() * 1_000_000
+        }
     }
 }
 
@@ -460,6 +493,9 @@ impl OsLayer for Box<dyn OsLayer> {
     }
     fn net_recv(&self, host: &str, port: u16, buf: &mut [u8]) -> Result<usize, OsError> {
         (**self).net_recv(host, port, buf)
+    }
+    fn perf_counter_ns(&self) -> u64 {
+        (**self).perf_counter_ns()
     }
 }
 

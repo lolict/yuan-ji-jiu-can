@@ -1,7 +1,8 @@
 #!/bin/bash
 # build.sh — 纯 zig cc 命令行,绕过 build 系统 API
 set -e
-ZIG="${ZIG:-zig}"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ZIG="${ZIG:-$SCRIPT_DIR/.zig/zig}"
 CC="$ZIG cc"
 
 echo "[1] wasm32 → zig-out/wasm32/release/mqf32.wasm"
