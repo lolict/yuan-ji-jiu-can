@@ -37,6 +37,7 @@
 | 29 | 流代数 | tools/flow-algebra/flow/ | Nim | `nim c --cc:clang --path:. -r fa_demo.nim` | ✅ |
 | 30 | 自举意识 | tools/consciousness/consciousness/ | Nim | `nim c --cc:clang --path:. -r cb_demo.nim` | ✅ |
 | 31 | 符号原生引导 | tools/symbol-bootstrap/symbol_bootstrap/ | Nim | `nim c --cc:clang --path:. -r sb_demo.nim` | ✅ 共享域·版本时间链·☉§☉纠缠态·守护者三禁自检·子代理注入 |
+| 32 | 三维几何可视化 | tools/geo-3d/ | Nim | `nim c --cc:clang -r g3d_demo.nim` | ✅ 符号→几何实体·极性→颜色·类别→形状·关系→空间连线 |
 
 ### 第三类：检索与判定
 

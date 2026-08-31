@@ -71,6 +71,7 @@
 | 29 | flow-algebra | tools/flow-algebra/ | ✅ 流代数·八流体系·牺牲机制 |
 | 30 | consciousness | tools/consciousness/ | ✅ 自举意识·固定点5/5·自洽度1.0 |
 | 31 | symbol-bootstrap | tools/symbol-bootstrap/ | ✅ 符号原生引导·共享域·版本时间链·☉§☉纠缠态 |
+| 32 | geo-3d | tools/geo-3d/ | ✅ 三维几何可视化·符号→几何实体·关系→空间连线 |
 
 ---
 
