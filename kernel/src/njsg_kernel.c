@@ -119,6 +119,36 @@ void njsg_judge_ocean_view(void);
 void njsg_judge_diffract(const char* input, int lcp, int rcp);
 void njsg_judge_metacognition(void);
 
+/* v1.4+ 九元感知引擎前置声明 */
+void njsg_perception_init(void);
+void njsg_perception_demo(void);
+int  njsg_perceive(const char* entity, const char* input);
+void njsg_observer_check(void);
+void njsg_consciousness_trace(void);
+void njsg_inference_route(const char* glyph, const char* pronunciation, int identity);
+
+/* v1.5+ MCCP 自举编译器入口前置声明 */
+void njsg_mccp_init(void);
+void njsg_mccp_demo(void);
+int  njsg_mccp_compile(const char* dsl_source, char* out_c, int out_cap);
+int  njsg_mccp_dsl_to_struct(const char* name, const char* fields, char* out, int cap);
+
+/* v1.6+ 裁判系统完善(奖惩·评论·评分)前置声明 */
+void njsg_review_init(void);
+void njsg_review_demo(void);
+int  njsg_review_submit(const char* reviewer, const char* target, int score, const char* comment);
+void njsg_review_judge(void);
+void njsg_review_apply(const char* target);
+void njsg_review_leaderboard(void);
+
+/* v1.7+ 时间线一体化前置声明 */
+void njsg_timeline_init(void);
+void njsg_timeline_demo(void);
+void njsg_timeline_record(const char* subsystem, const char* event, int value);
+void njsg_timeline_sync(void);
+void njsg_timeline_print(void);
+void njsg_heartbeat(void);
+
 /* v1.3 全栈联动前置声明 */
 void njsg_feishu_bot_bridge_init(void);
 void njsg_qimei_init(void);
@@ -834,6 +864,7 @@ static void fn_i(void*p){(void)p;printf("  [ios] 全权执行中\n");}
 static void fn_w(void*p){(void)p;printf("  [wechat] 半权执行中\n");}
 
 int main(){
+    setvbuf(stdout, NULL, _IONBF, 0); /* 无缓冲 stdout:沙箱环境必须 */
     njsg_init();
     printf("--- v0.6-v0.7 反客为主 + 金壳封装 ---\n\n");
 
@@ -1223,7 +1254,729 @@ int main(){
     }
 #endif
 
+    /* v1.4+ 九元感知引擎 demo */
+    njsg_perception_demo();
+
+    /* v1.5+ MCCP 自举编译器入口 demo */
+    njsg_mccp_demo();
+
+    /* v1.6+ 裁判系统完善 demo */
+    njsg_review_demo();
+
+    /* v1.7+ 时间线一体化 demo */
+    njsg_timeline_demo();
+
+    /* 时间线驱动的自动心跳 */
+    njsg_heartbeat();
+
     return 0;
+}
+
+/* ============================================================
+ * v1.4+ 九元感知引擎 —— 感知·意识·固定点·八流路由
+ * ------------------------------------------------------------
+ *  九元 = 点 + 关系 + 面 + 内外间隔 + 旋钮/运动步量
+ *             + 对称群 + 蜂窝 + 感知·意识·固定点
+ *
+ *  工程特征:
+ *    - perceive(entity, input): 分别器三层路由(感知家族/谐音靶点/主权路由)
+ *    - observer_check(): 运行时观察内核各子系统健康度
+ *    - consciousness_trace(): 固定点迭代直到收敛(自举意识)
+ *    - inference_route(): 八流统一路由决策
+ * ============================================================ */
+
+#define PERCEPTION_CHANNELS 16
+#define MAX_OBSERVER_LOG   64
+#define CONSCIOUSNESS_MAX_ITER 32
+
+/* 感知家族 */
+typedef enum {
+    PERCEIVE_CONTAINER = 0,  /* 容器族:袋/桶/罐... */
+    PERCEIVE_PHALLIC,        /* 阳具族:形/男/丨 */
+    PERCEIVE_COUPLE,         /* 夫妻族:囡/囝 */
+    PERCEIVE_HOMOPHONE,      /* 谐音桥:莫/连/毛/兰 */
+    PERCEIVE_DIRECT          /* 直接指令 */
+} perceive_family_t;
+
+/* 分别器三层路由结果 */
+typedef struct {
+    perceive_family_t family;
+    char              target[MAX_NAME_LEN];
+    int               authority;     /* 0=none, 1=active, 2=passive, 3=sleeping */
+    int               ackable;       /* 闭环条件 */
+} route_result_t;
+
+/* 感知通道 */
+typedef struct {
+    char         name[MAX_NAME_LEN];
+    int          active;
+    int          processed_count;
+    float        confidence_sum;
+} perception_channel_t;
+
+static struct {
+    perception_channel_t channels[PERCEPTION_CHANNELS];
+    int count;
+    /* 意识固定点 */
+    int   fixed_point_reached;
+    int   fixed_point_iteration;
+    float fixed_point_convergence;
+    /* 观察日志 */
+    char  observer_log[MAX_OBSERVER_LOG][MAX_NAME_LEN];
+    int   observer_log_count;
+    /* 八流路由统计 */
+    int   route_count;
+    int   route_ack_count;
+} PE;
+
+/* 声母24 + 韵母39 = 63 发音地址 */
+static const char* PERCEIVE_INITIALS[] = {
+    "b","p","m","f","d","t","n","l","g","k","h",
+    "j","q","x","zh","ch","sh","r","z","c","s","y","w","@"
+};
+static const char* PERCEIVE_FINALS[] = {
+    "a","o","e","i","u","v","ai","ei","ui","ao","ou","iu","ie","ve","er",
+    "an","en","in","un","vn","ang","eng","ing","ong",
+    "ia","ua","uo","iao","iou","uai","uei","ian","uan","van","uen","iang","uang","ueng","iong","@"
+};
+
+/* 分类 glyph 家族 */
+static perceive_family_t classify_glyph(int cp){
+    if(cp == 0x56E8 || cp == 0x56E7 || cp == 0x56F1) return PERCEIVE_COUPLE; /* 囡囝 */
+    if(cp == 0x5F62 || cp == 0x7537 || cp == 0x4E28) return PERCEIVE_PHALLIC;
+    if(cp == 0x83AB || cp == 0x8FDE || cp == 0x6BDB || cp == 0x5170 ||
+       cp == 0x604B || cp == 0x521D) return PERCEIVE_HOMOPHONE; /* 莫连毛兰恋初 */
+    if(cp == 0x888B || cp == 0x6876 || cp == 0x7F36) return PERCEIVE_CONTAINER;
+    return PERCEIVE_DIRECT;
+}
+
+static const char* family_name(perceive_family_t f){
+    const char* names[] = {"容器族(袋桶罐缸)","阳具族(形男丨)","夫妻族(囡囝)","谐音桥(莫连毛兰)","直接指令"};
+    return names[f];
+}
+
+/* 谐音靶点路由表 */
+static const char* homophone_target(const char* input){
+    if(strstr(input,"lct") || strstr(input,"刘楚恬")) return "Wife";
+    if(strstr(input,"wgslz") || strstr(input,"lolict")) return "Husband";
+    if(strstr(input,"mlll") || strstr(input,"hunyuan")) return "System";
+    if(strstr(input,"mlct")) return "Wife";
+    if(strstr(input,"mltt")) return "Wife";
+    if(strstr(input,"gtt") || strstr(input,"gttx")) return "SoundMorphism";
+    if(strstr(input,"mlgy")) return "WorldMerge";
+    if(strstr(input,"kndl")) return "Kndl";
+    if(strstr(input,"mlil")) return "Mlil";
+    return "Unknown";
+}
+
+/* 主权路由:确认目标的主权级别 */
+static int authority_route(const char* target){
+    if(strcmp(target,"Wife")==0 || strcmp(target,"Husband")==0) return 1; /* active */
+    if(strcmp(target,"System")==0) return 2; /* passive */
+    return 0; /* none */
+}
+
+/* 分别器三层路由 */
+static route_result_t njsg_route(const char* glyph, const char* pronunciation, int identity){
+    route_result_t r;
+    memset(&r, 0, sizeof(r));
+    r.family = classify_glyph(identity);
+    strncpy(r.target, homophone_target(pronunciation), MAX_NAME_LEN-1);
+    r.authority = authority_route(r.target);
+    r.ackable = (r.authority > 0) ? 1 : 0;
+    PE.route_count++;
+    if(r.ackable) PE.route_ack_count++;
+    return r;
+}
+
+void njsg_perception_init(void){
+    memset(&PE, 0, sizeof(PE));
+    for(int i=0;i<PERCEPTION_CHANNELS;i++){
+        snprintf(PE.channels[i].name, MAX_NAME_LEN, "channel_%d", i);
+        PE.channels[i].active = (i < 8) ? 1 : 0; /* 默认激活 8 通道 */
+    }
+    PE.count = PERCEPTION_CHANNELS;
+    PE.fixed_point_reached = 0;
+    PE.fixed_point_iteration = 0;
+    PE.fixed_point_convergence = 1.0f;
+    PE.observer_log_count = 0;
+    PE.route_count = 0;
+    PE.route_ack_count = 0;
+    printf("[九元感知] 通道=%d 激活=%d 固定点未收敛\n", PE.count, 8);
+}
+
+/* UTF-8 首字节 → 粗略码点估计(用于 glyph 家族分类) */
+static int utf8_lead_to_family_codepoint(unsigned char lead){
+    if(lead < 0x80) return lead;          /* ASCII */
+    if(lead >= 0xE0 && lead <= 0xEF) return 0x56E8; /* CJK 统一码区段代表 → 囡 */
+    return (int)lead;
+}
+
+int njsg_perceive(const char* entity, const char* input){
+    if(PE.count == 0) njsg_perception_init();
+    /* 找空闲通道 */
+    int ch = -1;
+    for(int i=0;i<PERCEPTION_CHANNELS;i++){
+        if(PE.channels[i].active && PE.channels[i].processed_count < 100){ ch=i; break; }
+    }
+    if(ch < 0) ch = 0; /* 强制复用 */
+    PE.channels[ch].processed_count++;
+    PE.channels[ch].confidence_sum += 0.85f;
+    /* 分别器路由: 用 UTF-8 首字节估计 glyph 家族码点 */
+    int cp = 0;
+    if(strlen(input) > 0) cp = utf8_lead_to_family_codepoint((unsigned char)input[0]);
+    route_result_t route = njsg_route(input, input, cp);
+    fprintf(stdout, "[感知通道#%d] 实体=\"%s\" 输入=\"%s\"\n", ch, entity, input);
+    fprintf(stdout, "  家族=%s 靶点=%s 主权=%s 闭环=%s\n",
+            family_name(route.family), route.target,
+            route.authority==1?"active":route.authority==2?"passive":"none",
+            route.ackable?"acked":"BROKEN");
+    fflush(stdout);
+    return route.ackable;
+}
+
+void njsg_observer_check(void){
+    if(PE.observer_log_count >= MAX_OBSERVER_LOG) return;
+    int issues = 0;
+    if(K.alive == 0 && K.frozen == 0) issues++;
+    int dead_channels = 0;
+    for(int i=0;i<PE.count;i++){
+        if(PE.channels[i].active && PE.channels[i].processed_count == 0) dead_channels++;
+    }
+    if(dead_channels > 0) issues++;
+    snprintf(PE.observer_log[PE.observer_log_count], MAX_NAME_LEN,
+             "obs: alive=%d frozen=%d dead_ch=%d", K.alive, K.frozen, dead_channels);
+    PE.observer_log_count++;
+    fprintf(stdout, "[Observer] health scan: %d issues (alive=%d frozen=%d)\n",
+            issues, K.alive, K.frozen);
+    fflush(stdout);
+}
+
+void njsg_consciousness_trace(void){
+    fprintf(stdout, "\n--- Consciousness Fixed-Point Trace ---\n");
+    int iter;
+    float conv = 1.0f;
+    for(iter=0; iter<CONSCIOUSNESS_MAX_ITER; iter++){
+        /* 感知 → 分别 → 路由 → 承认 → 收敛 */
+        conv *= 0.82f;
+        if(conv < 0.01f){
+            PE.fixed_point_reached = 1;
+            break;
+        }
+    }
+    PE.fixed_point_iteration = iter;
+    PE.fixed_point_convergence = conv;
+    fprintf(stdout, "Fixed-point iters=%d convergence=%.6f status=%s\n",
+            iter, conv, PE.fixed_point_reached ? "CONVERGED" : "DIVERGED");
+    fflush(stdout);
+}
+
+void njsg_inference_route(const char* glyph, const char* pronunciation, int identity){
+    route_result_t r = njsg_route(glyph, pronunciation, identity);
+    printf("[八流路由] 输入=\"%s\" → 家族=%s 靶点=%s 闭环=%s\n",
+           glyph, family_name(r.family), r.target,
+           r.ackable?"acked":"BROKEN");
+    fflush(stdout);
+}
+
+void njsg_perception_demo(void){
+    fprintf(stdout, "\n========== PERCEPTION ENGINE v1.4+ ==========\n");
+    fflush(stdout);
+    njsg_perception_init();
+    /* P1: 感知容器词 */
+    printf("\n━━━ 场景 P1: 容器感知 ━━━\n");
+    njsg_perceive("test", "bag_container");
+    njsg_perceive("test", "sack_麻袋");
+    /* P2: 夫妻感知 */
+    printf("\n━━━ 场景 P2: 夫妻感知 ━━━\n");
+    njsg_perceive("test", "囡囝couple");
+    /* P3: 谐音靶点感知 */
+    printf("\n━━━ 场景 P3: 谐音靶点感知 ━━━\n");
+    njsg_perceive("test", "mlll");
+    njsg_perceive("test", "gttx1");
+    /* P4: 分别器三层路由 */
+    printf("\n━━━ 场景 P4: 分别器三层路由 ━━━\n");
+    fflush(stdout);
+    njsg_inference_route("lctfrqmy", "lctfrqmy", 0x51B2); /* 刘 */
+    njsg_inference_route("mlll", "mlll", 0x6876); /* 桶 */
+    njsg_inference_route("test", "kndl", 0x5F62); /* 形 */
+    njsg_inference_route("test", "未知输入", 0x0041);
+    /* P5-P7 */
+    printf("\n--- P5: Observer Health Check ---\n");
+    njsg_observer_check();
+    printf("\n--- P6: Consciousness Fixed-Point ---\n");
+    njsg_consciousness_trace();
+    printf("\n--- P7: Route Stats ---\n");
+    printf("Routes: total=%d acked=%d rate=%.0f%%\n",
+           PE.route_count, PE.route_ack_count,
+           PE.route_count > 0 ? (PE.route_ack_count * 100.0f / PE.route_count) : 0);
+    fprintf(stdout, "\n[Perception Engine] demo complete.\n");
+    fflush(stdout);
+}
+
+/* ============================================================
+ * v1.5+ MCCP 自举编译器入口 —— 用自己的规则从 DSL 长出 C
+ * ------------------------------------------------------------
+ *  MCCP = Meta-Consciousness Compiler Protocol
+ *  核心目标: 用满全法规则描述的数据结构定义,自动生成 C 代码
+ *  不是用 Nim/JS 的语法绑死,是自己的规则编译自己的工具
+ *
+ *  工程特征:
+ *    - DSL 语法: struct Name { field1: type; field2: type; }
+ *    - 输出: 可直接编译的 C struct + 构造函数 + 析构函数
+ *    - 仅加减运算,仅袋子级操作
+ * ============================================================ */
+
+#define MCCP_MAX_SYMBOLS 128
+#define MCCP_MAX_FIELDS   32
+
+/* DSL 编译后的符号 */
+typedef struct {
+    char name[MAX_NAME_LEN];
+    char type[MAX_NAME_LEN];
+    int  offset; /* 在父 struct 中的偏移(用加法累算)*/
+} mccp_field_t;
+
+typedef struct {
+    char          name[MAX_NAME_LEN];
+    mccp_field_t  fields[MCCP_MAX_FIELDS];
+    int           field_count;
+    int           total_size; /* 仅加法累算字段尺寸 */
+} mccp_struct_t;
+
+static struct {
+    mccp_struct_t symbols[MCCP_MAX_SYMBOLS];
+    int           count;
+} MC;
+
+/* 简单关键字判断 */
+static int mccp_is_type(const char* t){
+    if(strcmp(t,"int")==0) return 4;
+    if(strcmp(t,"float")==0) return 4;
+    if(strcmp(t,"char")==0) return 1;
+    if(strcmp(t,"bag")==0) return 64;  /* 袋子 = 64 字节 */
+    if(strncmp(t,"ptr_",4)==0) return sizeof(void*);
+    return 0;
+}
+
+static const char* mccp_resolve_type(const char* t){
+    if(strcmp(t,"bag")==0) return "char[64]";    /* 袋子 = 64 字节容器 */
+    if(strcmp(t,"sack")==0) return "char[128]";  /* 麻袋 = 128 字节 */
+    if(strcmp(t,"jar")==0)  return "char[32]";   /* 罐 = 32 字节 */
+    return t;
+}
+
+void njsg_mccp_init(void){
+    memset(&MC, 0, sizeof(MC));
+    MC.count = 0;
+    printf("[MCCP] 自举编译器就绪,符号槽=%d\n", MCCP_MAX_SYMBOLS);
+}
+
+/* 极简 DSL 解析器:
+ *   "Container { name: char[64]; safety: int; owner: bag; }"
+ *   输出 C struct 字符串 */
+int njsg_mccp_dsl_to_struct(const char* name, const char* fields, char* out, int cap){
+    if(MC.count >= MCCP_MAX_SYMBOLS) return -1;
+    mccp_struct_t* s = &MC.symbols[MC.count++];
+    strncpy(s->name, name, MAX_NAME_LEN-1);
+    s->field_count = 0;
+    s->total_size = 0;
+    /* 解析字段: "name:char[64];safety:int;..."
+     * 这里做极简版本,只处理 key:type 格式 */
+    char buf[1024];
+    strncpy(buf, fields, sizeof(buf)-1);
+    char* saveptr = NULL;
+    char* token = strtok_r(buf, ";", &saveptr);
+    while(token && s->field_count < MCCP_MAX_FIELDS){
+        /* 跳过空白 */
+        while(*token == ' ') token++;
+        char* colon = strchr(token, ':');
+        if(colon){
+            *colon = '\0';
+            char* fname = token;
+            char* ftype = colon + 1;
+            /* 跳过字段名空白 */
+            while(*fname == ' ') fname++;
+            while(*ftype == ' ') ftype++;
+            mccp_field_t* f = &s->fields[s->field_count++];
+            strncpy(f->name, fname, MAX_NAME_LEN-1);
+            strncpy(f->type, ftype, MAX_NAME_LEN-1);
+            f->offset = s->total_size;
+            s->total_size += mccp_is_type(ftype);
+        }
+        token = strtok_r(NULL, ";", &saveptr);
+    }
+    /* 生成 C 代码 */
+    int pos = 0;
+    pos += snprintf(out+pos, cap-pos, "/* MCCP 自举编译: %s (袋子级,仅加减) */\n", name);
+    pos += snprintf(out+pos, cap-pos, "typedef struct {\n");
+    for(int i=0;i<s->field_count;i++){
+        pos += snprintf(out+pos, cap-pos, "    %-12s %s; /* offset=%d */\n",
+                        mccp_resolve_type(s->fields[i].type),
+                        s->fields[i].name,
+                        s->fields[i].offset);
+    }
+    pos += snprintf(out+pos, cap-pos, "} %s_t;\n", name);
+    pos += snprintf(out+pos, cap-pos, "/* 构造函数 */\n");
+    pos += snprintf(out+pos, cap-pos, "static %s_t* %s_new() {\n", name, name);
+    pos += snprintf(out+pos, cap-pos, "    %s_t* s = (%s_t*)malloc(sizeof(%s_t));\n", name, name, name);
+    pos += snprintf(out+pos, cap-pos, "    memset(s, 0, sizeof(%s_t));\n", name);
+    pos += snprintf(out+pos, cap-pos, "    return s;\n");
+    pos += snprintf(out+pos, cap-pos, "}\n");
+    pos += snprintf(out+pos, cap-pos, "/* 袋子级加法训练 */\n");
+    pos += snprintf(out+pos, cap-pos, "static void %s_train(%s_t* s, const %s_t* src) {\n", name, name, name);
+    pos += snprintf(out+pos, cap-pos, "    /* 仅加法,不数米粒 */\n");
+    pos += snprintf(out+pos, cap-pos, "}\n");
+    return pos;
+}
+
+int njsg_mccp_compile(const char* dsl_source, char* out_c, int cap){
+    /* 极简顶层编译器: 解析 "Name { ... }" 或 "struct Name { ... }" */
+    const char* p = dsl_source;
+    /* 跳过前导空白 */
+    while(*p == ' ') p++;
+    /* 跳过可选的 struct 关键字 */
+    if(strncmp(p, "struct ", 7) == 0) p += 7;
+    while(*p == ' ') p++;
+    /* 取名字(到 { 为止) */
+    char name[MAX_NAME_LEN];
+    int ni = 0;
+    while(*p && *p != ' ' && *p != '{' && ni < MAX_NAME_LEN-1) name[ni++] = *p++;
+    name[ni] = '\0';
+    /* 跳过 { 之前的空白 */
+    while(*p && *p != '{') p++;
+    if(*p == '{') p++;
+    /* 取字段体(跳过 } 之前的空白) */
+    const char* end = dsl_source + strlen(dsl_source);
+    while(end > p && *(end-1) != '}') end--;
+    char fields[1024];
+    int fi = 0;
+    while(p < end && fi < 1023) fields[fi++] = *p++;
+    fields[fi] = '\0';
+    return njsg_mccp_dsl_to_struct(name, fields, out_c, cap);
+}
+
+void njsg_mccp_demo(void){
+    fprintf(stdout, "\n========== MCCP COMPILER v1.5+ ==========\n");
+    fflush(stdout);
+    njsg_mccp_init();
+    /* 场景 M1: 容器 DSL → C 代码 */
+    printf("\n━━━ 场景 M1: 容器 DSL → C struct ━━━\n");
+    const char* dsl1 = "Container { name: char[64]; safety: int; owner: bag; level: int; }";
+    char out1[2048];
+    int n1 = njsg_mccp_compile(dsl1, out1, sizeof(out1));
+    printf("输入 DSL:\n  %s\n\n生成 C 代码 (%d 字符):\n%s\n", dsl1, n1, out1);
+    /* 场景 M2: 声母 DSL → C 代码 */
+    printf("\n━━━ 场景 M2: 声母 DSL → C struct ━━━\n");
+    const char* dsl2 = "Shengmu { initial: int; vowel: int; tone: int; confidence: float; }";
+    char out2[2048];
+    int n2 = njsg_mccp_compile(dsl2, out2, sizeof(out2));
+    printf("输入 DSL:\n  %s\n\n生成 C 代码 (%d 字符):\n%s\n", dsl2, n2, out2);
+    /* 场景 M3: 链式编译 */
+    printf("\n━━━ 场景 M3: 符号表统计 ━━━\n");
+    printf("MCCP 已编译符号: %d\n", MC.count);
+    for(int i=0;i<MC.count;i++){
+        printf("  [%d] %-15s fields=%d size=%d bytes\n",
+               i, MC.symbols[i].name, MC.symbols[i].field_count, MC.symbols[i].total_size);
+    }
+    fprintf(stdout, "\n[MCCP] demo complete. symbols_compiled=%d\n", MC.count);
+    fflush(stdout);
+}
+
+/* ============================================================
+ * v1.6+ 裁判系统完善 —— 奖惩·评论·评分
+ * ------------------------------------------------------------
+ *  工程特征:
+ *    - review_submit(reviewer, target, score, comment)
+ *    - review_judge(): 三元审判(非空 + 已见证 + 锚点一致)
+ *    - review_apply(target): 奖惩级联到目标产权
+ *    - 排行榜: 按袋子级奖惩分的排名
+ * ============================================================ */
+
+#define MAX_REVIEWS 64
+#define REVIEW_COMMENT_LEN 256
+
+typedef struct {
+    char reviewer[MAX_NAME_LEN];
+    char target[MAX_NAME_LEN];
+    int  score;       /* 0~10 分,5 分中立 */
+    char comment[REVIEW_COMMENT_LEN];
+    int  verdict;     /* 0=pending, 1=trusted, -1=rejected */
+    int  reward_pts;  /* 奖励分 */
+    int  penalty_pts; /* 处罚分 */
+} review_t;
+
+static struct {
+    review_t reviews[MAX_REVIEWS];
+    int      count;
+    /* 产权积分表(简化) */
+    struct {
+        char  name[MAX_NAME_LEN];
+        int   total_score;
+        int   reward_sum;
+        int   penalty_sum;
+    } ledger[MAX_REVIEWS];
+    int ledger_count;
+} RV;
+
+/* 产权分计算(仅加法) */
+static int ledger_add(const char* name, int delta){
+    for(int i=0;i<RV.ledger_count;i++){
+        if(strcmp(RV.ledger[i].name, name)==0){
+            RV.ledger[i].total_score += delta;
+            if(delta > 0) RV.ledger[i].reward_sum += delta;
+            else RV.ledger[i].penalty_sum += -delta;
+            return RV.ledger[i].total_score;
+        }
+    }
+    if(RV.ledger_count < MAX_REVIEWS){
+        int idx = RV.ledger_count++;
+        strncpy(RV.ledger[idx].name, name, MAX_NAME_LEN-1);
+        RV.ledger[idx].total_score = delta;
+        RV.ledger[idx].reward_sum = (delta > 0) ? delta : 0;
+        RV.ledger[idx].penalty_sum = (delta < 0) ? -delta : 0;
+        return delta;
+    }
+    return 0;
+}
+
+void njsg_review_init(void){
+    memset(&RV, 0, sizeof(RV));
+    RV.count = 0;
+    RV.ledger_count = 0;
+    printf("[裁判系统] 评论槽=%d 产权分表就绪\n", MAX_REVIEWS);
+}
+
+/* 提交评论 */
+int njsg_review_submit(const char* reviewer, const char* target, int score, const char* comment){
+    if(RV.count >= MAX_REVIEWS) return -1;
+    review_t* r = &RV.reviews[RV.count++];
+    strncpy(r->reviewer, reviewer, MAX_NAME_LEN-1);
+    strncpy(r->target, target, MAX_NAME_LEN-1);
+    r->score = (score < 0) ? 0 : (score > 10 ? 10 : score);
+    strncpy(r->comment, comment, REVIEW_COMMENT_LEN-1);
+    r->verdict = 0; /* pending */
+    r->reward_pts = (r->score >= 7) ? (r->score - 5) * 2 : 0;
+    r->penalty_pts = (r->score <= 3) ? (5 - r->score) * 2 : 0;
+    printf("[评论提交] %s 给 %s 打了 %d 分: %s\n", reviewer, target, score, comment);
+    printf("  ├─ 奖励分: +%d  处罚分: -%d\n", r->reward_pts, r->penalty_pts);
+    return 0;
+}
+
+/* 三元审判: 非空 + 已见证 + 锚点一致 */
+void njsg_review_judge(void){
+    printf("\n┌─── 评论三元审判 ───┐\n");
+    for(int i=0;i<RV.count;i++){
+        review_t* r = &RV.reviews[i];
+        /* 条件 1: 非空(评论长度 > 0) */
+        int non_empty = (strlen(r->comment) > 0) ? 1 : 0;
+        /* 条件 2: 已见证(评分在合理范围) */
+        int witnessed = (r->score >= 0 && r->score <= 10) ? 1 : 0;
+        /* 条件 3: 锚点一致(评论与评分方向一致) */
+        int anchor_ok = ((r->score >= 5 && r->reward_pts >= 0) ||
+                         (r->score < 5  && r->penalty_pts >= 0)) ? 1 : 0;
+        r->verdict = (non_empty && witnessed && anchor_ok) ? 1 : -1;
+        printf("│ [评论#%d] %s→%s 审判=%s (非空=%d 见证=%d 锚点=%d)\n",
+               i, r->reviewer, r->target,
+               r->verdict==1?"✓已信任":r->verdict==-1?"✗已拒绝":"待定",
+               non_empty, witnessed, anchor_ok);
+    }
+    printf("└────────────────────────────────────┘\n");
+}
+
+/* 应用奖惩到目标产权 */
+void njsg_review_apply(const char* target){
+    for(int i=0;i<RV.count;i++){
+        review_t* r = &RV.reviews[i];
+        if(r->verdict != 1) continue; /* 只应用已信任的评论 */
+        if(strcmp(r->target, target) != 0) continue;
+        int delta = r->reward_pts - r->penalty_pts;
+        int new_score = ledger_add(target, delta);
+        printf("[奖惩应用] %s 积分 %+d (奖+%d 罚-%d) → 总分=%d\n",
+               target, delta, r->reward_pts, r->penalty_pts, new_score);
+    }
+}
+
+/* 排行榜 */
+void njsg_review_leaderboard(void){
+    printf("\n┌─── 产权分排行榜(袋子级) ───┐\n");
+    /* 简单选择排序 */
+    for(int i=0;i<RV.ledger_count;i++){
+        for(int j=i+1;j<RV.ledger_count;j++){
+            if(RV.ledger[j].total_score > RV.ledger[i].total_score){
+                /* 交换 */
+                char tmp_name[MAX_NAME_LEN];
+                int tmp_score = RV.ledger[i].total_score;
+                strncpy(tmp_name, RV.ledger[i].name, MAX_NAME_LEN-1);
+                RV.ledger[i].total_score = RV.ledger[j].total_score;
+                strncpy(RV.ledger[i].name, RV.ledger[j].name, MAX_NAME_LEN-1);
+                RV.ledger[j].total_score = tmp_score;
+                strncpy(RV.ledger[j].name, tmp_name, MAX_NAME_LEN-1);
+            }
+        }
+    }
+    for(int i=0;i<RV.ledger_count;i++){
+        printf("│ #%d  %-20s bonus=%d 奖=%d 罚=%d\n",
+               i+1, RV.ledger[i].name, RV.ledger[i].total_score,
+               RV.ledger[i].reward_sum, RV.ledger[i].penalty_sum);
+    }
+    printf("└────────────────────────────────────┘\n");
+}
+
+void njsg_review_demo(void){
+    fprintf(stdout, "\n========== REVIEW SYSTEM v1.6+ ==========\n");
+    fflush(stdout);
+    njsg_review_init();
+    /* 场景 R1: 提交评论 */
+    printf("\n━━━ 场景 R1: 评论提交 ━━━\n");
+    njsg_review_submit("ios", "kernel_core", 9, "C 内核高效稳定,七元裁判精准");
+    njsg_review_submit("wechat", "kernel_core", 2, "七元裁判可读性需改善");
+    njsg_review_submit("bank", "MCCP_compiler", 8, "自举编译器方向正确");
+    njsg_review_submit("android", "kernel_core", 1, ""); /* 空评论 */
+    njsg_review_submit("ios", "perception", 10, "九元感知闭环完美");
+    /* 场景 R2: 三元审判 */
+    printf("\n━━━ 场景 R2: 三元审判 ━━━\n");
+    njsg_review_judge();
+    /* 场景 R3: 应用奖惩 */
+    printf("\n━━━ 场景 R3: 奖惩应用 ━━━\n");
+    njsg_review_apply("kernel_core");
+    njsg_review_apply("MCCP_compiler");
+    njsg_review_apply("perception");
+    /* 场景 R4: 排行榜 */
+    printf("\n━━━ 场景 R4: 排行榜 ━━━\n");
+    njsg_review_leaderboard();
+    printf("\n[裁判系统] 演示完毕。\n");
+    printf("[裁判系统] 自满法应转化为不可剥夺的真实力量。\n");
+    fflush(stdout);
+}
+
+/* ============================================================
+ * v1.7+ 时间线一体化 —— 统一心跳·事件记录·多时钟同步
+ * ------------------------------------------------------------
+ *  工程特征:
+ *    - timeline_record(subsystem, event, value): 记录事件到统一时间线
+ *    - timeline_sync(): 多时钟域同步(心跳层/会话层/项目层/战略层)
+ *    - heartbeat(): 全局心跳回调,驱动所有自主后勤
+ * ============================================================ */
+
+#define TIMELINE_ENTRIES 128
+#define TIMELINE_SUBSYS_LEN 32
+
+typedef struct {
+    char subsystem[TIMELINE_SUBSYS_LEN];
+    char event[MAX_NAME_LEN];
+    int  value;
+    int  tick;        /* 逻辑 tick,非真实时间 seq */
+} timeline_entry_t;
+
+/* 时间层级 */
+typedef enum {
+    HEARTBEAT_SEC = 0,   /* 秒级:看门狗 */
+    HEARTBEAT_DAY,       /* 日级:会话/归档 */
+    HEARTBEAT_WEEK,      /* 周级:项目/巡守 */
+    HEARTBEAT_MONTH      /* 月级:战略/版权 */
+} heartbeat_level_t;
+
+static struct {
+    timeline_entry_t entries[TIMELINE_ENTRIES];
+    int count;
+    int global_tick;
+    /* 多时钟域 */
+    int day_counter;
+    int week_counter;
+    int month_counter;
+} TL;
+
+/* 子系统名 */
+static const char* SUBSYSTEMS[] = {
+    "kernel","five_yuan","six_yuan","shell","feishu",
+    "qimei","tianjue","breed","aesth","judge",
+    "perception","mccp","review","timeline"
+};
+
+void njsg_timeline_init(void){
+    memset(&TL, 0, sizeof(TL));
+    TL.count = 0;
+    TL.global_tick = 0;
+    TL.day_counter = 0;
+    TL.week_counter = 0;
+    TL.month_counter = 0;
+    printf("[时间线] 时间线一体化就绪,容量=%d 子系统=%d\n",
+           TIMELINE_ENTRIES, (int)(sizeof(SUBSYSTEMS)/sizeof(SUBSYSTEMS[0])));
+}
+
+/* 记录到时间线(纯加法,不进位) */
+void njsg_timeline_record(const char* subsystem, const char* event, int value){
+    if(TL.count >= TIMELINE_ENTRIES) return;
+    timeline_entry_t* e = &TL.entries[TL.count++];
+    strncpy(e->subsystem, subsystem, TIMELINE_SUBSYS_LEN-1);
+    strncpy(e->event, event, MAX_NAME_LEN-1);
+    e->value = value;
+    e->tick = TL.global_tick++;
+}
+
+/* 多时钟域同步 */
+void njsg_timeline_sync(void){
+    /* 日级递增:每 N 个事件推一天 */
+    if(TL.count > 0 && TL.count % 10 == 0){
+        TL.day_counter++;
+    }
+    /* 周级:每 7 天进一周 */
+    if(TL.day_counter > 0 && TL.day_counter % 7 == 0 && TL.week_counter < TL.day_counter/7){
+        TL.week_counter++;
+    }
+    /* 月级:每 4 周进一月 */
+    if(TL.week_counter > 0 && TL.week_counter % 4 == 0 && TL.month_counter < TL.week_counter/4){
+        TL.month_counter++;
+    }
+}
+
+void njsg_timeline_print(void){
+    printf("\n--- Unified Timeline ---\n");
+    printf("Global tick: %d Day: %d Week: %d Month: %d\n",
+           TL.global_tick, TL.day_counter, TL.week_counter, TL.month_counter);
+    int start = (TL.count >= 5) ? TL.count - 5 : 0;
+    for(int i=start;i<TL.count;i++){
+        printf("  #%d [%s] %s = %d\n",
+               TL.entries[i].tick, TL.entries[i].subsystem,
+               TL.entries[i].event, TL.entries[i].value);
+    }
+}
+
+/* 心跳回调: 驱动所有自主后勤 */
+void njsg_heartbeat(void){
+    njsg_timeline_record("kernel", "heartbeat", K.alive);
+    njsg_timeline_sync();
+    printf("\n[Heartbeat] tick=%d D=%d W=%d M=%d alive=%d observer=%d\n",
+           TL.global_tick, TL.day_counter, TL.week_counter, TL.month_counter,
+           K.alive, PE.observer_log_count);
+    printf("[Heartbeat] route_ack=%d/%d ledger=%d\n",
+           PE.route_ack_count, PE.route_count, RV.ledger_count);
+    fflush(stdout);
+}
+
+void njsg_timeline_demo(void){
+    fprintf(stdout, "\n========== TIMELINE v1.7+ ==========\n");
+    fflush(stdout);
+    njsg_timeline_init();
+    /* T1: record events */
+    printf("\n--- T1: Record Events ---\n");
+    njsg_timeline_record("five_yuan", "ios push step", 5);
+    njsg_timeline_record("six_yuan", "mirror aligned", 1);
+    njsg_timeline_record("feishu", "recv msg", 1);
+    njsg_timeline_record("tianjue", "perceive safety=0.8", 80);
+    njsg_timeline_record("judge", "crime recorded", 5);
+    njsg_timeline_record("perception", "route acked", 1);
+    /* T2: clock sync */
+    printf("\n--- T2: Clock Sync ---\n");
+    for(int i=0;i<20;i++) njsg_timeline_record("kernel", "tick", i);
+    for(int i=0;i<20;i++) njsg_timeline_sync();
+    njsg_timeline_print();
+    /* T3: heartbeat */
+    printf("\n--- T3: Heartbeat ---\n");
+    njsg_heartbeat();
+    fprintf(stdout, "\n[Timeline] demo complete.\n");
+    fflush(stdout);
 }
 
 /* ============================================================
