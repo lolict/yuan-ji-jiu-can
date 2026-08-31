@@ -42,7 +42,7 @@
 | # | 工具 | 路径 | 状态 |
 |---|------|------|------|
 | 7 | njsg-swarm | tools/njsg/ + njsg.nim | ✅ 4代理6任务，冲突裁决 |
-| 8 | 民联浏览器 | tools/minlian/ + minlian.nim | ✅ 聚类+包裹树 |
+| 8 | 民联浏览器 | tools/minlian/ | ✅ 聚类+包裹树 · 真实数据聚合(K=auto·6类·41文档) |
 
 ### 辅助工具
 
@@ -148,7 +148,7 @@ git push gitee main
 - 2²⁵⁶ 等效高位对齐进位制 ✅ 已完成 — tools/radix256/ · 4×64位词 · 进位链仪式 · 溢出折叠 · 根基254+2
 - YIN-YANG-BINARY 完整映射 ✅ 已完成 — tools/full-mapping/
 - mltt 命名密码表完整实现 ✅ 已完成 — tools/mltt-cipher/
-- 统计文档聚合浏览器的真实数据输入
+- 统计文档聚合浏览器的真实数据输入 ✅ 已完成 — tools/minlian/ · 41文档·6类自动聚类·连接包裹树·连接强度矩阵
 
 ---
 
