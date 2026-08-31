@@ -76,8 +76,8 @@
 | 34 | proof-engine | tools/proof-engine/ | ✅ 形式化自举证明·5项全部有效·254+2集装箱·九元层级 |
 | 35 | high-algebra | tools/high-algebra/ | ✅ 高维代数·(n-1)×0.1偏移率·静态回归·俘获·阶和·2²⁵⁶对齐 |
 | 36 | yinyang-binary | tools/yinyang-binary/ | ✅ YIN-YANG-BINARY完整映射·66符号·三值加法·夫妻对称验证 |
-| 36 | radix256 | tools/radix256/ | ✅ 2²⁵⁶等效高位对齐进位制·4×64位词·进位链仪式·溢出折叠·根基254+2 |
-| 37 | full-mapping | tools/full-mapping/ | ✅ 全映射引擎·九元↔YinYang↔二进制↔mltt↔偏移率·7项全通过 |
+| 37 | radix256 | tools/radix256/ | ✅ 2²⁵⁶等效高位对齐进位制·4×64位词·进位链仪式·溢出折叠·根基254+2 |
+| 38 | full-mapping | tools/full-mapping/ | ✅ 全映射引擎·九元↔YinYang↔二进制↔mltt↔偏移率·7项全通过 |
 
 ---
 
@@ -145,7 +145,7 @@ git push gitee main
 - ~~部首星图真实数据~~ ✅ 已完成
 - ~~产权流侵权判定~~ ✅ 已完成
 - 高维代数（(n-1)×0.1 偏移率） ✅ 已完成 — tools/high-algebra/
-- 2²⁵⁶ 等效高位对齐进位制 ✅ 已完成 — tools/high-algebra/ (Part 5)
+- 2²⁵⁶ 等效高位对齐进位制 ✅ 已完成 — tools/radix256/ · 4×64位词 · 进位链仪式 · 溢出折叠 · 根基254+2
 - YIN-YANG-BINARY 完整映射 ✅ 已完成 — tools/full-mapping/
 - mltt 命名密码表完整实现 ✅ 已完成 — tools/mltt-cipher/
 - 统计文档聚合浏览器的真实数据输入
