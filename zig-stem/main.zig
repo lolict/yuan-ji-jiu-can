@@ -3,13 +3,14 @@ const std = @import("std");
 const orchestrator = @import("orchestrator.zig");
 const indexer = @import("indexer.zig");
 const phaser = @import("phaser.zig");
+const fqm = @import("fqm.zig");
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
-    std.debug.print("\n=== 囡囝共生 操作系统 - 协调器演示 ===\n\n", .{});
+    std.debug.print("\n=== 囡囝共生 操作系统 - FQM 输出 ===\n\n", .{});
 
     // 创建协调器配置
     var config = orchestrator.OrchestratorConfig.default();
@@ -77,6 +78,27 @@ pub fn main() !void {
     defer report.deinit();
 
     std.debug.print("净收益总和: {d:.2}\n", .{report.getTotalNetBenefit()});
+
+    // ========== FQM 输出（替代 HTML） ==========
+    std.debug.print("\n=== 生成 FQM 输出 ===\n", .{});
+
+    // 创建 FQM 写入器
+    var writer = fqm.FQMWriter.init(allocator);
+
+    const fqm_output_path = "zig-stem/output/gttx1.fqmll";
+    std.fs.cwd().makePath("zig-stem/output") catch {};
+
+    try writer.generateFromOrchestrator(&orch, fqm_output_path);
+    std.debug.print("FQM 文件已保存到: {s}\n", .{fqm_output_path});
+
+    // 同时输出 GTTI URI 到控制台
+    std.debug.print("\n--- GTTI URI 列表 ---\n", .{});
+    var encoder = fqm.FQMEncoder.init();
+    for (stats) |container| {
+        const uri = try encoder.encodeGTTI(allocator, &container);
+        defer allocator.free(uri);
+        std.debug.print("{s}\n", .{uri});
+    }
 
     std.debug.print("\n=== 演示结束 ===\n\n", .{});
 }

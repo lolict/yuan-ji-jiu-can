@@ -1,0 +1,50 @@
+gttx1:fqmll
+# 囡囝共生 操作系统 - FQM 编码输出
+# 生成时间: 1788186392
+---
+containers:3
+
+# 容器 1: color_base
+gttx1:fqmll
+id:1
+name:color_base
+offset:0
+items:2
+positive:2
+negative:0
+neutral:0
+net:9.00
+polarity:yang
+ende
+
+# 容器 2: sound_base
+gttx1:fqmll
+id:2
+name:sound_base
+offset:10
+items:2
+positive:0
+negative:1
+neutral:1
+net:1.00
+polarity:yang
+ende
+
+# 容器 3: relation_base
+gttx1:fqmll
+id:3
+name:relation_base
+offset:20
+items:0
+positive:0
+negative:0
+neutral:0
+net:0.00
+polarity:balanced
+ende
+
+---
+# GTTI URI 列表
+gtti://★§☉§☉9
+gtti://2§1
+gtti://3☉0
