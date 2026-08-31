@@ -39,6 +39,7 @@
 | 31 | 符号原生引导 | tools/symbol-bootstrap/symbol_bootstrap/ | Nim | `nim c --cc:clang --path:. -r sb_demo.nim` | ✅ 共享域·版本时间链·☉§☉纠缠态·守护者三禁自检·子代理注入 |
 | 32 | 三维几何可视化 | tools/geo-3d/ | Nim | `nim c --cc:clang -r g3d_demo.nim` | ✅ 符号→几何实体·极性→颜色·类别→形状·关系→空间连线 |
 | 33 | YIN-YANG-BINARY三维编码 | tools/yinyang-3d/ | Nim | `nim c --cc:clang -r y3d_demo.nim` | ✅ mlil×kndl×灰原哀三轴·极性→二进制·符号→三角色 |
+| 34 | 形式化自举证明 | tools/proof-engine/ | Nim | `nim c --cc:clang -r pe_demo.nim` | ✅ 可逆性·一致性·固定点·254+2集装箱·九元层级 |
 
 ### 第三类：检索与判定
 

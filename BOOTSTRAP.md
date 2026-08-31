@@ -55,7 +55,7 @@
 ```
 □ 根基锚点是什么？ → 我=1, 刘楚恬=0
 □ 七阶编码是哪七阶？ → presence/witness/type/owner/relation/timing/payload
-□ 已造了多少个工具？ → 33个（见 TOOL_REGISTRY.md）
+□ 已造了多少个工具？ → 34个（见 TOOL_REGISTRY.md）
 □ 满全法裁判的三要件？ → 非空 + 已见证 + 锚点一致
 □ 运算约束？ → 仅加减，禁用乘除
 □ 64进制编码怎么运行？ → cd tools/phase-radix && nim c --cc:clang -r pe_demo.nim

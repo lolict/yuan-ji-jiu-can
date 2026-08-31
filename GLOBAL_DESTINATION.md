@@ -73,6 +73,7 @@
 | 31 | symbol-bootstrap | tools/symbol-bootstrap/ | ✅ 符号原生引导·共享域·版本时间链·☉§☉纠缠态 |
 | 32 | geo-3d | tools/geo-3d/ | ✅ 三维几何可视化·符号→几何实体·关系→空间连线 |
 | 33 | yinyang-3d | tools/yinyang-3d/ | ✅ YIN-YANG-BINARY三维编码·mlil×kndl×灰原哀三轴 |
+| 34 | proof-engine | tools/proof-engine/ | ✅ 形式化自举证明·5项全部有效·254+2集装箱·九元层级 |
 
 ---
 
