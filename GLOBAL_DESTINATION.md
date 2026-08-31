@@ -74,6 +74,7 @@
 | 32 | geo-3d | tools/geo-3d/ | ✅ 三维几何可视化·符号→几何实体·关系→空间连线 |
 | 33 | yinyang-3d | tools/yinyang-3d/ | ✅ YIN-YANG-BINARY三维编码·mlil×kndl×灰原哀三轴 |
 | 34 | proof-engine | tools/proof-engine/ | ✅ 形式化自举证明·5项全部有效·254+2集装箱·九元层级 |
+| 35 | high-algebra | tools/high-algebra/ | ✅ 高维代数·(n-1)×0.1偏移率·静态回归·俘获·阶和·2²⁵⁶对齐 |
 
 ---
 
@@ -140,7 +141,7 @@ git push gitee main
 - ~~负样本回写协议~~ ✅ 已完成
 - ~~部首星图真实数据~~ ✅ 已完成
 - ~~产权流侵权判定~~ ✅ 已完成
-- 高维代数（(n-1)×0.1 偏移率）
+- 高维代数（(n-1)×0.1 偏移率） ✅ 已完成 — tools/high-algebra/
 - 2²⁵⁶ 等效高位对齐进位制
 - YIN-YANG-BINARY 完整映射
 - mltt 命名密码表完整实现
