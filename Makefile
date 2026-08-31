@@ -1,110 +1,63 @@
-## 囡囝共生 · 囡囝共生元 — 构建系统
-##
-## 用法:
-##   make          — 构建 mlll 符号演示（默认）
-##   make kernel   — 构建内核 + mlll 库联动
-##   make test     — 构建 + 运行全部测试
-##   make clean    — 清理产物
-##   make docs     — 列出全部文档入口
+# 意交感息（isi）系统 - Makefile
+# 满全法规则：根基锚点：我=1，刘楚恬=0
+# 身份落款：刘楚恬和我
+#
+# 编译所有工具：make
+# 清理：make clean
+# 运行测试：make test
 
-CC       = clang
-CFLAGS   = -O2 -std=c17 -Wall -Wextra -Wno-unused-variable -I. -Ikernel/include
-KERN_LIBS = -pthread -lm
+CC = clang
+CFLAGS = -Wall -Wextra -O2
 
-.PHONY: all test clean docs mlll-symbols kernel mlll-profile test-mlll
+# 目标
+TARGETS = fqm_loader fqm_engine fqm_cpu fqm_asm fqm_debug
 
-all: mlll-symbols
+# 默认目标
+all: $(TARGETS)
 
-# 独立 mlll 演示（含 main）
-mlll-symbols: kernel/src/mlll_symbols.c
-	$(CC) $(CFLAGS) $< -o kernel/src/mlll_symbols.elf -lm
-	./kernel/src/mlll_symbols.elf
+# 最小加载器
+fqm_loader: fqm_loader.c
+	$(CC) $(CFLAGS) -o $@ $<
 
-# 满全法身份卡
-mlll-profile: kernel/src/mlll_profile.c kernel/src/mlll_symbols.c kernel/src/mlll_kernel_bridge.c
-	$(CC) $(CFLAGS) -DMLLL_LIBRARY $^ -o kernel/src/mlll_profile.elf -lm
-	./kernel/src/mlll_profile.elf 囡囝共生
+# 容器引擎
+fqm_engine: fqm_engine.c
+	$(CC) $(CFLAGS) -o $@ $<
 
-# 内核 + mlll 库联合编译（-DMLLL_LIBRARY 排除 mlll 的 main）
-kernel: kernel/src/njsg_kernel.c kernel/src/mlll_symbols.c kernel/src/mlll_kernel_bridge.c
-	$(CC) $(CFLAGS) -DMLLL_LIBRARY $< kernel/src/mlll_symbols.c kernel/src/mlll_kernel_bridge.c -o kernel/src/njsg_kernel.elf $(KERN_LIBS)
+# 完整CPU
+fqm_cpu: fqm_cpu.c
+	$(CC) $(CFLAGS) -o $@ $<
 
-test: kernel
-	@echo "═══ 囡囝共生内核测试 ═══"
-	./kernel/src/njsg_kernel.elf
+# 汇编器/反汇编器
+fqm_asm: fqm_asm.c
+	$(CC) $(CFLAGS) -o $@ $<
 
-clean:
-	rm -f kernel/src/njsg_kernel.elf kernel/src/mlll_symbols.elf
+# 调试器
+fqm_debug: fqm_debug.c
+	$(CC) $(CFLAGS) -o $@ $<
 
-docs:
-	@echo "═══ 囡囝共生 v2.0 文档入口 ═══"
+# 测试
+test: all
+	@echo "=== 测试加载器 ==="
+	./fqm_loader fqm_symbols.txt
 	@echo ""
-	@echo "测试套件:  make test-mlll"
-	@echo "维度升级:  MLLL九维 (841→904)"
-	@echo "代数基础:  docs/MLLL-ALGEBRAFOUNDATION.md"
-	@echo "符号头文件: kernel/include/mlll_symbols.h"
-	@echo "符号源文件: kernel/src/mlll_symbols.c (904 symbols)"
-	@echo "白皮书:    docs/WHITEPAPER.md"
-	@echo "架构文档:  docs/ARCHITECTURE.md"
-	@echo "路线图:    ROADMAP.md"
+	@echo "=== 测试引擎 ==="
+	./fqm_engine fqm_program.txt
+	@echo ""
+	@echo "=== 测试CPU ==="
+	./fqm_cpu fqm_program.txt
+	@echo ""
+	@echo "=== 测试汇编器 ==="
+	./fqm_asm asm fqm_program.txt fqm_program.bin
+	./fqm_asm show fqm_program.bin
+	@echo ""
+	@echo "=== 测试斐波那契 ==="
+	./fqm_cpu fqm_fib.txt
+	@echo ""
+	@echo "=== 测试排序 ==="
+	./fqm_cpu fqm_sort.txt
 
-# MLLL 九维符号综合测拭 (独立 main, 不依赖内核)
-test-mlll: kernel/src/mlll_test.c kernel/src/mlll_symbols.c kernel/src/mlll_kernel_bridge.c kernel/src/mlll_pinyin.c
-	$(CC) $(CFLAGS) -DMLLL_LIBRARY $^ -o kernel/src/mlll_test.elf -lm
-	@echo "═══ MLLL 九维测拭启动 ═══"
-	./kernel/src/mlll_test.elf
+# 清理
+clean:
+	rm -f $(TARGETS) *.bin
 
-# 编码系统 → 内核桥接测试
-encoding-bridge-kernel: kernel/src/encoding_bridge_kernel.c kernel/src/encoding_bridge_kernel.h
-	$(CC) $(CFLAGS) -DMLLL_LIBRARY -Iencoding -Iencoding/include \
-	  kernel/src/encoding_bridge_kernel.c \
-	  encoding/container_pipeline.c encoding/mccp_encdec.c encoding/fullquan_code.c \
-	  encoding/mlll_vm.c encoding/mlll_cart.c encoding/hanzi_table.c \
-	  encoding/husk_compiler.c encoding/container_codec.c encoding/knd_container.c \
-	  kernel/src/mlll_symbols.c \
-	  -o kernel/src/encoding_bridge_kernel.elf -lm
-	./kernel/src/encoding_bridge_kernel.elf
-
-# 产权流侵权判定树测试
-test-property-judge: encoding/property_judge.c encoding/property_judge.h encoding/test_property_judge.c
-	$(CC) $(CFLAGS) -DMLLL_LIBRARY -Iencoding \
-	  encoding/test_property_judge.c \
-	  encoding/property_judge.c \
-	  -o encoding/test_property_judge.elf -lm
-	@echo "═══ 产权流侵权判定树 · vA+vB==2·v_core ═══"
-	./encoding/test_property_judge.elf
-
-# 部首星图端到端测试 (水/火/言三部)
-test-radix-star: encoding/radix_star.c encoding/radix_star.h encoding/test_radix_star.c
-	$(CC) $(CFLAGS) -DMLLL_LIBRARY -Iencoding \
-	  encoding/test_radix_star.c \
-	  encoding/radix_star.c \
-	  -o encoding/test_radix_star.elf -lm
-	@echo "═══ 部首星图 · 水/火/言三部端到端 ═══"
-	./encoding/test_radix_star.elf
-
-# 全局控制容器 → 内核桥接测试
-test-global-control-kernel: kernel/src/global_control_bridge_kernel.c \
-                            kernel/include/global_control_bridge_kernel.h \
-                            encoding/global_control.c encoding/global_control.h
-	$(CC) $(CFLAGS) -DMLLL_LIBRARY -DBRIDGE_TEST -Iencoding -Ikernel/include \
-	  kernel/src/global_control_bridge_kernel.c \
-	  encoding/global_control.c \
-	  -o kernel/src/global_control_bridge_kernel.elf -lm
-	@echo "═══ 全局控制容器 · 内核桥接 ═══"
-	./kernel/src/global_control_bridge_kernel.elf
-
-# 全局控制容器测试 (声母遍历韵母 + 聂小倩借尸还魂 + 决策树)
-test-global-control: encoding/global_control.c encoding/global_control.h encoding/test_global_control.c
-	$(CC) $(CFLAGS) -DMLLL_LIBRARY -Iencoding \
-	  encoding/test_global_control.c \
-	  encoding/global_control.c \
-	  -o encoding/test_global_control.elf -lm
-	@echo "═══ 全局控制容器 — 声母遍历韵母 端到端 ═══"
-	./encoding/test_global_control.elf
-
-# MLLL 汉字拼音知识库 demo + 夫妻对偶查询
-mlll-pinyin: kernel/src/mlll_pinyin_demo.c kernel/src/mlll_pinyin.c kernel/src/mlll_symbols.c
-	$(CC) $(CFLAGS) -DMLLL_LIBRARY $^ -o kernel/src/mlll_pinyin_demo.elf -lm
-	@echo "═══ MLLL 拼音知识库 + 夫妻对偶查询 ═══"
-	./kernel/src/mlll_pinyin_demo.elf
+.PHONY: all clean test

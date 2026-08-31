@@ -17,7 +17,7 @@
 #include "chain_block.h"
 #include <stdint.h>
 
-#define OBSERVER_MAX_CHAINS     9       /* 9 条链 (9 族) */
+#define OBSERVER_MAX_CHAINS     10      /* 9 族 + 自举链 */
 #define OBSERVER_NAME_LEN       32
 
 /* 观察模式 */

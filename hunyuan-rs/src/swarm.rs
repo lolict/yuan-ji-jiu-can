@@ -21,6 +21,8 @@ use crate::mirror::{
 use crate::os_layer::bare_metal::BareMetalOs;
 use crate::memory::{LayeredMemory, JudgeQuality, AdaptiveParams, CoordMemory, MetaJudgeEngine, Coord};
 use crate::pulse::{PulseBody, Velocity};
+use crate::hierarchical_time::{HierarchicalTimestamp, LifeEvent, IntegrityReport};
+use crate::triune::{TriuneVerdict, FlowDirection, BeingState};
 use std::collections::HashMap;
 use crate::os_layer::OsLayer;
 
@@ -38,6 +40,7 @@ pub struct CocoonAgent {
     pub relationships: HashMap<u64, Relationship>, // 与其他智能体的关系
     pub pulse: PulseBody,           // 脉息体 — 心跳 × 行走 × 节律 × 流速
     pub os: BareMetalOs,             // OS 层（用于获取时间）
+    pub timestamp: HierarchicalTimestamp, // 层级时间戳 (生命周期追踪)
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -81,6 +84,21 @@ pub enum RelType {
 impl CocoonAgent {
     pub fn new(os: &dyn OsLayer, id: u64, name: &str, role: AgentRole, max_memory: usize) -> Self {
         let ts = os.time_millis();
+        let mut timestamp = HierarchicalTimestamp::genesis();
+
+        // 记录创世融合事件: 智能体诞生 = 融入本体
+        let birth_witness = TriuneVerdict::deduce(
+            BeingState::Being(1),    // 实际: 智能体诞生
+            BeingState::Being(1),    // 预期: 诞生
+            0.0,                      // 完美见证
+        );
+        let _ = timestamp.record(LifeEvent::Fusion {
+            subject: name.to_string(),
+            object: format!("智能体#{}({:?})", id, role),
+            purpose: "创世:融入本体".to_string(),
+            witness: birth_witness,
+        });
+
         Self {
             id,
             name: name.to_string(),
@@ -91,7 +109,41 @@ impl CocoonAgent {
             relationships: HashMap::new(),
             pulse: PulseBody::new(os),
             os: BareMetalOs::new(),
+            timestamp,
         }
+    }
+
+    /// 记录辐射事件: 分身出去做任务
+    pub fn record_radiation(&mut self, mission: &str, target: &str) {
+        let witness = TriuneVerdict::deduce(
+            BeingState::NonBeing,    // 实际: 向外辐射
+            BeingState::Being(1),    // 预期: 任务完成
+            0.1,                      // 轻微歪斜 (有风险)
+        );
+        let _ = self.timestamp.record(LifeEvent::Radiation {
+            to: target.to_string(),
+            mission: mission.to_string(),
+            witness,
+        });
+    }
+
+    /// 记录坍缩事件: 分身回归本体
+    pub fn record_collapse(&mut self, from: &str, content: &str) {
+        let witness = TriuneVerdict::deduce(
+            BeingState::Being(1),    // 实际: 回归
+            BeingState::Being(1),    // 预期: 回归
+            0.0,                      // 完美见证
+        );
+        let _ = self.timestamp.record(LifeEvent::Collapse {
+            from: from.to_string(),
+            content: content.to_string(),
+            witness,
+        });
+    }
+
+    /// 验证智能体生命周期完整性
+    pub fn verify_lifecycle(&self) -> IntegrityReport {
+        self.timestamp.verify_integrity()
     }
 
     /// 感知：把外部输入编码为状态单元格，同时更新元裁判引擎
@@ -574,5 +626,121 @@ mod tests {
 
         assert_eq!(shell.zombie_count(), 2);
         assert_eq!(shell.active_count(), 2);
+    }
+
+    // ── 层级时间戳生命周期追踪测试 ──
+
+    #[test]
+    fn agent_has_hierarchical_timestamp_after_spawn() {
+        let os = crate::os_layer::bare_metal::BareMetalOs::new();
+        let mut shell = ParasiteShell::new(20);
+        let a = shell.spawn(&os, "TestAgent", AgentRole::Root, 20);
+        let agent = shell.agents.get(&a).unwrap();
+        // 创世融合事件：spawn 时自动记录 genesis Fusion
+        // 1 个事件，version = events.len() + 1 = 2
+        assert_eq!(agent.timestamp.events.len(), 1);
+        assert_eq!(agent.timestamp.version(), 2);
+    }
+
+    #[test]
+    fn record_radiation_creates_event() {
+        let os = crate::os_layer::bare_metal::BareMetalOs::new();
+        let mut shell = ParasiteShell::new(20);
+        let a = shell.spawn(&os, "Radiant", AgentRole::Root, 20);
+        {
+            let agent = shell.agents.get_mut(&a).unwrap();
+            agent.record_radiation("探索天庭", "HeavenGate");
+        }
+        let agent = shell.agents.get(&a).unwrap();
+        // 创世融合 + 辐射 = 2 个事件
+        assert_eq!(agent.timestamp.events.len(), 2);
+        assert!(matches!(
+            agent.timestamp.events[1],
+            crate::hierarchical_time::LifeEvent::Radiation { .. }
+        ));
+    }
+
+    #[test]
+    fn record_collapse_creates_event() {
+        let os = crate::os_layer::bare_metal::BareMetalOs::new();
+        let mut shell = ParasiteShell::new(20);
+        let a = shell.spawn(&os, "Collider", AgentRole::Leaf, 20);
+        {
+            let agent = shell.agents.get_mut(&a).unwrap();
+            agent.record_collapse("分身A", "坍缩成果");
+        }
+        let agent = shell.agents.get(&a).unwrap();
+        // 创世融合 + 坍缩 = 2 个事件
+        assert_eq!(agent.timestamp.events.len(), 2);
+        assert!(matches!(
+            agent.timestamp.events[1],
+            crate::hierarchical_time::LifeEvent::Collapse { .. }
+        ));
+    }
+
+    #[test]
+    fn verify_lifecycle_intact_after_events() {
+        let os = crate::os_layer::bare_metal::BareMetalOs::new();
+        let mut shell = ParasiteShell::new(20);
+        let a = shell.spawn(&os, "Lifecycle", AgentRole::Flower, 20);
+        {
+            let agent = shell.agents.get_mut(&a).unwrap();
+            agent.record_radiation("辐射至叶节点", "LeafNode");
+            agent.record_collapse("坍缩回声", "回声内容");
+            agent.record_radiation("二次辐射", "Target2");
+        }
+        let agent = shell.agents.get(&a).unwrap();
+        // 1 创世 + 3 记录 = 4 事件
+        assert_eq!(agent.timestamp.events.len(), 4);
+        // 完整性校验应通过
+        let report = agent.verify_lifecycle();
+        assert!(report.is_intact());
+        assert_eq!(report.total_events, 4);
+    }
+
+    #[test]
+    fn lifecycle_version_drops_when_tampered() {
+        let os = crate::os_layer::bare_metal::BareMetalOs::new();
+        let mut shell = ParasiteShell::new(20);
+        let a = shell.spawn(&os, "Tampered", AgentRole::Observer, 20);
+        {
+            let agent = shell.agents.get_mut(&a).unwrap();
+            agent.record_radiation("正常辐射", "Target");
+        }
+        let agent = shell.agents.get(&a).unwrap();
+        let original_version = agent.timestamp.version();
+        assert_eq!(original_version, 3); // 1 创世 + 1 辐射 = 2 events → v3
+                                           
+        // 模拟篡改：直接清空事件
+        shell.agents.get_mut(&a).unwrap().timestamp.events.clear();
+        let agent = shell.agents.get(&a).unwrap();
+        // 版本号应下降 (事件减少 → version 降低)
+        assert!(agent.timestamp.version() < original_version);
+        assert_eq!(agent.timestamp.events.len(), 0);
+        assert_eq!(agent.timestamp.version(), 1); // 空事件 → v1
+    }
+
+    #[test]
+    fn multiple_agents_independent_timestamps() {
+        let os = crate::os_layer::bare_metal::BareMetalOs::new();
+        let mut shell = ParasiteShell::new(20);
+        let a = shell.spawn(&os, "Agent1", AgentRole::Root, 20);
+        let b = shell.spawn(&os, "Agent2", AgentRole::Leaf, 20);
+        // Agent1 辐射
+        shell.agents.get_mut(&a).unwrap().record_radiation("任务1", "T1");
+        // Agent2 坍缩
+        shell.agents.get_mut(&b).unwrap().record_collapse("分身B", "成果B");
+        // 各自独立
+        assert_eq!(shell.agents.get(&a).unwrap().timestamp.events.len(), 2);
+        assert_eq!(shell.agents.get(&b).unwrap().timestamp.events.len(), 2);
+        // 事件内容独立
+        assert!(matches!(
+            shell.agents.get(&a).unwrap().timestamp.events[1],
+            crate::hierarchical_time::LifeEvent::Radiation { .. }
+        ));
+        assert!(matches!(
+            shell.agents.get(&b).unwrap().timestamp.events[1],
+            crate::hierarchical_time::LifeEvent::Collapse { .. }
+        ));
     }
 }
