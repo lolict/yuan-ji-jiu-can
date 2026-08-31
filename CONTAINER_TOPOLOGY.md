@@ -84,6 +84,7 @@
 | yinyang-3d | Nim版YIN-YANG-BINARY三维编码（mlil表面×kndl结构×灰原哀横向·极性→二进制·符号→三角色·20单元格） |
 | proof-engine | Nim版形式化自举证明（可逆性·一致性·固定点·254+2集装箱·九元层级·5项全部有效） |
 | high-algebra | Nim版高维代数（(n-1)×0.1偏移率·静态回归·俘获规则·阶和叠加·2²⁵⁶对齐·6项全部通过） |
+| full-mapping | Nim版全映射引擎（九元层级↔YinYang↔二进制↔mltt↔偏移率·全映射报告·7项全通过） |
 | radix-star | 部首星图（真实字典数据·50汉字演示通过） |
 | property-judge | 产权流侵权判定树（10场景全覆盖通过） |
 | symbol-engine | 符号引擎（36符号动态加载·近义词系统通过） |

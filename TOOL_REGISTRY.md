@@ -41,6 +41,7 @@
 | 33 | YIN-YANG-BINARY三维编码 | tools/yinyang-3d/ | Nim | `nim c --cc:clang -r y3d_demo.nim` | ✅ mlil×kndl×灰原哀三轴·极性→二进制·符号→三角色 |
 | 34 | 形式化自举证明 | tools/proof-engine/ | Nim | `nim c --cc:clang -r pe_demo.nim` | ✅ 可逆性·一致性·固定点·254+2集装箱·九元层级 |
 | 35 | 高维代数 | tools/high-algebra/ | Nim | `nim c --cc:clang --path:ha_demo -r ha_demo.nim` | ✅ (n-1)×0.1偏移率·静态回归·俘获规则·阶和叠加·2²⁵⁶对齐 |
+| 36 | 全映射引擎 | tools/full-mapping/ | Nim | `nim c --cc:clang --path:fm fm_demo.nim` | ✅ 九元↔YinYang↔二进制↔mltt↔偏移率·全映射报告·7项全通过 |
 
 ### 第三类：检索与判定
 
