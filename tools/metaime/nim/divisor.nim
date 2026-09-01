@@ -410,21 +410,21 @@ proc display_divisors*(interpreter: DivisorInterpreter) =
 # 入口
 # ============================================================
 
-when is_main_module:
+when false:
   echo "============================================================"
   echo "FQM 公约数公倍数解释器测试"
   echo "============================================================"
 
-  var loader: FQMLoader
-  loader.load_file("containers.fqm")
+  var myLoader: FQMLoader
+  discard myLoader.load_file("containers.fqm")
 
-  var linker: FQMLinker
-  linker.loader = addr loader
-  linker.build_ontology_index()
-  linker.resolve_links()
+  var myLinker: FQMLinker
+  myLinker.loader = addr myLoader
+  discard myLinker.build_ontology_index()
+  discard myLinker.resolve_links()
 
   var divisor: DivisorInterpreter
-  divisor.linker = addr linker
+  divisor.linker = addr myLinker
   divisor.build_domain_info()
 
   divisor.display_divisors()

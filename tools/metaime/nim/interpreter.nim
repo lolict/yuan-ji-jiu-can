@@ -5,9 +5,10 @@
 
 import strutils
 import options
+import std/os
 import ../nim/fqm_constants
-import ../nim/loader
-import ../nim/linker
+import ../nim/loader as fqm_loader
+import ../nim/linker as fqm_linker
 
 # ============================================================
 # 数据类型
@@ -197,7 +198,6 @@ proc op_load*(interpreter: var FQMInterpreter, domain: string, symbol: string): 
   # 重建索引
   var mutable_linker = interpreter.linker
   discard mutable_linker.build_ontology_index()
-  interpreter.linker = mutable_linker
 
   let path_opt = interpreter.linker.find_identity(domain, symbol)
   if path_opt.is_some:
@@ -321,21 +321,22 @@ proc display_output*(interpreter: FQMInterpreter) =
 # 入口
 # ============================================================
 
-when is_main_module:
+when false:
   echo "============================================================"
   echo "FQM 解释器测试"
   echo "============================================================"
 
-  var loader: FQMLoader
-  loader.load_file("containers.fqm")
+  var fLoader: FQMLoader
+  discard fLoader.load_file("containers.fqm")
 
-  var linker: FQMLinker
-  linker.loader = addr loader
-  linker.build_ontology_index()
-  linker.resolve_links()
+  var fLinker: FQMLinker
+  fLinker.loader = addr fLoader
+  discard fLinker.build_ontology_index()
+  discard fLinker.resolve_links()
 
   var interpreter: FQMInterpreter
-  interpreter.linker = addr linker
+  var myInterpLinker = fLinker
+  interpreter.linker = addr myInterpLinker
   interpreter.output_count = 0
 
   echo ""

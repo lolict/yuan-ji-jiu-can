@@ -31,7 +31,7 @@ type
     status*: DrumStatus = dsVibrating
 
 proc message*(osc: Oscillator): string =
-  result = "鼓膜已振动：启动于 " = $now().format("yyyy-MM-dd.HH:mm:ss")
+  result = "鼓膜已振动：启动于 " & $now().format("yyyy-MM-dd.HH:mm:ss")
 
 # ============================================================
 # 第二层：骨膜骨架（不可变元规则）
@@ -162,7 +162,7 @@ proc printBootstrap*(result: BootstrapResult) =
   echo "  [鼓膜回响] 自检:"
   for r in result.resonance.results:
     let status = if r.passed: "✅" else: "❌"
-  echo "    ", status, " ", r.name, ": ", r.detail
+    echo "    ", status, " ", r.name, ": ", r.detail
   echo ""
   echo "  [鼓膜回响] ", result.resonance.message()
   echo ""

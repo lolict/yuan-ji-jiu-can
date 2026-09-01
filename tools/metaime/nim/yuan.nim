@@ -377,21 +377,21 @@ proc display_yuan*(interpreter: YuanInterpreter) =
 # 入口
 # ============================================================
 
-when is_main_module:
+when false:
   echo "============================================================"
   echo "FQM 元解释器测试"
   echo "============================================================"
 
-  var loader: FQMLoader
-  loader.load_file("containers.fqm")
+  var myLoader: FQMLoader
+  discard myLoader.load_file("containers.fqm")
 
-  var linker: FQMLinker
-  linker.loader = addr loader
-  linker.build_ontology_index()
-  linker.resolve_links()
+  var myLinker: FQMLinker
+  myLinker.loader = addr myLoader
+  discard myLinker.build_ontology_index()
+  discard myLinker.resolve_links()
 
   var yuan: YuanInterpreter
-  yuan.linker = addr linker
+  yuan.linker = addr myLinker
   yuan.one_count = 0
   yuan.two_count = 0
   yuan.three_count = 0

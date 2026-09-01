@@ -420,21 +420,21 @@ proc display_space*(interpreter: Radix3DInterpreter) =
 # 入口
 # ============================================================
 
-when is_main_module:
+when false:
   echo "============================================================"
   echo "FQM 三维进制解释器测试"
   echo "============================================================"
 
-  var loader: FQMLoader
-  loader.load_file("containers.fqm")
+  var myLoader: FQMLoader
+  discard myLoader.load_file("containers.fqm")
 
-  var linker: FQMLinker
-  linker.loader = addr loader
-  linker.build_ontology_index()
-  linker.resolve_links()
+  var myLinker: FQMLinker
+  myLinker.loader = addr myLoader
+  discard myLinker.build_ontology_index()
+  discard myLinker.resolve_links()
 
   var radix3d: Radix3DInterpreter
-  radix3d.linker = addr linker
+  radix3d.linker = addr myLinker
   radix3d.build_coordinates()
 
   radix3d.display_space()

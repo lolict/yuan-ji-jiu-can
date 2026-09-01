@@ -379,7 +379,7 @@ proc lookupGlyph*(symbol: char): Option[GlyphInfo] =
 proc calculateForce*(glyph: GlyphInfo): int =
   result = 0
   for prim in glyph.primitives:
-    result += case prim.geoType
+    let strength = case prim.geoType
       of gtStraight: 2   # 直线 = 张力 = 2
       of gtCurve: 3      # 曲线 = 扭力 = 3
       of gtCross: 4      # 交叉 = 分支 = 4
@@ -388,6 +388,7 @@ proc calculateForce*(glyph: GlyphInfo): int =
       of gtOpen: 1       # 开口 = 通道 = 1
       of gtSpiral: 6     # 螺旋 = 内外共存 = 6
       of gtPoint: 1      # 点 = 标记 = 1
+    result += strength
 
 # ============================================================
 # 计算两个字母的"相互作用力"

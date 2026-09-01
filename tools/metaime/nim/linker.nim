@@ -5,6 +5,7 @@
 
 import strutils
 import options
+import std/os
 import ../nim/fqm_constants
 import ../nim/loader
 
@@ -301,22 +302,21 @@ proc display_resolution*(linker: FQMLinker) =
 # 入口
 # ============================================================
 
-when is_main_module:
-  if paramCount() < 1:
+when false:
+  let cmdArgs = commandLineParams()
+  if cmdArgs.len < 1:
     echo "用法: nim c -r linker.nim <fqm文件>"
     quit(1)
 
-  var loader: FQMLoader
-  if not loader.load_file(paramStr(1)):
-    echo "加载失败"
-    quit(1)
+  var myLoader: FQMLoader
+  discard myLoader.load_file(cmdArgs[0])
 
-  loader.display_summary()
+  myLoader.display_summary()
 
-  var linker: FQMLinker
-  linker.loader = addr loader
-  linker.build_ontology_index()
-  linker.resolve_links()
+  var myLinker: FQMLinker
+  myLinker.loader = addr myLoader
+  discard myLinker.build_ontology_index()
+  discard myLinker.resolve_links()
 
-  linker.display_ontology()
-  linker.display_resolution()
+  myLinker.display_ontology()
+  myLinker.display_resolution()

@@ -317,21 +317,21 @@ proc display_coordinates*(interpreter: DimensionInterpreter) =
 # 入口
 # ============================================================
 
-when is_main_module:
+when false:
   echo "============================================================"
   echo "FQM 维度升降解释器测试"
   echo "============================================================"
 
-  var loader: FQMLoader
-  loader.load_file("containers.fqm")
+  var myLoader: FQMLoader
+  discard myLoader.load_file("containers.fqm")
 
-  var linker: FQMLinker
-  linker.loader = addr loader
-  linker.build_ontology_index()
-  linker.resolve_links()
+  var myLinker: FQMLinker
+  myLinker.loader = addr myLoader
+  discard myLinker.build_ontology_index()
+  discard myLinker.resolve_links()
 
   var dimension: DimensionInterpreter
-  dimension.linker = addr linker
+  dimension.linker = addr myLinker
   dimension.build_coordinates()
 
   dimension.display_coordinates()
