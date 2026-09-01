@@ -79,6 +79,20 @@
 | 37 | radix256 | tools/radix256/ | ✅ 2²⁵⁶等效高位对齐进位制·4×64位词·进位链仪式·溢出折叠·根基254+2 |
 | 38 | full-mapping | tools/full-mapping/ | ✅ 全映射引擎·九元↔YinYang↔二进制↔mltt↔偏移率·7项全通过 |
 | 39 | njsg-swarm | tools/njsg-swarm/ | ✅ 分布式分身协调·6分身并行·冲突裁决·心跳检测 |
+| 40 | kernel-v1.7-perception | kernel/src/njsg_kernel.c | ✅ 九元感知引擎·九家族分类·谐音靶点路由·固定点迭代(0.82衰减/23次收敛) |
+| 41 | kernel-v1.7-mccp | kernel/src/njsg_kernel.c | ✅ MCCP自举编译器·DSL→C struct·袋子级加法 |
+| 42 | kernel-v1.7-review | kernel/src/njsg_kernel.c | ✅ 裁判系统·三元审判·产权分·排行榜 |
+| 43 | kernel-v1.7-timeline | kernel/src/njsg_kernel.c | ✅ 时间线一体化·多时钟域·四层心跳后勤 |
+
+---
+
+### 引擎内核
+
+| 内核 | 版本 | 状态 | 路径 |
+|------|------|------|------|
+| C 内核 | v2.0.0 (含v1.4+模块) | ✅ 编译通过·demo全跑通·已推GitHub+Gitee | kernel/src/njsg_kernel.c (4553行) |
+| Rust 核心 | v0.22 | ✅ 64文件·625测试 | hunyuan-rs/ |
+| WASM 核心 | v1.7 | ✅ 单源wasm32+wasm64 | kernel/wasm/njsg_wasm.c |
 
 ---
 
