@@ -225,6 +225,18 @@ pub use celestial_perception_v3::{
     AestheticSystem, EliminationSystem, FilterSystem,
 };
 
+// ── v0.29 天觉v4（老四）· 七系俱全 + 情感效价 + 推理链 + 审美维度 ──
+pub mod celestial_perception_v4;
+pub use celestial_perception_v4::{
+    CelestialPerceptionV4, PipelineResult as PipelineResultV4,
+    Emotion, EmotionState,
+    Behavior, BehaviorSystem,
+    ThinkingSystem, ReasoningChain,
+    AestheticSystem, AestheticVerdict, AestheticDimensions,
+    EliminationSystem, EliminationReason, EliminationRecord,
+    FilterSystem,
+};
+
 // ── v0.31 大审判庭 · 全链路整合裁判系统 ──
 pub mod grand_court;
 pub use grand_court::{GrandCourt, GrandCourtVerdict};
