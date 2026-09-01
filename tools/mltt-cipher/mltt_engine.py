@@ -5,8 +5,8 @@
 # 加载 mltt_full_data.json，提供：
 #   短码 → 条目（lookup）
 #   含义 → 短码（reverse_lookup）
-#   按极性筛选（by_polarity）
-#   按类别筛选（by_category）
+#   按极性筛选（filter_by_polarity）
+#   按类别筛选（filter_by_category）
 #   模糊搜索（search）
 #   动态新增（register） + 撤销（unregister）
 #   近义词链接（link_synonyms / get_synonyms）
@@ -19,7 +19,6 @@
 
 import json
 import os
-from typing import Any
 
 __all__ = [
     "CipherEngine",
@@ -37,19 +36,19 @@ POLARITY_LABEL = {
 class CipherEngine:
     def __init__(self, data: dict):
         self.meta = data.get("meta", {})
-        self.entries: list[dict] = data.get("entries", [])
+        self.entries: list = data.get("entries", [])
         self._rebuild_indices()
 
     def _rebuild_indices(self):
-        self.by_code: dict[str, dict] = {e["code"]: e for e in self.entries}
-        self.by_meaning: dict[str, str] = {}
-        self.by_category: dict[str, list[str]] = {}
-        self.by_polarity: dict[str, list[str]] = {}
-        self._synonym_map: dict[str, list[str]] = {}
+        self._by_code: dict = {e["code"]: e for e in self.entries}
+        self._by_meaning: dict = {}
+        self._by_category: dict = {}
+        self._by_polarity: dict = {}
+        self._synonym_map: dict = {}
         for e in self.entries:
-            self.by_meaning[e["meaning"]] = e["code"]
-            self.by_category.setdefault(e["category"], []).append(e["code"])
-            self.by_polarity.setdefault(e["polarity"], []).append(e["code"])
+            self._by_meaning[e["meaning"]] = e["code"]
+            self._by_category.setdefault(e["category"], []).append(e["code"])
+            self._by_polarity.setdefault(e["polarity"], []).append(e["code"])
             if "synonyms" in e and e["synonyms"]:
                 self._synonym_map[e["code"]] = e["synonyms"]
 
@@ -59,19 +58,19 @@ class CipherEngine:
 
     # ── 基础查询 ──
 
-    def lookup(self, code: str) -> dict | None:
-        return self.by_code.get(code)
+    def lookup(self, code: str):
+        return self._by_code.get(code)
 
-    def reverse_lookup(self, meaning: str) -> str | None:
-        return self.by_meaning.get(meaning)
+    def reverse_lookup(self, meaning: str):
+        return self._by_meaning.get(meaning)
 
-    def by_polarity(self, polarity: str) -> list[dict]:
-        return [self.by_code[c] for c in self.by_polarity.get(polarity, []) if c in self.by_code]
+    def filter_by_polarity(self, polarity: str) -> list:
+        return [self._by_code[c] for c in self._by_polarity.get(polarity, []) if c in self._by_code]
 
-    def by_category(self, category: str) -> list[dict]:
-        return [self.by_code[c] for c in self.by_category.get(category, []) if c in self.by_code]
+    def filter_by_category(self, category: str) -> list:
+        return [self._by_code[c] for c in self._by_category.get(category, []) if c in self._by_code]
 
-    def search(self, query: str) -> list[dict]:
+    def search(self, query: str) -> list:
         q = query.lower()
         out = []
         for e in self.entries:
@@ -85,8 +84,8 @@ class CipherEngine:
     # ── 动态注册 ──
 
     def register(self, code: str, meaning: str, polarity: str, category: str,
-                 description: str = "", synonyms: list[str] | None = None) -> bool:
-        if code in self.by_code:
+                 description: str = "", synonyms: list = None) -> bool:
+        if code in self._by_code:
             return False
         entry = {
             "code": code,
@@ -101,7 +100,7 @@ class CipherEngine:
         return True
 
     def unregister(self, code: str) -> bool:
-        if code not in self.by_code:
+        if code not in self._by_code:
             return False
         self.entries = [e for e in self.entries if e["code"] != code]
         self._rebuild_indices()
@@ -110,7 +109,7 @@ class CipherEngine:
     # ── 近义词 ──
 
     def link_synonyms(self, code: str, *syns: str) -> bool:
-        e = self.by_code.get(code)
+        e = self._by_code.get(code)
         if not e:
             return False
         existing = set(e.get("synonyms", []))
@@ -119,17 +118,17 @@ class CipherEngine:
         self._rebuild_indices()
         return True
 
-    def get_synonyms(self, code: str) -> list[str]:
-        e = self.by_code.get(code)
+    def get_synonyms(self, code: str) -> list:
+        e = self._by_code.get(code)
         if not e:
             return []
         return e.get("synonyms", [])
 
     # ── 推荐 ──
 
-    def recommend(self, code: str, limit: int = 5) -> list[dict]:
+    def recommend(self, code: str, limit: int = 5) -> list:
         """基于同极性 + 同类别找近邻（简单协同过滤）"""
-        src = self.by_code.get(code)
+        src = self._by_code.get(code)
         if not src:
             return []
         out = []
@@ -148,11 +147,11 @@ class CipherEngine:
 
     # ── 极性计数 ──
 
-    def polarity_stats(self) -> dict[str, int]:
+    def polarity_stats(self) -> dict:
         return {
-            "yin": len(self.by_polarity.get("yin", [])),
-            "yang": len(self.by_polarity.get("yang", [])),
-            "balanced": len(self.by_polarity.get("balanced", [])),
+            "yin": len(self._by_polarity.get("yin", [])),
+            "yang": len(self._by_polarity.get("yang", [])),
+            "balanced": len(self._by_polarity.get("balanced", [])),
         }
 
     # ── 极性中和检测 ──
@@ -166,9 +165,9 @@ class CipherEngine:
         ratios = {k: v / total for k, v in stats.items()}
         advice_parts = []
         if ratios["yin"] > 0.55:
-            advice_parts.append(f"阴({ratios['yin']:.0%})过盛，建议增加阳符")
+            advice_parts.append("阴({:.0%})过盛，建议增加阳符".format(ratios['yin']))
         if ratios["yang"] > 0.35:
-            advice_parts.append(f"阳({ratios['yang']:.0%})过盛，建议增加阴符")
+            advice_parts.append("阳({:.0%})过盛，建议增加阴符".format(ratios['yang']))
         return {
             "stats": stats,
             "ratios": ratios,
@@ -179,37 +178,43 @@ class CipherEngine:
     # ── 格式化 ──
 
     def format_entry(self, code: str) -> str:
-        e = self.by_code.get(code)
+        e = self._by_code.get(code)
         if not e:
-            return f"[未找到: {code}]"
-        syns = f"  近义词: {', '.join(e['synonyms'])}\n" if e.get("synonyms") else ""
+            return "[未找到: {}]".format(code)
+        syns = "  近义词: {}\n".format(', '.join(e['synonyms'])) if e.get("synonyms") else ""
         return (
-            f"┌─ {e['code']} → {e['meaning']}\n"
-            f"│  极性: {POLARITY_LABEL.get(e['polarity'], e['polarity'])}\n"
-            f"│  类别: {e['category']}\n"
-            f"│  {e['description']}\n"
-            f"{syns}"
-            f"└─"
+            "┌─ {} → {}\n"
+            "│  极性: {}\n"
+            "│  类别: {}\n"
+            "│  {}\n"
+            "{}\n"
+            "└─"
+        ).format(
+            e['code'], e['meaning'],
+            POLARITY_LABEL.get(e['polarity'], e['polarity']),
+            e['category'],
+            e['description'],
+            syns
         )
 
     def stats(self) -> str:
         ps = self.polarity_stats()
-        cats = {k: len(v) for k, v in self.by_category.items()}
+        cats = {k: len(v) for k, v in self._by_category.items()}
         lines = [
             "═══ mltt 密码表统计 ═══",
-            f"条目总数: {self.total}",
-            f"类别数: {len(self.by_category)}",
-            f"阴(容器): {ps['yin']}",
-            f"阳(界线): {ps['yang']}",
-            f"平衡: {ps['balanced']}",
+            "条目总数: {}".format(self.total),
+            "类别数: {}".format(len(self._by_category)),
+            "阴(容器): {}".format(ps['yin']),
+            "阳(界线): {}".format(ps['yang']),
+            "平衡: {}".format(ps['balanced']),
             "── 类别分布 ──",
         ]
         for cat, cnt in sorted(cats.items(), key=lambda x: -x[1]):
-            lines.append(f"  {cat}: {cnt}")
+            lines.append("  {}: {}".format(cat, cnt))
         return "\n".join(lines)
 
 
-def load_engine(json_path: str | None = None) -> CipherEngine:
+def load_engine(json_path: str = None) -> CipherEngine:
     if json_path is None:
         json_path = os.path.join(os.path.dirname(__file__), "mltt_full_data.json")
     with open(json_path, "r", encoding="utf-8") as f:
