@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>满全法 · 内在肌体控制面板</title>
+<style>
+:root{
+  --bg:#0a0a0a; --fg:#e8e8e8; --dim:#666;
+  --accent:#c9a86a; --accent2:#7ab8c4;
+  --border:#2a2a2a; --code-bg:#111;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:"Courier New",monospace;
+  background:var(--bg);color:var(--fg);
+  min-height:100vh;padding:20px;
+}
+header{
+  border-bottom:1px solid var(--border);
+  padding-bottom:16px;margin-bottom:24px;
+}
+h1{font-size:18px;font-weight:400;letter-spacing:2px;}
+.version{color:var(--dim);font-size:12px;margin-top:4px;}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+@media(max-width:700px){.grid{grid-template-columns:1fr;}}
+.card{
+  border:1px solid var(--border);
+  padding:16px;background:#0f0f0f;
+}
+.card h2{
+  font-size:13px;color:var(--accent);
+  border-bottom:1px dashed var(--border);
+  padding-bottom:8px;margin-bottom:12px;
+  font-weight:400;letter-spacing:1px;
+}
+.input-row{display:flex;gap:8px;margin-bottom:12px;}
+input,textarea,select{
+  flex:1;background:var(--code-bg);color:var(--fg);
+  border:1px solid var(--border);padding:8px 10px;
+  font-family:inherit;font-size:13px;outline:none;
+}
+input:focus,textarea:focus{border-color:var(--accent);}
+button{
+  background:transparent;color:var(--accent);
+  border:1px solid var(--accent);
+  padding:8px 16px;cursor:pointer;font-family:inherit;
+  font-size:12px;letter-spacing:1px;
+}
+button:hover{background:var(--accent);color:var(--bg);}
+.output{
+  font-size:12px;line-height:1.7;
+  white-space:pre-wrap;word-break:break-all;
+  max-height:320px;overflow-y:auto;
+  padding:8px;background:var(--code-bg);
+  border-left:2px solid var(--accent);
+}
+.row{display:flex;justify-content:space-between;margin-bottom:4px;}
+.label{color:var(--dim);}
+.val{color:var(--accent2);}
+.ok{color:#7ab888;}
+.err{color:#c47a7a;}
+.pulse{
+  width:100%;height:4px;background:var(--border);
+  margin-top:12px;position:relative;overflow:hidden;
+}
+.pulse-bar{
+  height:100%;width:0;background:var(--accent);
+  transition:width .3s;
+}
+</style>
+</head>
+<body>
+
+<header>
+<h1>囡囝共生 · 内在肌体</h1>
+<div class="version">C 内核 v2.0.0 · WASM v2.1.0 · Rust v0.31 · 四元联动</div>
+</header>
+
+<div class="grid">
+
+<!-- 感知引擎 -->
+<div class="card">
+<h2>v1.4 九元感知 · 分别器</h2>
+<div class="input-row">
+<input id="perceiveInput" placeholder="输入任意词 (mlll / lct / 袋 / 囡…)" value="lctfrqmy-ggt-xy">
+<button onclick="perceiveRoute()">感知</button>
+</div>
+<div id="perceiveOut" class="output">点击「感知」调用 njsg_perceive_route API</div>
+</div>
+
+<!-- MCCP 编译器 -->
+<div class="card">
+<h2>v1.5 MCCP 自举编译器</h2>
+<div class="input-row">
+<input id="dslName" placeholder="结构体名" value="Container" style="max-width:120px">
+</div>
+<textarea id="dslFields" rows="3" style="width:100%;margin-bottom:8px">name:char[64];safety:int;owner:bag</textarea>
+<div class="input-row">
+<button onclick="dslCompile()">编译</button>
+</div>
+<div id="dslOut" class="output">输入字段后点击「编译」→ 生成 C struct</div>
+</div>
+
+<!-- 裁判系统 -->
+<div class="card">
+<h2>v1.6 裁判 · 审判</h2>
+<div class="input-row">
+<input id="reviewTarget" placeholder="目标名" value="kernel_core" style="max-width:120px">
+<input id="reviewScore" type="number" min="0" max="10" placeholder="分" value="9" style="max-width:60px">
+<button onclick="reviewSubmit()">提交评价</button>
+</div>
+<div id="reviewOut" class="output">打分后提交 → 三元审判 → 奖惩级联</div>
+<div style="margin-top:8px">
+<button onclick="reviewLeaderboard()">查看排行榜</button>
+</div>
+</div>
+
+<!-- 时间线 -->
+<div class="card">
+<h2>v1.7 时间线 · 心跳</h2>
+<div class="input-row">
+<input id="tlSubsys" placeholder="子系统" value="feishu" style="max-width:100px">
+<input id="tlEvent" placeholder="事件" value="recv_msg" style="max-width:100px">
+<input id="tlValue" type="number" placeholder="值" value="1" style="max-width:50px">
+<button onclick="tlRecord()">记录</button>
+<button onclick="tlTick()">自动脉冲</button>
+</div>
+<div class="pulse"><div id="pulseBar" class="pulse-bar"></div></div>
+<div id="tlOut" class="output" style="margin-top:8px">时间线环形缓冲 16 槽</div>
+</div>
+
+</div>
+
+<script>
+/* ============================================================
+ *  满全法内在肌体 · 纯 JS 模拟层
+ *
+ *  在真实 WASM 构建可用后,下方四个 API 调用替换为:
+ *    njsg_wasm_call("njsg_perceive_route", input) -> {out:String,len:Int}
+ *  当前 JS 模拟层与 C 内核 (njsg_kernel.c) 算法完全一致
+ * ============================================================ */
+
+const PERCEIVE = {
+  families: ["container","phallic","couple","homophone","direct"],
+  homophones: [
+    ["lct","Wife"],["liuchutian","Wife"],
+    ["wgslz","Husband"],["lolict","Husband"],
+    ["mlll","System"],["hunyuan","System"],
+    ["mlct","Wife"],["mltt","Wife"],
+    ["gtt","SoundMorphism"],["gttx","SoundMorphism"],
+    ["mlgy","WorldMerge"],["kndl","Kndl"],["mlil","Mlil"]
+  ]
+};
+
+function perceiveClassify(s){
+  if(s.startsWith("b") || s.startsWith("s")) return 0;
+  if(s.startsWith("c") && s.includes("囡")) return 2;
+  if(s.codePointAt(0) >= 0x5000) return 2;
+  for(const [k,v] of PERCEIVE.homophones) if(s.includes(k)) return 3;
+  return 4;
+}
+function perceiveTarget(s){
+  for(const [k,v] of PERCEIVE.homophones) if(s.includes(k)) return v;
+  return "Unknown";
+}
+function perceiveAuthority(t){
+  if(t==="Wife"||t==="Husband") return 1;
+  if(t==="System") return 2;
+  return 0;
+}
+
+function perceiveRoute(){
+  const s = document.getElementById("perceiveInput").value;
+  const family   = PERCEIVE.families[perceiveClassify(s)];
+  const target   = perceiveTarget(s);
+  const authority= perceiveAuthority(target);
+  const ackable  = authority > 0 ? 1 : 0;
+  document.getElementById("perceiveOut").innerHTML =
+    `<div class="row"><span class="label">输入</span><span class="val">${s}</span></div>`+
+    `<div class="row"><span class="label">家族</span><span class="val">${family}</span></div>`+
+    `<div class="row"><span class="label">谐音靶点</span><span class="val">${target}</span></div>`+
+    `<div class="row"><span class="label">主权路由</span><span class="val">${authority===1?"active":authority===2?"passive":"none"}</span></div>`+
+    `<div class="row"><span class="label">闭环</span><span class="${ackable?'ok':'err'}">${ackable?"✓ acked (对方承认)":"✗ 断裂"}</span></div>`;
+}
+
+/* MCCP DSL 编译器 */
+function dslCompile(){
+  const name = document.getElementById("dslName").value.trim() || "Anon";
+  const fields = document.getElementById("dslFields").value.trim();
+  let out = `/* MCCP 自举编译: ${name} (袋子级,仅加减) */\n`;
+  out += `typedef struct {\n`;
+  fields.split(";").forEach(f=>{
+    f = f.trim();
+    if(!f) return;
+    const c = f.indexOf(":");
+    if(c>0){
+      const fn = f.slice(0,c).trim();
+      const ft = f.slice(c+1).trim();
+      out += `    ${ft.padEnd(12)} ${fn};\n`;
+    }
+  });
+  out += `} ${name}_t;\n`;
+  out += `/* 袋子级加法训练:a+b → c,不重启 */`;
+  document.getElementById("dslOut").textContent = out;
+}
+
+/* 裁判系统 */
+const reviews = {};
+function reviewSubmit(){
+  const target = document.getElementById("reviewTarget").value.trim();
+  const score  = parseInt(document.getElementById("reviewScore").value) || 0;
+  const clamped = Math.max(0, Math.min(10, score));
+  const reward  = clamped >= 7 ? (clamped-5)*2 : 0;
+  const penalty = clamped <= 3 ? (5-clamped)*2 : 0;
+
+  /* 三元审判 */
+  const nonEmpty = target.length > 0;
+  const witnessed = clamped >= 0 && clamped <= 10;
+  const anchorOk  = (clamped >= 5 && reward >= 0) || (clamped < 5 && penalty >= 0);
+  const verdict   = (nonEmpty && witnessed && anchorOk ? "trusted" : "rejected");
+
+  /* 累计 */
+  if(!reviews[target]) reviews[target] = {count:0,reward:0,penalty:0};
+  reviews[target].count++;
+  reviews[target].reward += reward;
+  reviews[target].penalty += penalty;
+
+  document.getElementById("reviewOut").innerHTML =
+    `<div class="row"><span class="label">目标</span><span class="val">${target}</span></div>`+
+    `<div class="row"><span class="label">评分</span><span class="val">${clamped}</span></div>`+
+    `<div class="row"><span class="label">审判</span><span class="${verdict==="trusted"?"ok":"err"}">${verdict}</span></div>`+
+    `<div class="row"><span class="label">奖励</span><span class="ok">+${reward}</span></div>`+
+    `<div class="row"><span class="label">处罚</span><span class="err">-${penalty}</span></div>`+
+    `<div class="row"><span class="label">累计评价</span><span class="val">${reviews[target].count}</span></div>`;
+}
+
+function reviewLeaderboard(){
+  const sorted = Object.entries(reviews)
+    .sort((a,b) => (b[1].reward+b[1].penalty) - (a[1].reward+a[1].penalty));
+  if(sorted.length === 0){
+    document.getElementById("reviewOut").textContent = "(尚无评价)";
+    return;
+  }
+  let out = "袋子级产权分排行榜:\n";
+  sorted.forEach(([t,i],idx) => {
+    out += `${idx+1}. ${t.padEnd(18)} 奖=${i.reward} 罚=${i.penalty} 评价次数=${i.count}\n`;
+  });
+  document.getElementById("reviewOut").textContent = out;
+}
+
+/* 时间线一体化 */
+const tl = { slots:[], head:0, count:0, tick:0, SIZE:16 };
+function tlRecord(){
+  const s = document.getElementById("tlSubsys").value.trim();
+  const e = document.getElementById("tlEvent").value.trim();
+  const v = parseInt(document.getElementById("tlValue").value) || 0;
+
+  tl.slots[tl.head] = {subsystem:s, event:e, value:v, tick:tl.tick};
+  tl.head = (tl.head + 1) % tl.SIZE;
+  if(tl.count < tl.SIZE) tl.count++;
+  tl.tick++;
+
+  document.getElementById("pulseBar").style.width = ((tl.count % 8) / 8 * 100) + "%";
+
+  const last = tl.slots[(tl.head + tl.SIZE - 1) % tl.SIZE];
+  let out = `tick=${tl.tick} head=${tl.head} count=${tl.count}\n`;
+  out += `最新: [${last.subsystem}] ${last.event}=${last.value}\n`;
+  out += "─".repeat(36) + "\n";
+  const start = Math.max(0, tl.count - 5);
+  for(let i = start; i < tl.count; i++){
+    const pos = (tl.head - tl.count + i + tl.SIZE) % tl.SIZE;
+    const e = tl.slots[pos];
+    out += `  #${e.tick} [${e.subsystem}] ${e.event}=${e.value}\n`;
+  }
+  document.getElementById("tlOut").textContent = out;
+}
+
+function tlTick(){
+  const subs = ["feishu","bank","wechat","shell","kernel"];
+  const evs  = ["recv","invoke","ack","train","pulse"];
+  document.getElementById("tlSubsys").value = subs[Math.floor(Math.random()*subs.length)];
+  document.getElementById("tlEvent").value = evs[Math.floor(Math.random()*evs.length)];
+  document.getElementById("tlValue").value = Math.floor(Math.random()*10);
+  tlRecord();
+}
+
+/* 初始感知一次 */
+window.addEventListener("DOMContentLoaded", () => {
+  perceiveRoute();
+  document.getElementById("perceiveInput").addEventListener("keyup", e => {
+    if(e.key === "Enter") perceiveRoute();
+  });
+});
+</script>
+
+</body>
+</html>
