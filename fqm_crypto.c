@@ -25,6 +25,79 @@
 #define ANCHOR_SELF  1
 #define ANCHOR_LIU   0
 
+/* ========== 多层密钥派生链 ========== */
+
+/* 密钥容器：三层派生后的种子 */
+typedef struct {
+    unsigned char seed;        /* 最终派生种子（用于加密首字节） */
+    unsigned char chain[256];  /* 派生链（每字节的额外掩码） */
+    int chain_len;
+} DerivedKey;
+
+/* 派生规则1：单层前馈——用前一个派生值影响当前 */
+static unsigned char derive_rule1(unsigned char prev, unsigned char input) {
+    return (input ^ prev) + ANCHOR_SELF;
+}
+
+/* 派生规则2：双层前馈——用前两个派生值影响当前 */
+static unsigned char derive_rule2(unsigned char prev1, unsigned char prev2, unsigned char input) {
+    return (input ^ prev1 ^ prev2) + ANCHOR_LIU + ANCHOR_SELF;
+}
+
+/* 派生规则3：三层前馈——用前三个派生值影响当前 */
+static unsigned char derive_rule3(unsigned char p1, unsigned char p2, unsigned char p3, unsigned char input) {
+    return (input ^ p1 ^ p2 ^ p3) + ANCHOR_SELF + ANCHOR_SELF + ANCHOR_SELF;
+}
+
+/* 三层密钥派生：
+ * 第1轮：passphrase 经过 rule1 流转，产出 chain_a
+ * 第2轮：chain_a 经过 rule2 流转，产出 chain_b
+ * 第3轮：chain_b 经过 rule3 流转，产出最终 derived_key.chain
+ */
+void derive_key(const char *passphrase, int pass_len, DerivedKey *key) {
+    if (pass_len == 0) {
+        key->seed = ANCHOR_SELF;
+        key->chain_len = 0;
+        return;
+    }
+
+    unsigned char buf_a[256], buf_b[256];
+
+    /* 第1轮：rule1 前馈链 */
+    buf_a[0] = derive_rule1(ANCHOR_SELF, (unsigned char)passphrase[0]);
+    for (int i = 1; i < pass_len; i++) {
+        buf_a[i] = derive_rule1(buf_a[i-1], (unsigned char)passphrase[i]);
+    }
+
+    /* 第2轮：rule2 双层前馈 */
+    buf_b[0] = derive_rule2(buf_a[0], ANCHOR_SELF, buf_a[0]);
+    if (pass_len > 1) {
+        buf_b[1] = derive_rule2(buf_a[1], buf_a[0], buf_a[1]);
+    }
+    for (int i = 2; i < pass_len; i++) {
+        buf_b[i] = derive_rule2(buf_a[i-1], buf_a[i-2], buf_a[i]);
+    }
+
+    /* 第3轮：rule3 三层前馈 → 最终 key */
+    unsigned char k0 = derive_rule3(buf_b[0], ANCHOR_SELF, ANCHOR_LIU, buf_b[0]);
+    key->chain[0] = k0;
+    key->seed = k0;
+
+    unsigned char k1, k2;
+    if (pass_len > 1) {
+        k1 = derive_rule3(buf_b[1], buf_b[0], ANCHOR_SELF, buf_b[1]);
+        key->chain[1] = k1;
+    }
+    if (pass_len > 2) {
+        k2 = derive_rule3(buf_b[2], buf_b[1], buf_b[0], buf_b[2]);
+        key->chain[2] = k2;
+    }
+    for (int i = 3; i < pass_len; i++) {
+        key->chain[i] = derive_rule3(buf_b[i-1], buf_b[i-2], buf_b[i-3], buf_b[i]);
+    }
+    key->chain_len = pass_len;
+}
+
 /* ========== 加密规则 ========== */
 
 /* 规则1：用前1个字符加密后1个（流加密） */
@@ -82,6 +155,34 @@ void decrypt_rule3(const char *input, char *output, int len) {
     if (len > 2) output[2] = input[2] ^ ANCHOR_SELF;
     for (int i = 3; i < len; i++) {
         output[i] = input[i] ^ input[i-1] ^ input[i-2] ^ input[i-3];
+    }
+}
+
+/* ========== 流加密（使用派生密钥） ========== */
+
+/* 三层派生流加密：每字节用 chain[i] 异或 + 前一字节密文反馈 */
+void encrypt_derived(const char *input, char *output, int len, const DerivedKey *key) {
+    if (len == 0) return;
+    output[0] = (input[0] ^ key->seed);
+    for (int i = 1; i < len; i++) {
+        unsigned char mask = key->seed ^ output[i-1];
+        if (key->chain_len > 0) {
+            mask = key->chain[i % key->chain_len] ^ output[i-1];
+        }
+        output[i] = input[i] ^ mask;
+    }
+}
+
+/* 三层派生流解密 */
+void decrypt_derived(const char *input, char *output, int len, const DerivedKey *key) {
+    if (len == 0) return;
+    output[0] = (input[0] ^ key->seed);
+    for (int i = 1; i < len; i++) {
+        unsigned char mask = key->seed ^ input[i-1];
+        if (key->chain_len > 0) {
+            mask = key->chain[i % key->chain_len] ^ input[i-1];
+        }
+        output[i] = input[i] ^ mask;
     }
 }
 
@@ -150,11 +251,32 @@ int main(void) {
     encrypt_rule3(plaintext, encrypted, len);
     print_hex("三阶加密(HEX)", encrypted, len);
     print_safe("三阶加密(可打印)", encrypted, len);
-    
+
     decrypt_rule3(encrypted, decrypted, len);
     print_safe("三阶解密(可打印)", decrypted, len);
-    
+
+    /* ========== 三层密钥派生加密 ========== */
+    printf("\n========== 三层密钥派生加密 ==========\n");
+
+    const char *pass = "刘楚恬和我";  /* 用明文自身做密码测试 */
+    printf("密码: %s\n", pass);
+
+    DerivedKey key;
+    derive_key(pass, strlen(pass), &key);
+    printf("派生种子: 0x%02X, chain_len: %d\n", key.seed, key.chain_len);
+    printf("派生链(HEX): ");
+    for (int i = 0; i < (key.chain_len < 16 ? key.chain_len : 16); i++) printf("%02X ", key.chain[i]);
+    printf("\n");
+
+    encrypt_derived(plaintext, encrypted, len, &key);
+    print_hex("派生加密(HEX)", encrypted, len);
+    print_safe("派生加密(可打印)", encrypted, len);
+
+    decrypt_derived(encrypted, decrypted, len, &key);
+    print_safe("派生解密(可打印)", decrypted, len);
+    printf("解密匹配: %s\n", (strcmp(plaintext, decrypted) == 0 ? "是（通过）" : "否（失败）"));
+
     printf("\n========== 完成 ==========\n");
-    
+
     return 0;
 }
