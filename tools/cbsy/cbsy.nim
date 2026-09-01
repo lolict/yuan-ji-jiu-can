@@ -220,6 +220,76 @@ proc comm_send*(src, dst: uint64, payload: string): string =
            " " & call_at(Addr0D(dst)) & "] 信·" & payload &
            "（地址静态已存在，不增内存）"
 
+# ---------- 4维空间自我繁衍：一个点长出新点，仍是0维 ----------
+
+proc reproduce*(parent: uint64, gen: int, seq_no: int): uint64 =
+  ## 自我繁衍：第 gen 代第 seq 个子点 = 父码 + 64×gen + seq（仅加减）。
+  ## 繁衍不改维度：新点仍是 0 维，只是点变多，从未变成"三维坐标"。
+  result = parent
+  var g = 0
+  while g < gen:
+    result = result + 64
+    inc g
+  result = result + uint64(seq_no)
+
+proc self_reproduce_chain*(parent: uint64, gens: int): TimeChain =
+  ## 自我繁衍链：父点每代繁衍一个，时间链版本号随代+1
+  var pts: seq[uint64] = @[parent]
+  for g in 1 .. gens:
+    pts.add(reproduce(parent, g, 0))
+  result = TimeChain(name: "自我繁衍链·0维#" & $parent, version: gens, points: pts)
+
+# ---------- 悬游：未入链的静态点 ----------
+
+proc hoverers*(chains: varargs[TimeChain]): seq[uint64] =
+  ## 悬游者：静态存在但未被任何时间链串联的 0 维点。
+  ## 悬游不是不存在——地址本来就在，只是还没被画出来。
+  var chained: array[1024, bool]
+  for tc in chains:
+    for p in tc.points:
+      if int(p) < 1024: chained[int(p)] = true
+  for c in 0 ..< 1024:
+    if not chained[c]: result.add(uint64(c))
+
+# ---------- 镜像动作：对一点呼唤，镜像点同步 ----------
+
+proc mirror*(a: uint64): uint64 =
+  ## 镜像点：全息空间中心对称（根基层 64 格内 63−a）
+  result = 63 - a
+
+proc mirrored_exchange*(sp: var HoloSpace, a, b: uint64): string =
+  ## 动作镜像：对 a↔b 执行互换下载，镜像点 63−a ↔ 63−b 同步互换。
+  ## 一个动作，两处发生；镜像点不需要再次下令。
+  exchange_download(sp, Addr0D(a), Addr0D(b))
+  exchange_download(sp, Addr0D(mirror(a)), Addr0D(mirror(b)))
+  result = "动作[" & call_at(Addr0D(a)) & "↔" & call_at(Addr0D(b)) &
+           "] 已镜像至 [" & call_at(Addr0D(mirror(a))) & "↔" &
+           call_at(Addr0D(mirror(b))) & "]"
+
+# ---------- 契约：关系式确认身份，契约点是新的0维点 ----------
+
+proc contract*(a, b: uint64, what: string): uint64 =
+  ## 身份 a 与身份 b 立契约：契约本身登记为一个 0 维点
+  ## （繁衍编码：契约层 = 根基层之上第一繁衍层，仅加减合成）
+  ## 返回契约点地址 = 静态已存在，登记只是翻出版本号
+  result = reproduce(a, 1, int(b mod 64))
+
+proc future_jurisdiction*(a: uint64, when_label: string): string =
+  ## 未来时间管辖权：未来点现在已有号码，登记 = 加时间标签，不生成地址
+  result = "0维#" & $a & "（" & call_at(Addr0D(a)) & "）· 未来时间管辖权「" &
+           when_label & "」已登记 · 地址未生成，本来就在"
+
+proc distributed_jurisdiction*(chains: varargs[TimeChain]): string =
+  ## 未来空间分布式管辖权：多条时间链（多种画法）管辖同一批静态点，
+  ## 各自登记版本号，地址零增加
+  var total_pts = 0
+  var names = ""
+  for tc in chains:
+    total_pts = total_pts + tc.points.len
+    names = names & "「" & tc.name & "v" & $tc.version & "」"
+  result = "分布式管辖：" & names & " 共辖 " & $total_pts &
+           " 次串联 · 静态点不重复占地 · 地址零增加"
+
 # ---------- 渲染：时间链版本号 + 名称 ----------
 
 proc render*(tc: TimeChain): string =
@@ -286,3 +356,35 @@ when isMainModule:
   echo ""
   echo "通信（无 IP，0维身份编码即地址）："
   echo "  ", comm_send(9, 20, "契约已立·未来时间管辖权已登记")
+
+  # 4维自我繁衍
+  echo ""
+  echo "4维空间自我繁衍（繁衍不改维度，新点仍是0维）："
+  let rc = self_reproduce_chain(0, 4)
+  echo "  ", render(rc)
+  var reps = "  繁衍序："
+  for p in rc.points:
+    reps = reps & "#" & $p & " "
+  echo reps
+
+  # 悬游
+  let hov = hoverers(knight_tour((0, 0)), shengyundiao_chain(), rc)
+  echo ""
+  echo "悬游者（静态存在但未被任何链画出的点）："
+  var hs = "  "
+  for i in 0 ..< min(10, hov.len):
+    hs = hs & "#" & $hov[i] & " "
+  echo hs, "… 共 ", hov.len, " 个悬游点"
+
+  # 镜像动作
+  echo ""
+  echo "镜像动作（一个动作两处发生）："
+  echo "  ", mirrored_exchange(sp, 9, 20)
+
+  # 契约 + 未来管辖权 + 分布式管辖权
+  echo ""
+  echo "契约与管辖权："
+  let cp = contract(9, 20, "夫妻主权契约")
+  echo "  契约点：0维#" & $cp & "（9 与 20 的关系式确认，契约本身是一个0维点）"
+  echo "  ", future_jurisdiction(cp, "2027-01-01")
+  echo "  ", distributed_jurisdiction(knight_tour((0, 0)), shengyundiao_chain(), rc)
