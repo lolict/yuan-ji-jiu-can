@@ -81,6 +81,7 @@
 | 39 | njsg-swarm | tools/njsg-swarm/ | ✅ 分布式分身协调·6分身并行·冲突裁决·心跳检测 |
 | 40 | kernel-v1.7-perception | kernel/src/njsg_kernel.c | ✅ 九元感知引擎·九家族分类·谐音靶点路由·固定点迭代(0.82衰减/23次收敛) |
 | 41 | kernel-v1.7-mccp | kernel/src/njsg_kernel.c | ✅ MCCP自举编译器·DSL→C struct·袋子级加法 |
+| 42 | data-input | tools/minlian/ | ✅ 真实数据输入·JSON·200文档·FNV-1a·极性分析 |
 | 42 | kernel-v1.7-review | kernel/src/njsg_kernel.c | ✅ 裁判系统·三元审判·产权分·排行榜 |
 | 43 | kernel-v1.7-timeline | kernel/src/njsg_kernel.c | ✅ 时间线一体化·多时钟域·四层心跳后勤 |
 
@@ -163,7 +164,7 @@ git push gitee main
 - 2²⁵⁶ 等效高位对齐进位制 ✅ 已完成 — tools/radix256/ · 4×64位词 · 进位链仪式 · 溢出折叠 · 根基254+2
 - YIN-YANG-BINARY 完整映射 ✅ 已完成 — tools/full-mapping/
 - mltt 命名密码表完整实现 ✅ 已完成 — tools/mltt-cipher/
-- 统计文档聚合浏览器的真实数据输入 ✅ 已完成 — tools/minlian/ · 41文档·6类自动聚类·连接包裹树·连接强度矩阵
+- 统计文档聚合浏览器的真实数据输入 ✅ 已完成 — tools/minlian/ · Mode A 硬编码 / Mode B 文件加载器 / Mode C JSON 数据管道 · 55真实文件→7聚类→3层包裹树
 
 ---
 
