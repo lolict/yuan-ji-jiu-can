@@ -27,7 +27,7 @@ typedef struct {
 static const yunmu_entry_t YUNMU_TABLE[YUNMU_UNIQUE] = {
     /* 单韵母 (index 0..11) */
     {"a",   0},  {"o",   2},  {"e",   4},  {"i",   6},
-    {"u",   8},
+    {"u",   8},  {"ü",  18},
     /* 复韵母 (index 12..21) */
     {"ai", 10},  {"ei", 12},  {"ao", 14},  {"ou", 16},
     {"er", 20},
@@ -59,30 +59,43 @@ static inline int yunmu_name_to_index(const char *name) {
     char cmp[8];
     int len = 0;
     for (int i = 0; name[i] && len < 7; i++) {
-        char c = name[i];
         /* 大写转小写 */
+        char c = name[i];
         if (c >= 'A' && c <= 'Z') c = c + 32;
-        /* ü (U+00FC) 和 Ü (U+00DC) → v */
-        if (c == (char)0xfc || c == (char)0xfc) c = 'v'; /* ü */
-        /* 多字节 UTF-8 ü = 0xc3 0xbc, 首字节跳过 */
-        if ((uint8_t)c == 0xc3 && (uint8_t)name[i+1] == 0xbc) {
-            cmp[len++] = 'v';
-            i++; /* 跳过下一字节 */
-            continue;
+        /* 多字节 UTF-8 ü (0xC3 0xBC) 和 Ü (0xC3 0x9C) → v */
+        if ((uint8_t)c == 0xc3) {
+            if ((uint8_t)name[i+1] == 0xbc || (uint8_t)name[i+1] == 0x9c) {
+                cmp[len++] = 'v';
+                i++; /* 跳过第二字节 */
+                continue;
+            }
         }
-        if ((uint8_t)c == 0xc3 && (uint8_t)name[i+1] == 0x9c) {
-            /* Ü */
-            cmp[len++] = 'v';
-            i++;
-            continue;
-        }
+        /* 单字节 ü/Ü (Latin-1 兼容) */
+        if ((uint8_t)c == 0xfc || (uint8_t)c == 0xdc) { c = 'v'; }
         cmp[len++] = c;
     }
     cmp[len] = '\0';
 
-    /* 查表 */
+    /* 查表: 表名同样做 ü→v 归一后比较 */
     for (int i = 0; i < YUNMU_UNIQUE; i++) {
-        if (strcmp(cmp, YUNMU_TABLE[i].name) == 0) {
+        const char *n = YUNMU_TABLE[i].name;
+        if (!n) continue;  /* 防御: 不查空项 */
+        /* 表名归一: 逐字节把 UTF-8 ü/Ü 换成 v 再比较 */
+        const char *a = cmp;
+        const char *b = n;
+        int ok = 1;
+        while (*a) {
+            if ((uint8_t)*b == 0xc3 &&
+                ((uint8_t)b[1] == 0xbc || (uint8_t)b[1] == 0x9c)) {
+                if (*a != 'v') { ok = 0; break; }
+                b += 2;
+            } else {
+                if (*a != *b) { ok = 0; break; }
+                b++;
+            }
+            a++;
+        }
+        if (ok && *b == '\0') {
             return YUNMU_TABLE[i].index + (is_upper ? 1 : 0);
         }
     }
