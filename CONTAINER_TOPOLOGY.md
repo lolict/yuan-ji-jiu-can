@@ -92,6 +92,31 @@
 | symbol-registry | 统一符号注册中心（35符号·10工具大汇总通过） |
 | boundary-engine | 边界分析引擎（加法拆分乘法·填充率分析通过） |
 
+### 第 5 层：引擎内核
+
+> C 内核 `kernel/src/njsg_kernel.c` 是底层运行时容器,所有工具层最终以系统调用或函数调用进入内核。
+
+| 容器 | 作用 | 状态 |
+|------|------|------|
+| **kernel-core** | 看门狗时钟 + 多线程 + 互锁 | ✅ v2.0.0 |
+| **kernel-perception** | 九元感知引擎:感知家族→谐音靶点→主权路由→固定点 | ✅ v1.4+ |
+| **kernel-mccp** | 自举编译器入口:DSL解析→C代码生成 | ✅ v1.5+ |
+| **kernel-review** | 裁判系统:评分→三元审判→奖惩级联→产权分 | ✅ v1.6+ |
+| **kernel-timeline** | 时间线一体化:tick事件+多时钟域+心跳驱动 | ✅ v1.7+ |
+
+数据流:
+```
+编码层 ──► kernel-perception(路由) ──► kernel-mccp(编译)
+                                │
+                                ▼
+                         kernel-review(裁判)
+                                │
+                                ▼
+                         kernel-timeline(记录+心跳)
+```
+
+脚注: C 内核统一入口 `njsg_kernel.c` 4553 行,一次编译全部模块可用。
+
 ---
 
 ## 数据流方向

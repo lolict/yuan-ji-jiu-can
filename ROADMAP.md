@@ -18,7 +18,7 @@
 - 审计环 hash-chained 防篡改
 
 核心组件:
-- `kernel/src/njsg_kernel.c` — C 三元→七元核心 (2107 行,v2.0.0)
+- `kernel/src/njsg_kernel.c` — C 内核 (4553 行,v2.0.0,含v1.4+九元感知+MCCP+裁判+时间线)
 - `hunyuan-rs/src/` — Rust 核心 (64 源文件,625 测试)
 - `kernel/wasm/njsg_wasm.c` — WASI 裁决核心 (307 行,v2.0.0)
 - `cloudflare/njsg-web.js` — Worker + 盟机合 + 同步 (970+ 行)
@@ -249,6 +249,14 @@
 - 层级时间驱动: time_node mixed-radix (小时→日→周→月)
 - hash-chained 审计环: 所有执行记录防篡改
 - 12 测试全部通过
+
+### v1.7 C 内核四元升级 (已完成,2026-08-31)
+- 九元感知引擎 (`njsg_perceive`): UTF-8 家族分类 + 谐音靶点路由 + 意识固定点迭代 (0.82 衰减,23 次收敛到 0.0085)
+- MCCP 自举编译器 (`njsg_mccp_compile`): DSL → C struct,不依赖外部 Nim/JS 语法,袋子级加法
+- 裁判系统完善 (`njsg_review_submit`/`judge`/`apply`): 评分 → 三元审判 → 奖惩级联 → 产权分排行榜
+- 时间线一体化 (`njsg_timeline_record`/`sync`): 统一 tick + 日/周/月多时钟 + 全局心跳驱动四层后勤
+- 内核文件: 3771 → 4553 行 (新增 782 行),编译零错误,demo 1157 行全通过
+- 已推: origin/main ✅ | gitee-hunyuan/main ✅ | gitee-hunyuan/memory-backup ✅
 
 ---
 
