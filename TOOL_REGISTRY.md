@@ -42,6 +42,7 @@
 | 34 | 形式化自举证明 | tools/proof-engine/ | Nim | `nim c --cc:clang -r pe_demo.nim` | ✅ 可逆性·一致性·固定点·254+2集装箱·九元层级 |
 | 35 | 高维代数 | tools/high-algebra/ | Nim | `nim c --cc:clang --path:ha_demo -r ha_demo.nim` | ✅ (n-1)×0.1偏移率·静态回归·俘获规则·阶和叠加·2²⁵⁶对齐 |
 | 36 | 全映射引擎 | tools/full-mapping/ | Nim | `nim c --cc:clang --path:fm fm_demo.nim` | ✅ 九元↔YinYang↔二进制↔mltt↔偏移率·全映射报告·7项全通过 |
+| 37 | 真实数据输入器 | tools/minlian/ | Nim | `nim c --cc:clang --path:dataml dataml_demo.nim` | ✅ 绝对路径扫描·FNV-1a哈希·极性分析·JSON输出·200文档 |
 | 39 | 分布式分身协调 | tools/njsg-swarm/ | Nim | `nim c --cc:clang -r swarm_demo.nim` | ✅ 6分身并行·冲突裁决·心跳检测·规则继承 |
 
 ### 第三类：检索与判定

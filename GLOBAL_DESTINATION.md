@@ -164,7 +164,7 @@ git push gitee main
 - 2²⁵⁶ 等效高位对齐进位制 ✅ 已完成 — tools/radix256/ · 4×64位词 · 进位链仪式 · 溢出折叠 · 根基254+2
 - YIN-YANG-BINARY 完整映射 ✅ 已完成 — tools/full-mapping/
 - mltt 命名密码表完整实现 ✅ 已完成 — tools/mltt-cipher/
-- 统计文档聚合浏览器的真实数据输入 ✅ 已完成 — tools/minlian/ · Mode A 硬编码 / Mode B 文件加载器 / Mode C JSON 数据管道 · 55真实文件→7聚类→3层包裹树
+- 统计文档聚合浏览器的真实数据输入 ✅ 已完成 — tools/minlian/dataml/ · Mode C JSON数据管道 · 200文档 |
 
 ---
 
