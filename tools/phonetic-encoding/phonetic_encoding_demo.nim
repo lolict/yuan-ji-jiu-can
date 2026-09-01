@@ -94,8 +94,12 @@ if isSome(q1):
     " 内码=", s.inner_code, " 极性=", pol_str
 
 let q2 = tbl.lookup(0x0300'i32)
-if q2.isNone(q2):
+if q2.isNone:
   echo "  查询 U+0300: 未收录（外人/自由空间）"
+
+let q3 = tbl.lookup(0x020D'i32)
+if q3.isSome:
+  echo "  查询 ȍ(U+020D): 命中 [", q3.get().label, "]"
 echo ""
 echo "═══════════════════════════════════════════════════"
 echo "  完成：符号真正进入代码（非 ASCII 占位符）"

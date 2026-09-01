@@ -28,3 +28,4 @@ tools/gtxone/
 zig-linux-x86_64-0.13.0/
 __pycache__/
 *.pyc
+tools/phonetic-encoding/phonetic_encoding_demo
