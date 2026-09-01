@@ -10,9 +10,13 @@ import phonetic_encoding/ownership
 import phonetic_encoding/codec
 
 proc hex4(cp: int32): string =
-  var s = toHex(int(cp))
+  var s = toHex(uint64(cp))
   while s.len < 4: s = "0" & s
+  if s.len > 4: s = s[s.len - 4 .. s.len - 1]
   result = toUpperAscii(s)
+
+proc hex_cell(c: uint64): string =
+  result = toUpperAscii(toHex(c))
 
 # ── 阶段 1: 加载主人全息表 ──
 echo "═══════════════════════════════════════════════════"
@@ -61,7 +65,7 @@ for cp in test_cps:
   decode_cell(cell, d_cp, d_cat, d_radix, d_inner, d_pol)
   let mark = if pol == plOwner: "主人" else: "外人"
   echo "  U+", hex4(cp), " ", $Rune(cp),
-    " -> cell=0x", toUpperAscii(toHex(int(cell))),
+    " -> cell=0x", toUpperAscii(toHex(uint64(cell))),
     " 极性=", mark, " -> 译回U+", hex4(d_cp)
 echo ""
 

@@ -44,67 +44,48 @@ func build_owner_table*(): PhoneticTable =
   result.symbols = newSeq[PhoneticSymbol]()
   result.codepoint_to_idx = initTable[int32, int]()
 
-  # 从确认编码串加载 66 韵母对 = 132 符号
-  var idx = 0
+  # 从确认编码串加载韵母符号
+  # 编码串格式：大写}小写}大写}小写}...
+  # 每对 = 大写+小写，中间以 } 分隔
   let runes = FINAL_ENCODING_STRING.toRunes()
   var pair_idx = 0
   var i = 0
   while i < runes.len:
-    if runes[i] == Rune(0x7D):  # '}'
+    let r = runes[i]
+    if r == Rune(0x7D):  # 跳过 } 分隔符
       i += 1
       continue
-    if i + 1 < runes.len and runes[i + 1] == Rune(0x7D):
-      # 单字符（末位可能）
-      let cp = int32(runes[i])
-      var sym: PhoneticSymbol
-      sym.cp = cp
-      if pair_idx < YUNMU_NAMES.len:
-        sym.label = YUNMU_NAMES[pair_idx]
-      else:
-        sym.label = "y" & $pair_idx
-      sym.category = catFinal
-      sym.radix = 64
-      sym.inner_code = uint8(pair_idx)
-      sym.polarity = symbol_ownership(cp)
-      result.codepoint_to_idx[cp] = result.symbols.len
-      result.symbols.add(sym)
-      idx += 1
-      i += 1
-      pair_idx += 1
-    else:
-      # 大写+小写对
-      let cp_upper = int32(runes[i])
-      let cp_lower = int32(runes[i + 1])
-      # 大写
-      var sym_u: PhoneticSymbol
-      sym_u.cp = cp_upper
-      if pair_idx < YUNMU_NAMES.len:
-        sym_u.label = YUNMU_NAMES[pair_idx] & "_大写"
-      else:
-        sym_u.label = "yu" & $pair_idx
-      sym_u.category = catFinal
-      sym_u.radix = 64
-      sym_u.inner_code = uint8(pair_idx * 2)
-      sym_u.polarity = symbol_ownership(cp_upper)
-      result.codepoint_to_idx[cp_upper] = result.symbols.len
-      result.symbols.add(sym_u)
-      # 小写
-      var sym_l: PhoneticSymbol
-      sym_l.cp = cp_lower
-      if pair_idx < YUNMU_NAMES.len:
-        sym_l.label = YUNMU_NAMES[pair_idx] & "_小写"
-      else:
-        sym_l.label = "yl" & $pair_idx
-      sym_l.category = catFinal
-      sym_l.radix = 64
-      sym_l.inner_code = uint8(pair_idx * 2 + 1)
-      sym_l.polarity = symbol_ownership(cp_lower)
-      result.codepoint_to_idx[cp_lower] = result.symbols.len
-      result.symbols.add(sym_l)
-      idx += 2
-      i += 2
-      pair_idx += 1
+    # 读取大写（当前）+ 小写（下一个非}符号）
+    let cp_upper = int32(r)
     i += 1
+    # 跳过分隔 }
+    while i < runes.len and runes[i] == Rune(0x7D):
+      i += 1
+    # 读取小写
+    let cp_lower = if i < runes.len: int32(runes[i]) else: cp_upper
+    if i < runes.len and runes[i] != Rune(0x7D):
+      i += 1
+    # 增添
+    let base_label = if pair_idx < YUNMU_NAMES.len: YUNMU_NAMES[pair_idx] else: "y" & $pair_idx
+    var sym_u: PhoneticSymbol
+    sym_u.cp = cp_upper
+    sym_u.label = base_label & "_大写"
+    sym_u.category = catFinal
+    sym_u.radix = 64
+    sym_u.inner_code = uint8(pair_idx * 2)
+    sym_u.polarity = symbol_ownership(cp_upper)
+    result.codepoint_to_idx[cp_upper] = result.symbols.len
+    result.symbols.add(sym_u)
+    var sym_l: PhoneticSymbol
+    sym_l.cp = cp_lower
+    sym_l.label = base_label & "_小写"
+    sym_l.category = catFinal
+    sym_l.radix = 64
+    sym_l.inner_code = uint8(pair_idx * 2 + 1)
+    sym_l.polarity = symbol_ownership(cp_lower)
+    result.codepoint_to_idx[cp_lower] = result.symbols.len
+    result.symbols.add(sym_l)
+    pair_idx += 1
 
   # 追加声母 48
   for j in 0 ..< INITIALS_48.len:
