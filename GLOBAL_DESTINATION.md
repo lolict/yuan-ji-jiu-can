@@ -93,7 +93,7 @@
 | 内核 | 版本 | 状态 | 路径 |
 |------|------|------|------|
 | C 内核 | v2.0.0 (含v1.4+模块) | ✅ 编译通过·demo全跑通·已推GitHub+Gitee | kernel/src/njsg_kernel.c (4553行) |
-| Rust 核心 | v0.22 | ✅ 64文件·625测试 | hunyuan-rs/ |
+| Rust 核心 | v0.31 | ✅ 1019测试·examples全绿·天觉v3已恢复(V3别名)与v4共存·大审判庭·八流统一 | hunyuan-rs/ |
 | WASM 核心 | v1.7 | ✅ 单源wasm32+wasm64 | kernel/wasm/njsg_wasm.c |
 
 ---
@@ -139,11 +139,10 @@
 | gitCode | lolict | gitcode.com/lolict/hunyuan-os |
 | Gitee | lolict | gitee.com/lolict/hunyuan-os |
 
-推送命令：
+推送命令（2026-09-01 remote 清理后：origin=GitHub，gitee-hunyuan=Gitee；cnb/gitee-hy/cnb-gttx1 三个死 remote 已移除）：
 ```bash
-git push github main
-git push gitcode main
-git push gitee main
+git push origin main
+git push gitee-hunyuan main
 ```
 
 ---
@@ -166,6 +165,7 @@ git push gitee main
 - YIN-YANG-BINARY 完整映射 ✅ 已完成 — tools/full-mapping/
 - mltt 命名密码表完整实现 ✅ 已完成 — tools/mltt-cipher/
 - 统计文档聚合浏览器的真实数据输入 ✅ 已完成 — tools/minlian/dataml/ · Mode C JSON数据管道 · 200文档 |
+- 天觉v3/v4 符号冲突清偿 ✅ 已完成 — v3 恢复(V3别名) · 7个example API漂移修复 · lib 1019测试全绿
 
 ---
 
