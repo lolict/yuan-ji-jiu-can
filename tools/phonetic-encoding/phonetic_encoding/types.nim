@@ -4,7 +4,7 @@
 
 import tables
 
-const VERSION* = "phonetic-encoding v1.0.0 — 主人镜像"
+const VERSION* = "phonetic-encoding v1.1.0 — 45对对齐·☁修复"
 
 type
   # 符号类别：从数据自然涌现，非外加
