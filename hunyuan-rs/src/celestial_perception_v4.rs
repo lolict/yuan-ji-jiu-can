@@ -130,15 +130,15 @@ impl EmotionState {
         // 喜: 袋子质量越好越喜
         let joy = a.composite_quality();
         // 爱: 完美袋子触发珍惜感
-        let love = if a.integrity > 0.9 && a.content_quality > 0.9 { 0.9 } else { 0.1 };
+        let love: f64 = if a.integrity > 0.9 && a.content_quality > 0.9 { 0.9 } else { 0.1 };
         // 欲: 好袋子让人想要
         let desire = joy * 0.7;
         // 怒: 欺骗感 (外表好但内容差)
-        let anger = if a.integrity > 0.7 && a.content_quality < 0.3 { 0.8 } else { 0.05 };
+        let anger: f64 = if a.integrity > 0.7 && a.content_quality < 0.3 { 0.8 } else { 0.05 };
         // 哀: 坏袋子让人悲伤
         let sorrow = 1.0 - joy;
         // 惧: 对严重破损的恐惧
-        let fear = if a.integrity < 0.2 || a.pest_level > 0.8 { 0.9 } else { 0.05 };
+        let fear: f64 = if a.integrity < 0.2 || a.pest_level > 0.8 { 0.9 } else { 0.05 };
         // 恶: 腐烂厌恶
         let disgust = (a.pest_level + a.sand_level) / 2.0 + (1.0 - a.content_purity) * 0.5;
 
@@ -798,12 +798,13 @@ impl<'a> CelestialPerceptionV4<'a> {
         let emotion_summary = emotion.summary();
 
         // === Step 5: 审判+奖惩 ===
-        let judgment_result = self.judgment.judge(bag);
+        let judgment_result = self.judgment.judge(bag, self.observer.os());
         let reward = self.judgment.feedback(
             bag.id,
             judgment_result.verdict_passed,
             actual_good,
             judgment_result.confidence,
+            self.observer.os(),
         );
 
         // === Step 6: 行为决策 ===
@@ -987,7 +988,8 @@ mod tests {
 
     #[test]
     fn v4_full_pipeline() {
-        let mut cp = CelestialPerceptionV4::new();
+        let os = BareMetalOs::new();
+        let mut cp = CelestialPerceptionV4::new(&os);
         cp.authorize_all();
 
         let good_bag = Bag::new(1, "好袋", BagAttributes::pristine(), (0, 0, 0));
@@ -999,7 +1001,8 @@ mod tests {
 
     #[test]
     fn v4_eliminates_without_full_pipe() {
-        let mut cp = CelestialPerceptionV4::new();
+        let os = BareMetalOs::new();
+        let mut cp = CelestialPerceptionV4::new(&os);
         cp.authorize_all();
 
         // 极端腐烂袋子应该被过滤掉, 不进入完整管道
