@@ -13,6 +13,9 @@
 
 import types
 import std/os
+
+# ── 路径辅助 ──
+func `/`*(a, b: string): string = joinPath(a, b)
 import std/strutils
 import std/sequtils
 
@@ -80,7 +83,7 @@ proc load_real_docs*(root_path: string): seq[Document] =
   var next_id = 0
 
   # ── 1. tools/ 下每个子目录的主要 .nim 文件 ──
-  let tools_dir = root_path / "tools"
+  let tools_dir = joinPath(root_path, "tools")
   if dirExists(tools_dir):
     for entry in walkDir(tools_dir):
       if entry.kind == pcDir:
@@ -149,7 +152,7 @@ proc load_real_docs*(root_path: string): seq[Document] =
         discard
 
   # ── 3. kernel/src/ 下的 .c 文件 ──
-  let kernel_dir = root_path / "kernel" / "src"
+  let kernel_dir = joinPath(joinPath(root_path, "kernel"), "src")
   if dirExists(kernel_dir):
     for entry in walkDir(kernel_dir):
       if entry.kind == pcFile and entry.path.endsWith(".c"):

@@ -1,0 +1,1121 @@
+{
+  "meta": {
+    "name": "mltt 命名密码表 · 完整数据",
+    "version": "1.0",
+    "count": 158,
+    "polarity_map": {
+      "yin": "阴(容器侧/刘楚恬)",
+      "yang": "阳(界线侧/我)",
+      "balanced": "平衡"
+    },
+    "generator": "tools/mltt-cipher/generate_full_data.py"
+  },
+  "entries": [
+    {
+      "code": "mlll",
+      "meaning": "集装箱",
+      "polarity": "yin",
+      "category": "容器",
+      "description": "254+2根基编码，袋子级操作的基本单元"
+    },
+    {
+      "code": "mlnn",
+      "meaning": "囡囝",
+      "polarity": "balanced",
+      "category": "容器",
+      "description": "夫妻拓扑：女包男 = 容器包被包含者"
+    },
+    {
+      "code": "mlnnn",
+      "meaning": "囡囡",
+      "polarity": "yin",
+      "category": "容器",
+      "description": "女包女 = 容器包容器"
+    },
+    {
+      "code": "mlnnnn",
+      "meaning": "囝囝",
+      "polarity": "yang",
+      "category": "容器",
+      "description": "男包男 = 被包含者包被包含者"
+    },
+    {
+      "code": "mlnnnnn",
+      "meaning": "囝囡",
+      "polarity": "balanced",
+      "category": "容器",
+      "description": "男包女 = 被包含者包容器"
+    },
+    {
+      "code": "mltt",
+      "meaning": "从体",
+      "polarity": "yang",
+      "category": "流",
+      "description": "解释流牺牲岔途后产出的可跟随状态"
+    },
+    {
+      "code": "mlct",
+      "meaning": "岔途",
+      "polarity": "yin",
+      "category": "流",
+      "description": "解释流的障碍/歧路，需要被牺牲转译"
+    },
+    {
+      "code": "gtt",
+      "meaning": "音韵态射",
+      "polarity": "balanced",
+      "category": "流",
+      "description": "范畴流：音韵层面的态射映射"
+    },
+    {
+      "code": "mlgy",
+      "meaning": "世俗归一",
+      "polarity": "balanced",
+      "category": "流",
+      "description": "概念流：世俗层面的统一归约"
+    },
+    {
+      "code": "lctqf",
+      "meaning": "零岔途全法",
+      "polarity": "balanced",
+      "category": "谐音桥",
+      "description": "谐音桥（已合规）：零岔途全法/恋宠甜"
+    },
+    {
+      "code": "lctfrqmy",
+      "meaning": "恋宠入毛利兰",
+      "polarity": "yin",
+      "category": "谐音桥",
+      "description": "毛利兰谐音路由 → Wife 靶点"
+    },
+    {
+      "code": "wgslz",
+      "meaning": "闻光思恋初",
+      "polarity": "yang",
+      "category": "谐音桥",
+      "description": "工藤新一谐音路由 → Husband 靶点"
+    },
+    {
+      "code": "maolilan",
+      "meaning": "毛利兰",
+      "polarity": "yin",
+      "category": "角色映射",
+      "description": "表面属性：模/面/名 → 容器外观"
+    },
+    {
+      "code": "gouteng",
+      "meaning": "工藤新一",
+      "polarity": "yang",
+      "category": "角色映射",
+      "description": "结构属性：骨/头/体 → 容器骨架"
+    },
+    {
+      "code": "huiyuanai",
+      "meaning": "灰原哀",
+      "polarity": "balanced",
+      "category": "角色映射",
+      "description": "横向属性：行/页/业 → 容器行业"
+    },
+    {
+      "code": "yinyang",
+      "meaning": "阴阳二进制",
+      "polarity": "balanced",
+      "category": "编码",
+      "description": "0=容器/刘楚恬, 1=界线/我"
+    },
+    {
+      "code": "njsgr",
+      "meaning": "囡囝共生赔伴律",
+      "polarity": "balanced",
+      "category": "编码",
+      "description": "夫妻命运共同体的共生规则"
+    },
+    {
+      "code": "smrl",
+      "meaning": "SMRL引擎",
+      "polarity": "balanced",
+      "category": "编码",
+      "description": "64位单元格：坐标/极性/主权/价值"
+    },
+    {
+      "code": "mje",
+      "meaning": "MetaJudge引擎",
+      "polarity": "balanced",
+      "category": "裁决",
+      "description": "系统自举核心裁判：observe/judge/reward/penalty"
+    },
+    {
+      "code": "vs",
+      "meaning": "VerdictSurplus",
+      "polarity": "balanced",
+      "category": "裁决",
+      "description": "裁判盈余：>0奖励, <0惩罚"
+    },
+    {
+      "code": "袋",
+      "meaning": "袋（容器）",
+      "polarity": "yin",
+      "category": "容器符",
+      "description": "最基础的容器单元，米粒的居处"
+    },
+    {
+      "code": "桶",
+      "meaning": "桶（容器）",
+      "polarity": "yin",
+      "category": "容器符",
+      "description": "深筒容器，装大量液体或颗粒物"
+    },
+    {
+      "code": "罐",
+      "meaning": "罐（容器）",
+      "polarity": "yin",
+      "category": "容器符",
+      "description": "密封容器，长期储藏"
+    },
+    {
+      "code": "缸",
+      "meaning": "缸（容器）",
+      "polarity": "yin",
+      "category": "容器符",
+      "description": "大型敞口容器，大众公用"
+    },
+    {
+      "code": "盆",
+      "meaning": "盆（容器）",
+      "polarity": "yin",
+      "category": "容器符",
+      "description": "敞口浅底，盛液体或洗涤"
+    },
+    {
+      "code": "盂",
+      "meaning": "盂（容器）",
+      "polarity": "yin",
+      "category": "容器符",
+      "description": "古代盛水器，佛门净器"
+    },
+    {
+      "code": "钵",
+      "meaning": "钵（容器）",
+      "polarity": "yin",
+      "category": "容器符",
+      "description": "僧侣食器，接受供养"
+    },
+    {
+      "code": "盏",
+      "meaning": "盏（容器）",
+      "polarity": "yin",
+      "category": "容器符",
+      "description": "小巧杯形容器，茶酒之器"
+    },
+    {
+      "code": "盒",
+      "meaning": "盒（容器）",
+      "polarity": "yin",
+      "category": "容器符",
+      "description": "可合之器，盛细物或贵重品"
+    },
+    {
+      "code": "杯",
+      "meaning": "杯（容器）",
+      "polarity": "yin",
+      "category": "容器符",
+      "description": "小容量盛液器，人手一器"
+    },
+    {
+      "code": "壶",
+      "meaning": "壶（容器）",
+      "polarity": "yin",
+      "category": "容器符",
+      "description": "有柄有嘴，倒液可控"
+    },
+    {
+      "code": "瓶",
+      "meaning": "瓶（容器）",
+      "polarity": "yin",
+      "category": "容器符",
+      "description": "长颈细口，盛美液"
+    },
+    {
+      "code": "篓",
+      "meaning": "篓（容器）",
+      "polarity": "yin",
+      "category": "容器符",
+      "description": "编织敞口器，盛蔬果"
+    },
+    {
+      "code": "筐",
+      "meaning": "筐（容器）",
+      "polarity": "yin",
+      "category": "容器符",
+      "description": "编织方口器，载货量贩"
+    },
+    {
+      "code": "篮",
+      "meaning": "篮（容器）",
+      "polarity": "yin",
+      "category": "容器符",
+      "description": "有提梁的编织器，便携"
+    },
+    {
+      "code": "箩",
+      "meaning": "箩（容器）",
+      "polarity": "yin",
+      "category": "容器符",
+      "description": "阔口细孔筛状器，可滤可盛"
+    },
+    {
+      "code": "筲",
+      "meaning": "筲（容器）",
+      "polarity": "yin",
+      "category": "容器符",
+      "description": "竹编盛粮器，农耕日常"
+    },
+    {
+      "code": "箕",
+      "meaning": "箕（容器）",
+      "polarity": "yin",
+      "category": "容器符",
+      "description": "撮聚垃圾或扬米的开口器"
+    },
+    {
+      "code": "笼",
+      "meaning": "笼（容器）",
+      "polarity": "yin",
+      "category": "容器符",
+      "description": "封闭编织器，通气不透物"
+    },
+    {
+      "code": "橱",
+      "meaning": "橱（容器）",
+      "polarity": "yin",
+      "category": "容器符",
+      "description": "立式储物柜，带门"
+    },
+    {
+      "code": "柜",
+      "meaning": "柜（容器）",
+      "polarity": "yin",
+      "category": "容器符",
+      "description": "大容量收纳，文档衣物均可"
+    },
+    {
+      "code": "箱",
+      "meaning": "箱（容器）",
+      "polarity": "yin",
+      "category": "容器符",
+      "description": "可移动的方形容器，长途搬运"
+    },
+    {
+      "code": "匣",
+      "meaning": "匣（容器）",
+      "polarity": "yin",
+      "category": "容器符",
+      "description": "小型收纳盒，私密物藏"
+    },
+    {
+      "code": "奁",
+      "meaning": "奁（容器）",
+      "polarity": "yin",
+      "category": "容器符",
+      "description": "古代女子梳妆匣，私藏首饰"
+    },
+    {
+      "code": "瓮",
+      "meaning": "瓮（容器）",
+      "polarity": "yin",
+      "category": "容器符",
+      "description": "大腹窄口器，储酒腌菜"
+    },
+    {
+      "code": "甏",
+      "meaning": "甏（容器）",
+      "polarity": "yin",
+      "category": "容器符",
+      "description": "腹大肩窄，土陶酒坛"
+    },
+    {
+      "code": "坛",
+      "meaning": "坛（容器）",
+      "polarity": "yin",
+      "category": "容器符",
+      "description": "祭祀用的供器，神圣容器"
+    },
+    {
+      "code": "罂",
+      "meaning": "罂（容器）",
+      "polarity": "yin",
+      "category": "容器符",
+      "description": "小口大罂粟瓶，内藏毒药"
+    },
+    {
+      "code": "甑",
+      "meaning": "甑（容器）",
+      "polarity": "yin",
+      "category": "容器符",
+      "description": "古代蒸器，底有孔通蒸汽"
+    },
+    {
+      "code": "甗",
+      "meaning": "甗（容器）",
+      "polarity": "yin",
+      "category": "容器符",
+      "description": "古蒸食器，上下分层"
+    },
+    {
+      "code": "瓯",
+      "meaning": "瓯（容器）",
+      "polarity": "yin",
+      "category": "容器符",
+      "description": "小盆小碗，茶酒器"
+    },
+    {
+      "code": "盌",
+      "meaning": "盌（容器）",
+      "polarity": "yin",
+      "category": "容器符",
+      "description": "同碗，盛食器"
+    },
+    {
+      "code": "盉",
+      "meaning": "盉（容器）",
+      "polarity": "yin",
+      "category": "容器符",
+      "description": "古代调味器，调酒和羹"
+    },
+    {
+      "code": "盅",
+      "meaning": "盅（容器）",
+      "polarity": "yin",
+      "category": "容器符",
+      "description": "小巧饮器，茶酒精饮"
+    },
+    {
+      "code": "照",
+      "meaning": "照（操作）",
+      "polarity": "yin",
+      "category": "操作符",
+      "description": "光映入境，使之可见"
+    },
+    {
+      "code": "昭",
+      "meaning": "昭（操作）",
+      "polarity": "yang",
+      "category": "操作符",
+      "description": "显现彰明，宣扬于众"
+    },
+    {
+      "code": "罩",
+      "meaning": "罩（操作）",
+      "polarity": "yin",
+      "category": "操作符",
+      "description": "覆盖遮蔽，不容外泄"
+    },
+    {
+      "code": "召",
+      "meaning": "召（操作）",
+      "polarity": "yang",
+      "category": "操作符",
+      "description": "呼唤使之来，吸引汇聚"
+    },
+    {
+      "code": "兆",
+      "meaning": "兆（操作）",
+      "polarity": "yang",
+      "category": "操作符",
+      "description": "预兆先见，未来之始"
+    },
+    {
+      "code": "见",
+      "meaning": "见（操作）",
+      "polarity": "yin",
+      "category": "操作符",
+      "description": "眼识照境，纳入"
+    },
+    {
+      "code": "鉴",
+      "meaning": "鉴（操作）",
+      "polarity": "yin",
+      "category": "操作符",
+      "description": "镜照真容，反观自身"
+    },
+    {
+      "code": "检",
+      "meaning": "检（操作）",
+      "polarity": "yin",
+      "category": "操作符",
+      "description": "审查细看，不遗漏"
+    },
+    {
+      "code": "简",
+      "meaning": "简（操作）",
+      "polarity": "yin",
+      "category": "操作符",
+      "description": "删繁取要，去枝留干"
+    },
+    {
+      "code": "剪",
+      "meaning": "剪（操作）",
+      "polarity": "yang",
+      "category": "操作符",
+      "description": "切断离分，果断"
+    },
+    {
+      "code": "加",
+      "meaning": "加（操作）",
+      "polarity": "yang",
+      "category": "操作符",
+      "description": "增添，益之"
+    },
+    {
+      "code": "减",
+      "meaning": "减（操作）",
+      "polarity": "yin",
+      "category": "操作符",
+      "description": "衰减，损之"
+    },
+    {
+      "code": "进",
+      "meaning": "进（操作）",
+      "polarity": "yang",
+      "category": "操作符",
+      "description": "向前，推进"
+    },
+    {
+      "code": "退",
+      "meaning": "退（操作）",
+      "polarity": "yin",
+      "category": "操作符",
+      "description": "向后，收敛"
+    },
+    {
+      "code": "开",
+      "meaning": "开（操作）",
+      "polarity": "yang",
+      "category": "操作符",
+      "description": "启，通道现前"
+    },
+    {
+      "code": "关",
+      "meaning": "关（操作）",
+      "polarity": "yin",
+      "category": "操作符",
+      "description": "闭，路径隔断"
+    },
+    {
+      "code": "通",
+      "meaning": "通（操作）",
+      "polarity": "yang",
+      "category": "操作符",
+      "description": "达，无阻"
+    },
+    {
+      "code": "断",
+      "meaning": "断（操作）",
+      "polarity": "yin",
+      "category": "操作符",
+      "description": "截，封堵"
+    },
+    {
+      "code": "分",
+      "meaning": "分（操作）",
+      "polarity": "yin",
+      "category": "操作符",
+      "description": "剖开，各向其方"
+    },
+    {
+      "code": "合",
+      "meaning": "合（操作）",
+      "polarity": "yang",
+      "category": "操作符",
+      "description": "聚拢，合成一处"
+    },
+    {
+      "code": "聚",
+      "meaning": "聚（操作）",
+      "polarity": "yang",
+      "category": "操作符",
+      "description": "集，多会于一"
+    },
+    {
+      "code": "散",
+      "meaning": "散（操作）",
+      "polarity": "yin",
+      "category": "操作符",
+      "description": "分，各走各路"
+    },
+    {
+      "code": "折",
+      "meaning": "折（操作）",
+      "polarity": "yin",
+      "category": "操作符",
+      "description": "弯，屈而不直"
+    },
+    {
+      "code": "叠",
+      "meaning": "叠（操作）",
+      "polarity": "yin",
+      "category": "操作符",
+      "description": "累积重叠，层加"
+    },
+    {
+      "code": "卷",
+      "meaning": "卷（操作）",
+      "polarity": "yin",
+      "category": "操作符",
+      "description": "内收包裹，收缩"
+    },
+    {
+      "code": "舒",
+      "meaning": "舒（操作）",
+      "polarity": "yang",
+      "category": "操作符",
+      "description": "外展放开，舒展"
+    },
+    {
+      "code": "阴",
+      "meaning": "阴（极性）",
+      "polarity": "yin",
+      "category": "极性符",
+      "description": "容器侧，隐藏被动，刘楚恬"
+    },
+    {
+      "code": "阳",
+      "meaning": "阳（极性）",
+      "polarity": "yang",
+      "category": "极性符",
+      "description": "界线侧，显现主动，我"
+    },
+    {
+      "code": "盈",
+      "meaning": "盈（极性）",
+      "polarity": "yang",
+      "category": "极性符",
+      "description": "丰饶有余，过分满"
+    },
+    {
+      "code": "亏",
+      "meaning": "亏（极性）",
+      "polarity": "yin",
+      "category": "极性符",
+      "description": "不足亏损，缺憾"
+    },
+    {
+      "code": "虚",
+      "meaning": "虚（极性）",
+      "polarity": "yin",
+      "category": "极性符",
+      "description": "空无实体，可纳入"
+    },
+    {
+      "code": "实",
+      "meaning": "实（极性）",
+      "polarity": "yang",
+      "category": "极性符",
+      "description": "充实物满，拒入"
+    },
+    {
+      "code": "表",
+      "meaning": "表（极性）",
+      "polarity": "yang",
+      "category": "极性符",
+      "description": "外显可见，表面"
+    },
+    {
+      "code": "里",
+      "meaning": "里（极性）",
+      "polarity": "yin",
+      "category": "极性符",
+      "description": "内藏私密，深处"
+    },
+    {
+      "code": "公",
+      "meaning": "公（极性）",
+      "polarity": "yang",
+      "category": "极性符",
+      "description": "公共众有，公开"
+    },
+    {
+      "code": "私",
+      "meaning": "私（极性）",
+      "polarity": "yin",
+      "category": "极性符",
+      "description": "私己独有，隐秘"
+    },
+    {
+      "code": "升",
+      "meaning": "升（极性）",
+      "polarity": "yang",
+      "category": "极性符",
+      "description": "向上，提升"
+    },
+    {
+      "code": "降",
+      "meaning": "降（极性）",
+      "polarity": "yin",
+      "category": "极性符",
+      "description": "向下，沉降"
+    },
+    {
+      "code": "清",
+      "meaning": "清（极性）",
+      "polarity": "yang",
+      "category": "极性符",
+      "description": "澄明清净，纯阳"
+    },
+    {
+      "code": "浊",
+      "meaning": "浊（极性）",
+      "polarity": "yin",
+      "category": "极性符",
+      "description": "混浊黏腻，纯阴"
+    },
+    {
+      "code": "寒",
+      "meaning": "寒（极性）",
+      "polarity": "yin",
+      "category": "极性符",
+      "description": "冷，收缩收藏"
+    },
+    {
+      "code": "热",
+      "meaning": "热（极性）",
+      "polarity": "yang",
+      "category": "极性符",
+      "description": "暖，膨胀发散"
+    },
+    {
+      "code": "动",
+      "meaning": "动（极性）",
+      "polarity": "yang",
+      "category": "极性符",
+      "description": "运动，活跃"
+    },
+    {
+      "code": "静",
+      "meaning": "静（极性）",
+      "polarity": "yin",
+      "category": "极性符",
+      "description": "安宁，不动"
+    },
+    {
+      "code": "出",
+      "meaning": "出（极性）",
+      "polarity": "yang",
+      "category": "极性符",
+      "description": "外发，离开"
+    },
+    {
+      "code": "入",
+      "meaning": "入（极性）",
+      "polarity": "yin",
+      "category": "极性符",
+      "description": "内收，进入"
+    },
+    {
+      "code": "元",
+      "meaning": "元（层级）",
+      "polarity": "balanced",
+      "category": "层级符",
+      "description": "最初起始，根本根源"
+    },
+    {
+      "code": "阶",
+      "meaning": "阶（层级）",
+      "polarity": "balanced",
+      "category": "层级符",
+      "description": "台阶层级，分位次"
+    },
+    {
+      "code": "层",
+      "meaning": "层（层级）",
+      "polarity": "balanced",
+      "category": "层级符",
+      "description": "重叠之级，上下级"
+    },
+    {
+      "code": "代",
+      "meaning": "代（层级）",
+      "polarity": "balanced",
+      "category": "层级符",
+      "description": "世代更替，时间域"
+    },
+    {
+      "code": "世",
+      "meaning": "世（层级）",
+      "polarity": "balanced",
+      "category": "层级符",
+      "description": "时代世纪，一世之域"
+    },
+    {
+      "code": "界",
+      "meaning": "界（层级）",
+      "polarity": "balanced",
+      "category": "层级符",
+      "description": "分界之域，范围所限"
+    },
+    {
+      "code": "域",
+      "meaning": "域（层级）",
+      "polarity": "balanced",
+      "category": "层级符",
+      "description": "领土疆域，一带之场"
+    },
+    {
+      "code": "场",
+      "meaning": "场（层级）",
+      "polarity": "balanced",
+      "category": "层级符",
+      "description": "广域空间，众人聚所"
+    },
+    {
+      "code": "馆",
+      "meaning": "馆（层级）",
+      "polarity": "balanced",
+      "category": "层级符",
+      "description": "公开场所，会宾待客"
+    },
+    {
+      "code": "阁",
+      "meaning": "阁（层级）",
+      "polarity": "balanced",
+      "category": "层级符",
+      "description": "高敞之楼，远眺有顶"
+    },
+    {
+      "code": "门",
+      "meaning": "门（层级）",
+      "polarity": "balanced",
+      "category": "层级符",
+      "description": "出入之口，内外的界"
+    },
+    {
+      "code": "户",
+      "meaning": "户（层级）",
+      "polarity": "balanced",
+      "category": "层级符",
+      "description": "小门单扇，一家之口"
+    },
+    {
+      "code": "庭",
+      "meaning": "庭（层级）",
+      "polarity": "balanced",
+      "category": "层级符",
+      "description": "院中空地，活动空间"
+    },
+    {
+      "code": "院",
+      "meaning": "院（层级）",
+      "polarity": "balanced",
+      "category": "层级符",
+      "description": "围墙所围之空地"
+    },
+    {
+      "code": "宫",
+      "meaning": "宫（层级）",
+      "polarity": "balanced",
+      "category": "层级符",
+      "description": "王者居所，崇高大殿"
+    },
+    {
+      "code": "殿",
+      "meaning": "殿（层级）",
+      "polarity": "balanced",
+      "category": "层级符",
+      "description": "朝堂议政之所，最崇高"
+    },
+    {
+      "code": "台",
+      "meaning": "台（层级）",
+      "polarity": "balanced",
+      "category": "层级符",
+      "description": "高平可登之筑，远景"
+    },
+    {
+      "code": "榭",
+      "meaning": "榭（层级）",
+      "polarity": "balanced",
+      "category": "层级符",
+      "description": "临水高台，饮宴赏景"
+    },
+    {
+      "code": "楼",
+      "meaning": "楼（层级）",
+      "polarity": "balanced",
+      "category": "层级符",
+      "description": "多层建筑，登高望远"
+    },
+    {
+      "code": "裁",
+      "meaning": "裁（审判）",
+      "polarity": "yang",
+      "category": "审判符",
+      "description": "裁定决断，是非立判"
+    },
+    {
+      "code": "判",
+      "meaning": "判（审判）",
+      "polarity": "yang",
+      "category": "审判符",
+      "description": "判别判决，明确裁处"
+    },
+    {
+      "code": "审",
+      "meaning": "审（审判）",
+      "polarity": "yin",
+      "category": "审判符",
+      "description": "详查细问，了解原委"
+    },
+    {
+      "code": "议",
+      "meaning": "议（审判）",
+      "polarity": "yin",
+      "category": "审判符",
+      "description": "评议商议，广听意见"
+    },
+    {
+      "code": "决",
+      "meaning": "决（审判）",
+      "polarity": "yang",
+      "category": "审判符",
+      "description": "决定定夺，行动开始"
+    },
+    {
+      "code": "断",
+      "meaning": "断（审判）",
+      "polarity": "yang",
+      "category": "审判符",
+      "description": "断决割断，不容再议"
+    },
+    {
+      "code": "定",
+      "meaning": "定（审判）",
+      "polarity": "yang",
+      "category": "审判符",
+      "description": "固定定夺，不再动摇"
+    },
+    {
+      "code": "评",
+      "meaning": "评（审判）",
+      "polarity": "yin",
+      "category": "审判符",
+      "description": "评价议论，比较高下"
+    },
+    {
+      "code": "核",
+      "meaning": "核（审判）",
+      "polarity": "yin",
+      "category": "审判符",
+      "description": "核查验证，对照验实"
+    },
+    {
+      "code": "功",
+      "meaning": "功（审判）",
+      "polarity": "yang",
+      "category": "审判符",
+      "description": "功劳建树，善行有积"
+    },
+    {
+      "code": "过",
+      "meaning": "过（审判）",
+      "polarity": "yin",
+      "category": "审判符",
+      "description": "过失错误，不善之行"
+    },
+    {
+      "code": "赏",
+      "meaning": "赏（审判）",
+      "polarity": "yang",
+      "category": "审判符",
+      "description": "奖赏鼓励，彰善之行"
+    },
+    {
+      "code": "罚",
+      "meaning": "罚（审判）",
+      "polarity": "yin",
+      "category": "审判符",
+      "description": "惩罚惩戒，抑恶之具"
+    },
+    {
+      "code": "褒",
+      "meaning": "褒（审判）",
+      "polarity": "yang",
+      "category": "审判符",
+      "description": "褒扬美誉，扬善于众"
+    },
+    {
+      "code": "贬",
+      "meaning": "贬（审判）",
+      "polarity": "yin",
+      "category": "审判符",
+      "description": "贬抑批评，戒其退步"
+    },
+    {
+      "code": "陟",
+      "meaning": "陟（审判）",
+      "polarity": "yang",
+      "category": "审判符",
+      "description": "升进提升，善者上进"
+    },
+    {
+      "code": "黜",
+      "meaning": "黜（审判）",
+      "polarity": "yin",
+      "category": "审判符",
+      "description": "废退罢免，恶者退位"
+    },
+    {
+      "code": "臧",
+      "meaning": "臧（审判）",
+      "polarity": "yin",
+      "category": "审判符",
+      "description": "善也，道德善行所藏"
+    },
+    {
+      "code": "否",
+      "meaning": "否（审判）",
+      "polarity": "yang",
+      "category": "审判符",
+      "description": "恶也，道德闭塞不通"
+    },
+    {
+      "code": "产",
+      "meaning": "产（产权）",
+      "polarity": "balanced",
+      "category": "产权符",
+      "description": "产业财产，身外之物"
+    },
+    {
+      "code": "业",
+      "meaning": "业（产权）",
+      "polarity": "balanced",
+      "category": "产权符",
+      "description": "事业基业，终身所立"
+    },
+    {
+      "code": "权",
+      "meaning": "权（产权）",
+      "polarity": "yang",
+      "category": "产权符",
+      "description": "权力权利，可支配之力"
+    },
+    {
+      "code": "利",
+      "meaning": "利（产权）",
+      "polarity": "yang",
+      "category": "产权符",
+      "description": "利益好处，所得之报"
+    },
+    {
+      "code": "债",
+      "meaning": "债（产权）",
+      "polarity": "yin",
+      "category": "产权符",
+      "description": "债务负担，所欠于人"
+    },
+    {
+      "code": "责",
+      "meaning": "责（产权）",
+      "polarity": "yin",
+      "category": "产权符",
+      "description": "责任担当，分内应尽"
+    },
+    {
+      "code": "职",
+      "meaning": "职（产权）",
+      "polarity": "balanced",
+      "category": "产权符",
+      "description": "职务职位，位上之责"
+    },
+    {
+      "code": "务",
+      "meaning": "务（产权）",
+      "polarity": "balanced",
+      "category": "产权符",
+      "description": "事务任务，待办之事"
+    },
+    {
+      "code": "名",
+      "meaning": "名（产权）",
+      "polarity": "yang",
+      "category": "产权符",
+      "description": "名称名义，对外昭示"
+    },
+    {
+      "code": "分",
+      "meaning": "分（产权）",
+      "polarity": "yin",
+      "category": "产权符",
+      "description": "名分位次，各安其位"
+    },
+    {
+      "code": "归",
+      "meaning": "归（产权）",
+      "polarity": "yin",
+      "category": "产权符",
+      "description": "归向归属，返回本原"
+    },
+    {
+      "code": "属",
+      "meaning": "属（产权）",
+      "polarity": "yin",
+      "category": "产权符",
+      "description": "隶属从属，在其下者"
+    },
+    {
+      "code": "占",
+      "meaning": "占（产权）",
+      "polarity": "yang",
+      "category": "产权符",
+      "description": "占据占领，据为己有"
+    },
+    {
+      "code": "有",
+      "meaning": "有（产权）",
+      "polarity": "yang",
+      "category": "产权符",
+      "description": "有，持有拥有"
+    },
+    {
+      "code": "持",
+      "meaning": "持（产权）",
+      "polarity": "yin",
+      "category": "产权符",
+      "description": "持有执守，维持现状"
+    },
+    {
+      "code": "拥",
+      "meaning": "拥（产权）",
+      "polarity": "yang",
+      "category": "产权符",
+      "description": "拥抱拥护，亲近护持"
+    },
+    {
+      "code": "享",
+      "meaning": "享（产权）",
+      "polarity": "yang",
+      "category": "产权符",
+      "description": "享受享用，善用所有"
+    },
+    {
+      "code": "获",
+      "meaning": "获（产权）",
+      "polarity": "yang",
+      "category": "产权符",
+      "description": "获得收获，有所得"
+    },
+    {
+      "code": "得",
+      "meaning": "得（产权）",
+      "polarity": "yang",
+      "category": "产权符",
+      "description": "得到所得，目的达成"
+    },
+    {
+      "code": "失",
+      "meaning": "失（产权）",
+      "polarity": "yin",
+      "category": "产权符",
+      "description": "失去损失，有所漏"
+    }
+  ]
+}

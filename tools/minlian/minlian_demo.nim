@@ -7,6 +7,7 @@
 
 import strutils
 import math
+import std/os
 import browser/types
 import browser/distance
 import browser/cluster
@@ -120,8 +121,8 @@ echo "【Mode B】真实文件加载器 (增强逻辑)"
 echo "═══════════════════════════════════════════════════════════"
 echo ""
 
-let root_path = getCurrentDir()
-let docs_b = load_real_docs(root_path)
+let root_path = parentDir(parentDir(getCurrentDir()))
+var docs_b = load_real_docs(root_path)
 echo load_report(docs_b)
 echo ""
 
