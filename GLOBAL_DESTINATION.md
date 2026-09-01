@@ -95,7 +95,7 @@
 |------|------|------|------|
 | C 内核 | v2.0.0 (含v1.4+模块) | ✅ 编译通过·demo全跑通·已推GitHub+Gitee | kernel/src/njsg_kernel.c (4553行) |
 | Rust 核心 | v0.31 | ✅ 1019测试·examples全绿·天觉v3已恢复(V3别名)与v4共存·大审判庭·八流统一 | hunyuan-rs/ |
-| WASM 核心 | v1.7 | ✅ 单源wasm32+wasm64 | kernel/wasm/njsg_wasm.c |
+| WASM 核心 | v2.1.0 | ✅ 感知/时间线/MCCP/裁判 4 模块·--selftest 全过·已推GitHub+Gitee | kernel/wasm/njsg_wasm.c |
 
 ---
 

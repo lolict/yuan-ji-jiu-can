@@ -20,7 +20,7 @@
 核心组件:
 - `kernel/src/njsg_kernel.c` — C 内核 (4553 行,v2.0.0,含v1.4+九元感知+MCCP+裁判+时间线)
 - `hunyuan-rs/src/` — Rust 核心 (64 源文件,625 测试)
-- `kernel/wasm/njsg_wasm.c` — WASI 裁决核心 (307 行,v2.0.0)
+- `kernel/wasm/njsg_wasm.c` — WASM v2.1.0 内核 (含感知/时间线/MCCP/裁判 4 模块) WASI + 导出 JSON API
 - `cloudflare/njsg-web.js` — Worker + 盟机合 + 同步 (970+ 行)
 - `cloudflare/sync-protocol.js` — Gossip 多节点同步 (417 行)
 - `shell/browser/` — 民联浏览器壳 v2.0 (5 文件)
