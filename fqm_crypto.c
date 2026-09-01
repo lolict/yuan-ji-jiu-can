@@ -233,6 +233,7 @@ int main(void) {
     print_safe("一阶加密(可打印)", encrypted, len);
     
     decrypt_rule1(encrypted, decrypted, len);
+    decrypted[len] = '\0';
     print_safe("一阶解密(可打印)", decrypted, len);
     printf("\n");
     
@@ -274,6 +275,7 @@ int main(void) {
 
     decrypt_derived(encrypted, decrypted, len, &key);
     print_safe("派生解密(可打印)", decrypted, len);
+    decrypted[len] = '\0';
     printf("解密匹配: %s\n", (strcmp(plaintext, decrypted) == 0 ? "是（通过）" : "否（失败）"));
 
     printf("\n========== 完成 ==========\n");
