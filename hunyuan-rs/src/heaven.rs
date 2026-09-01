@@ -215,12 +215,13 @@ impl SuperpositionField {
         (linear_sum * linear_sum) / (n as f64 * sq_sum)
     }
 
-    /// 按概率幅选择并坍缩一个态 (认知"测量")
+    /// 按概率幅选择并坍缩一个未坍缩的态 (认知"测量")
     pub fn measure(&mut self) -> Option<(String, f64)> {
         if self.states.is_empty() { return None; }
-        // 找振幅绝对值最大的态 (最可能坍缩到)
+        // 找振幅绝对值最大且未坍缩的态 (最可能坍缩到)
         let max_idx = self.states.iter()
             .enumerate()
+            .filter(|(_, s)| !s.collapsed)
             .max_by(|(_, a), (_, b)| a.amplitude.abs().partial_cmp(&b.amplitude.abs()).unwrap())
             .map(|(i, _)| i)?;
         let label = self.states[max_idx].label.clone();

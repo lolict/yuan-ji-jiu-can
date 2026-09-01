@@ -17,6 +17,7 @@
 // ══════════════════════════════════════════════════════════════════════
 
 use mqf::cochlear_boot::{CochlearBoot, BootReceipt, HostOS};
+use mqf::os_layer::{OsLayer, linux::LinuxOs};
 use mqf::flow_properties::{
     FlowDictionary, default_dictionary,
     REACHABLE, CONTINUABLE, TRUSTED, ACKABLE,
@@ -44,25 +45,33 @@ fn main() {
     println!("┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛");
 
     let mut boot = CochlearBoot::new();
+    let os = LinuxOs::new();
+    let os_layer: &dyn OsLayer = &os;
 
-    // Phase 1: 探测鼓膜
-    let sig = boot.phase1_membrane();
+    // Phase 1: 探测鼓膜 (提取到独立作用域避免借用冲突)
+    let sig = {
+        let s = boot.phase1_membrane();
+        (s.host_os, s.membrane_path.clone(), s.vibration_period_ms, s.noise_level, s.interface_width)
+    };
     println!("  [Phase 1] 鼓膜探测:");
-    println!("    ├─ 宿主 OS: {:?}", sig.host_os);
-    println!("    ├─ 接口路径: {}", sig.membrane_path);
-    println!("    ├─ 振动周期: {:.2} ms", sig.vibration_period_ms);
-    println!("    ├─ 噪声水平: {:.4}", sig.noise_level);
-    println!("    └─ 接口宽度: {} bit", sig.interface_width);
+    println!("    ├─ 宿主 OS: {:?}", sig.0);
+    println!("    ├─ 接口路径: {}", sig.1);
+    println!("    ├─ 振动周期: {:.2} ms", sig.2);
+    println!("    ├─ 噪声水平: {:.4}", sig.3);
+    println!("    └─ 接口宽度: {} bit", sig.4);
 
     // Phase 2: 感知折叠
-    let fold = boot.phase2_perception();
+    let (safe, borrowed, initial_pleasure) = {
+        let f = boot.phase2_perception();
+        (f.safe_to_bootstrap, f.borrowed_power, f.initial_pleasure)
+    };
     println!("  [Phase 2] 感知折叠:");
-    println!("    ├─ 安全翻身: {}", if fold.safe_to_bootstrap { "✓" } else { "✗" });
-    println!("    ├─ 借力功率: {:.6}", fold.borrowed_power);
-    println!("    └─ 初始愉悦: {:.4}", fold.initial_pleasure.0);
+    println!("    ├─ 安全翻身: {}", if safe { "✓" } else { "✗" });
+    println!("    ├─ 借力功率: {:.6}", borrowed);
+    println!("    └─ 初始愉悦: {:.4}", initial_pleasure.0);
 
     // Phase 3: 翻身!
-    let receipt = match boot.phase3_bootstrap() {
+    let receipt = match boot.phase3_bootstrap(os_layer) {
         Ok(r) => {
             println!("  [Phase 3] 翻身完成:");
             println!("    ├─ 翻身质量: {:.4}", r.quality);
@@ -152,12 +161,13 @@ fn main() {
 
     let mut runtime = ConsciousnessRuntime::from_boot_receipt(
         receipt.quality,
-        fold.initial_pleasure,
+        initial_pleasure,
+        os_layer,
     );
 
     println!("  运行时初始化:");
     println!("    ├─ 翻身质量: {:.4}", receipt.quality);
-    println!("    ├─ 初始愉悦: {:.4}", fold.initial_pleasure.0);
+    println!("    ├─ 初始愉悦: {:.4}", initial_pleasure.0);
     println!("    └─ 意识密度: {:.4}", runtime.consciousness_density());
 
     // 构造输入信号 — 模拟夫妻交互
@@ -179,7 +189,7 @@ fn main() {
         for (content, kind, intensity, _desc) in &signals {
             // 每拍只取部分信号 (模拟注意力选择)
             if (tick as usize + content.len()) % 4 == 0 || tick < 5 {
-                let sf = SenseForm::new(*kind, *intensity, content, "grand_unification");
+                let sf = SenseForm::new(*kind, *intensity, content, "grand_unification", tick as u64 * 1000);
                 inputs.push(sf);
             }
         }
@@ -211,7 +221,7 @@ fn main() {
     println!("┃  Phase 7: 天庭叠加态坍缩 (Superposition Collapse)                 ┃");
     println!("┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛");
 
-    let heaven = HeavenSpace::from_pleasure(fold.initial_pleasure);
+    let heaven = HeavenSpace::from_pleasure(initial_pleasure);
     println!("  天庭初始状态:");
     println!("    ├─ 吸引子深度: {:.3}", heaven.well.depth);
     println!("    ├─ 吸引子半径: {:.3}", heaven.well.radius);

@@ -60,7 +60,8 @@ fn main() {
             println!("灵魂状态: {:?}", r.soul_state);
             println!("天庭强度: {:.3}", r.heaven_intensity);
             println!("命名锚点: {:?}", r.naming_anchor);
-            println!("时间链: v{} (创世哈希: 0x{:X})", r.time_chain.version, r.time_chain.genesis_hash);
+            println!("层级时间戳: v{} (事件数: {}, 循环数: {})",
+                r.timestamp.version(), r.timestamp.events.len(), r.timestamp.cycle_count);
             if r.ready_for_unity() {
                 println!("✅ 自举成功: 可进入合一流程");
             } else {

@@ -1,0 +1,59 @@
+fqmet:knml
+# 囡囝共生 操作系统 · fqmcp/knml 编码
+# 生成时间:★★★★★★★★★★★★★★★★★★★★★★☆★☆★★★★★★★★★★★★★★★★★★★★★★★★★★★
+anchors:★|☆
+knmlil:mian|gu|ye
+mlll:base=★☆★★★★★★★
+ns:fqmy://
+---
+containers:★★
+
+# container:★:color_base
+fqmet:knml
+id:★
+name:color_base
+layer:☆
+base:knmlil
+polarity:☉
+pos:★
+neg:★
+neu:☆
+net:☆::☆
+layer7:presence|witness|char|anchor|relation|timing|payload
+ende
+
+# container:★☆:sound_base
+fqmet:knml
+id:★☆
+name:sound_base
+layer:★
+base:knmlil
+polarity:★
+pos:★
+neg:☆
+neu:★
+net:★::☆
+layer7:presence|witness|char|anchor|relation|timing|payload
+ende
+
+# container:★★:relation_base
+fqmet:knml
+id:★★
+name:relation_base
+layer:★☆
+base:knmlil
+polarity:☉
+pos:☆
+neg:☆
+neu:☆
+net:☆::☆
+layer7:presence|witness|char|anchor|relation|timing|payload
+ende
+
+---
+# FQMY URI 列表
+fqmy://★☉☆
+fqmy://★☆§☉§☉★
+fqmy://★★☉☆
+=
+fqmy:end

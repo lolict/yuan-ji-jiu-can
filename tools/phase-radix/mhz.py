@@ -814,6 +814,12 @@ def main():
     elif command == "swarm":
         cmd_swarm(args)
     
+    elif command == "cocoon":
+        cmd_cocoon(args)
+    
+    elif command == "docs":
+        cmd_docs(args)
+    
     elif command == "verify":
         import subprocess
         # __file__ = .../tools/phase-radix/mhz.py
@@ -839,6 +845,111 @@ def main():
     else:
         print(f"未知命令: {command}")
         print(__doc__)
+
+
+# ── 文档聚合浏览器 ────────────────────────────────────────
+
+def cmd_docs(args: list):
+    """统计文档聚合浏览器: mhz docs <子命令>"""
+    import sys
+    from pathlib import Path
+    if str(Path(__file__).parent) not in sys.path:
+        sys.path.insert(0, str(Path(__file__).parent))
+    from doc_aggregator import DocumentScanner, SituationalClusterer, WrappingTree, WORKSPACE_DIR
+    
+    if not args:
+        print("用法: mhz docs <scan|clusters|tree>")
+        print("  scan      — 扫描文档")
+        print("  clusters  — 态势聚类")
+        print("  tree      — 连接包裹树")
+        return
+    
+    subcmd = args[0]
+    scanner = DocumentScanner(WORKSPACE_DIR)
+    
+    if subcmd == "scan":
+        print("═══ 扫描文档 ═══")
+        docs = scanner.scan()
+        print(f"文档总数: {len(docs)}")
+        print(f"独立关键词: {len(scanner.inverted_index)}")
+    elif subcmd == "clusters":
+        docs = scanner.scan()
+        clusterer = SituationalClusterer(docs, scanner.inverted_index)
+        clusters = clusterer.cluster()
+        print("═══ 态势聚类 ═══")
+        for i, c in enumerate(clusters):
+            kws = clusterer.cluster_keywords(c)
+            kw_str = ', '.join(f'{kw}({cnt})' for kw, cnt in kws[:5])
+            print(f"  簇 {i}: {len(c)} docs | {kw_str}")
+    elif subcmd == "tree":
+        docs = scanner.scan()
+        clusterer = SituationalClusterer(docs, scanner.inverted_index)
+        clusterer.cluster()
+        tree = WrappingTree(clusterer)
+        tree.build()
+        print("═══ 连接包裹树 ═══")
+        print(tree.render_text())
+    else:
+        print(f"未知子命令: {subcmd}")
+
+
+# ── 蚕蛹反向寄生壳 ────────────────────────────────────────
+
+def cmd_cocoon(args: list):
+    """蚕蛹反向寄生壳: mhz cocoon <子命令>"""
+    import sys
+    from pathlib import Path
+    if str(Path(__file__).parent) not in sys.path:
+        sys.path.insert(0, str(Path(__file__).parent))
+    from cocoon_shell import ShellCatalog, ShellMatcher, ShedWearEngine, ConfigGenerator, KernelMounter, ShellType
+    
+    if not args:
+        print("用法: mhz cocoon <catalog|match|wear|demo>")
+        print("  catalog   — 列出可用寄生壳")
+        print("  match <type> — 匹配最佳寄生壳")
+        print("  wear <shell_id> — 执行穿衣演示")
+        print("  demo      — 完整流程演示")
+        return
+    
+    subcmd = args[0]
+    catalog = ShellCatalog()
+    
+    if subcmd == "catalog":
+        print("═══ 寄生壳目录 ═══")
+        for shell in catalog.list_shells():
+            caps = ', '.join(c.value for c in shell.capabilities)
+            print(f"  [{shell.id:12s}] {shell.name:20s} 能力=[{caps}]")
+    elif subcmd == "match":
+        if len(args) < 2:
+            print("用法: mhz cocoon match <type>")
+            return
+        type_map = {t.value: t for t in ShellType}
+        st = type_map.get(args[1])
+        if not st:
+            print(f"未知类型: {args[1]}")
+            return
+        matcher = ShellMatcher(catalog)
+        shell = matcher.match(st)
+        if shell:
+            print(f"匹配: {shell.name} ({shell.id})")
+        else:
+            print("未找到匹配的壳")
+    elif subcmd == "demo":
+        print("═══ 蚕蛹反向寄生壳 · 完整流程 ═══")
+        matcher = ShellMatcher(catalog)
+        shell = matcher.match(ShellType.HTTP_API)
+        engine = ShedWearEngine(shell)
+        external = {"GET": "/api/users", "Content-Type": "application/json"}
+        internal = engine.shed(external)
+        gen = ConfigGenerator(shell)
+        config = gen.generate(mount_point="/cocoon/api")
+        mounter = KernelMounter(config)
+        ok = mounter.mount()
+        print(f"壳: {shell.name}")
+        print(f"转换: {external} → {internal}")
+        print(f"挂载: {'成功' if ok else '失败'} @ {config['mount_point']}")
+    else:
+        print(f"未知子命令: {subcmd}")
 
 
 # ── WASM 内核持久化辅助 ──────────────────────────────────

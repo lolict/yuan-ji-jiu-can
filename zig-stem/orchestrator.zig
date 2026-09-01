@@ -8,7 +8,7 @@ const aligner = @import("aligner.zig");
 const indexer = @import("indexer.zig");
 const stepper = @import("stepper.zig");
 const locator = @import("locator.zig");
-const phaser = @import("phaser.zig");
+pub const phaser = @import("phaser.zig");
 const angler = @import("angler.zig");
 const frequencer = @import("frequencer.zig");
 

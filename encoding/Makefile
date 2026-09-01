@@ -11,7 +11,20 @@ TEST_TYPE  = test_type_discipline
 TEST_DIFF  = test_diffraction
 TEST_WOV   = test_weaving
 
-ALL = $(TEST_COLOR) $(TEST_LEVEL) $(TEST_TYPE) $(TEST_DIFF) $(TEST_WOV)
+# Chain subsystem
+CHAIN_SRCS = chain_block.c cloud_observer.c chain_persist.c bootstrap_chain.c
+CHAIN_OBJS = $(CHAIN_SRCS:.c=.o)
+
+# Memory/Growth/Graph subsystem
+MEMORY_SRCS = memory_chain.c growth_ring.c version_graph.c observer_v2.c
+MEMORY_OBJS = $(MEMORY_SRCS:.c=.o)
+
+# Full system demos
+TEST_FULL_V1 = test_full_system
+TEST_FULL_V2 = test_full_system_v2
+
+ALL = $(TEST_COLOR) $(TEST_LEVEL) $(TEST_TYPE) $(TEST_DIFF) $(TEST_WOV) \
+      $(TEST_FULL_V1) $(TEST_FULL_V2)
 
 .PHONY: all clean test lib
 
@@ -46,6 +59,12 @@ $(TEST_WOV): test_weaving.o weaving_balancer.o
 
 test_%.o: test_%.c
 	$(CC) $(CFLAGS) -c $< -o $@
+
+$(TEST_FULL_V1): test_full_system.o $(CHAIN_OBJS)
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+
+$(TEST_FULL_V2): test_full_system_v2.o $(CHAIN_OBJS) $(MEMORY_OBJS)
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
 test: all
 	@echo ""

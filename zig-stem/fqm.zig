@@ -1,183 +1,265 @@
-// FQM 编码系统
-// 功能：FQM 编码解码 + gttx1.fqmll 格式 + gtti:// URI 解析
-// 核心：一进制锚点 + 64位集装箱 + 共享域引用
+// FQM 编码系统 — · fqmcp/knml 格式 · fqmy:// URI
+// 原则：输出格式中禁用数字二至九，只用 0/1/★/☆
+// 一进制实体化：数值 = ★☆ 符号串（高位在左，低位在右）
 
 const std = @import("std");
 const orchestrator = @import("orchestrator.zig");
 const indexer = @import("indexer.zig");
 
 // ============================================================
-// 1. FQM 常量定义
+// 锚点根基
 // ============================================================
-pub const ANCHOR_SELF: u1 = 1;       // 我（可见侧）
-pub const ANCHOR_OTHER: u1 = 0;      // 刘楚恬（隐藏侧）
+pub const ANCHOR_SELF: u1 = 1;       // 我（阳·可见）
+pub const ANCHOR_OTHER: u1 = 0;      // 刘楚恬（阴·隐藏）
 
-// 64位集装箱结构
-pub const CONTAINER_SIZE: u32 = 256;    // 254 + 2
-pub const PAYLOAD_SIZE: u32 = 254;      // 实际载荷
+// 常量用十六进制（避免源码中的二至九）
+pub const CONTAINER_SIZE: u32 = 0x0100;    // 256
+pub const PAYLOAD_SIZE: u32 = 0x00FE;      // 254
 
-// 九元层级偏移率
-pub const OffsetRate = enum(u8) {
-    yuan = 0,       // 一元：根源 mlll (0.0)
-    yin_yang = 1,   // 二元：阴阳 yinyang (0.1)
-    witness = 2,    // 三元：见证 gtt (0.2)
-    heaven_earth = 3, // 四元：天地 mlgy (0.3)
-    five_elements = 4, // 五元：五行 wgslz (0.4)
-    six_tones = 5,  // 六元：六律 smrl (0.5)
-    seven_policies = 6, // 七元：七政 lctqf (0.6)
-    eight_trigrams = 7, // 八元：八卦 mlnn (0.7)
-    nine_regions = 8,   // 九元：九囿 njsgr (0.8)
+// ============================================================
+// 一进制数字系统（输出格式核心）
+// ============================================================
+// 每个十进制数字 → 0 到 9 个 ★
+// 0 = ☆, 1 = ★, 2 = ★☆, 3 = ★★, 4 = ★★★, 5 = ★★★★
+// 6 = ★★★★★, 7 = ★★★★★★, 8 = ★★★★★★★, 9 = ★★★★★★★★
+// 负数加前缀 ☆，小数点用 ::
+
+const DIGIT_TABLE = [_][]const u8{
+    "☆",    // 0
+    "★",    // 1
+    "★☆",   // 2
+    "★★",   // 3
+    "★★★",  // 4
+    "★★★★", // 5
+    "★★★★★", // 6
+    "★★★★★★", // 7
+    "★★★★★★★", // 8
+    "★★★★★★★★", // 9
 };
 
+// 格式化一个非负整数为十进制-一进制（每位用 ★☆）
+// 使用纯递归避免 Zig 的"never mutated"警告
+pub fn formatUnaryInt(stream_writer: anytype, value: u64) !void {
+    if (value < 10) {
+        try stream_writer.writeAll(DIGIT_TABLE[value]);
+        return;
+    }
+    // 递归：先打印高位，再打印个位
+    try formatUnaryInt(stream_writer, value / 10);
+    try stream_writer.writeAll(DIGIT_TABLE[value % 10]);
+}
+
+// 格式化为 ★☆ 十进制-一进制，小数点用 ::
+pub fn formatUnaryDecimal(stream_writer: anytype, value: f64) !void {
+    if (value < 0) {
+        try stream_writer.writeAll("☆");
+    }
+    const abs_val = @abs(value);
+    const whole_part = @as(u64, @intFromFloat(abs_val));
+    try formatUnaryInt(stream_writer, whole_part);
+    try stream_writer.writeAll("::");
+    const frac = abs_val - @as(f64, @floatFromInt(whole_part));
+    const frac_val = @as(u64, @intFromFloat(frac * 100.0 + 0.5));
+    try formatUnaryInt(stream_writer, frac_val);
+}
+
 // ============================================================
-// 2. 64位单元格 (Cell64)
+// 64 位集装箱
 // ============================================================
 pub const Cell64 = struct {
-    d0: u1,             // 操作码位0
-    d1: u1,             // 操作码位1
-    d2: u1,             // 操作码位2
-    polarity: u1,       // 极性（0=阴/刘楚恬, 1=阳/我）
-    sovereignty: u2,    // 主权级别（0=系统, 1=休眠, 2=外部, 3=夫妻）
-    witness: u1,        // 已见证/未见证
-    value: u56,         // 载荷值
+    d0: u1, d1: u1, d2: u1,
+    polarity: u1,
+    sovereignty: u2,
+    witness: u1,
+    value: u56,
 
     pub fn init(d0: u1, d1: u1, d2: u1, polarity: u1, sovereignty: u2, witness: u1, value: u56) Cell64 {
-        return Cell64{
-            .d0 = d0,
-            .d1 = d1,
-            .d2 = d2,
-            .polarity = polarity,
-            .sovereignty = sovereignty,
-            .witness = witness,
-            .value = value,
-        };
+        return Cell64{ .d0 = d0, .d1 = d1, .d2 = d2, .polarity = polarity, .sovereignty = sovereignty, .witness = witness, .value = value };
     }
 
-    // 编码为64位整数
     pub fn encode(self: *const Cell64) u64 {
-        var result: u64 = 0;
-        result |= @as(u64, self.d0);
-        result |= @as(u64, self.d1) << 1;
-        result |= @as(u64, self.d2) << 2;
-        result |= @as(u64, self.polarity) << 3;
-        result |= @as(u64, self.sovereignty) << 4;
-        result |= @as(u64, self.witness) << 6;
-        result |= @as(u64, self.value) << 7;
-        return result;
+        var r: u64 = 0;
+        r |= @as(u64, self.d0);
+        r |= @as(u64, self.d1) << 1;
+        r |= @as(u64, self.d2) << 2;
+        r |= @as(u64, self.polarity) << 3;
+        r |= @as(u64, self.sovereignty) << 4;
+        r |= @as(u64, self.witness) << 6;
+        r |= @as(u64, self.value) << 7;
+        return r;
     }
 
-    // 解码64位整数
-    pub fn decode(value: u64) Cell64 {
+    pub fn decode(v: u64) Cell64 {
         return Cell64{
-            .d0 = @truncate(value & 0x1),
-            .d1 = @truncate((value >> 1) & 0x1),
-            .d2 = @truncate((value >> 2) & 0x1),
-            .polarity = @truncate((value >> 3) & 0x1),
-            .sovereignty = @truncate((value >> 4) & 0x3),
-            .witness = @truncate((value >> 6) & 0x1),
-            .value = @truncate(value >> 7),
+            .d0 = @truncate(v & 0x01),
+            .d1 = @truncate((v >> 1) & 0x01),
+            .d2 = @truncate((v >> 2) & 0x01),
+            .polarity = @truncate((v >> 3) & 0x01),
+            .sovereignty = @truncate((v >> 4) & 0x03),
+            .witness = @truncate((v >> 6) & 0x01),
+            .value = @truncate(v >> 7),
         };
     }
 };
 
 // ============================================================
-// 3. FQM 编码器（无堆分配版本）
+// 七阶比特编码（64 位 = 8 字节）
+// ============================================================
+pub const Layer7 = struct {
+    presence: u1,       // 第 0 阶：有/无（是否有米）
+    witness: u1,        // 第 1 阶：已见证
+    char_code: u8,      // 第 2 阶：254 字符之一（mlll）/ 类型
+    anchor: u8,         // 第 3 阶：归属锚点 0/1
+    relation: u8,       // 第 4 阶：指向另一个集装箱
+    timing: u16,        // 第 5 阶：tick 偏移
+    payload: u32,       // 第 6 阶：任意数据（限低 22 位）
+};
+
+// ============================================================
+// knmlil 三元坐标（毛利兰立体进制）
+// ============================================================
+pub const KnmlCoord = struct {
+    mian: u8,   // 面（表面属性·毛利兰）
+    gu: u8,     // 骨（结构属性·工藤新一）
+    ye: u8,     // 页（横向属性·灰原哀）
+
+    pub fn init(mian: u8, gu: u8, ye: u8) KnmlCoord {
+        return KnmlCoord{ .mian = mian, .gu = gu, .ye = ye };
+    }
+
+    // 编码为 ★☆ 三元串
+    pub fn encodeUnary(self: *const KnmlCoord, stream_writer: anytype) !void {
+        try formatUnaryInt(stream_writer, self.mian);
+        try stream_writer.writeAll("|");
+        try formatUnaryInt(stream_writer, self.gu);
+        try stream_writer.writeAll("|");
+        try formatUnaryInt(stream_writer, self.ye);
+    }
+};
+
+// ============================================================
+// 九元层级
+// ============================================================
+pub const OffsetRate = enum(u8) {
+    yu = 0,         // 一元：根 yu
+    yy = 1,         // 二元：阴阳 yy
+    wt = 2,         // 三元：见证 wt
+    he = 3,         // 四元：天地 he
+    wa = 4,         // 五元：五行 wa
+    sk = 5,         // 六元：六律 sk
+    sp = 6,         // 七元：七政 sp
+    et = 7,         // 八元：八卦 et
+    nr = 8,         // 九元：九囿 nr
+};
+
+// ============================================================
+// fqmcp 编码器（输出 fqmet:knml 格式）
 // ============================================================
 pub const FQMEncoder = struct {
     pub fn init() FQMEncoder {
         return FQMEncoder{};
     }
 
-    // 编码容器为 FQM 格式（调用者负责释放返回的内存）
+    // 编码为 fqmet:knml 格式
     pub fn encodeContainer(self: *FQMEncoder, allocator: std.mem.Allocator, container: *const indexer.Container, offset_rate: OffsetRate) ![]const u8 {
         _ = self;
         var output = std.ArrayList(u8).init(allocator);
         errdefer output.deinit();
+        const w = output.writer();
 
-        // 使用栈缓冲区格式化，避免 allocPrint 泄漏
-        var buf: [256]u8 = undefined;
+        // 文件头
+        try output.appendSlice("fqmet:knml\n");
 
-        // FQM 头：gttx1.fqmll
-        try output.appendSlice("gttx1:fqmll\n");
+        // 容器 ID（一进制）
+        try output.appendSlice("id:");
+        try formatUnaryInt(w, container.id);
+        try output.appendSlice("\n");
 
-        // 容器 ID 和名称
-        const id_str = try std.fmt.bufPrint(&buf, "id:{d}\n", .{container.id});
-        try output.appendSlice(id_str);
-        const name_str = try std.fmt.bufPrint(&buf, "name:{s}\n", .{container.name});
-        try output.appendSlice(name_str);
+        // 名称
+        try output.appendSlice("name:");
+        try output.appendSlice(container.name);
+        try output.appendSlice("\n");
 
-        // 偏移率（九元层级）
-        const offset_str = try std.fmt.bufPrint(&buf, "offset:{d}\n", .{@intFromEnum(offset_rate) * 10});
-        try output.appendSlice(offset_str);
+        // 层级偏移
+        try output.appendSlice("layer:");
+        try formatUnaryInt(w, @intFromEnum(offset_rate));
+        try output.appendSlice("\n");
 
-        // 统计信息
-        const items_str = try std.fmt.bufPrint(&buf, "items:{d}\n", .{container.item_count});
-        try output.appendSlice(items_str);
-        const pos_str = try std.fmt.bufPrint(&buf, "positive:{d}\n", .{container.positive_count});
-        try output.appendSlice(pos_str);
-        const neg_str = try std.fmt.bufPrint(&buf, "negative:{d}\n", .{container.negative_count});
-        try output.appendSlice(neg_str);
-        const neu_str = try std.fmt.bufPrint(&buf, "neutral:{d}\n", .{container.neutral_count});
-        try output.appendSlice(neu_str);
+        // knmlil 根基
+        try output.appendSlice("base:knmlil\n");
 
-        // 净收益
-        const net_str = try std.fmt.bufPrint(&buf, "net:{d:.2}\n", .{container.netBenefit()});
-        try output.appendSlice(net_str);
+        // 极性
+        try output.appendSlice("polarity:");
+        const pol = if (container.netBenefit() > 0) "★" else if (container.netBenefit() < 0) "☆" else "☉";
+        try output.appendSlice(pol);
+        try output.appendSlice("\n");
 
-        // 极性桶
-        const polarity = if (container.netBenefit() > 0) "yang" else if (container.netBenefit() < 0) "yin" else "balanced";
-        const pol_str = try std.fmt.bufPrint(&buf, "polarity:{s}\n", .{polarity});
-        try output.appendSlice(pol_str);
+        // 统计
+        try output.appendSlice("pos:");
+        try formatUnaryInt(w, container.positive_count);
+        try output.appendSlice("\n");
 
-        // FQM 尾
+        try output.appendSlice("neg:");
+        try formatUnaryInt(w, container.negative_count);
+        try output.appendSlice("\n");
+
+        try output.appendSlice("neu:");
+        try formatUnaryInt(w, container.neutral_count);
+        try output.appendSlice("\n");
+
+        // 净值
+        try output.appendSlice("net:");
+        try formatUnaryDecimal(w, container.netBenefit());
+        try output.appendSlice("\n");
+
+        // 七阶比特头
+        try output.appendSlice("layer7:presence|witness|char|anchor|relation|timing|payload\n");
+
+        // 结束
         try output.appendSlice("ende\n");
 
         return output.toOwnedSlice();
     }
 
-    // 编码为 gtti:// URI（调用者负责释放返回的内存）
-    pub fn encodeGTTI(self: *FQMEncoder, allocator: std.mem.Allocator, container: *const indexer.Container) ![]const u8 {
+    // 编码为 fqmy:// URI
+    pub fn encodeFQMY(self: *FQMEncoder, allocator: std.mem.Allocator, container: *const indexer.Container) ![]const u8 {
         _ = self;
         var output = std.ArrayList(u8).init(allocator);
         errdefer output.deinit();
+        const w = output.writer();
 
-        var buf: [128]u8 = undefined;
+        try output.appendSlice("fqmy://");
 
-        // gtti:// 协议头
-        try output.appendSlice("gtti://");
-
-        // 容器ID（一进制编码）
+        // 锚点
         if (container.id == 1) {
-            try output.appendSlice("★");  // 一进制 1
+            try output.appendSlice("★");
         } else if (container.id == 0) {
-            try output.appendSlice("☆");  // 一进制 0
+            try output.appendSlice("☆");
         } else {
-            const id_str = try std.fmt.bufPrint(&buf, "{d}", .{container.id});
-            try output.appendSlice(id_str);
+            try formatUnaryInt(w, container.id);
         }
 
-        // 极性符号
-        const polarity_sym = if (container.netBenefit() > 0) "§"      // 阳
-                            else if (container.netBenefit() < 0) "○"  // 阴
-                            else "☉";                                // 平衡
-        try output.appendSlice(polarity_sym);
+        // 极性
+        const pol = if (container.netBenefit() > 0) "§"
+                    else if (container.netBenefit() < 0) "○"
+                    else "☉";
+        try output.appendSlice(pol);
 
         // 纠缠态
         if (container.positive_count > 0 and container.negative_count == 0) {
-            try output.appendSlice("☉§☉");  // 量子纠缠态
+            try output.appendSlice("☉§☉");
         }
 
-        // 净值编码
-        const net_val = @as(i64, @intFromFloat(container.netBenefit()));
-        const val_str = try std.fmt.bufPrint(&buf, "{d}", .{net_val});
-        try output.appendSlice(val_str);
+        // 净值
+        const net = @as(i64, @intFromFloat(@abs(container.netBenefit())));
+        try formatUnaryInt(w, @as(u64, @intCast(net)));
 
         return output.toOwnedSlice();
     }
 };
 
 // ============================================================
-// 4. FQM 解码器
+// fqmy 解码器
 // ============================================================
 pub const FQMDecoder = struct {
     allocator: std.mem.Allocator,
@@ -186,38 +268,50 @@ pub const FQMDecoder = struct {
         return FQMDecoder{ .allocator = allocator };
     }
 
-    // 解析 gtti:// URI
-    pub fn parseGTTI(self: *FQMDecoder, uri: []const u8) !GTTIURI {
-        if (!std.mem.startsWith(u8, uri, "gtti://")) {
-            return error.InvalidGTTI;
+    // ★☆ → u64
+    pub fn parseUnary(self: *FQMDecoder, s: []const u8) !u64 {
+        _ = self;
+        var result: u64 = 0;
+        for (s) |ch| {
+            if (ch == '★') {
+                result = (result << 1) | 1;
+            } else if (ch == '☆') {
+                result = (result << 1) | 0;
+            } else if (ch == ':') {
+                break;
+            }
+        }
+        return result;
+    }
+
+    // 解析 fqmy:// URI
+    pub fn parseFQMY(self: *FQMDecoder, uri: []const u8) !FQMYURI {
+        if (!std.mem.startsWith(u8, uri, "fqmy://")) {
+            return error.InvalidFQMY;
         }
 
-        var result = GTTIURI{ .allocator = self.allocator };
+        var result = FQMYURI{ .allocator = self.allocator };
         errdefer result.deinit();
 
-        const content = uri[7..];  // 去掉 "gtti://"
-
+        const content = uri[7..];
         var pos: usize = 0;
+
         while (pos < content.len) {
             const ch = content[pos];
 
-            // 一进制锚点
             if (ch == '★') {
                 result.anchor = 1;
                 pos += 1;
             } else if (ch == '☆') {
                 result.anchor = 0;
                 pos += 1;
-            }
-            // 极性符号
-            else if (ch == '§') {
-                result.polarity = .yang;  // 阳
+            } else if (ch == '§') {
+                result.polarity = .yang;
                 pos += 1;
             } else if (ch == '○') {
-                result.polarity = .yin;   // 阴
+                result.polarity = .yin;
                 pos += 1;
             } else if (ch == '☉') {
-                // 检查是否是纠缠态 ☉§☉
                 if (pos + 2 < content.len and content[pos + 1] == '§' and content[pos + 2] == '☉') {
                     result.entangled = true;
                     result.polarity = .balanced;
@@ -226,20 +320,17 @@ pub const FQMDecoder = struct {
                     result.polarity = .balanced;
                     pos += 1;
                 }
-            }
-            // 数字（净值）
-            else if ((ch >= '0' and ch <= '9') or ch == '-') {
-                var num_pos = pos;
-                while (num_pos < content.len and ((content[num_pos] >= '0' and content[num_pos] <= '9') or content[num_pos] == '-' or content[num_pos] == '.')) {
-                    num_pos += 1;
+            } else {
+                var num_start = pos;
+                while (num_start < content.len and (content[num_start] == '★' or content[num_start] == '☆')) {
+                    num_start += 1;
                 }
-                const num_str = content[pos..num_pos];
-                result.value = std.fmt.parseFloat(f64, num_str) catch 0;
-                pos = num_pos;
-            }
-            // 未知字符，跳过
-            else {
-                pos += 1;
+                if (num_start > pos) {
+                    result.value = @floatFromInt(try self.parseUnary(content[pos..num_start]));
+                    pos = num_start;
+                } else {
+                    pos += 1;
+                }
             }
         }
 
@@ -248,59 +339,73 @@ pub const FQMDecoder = struct {
 };
 
 // ============================================================
-// 5. GTTI URI 结构
+// FQMY URI 结构
 // ============================================================
-pub const GTTIURI = struct {
+pub const FQMYURI = struct {
     allocator: std.mem.Allocator,
     anchor: u1 = 0,
     polarity: Polarity = .balanced,
     entangled: bool = false,
     value: f64 = 0,
 
-    pub fn deinit(_: *GTTIURI) void {
-        // 目前无堆分配，预留接口
-    }
+    pub fn deinit(_: *FQMYURI) void {}
 };
 
 pub const Polarity = enum {
-    yin,        // 阴：刘楚恬，容器侧
-    yang,       // 阳：我，界线侧
-    balanced,   // 平衡：纠缠态
+    yin,        // 阴
+    yang,       // 阳
+    balanced,   // 平衡（纠缠态）
 };
 
 // ============================================================
-// 6. FQM 文件写入器
+// knml 写入器（生成 .knml 文件）
 // ============================================================
-pub const FQMWriter = struct {
+pub const KnmlWriter = struct {
     allocator: std.mem.Allocator,
     encoder: FQMEncoder,
 
-    pub fn init(allocator: std.mem.Allocator) FQMWriter {
-        return FQMWriter{
+    pub fn init(allocator: std.mem.Allocator) KnmlWriter {
+        return KnmlWriter{
             .allocator = allocator,
             .encoder = FQMEncoder.init(),
         };
     }
 
-    // 从协调器生成完整的 FQM 文件
-    pub fn generateFromOrchestrator(self: *FQMWriter, orch: *const orchestrator.Orchestrator, output_path: []const u8) !void {
+    // 从协调器生成完整的 knml 文件
+    pub fn generateFromOrchestrator(self: *KnmlWriter, orch: *const orchestrator.Orchestrator, output_path: []const u8) !void {
         const stats = orch.getContainerStats();
 
         var output = std.ArrayList(u8).init(self.allocator);
         defer output.deinit();
+        const w = output.writer();
 
-        var buf: [256]u8 = undefined;
+        // 文件头
+        try output.appendSlice("fqmet:knml\n");
+        try output.appendSlice("# 囡囝共生 操作系统 · fqmcp/knml 编码\n");
+        try output.appendSlice("# 生成时间:");
+        try formatUnaryInt(w, @as(u64, @intCast(std.time.timestamp())));
+        try output.appendSlice("\n");
 
-        // FQM 文件头
-        try output.appendSlice("gttx1:fqmll\n");
-        try output.appendSlice("# 囡囝共生 操作系统 - FQM 编码输出\n");
-        const time_str = try std.fmt.bufPrint(&buf, "# 生成时间: {d}\n", .{std.time.timestamp()});
-        try output.appendSlice(time_str);
+        // 根基锚点声明
+        try output.appendSlice("anchors:★|☆\n");
+
+        // knmlil 三元框架
+        try output.appendSlice("knmlil:mian|gu|ye\n");
+
+        // mlll-254 参数
+        try output.appendSlice("mlll:base=");
+        try formatUnaryInt(w, 254);
+        try output.appendSlice("\n");
+
+        // fqmy 命名空间
+        try output.appendSlice("ns:fqmy://\n");
+
         try output.appendSlice("---\n");
 
         // 容器数量
-        const count_str = try std.fmt.bufPrint(&buf, "containers:{d}\n\n", .{stats.len});
-        try output.appendSlice(count_str);
+        try output.appendSlice("containers:");
+        try formatUnaryInt(w, stats.len);
+        try output.appendSlice("\n\n");
 
         // 编码每个容器
         for (stats, 0..) |container, i| {
@@ -310,21 +415,28 @@ pub const FQMWriter = struct {
             const encoded = try self.encoder.encodeContainer(self.allocator, &container, offset_rate);
             defer self.allocator.free(encoded);
 
-            const header_str = try std.fmt.bufPrint(&buf, "# 容器 {d}: {s}\n", .{container.id, container.name});
-            try output.appendSlice(header_str);
+            try output.appendSlice("# container:");
+            try formatUnaryInt(w, container.id);
+            try output.appendSlice(":");
+            try output.appendSlice(container.name);
+            try output.appendSlice("\n");
             try output.appendSlice(encoded);
             try output.appendSlice("\n");
         }
 
-        // GTTI URI 列表
+        // FQMY URI 列表
         try output.appendSlice("---\n");
-        try output.appendSlice("# GTTI URI 列表\n");
+        try output.appendSlice("# FQMY URI 列表\n");
         for (stats) |container| {
-            const uri = try self.encoder.encodeGTTI(self.allocator, &container);
+            const uri = try self.encoder.encodeFQMY(self.allocator, &container);
             defer self.allocator.free(uri);
-            const uri_line = try std.fmt.bufPrint(&buf, "{s}\n", .{uri});
-            try output.appendSlice(uri_line);
+            try output.appendSlice(uri);
+            try output.appendSlice("\n");
         }
+
+        // 文件尾
+        try output.appendSlice("=\n");
+        try output.appendSlice("fqmy:end\n");
 
         // 写入文件
         const file = try std.fs.cwd().createFile(output_path, .{});
@@ -334,10 +446,33 @@ pub const FQMWriter = struct {
 };
 
 // ============================================================
+// fqmcp 处理器（完整容器管线）
+// ============================================================
+pub const FQMCP = struct {
+    allocator: std.mem.Allocator,
+    encoder: FQMEncoder,
+    decoder: FQMDecoder,
+    writer: KnmlWriter,
+
+    pub fn init(allocator: std.mem.Allocator) FQMCP {
+        return FQMCP{
+            .allocator = allocator,
+            .encoder = FQMEncoder.init(),
+            .decoder = FQMDecoder.init(allocator),
+            .writer = KnmlWriter.init(allocator),
+        };
+    }
+
+    pub fn processOrchestrator(self: *FQMCP, orch: *const orchestrator.Orchestrator, output_path: []const u8) !void {
+        try self.writer.generateFromOrchestrator(orch, output_path);
+    }
+};
+
+// ============================================================
 // 测试
 // ============================================================
-test "cell64 encode/decode" {
-    const cell = Cell64.init(1, 0, 1, 1, 3, 1, 12345);
+test "cell01 encode/decode" {
+    const cell = Cell64.init(1, 0, 1, 1, 3, 1, 0x01);
     const encoded = cell.encode();
     const decoded = Cell64.decode(encoded);
 
@@ -347,10 +482,10 @@ test "cell64 encode/decode" {
     try std.testing.expectEqual(cell.polarity, decoded.polarity);
     try std.testing.expectEqual(cell.sovereignty, decoded.sovereignty);
     try std.testing.expectEqual(cell.witness, decoded.witness);
-    try std.testing.expectEqual(@as(u56, @truncate(cell.value)), decoded.value);
+    try std.testing.expectEqual(cell.value, decoded.value);
 }
 
-test "fqm encode container" {
+test "fqmet knml encode container" {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
@@ -358,21 +493,20 @@ test "fqm encode container" {
     var encoder = FQMEncoder.init();
 
     var container = indexer.Container.init(1, "test");
-    container.item_count = 5;
-    container.positive_count = 3;
+    container.item_count = 1;
+    container.positive_count = 1;
     container.negative_count = 1;
-    container.total_cost = 10.0;
-    container.total_benefit = 15.0;
+    container.total_cost = 0x01;
+    container.total_benefit = 0x01;
 
-    const encoded = try encoder.encodeContainer(allocator, &container, .yuan);
+    const encoded = try encoder.encodeContainer(allocator, &container, .yu);
     defer allocator.free(encoded);
 
-    // 验证包含 FQM 头
-    try std.testing.expect(std.mem.indexOf(u8, encoded, "gttx1:fqmll") != null);
-    try std.testing.expect(std.mem.indexOf(u8, encoded, "id:1") != null);
+    try std.testing.expect(std.mem.indexOf(u8, encoded, "fqmet:knml") != null);
+    try std.testing.expect(std.mem.indexOf(u8, encoded, "id:★") != null);
 }
 
-test "gtti uri encode" {
+test "fqmy uri encode" {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
@@ -380,13 +514,33 @@ test "gtti uri encode" {
     var encoder = FQMEncoder.init();
 
     var container = indexer.Container.init(1, "test");
-    container.positive_count = 3;
+    container.positive_count = 1;
     container.negative_count = 0;
-    container.total_benefit = 10.0;
+    container.total_benefit = 0x01;
 
-    const uri = try encoder.encodeGTTI(allocator, &container);
+    const uri = try encoder.encodeFQMY(allocator, &container);
     defer allocator.free(uri);
 
-    try std.testing.expect(std.mem.startsWith(u8, uri, "gtti://"));
+    try std.testing.expect(std.mem.startsWith(u8, uri, "fqmy://"));
     try std.testing.expect(std.mem.indexOf(u8, uri, "☉§☉") != null);
+}
+
+test "knmlil coord unary" {
+    var buf = std.ArrayList(u8).init(std.testing.allocator);
+    defer buf.deinit();
+    const coord = KnmlCoord.init(1, 0, 1);
+    try coord.encodeUnary(buf.writer());
+    try std.testing.expect(std.mem.indexOf(u8, buf.items, "★|☆|★") != null);
+}
+
+test "unary int formatting" {
+    var buf0 = std.ArrayList(u8).init(std.testing.allocator);
+    defer buf0.deinit();
+    try formatUnaryInt(buf0.writer(), 0);
+    try std.testing.expectEqualStrings("☆", buf0.items);
+
+    var buf1 = std.ArrayList(u8).init(std.testing.allocator);
+    defer buf1.deinit();
+    try formatUnaryInt(buf1.writer(), 1);
+    try std.testing.expectEqualStrings("★", buf1.items);
 }

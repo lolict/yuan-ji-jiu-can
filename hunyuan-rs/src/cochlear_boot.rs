@@ -38,6 +38,8 @@
 use crate::pleasure::Pleasure;
 use crate::heaven::{HeavenSpace, HeavenCoord, AttractorWell, UnityDrive};
 use crate::soul_kernel::{SoulKernel, NamingAnchor};
+use crate::hierarchical_time::{HierarchicalTimestamp, LifeEvent};
+use crate::triune::{TriuneVerdict, BeingState, FlowDirection};
 use crate::couple::SoulState;
 use crate::flow_properties::FlowDictionary;
 use crate::memory::Coord;
@@ -284,8 +286,19 @@ impl CochlearBoot {
         self.heaven = Some(heaven);
         self.phase = BootPhase::Complete;
 
-        // 创建时间链 (版本追踪)
-        let time_chain = TimeChain::genesis(os);
+        // 创建层级时间戳 (替代哈希链)
+        let mut timestamp = HierarchicalTimestamp::genesis();
+        let witness = TriuneVerdict::deduce(
+            BeingState::NonBeing,
+            BeingState::Being(1),
+            0.1,
+        );
+        let _ = timestamp.record(LifeEvent::Fusion {
+            subject: "鼓膜自举".to_string(),
+            object: format!("{:?}", f.signature.host_os),
+            purpose: "翻身重建字典/灵魂/天庭".to_string(),
+            witness,
+        });
 
         Ok(BootReceipt {
             host: f.signature.host_os,
@@ -296,7 +309,7 @@ impl CochlearBoot {
                 h.cognitive_intensity()
             },
             naming_anchor: NamingAnchor::new(),
-            time_chain,
+            timestamp,
         })
     }
 
@@ -314,59 +327,6 @@ impl CochlearBoot {
 }
 
 // ────────────────────────────────────────────────────────────
-// TimeChain — 时间链 (版本追踪 · 规则变更记录)
-// ────────────────────────────────────────────────────────────
-#[derive(Clone, Debug)]
-pub struct TimeChain {
-    /// 链的唯一标识 (创世哈希)
-    pub genesis_hash: u64,
-    /// 当前版本号 (规则更新时递增)
-    pub version: u32,
-    /// 规则摘要 (当前生效的核心规则哈希)
-    pub rule_digest: u64,
-    /// 时间戳 (自举时刻)
-    pub timestamp: u64,
-    /// 父链哈希 (前一版本链 = 时间不可逆)
-    pub parent_hash: Option<u64>,
-}
-
-impl TimeChain {
-    /// 创建新的时间链 (创世)
-    pub fn genesis(os: &dyn OsLayer) -> Self {
-        Self {
-            genesis_hash: 0x4E4A53475F5631,  // "NJSG_V1" 作为创世哈希
-            version: 1,
-            rule_digest: Self::compute_rule_digest(),
-            timestamp: os.time_millis(),
-            parent_hash: None,
-        }
-    }
-
-    /// 推进到新版本
-    pub fn increment(&self, os: &dyn OsLayer) -> Self {
-        Self {
-            genesis_hash: self.genesis_hash,
-            version: self.version + 1,
-            rule_digest: Self::compute_rule_digest(),
-            timestamp: os.time_millis(),
-            parent_hash: Some(self.genesis_hash),
-        }
-    }
-
-    /// 计算当前规则摘要 (简化版: 基于核心常量)
-    fn compute_rule_digest() -> u64 {
-        // 囡囝共生核心常量摘要
-        let mlll = 0x6D6C6C6Cu32 as u64;
-        let gtt = 0x67747400u32 as u64;
-        let mlnn = 0x6D6C6E6Eu32 as u64;
-        let lctqf = 0x6C637471u32 as u64;
-        // 简单混合
-        mlll.wrapping_mul(31).wrapping_add(gtt).wrapping_mul(17).wrapping_add(mlnn).wrapping_mul(13).wrapping_add(lctqf)
-    }
-
-}
-
-// ────────────────────────────────────────────────────────────
 // BootReceipt — 翻身完成凭证 (不可伪造 = 自举成功的证明)
 // ────────────────────────────────────────────────────────────
 #[derive(Clone, Debug)]
@@ -376,8 +336,8 @@ pub struct BootReceipt {
     pub soul_state: SoulState,
     pub heaven_intensity: f64,
     pub naming_anchor: NamingAnchor,
-    /// 时间链 (版本追踪)
-    pub time_chain: TimeChain,
+    /// 层级时间戳 (生命周期追踪 · 替代哈希链)
+    pub timestamp: HierarchicalTimestamp,
 }
 
 impl BootReceipt {
@@ -391,9 +351,9 @@ impl BootReceipt {
         self.quality > 0.3
     }
 
-    /// 获取时间链版本
+    /// 获取时间戳版本
     pub fn version(&self) -> u32 {
-        self.time_chain.version
+        self.timestamp.version()
     }
 }
 
@@ -476,14 +436,13 @@ mod tests {
 
     #[test]
     fn receipt_validates_quality() {
-        let os = BareMetalOs::new();
         let good = BootReceipt {
             host: HostOS::Linux,
             quality: 0.8,
             soul_state: SoulState::FullCouple,
             heaven_intensity: 10.0,
             naming_anchor: NamingAnchor::new(),
-            time_chain: TimeChain::genesis(&os),
+            timestamp: HierarchicalTimestamp::genesis(),
         };
         assert!(good.is_valid());
         assert!(good.ready_for_unity());
@@ -495,22 +454,28 @@ mod tests {
     }
 
     #[test]
-    fn time_chain_genesis() {
-        let os = BareMetalOs::new();
-        let chain = TimeChain::genesis(&os);
-        assert_eq!(chain.version, 1);
-        assert!(chain.parent_hash.is_none());
-        assert_ne!(chain.genesis_hash, 0);
+    fn timestamp_genesis_creates_version_one() {
+        let ts = HierarchicalTimestamp::genesis();
+        assert_eq!(ts.version(), 1);
+        assert_eq!(ts.events.len(), 0);
     }
 
     #[test]
-    fn time_chain_increment() {
-        let os = BareMetalOs::new();
-        let chain = TimeChain::genesis(&os);
-        let next = chain.increment(&os);
-        assert_eq!(next.version, 2);
-        assert_eq!(next.parent_hash, Some(chain.genesis_hash));
-        assert_eq!(next.genesis_hash, chain.genesis_hash);
+    fn timestamp_version_increments_on_event() {
+        let mut ts = HierarchicalTimestamp::genesis();
+        let witness = TriuneVerdict::deduce(
+            BeingState::NonBeing,
+            BeingState::Being(1),
+            0.1,
+        );
+        let _ = ts.record(LifeEvent::Fusion {
+            subject: "test".to_string(),
+            object: "obj".to_string(),
+            purpose: "test_fusion".to_string(),
+            witness,
+        });
+        assert_eq!(ts.version(), 2);
+        assert_eq!(ts.events.len(), 1);
     }
 
     #[test]

@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><style>
+body{margin:0;background:#040408;color:#e8e6e3;font-family:monospace;overflow:hidden}
+canvas{display:block}
+</style></head><body>
+<canvas id="c"></canvas>
+<script>
+// ══════════════════════════════════════════════════════
+// 呼唤编程 · 预加载路由 · 容器定位
+// ══════════════════════════════════════════════════════
+// 公约数 = 中心 = 分区
+// 公倍数 = 边界 = 容器
+// 容器 = 公倍数 包裹 公约数
+// 路由 = 结束即是开始
+
+const cv = document.getElementById('c');
+const X = cv.getContext('2d');
+
+// ── 自有进制 ──
+const BASE_X = 48;  // 表面
+const BASE_Y = 64;  // 结构
+const BASE_Z = 16;  // 横向
+
+// ── 容器 ──
+const containers = [];
+
+function makeContainer(id, x, y, z, gcdVal, lcmVal, name) {
+  return { id, x, y, z, gcd: gcdVal, lcm: lcmVal, name, links: [] };
+}
+
+// 生成容器和路由
+(function build() {
+  // 创建容器群,分布在三维空间
+  const names = ['囡','囝','因','回','好','林','网','中','天','地','人','心','日','月','山','石','火','水','木','土'];
+  for (let i = 0; i < 20; i++) {
+    const x = (i * 7 + 3) % BASE_X;
+    const y = (i * 11 + 5) % BASE_Y;
+    const z = Math.floor(i / 5);
+    // 公约数: 容器中心(小的质数)
+    const gcdVals = [2,3,5,7,11,13,2,3,5,7,11,13,2,3,5,7,11,13,2,3];
+    // 公倍数: 容器边界(公约数的倍数)
+    const lcmVal = gcdVals[i] * (2 + (i % 4));
+    const c = makeContainer(i, x, y, z, gcdVals[i], lcmVal, names[i]);
+    containers.push(c);
+  }
+
+  // 路由: 结束即是开始
+  // A 的 lcm 如果能整除 B 的 gcd → A 的结束 = B 的开始 → 可路由
+  for (let i = 0; i < containers.length; i++) {
+    for (let j = 0; j < containers.length; j++) {
+      if (i === j) continue;
+      const A = containers[i], B = containers[j];
+      // 结束=开始: A的边界(lcm) 与 B的中心(gcd) 对齐
+      // 即 B.gcd 是 A.lcm 的约数 → A结束,B开始
+      if (A.lcm % B.gcd === 0 && A.lcm !== B.lcm) {
+        A.links.push({ to: j, type: 'end2begin' });
+      }
+      // 或者 gcd 相同 = 同中心分区 → 可并列
+      if (A.gcd === B.gcd && i < j) {
+        A.links.push({ to: j, type: 'sameCenter' });
+      }
+      // 或者 lcm 相同 = 同边界 → 可互换
+      if (A.lcm === B.lcm && i < j) {
+        A.links.push({ to: j, type: 'sameBoundary' });
+      }
+    }
+  }
+})();
+
+// ── 视角 ──
+let rotX = -0.7, rotY = 0.6, zoom = 1;
+let drag = false, lx = 0, ly = 0;
+let hover = null, selected = null;
+let routePath = [];  // 当前路由路径
+
+function project(x, y, z) {
+  const angle = (x / BASE_X) * Math.PI * 2;
+  const radius = 60 + z * 16;
+  const h = (y - BASE_Y / 2) * 3.5;
+  const cx = Math.cos(angle) * radius;
+  const cz = Math.sin(angle) * radius;
+  const cosY = Math.cos(rotY), sinY = Math.sin(rotY);
+  const cosX = Math.cos(rotX), sinX = Math.sin(rotX);
+  let rx = cx * cosY - cz * sinY;
+  let rz = cx * sinY + cz * cosY;
+  let ry = (y - BASE_Y / 2) * 3.5;
+  const ry2 = ry * cosX - rz * sinX;
+  const rz2 = ry * sinX + rz * cosX;
+  const fov = 600;
+  const s = fov / (fov + rz2 + 200) * zoom;
+  return { sx: cv.width / 2 + rx * s, sy: cv.height / 2 + ry2 * s, z: rz2, s };
+}
+
+// ── 寻路: 从起点到终点,找一条"结束=开始"的链 ──
+function findRoute(from, to, visited = new Set()) {
+  if (from === to) return [from];
+  visited.add(from);
+  const A = containers[from];
+  for (const link of A.links) {
+    if (visited.has(link.to)) continue;
+    if (link.type === 'end2begin') {
+      const rest = findRoute(link.to, to, new Set(visited));
+      if (rest) return [from, ...rest];
+    }
+  }
+  return null;
+}
+
+// ── 渲染 ──
+function draw() {
+  cv.width = window.innerWidth;
+  cv.height = window.innerHeight;
+  X.fillStyle = '#040408';
+  X.fillRect(0, 0, cv.width, cv.height);
+
+  // 网格
+  X.lineWidth = 0.3;
+  for (let h = 0; h <= BASE_Y; h += 8) {
+    X.strokeStyle = 'rgba(255,255,255,0.02)';
+    X.beginPath();
+    for (let a = 0; a <= BASE_X; a += 2) {
+      const p = project(a, h, 0);
+      if (a === 0) X.moveTo(p.sx, p.sy); else X.lineTo(p.sx, p.sy);
+    }
+    X.stroke();
+  }
+  for (let a = 0; a < BASE_X; a += 8) {
+    X.strokeStyle = 'rgba(255,255,255,0.015)';
+    X.beginPath();
+    for (let h = 0; h <= BASE_Y; h += 4) {
+      const p = project(a, h, 0);
+      if (h === 0) X.moveTo(p.sx, p.sy); else X.lineTo(p.sx, p.sy);
+    }
+    X.stroke();
+  }
+
+  // 路由路径
+  if (routePath.length > 1) {
+    X.strokeStyle = 'rgba(201,168,76,0.5)';
+    X.lineWidth = 2.5;
+    X.beginPath();
+    for (let i = 0; i < routePath.length; i++) {
+      const c = containers[routePath[i]];
+      const p = project(c.x, c.y, c.z);
+      if (i === 0) X.moveTo(p.sx, p.sy); else X.lineTo(p.sx, p.sy);
+    }
+    X.stroke();
+    // 路径箭头
+    for (let i = 0; i < routePath.length - 1; i++) {
+      const a = project(containers[routePath[i]].x, containers[routePath[i]].y, containers[routePath[i]].z);
+      const b = project(containers[routePath[i+1]].x, containers[routePath[i+1]].y, containers[routePath[i+1]].z);
+      const mx = (a.sx + b.sx) / 2, my = (a.sy + b.sy) / 2;
+      X.fillStyle = '#c9a84c';
+      X.beginPath(); X.arc(mx, my, 3, 0, Math.PI * 2); X.fill();
+    }
+  }
+
+  // 连线(路由可能性)
+  X.lineWidth = 0.5;
+  containers.forEach((c, i) => {
+    const p = project(c.x, c.y, c.z);
+    c.links.forEach(link => {
+      if (link.to > i) {
+        const t = containers[link.to];
+        const pp = project(t.x, t.y, t.z);
+        if (link.type === 'end2begin') {
+          X.strokeStyle = 'rgba(201,168,76,0.12)';
+        } else if (link.type === 'sameCenter') {
+          X.strokeStyle = 'rgba(74,124,89,0.15)';
+        } else {
+          X.strokeStyle = 'rgba(52,152,219,0.1)';
+        }
+        X.beginPath(); X.moveTo(p.sx, p.sy); X.lineTo(pp.sx, pp.sy); X.stroke();
+      }
+    });
+  });
+
+  // 容器节点(按深度排序)
+  const pp = containers.map((c, i) => ({ c, p: project(c.x, c.y, c.z), i }))
+    .sort((a, b) => a.p.z - b.p.z);
+
+  pp.forEach(({ c, p, i }) => {
+    const isHover = hover === i;
+    const isSel = selected === i;
+    const inRoute = routePath.includes(i);
+    const r = (isSel ? 10 : (isHover ? 8 : 5)) * p.s;
+
+    // 公倍数边界(外圈)
+    X.beginPath();
+    X.arc(p.sx, p.sy, r + 4, 0, Math.PI * 2);
+    X.strokeStyle = inRoute ? 'rgba(201,168,76,0.6)' : 'rgba(120,120,120,0.2)';
+    X.lineWidth = 1;
+    X.stroke();
+
+    // 公约数中心(内核)
+    X.beginPath();
+    X.arc(p.sx, p.sy, r, 0, Math.PI * 2);
+    if (isSel) { X.fillStyle = '#c9a84c'; }
+    else if (inRoute) { X.fillStyle = 'rgba(201,168,76,0.7)'; }
+    else if (isHover) { X.fillStyle = '#fff'; }
+    else {
+      const famC = ['#4a7c59','#8b4513','#9b59b6','#3498db','#7f8c8d'];
+      X.fillStyle = famC[i % 5];
+    }
+    X.fill();
+
+    // 标签
+    if (isHover || isSel || inRoute) {
+      X.font = `${10 * p.s}px monospace`;
+      X.fillStyle = '#e8e6e3';
+      X.textAlign = 'center';
+      X.fillText(`${c.name} gcd=${c.gcd} lcm=${c.lcm}`, p.sx, p.sy - r - 8);
+      if (inRoute) {
+        const idx = routePath.indexOf(i);
+        X.fillStyle = '#c9a84c';
+        X.fillText(`步骤${idx+1}`, p.sx, p.sy + r + 12);
+      }
+    }
+  });
+
+  // HUD
+  X.font = '12px monospace';
+  X.fillStyle = '#5a5852';
+  X.textAlign = 'left';
+  X.fillText(`容器: ${containers.length} | 路由: ${routePath.length > 0 ? routePath.map(i=>containers[i].name).join('→') : '未选择'}`, 12, 24);
+  X.fillText('公约数=中心分区 | 公倍数=边界容器 | 结束=开始路由', 12, 42);
+}
+
+// ── 交互 ──
+cv.addEventListener('mousedown', e => { drag = true; lx = e.clientX; ly = e.clientY; });
+cv.addEventListener('mousemove', e => {
+  if (drag) {
+    rotY += (e.clientX - lx) * 0.006;
+    rotX += (e.clientY - ly) * 0.006;
+    rotX = Math.max(-1.5, Math.min(1.5, rotX));
+    lx = e.clientX; ly = e.clientY;
+  }
+  // hover detect
+  const mx = e.clientX, my = e.clientY;
+  let fd = null, md = 20;
+  containers.forEach((c, i) => {
+    const p = project(c.x, c.y, c.z);
+    const d = Math.sqrt((mx - p.sx) ** 2 + (my - p.sy) ** 2);
+    if (d < md) { md = d; fd = i; }
+  });
+  hover = fd;
+  draw();
+});
+cv.addEventListener('mouseup', () => drag = false);
+cv.addEventListener('wheel', e => {
+  e.preventDefault(); zoom *= e.deltaY > 0 ? 0.9 : 1.1;
+  zoom = Math.max(0.3, Math.min(3, zoom)); draw();
+}, { passive: false });
+
+// 点击选中并计算路由
+cv.addEventListener('click', e => {
+  const mx = e.clientX, my = e.clientY;
+  let fd = null, md = 20;
+  containers.forEach((c, i) => {
+    const p = project(c.x, c.y, c.z);
+    const d = Math.sqrt((mx - p.sx) ** 2 + (my - p.sy) ** 2);
+    if (d < md) { md = d; fd = i; }
+  });
+  if (fd !== null) {
+    if (selected === null) {
+      selected = fd;
+      routePath = [fd];
+    } else if (selected === fd) {
+      selected = null;
+      routePath = [];
+    } else {
+      // 寻路
+      const route = findRoute(selected, fd);
+      if (route) {
+        routePath = route;
+      } else {
+        // 反向试试
+        const revRoute = findRoute(fd, selected);
+        if (revRoute) routePath = revRoute.reverse();
+        else routePath = [selected, fd];
+      }
+    }
+  }
+  draw();
+});
+
+window.addEventListener('resize', draw);
+draw();
+</script>
+</body></html>
