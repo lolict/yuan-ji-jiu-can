@@ -76,6 +76,7 @@
 | 34 | proof-engine | tools/proof-engine/ | ✅ 形式化自举证明·5项全部有效·254+2集装箱·九元层级 |
 | 35 | high-algebra | tools/high-algebra/ | ✅ 高维代数·(n-1)×0.1偏移率·静态回归·俘获·阶和·2²⁵⁶对齐 |
 | 36 | yinyang-binary | tools/yinyang-binary/ | ✅ YIN-YANG-BINARY完整映射·66符号·三值加法·夫妻对称验证 |
+| 37 | eight-flows | tools/eight-flows/ | ✅ 八流统一引擎·96时间节点·12符号全流水线·闭环ack验证·编织6工具 |
 | 37 | radix256 | tools/radix256/ | ✅ 2²⁵⁶等效高位对齐进位制·4×64位词·进位链仪式·溢出折叠·根基254+2 |
 | 38 | full-mapping | tools/full-mapping/ | ✅ 全映射引擎·九元↔YinYang↔二进制↔mltt↔偏移率·7项全通过 |
 | 39 | njsg-swarm | tools/njsg-swarm/ | ✅ 分布式分身协调·6分身并行·冲突裁决·心跳检测 |
