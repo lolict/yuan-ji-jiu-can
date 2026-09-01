@@ -3,6 +3,7 @@ const std = @import("std");
 const orchestrator = @import("orchestrator.zig");
 const indexer = @import("indexer.zig");
 const fqm = @import("fqm.zig");
+const visualizer = @import("visualizer.zig");
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -105,6 +106,25 @@ pub fn main() !void {
     std.debug.print("mian|gu|ye = ", .{});
     try c1.encodeUnary(stdout);
     std.debug.print("\n", .{});
+
+    // ========== 三维可视化 HTML 输出 ==========
+    std.debug.print("\n=== 启动三维可视化引擎 ===\n", .{});
+
+    var scene = visualizer.Scene.init(allocator);
+    defer scene.deinit();
+
+    try scene.generateFromOrchestrator(&orch);
+
+    const html_output = try scene.generateHTML(allocator);
+    defer allocator.free(html_output);
+
+    const html_path = "zig-stem/output/visualization.html";
+    const html_file = try std.fs.cwd().createFile(html_path, .{});
+    defer html_file.close();
+    try html_file.writeAll(html_output);
+
+    std.debug.print("三维可视化 HTML 已保存: {s}\n", .{html_path});
+    std.debug.print("共 {d} 个坐标点，{d} 条连接线\n", .{ scene.points.items.len, scene.lines.items.len });
 
     std.debug.print("\n=== 演示结束 ===\n\n", .{});
 }
