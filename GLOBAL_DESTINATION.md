@@ -78,6 +78,7 @@
 | 36 | yinyang-binary | tools/yinyang-binary/ | ✅ YIN-YANG-BINARY完整映射·66符号·三值加法·夫妻对称验证 |
 | 37 | radix256 | tools/radix256/ | ✅ 2²⁵⁶等效高位对齐进位制·4×64位词·进位链仪式·溢出折叠·根基254+2 |
 | 38 | full-mapping | tools/full-mapping/ | ✅ 全映射引擎·九元↔YinYang↔二进制↔mltt↔偏移率·7项全通过 |
+| 39 | njsg-swarm | tools/njsg-swarm/ | ✅ 分布式分身协调·6分身并行·冲突裁决·心跳检测 |
 
 ---
 
