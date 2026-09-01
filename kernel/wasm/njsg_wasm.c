@@ -262,7 +262,7 @@ static int json_parse_float(const char* p, float* out) {
 
 /* ========== WASI 主入口 ========== */
 
-int main(void) {
+int main(int argc, char** argv) {
     char input[NJSG_MAX_INPUT];
     char output[NJSG_MAX_OUTPUT];
     verdict_request_t req;
@@ -271,6 +271,31 @@ int main(void) {
     req.compliance_b = NJSG_DEFAULT_COMPLIANCE;
     req.force = NJSG_DEFAULT_FORCE;
     req.angle = NJSG_DEFAULT_ANGLE;
+
+    /* WASM v1.7 自检模式: ./njsg_wasm_test --selftest */
+    if(argc > 1 && strcmp(argv[1], "--selftest") == 0){
+        char buf[8192];
+        printf("{\"selftest\":true,\n");
+
+        printf(" \"perception\": ");
+        njsg_perceive_route("{\"input\":\"lctfrqmy-ggt-xy\"}", buf, sizeof(buf));
+        printf("%s,\n", buf);
+
+        printf(" \"timeline\": ");
+        njsg_timeline_record("{\"subsystem\":\"kernel\",\"event\":\"test_pulse\",\"value\":42}", buf, sizeof(buf));
+        printf("%s,\n", buf);
+
+        printf(" \"mccp\": ");
+        njsg_mccp_compile_json("{\"name\":\"Container\",\"fields\":\"name:char[64];safety:int;owner:bag\"}", buf, sizeof(buf));
+        printf("\"%s\",\n", buf);
+
+        printf(" \"review\": ");
+        njsg_review_submit("{\"target\":\"kernel_core\",\"score\":9,\"comment\":\"good\"}", buf, sizeof(buf));
+        printf("%s\n", buf);
+
+        printf("}\n");
+        return 0;
+    }
 
     /* 读取 stdin JSON */
     size_t total = 0;
@@ -348,6 +373,273 @@ int main(void) {
  *   C 五/六元算法  ←单一权威实现→  JS 壳通过内存共享传参/回读
  *   编译到 wasm32 或 wasm64,JS 侧调用路径完全一致。
  */
+/* ========== v1.4+ 九元感知引擎(WASM 无 pthread 单线程版) ========== */
+
+#define PERCEIVE_FAMILY_CONTAINER 0
+#define PERCEIVE_FAMILY_PHALLIC   1
+#define PERCEIVE_FAMILY_COUPLE    2
+#define PERCEIVE_FAMILY_HOMOPHONE 3
+#define PERCEIVE_FAMILY_DIRECT    4
+
+static const char* perceive_family_name(int f){
+    const char* names[] = {"container","phallic","couple","homophone","direct"};
+    return (f >= 0 && f <= 4) ? names[f] : "unknown";
+}
+
+/* 谐音靶点路由表(同 C 内核) */
+static const char* perceive_homophone_target(const char* in){
+    if(strstr(in,"lct") || strstr(in,"liuchutian"))   return "Wife";
+    if(strstr(in,"wgslz") || strstr(in,"lolict"))      return "Husband";
+    if(strstr(in,"mlll") || strstr(in,"hunyuan"))      return "System";
+    if(strstr(in,"mlct"))                              return "Wife";
+    if(strstr(in,"mltt"))                              return "Wife";
+    if(strstr(in,"gtt")  || strstr(in,"gttx"))         return "SoundMorphism";
+    if(strstr(in,"mlgy"))                              return "WorldMerge";
+    if(strstr(in,"kndl"))                              return "Kndl";
+    if(strstr(in,"mlil"))                              return "Mlil";
+    return "Unknown";
+}
+
+static int perceive_authority(const char* target){
+    if(strcmp(target,"Wife")==0 || strcmp(target,"Husband")==0) return 1;
+    if(strcmp(target,"System")==0) return 2;
+    return 0;
+}
+
+/* 感知家族分类 */
+static int perceive_classify(const char* in){
+    /* ASCII 直接判定 */
+    if(in[0]=='b' || in[0]=='s') return PERCEIVE_FAMILY_CONTAINER; /* bag/sack */
+    /* UTF-8 lead >= 0xE0 视为 CJK → couple 家族(保守路由) */
+    if((unsigned char)in[0] >= 0xE0)    return PERCEIVE_FAMILY_COUPLE;
+    if(strstr(in,"lct") || strstr(in,"mlll")) return PERCEIVE_FAMILY_HOMOPHONE;
+    return PERCEIVE_FAMILY_DIRECT;
+}
+
+/* 经 JSON API 封装:用于 JS 壳调用 */
+__attribute__((export_name("njsg_perceive_route")))
+int njsg_perceive_route(const char* in_json, char* out_buf, int out_cap){
+    if(!in_json || !out_buf || out_cap <= 0) return 0;
+
+    /* 解析 input 字段 */
+    char input[256];
+    input[0] = '\0';
+    const char* pv = json_find_key(in_json, "input");
+    if(pv){
+        while(*pv==' '||*pv=='"') pv++;
+        int i = 0;
+        while(*pv && *pv!='"' && *pv!=',' && *pv!='}' && i < 255) input[i++] = *pv++;
+        input[i] = '\0';
+    }
+
+    /* 分别器三层路由 */
+    int  family    = perceive_classify(input);
+    const char* target = perceive_homophone_target(input);
+    int  authority = perceive_authority(target);
+    int  ackable   = (authority > 0) ? 1 : 0;
+
+    /* 生成输出 JSON */
+    char tmp[1024];
+    snprintf(tmp, sizeof(tmp),
+        "{"
+        "\"module\":\"v1.4_perception\","
+        "\"input\":\"%s\","
+        "\"family\":\"%s\","
+        "\"target\":\"%s\","
+        "\"authority\":%d,"
+        "\"ackable\":%d"
+        "}",
+        input, perceive_family_name(family), target, authority, ackable
+    );
+
+    int len = (int)strlen(tmp);
+    int copy = (len < out_cap - 1) ? len : out_cap - 1;
+    memcpy(out_buf, tmp, copy);
+    out_buf[copy] = '\0';
+    return copy;
+}
+
+/* ========== v1.7+ 时间线一体化 ========== */
+
+#define TIMELINE_SLOTS 16
+
+typedef struct {
+    char subsystem[24];
+    char event[64];
+    int  value;
+} timeline_slot_t;
+
+static timeline_slot_t tl_slots[TIMELINE_SLOTS];
+static int tl_head = 0;
+static int tl_count = 0;
+static int tl_tick  = 0;
+
+__attribute__((export_name("njsg_timeline_record")))
+int njsg_timeline_record(const char* in_json, char* out_buf, int out_cap){
+    if(!in_json || !out_buf || out_cap <= 0) return 0;
+
+    const char* sv = json_find_key(in_json, "subsystem");
+    const char* ev = json_find_key(in_json, "event");
+    const char* vv = json_find_key(in_json, "value");
+
+    char subsystem[24]; subsystem[0] = '\0';
+    char event[64];    event[0] = '\0';
+    int  value = 0;
+
+    if(sv){ while(*sv==' '||*sv=='"') sv++; int i=0; while(*sv&&*sv!='"'&&*sv!='}'&&i<23) subsystem[i++]=*sv++; subsystem[i]='\0'; }
+    if(ev){ while(*ev==' '||*ev=='"') ev++; int i=0; while(*ev&&*ev!='"'&&*ev!='}'&&i<63) event[i++]=*ev++; event[i]='\0'; }
+    if(vv) value = (int)strtod(vv, NULL);
+
+    int pos = tl_head;
+    strncpy(tl_slots[pos].subsystem, subsystem, 23);
+    strncpy(tl_slots[pos].event, event, 63);
+    tl_slots[pos].value = value;
+    tl_head = (tl_head + 1) % TIMELINE_SLOTS;
+    if(tl_count < TIMELINE_SLOTS) tl_count++;
+    tl_tick++;
+
+    char tmp[512];
+    snprintf(tmp, sizeof(tmp),
+        "{\"module\":\"v1.7_timeline\",\"head\":%d,\"count\":%d,\"tick\":%d,\"latest\":\"%s:%s=%d\"}",
+        pos, tl_count, tl_tick, subsystem, event, value
+    );
+
+    int len = (int)strlen(tmp);
+    int copy = (len < out_cap - 1) ? len : out_cap - 1;
+    memcpy(out_buf, tmp, copy);
+    out_buf[copy] = '\0';
+    return copy;
+}
+
+/* ========== v1.5+ MCCP 极简 DSL 编译器(JSON 输入) ========== */
+
+__attribute__((export_name("njsg_mccp_compile_json")))
+int njsg_mccp_compile_json(const char* in_json, char* out_buf, int out_cap){
+    if(!in_json || !out_buf || out_cap <= 0) return 0;
+
+    const char* name_ptr = json_find_key(in_json, "name");
+    const char* body_ptr = json_find_key(in_json, "fields");
+
+    char name[64]; name[0] = '\0';
+    char body[512]; body[0] = '\0';
+
+    if(name_ptr){ while(*name_ptr==' '||*name_ptr=='"') name_ptr++; int i=0; while(*name_ptr&&*name_ptr!='"'&&*name_ptr!='}'&&i<63) name[i++]=*name_ptr++; name[i]='\0'; }
+    if(body_ptr){ while(*body_ptr==' '||*body_ptr=='"') body_ptr++; int i=0; while(*body_ptr&&*body_ptr!='}'&&i<511) body[i++]=*body_ptr++; body[i]='\0'; }
+
+    char tmp[4096];
+    int pos = 0;
+    pos += snprintf(tmp+pos, sizeof(tmp)-pos, "/* MCCP WASM: %s */\n", name);
+    pos += snprintf(tmp+pos, sizeof(tmp)-pos, "typedef struct {\n");
+
+    /* 极简字段解析: "field1:type1;field2:type2" */
+    char buf[1024];
+    strncpy(buf, body, sizeof(buf)-1);
+    char* saveptr = NULL;
+    char* token = strtok_r(buf, ";", &saveptr);
+    while(token){
+        while(*token==' ') token++;
+        char* colon = strchr(token, ':');
+        if(colon){
+            *colon = '\0';
+            char* fname = token;
+            char* ftype = colon+1;
+            while(*ftype==' ') ftype++;
+            pos += snprintf(tmp+pos, sizeof(tmp)-pos, "    %-12s %s;\n", ftype, fname);
+        }
+        token = strtok_r(NULL, ";", &saveptr);
+    }
+    pos += snprintf(tmp+pos, sizeof(tmp)-pos, "} %s_t;\n", name);
+
+    int len = pos;
+    int copy = (len < out_cap - 1) ? len : out_cap - 1;
+    memcpy(out_buf, tmp, copy);
+    out_buf[copy] = '\0';
+    return copy;
+}
+
+/* ========== v1.6+ 裁判系统(JSON 输入简化版) ========== */
+
+#define REVIEW_SLOTS 16
+
+typedef struct {
+    char target[32];
+    int  sum_score;
+    int  count;
+    int  reward;
+    int  penalty;
+} review_summary_t;
+
+static review_summary_t rv_summary[REVIEW_SLOTS];
+static int rv_count = 0;
+
+static int rv_find_slot(const char* target){
+    for(int i=0;i<rv_count;i++){
+        if(strcmp(rv_summary[i].target, target)==0) return i;
+    }
+    return -1;
+}
+
+__attribute__((export_name("njsg_review_submit")))
+int njsg_review_submit(const char* in_json, char* out_buf, int out_cap){
+    if(!in_json || !out_buf || out_cap <= 0) return 0;
+
+    const char* tv = json_find_key(in_json, "target");
+    const char* sv = json_find_key(in_json, "score");
+
+    char target[32]; target[0] = '\0';
+    int  score = 5;
+
+    if(tv){ while(*tv==' '||*tv=='"') tv++; int i=0; while(*tv&&*tv!='"'&&*tv!='}'&&i<31) target[i++]=*tv++; target[i]='\0'; }
+    if(sv) score = (int)strtod(sv, NULL);
+    if(score < 0) score = 0;
+    if(score > 10) score = 10;
+
+    int slot = rv_find_slot(target);
+    if(slot < 0 && rv_count < REVIEW_SLOTS){
+        slot = rv_count++;
+        strncpy(rv_summary[slot].target, target, 31);
+        rv_summary[slot].sum_score = 0;
+        rv_summary[slot].count = 0;
+        rv_summary[slot].reward = 0;
+        rv_summary[slot].penalty = 0;
+    }
+    if(slot >= 0){
+        rv_summary[slot].sum_score += score;
+        rv_summary[slot].count += 1;
+        if(score >= 7) rv_summary[slot].reward += (score - 5) * 2;
+        else if(score <= 3) rv_summary[slot].penalty += (5 - score) * 2;
+    }
+
+    /* 三审:非空评论 + 已见证(总分>0) + 锚点一致(奖励/惩罚与分方向一致) */
+    int non_empty = (strlen(target) > 0) ? 1 : 0;
+    int witnessed = (slot >= 0 && rv_summary[slot].count > 0) ? 1 : 0;
+    int anchor_ok = 1; /* 单点提交,方向一致 */
+    int verdict = (non_empty && witnessed && anchor_ok) ? 1 : -1;
+
+    char tmp[512];
+    snprintf(tmp, sizeof(tmp),
+        "{"
+        "\"module\":\"v1.6_review\","
+        "\"target\":\"%s\","
+        "\"score\":%d,"
+        "\"total_submitted\":%d,"
+        "\"verdict\":\"%s\","
+        "\"current_reward\":%d,"
+        "\"current_penalty\":%d"
+        "}",
+        target, score, (slot>=0?rv_summary[slot].count:0),
+        verdict==1?"trusted":"rejected",
+        (slot>=0?rv_summary[slot].reward:0),
+        (slot>=0?rv_summary[slot].penalty:0)
+    );
+
+    int len = (int)strlen(tmp);
+    int copy = (len < out_cap - 1) ? len : out_cap - 1;
+    memcpy(out_buf, tmp, copy);
+    out_buf[copy] = '\0';
+    return copy;
+}
+
 __attribute__((export_name("njsg_verdict_json")))
 int njsg_verdict_json(const char* in_json, char* out_buf, int out_cap) {
     if (!in_json) return 0;
