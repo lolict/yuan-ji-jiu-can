@@ -234,7 +234,7 @@ fqm扩展名清单是全局互锁文件的**身份标记系统**：
 | 核心 | fqm, fqmt.v, fqm.tv | 总开关文件 |
 | 数据 | fqmx, fqm.x, fqmet, fqm.et | 数据容器 |
 | 音频 | fqms, fqmp3, fqmp4, fqm.tts, fqm.gtts | 声音容器 |
-| 图像 | fqm.gif, fqm.jpg, fqm.png, fqm.webp, fqm.svg, fqm.ico, fqm.tif, fqm.tiff, fqm.jpeg | 视觉容器 |
+| 图像 | fqm.gif, fqm.jpg, fqm.webp, fqm.svg, fqm.ico, fqm.tif, fqm.tiff, fqm.jpeg | 视觉容器 |
 | 文档 | fqm.epub | 文档容器 |
 | 压缩 | fqm.zip, fqm.7z, fqm.tar, fqm.rar, fqmbz2, fqm.xz, fqm.gz | 压缩容器 |
 | 字体 | fqm.ttf, fqm.otf, fqm.woff | 字体容器 |

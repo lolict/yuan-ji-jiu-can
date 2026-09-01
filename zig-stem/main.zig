@@ -78,7 +78,7 @@ pub fn main() !void {
 
     var fqmcp = fqm.FQMCP.init(allocator);
 
-    const knml_path = "zig-stem/output/fqmet.knml";
+    const knml_path = "zig-stem/output/fqmet.knmll";
     std.fs.cwd().makePath("zig-stem/output") catch {};
 
     try fqmcp.processOrchestrator(&orch, knml_path);

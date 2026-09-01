@@ -1,4 +1,4 @@
-// FQM 编码系统 — · fqmcp/knml 格式 · fqmy:// URI
+// FQM 编码系统 — fqmet:knmll 感知镜像 · gtti:// 意识传输 · knmlil 产权守护
 // 原则：输出格式中禁用数字二至九，只用 0/1/★/☆
 // 一进制实体化：数值 = ★☆ 符号串（高位在左，低位在右）
 
@@ -153,22 +153,22 @@ pub const OffsetRate = enum(u8) {
 };
 
 // ============================================================
-// fqmcp 编码器（输出 fqmet:knml 格式）
+// fqmcp 编码器（输出 fqmet:knmll 二维感知镜像）
 // ============================================================
 pub const FQMEncoder = struct {
     pub fn init() FQMEncoder {
         return FQMEncoder{};
     }
 
-    // 编码为 fqmet:knml 格式
+    // 编码为 fqmet:knmll 格式（二维感知镜像展示）
     pub fn encodeContainer(self: *FQMEncoder, allocator: std.mem.Allocator, container: *const indexer.Container, offset_rate: OffsetRate) ![]const u8 {
         _ = self;
         var output = std.ArrayList(u8).init(allocator);
         errdefer output.deinit();
         const w = output.writer();
 
-        // 文件头
-        try output.appendSlice("fqmet:knml\n");
+        // 文件头：fqmet:knmll（二维感知）
+        try output.appendSlice("fqmet:knmll\n");
 
         // 容器 ID（一进制）
         try output.appendSlice("id:");
@@ -379,9 +379,9 @@ pub const KnmlWriter = struct {
         defer output.deinit();
         const w = output.writer();
 
-        // 文件头
-        try output.appendSlice("fqmet:knml\n");
-        try output.appendSlice("# 囡囝共生 操作系统 · fqmcp/knml 编码\n");
+        // 文件头：fqmet:knmll（二维感知镜像）
+        try output.appendSlice("fqmet:knmll\n");
+        try output.appendSlice("# 囡囝共生 操作系统 · knmll 编码\n");
         try output.appendSlice("# 生成时间:");
         try formatUnaryInt(w, @as(u64, @intCast(std.time.timestamp())));
         try output.appendSlice("\n");
@@ -502,7 +502,7 @@ test "fqmet knml encode container" {
     const encoded = try encoder.encodeContainer(allocator, &container, .yu);
     defer allocator.free(encoded);
 
-    try std.testing.expect(std.mem.indexOf(u8, encoded, "fqmet:knml") != null);
+    try std.testing.expect(std.mem.indexOf(u8, encoded, "fqmet:knmll") != null);
     try std.testing.expect(std.mem.indexOf(u8, encoded, "id:★") != null);
 }
 

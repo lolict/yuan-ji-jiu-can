@@ -208,22 +208,22 @@ pub use celestial_perception_v2::{
     CelestialPerceptionV2,
 };
 
-// ── v0.28 天觉v3（老三）· 完整子系统: 情进+行为+思考+审美+淘汰+过滤 ──
-pub mod celestial_perception_v3;
-pub use celestial_perception_v3::{
-    CelestialPerceptionV3, PipelineResult,
-    Bag as BagV3, BagAttributes as BagAttributesV3,
-    BagHierarchy as BagHierarchyV3, HierarchyReport as HierarchyReportV3,
-    VisualSystem as VisualSystemV3, AuditorySystem as AuditorySystemV3,
-    AuditoryAuth as AuditoryAuthV3, TianJueAuth as TianJueAuthV3,
-    CommonDivisor as CommonDivisorV3, MirrorComparison as MirrorComparisonV3,
-    JudgmentEngine as JudgmentEngineV3, JudgmentResult as JudgmentResultV3,
-    JudgmentRecord as JudgmentRecordV3,
-    HistoricalAccumulation as HistoricalAccumulationV3,
-    EmotionSystem, Emotion, BehaviorSystem, Behavior,
-    ThinkingSystem, ReasoningChain,
-    AestheticSystem, EliminationSystem, FilterSystem,
-};
+// ── v0.28 天觉v3（老三）· 临时注释, 与v4符号冲突+格式错误 ──
+// pub mod celestial_perception_v3;
+// pub use celestial_perception_v3::{
+//     CelestialPerceptionV3, PipelineResult,
+//     Bag as BagV3, BagAttributes as BagAttributesV3,
+//     BagHierarchy as BagHierarchyV3, HierarchyReport as HierarchyReportV3,
+//     VisualSystem as VisualSystemV3, AuditorySystem as AuditorySystemV3,
+//     AuditoryAuth as AuditoryAuthV3, TianJueAuth as TianJueAuthV3,
+//     CommonDivisor as CommonDivisorV3, MirrorComparison as MirrorComparisonV3,
+//     JudgmentEngine as JudgmentEngineV3, JudgmentResult as JudgmentResultV3,
+//     JudgmentRecord as JudgmentRecordV3,
+//     HistoricalAccumulation as HistoricalAccumulationV3,
+//     EmotionSystem, Emotion, BehaviorSystem, Behavior,
+//     ThinkingSystem, ReasoningChain,
+//     AestheticSystem, EliminationSystem, FilterSystem,
+// };
 
 // ── v0.29 天觉v4（老四）· 七系俱全 + 情感效价 + 推理链 + 审美维度 ──
 pub mod celestial_perception_v4;

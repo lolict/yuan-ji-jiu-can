@@ -22,10 +22,7 @@
 //
 // ══════════════════════════════════════════════════════════════════
 
-use crate::mirror::{
-    self, encode_cell, get_value, get_polarity, get_sovereignty, Sovereignty,
-    EncodedCell, POLARITY_POSITIVE, POLARITY_NEGATIVE,
-};
+use crate::mirror;
 use crate::observer::{Observer, SenseForm, SenseKind};
 use crate::memory::{Coord, MetaJudgeEngine};
 use crate::os_layer::OsLayer;
@@ -687,20 +684,20 @@ impl PipelineResult {
             "✗不通过"
         };
         format!(
-            "袋#{} {} 奖{:+:.1} 行为{} 审美{} {}",
+            "袋#{} {} 奖{:+.1} 行为{} 审美{} {}",
             self.bag_id, status, self.reward, self.behavior, self.aesthetic_label, self.message
         )
     }
 }
 
 /// 天觉v4引擎 — 七系俱全
-pub struct CelestialPerceptionV4 {
+pub struct CelestialPerceptionV4<'a> {
     // === 核心感知 ===
     pub auth_tianjue: TianJueAuth,
     pub auth_auditory: AuditoryAuth,
     pub visual: VisualSystem,
     pub auditory: AuditorySystem,
-    pub observer: Observer,
+    pub observer: Observer<'a>,
 
     // === 审判与验证 ===
     pub judgment: JudgmentEngineV2,
@@ -723,14 +720,14 @@ pub struct CelestialPerceptionV4 {
     pub pipeline_results: Vec<PipelineResult>,
 }
 
-impl CelestialPerceptionV4 {
-    pub fn new() -> Self {
+impl<'a> CelestialPerceptionV4<'a> {
+    pub fn new(os: &'a dyn OsLayer) -> Self {
         Self {
             auth_tianjue: TianJueAuth::Dormant,
             auth_auditory: AuditoryAuth::Silent,
             visual: VisualSystem::default_vision(),
             auditory: AuditorySystem::default_hearing(),
-            observer: Observer::new(1, "天觉v4", 64),
+            observer: Observer::new(1, "天觉v4", 64, os),
             judgment: JudgmentEngineV2::new(),
             mirror_comparisons: Vec::new(),
             emotion: EmotionState::new(),
