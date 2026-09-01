@@ -32,6 +32,16 @@
 
 /* 32/64 位同源码:阶梯制·双向公约 */
 
+/* v1.4+ v1.5+ v1.6+ v1.7+ 导出函数前向声明 */
+__attribute__((export_name("njsg_perceive_route")))
+int njsg_perceive_route(const char* in_json, char* out_buf, int out_cap);
+__attribute__((export_name("njsg_timeline_record")))
+int njsg_timeline_record(const char* in_json, char* out_buf, int out_cap);
+__attribute__((export_name("njsg_mccp_compile_json")))
+int njsg_mccp_compile_json(const char* in_json, char* out_buf, int out_cap);
+__attribute__((export_name("njsg_review_submit")))
+int njsg_review_submit(const char* in_json, char* out_buf, int out_cap);
+
 
 /* ========== 五元旋钮 ========== */
 

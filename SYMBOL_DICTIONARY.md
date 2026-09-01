@@ -859,6 +859,26 @@ Input → Perception → Distinguish → Lookup → Traverse → Cluster → Att
 
 **偏移率公式：** (n-1)×0.1 区分平行世界
 
+### 全映射引擎（full-mapping）
+
+五系统统一：九元层级 ↔ YinYang极性 ↔ 二进制 ↔ mltt短码 ↔ 高维偏移率
+
+**极性映射规则：**
+
+| 索引 | 极性 | YinYang | 二进制 |
+|------|------|---------|--------|
+| 偶数(0,2,4,6) | yang(阳)=界线=我 | 阳 | 1 |
+| 奇数(1,3,5,7) | yin(阴)=容器=刘楚恬 | 阴 | 0 |
+| 索引8(九元) | balanced(平衡) | 平衡 | 0.5 |
+
+**Python 数据驱动版等价 Nim：**
+
+| 文件 | 含义 |
+|------|------|
+| fm_data_full.json | 九元层级映射数据（9条 × 5系统属性） |
+| fm_engine.py | Python 五系统统一引擎（static_regression/convert/capture/tier_sum/high_alignment） |
+| fm_full_demo.py | 8 阶段完整演示（已验证通过） |
+
 ---
 
 ## NJSG-Swarm 分布式分身协调
