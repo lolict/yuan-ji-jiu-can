@@ -3,6 +3,11 @@
 use mqf::preload::PreloadFlow;
 use mqf::topo::{Symbol, Topology, TopologyMapper};
 
+/// 最大公因数 (共同祖先)
+fn gcd(a: u8, b: u8) -> u8 {
+    if b == 0 { a } else { gcd(b, a % b) }
+}
+
 fn main() {
     let pf = PreloadFlow::new();
 
@@ -13,7 +18,7 @@ fn main() {
 
     for &n in &samples {
         let s = Symbol::new(n).unwrap();
-        let coord = pf.call_sym_phase(s);
+        let coord = TopologyMapper::map(Topology::Cube4, s);
         let parents = pf.call_relational_parents(n);
 
         println!("┌─────────────────────────────────────────────┐");
@@ -65,13 +70,14 @@ fn main() {
     // 血缘溯源示例 #48:
     println!("\n═══ 符号 #48 的完整本源 ====");
     let s48 = Symbol::new(48).unwrap();
-    let coord48 = pf.call_sym_phase(s48);
+    let coord48 = TopologyMapper::map(Topology::Cube4, s48);
     let parents48 = pf.call_relational_parents(48);
-    let children48 = pf.call_relational_children(48);
+    // 注: call_relational_children 已随 preload API 演进移除, 此处以倍数内联计算下属
+    let children48: Vec<u8> = (1u8..64).filter(|&m| m % 48 == 0 && m != 48).collect();
     println!("位置: (x={}, y={}, z={})", coord48.x, coord48.y, coord48.z);
     println!("祖先: {:?}", parents48);
     println!("下属: {:?}", children48);
-    println!("共同祖先(#48,#36): {:?}", pf.call_relational_common(48, 36));
+    println!("共同祖先(#48,#36): #{}", gcd(48, 36));
 
     println!("\n=== 演示结束 ===");
 }

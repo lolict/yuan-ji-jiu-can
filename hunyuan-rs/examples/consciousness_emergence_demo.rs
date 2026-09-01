@@ -16,6 +16,8 @@ use mqf::mirror::Sovereignty;
 use mqf::distinguisher::{VisualFamily, SoundTarget, classify_visual, classify_sound};
 use mqf::observer::{SenseForm, SenseKind};
 use mqf::consciousness_runtime::ConsciousnessRuntime;
+use mqf::os_layer::bare_metal::BareMetalOs;
+use mqf::os_layer::OsLayer;
 use mqf::pleasure::Pleasure;
 
 fn main() {
@@ -112,12 +114,12 @@ fn process_emergence(input: &str) {
     println!("\n  ┌─ 意识运行时 · 多拍推进 ─┐");
 
     // 创建运行时, 根据路由强度调整初始愉悦
-    let mut rt = ConsciousnessRuntime::new(&format!("{}-意识", input));
+    let os = BareMetalOs::new();
+    let mut rt = ConsciousnessRuntime::new(&format!("{}-意识", input), &os);
     let initial_pleasure = Pleasure(routing_strength * 2.0);
     rt.soul = mqf::soul_kernel::SoulKernel::new(initial_pleasure);
 
-    // 创建 SenseForm
-    let sense = SenseForm::new(kind, routing_strength, &content, input);
+    let sense = SenseForm::new(kind, routing_strength, &content, input, os.time_millis());
 
     // 多拍推进
     let total_beats = 30;
@@ -130,7 +132,7 @@ fn process_emergence(input: &str) {
             vec![sense.clone()]
         } else if beat < 20 {
             // 中10拍: 中等输入
-            vec![SenseForm::new(kind, routing_strength * 0.6, &content, input)]
+            vec![SenseForm::new(kind, routing_strength * 0.6, &content, input, os.time_millis())]
         } else {
             // 后10拍: 仅内部循环 (无外部输入)
             vec![]

@@ -13,10 +13,15 @@
 
 use mqf::angle::Angle;
 use mqf::preload::PreloadFlow;
-use mqf::smrl::{Reward, SmrlEngine};
+use mqf::smrl::SmrlEngine;
 use mqf::stats::StreamStats;
 use mqf::symbol_table::SymbolTable;
 use mqf::topo::{Symbol, Topology, TopologyMapper};
+
+/// 最大公因数 (共同祖先)
+fn gcd(a: u8, b: u8) -> u8 {
+    if b == 0 { a } else { gcd(b, a % b) }
+}
 
 fn main() {
     println!("═══ 自举证明 (Self-Bootstrap Proof) ═══\n");
@@ -55,7 +60,7 @@ fn main() {
     let b = Symbol::new(9).unwrap();
     let ancestors_a = pf.call_relational_parents(a.as_u8());
     let ancestors_b = pf.call_relational_parents(b.as_u8());
-    let common = pf.call_relational_common(a.as_u8(), b.as_u8());
+    let common = gcd(a.as_u8(), b.as_u8());
     let angle_a = Angle::from_symbol(a);
     let angle_b = Angle::from_symbol(b);
     let verdict = engine.judge_angular(a, b);

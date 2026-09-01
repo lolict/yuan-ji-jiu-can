@@ -14,10 +14,15 @@
 //
 // 一个 "问题" 经过全链路,展示系统内部如何协作。
 
-use mqf::preload::{ContainerKind, PreloadFlow};
+use mqf::preload::PreloadFlow;
 use mqf::angle::{Angle, AngleRelation};
 use mqf::smrl::{SmrlEngine, Reward};
-use mqf::topo::Symbol;
+use mqf::topo::{Symbol, Topology, TopologyMapper};
+
+/// 最大公因数 (共同祖先)
+fn gcd(a: u8, b: u8) -> u8 {
+    if b == 0 { a } else { gcd(b, a % b) }
+}
 
 fn main() {
     let pf = PreloadFlow::new();
@@ -30,8 +35,8 @@ fn main() {
     println!("主体: #{} vs #{}\n", s_a.as_u8(), s_b.as_u8());
 
     // ── 2. 拓扑空间定位 ──
-    let coord_a = pf.call_sym_phase(s_a);
-    let coord_b = pf.call_sym_phase(s_b);
+    let coord_a = TopologyMapper::map(Topology::Cube4, s_a);
+    let coord_b = TopologyMapper::map(Topology::Cube4, s_b);
     println!("拓扑坐标:");
     println!("  #{} → {:?}", s_a.as_u8(), coord_a);
     println!("  #{} → {:?}\n", s_b.as_u8(), coord_b);
@@ -44,15 +49,13 @@ fn main() {
     println!("  #{} 祖先 = {:?}", s_b.as_u8(), parents_b);
 
     // 共同祖先 (最大公因数)
-    let common = pf.call_relational_common(s_a.as_u8(), s_b.as_u8());
-    println!("  共同祖先 = {:?} (最大公因数)\n", common);
+    let common = gcd(s_a.as_u8(), s_b.as_u8());
+    println!("  共同祖先 = #{} (最大公因数)\n", common);
 
     // ── 4. 时间链溯源 ──
     println!("时间链溯源 (8 阶段):");
-    let trace = pf.call_temporal_origin(s_a.as_u8());
-    for (stage, sym) in &trace {
-        println!("  [{:?}] → #{}", stage, sym);
-    }
+    // 注: call_temporal_origin 已随 preload API 演进移除, 此处仅保留演示上下文
+    println!("  (时间链溯源接口已随 preload API 演进移除)");
     println!();
 
     // ── 5. 角度关系判定 (384° 制式) ──
@@ -77,17 +80,8 @@ fn main() {
 
     // ── 7. 容器契约体系 ──
     println!("容器契约体系:");
-    let containers = [
-        (ContainerKind::Cube, "spatial"),
-        (ContainerKind::Relational, "algebra"),
-        (ContainerKind::Mirrored, "reverse"),
-        (ContainerKind::Flow, "sequence"),
-        (ContainerKind::Judge, "authority"),
-    ];
-    for (kind, domain) in containers {
-        let avail = pf.container_available(kind, domain);
-        println!("  {:?} @ {} = {}", kind, domain, avail);
-    }
+    // 注: ContainerKind / container_available 已随 preload API 演进移除, 此处仅保留演示上下文
+    println!("  (容器契约接口已随 preload API 演进移除)");
     println!();
 
     // ── 8. 综合评估 ──

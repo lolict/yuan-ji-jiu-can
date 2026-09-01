@@ -26,6 +26,7 @@
 // ══════════════════════════════════════════════════════════════════
 
 use mqf::phase_encoding::*;
+use mqf::os_layer::bare_metal::BareMetalOs;
 use std::collections::HashMap;
 use std::io::{self, Write};
 
@@ -72,12 +73,15 @@ fn print_help() {
 fn run_demo() {
     println!("═══ 颜色进制 · 演示 ═══\n");
 
+    // 0. 创建 OS 层 (create_canvas 需要 &dyn OsLayer)
+    let os = BareMetalOs::new();
+
     // 1. 创建画布
     let mut engine = DrawingEngine::new();
     println!("✓ 创建绘图引擎");
 
     // 2. 创建基元画布 (模拟字形 "a" 的像素)
-    engine.create_canvas(16, 16, "glyph_a");
+    engine.create_canvas(&os, 16, 16, "glyph_a");
     let base = engine.get_canvas("glyph_a").unwrap().clone();
     let mut base_mut = base.clone();
     // 绘制简单的圆形 (模拟字母 a)
@@ -98,7 +102,7 @@ fn run_demo() {
     println!("✓ 创建基元画布 glyph_a (16x16, 模拟字母a)");
 
     // 3. 创建声调部件
-    engine.create_canvas(8, 8, "tone_acute");
+    engine.create_canvas(&os, 8, 8, "tone_acute");
     let part = engine.get_canvas("tone_acute").unwrap().clone();
     let mut part_mut = part.clone();
     // 绘制撇号形状的声调
@@ -110,7 +114,7 @@ fn run_demo() {
     println!("✓ 创建声调部件 tone_acute (8x8, 撇号形状)");
 
     // 4. 执行加法运算 (部件安装)
-    let result = engine.add_operation("glyph_a", "tone_acute", 0, 0, "glyph_a_acute");
+    let result = engine.add_operation(&os, "glyph_a", "tone_acute", 0, 0, "glyph_a_acute");
     match result {
         Ok(canvas) => {
             println!("✓ 加法运算完成: glyph_a + tone_acute → glyph_a_acute");
@@ -121,7 +125,7 @@ fn run_demo() {
     }
 
     // 5. 执行减法运算 (部件拆解)
-    let sub_result = engine.subtract_operation("glyph_a_acute", "tone_acute", 0, 0, "stripped_a");
+    let sub_result = engine.subtract_operation(&os, "glyph_a_acute", "tone_acute", 0, 0, "stripped_a");
     match sub_result {
         Ok(canvas) => {
             println!("✓ 减法运算完成: glyph_a_acute - tone_acute → stripped_a");
@@ -141,7 +145,7 @@ fn run_demo() {
 
     // 8. 创建区块链纠缠网络
     let mut network = EntanglementNetwork::new("演示网络");
-    let mut node_a = EntangledNode::new("node_a", "visual");
+    let mut node_a = EntangledNode::new(&os, "node_a", "visual");
     node_a.annotation.level = "L1".to_string();
     node_a.annotation.node_type = "韵母".to_string();
     node_a.annotation.glyph_symbol = "a".to_string();
@@ -149,7 +153,7 @@ fn run_demo() {
     node_a.annotation.aesthetic_score = 0.85;
     node_a.annotation.family = "ipa".to_string();
 
-    let mut node_b = EntangledNode::new("node_o", "visual");
+    let mut node_b = EntangledNode::new(&os, "node_o", "visual");
     node_b.annotation.level = "L1".to_string();
     node_b.annotation.node_type = "韵母".to_string();
     node_b.annotation.glyph_symbol = "o".to_string();
@@ -232,6 +236,7 @@ fn run_demo() {
 }
 
 fn handle_canvas(args: &[String]) {
+    let os = BareMetalOs::new();
     let mut engine = DrawingEngine::new();
     if args.is_empty() {
         println!("子命令: new, set, add, sub, info, export");
@@ -246,7 +251,7 @@ fn handle_canvas(args: &[String]) {
             let id = &args[1];
             let w: u32 = args[2].parse().unwrap_or(16);
             let h: u32 = args[3].parse().unwrap_or(16);
-            engine.create_canvas(w, h, id);
+            engine.create_canvas(&os, w, h, id);
             println!("✓ 创建画布 {} ({}x{})", id, w, h);
         }
         "info" => {
@@ -350,6 +355,7 @@ fn handle_kb(args: &[String]) {
 }
 
 fn handle_node(args: &[String]) {
+    let os = BareMetalOs::new();
     let mut network = EntanglementNetwork::new("cli");
     if args.is_empty() {
         println!("子命令: add, connect, traverse");
@@ -361,7 +367,7 @@ fn handle_node(args: &[String]) {
                 println!("用法: node add <id> <signal_type>");
                 return;
             }
-            network.add_node(EntangledNode::new(&args[1], &args[2]));
+            network.add_node(EntangledNode::new(&os, &args[1], &args[2]));
             println!("✓ 添加节点 {} (类型: {})", args[1], args[2]);
         }
         "connect" => {
@@ -388,18 +394,19 @@ fn handle_node(args: &[String]) {
 }
 
 fn handle_network_eq(args: &[String]) {
+    let os = BareMetalOs::new();
     if args.len() < 2 {
         println!("用法: network-eq <id_a> <id_b>");
         return;
     }
     // 创建临时网络演示
     let mut network = EntanglementNetwork::new("tmp");
-    let mut a = EntangledNode::new(&args[0], "visual");
+    let mut a = EntangledNode::new(&os, &args[0], "visual");
     a.annotation.level = "L1".to_string();
     a.annotation.owner = "SELF".to_string();
     a.annotation.aesthetic_score = 0.8;
 
-    let mut b = EntangledNode::new(&args[1], "visual");
+    let mut b = EntangledNode::new(&os, &args[1], "visual");
     b.annotation.level = "L1".to_string();
     b.annotation.owner = "SELF".to_string();
     b.annotation.aesthetic_score = 0.7;

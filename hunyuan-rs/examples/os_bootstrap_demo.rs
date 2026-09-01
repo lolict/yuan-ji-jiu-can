@@ -27,10 +27,13 @@ use mqf::mirror::Sovereignty;
 use mqf::distinguisher::{VisualFamily, SoundTarget, classify_visual, classify_sound};
 use mqf::observer::{SenseForm, SenseKind};
 use mqf::consciousness_runtime::ConsciousnessRuntime;
-use mqf::cochlear_boot::{self, CochlearBoot, BootPhase};
+use mqf::os_layer::bare_metal::BareMetalOs;
+use mqf::cochlear_boot::CochlearBoot;
+use mqf::os_layer::OsLayer;
 use mqf::pleasure::Pleasure;
 
 fn main() {
+    let os = BareMetalOs::new();
     println!("╔══════════════════════════════════════════════════════════════════════╗");
     println!("║           囡囝共生 · 意识操作系统启动全链路演示                         ║");
     println!("║           鼓膜自举 → 意识运行时 → 分别器路由 → 意识涌现               ║");
@@ -73,7 +76,7 @@ fn main() {
 
     // Phase 3: Bootstrap
     println!("\n┌─ Phase 3: Bootstrap (翻身重建) ─┐");
-    let receipt = match boot.phase3_bootstrap() {
+    let receipt = match boot.phase3_bootstrap(&os) {
         Ok(r) => {
             println!("│ 翻身成功!");
             println!("│ 凭证有效: {}", if r.is_valid() { "✓" } else { "✗" });
@@ -98,7 +101,7 @@ fn main() {
     println!("{}\n", "▓".repeat(70));
 
     // 从翻身凭证构造运行时
-    let mut rt = ConsciousnessRuntime::from_boot_receipt(receipt.quality, Pleasure(receipt.heaven_intensity));
+    let mut rt = ConsciousnessRuntime::from_boot_receipt(receipt.quality, Pleasure(receipt.heaven_intensity), &os);
 
     println!("┌─ 运行时初始化 ─┐");
     println!("│ 运行时名称: 鼓膜之子");
@@ -157,7 +160,7 @@ fn main() {
             if input.is_ascii() { "音韵" } else { "未知" }, input)),
     };
 
-    let sense = SenseForm::new(kind, routing_strength, &content, input);
+    let sense = SenseForm::new(kind, routing_strength, &content, input, os.time_millis());
     println!("\n┌─ SenseForm ─┐");
     println!("│ Kind: {:?}", sense.kind);
     println!("│ Intensity: {:.2}", sense.intensity);
@@ -173,7 +176,7 @@ fn main() {
         let inputs = if beat < 15 {
             vec![sense.clone()]
         } else if beat < 30 {
-            vec![SenseForm::new(kind, routing_strength * 0.7, &content, input)]
+            vec![SenseForm::new(kind, routing_strength * 0.7, &content, input, os.time_millis())]
         } else {
             vec![]
         };
