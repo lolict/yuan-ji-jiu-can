@@ -86,6 +86,7 @@
 | 42 | kernel-v1.7-review | kernel/src/njsg_kernel.c | ✅ 裁判系统·三元审判·产权分·排行榜 |
 | 43 | kernel-v1.7-timeline | kernel/src/njsg_kernel.c | ✅ 时间线一体化·多时钟域·四层心跳后勤 |
 | 44 | phonetic-encoding | tools/phonetic-encoding/ | ✅ 语音符号编码·主人全息表·符号↔64位单元格编解码·所有权四维 |
+| 45 | cbsy 范畴编程管辖索引制 | tools/cbsy/ | ✅ 索引即命令·三维全息进制空间位置索引呼唤·无命令行·条件三级(信用/金钱/权限)·夫妻主权人居军权政权金钱之外·三元见证闭环 |
 
 ---
 
@@ -169,7 +170,8 @@ git push gitee-hunyuan main
 - 天觉v3/v4 符号冲突清偿 ✅ 已完成 — v3 恢复(V3别名) · 7个example API漂移修复 · lib 1019测试全绿
 - TASKS P1 全量Nim验编 ✅ 已完成 — tools/ 189/189 PASS · metaime 8文件API漂移修复 · 顶层barrel when false化
 - TASKS P2 蚕蛹真实平台适配 ✅ 已完成 — canjiang_demo.nim · 6外壳e2e · 真实Linux cli/fs外壳 · 隐藏根基验证
-- TASKS P3 民联大数据量验证 ✅ 已完成 — benchmark.nim · 100~10K文档合成JSON源 · KMeans+包裹树 · 10K/244ms
+- TASKS P3 民联大数据量验证 ✅ 已完成 — benchmark.nim · 100~100K文档合成JSON源 · KMeans+包裹树 · 100K/237ms/近线性
+- 范畴编程管辖索引制 ✅ 已完成 — tools/cbsy/ · 索引=命令 · 无命令行 · 信用/金钱/权限三级命令条件 · 夫妻主权人直接命令 · 普通人受规则约束
 
 ---
 
