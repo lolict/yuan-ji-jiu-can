@@ -115,7 +115,8 @@ when is_main_module:
   echo "  民联浏览器 · 聚类包裹树性能基准 (P3 · TASKS.md)"
   echo "════════════════════════════════════════════════════════"
 
-  let scales = [100, 500, 1000, 5000, 10000]
+  # P5: 100K+ 规模验证 — 观察 O(n^1.5) 增长曲线
+  let scales = [100, 500, 1000, 5000, 10000, 50000, 100000]
   var jarr = newJArray()
   for n in scales:
     let r = run_one(n)

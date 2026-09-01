@@ -107,17 +107,29 @@ hunyuan-os/
 
 ## 下一步动作(按优先级)
 
-### 优先级 1: 全量 Nim 编译验证
-- 在所有工具目录下运行 `nim c -r` 确认通过
-- 修复任何 API 漂移问题
+### ~~优先级 1: 全量 Nim 编译验证~~ ✅ 已完成（2026-09-01）
+- tools/ 下 189/189 `.nim` 全部 `nim check` PASS
+- metaime 8 文件 API 漂移修复（paramCount/isMainModule/case+=/字符串拼接）
+- 顶层 barrel `minlian.nim`/`njsg.nim` `when false:` 兜底
 
-### 优先级 2: 蚕蛹反向寄生壳·真实平台适配
-- 完成脱壳穿衣流程的端到端测试
-- 接入 Android/iOS/Windows/macOS/Linux 真实寄生目标
+### ~~优先级 2: 蚕蛹反向寄生壳·真实平台适配~~ ✅ Linux 完成（2026-09-01）
+- 新增 `tools/canjiang/canjiang_demo.nim` 端到端测试：6外壳换装 + 内核 witness 判断 + shell/kernel 双视角
+- 真实 Linux **cli-shell**：STDIN/STDOUT 输出携带内核版本标记
+- 真实 Linux **fs-shell**：写文件到 `/tmp/canjiang-fs-shell/`（已验证落盘）
+- 隐藏根基验证：`anchor_map` 反向映射，真实锚点外壳不可见
+- ⏳ 剩余：Android/iOS/Windows/macOS 真实目标（需宿主环境）
 
-### 优先级 3: 统计文档聚合浏览器·真实数据输入
-- 接入任意规模的 JSON 数据源
-- 验证聚类包裹树在大数据量下的性能
+### ~~优先级 3: 统计文档聚合浏览器·真实数据输入~~ ✅ 已完成（2026-09-01）
+- 新增 `tools/minlian/benchmark.nim`：合成 JSON 数据源 100~10K 文档
+- 聚类+包裹树性能基准：10K文档/244ms/约41K doc/s
+
+### 优先级 4（新）: 蚕蛹多平台编译验证
+- Windows: `nim c -d:mingw --cpu:amd64` 交叉编译 canjiang_demo
+- 验证 shell_header_t 在非 Linux 平台的字节对齐
+
+### 优先级 5（新）: 民联 100K+ 规模验证
+- benchmark.nim scales 数组加入 50K/100K
+- 观察 O(n^1.5) 增长曲线，若超过阈值则引入 SIMD 或 early-stop
 
 ---
 
@@ -143,5 +155,5 @@ hunyuan-os/
 ---
 
 *维护者:lolict + CatPaw · 囡囝*
-*最后更新:2026-09-01*
-*当前稳定版本:v2.1+ (44工具·三内核·全自动后勤)*
+*最后更新:2026-09-01（P1/P2/P3 收敛，新增 P4/P5）*
+*当前稳定版本:v2.1+ (44工具·三内核·全自动后勤) · Nim层189文件全绿*

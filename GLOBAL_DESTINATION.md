@@ -35,14 +35,14 @@
 |---|------|------|------|
 | 4 | 满全法引擎 | tools/manquanfa/ | ✅ 编译通过，三元见证 |
 | 5 | 满全法管线 | tools/manquanfa-pipeline/ | ✅ 编译通过 |
-| 6 | 蚕蛹反向寄生壳 | tools/canjiang/ + canjiang.nim | ✅ 编译通过 |
+| 6 | 蚕蛹反向寄生壳 | tools/canjiang/ + canjiang.nim | ✅ 编译通过 · e2e端到端演示(6壳换装+真实Linux cli/fs外壳+隐藏根基) |
 
 ### 分布式层
 
 | # | 工具 | 路径 | 状态 |
 |---|------|------|------|
 | 7 | njsg-swarm | tools/njsg/ + njsg.nim | ✅ 4代理6任务，冲突裁决 |
-| 8 | 民联浏览器 | tools/minlian/ | ✅ 聚类+包裹树 · 真实数据聚合(K=auto·6类·41文档) |
+| 8 | 民联浏览器 | tools/minlian/ | ✅ 聚类+包裹树 · 真实数据聚合(K=auto·6类·41文档) · benchmark基准(10K文档/244ms/41Kdoc/s) |
 
 ### 辅助工具
 
@@ -167,6 +167,9 @@ git push gitee-hunyuan main
 - mltt 命名密码表完整实现 ✅ 已完成 — tools/mltt-cipher/
 - 统计文档聚合浏览器的真实数据输入 ✅ 已完成 — tools/minlian/dataml/ · Mode C JSON数据管道 · 200文档 |
 - 天觉v3/v4 符号冲突清偿 ✅ 已完成 — v3 恢复(V3别名) · 7个example API漂移修复 · lib 1019测试全绿
+- TASKS P1 全量Nim验编 ✅ 已完成 — tools/ 189/189 PASS · metaime 8文件API漂移修复 · 顶层barrel when false化
+- TASKS P2 蚕蛹真实平台适配 ✅ 已完成 — canjiang_demo.nim · 6外壳e2e · 真实Linux cli/fs外壳 · 隐藏根基验证
+- TASKS P3 民联大数据量验证 ✅ 已完成 — benchmark.nim · 100~10K文档合成JSON源 · KMeans+包裹树 · 10K/244ms
 
 ---
 
