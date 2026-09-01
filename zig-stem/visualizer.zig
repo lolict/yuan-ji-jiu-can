@@ -69,6 +69,9 @@ pub const Scene = struct {
     }
 
     pub fn deinit(self: *Scene) void {
+        for (self.points.items) |point| {
+            self.allocator.free(point.label);
+        }
         self.points.deinit();
         self.lines.deinit();
     }
@@ -120,7 +123,7 @@ pub const Scene = struct {
                     .y = base_y + 0.5,
                     .z = 0,
                     .color = [3]u8{ 0, 200, 0 },
-                    .label = "positive",
+                    .label = try self.allocator.dupe(u8, "positive"),
                     .size = @as(f64, @floatFromInt(container.positive_count)) * 0.3,
                 };
                 try self.addPoint(pos_point);
@@ -135,7 +138,7 @@ pub const Scene = struct {
                     .y = base_y + 0.5,
                     .z = 0,
                     .color = [3]u8{ 200, 0, 0 },
-                    .label = "negative",
+                    .label = try self.allocator.dupe(u8, "negative"),
                     .size = @as(f64, @floatFromInt(container.negative_count)) * 0.3,
                 };
                 try self.addPoint(neg_point);
@@ -191,12 +194,9 @@ pub const Scene = struct {
         );
 
         // 统计信息
-        try output.appendSlice("<div class='stat'>");
-        try output.appendSlice("总点数: ");
-        try output.appendSlice(try std.fmt.allocPrint(allocator, "{d}", .{self.points.items.len}));
-        try output.appendSlice("<br>总线数: ");
-        try output.appendSlice(try std.fmt.allocPrint(allocator, "{d}", .{self.lines.items.len}));
-        try output.appendSlice("</div>");
+        const stat_line = try std.fmt.allocPrint(allocator, "<div class='stat'>总点数: {d}<br>总线数: {d}</div>", .{ self.points.items.len, self.lines.items.len });
+        try output.appendSlice(stat_line);
+        allocator.free(stat_line);
 
         // 点列表
         try output.appendSlice("<h2>坐标点</h2>");
