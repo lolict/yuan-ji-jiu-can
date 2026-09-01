@@ -85,6 +85,7 @@
 | 42 | data-input | tools/minlian/ | ✅ 真实数据输入·JSON·200文档·FNV-1a·极性分析 |
 | 42 | kernel-v1.7-review | kernel/src/njsg_kernel.c | ✅ 裁判系统·三元审判·产权分·排行榜 |
 | 43 | kernel-v1.7-timeline | kernel/src/njsg_kernel.c | ✅ 时间线一体化·多时钟域·四层心跳后勤 |
+| 44 | phonetic-encoding | tools/phonetic-encoding/ | ✅ 语音符号编码·主人全息表·符号↔64位单元格编解码·所有权四维 |
 
 ---
 
