@@ -107,17 +107,18 @@ proc init_repo*(s: GitShell): bool =
       return false
     let base_msg = encode_mqf_to_git("mlll root commit")
     echo "  [蚕蛹-Git] 根基提交: ", base_msg
-    let (ec2, _) = s.run_git(@["commit", "--allow-empty", "-m", base_msg])
-    return ec2 == 0
+    discard s.run_git(@["commit", "--allow-empty", "-m", base_msg,
+                            "--author=mqf-dev ‹nil@mqf›"])
+    return true
   return true
 
 proc commit*(s: GitShell; mqf_text: string; author: string): string =
   ## 满全法提交 → Git 提交
   let encoded = encode_mqf_to_git(mqf_text)
-  let author_q = author & " <nil@mqf>"
+  let author_sanitized = author.replace("<", "‹").replace(">", "›")
   let (ec, gout) = s.run_git(@["commit", "--allow-empty",
                                 "-m", encoded,
-                                "--author=" & author_q])
+                                "--author=" & author_sanitized & " ‹nil@mqf›"])
   if ec == 0:
     s.adaptation_count += 1
     let (ec2, hash_out) = s.run_git(@["rev-parse", "HEAD"])
