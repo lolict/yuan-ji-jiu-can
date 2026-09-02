@@ -14,8 +14,8 @@ ERRORS=0
 WARNINGS=0
 
 log_ok()   { echo "  [OK]   $1"; }
-log_warn() { echo "  [WARN] $1"; ((WARNINGS++)); }
-log_err()  { echo "  [ERR]  $1"; ((ERRORS++)); }
+log_warn() { echo "  [WARN] $1"; WARNINGS=$((WARNINGS + 1)); }
+log_err()  { echo "  [ERR]  $1"; ERRORS=$((ERRORS + 1)); }
 
 echo "=== 五彩石心跳检查 $(date '+%Y-%m-%d %H:%M:%S') ==="
 echo ""

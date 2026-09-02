@@ -539,3 +539,14 @@ when isMainModule:
   echo ""
   echo "传输的索引方式："
   echo "  ", transmit(sp, 9, 40)
+
+  # 全息渲染
+  echo ""
+  echo "全息渲染：0维点投影为三维画面（不是文件，渲染在空间里）"
+  echo holographic_layers(tc)
+
+  # 蚕蛹外壳桥：主权人过壳验证
+  echo ""
+  echo "蚕蛹反向寄生壳桥（壳模仿主人，不是主人适应壳）："
+  for sk in [iSovereign, iAuthority, iMoney, iCredit, iCommon]:
+    echo "  ", shell_verify(sk, "canjiang-v1")

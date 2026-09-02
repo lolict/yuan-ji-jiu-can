@@ -129,16 +129,15 @@ proc commit*(s: GitShell; mqf_text: string; author: string): string =
 
 proc read_log*(s: GitShell): seq[GitCommit] =
   let (ec, glog) = s.run_git(@[
-    "log", "--format=§%H§%an§%ai§%s", "--reverse"
+    "log", "--format=%H§%an§%ai§%s", "--reverse"
   ])
   if ec != 0:
     return @[]
   for line in glog.splitLines():
-    if line.len < 5: continue
     let parts = line.split("§")
     if parts.len < 4: continue
     result.add(GitCommit(
-      hash_str: parts[0][0..7],
+      hash_str: parts[0][0..<min(8, parts[0].len)],
       author: parts[1],
       mqf_content: decode_git_to_mqf(parts[3]),
       git_message: parts[3],
