@@ -1614,9 +1614,28 @@ int njsg_mccp_dsl_to_struct(const char* name, const char* fields, char* out, int
     pos += snprintf(out+pos, cap-pos, "#include <string.h>\n\n");
     pos += snprintf(out+pos, cap-pos, "typedef struct {\n");
     for(int i=0;i<s->field_count;i++){
-        pos += snprintf(out+pos, cap-pos, "    %-12s %s;\n",
-                        mccp_resolve_type(s->fields[i].type),
-                        s->fields[i].name);
+        /* 先解析类型别名,再检查数组 */
+        const char* resolved = mccp_resolve_type(s->fields[i].type);
+        char base_type[64] = {0};
+        int array_size = 0;
+        const char* bracket = strchr(resolved, '[');
+        if(bracket){
+            int baselen = (int)(bracket - resolved);
+            if(baselen > 0 && baselen < (int)sizeof(base_type)-1){
+                memcpy(base_type, resolved, baselen);
+                base_type[baselen] = '\0';
+            }
+            array_size = atoi(bracket+1);
+        } else {
+            strncpy(base_type, resolved, sizeof(base_type)-1);
+        }
+        if(array_size > 0){
+            pos += snprintf(out+pos, cap-pos, "    %-10s %s[%d];\n",
+                            base_type, s->fields[i].name, array_size);
+        } else {
+            pos += snprintf(out+pos, cap-pos, "    %-12s %s;\n",
+                            base_type, s->fields[i].name);
+        }
     }
     pos += snprintf(out+pos, cap-pos, "} %s_t;\n\n", name);
     /* 构造函数 */
@@ -1639,11 +1658,22 @@ int njsg_mccp_dsl_to_struct(const char* name, const char* fields, char* out, int
         }
     }
     pos += snprintf(out+pos, cap-pos, "}\n\n");
-    /* 见证裁定 */
-    pos += snprintf(out+pos, cap-pos, "/* 见证裁定: 非空 + 字段存在 */\n");
+    /* 见证裁定: 非空 + 至少一个数值字段非零 */
+    pos += snprintf(out+pos, cap-pos, "/* 见证裁定: 非空 + 数值字段非零 */\n");
     pos += snprintf(out+pos, cap-pos, "static int %s_judge(const %s_t* s) {\n", name, name);
     pos += snprintf(out+pos, cap-pos, "    if(!s) return -1; /* 空袋拒绝 */\n");
-    pos += snprintf(out+pos, cap-pos, "    return 0; /* 准入 */\n");
+    int has_numeric = 0;
+    for(int i=0;i<s->field_count;i++){
+        if(strcmp(s->fields[i].type,"int")==0 || strcmp(s->fields[i].type,"float")==0){
+            has_numeric = 1;
+            pos += snprintf(out+pos, cap-pos, "    if(s->%s != 0) return 0; /* 有内容,准入 */\n", s->fields[i].name);
+            break; /* 只检查第一个数值字段 */
+        }
+    }
+    if(!has_numeric){
+        pos += snprintf(out+pos, cap-pos, "    return 0; /* 无数值字段,默认准入 */\n");
+    }
+    pos += snprintf(out+pos, cap-pos, "    return -2; /* 数值全零,拒绝 */\n");
     pos += snprintf(out+pos, cap-pos, "}\n\n");
     /* main入口: 完整的可运行逻辑 */
     pos += snprintf(out+pos, cap-pos, "int main() {\n");
@@ -1651,12 +1681,12 @@ int njsg_mccp_dsl_to_struct(const char* name, const char* fields, char* out, int
     pos += snprintf(out+pos, cap-pos, "    %s_t* a = %s_new();\n", name, name);
     pos += snprintf(out+pos, cap-pos, "    %s_t* b = %s_new();\n", name, name);
     pos += snprintf(out+pos, cap-pos, "    if(!a||!b){ printf(\"[MCCP] 空袋\\n\"); return -1;}\n");
-    /* 对数值字段赋初值 */
+    /* 对数值字段赋初值(仅加法,用字段索引偏移) */
     for(int i=0;i<s->field_count;i++){
         if(strcmp(s->fields[i].type,"int")==0){
-            pos += snprintf(out+pos, cap-pos, "    b->%s = 100+i;\n", s->fields[i].name);
+            pos += snprintf(out+pos, cap-pos, "    b->%s = 100+%d;\n", s->fields[i].name, i);
         } else if(strcmp(s->fields[i].type,"float")==0){
-            pos += snprintf(out+pos, cap-pos, "    b->%s = 1.5f+i;\n", s->fields[i].name);
+            pos += snprintf(out+pos, cap-pos, "    b->%s = 1.%df;\n", s->fields[i].name, 5+i);
         }
     }
     pos += snprintf(out+pos, cap-pos, "    /* 用 B 袋子训练 A 袋子 */\n");

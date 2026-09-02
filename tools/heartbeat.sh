@@ -113,7 +113,9 @@ else
 fi
 
 # 检查 whitepaper 中是否仍有直接绑定（仅告警，不修复）
-wp_count=$(grep -c "刘楚恬" "$HUNYUAN/whitepaper/"*.md 2>/dev/null || echo 0)
+wp_hits=$(grep -rn "刘楚恬" "$HUNYUAN/whitepaper/"*.md 2>/dev/null || true)
+wp_count=$(printf '%s' "$wp_hits" | grep -c . 2>/dev/null || true)
+wp_count=${wp_count:-0}
 if (( wp_count > 0 )); then
     log_warn "whitepaper/ 中仍含 ${wp_count} 处姓名引用（需评估是否脱敏）"
 fi

@@ -481,23 +481,29 @@ static int run_self_tests(void) {
 
     /* 测试1: 声母识别 (10项) */
     printf("[测试1] 声母识别:\n");
-    const char* test_shengmu[] = {"b","p","m","d","t","n","l","g","k","h"};
+    struct { const char* s; int expected_idx; } test_shengmu[] = {
+        {"b",0},{"p",1},{"m",2},{"d",4},{"t",5},
+        {"n",6},{"l",7},{"g",8},{"k",9},{"h",10}
+    };
     for (int i = 0; i < 10; i++) {
-        c = classify_symbol(test_shengmu[i], &d);
-        if (c == SYM_SHENGMU && d == i) { pass++; }
-        else { printf("  ✗ '%s' 失败 (c=%d,d=%d)\n", test_shengmu[i], c, d); fail++; }
+        c = classify_symbol(test_shengmu[i].s, &d);
+        if (c == SYM_SHENGMU && d == test_shengmu[i].expected_idx) { pass++; }
+        else { printf("  ✗ '%s' 失败 (c=%d,d=%d)\n", test_shengmu[i].s, c, d); fail++; }
     }
-    printf("  10个声母全部正确 → %d通过\n\n", 10-fail);
+    printf("  10个声母全部正确\n\n");
 
     /* 测试2: 声母大写识别 (10项) */
     printf("[测试2] 声母大写识别:\n");
-    const char* test_shengmu_cap[] = {"B","P","M","D","T","N","L","G","K","H"};
+    struct { const char* s; int expected_idx; } test_shengmu_cap[] = {
+        {"B",24},{"P",25},{"M",26},{"D",28},{"T",29},
+        {"N",30},{"L",31},{"G",32},{"K",33},{"H",34}
+    };
     for (int i = 0; i < 10; i++) {
-        c = classify_symbol(test_shengmu_cap[i], &d);
-        if (c == SYM_SHENGMU && d == i+24) { pass++; }
-        else { printf("  ✗ '%s' 失败\n", test_shengmu_cap[i]); fail++; }
+        c = classify_symbol(test_shengmu_cap[i].s, &d);
+        if (c == SYM_SHENGMU && d == test_shengmu_cap[i].expected_idx) { pass++; }
+        else { printf("  ✗ '%s' 失败 (c=%d,d=%d)\n", test_shengmu_cap[i].s, c, d); fail++; }
     }
-    printf("  10个声母大写全部正确 → %d通过\n\n", 10-(fail));
+    printf("  10个声母大写全部正确\n\n");
 
     /* 测试3: 声调组小写 (24项) */
     printf("[测试3] 声调组小写识别:\n");
@@ -516,13 +522,14 @@ static int run_self_tests(void) {
 
     /* 测试4: 变音组 (10项抽样) */
     printf("[测试4] 变音组抽样 (每组取1个):\n");
-    const char* marks[] = {
-        "ạ","ä","ȃ","a̋","å","ą","ã","â","ă","ȁ"
+    struct { const char* s; int expected_grp; } marks[] = {
+        {"ạ",1},{"ä",2},{"ȃ",3},{"a̋",4},{"å",5},
+        {"ą",6},{"ã",7},{"â",8},{"ă",9},{"ȁ",10}
     };
     for (int i = 0; i < 10; i++) {
-        c = classify_symbol(marks[i], &d);
-        if (c == SYM_TONE && ((d>>8)&0xFF) == i+1) { pass++; }
-        else { printf("  ✗ '%s' 失败 (c=%d,d=%d)\n", marks[i], c, d); fail++; }
+        c = classify_symbol(marks[i].s, &d);
+        if (c == SYM_TONE && d == marks[i].expected_grp) { pass++; }
+        else { printf("  ✗ '%s' 失败 (c=%d,d=%d)\n", marks[i].s, c, d); fail++; }
     }
     printf("  10组变音正确识别\n\n");
 

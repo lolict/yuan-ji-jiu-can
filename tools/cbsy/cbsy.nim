@@ -360,6 +360,67 @@ proc render*(tc: TimeChain): string =
   result = "渲染版本号 v" & $tc.version & " · 名称「" & tc.name & "」 · 0维点" &
            $tc.points.len & "个已串联（地址未生成，本来就在）"
 
+# ---------- 全息渲染器：0维点投影为三维画面 ----------
+
+proc holographic_layers*(tc: TimeChain): string =
+  ## 全息渲染：0维点投影为 4×4×4 三维样子（声调切片），渲染直接在空间里发生。
+  ## 图片/视频不是文件，是空间中的样子；渲染后只生成时间链版本号 + 名称 + 画面。
+  ## 进制编码即地址，永远静态存在，渲染不增加地址内存。
+  var lines: seq[string] = @[]
+  lines.add("═══════════════════════════════════════════════════")
+  lines.add("  ▦ 全息渲染 · " & tc.name & " · 版本号 v" & $tc.version)
+  lines.add("  0维点投影为 4×4×4 三维画面（4 个声调切片，每片 4×4）")
+  lines.add("  地址未生成，本来就在 · 渲染不增加地址内存")
+  lines.add("═══════════════════════════════════════════════════")
+  # 画全局热力（64 格哪些被时间链串联）
+  var heat = ""
+  for c in 0 ..< 64:
+    var hit = false
+    for p in tc.points:
+      if int(p) mod 64 == c: hit = true
+    heat = heat & (if hit: " █" else: " ·")
+    if (c + 1) mod 8 == 0: heat = heat & "\n"
+  lines.add("【全局热力 · 64 格被串联点亮】:\n" & heat)
+  # 声调切片（z = 0..3）
+  for z in 0 ..< 4:
+    lines.add("── z=" & $z & " · " & MODES[z] & " 切片 ──")
+    lines.add("     y→ 0  1  2  3")
+    lines.add("  x ┌──────────────┐")
+    for x in 0 ..< 4:
+      var row = "  " & $x & " │"
+      for y in 0 ..< 4:
+        let code = x * 16 + y * 4 + z
+        var mark = " ·"
+        for p in tc.points:
+          if int(p) mod 64 == code:
+            mark = " █"
+        row = row & mark
+      row = row & " │"
+      lines.add(row)
+    lines.add("    └──────────────┘")
+  lines.add("")
+  lines.add("═ 画面已渲染在空间里 · 仅增版本号 v" & $tc.version & " + 名称「" & tc.name & "」+ 画面 ═")
+  result = join(lines, "\n")
+
+# ---------- 蚕蛹外壳桥：主权人身份过壳验证 ----------
+
+proc shell_verify*(issuer: IssuerKind, host_shell: string): string =
+  ## 蚕蛹反向寄生壳验证接口。
+  ## 夫妻主权人 → 外壳无法反向映射，主权人居壳之上，直接通过。
+  ## 权限级/金钱级/信用级/普通人 → 受外壳反向规则约束（反向映射后才可穿衣）。
+  ## 这正是蚕蛹"脱壳穿衣"的本质：壳模仿主人，不是主人适应壳。
+  case issuer
+  of iSovereign:
+    result = "壳「" & host_shell & "」试图映射 → 主权人在壳之上，映射无效 · 直接穿戴 · 壳被迫遵守反向规则"
+  of iAuthority:
+    result = "壳「" & host_shell & "」反向映射 → 权限级穿衣 · 反向规则已挂载"
+  of iMoney:
+    result = "壳「" & host_shell & "」反向映射 → 金钱级穿衣 · 购买令已被壳承认"
+  of iCredit:
+    result = "壳「" & host_shell & "」反向映射 → 信用级穿衣 · 待三元见证"
+  of iCommon:
+    result = "壳「" & host_shell & "」反向映射 → 普通人穿衣 · 仅能呼唤有条件格（普通人格子 = 壳内训练）"
+
 # ---------- 演示 ----------
 
 when isMainModule:
