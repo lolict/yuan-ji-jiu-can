@@ -1,0 +1,31 @@
+# 囝共生 hunyuan-os · cargo 配置
+# 目标: 自举编译器不用外部生成器,纯 Rust 工具链
+
+[build]
+# 默认目标平台（可根据需要切换）
+target-dir = "target"
+
+[target.x86_64-unknown-linux-gnu]
+# 链接参数: 静态链接减少外部依赖
+rustflags = [
+    "-C", "link-arg=-Wl,-z,origin",
+    "-C", "link-arg=-Wl,-rpath,$ORIGIN/../lib",
+]
+
+[target.wasm32-wasi]
+# WASM 目标使用 wasi 预览2
+runner = "wasmtime --dir=."
+
+[net]
+# 离线优先,不强制在线拉取
+git-fetch-with-cli = true
+
+[registries]
+# 国内镜像加速（可选，取消注释可用）
+# tsinghua = { index = "https://mirrors.tuna.tsinghua.edu.cn/git/crates.io-index.git" }
+# rustcc = { index = "https://mirrors.ustc.edu.cn/crates.io-index/" }
+
+# 编译环境变量
+[env]
+RUST_BACKTRACE = "1"
+NJSG_VERSION = { value = "2.1.0", force = true }
