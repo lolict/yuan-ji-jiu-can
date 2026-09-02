@@ -27,7 +27,6 @@ use crate::observer::{Observer, SenseForm, SenseKind};
 use crate::memory::{Coord, MetaJudgeEngine};
 use crate::os_layer::OsLayer;
 use crate::os_layer::bare_metal::BareMetalOs;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 // 从v2导入基础类型 (复用不重复)
 pub use crate::celestial_perception_v2::{
@@ -875,10 +874,7 @@ impl<'a> CelestialPerceptionV4<'a> {
 }
 
 fn current_timestamp_ms() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_millis() as u64
+    crate::os_layer::current_os().time_millis()
 }
 
 // ======================================================================

@@ -11,7 +11,6 @@
 //
 // ══════════════════════════════════════════════════════════════════
 
-use std::time::{SystemTime, UNIX_EPOCH};
 use crate::mirror::{
     encode_cell, get_d0, get_d1, get_d2, Sovereignty, ContainmentChain,
 };
@@ -31,10 +30,7 @@ pub struct TemporalCoord {
 
 impl TemporalCoord {
     pub fn new(ring: u32, layer: u32, phase: u32, branch: u32) -> Self {
-        let tick = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_millis() as u64;
+        let tick = crate::os_layer::current_os().time_millis();
         Self { ring, layer, phase, branch, tick }
     }
 
@@ -636,12 +632,9 @@ impl TianJueEngine {
     }
 }
 
-// 工具函数
+// 工具函数（使用 OS 抽象层）
 fn now_ms() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_millis() as u64
+    crate::os_layer::current_os().time_millis()
 }
 
 // ────────────────────────────────────────────────────────────
