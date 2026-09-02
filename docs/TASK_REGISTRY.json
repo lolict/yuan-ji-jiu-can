@@ -1,8 +1,8 @@
 {
   "project": "囡囝共生 (NJSG)",
   "repository": "github.com/lolict/hunyuan-os",
-  "version": "v2.0-swarm",
-  "last_sync": "2026-08-07",
+  "version": "v2.1-swarm",
+  "last_sync": "2026-09-02",
   "tasks": [
     {
       "id": "v0.1-v0.8",
@@ -66,26 +66,26 @@
     },
     {
       "id": "wasm-kernel",
-      "version": "v2.0-ladder",
+      "version": "v2.1.0",
       "name": "WASM阶梯制 C 源码（32/64位同源码）",
-      "status": "source_ready",
+      "status": "completed",
       "priority": 2,
       "entry_file": "kernel/wasm/njsg_wasm.c",
-      "description": "阶梯制·双向公约已实现C源码。移植了五/六/七元裁定逻辑+JSON stdin输入+trust/verdict/eternal输出。沙箱缺wasm-ld，wasm二进制未产出",
+      "description": "阶梯制·双向公约已实现C源码并产出WASM二进制。感知/时间线/MCCP/裁判4模块移植完成，--selftest全部通过，已推GitHub+Gitee",
       "assignee": null,
-      "progress": 85,
+      "progress": 95,
       "dependencies": ["v1.0-five-yuan", "v1.1-six-yuan", "v1.2-seven-yuan"]
     },
     {
       "id": "bootstrap-self-compiler",
-      "version": "v2.0",
-      "name": "自举编译器 Stage 0/1 闭环",
-      "status": "stage0_stage1_verified",
+      "version": "v2.1",
+      "name": "自举编译器 MCCP 完整闭环",
+      "status": "self_boot_pass",
       "priority": 2,
-      "entry_file": "hunyuan-rs/src/self_bootstrap.rs",
-      "description": "Stage 0 种子编译器(_yy_compiler.auto.js)已执行,5条ConsciousnessCommand固定点全部闭合。Stage 1 重编译验证器已执行,compile(self)==compile(compile(self))固定点证实(hash=0x8e36c6e31a38afbb)。Stage 2(WASM双目标)待开始",
+      "entry_file": "hunyuan-rs/src/mccp.rs",
+      "description": "Stage 0 种子编译器固定点闭合。Stage 1 重编译验证器固定点证实。Stage 2 MCCP自举编译器已生成Nim+JSON代码，自举验证PASS。DSL→独立可编译C程序完整闭环(struct+构造+袋子加法+见证裁定+main)",
       "assignee": null,
-      "progress": 75,
+      "progress": 90,
       "dependencies": ["v1.0-five-yuan", "v1.1-six-yuan", "v1.2-seven-yuan"]
     },
     {
@@ -111,6 +111,90 @@
       "assignee": null,
       "progress": 0,
       "dependencies": ["v1.3-full-stack"]
+    },
+    {
+      "id": "radix256",
+      "version": "v2.1",
+      "name": "radix256 · 2²⁵⁶等效高位对齐进位制",
+      "status": "completed",
+      "priority": 2,
+      "entry_file": "tools/radix256/radix256.nimble",
+      "description": "4×64位词·进位链仪式·溢出折叠·根基254+2编码对齐",
+      "assignee": null,
+      "progress": 100,
+      "dependencies": []
+    },
+    {
+      "id": "full-mapping",
+      "version": "v2.1",
+      "name": "full-mapping · 全映射引擎",
+      "status": "completed",
+      "priority": 2,
+      "entry_file": "tools/full-mapping/fm_demo.nim",
+      "description": "九元↔YinYang↔二进制↔mltt↔偏移率 七项全通过",
+      "assignee": null,
+      "progress": 100,
+      "dependencies": []
+    },
+    {
+      "id": "eight-flows",
+      "version": "v2.1",
+      "name": "八流统一引擎",
+      "status": "completed",
+      "priority": 1,
+      "entry_file": "tools/eight-flows/ef_demo.nim",
+      "description": "96时间节点·12符号全流水线·闭环ack验证·编织6工具",
+      "assignee": null,
+      "progress": 100,
+      "dependencies": []
+    },
+    {
+      "id": "mccp",
+      "version": "v2.1",
+      "name": "MCCP自举编译器",
+      "status": "self_boot_pass",
+      "priority": 1,
+      "entry_file": "tools/mccp_core/mccp_demo.nim",
+      "description": "3规则族·11符号·Nim+JSON代码生成·自举验证PASS·DSL→独立可编译C程序",
+      "assignee": null,
+      "progress": 100,
+      "dependencies": []
+    },
+    {
+      "id": "cbsy",
+      "version": "v5",
+      "name": "范畴编程管辖索引制",
+      "status": "completed",
+      "priority": 2,
+      "entry_file": "tools/cbsy/cbsy.nim",
+      "description": "v2 0维地址坐标(索引即命令无命令行)·下载三式(索引/互换/特征)·骑士巡游+声韵调两种画法·通信0维身份地址替代IP·条件三级·夫妻主权人直接命令·v3五格(自我繁衍/悬游/镜像动作/契约/分布式管辖权)·v4收官三格(关系可逆/职业权限身份/传输)·十种索引方式俱全·v5全息渲染+蚕蛹壳桥",
+      "assignee": null,
+      "progress": 100,
+      "dependencies": []
+    },
+    {
+      "id": "silkworm-shell",
+      "version": "v2.1",
+      "name": "蚕蛹反向寄生壳 silkworm-shell",
+      "status": "completed",
+      "priority": 2,
+      "entry_file": "tools/silkworm-shell/silkworm.nim",
+      "description": "Nim·6壳寄生·脱壳穿衣·内核挂载·外部系统适应满全法·根基隐藏·6目标全部成功",
+      "assignee": null,
+      "progress": 100,
+      "dependencies": []
+    },
+    {
+      "id": "phonetic-encoding",
+      "version": "v2.1",
+      "name": "语音符号编码",
+      "status": "completed",
+      "priority": 2,
+      "entry_file": "tools/phonetic-encoding/phonetic_encoding_demo.nim",
+      "description": "主人全息表·符号↔64位单元格编解码·所有权四维",
+      "assignee": null,
+      "progress": 100,
+      "dependencies": []
     }
   ],
   "agents": {
@@ -125,5 +209,5 @@
     "wasm_ld": false,
     "make": true
   },
-  "last_verified": "2026-08-14T06:00:00Z"
+  "last_verified": "2026-09-02T00:00:00Z"
 }

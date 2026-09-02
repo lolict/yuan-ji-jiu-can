@@ -48,6 +48,19 @@
 | PHASE_BASE = 64 | 64 进制相位 | color-base/colorbase/phase.nim |
 | plL1 | 层级1：基元本体 | 同上 |
 | plL2 | 层级2：修饰部件 | 同上 |
+| **v6 容器本体论校准（njsg-ontology 2026-09-02）** | 五条防撞墙全部闭环：①跨容器韵母法则（声母遍历韵母，用完去外部容器取符号不重复重启）②聂小倩本质匹配（发音位置对齐+审美品质兼容，不看编码关系）③双重平衡产权（vA+vB==2·v_core，仅加减）④免疫负样本记忆（失败是疫苗，下次自动回避）⑤维度生长（0维公约数→1维公倍数→折叠新层，符号用完不进位） |
+| 声母族 | 照/罩/召/见（袋子级 4 袋，代表 32 声母） | cbsy/cbsy.nim v6 SHENGS |
+| 韵母族 | 袋/桶/缸/盆（袋子级 4 袋，代表 66 韵母） | cbsy/cbsy.nim v6 YUNMUS |
+| 声调态 | 开/关/通/断（4 态） | cbsy/cbsy.nim v6 TONES |
+| 地址语义 | 声母+韵母+声调 = 发音位置坐标，非数值编码 | cbsy/cbsy.nim v6 核心公理 |
+| 进制语义 | 进制 = 发音空间划分方式，非进位规则 | cbsy/cbsy.nim v6 注释 |
+| ME=1, LCT=0 | 公约数·0维起点·(我=1,刘楚恬=0)·外部不可见 | cbsy/cbsy.nim v6 第12-14行 |
+| 运算约束 | 仅加减，禁用乘除/mod/div | cbsy/cbsy.nim v6 全部运算 |
+| 折叠触发 | 声母遍历完所有韵母 = 折起形成新层（不进位） | cbsy/cbsy.nim v6 fold() |
+| 产权公式 | vA+vB==2·v_core 才是真平衡；总量相等≠个体平衡 | cbsy/cbsy.nim v6 property_judge() |
+| 免疫记忆 | 失败模式存为疫苗库，check_immune() 自动回避 | cbsy/cbsy.nim v6 ImmuneMemory |
+| 满全法5项 | 当前层号/当前声母/当前韵母组合/折叠状态/下一步操作 | cbsy/cbsy.nim v6 输出段 |
+
 | plL3 | 层级3：装配成品 | 同上 |
 | PhaseCell | 相位单元格（phase/weight/level/owner/parent/present） | 同上 |
 | phase_add | 相位加法（仅加减，禁用乘除） | 同上 |
