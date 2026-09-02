@@ -77,16 +77,16 @@ proc decode_git_to_mqf*(git_text: string): string =
 # ═══════════════════════════════════════════
 type
   GitShell* = ref object
-    repo_path: string
-    shell_name: string
-    adaptation_count: int
+    repo_path*: string
+    shell_name*: string
+    adaptation_count*: int
 
   GitCommit* = object
-    hash_str: string
-    author: string
-    mqf_content: string
-    git_message: string
-    timestamp: string
+    hash_str*: string
+    author*: string
+    mqf_content*: string
+    git_message*: string
+    timestamp*: string
 
 # ═══════════════════════════════════════════
 # 操作封装
