@@ -77,16 +77,17 @@
 | 35 | high-algebra | tools/high-algebra/ | ✅ 高维代数·(n-1)×0.1偏移率·静态回归·俘获·阶和·2²⁵⁶对齐 |
 | 36 | yinyang-binary | tools/yinyang-binary/ | ✅ YIN-YANG-BINARY完整映射·66符号·三值加法·夫妻对称验证 |
 | 37 | eight-flows | tools/eight-flows/ | ✅ 八流统一引擎·96时间节点·12符号全流水线·闭环ack验证·编织6工具 |
-| 37 | radix256 | tools/radix256/ | ✅ 2²⁵⁶等效高位对齐进位制·4×64位词·进位链仪式·溢出折叠·根基254+2 |
-| 38 | full-mapping | tools/full-mapping/ | ✅ 全映射引擎·九元↔YinYang↔二进制↔mltt↔偏移率·7项全通过 |
-| 39 | njsg-swarm | tools/njsg-swarm/ | ✅ 分布式分身协调·6分身并行·冲突裁决·心跳检测 |
-| 40 | kernel-v1.7-perception | kernel/src/njsg_kernel.c | ✅ 九元感知引擎·九家族分类·谐音靶点路由·固定点迭代(0.82衰减/23次收敛) |
-| 41 | kernel-v1.7-mccp | kernel/src/njsg_kernel.c | ✅ MCCP自举编译器·DSL→C struct·袋子级加法 |
-| 42 | data-input | tools/minlian/ | ✅ 真实数据输入·JSON·200文档·FNV-1a·极性分析 |
-| 42 | kernel-v1.7-review | kernel/src/njsg_kernel.c | ✅ 裁判系统·三元审判·产权分·排行榜 |
-| 43 | kernel-v1.7-timeline | kernel/src/njsg_kernel.c | ✅ 时间线一体化·多时钟域·四层心跳后勤 |
-| 44 | phonetic-encoding | tools/phonetic-encoding/ | ✅ 语音符号编码·主人全息表·符号↔64位单元格编解码·所有权四维 |
-| 45 | cbsy 范畴编程管辖索引制 | tools/cbsy/ | ✅ v2·0维地址坐标(一个点一个编码,非三维三元组)·索引即命令无命令行·下载三式(索引/互换/特征)·骑士巡游+声韵调两种画法·通信0维身份地址替代IP·条件三级·夫妻主权人直接命令·v3五格(自我繁衍/悬游/镜像动作/契约/分布式管辖权)·v4收官三格(关系可逆/职业权限身份/传输)·十种索引方式俱全 |
+| 38 | mccp | tools/mccp_core/ | ✅ MCCP自举编译器·3规则族·11符号·Nim+JSON生成·自举验证PASS |
+| 39 | radix256 | tools/radix256/ | ✅ 2²⁵⁶等效高位对齐进位制·4×64位词·进位链仪式·溢出折叠·根基254+2 |
+| 40 | full-mapping | tools/full-mapping/ | ✅ 全映射引擎·九元↔YinYang↔二进制↔mltt↔偏移率·7项全通过 |
+| 41 | njsg-swarm | tools/njsg-swarm/ | ✅ 分布式分身协调·6分身并行·冲突裁决·心跳检测 |
+| 42 | kernel-v1.7-perception | kernel/src/njsg_kernel.c | ✅ 九元感知引擎·九家族分类·谐音靶点路由·固定点迭代(0.82衰减/23次收敛) |
+| 43 | kernel-v1.7-mccp | kernel/src/njsg_kernel.c | ✅ MCCP自举编译器·DSL→C struct·袋子级加法 |
+| 44 | data-input | tools/minlian/ | ✅ 真实数据输入·JSON·200文档·FNV-1a·极性分析 |
+| 45 | kernel-v1.7-review | kernel/src/njsg_kernel.c | ✅ 裁判系统·三元审判·产权分·排行榜 |
+| 46 | kernel-v1.7-timeline | kernel/src/njsg_kernel.c | ✅ 时间线一体化·多时钟域·四层心跳后勤 |
+| 47 | phonetic-encoding | tools/phonetic-encoding/ | ✅ 语音符号编码·主人全息表·符号↔64位单元格编解码·所有权四维 |
+| 48 | cbsy 范畴编程管辖索引制 | tools/cbsy/ | ✅ v2·0维地址坐标(一个点一个编码,非三维三元组)·索引即命令无命令行·下载三式(索引/互换/特征)·骑士巡游+声韵调两种画法·通信0维身份地址替代IP·条件三级·夫妻主权人直接命令·v3五格(自我繁衍/悬游/镜像动作/契约/分布式管辖权)·v4收官三格(关系可逆/职业权限身份/传输)·十种索引方式俱全 |
 
 ---
 
