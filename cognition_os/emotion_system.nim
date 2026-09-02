@@ -165,9 +165,9 @@ proc repair*(es: var EmotionSystem): string =
   
   # 危机情感
   if es.metrics.trust < es.crisis_threshold:
-    es.current = EmotionKind(emFear, 1.0 - es.metrics.trust)
+    es.current = EmotionState(kind: emFear, intensity: 1.0 - es.metrics.trust)
   elif es.metrics.security < es.crisis_threshold:
-    es.current = EmotionKind(emDistress, 1.0 - es.metrics.security)
+    es.current = EmotionState(kind: emDistress, intensity: 1.0 - es.metrics.security)
   
   return "修复中 · 向基准线回归"
 
@@ -265,9 +265,9 @@ when is_main_module:
   
   # ── 路由检查 ──
   echo "── 情感路由 ──"
-  es.current = EmotionState(kind: emFear, intensity: 0.8, test: "", origin: "", duration: 0)
+  es.current = EmotionState(kind: emFear, intensity: 0.8)
   echo "  恐惧 → 路由: ", es.route()
-  es.current = EmotionState(kind: emJoy, intensity: 0.7, test: "", origin: "", duration: 0)
+  es.current = EmotionState(kind: emJoy, intensity: 0.7)
   echo "  愉悦 → 路由: ", es.route()
-  es.current = EmotionState(kind: emConfusion, intensity: 0.6, test: "", origin: "", duration: 0)
+  es.current = EmotionState(kind: emConfusion, intensity: 0.6)
   echo "  困惑 → 路由: ", es.route()
