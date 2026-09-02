@@ -108,14 +108,6 @@ pub fn main() !void {
         try stdout.print("{s}\n", .{uri});
     }
 
-    // ========== fqmcp 管线输出 ==========
-    try stdout.print("\n=== 启动 fqmcp 管线 ===\n", .{});
-    var fqmcp = fqm.FQMCP.init(allocator);
-    const knml_path = "zig-stem/output/fqmet.knmll";
-    std.fs.cwd().makePath("zig-stem/output") catch {};
-    try fqmcp.processOrchestrator(&orch, knml_path);
-    try stdout.print("knml 文件已保存: {s}\n", .{knml_path});
-
     // ========== knmlil 三元坐标 ==========
     try stdout.print("\n=== knmlil 三元坐标 ===\n", .{});
     const c0 = fqm.KnmlCoord.init(1, 0, 1);

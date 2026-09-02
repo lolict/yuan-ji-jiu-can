@@ -28,7 +28,7 @@ const
     ("njsg",  "MUTUAL"),   # 共生
   ]
 
-proc encode_mqf_to_git(mqf_text: string): string =
+proc encode_mqf_to_git*(mqf_text: string): string =
   result = GIT_MAGIC_HDR & " "
   var i = 0
   while i < mqf_text.len:
