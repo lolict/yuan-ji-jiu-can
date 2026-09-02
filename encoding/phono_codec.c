@@ -395,15 +395,19 @@ static void print_symbol_tables(void) {
     printf("\n【六】变音组 (下点/分音符/双音调1/双撇/上圈/下钩/鼻化/扬抑/短音/双音调2):\n");
     const char* grp_names[] = {"下点","分音符","双音调1","双撇",
                                "上圈","下钩","鼻化","扬抑符","短音","双音调2"};
-    const char* const* grp_table[] = {
+    const char* const* grp_small[] = {
         DOTBelow, UMLAUT, DOUBLE_TONE1, DOUBLE_ACUTE,
         RING_ABOVE, OGONEK, TILDE, CIRCUMFLEX, BREVE, DOUBLE_TONE2
     };
+    const char* const* grp_large[] = {
+        DOTBelow_CAP, UMLAUT_CAP, DOUBLE_TONE1_CAP, DOUBLE_ACUTE_CAP,
+        RING_ABOVE_CAP, OGONEK_CAP, TILDE_CAP, CIRCUMFLEX_CAP, BREVE_CAP, DOUBLE_TONE2_CAP
+    };
     for (int g = 0; g < 10; g++) {
         printf("  %s: ", grp_names[g]);
-        for (int i = 0; i < 5; i++) printf("%s ", grp_table[g][i]);
+        for (int i = 0; i < 5; i++) printf("%s ", grp_small[g][i]);
         printf(" 大写:");
-        for (int i = 0; i < 5; i++) printf("%s ", grp_table[g]+50+i); /* 同上 */
+        for (int i = 0; i < 5; i++) printf("%s ", grp_large[g][i]);
         printf("\n");
         n += 10;
     }
@@ -497,7 +501,6 @@ static int run_self_tests(void) {
 
     /* 测试3: 声调组小写 (24项) */
     printf("[测试3] 声调组小写识别:\n");
-    int tone_idx = 0;
     for (int t = 0; t < 4; t++) {
         for (int v = 0; v < 6; v++) {
             const char* s = NULL;
@@ -507,7 +510,6 @@ static int run_self_tests(void) {
             c = classify_symbol(s, &d);
             if (c == SYM_TONE && ((d>>8)&0xFF)==0 && (d&0x0F)==t) { pass++; }
             else { printf("  ✗ '%s' 失败 (c=%d,d=%d)\n", s, c, d); fail++; }
-            tone_idx++;
         }
     }
     printf("  24个声调符号全部正确\n\n");
