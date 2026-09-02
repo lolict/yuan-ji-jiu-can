@@ -256,6 +256,88 @@ impl SoulState {
 }
 
 // ────────────────────────────────────────────────────────────
+// 符号显示映射层 · bit38+39 → 容器/操作符号
+// ────────────────────────────────────────────────────────────
+//
+// 目的：避免直接显示原始比特（1-2 比特像素无视觉意义）
+// 效果：用户看到的是容器符号或操作符号，不是闪烁的位
+
+/// 夫妻在场状态 → 容器符号
+/// 给显示层调用 · 原始比特不离开本模块
+pub fn spouse_state_to_container(wife: bool, husband: bool) -> &'static str {
+    match (wife, husband) {
+        (false, false) => "杯",   // 独立 · 空容器
+        (false, true)  => "瓶",   // 丈夫引导
+        (true,  false) => "盎",   // 妻子盈满
+        (true,  true)  => "盉",   // 夫妻统一体 · 合流容器
+    }
+}
+
+/// 夫妻在场状态 → 操作符号
+/// 给 UI/基调层调用 · 指示当前可执行操作
+pub fn spouse_state_to_operation(wife: bool, husband: bool) -> &'static str {
+    match (wife, husband) {
+        (false, false) => "照",   // 独立 · 看清前路
+        (false, true)  => "召",   // 丈夫引导 · 召唤对方
+        (true,  false) => "盈",   // 妻子盈满 · 容器将溢
+        (true,  true)  => "合",   // 夫妻统一 · 合并归一
+    }
+}
+
+///  SoulState 直接转容器符号  ·
+pub fn soul_state_to_container(state: &SoulState) -> &'static str {
+    spouse_state_to_container(
+        state.has_perfect_wife(),
+        state.has_prime_husband(),
+    )
+}
+
+/// SoulState 直接转操作符号
+pub fn soul_state_to_operation(state: &SoulState) -> &'static str {
+    spouse_state_to_operation(
+        state.has_perfect_wife(),
+        state.has_prime_husband(),
+    )
+}
+
+#[cfg(test)]
+mod tests_glyph_mapping {
+    use super::*;
+
+    #[test]
+    fn container_mapping() {
+        assert_eq!(spouse_state_to_container(false, false), "杯");
+        assert_eq!(spouse_state_to_container(false, true),  "瓶");
+        assert_eq!(spouse_state_to_container(true,  false), "盎");
+        assert_eq!(spouse_state_to_container(true,  true),  "盉");
+    }
+
+    #[test]
+    fn operation_mapping() {
+        assert_eq!(spouse_state_to_operation(false, false), "照");
+        assert_eq!(spouse_state_to_operation(false, true),  "召");
+        assert_eq!(spouse_state_to_operation(true,  false), "盈");
+        assert_eq!(spouse_state_to_operation(true,  true),  "合");
+    }
+
+    #[test]
+    fn soul_state_container_roundtrip() {
+        assert_eq!(soul_state_to_container(&SoulState::Separation), "杯");
+        assert_eq!(soul_state_to_container(&SoulState::SemiCoupled), "瓶");
+        assert_eq!(soul_state_to_container(&SoulState::FullCouple), "盉");
+        assert_eq!(soul_state_to_container(&SoulState::Eclipse), "盎");
+    }
+
+    #[test]
+    fn soul_state_operation_roundtrip() {
+        assert_eq!(soul_state_to_operation(&SoulState::Separation), "照");
+        assert_eq!(soul_state_to_operation(&SoulState::SemiCoupled), "召");
+        assert_eq!(soul_state_to_operation(&SoulState::FullCouple), "合");
+        assert_eq!(soul_state_to_operation(&SoulState::Eclipse), "盈");
+    }
+}
+
+// ────────────────────────────────────────────────────────────
 // 夫妻编码测试 · 7/6 赋值验证
 // ────────────────────────────────────────────────────────────
 #[cfg(test)]
