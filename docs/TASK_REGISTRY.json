@@ -94,10 +94,10 @@
       "name": "元输入法 MetaIME (Android)",
       "status": "skeleton",
       "priority": 2,
-      "entry_file": "android/src/",
-      "description": "Android IME Kotlin+Rust 七层编码驱动骨架目录存在，无实质代码",
+      "entry_file": "android/src/com/njsg/parasite/",
+      "description": "Android IME Kotlin+Rust 七层编码驱动骨架铺设完成:IMEInterceptor(第1层)+NativeBridge(JNI)+libnjsg_ime(RuleEngine+ShengYunEngine)。声母-韵母坐标体系21x35=735音节约束,内置30+组合候字表。待真机编译验证",
       "assignee": null,
-      "progress": 5,
+      "progress": 15,
       "dependencies": []
     },
     {
