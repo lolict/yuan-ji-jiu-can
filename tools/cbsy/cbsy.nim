@@ -290,6 +290,69 @@ proc distributed_jurisdiction*(chains: varargs[TimeChain]): string =
   result = "分布式管辖：" & names & " 共辖 " & $total_pts &
            " 次串联 · 静态点不重复占地 · 地址零增加"
 
+# ---------- 关系的索引方式 ----------
+
+proc relation*(a, b: uint64): uint64 =
+  ## 关系 = 两点之间的确认。关系本身也是一个 0 维点（第二繁衍层）。
+  ## 关系码 = 128 + a×64 + b（乘法用循环加法实现，仅加减），可逆。
+  result = 128
+  var i = 0
+  while i < int(a):
+    var j = 0
+    while j < 64:
+      result = result + 1
+      inc j
+    inc i
+  result = result + b
+
+proc relation_ends*(r: uint64): tuple[a, b: uint64] =
+  ## 反查：循环减法拆层（仅加减），无损还原两端身份
+  var v = int(r) - 128     ## = a×64 + b
+  var a = 0
+  while v >= 64:
+    v = v - 64
+    inc a
+  result = (uint64(a), uint64(v))
+
+# ---------- 职业权限身份的索引方式 ----------
+
+type
+  Vocation* = object
+    who*: uint64           ## 身份 = 0 维点
+    trade*: string         ## 职业范畴名（寄生特征）
+    kind*: IssuerKind      ## 职业决定命令条件层级
+    credit*: int
+    money*: int
+    authority*: int
+
+proc vocation_index*(sp: HoloSpace, v: Vocation): seq[string] =
+  ## 职业权限身份索引：给身份 → 直接列出它能呼唤的全部格。
+  ## 身份不用查表，它的职业范畴就是它的命令条件。
+  for c in 0 ..< 64:
+    let cmd = sp.cells[c]
+    var j = judge(cmd, v.kind, v.credit, v.money, v.authority)
+    if j.v == vWitness:
+      j = witness(cmd)
+    if j.v == vPass:
+      result.add(call_at(Addr0D(uint64(c))) & "(#" & $c & ")")
+
+# ---------- 传输的索引方式 ----------
+
+proc transmit*(sp: var HoloSpace, src, dst: uint64): string =
+  ## 传输 = 命令本体从源点传到目的点（袋子级：目的地获得呼唤名，源点不动）。
+  ## 传输登记 = 关系点（源与目的的关系确认），地址零增加。
+  let got = sp.cells[int(src) mod 64]
+  sp.cells[int(dst) mod 64] = CbsyCommand(
+    at: uint64(int(dst) mod 64),
+    verb: got.verb, target: got.target, mode: got.mode
+  )
+  let rp = relation(src, dst)
+  result = "传输：0维#" & $src & " 的「" & got.verb & got.target & got.mode &
+           "」已传至 0维#" & $dst & "（现呼「" &
+           sp.cells[int(dst) mod 64].verb &
+           sp.cells[int(dst) mod 64].target &
+           sp.cells[int(dst) mod 64].mode & "）· 传输关系点 0维#" & $rp
+
 # ---------- 渲染：时间链版本号 + 名称 ----------
 
 proc render*(tc: TimeChain): string =
@@ -388,3 +451,30 @@ when isMainModule:
   echo "  契约点：0维#" & $cp & "（9 与 20 的关系式确认，契约本身是一个0维点）"
   echo "  ", future_jurisdiction(cp, "2027-01-01")
   echo "  ", distributed_jurisdiction(knight_tour((0, 0)), shengyundiao_chain(), rc)
+
+  # 关系索引
+  echo ""
+  echo "关系的索引方式："
+  let rp2 = relation(9, 20)
+  let ends = relation_ends(rp2)
+  echo "  关系(9,20) = 关系点 0维#" & $rp2 & " · 反查两端 → #" &
+       $ends.a & " 与 #" & $ends.b & "（关系不是线，是一个点）"
+
+  # 职业权限身份索引
+  echo ""
+  echo "职业权限身份的索引方式："
+  let vocs = [
+    Vocation(who: 1, trade: "夫妻主权人", kind: iSovereign, credit: 0, money: 0, authority: 0),
+    Vocation(who: 93, trade: "官吏", kind: iAuthority, credit: 0, money: 0, authority: 1),
+    Vocation(who: 40, trade: "富商", kind: iMoney, credit: 0, money: 6, authority: 0),
+    Vocation(who: 41, trade: "守信者", kind: iCredit, credit: 99, money: 0, authority: 0),
+    Vocation(who: 42, trade: "普通人", kind: iCommon, credit: 0, money: 0, authority: 0),
+  ]
+  for v in vocs:
+    let idxs = vocation_index(sp, v)
+    echo "  [" & v.trade & " 身份0维#" & $v.who & "] 可呼唤 " & $idxs.len & " 格"
+
+  # 传输索引
+  echo ""
+  echo "传输的索引方式："
+  echo "  ", transmit(sp, 9, 40)
