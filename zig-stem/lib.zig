@@ -136,8 +136,18 @@ fn gcd(a: u16, b: u16) u16 {
 // 主入口 (供 wasm 宿主调用)
 // ══════════════════════════════════════════════════════════════════
 
+// FQMCP WASM 绑定层
+const wasm_fqmcp = @import("wasm_fqmcp.zig");
+
+// 编译期验证：确保 FQMCP 函数可用
+comptime {
+    _ = wasm_fqmcp.fqmcp_init;
+    _ = wasm_fqmcp.fqmcp_unary;
+    _ = wasm_fqmcp.fqmcp_knmlil;
+}
+
 // wasm in freestanding has no stdout, so we do nothing at function entry
-// All effects come from the 5 C-exported functions (mqf_boot, etc).
+// All effects come from the C-exported functions (mqf_boot + fqmcp_*).
 pub fn main() void {}
 
 // Guarantees a complete wasm binary with _start for bare-metal hosts

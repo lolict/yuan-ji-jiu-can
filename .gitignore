@@ -31,3 +31,7 @@ __pycache__/
 tools/phonetic-encoding/phonetic_encoding_demo
 tools/phonetic-encoding/output/
 tools/phonetic-encoding/*.nim.bak
+zig.tar.xz
+kernel/src/*.elf
+zig-stem/*.elf
+tools/**/phonetic_encoding_demo
