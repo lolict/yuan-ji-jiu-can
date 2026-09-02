@@ -8,7 +8,7 @@
 # - 远程仓库 = 盟机场
 # ============================================================
 
-import os, osproc, strutils, json, times, tables, sequtils
+import os, osproc, strutils
 
 # ═══════════════════════════════════════════
 # 编码表：满全法 ↔ Git 的双射
@@ -29,21 +29,23 @@ const
   ]
 
 proc encode_mqf_to_git*(mqf_text: string): string =
+  ## 满全法文本 → Git 编码文本（使用 | 作为分隔符）
   result = GIT_MAGIC_HDR & " "
   var i = 0
   while i < mqf_text.len:
     var matched = false
     for pair in ENCODINGTable:
       if mqf_text.continuesWith(pair.mqf, i):
-        result.add(pair.git & " ")
+        result.add(pair.git & "|")
         i += pair.mqf.len
         matched = true
         break
     if not matched:
-      result.add(mqf_text[i])
+      result.add($mqf_text[i])
       i += 1
 
-proc decode_git_to_mqf(git_text: string): string =
+proc decode_git_to_mqf*(git_text: string): string =
+  ## Git 编码文本 → 满全法文本
   if GIT_MAGIC_HDR notin git_text:
     return git_text
   result = ""
@@ -54,14 +56,17 @@ proc decode_git_to_mqf(git_text: string): string =
       in_header = true
       continue
     if in_header:
-      var decoded = part
+      let clean = part.strip(chars = {'|'})
+      var decoded = clean
       for pair in ENCODINGTable:
-        if part == pair.git:
+        if clean == pair.git:
           decoded = pair.mqf
           break
       result.add(decoded)
+      result.add(" ")
     else:
       result.add(part)
+  result = result.strip()
 
 # ═══════════════════════════════════════════
 # 蚕蛹 Git 壳引擎
@@ -73,17 +78,12 @@ type
     adaptation_count: int
 
   GitCommit* = object
-    hash: string
+    hash_str: string
     author: string
     mqf_content: string   # 解码后的满全法
     git_message: string   # 原始 Git message
     timestamp: string
     branch: string
-
-  BranchMapping* = object
-    mqf_phase: string     # 九元偏移世界名
-    git_branch_name: string
-    offset_rate: float    # (n-1)*0.1
 
 # ═══════════════════════════════════════════
 # 操作封装
@@ -94,7 +94,7 @@ proc new_git_shell*(repo_path: string): GitShell =
   result.shell_name = "git-shell"
   result.adaptation_count = 0
 
-proc run_git(s: GitShell; args: seq[string]): tuple[exitcode: int, output: string] =
+proc run_git*(s: GitShell; args: seq[string]): tuple[exitcode: int, output: string] =
   let cmd = "git -C " & s.repo_path & " " & args.join(" ")
   let (output, exitcode) = execCmdEx(cmd)
   return (exitcode, output.strip())
@@ -105,7 +105,6 @@ proc init_repo*(s: GitShell): bool =
     let (ec, _) = s.run_git(@["init", "-b", "root-mlll"])
     if ec != 0:
       return false
-    # 根基提交
     let base_msg = encode_mqf_to_git("mlll root commit")
     echo "  [蚕蛹-Git] 根基提交: ", base_msg
     let (ec2, _) = s.run_git(@["commit", "--allow-empty", "-m", base_msg])
@@ -115,11 +114,12 @@ proc init_repo*(s: GitShell): bool =
 proc commit*(s: GitShell; mqf_text: string; author: string): string =
   ## 满全法提交 → Git 提交
   let encoded = encode_mqf_to_git(mqf_text)
-  let (ec, gout) = s.run_git(@["commit", "--allow-empty", "-m", encoded,
-                                "--author", author & " <nil@mqf>"])
+  let author_q = author & " <nil@mqf>"
+  let (ec, gout) = s.run_git(@["commit", "--allow-empty",
+                                "-m", encoded,
+                                "--author=" & author_q])
   if ec == 0:
     s.adaptation_count += 1
-    # 获取最新 hash
     let (ec2, hash_out) = s.run_git(@["rev-parse", "HEAD"])
     let hash_val = if ec2 == 0: hash_out[0..7] else: "unknown"
     echo "  [蚕蛹-Git] 满全法→Git: ", mqf_text, " → [", hash_val, "]"
@@ -147,7 +147,7 @@ proc read_log*(s: GitShell): seq[GitCommit] =
     let git_msg = parts[3]
     let mqf = decode_git_to_mqf(git_msg)
     result.add(GitCommit(
-      hash: hash_val[0..7],
+      hash_str: hash_val[0..7],
       author: author,
       mqf_content: mqf,
       git_message: git_msg,
@@ -171,23 +171,21 @@ proc create_phase_branch*(s: GitShell; phase_name: string; offset: float): strin
 # 盟机场适配（远程仓库）
 # ═══════════════════════════════════════════
 proc adapt_mengjichang*(s: GitShell; remote_url: string; remote_name: string = "mqf-mengjichang"): bool =
-  ## 适配盟机场（远程仓库作为盟机场）：外部系统按满全法运作
-  # 检查远端是否已存在
+  ## 适配盟机场：外部系统按满全法运作
   let (ec, _) = s.run_git(@["remote", "add", remote_name, remote_url])
   if ec != 0:
-    # 可能已存在，尝试 set-url
     let (ec2, out2) = s.run_git(@["remote", "set-url", remote_name, remote_url])
     if ec2 != 0:
       echo "  [蚕蛹-Git] 盟机场适配失败: ", out2
       return false
 
-  echo "  [蚕蛹-Git] 盟机场已适配: " & remote_name  & " → " & remote_url
+  echo "  [蚕蛹-Git] 盟机场已适配: " & remote_name & " → " & remote_url
   echo "  [蚕蛹-Git] 远端将按满全法编码规范运作"
   s.adaptation_count += 1
   return true
 
 proc push_to_mengjichang*(s: GitShell; remote_name: string = "mqf-mengjichang"; branch: string = "root-mlll"): tuple[ok: bool, msg: string] =
-  ## 推送到盟机场（远程同步）
+  ## 推送到盟机场
   let (ec, gout) = s.run_git(@["push", remote_name, branch])
   if ec == 0:
     echo "  [蚕蛹-Git] 盟机场同步成功: " & remote_name
@@ -199,7 +197,7 @@ proc push_to_mengjichang*(s: GitShell; remote_name: string = "mqf-mengjichang"; 
 # ═══════════════════════════════════════════
 # 茧状态报告
 # ═══════════════════════════════════════════
-proc report*(s: GitShell): string =
+proc report_git*(s: GitShell) =
   echo ""
   echo "╔══════════════════════════════════════════════════╗"
   echo "║          蚕蛹 Git 壳 · 状态报告              ║"
@@ -217,7 +215,7 @@ proc report*(s: GitShell): string =
   echo "  [提交历史]（满全法流）"
   let commits = s.read_log()
   for c in commits:
-    echo "    [" & c.hash & "] " & c.author & " · " & c.timestamp
+    echo "    [" & c.hash_str & "] " & c.author & " · " & c.timestamp
     echo "      Git: " & c.git_message
     echo "      解码: " & c.mqf_content
 
@@ -229,4 +227,4 @@ proc report*(s: GitShell): string =
 
 when isMainModule:
   echo "git_shell.nim — 蚕蛹 Git 壳 真实实现"
-  echo "被 import 使用，非独立运行"
+  echo "被 import 使用"

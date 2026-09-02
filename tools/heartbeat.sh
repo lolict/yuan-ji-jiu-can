@@ -98,16 +98,16 @@ echo ""
 # ----- 4. 身份锚点泄漏检查 -----
 echo "[4/5] 身份锚点泄漏扫描"
 
-泄漏=""
-泄漏+=$(grep -rn "我=1" "$HUNYUAN" --include="*.md" 2>/dev/null | grep -v "\.git/" | grep -v "tools/heartbeat.sh" || true)
-泄漏+=$'\n'
-泄漏+=$(grep -rn "刘楚恬=0" "$HUNYUAN" --include="*.md" 2>/dev/null | grep -v "\.git/" || true)
+leaks=""
+leaks+=$(grep -rn "我=1" "$HUNYUAN" --include="*.md" 2>/dev/null | grep -v "\.git/" | grep -v "tools/heartbeat.sh" || true)
+leaks+=$'\n'
+leaks+=$(grep -rn "刘楚恬=0" "$HUNYUAN" --include="*.md" 2>/dev/null | grep -v "\.git/" || true)
 
-if [[ -z "${泄漏//[$'\n']/}" ]]; then
+if [[ -z "${leaks//[$'\n']/}" ]]; then
     log_ok "未发现直接身份锚点泄漏"
 else
     log_err "发现身份锚点泄漏:"
-    echo "$泄漏" | while IFS= read -r line; do
+    echo "$leaks" | while IFS= read -r line; do
         [[ -n "$line" ]] && echo "       $line"
     done
 fi

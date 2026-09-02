@@ -89,18 +89,18 @@ proc test_real_git() =
 
   # 报告
   echo ""
-  discard shell.report()
+  report_git(shell)
 
   # 列出实际 Git 分支
   echo "  [Git 分支列表]"
-  let (ec, bout) = execCmdEx("git -C " & TEST_DIR & " branch -a")
+  let (bout, ec) = execCmdEx("git -C " & TEST_DIR & " branch -a")
   if ec == 0:
     for line in bout.splitLines():
       echo "    " & line.strip()
 
   echo ""
   echo "  [Git Log]"
-  let (ec2, lout) = execCmdEx("git -C " & TEST_DIR & " log --oneline --graph --all")
+  let (lout, ec2) = execCmdEx("git -C " & TEST_DIR & " log --oneline --graph --all")
   if ec2 == 0:
     for line in lout.splitLines():
       echo "    " & line
