@@ -52,6 +52,9 @@ pub mod flow_algebra;
 // ── v0.10 一体化统一层 ──
 pub mod unified_flow;
 
+// ── v0.10 容器进制 · 语文→数学对应规则 ──
+pub mod container_radix;
+
 // ── v0.10 拓扑描述子系统 ──
 pub mod topo;
 
@@ -197,6 +200,15 @@ pub use five_dimensional::{couple_spawn, is_couple, rho_decay, angle,
 // ── 鸳鸯谐韵协议 · 独立通道编码 ──────────────────────────────────────
 pub mod yinyang_codec;
 pub use yinyang_codec::{YUYANG_MARK, FrameMode, Frame, YuYangCodec};
+
+// ── v1.2 七元蜂窝套壳 · 容器族管理模 (container_nest) ──
+// NOTE: 暂时注释掉, container_nest 内部有未定义类型 (ContainerPolarity/ContainerContainerPolarity)
+// 导致整个 crate 无法编译, 与 container_radix 无关
+// pub mod container_nest;
+// pub use container_nest::{
+//     NestLevel, ContainerNest, ContainerPolarity, Content,
+//     OverflowPolicy, PutResult, MirrorResult,
+// };
 
 // ── v0.21 编程语言工具链 · 角色-模块映射层 (toolchain_mapping) ──
 pub mod toolchain_mapping;

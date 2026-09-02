@@ -26,8 +26,9 @@ mlll-profile: kernel/src/mlll_profile.c kernel/src/mlll_symbols.c kernel/src/mll
 	./kernel/src/mlll_profile.elf 囡囝共生
 
 # 内核 + mlll 库联合编译（-DMLLL_LIBRARY 排除 mlll 的 main）
-kernel: kernel/src/njsg_kernel.c kernel/src/mlll_symbols.c kernel/src/mlll_kernel_bridge.c
-	$(CC) $(CFLAGS) -DMLLL_LIBRARY $< kernel/src/mlll_symbols.c kernel/src/mlll_kernel_bridge.c -o kernel/src/njsg_kernel.elf $(KERN_LIBS)
+# 包含盟机合网络骨架 njsg_mengji.c
+kernel: kernel/src/njsg_kernel.c kernel/src/mlll_symbols.c kernel/src/mlll_kernel_bridge.c kernel/src/njsg_mengji.c
+	$(CC) $(CFLAGS) -DMLLL_LIBRARY $< kernel/src/mlll_symbols.c kernel/src/mlll_kernel_bridge.c kernel/src/njsg_mengji.c -o kernel/src/njsg_kernel.elf $(KERN_LIBS)
 
 # 容器本体论统一桥接端到端测试
 test-ontology-bridge: encoding/container_ontology_bridge.c \

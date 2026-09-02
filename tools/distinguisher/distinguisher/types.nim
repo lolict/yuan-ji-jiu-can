@@ -27,6 +27,8 @@ type SoundTarget* = enum
   husband    # 工藤新一→恋初 / wgslz
   sweet      # mlct/mltt/ml.tt → Wife
   soundMorph # gtt / gtt谐音扩展
+  cbsyAddr   # cbsy 索引地址（声母+韵母+声调夫妻共同体操作）
+  sleepRes   # 休眠资源（可被唤醒）
   external   # 外部参与者
   system     # 系统级
 

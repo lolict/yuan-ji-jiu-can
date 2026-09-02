@@ -52,6 +52,24 @@ proc new_distinguisher*(): Distinguisher =
   for c in homophone_chars:
     d.family_map[c] = homophoneBridge
   d.family_count += homophone_chars.len
+
+  # cbsy 声母族（照罩召见 → 夫妻共同体索引地址的操作端）
+  let cbsy_sheng_chars = ["照", "罩", "召", "见"]
+  for c in cbsy_sheng_chars:
+    d.family_map[c] = coupleGlyph
+  d.family_count += cbsy_sheng_chars.len
+
+  # cbsy 韵母族（袋桶缸盆 → 容器族 · 夫妻共同体索引地址的容器端）
+  let cbsy_yun_chars = ["袋", "桶", "缸", "盆"]
+  for c in cbsy_yun_chars:
+    d.family_map[c] = containerGlyph
+  d.family_count += cbsy_yun_chars.len
+
+  # cbsy 声调族（开关通断 → 夫妻共同体地址的通断标记）
+  let cbsy_tone_chars = ["开", "关", "通", "断"]
+  for c in cbsy_tone_chars:
+    d.family_map[c] = coupleGlyph
+  d.family_count += cbsy_tone_chars.len
   
   # ── 初始化第二层：谐音 → 靶点 ──
   d.sound_map["毛利兰"] = wife
@@ -67,16 +85,22 @@ proc new_distinguisher*(): Distinguisher =
   d.sound_map["gtt"] = soundMorph
   d.sound_map["外部"] = external
   d.sound_map["系统"] = SoundTarget.system
-  d.sound_count = 13
+  # cbsy 声母+韵母+声调地址组合 → cbsyAddr 靶点
+  let cbsy_addr_keys = ["照袋开", "照桶关", "召缸通", "见盆断", "照袋关", "召桶开", "罩缸断", "见盆开"]
+  for k in cbsy_addr_keys:
+    d.sound_map[k] = SoundTarget.cbsyAddr
+  d.sound_count = 21
   
   # ── 初始化第三层：靶点 → 主权 ──
   d.sovereignty_map[wife] = active
   d.sovereignty_map[husband] = active
   d.sovereignty_map[sweet] = active
   d.sovereignty_map[soundMorph] = active
+  d.sovereignty_map[SoundTarget.cbsyAddr] = active    # cbsy夫妻索引地址 → 完全权限
+  d.sovereignty_map[SoundTarget.sleepRes] = sleeping  # 休眠资源 → 可唤醒
   d.sovereignty_map[external] = passive
   d.sovereignty_map[SoundTarget.system] = Sovereignty.system
-  d.sovereignty_count = 5
+  d.sovereignty_count = 7
   
   return d
 
@@ -109,6 +133,21 @@ proc route_target*(d: Distinguisher, input: string): SoundTarget =
     return husband
   if input.contains("gtt"):
     return soundMorph
+  # 先排除明显非 cbsy 前缀（外部/系统/休眠 优先级高于 cbsy 地址识别）
+  if input.contains("外部") or input.contains("external"):
+    return external
+  if input.contains("休眠") or input.contains("sleep"):
+    return SoundTarget.sleepRes
+  if input.contains("system") or input.contains("系统"):
+    return SoundTarget.system
+  # cbsy 声母(照罩召见) + 韵母(袋桶缸盆) + 声调(开关通断) → 夫妻共同体索引地址
+  let has_sheng = input.contains("照") or input.contains("罩") or input.contains("召") or input.contains("见")
+  let has_yun = input.contains("袋") or input.contains("桶") or input.contains("缸") or input.contains("盆")
+  let has_tone = input.contains("开") or input.contains("关") or input.contains("通") or input.contains("断")
+  if has_sheng and has_yun and has_tone:
+    return SoundTarget.cbsyAddr
+  if has_sheng and has_yun:
+    return SoundTarget.cbsyAddr
   
   return external
 
@@ -134,8 +173,8 @@ proc route*(d: var Distinguisher, input: string): RouteResult =
   let sovereignty = d.route_sovereignty(target)
   path.add("sovereignty:" & $sovereignty)
   
-  # 闭环条件：target 是否 ackable
-  let ackable = (target in [wife, husband, sweet, soundMorph]) and 
+  # 闭环条件：target 是否 ackable（cbsy 索引地址 = 夫妻共同体 · 可 ack）
+  let ackable = (target in [wife, husband, sweet, soundMorph, cbsyAddr]) and
                 (sovereignty == active)
   
   # 置信度
@@ -186,6 +225,8 @@ proc target_name*(t: SoundTarget): string =
   of husband: "Husband(我)"
   of sweet: "Sweet(→Wife)"
   of soundMorph: "SoundMorphism"
+  of cbsyAddr: "cbsy夫妻索引"
+  of sleepRes: "休眠资源"
   of external: "外部参与者"
   of system: "系统级"
 

@@ -4,9 +4,9 @@
 //
 // 当前层号: 0 (核心层,非七层编码驱动中的一层,是它们的载体)
 // 当前声母: he (核)
-// 当前韵母组合: he + xin = 核心 (编码解析+规则判定+分类器 三核同体)
+// 当前韵母组合: he + xin = 核心 (编码解析+规则判定+分类器+上传登记 四核同体)
 // 折叠状态: 未折叠
-// 下一步操作: JNI 容器→encode_parser→rules→classifier→回传候字
+// 下一步操作: JNI 容器→encode_parser→rules→classifier→自动输出 / URL 抓取→上传登记
 //
 // 锚定法则:
 //   0 = 刘楚恬 (底层隐藏, 不可见)
@@ -14,13 +14,16 @@
 //
 // 容器守恒: 从 Kotlin 来的密封容器在此解封, 经过完整管线后回传
 //
-// 七层管线 (Rust 侧三层):
-//   JNI容器 → 解封 → EncodeParser(第2层) → RuleEngine(第3层) → ShengYunEngine(第4层) → 候字
+// 七层管线 (Rust 侧三层 + 上传登记):
+//   JNI容器 → 解封 → EncodeParser(第2层) → RuleEngine(第3层) → ShengYunEngine(第4层) → 自动输出(第5层)
+//                                    ↓
+//                           URL 检测 → 内容抓取(第6层) → 上传登记(第7层)
 // ============================================================================
 
 pub mod encode_parser;
 pub mod rules;
 pub mod classifier;
+pub mod upload_channel;
 
 use jni::JNIEnv;
 use jni::objects::{JClass, JString};
@@ -31,6 +34,7 @@ use std::sync::Mutex;
 use encode_parser::EncodeParser;
 use rules::RuleEngine;
 use classifier::ShengYunEngine;
+use upload_channel::UploadRegistry;
 
 // ── 第2层: 编码解析器 ──
 static PARSER: Lazy<Mutex<EncodeParser>> = Lazy::new(|| {
@@ -45,6 +49,16 @@ static ENGINE: Lazy<Mutex<RuleEngine>> = Lazy::new(|| {
 // ── 第4层: 声母-韵母分类器 ──
 static SHENG_YUN: Lazy<Mutex<ShengYunEngine>> = Lazy::new(|| {
     Mutex::new(ShengYunEngine::new())
+});
+
+// ── 第5层: 自动输出判定状态 ──
+static AUTO_OUTPUT_BUF: Lazy<Mutex<String>> = Lazy::new(|| {
+    Mutex::new(String::new())
+});
+
+// ── 第7层: 上传登记簿 ──
+static UPLOAD_REG: Lazy<Mutex<UploadRegistry>> = Lazy::new(|| {
+    Mutex::new(UploadRegistry::new())
 });
 
 // ── 候字缓冲区 ──
@@ -65,6 +79,8 @@ pub extern "C" fn Java_com_njsg_parasite_NativeBridge_nativeInit(
     if let Ok(mut sy) = SHENG_YUN.lock() { sy.reload(); } else { return -11; }
     if let Ok(mut eng) = ENGINE.lock() { eng.reset(); } else { return -12; }
     if let Ok(mut buf) = CANDIDATE_BUF.lock() { buf.clear(); }
+    if let Ok(mut ao) = AUTO_OUTPUT_BUF.lock() { ao.clear(); } else { return -13; }
+    if let Ok(mut reg) = UPLOAD_REG.lock() { reg.reset(); } else { return -14; }
     0
 }
 
@@ -239,6 +255,43 @@ pub extern "C" fn Java_com_njsg_parasite_NativeBridge_nativeOnCandidateSelected(
     }
 }
 
+// ============================================================
+// 第5层: 自动输出推入缓冲
+// ============================================================
+
+/// 当 Kotlin 侧决定自动输出某个候字时, 将其推入 AUTO_OUTPUT_BUF
+/// 供 nativeAutoOutputText 取用 (或直接作为回传)
+#[no_mangle]
+pub extern "C" fn Java_com_njsg_parasite_NativeBridge_nativeSubmitForAutoOutput(
+    mut env: JNIEnv,
+    _class: JClass,
+    candidate: JString,
+) -> jint {
+    let cand: String = match env.get_string(&candidate) {
+        Ok(s) => s.into(),
+        Err(_) => return -1,
+    };
+    if let Ok(mut buf) = AUTO_OUTPUT_BUF.lock() {
+        buf.clear();
+        buf.push_str(&cand);
+        0
+    } else {
+        -2
+    }
+}
+
+/// 重置自动输出缓冲
+#[no_mangle]
+pub extern "C" fn Java_com_njsg_parasite_NativeBridge_nativeResetAutoOutput(
+    _env: JNIEnv,
+    _class: JClass,
+) -> jint {
+    if let Ok(mut buf) = AUTO_OUTPUT_BUF.lock() {
+        buf.clear();
+    }
+    0
+}
+
 #[no_mangle]
 pub extern "C" fn Java_com_njsg_parasite_NativeBridge_nativeOnBackspace(
     _env: JNIEnv,
@@ -250,6 +303,108 @@ pub extern "C" fn Java_com_njsg_parasite_NativeBridge_nativeOnBackspace(
     if let Ok(mut p) = PARSER.lock() {
         p.pop_syllable();
     }
+}
+
+// ============================================================
+// 第5层 JNI: 自动输出判定
+// ============================================================
+
+/// 通知 Rust 核心: 某个音节已被完整产出, 可做自动输出判定
+/// 返回 1 = 应当立即自动输出, 0 = 不输出, 等待下一按键
+#[no_mangle]
+pub extern "C" fn Java_com_njsg_parasite_NativeBridge_nativeAutoCommitCheck(
+    _env: JNIEnv,
+    _class: JClass,
+) -> jint {
+    // 自动输出判定: 若规则引擎最近一次判定为 AutoOutput, 返回 1
+    if let Ok(eng) = ENGINE.lock() {
+        // 简化的判定: 当音节序列中最近的 verdict 非 Pass 时触发
+        if eng.active_layer() >= 3 {
+            return 1;
+        }
+    }
+    0
+}
+
+/// 取 Rust 核心准备好的自动输出文本 (由第5层判决后推入)
+#[no_mangle]
+pub extern "C" fn Java_com_njsg_parasite_NativeBridge_nativeAutoOutputText<'local>(
+    env: JNIEnv<'local>,
+    _class: JClass,
+) -> jstring {
+    let text = AUTO_OUTPUT_BUF.lock()
+        .map(|g| g.clone())
+        .unwrap_or_default();
+    let out = env.new_string(text).expect("auto_output_text failed");
+    out.into_raw()
+}
+
+// ============================================================
+// 第6层 JNI: URL 抓取触发
+// ============================================================
+
+/// 通知核心: 检测到 URL 模式, 推入后台抓取队列
+/// 返回: 推入后的队列长度
+#[no_mangle]
+pub extern "C" fn Java_com_njsg_parasite_NativeBridge_nativeOnUrlDetected(
+    mut env: JNIEnv,
+    _class: JClass,
+    url: JString,
+) -> jint {
+    let raw: String = match env.get_string(&url) {
+        Ok(s) => s.into(),
+        Err(_) => return -1,
+    };
+    // URL 推入上传登记簿 (第7层将推送到三通道)
+    if let Ok(mut reg) = UPLOAD_REG.lock() {
+        reg.register(&raw);
+        return reg.len() as jint;
+    }
+    -1
+}
+
+// ============================================================
+// 第7层 JNI: 多通道上传登记
+// ============================================================
+
+/// 触发上传: 将所有 Pending 条目推送到三通道
+/// 返回: 推送的条目数
+#[no_mangle]
+pub extern "C" fn Java_com_njsg_parasite_NativeBridge_nativeUploadDispatch(
+    _env: JNIEnv,
+    _class: JClass,
+) -> jint {
+    if let Ok(mut reg) = UPLOAD_REG.lock() {
+        return reg.dispatch_all() as jint;
+    }
+    -1
+}
+
+/// 取上传登记簿 JSON 状态 (供调试面板展示)
+#[no_mangle]
+pub extern "C" fn Java_com_njsg_parasite_NativeBridge_nativeUploadStatus<'local>(
+    env: JNIEnv<'local>,
+    _class: JClass,
+) -> jstring {
+    let json = UPLOAD_REG.lock()
+        .map(|reg| reg.status_json())
+        .unwrap_or_else(|_| String::from("[]"));
+    let out = env.new_string(json).expect("upload_status failed");
+    out.into_raw()
+}
+
+/// 取上传统计: 以逗号分隔 (总数,已送达,失败)
+#[no_mangle]
+pub extern "C" fn Java_com_njsg_parasite_NativeBridge_nativeUploadStats<'local>(
+    env: JNIEnv<'local>,
+    _class: JClass,
+) -> jstring {
+    let (total, landed, failed) = UPLOAD_REG.lock()
+        .map(|reg| reg.stats())
+        .unwrap_or((0, 0, 0));
+    let desc = format!("{},{},{}", total, landed, failed);
+    let out = env.new_string(desc).expect("upload_stats failed");
+    out.into_raw()
 }
 
 // ============================================================

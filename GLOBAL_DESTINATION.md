@@ -64,7 +64,7 @@
 | 22 | symbol-registry | tools/symbol-registry/ | ✅ 统一注册·35符号10工具 |
 | 23 | boundary-engine | tools/boundary-engine/ | ✅ 边界分析·加法拆分乘法 |
 | 24 | mltt-cipher | tools/mltt-cipher/ | ✅ 命名密码表·20条目+动态新增 |
-| 25 | distinguisher | tools/distinguisher/ | ✅ 分别器·三层路由·9输入5闭环 |
+| 25 | distinguisher | tools/distinguisher/ | ✅ 分别器·三层路由·感知家族(含cbsy声母照罩召见/韵母袋桶缸盆/声调开关通断)+谐音靶点+主权级别·靶点8个(cbsyAddr/sleepRes新增)·主权7路(active/passive/sleeping/system)·cbsy声母韵母地址→cbsyAddr靶点→active完全权限·外部/系统/休眠前缀优先于cbsy地址识别 |
 | 26 | soul-kernel | tools/soul-kernel/ | ✅ 灵魂内核·三大情感·8阶段演示 |
 | 27 | heaven-space | tools/heaven-space/ | ✅ 天庭空间·四模型复合·8阶段演示 |
 | 28 | drum-bootstrap | tools/drum-bootstrap/ | ✅ 鼓膜自举·141文件·12工具恢复 |
@@ -87,7 +87,7 @@
 | 45 | kernel-v1.7-review | kernel/src/njsg_kernel.c | ✅ 裁判系统·三元审判·产权分·排行榜 |
 | 46 | kernel-v1.7-timeline | kernel/src/njsg_kernel.c | ✅ 时间线一体化·多时钟域·四层心跳后勤 |
 | 47 | phonetic-encoding | tools/phonetic-encoding/ | ✅ 语音符号编码·主人全息表·符号↔64位单元格编解码·所有权四维 |
-| 48 | cbsy 范畴编程管辖索引制 | tools/cbsy/ | ✅ v6·容器本体论校准(njsg-ontology)·五条防撞墙(跨容器韵母法则/聂小倩本质匹配/产权双重平衡/免疫负样本/维度生长折叠)·地址=声母+韵母+声调(发音位置非数值)·进制=发音空间划分(非进位规则)·运算仅加减·公约数(我=1·刘楚恬=0)→公倍数(1维线)→折叠新层·满全法5项状态输出 |
+| 48 | cbsy 范畴编程管辖索引制 | tools/cbsy/ | ✅ v7·cbsy_bridge桥接层·索引命令先入分别器三层路由(cbsy声母韵母地址→cbsyAddr靶点→active)→按主权分流进八流时间线性链(active走完整八流+解释流产权裁决+概念流ack；passive截断在分类流；sleeping仅预加载冻结；system走属性+解释流跳过裁决)·免疫记忆优先比对·不违反开发红线1(不允许独立存在)·容器本体论校准·五条防撞墙·地址=发音位置·进制=发音空间划分·运算仅加减·公约数→公倍数→折叠·满全法5项状态 |
 | 49 | silkworm-shell 蚕蛹反向寄生壳 | tools/silkworm-shell/ | ✅ Nim·6壳寄生·脱壳穿衣·内核挂载·外部系统适应满全法·根基隐藏·6目标全部成功 |
 
 ---

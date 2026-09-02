@@ -39,6 +39,11 @@
 #include "mlll_kernel_bridge.h"
 #endif
 
+/* 盟机合网络骨架 (njsg_mengji.c) */
+#ifndef MLLL_LIBRARY
+#include "njsg_mengji.h"
+#endif
+
 /* ============================================================
  * v1.0 五元旋钮前置声明
  * ============================================================ */
@@ -148,6 +153,15 @@ void njsg_timeline_record(const char* subsystem, const char* event, int value);
 void njsg_timeline_sync(void);
 void njsg_timeline_print(void);
 void njsg_heartbeat(void);
+
+/* v1.4 盟机合网络前置声明 (kernel/src/njsg_mengji.c) */
+void njsg_mengji_init(void);
+void njsg_mengji_demo(void);
+int  njsg_mengji_register_node(const char* node_id, int type, int anchor);
+void njsg_mengji_gossip_pushpull_round(void);
+int  njsg_mengji_conflict_resolve(int subject_slot);
+int  njsg_mengji_consensus_vote(int subject_slot, int vote, int voter_idx);
+void njsg_mengji_print(void);
 
 /* v1.3 全栈联动前置声明 */
 void njsg_feishu_bot_bridge_init(void);
@@ -1265,6 +1279,9 @@ int main(){
 
     /* v1.7+ 时间线一体化 demo */
     njsg_timeline_demo();
+
+    /* 盟机合 · 去中心化网络 skeleton demo */
+    njsg_mengji_demo();
 
     /* 时间线驱动的自动心跳 */
     njsg_heartbeat();

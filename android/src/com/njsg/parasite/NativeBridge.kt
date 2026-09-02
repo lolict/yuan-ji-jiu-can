@@ -110,6 +110,52 @@ class NativeBridge {
      */
     external fun nativeOnBackspace()
 
+    // ── 第5层符号: 自动输出 ──
+
+    /**
+     * 推入候字以待自动输出
+     */
+    external fun nativeSubmitForAutoOutput(candidate: String): Int
+
+    /**
+     * 检查是否应触发自动输出
+     */
+    external fun nativeAutoCommitCheck(): Int
+
+    /**
+     * 取自动输出文本
+     */
+    external fun nativeAutoOutputText(): String?
+
+    /**
+     * 重置自动输出缓冲
+     */
+    external fun nativeResetAutoOutput(): Int
+
+    // ── 第6层符号: URL 抓取触发 ──
+
+    /**
+     * 通知核心检测到 URL 模式,推入抓取队列
+     */
+    external fun nativeOnUrlDetected(url: String): Int
+
+    // ── 第7层符号: 多通道上传 ──
+
+    /**
+     * 触发上传: 将所有 Pending 条目推送到三通道
+     */
+    external fun nativeUploadDispatch(): Int
+
+    /**
+     * 取上传登记簿 JSON
+     */
+    external fun nativeUploadStatus(): String?
+
+    /**
+     * 取上传统计
+     */
+    external fun nativeUploadStats(): String?
+
     // ── Kotlin 侧薄壳封装 ──
 
     /**
@@ -151,6 +197,64 @@ class NativeBridge {
      * 取音节序列 (供调试面板)
      */
     fun syllableSeq(): String = nativeSyllableSeq() ?: "[]"
+
+    // ── 第5层封装: 自动输出 ──
+
+    /**
+     * 推入候字到自动输出缓冲, 返回候字文本
+     * 若返回非空, 则 Kotlin 侧应立即 commitText
+     */
+    fun submitForAutoOutput(candidate: String): String {
+        val rc = nativeSubmitForAutoOutput(candidate)
+        if (rc == 0) {
+            return nativeAutoOutputText() ?: candidate
+        }
+        return candidate
+    }
+
+    /**
+     * 检查核心是否判定应自动输出
+     */
+    fun shouldAutoCommit(): Boolean {
+        return nativeAutoCommitCheck() == 1
+    }
+
+    // ── 第6层封装: URL 抓取触发 ──
+
+    /**
+     * 通知核心检测到 URL, 推入抓取队列
+     */
+    fun onUrlDetected(url: String): Int {
+        return nativeOnUrlDetected(url)
+    }
+
+    // ── 第7层封装: 多通道上传 ──
+
+    /**
+     * 触发三通道上传 (GitHub / Gitee / 原地)
+     */
+    fun dispatchUpload(): Int = nativeUploadDispatch()
+
+    /**
+     * 取上传登记簿状态 JSON
+     */
+    fun uploadStatusJson(): String = nativeUploadStatus() ?: "[]"
+
+    /**
+     * 取上传统计: Triple(总数, 已送达, 失败)
+     */
+    fun uploadStats(): Triple<Int, Int, Int> {
+        val raw = nativeUploadStats() ?: "0,0,0"
+        val parts = raw.split(",")
+        if (parts.size >= 3) {
+            return Triple(
+                parts[0].toIntOrNull() ?: 0,
+                parts[1].toIntOrNull() ?: 0,
+                parts[2].toIntOrNull() ?: 0
+            )
+        }
+        return Triple(0, 0, 0)
+    }
 
     // ── 库加载 ──
     private fun loadNativeLib() {

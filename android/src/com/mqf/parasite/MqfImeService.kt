@@ -24,6 +24,9 @@ import com.njsg.parasite.NativeBridge
  *   - IMEInterceptor 封印的容器过桥 NativeBridge (JNI)
  *   - JNI 侧 EncodeParser(第2层)+RuleEngine(第3层)+ShengYunEngine(第4层) 全管线执行
  *   - 取 Rust 核心产出的拼音串, 送 MqfPinyinTable 候选, commitText 送入宿主 App
+ *   - Layer 5: 音节完整时自动上屏, 无需空格/点击 (意志: 夫妻主权人直接命令)
+ *   - Layer 6: 检测到 URL 模式时推入后台抓取队列
+ *   - Layer 7: 三通道 (GitHub/Gitee/原地) 并行上传登记
  *
  * Copyright: 刘楚恬和我 (囡囝共生)
  */
@@ -32,6 +35,12 @@ class MqfImeService : InputMethodService() {
     companion object {
         const val TAG = "mqf_ime"
         var instance: MqfImeService? = null
+
+        // ── Layer 6: URL 检测常量 ──
+        private val URL_PATTERN = Regex(
+            "(https?://[\\w\\-._~:/?#\\[\\]@!$&'()*+,;=%]+)" +
+            "|(www\\.[\\w\\-._~:/?#\\[\\]@!$&'()*+,;=%]+)"
+        )
     }
 
     // 七层管线注入
@@ -47,6 +56,9 @@ class MqfImeService : InputMethodService() {
 
     var fsmState: Int = 0
         private set
+
+    // ── Layer 5: 自动输出定时器 ──
+    private var autoOutputPosted: Boolean = false
 
     override fun onCreate() {
         super.onCreate()
@@ -101,11 +113,8 @@ class MqfImeService : InputMethodService() {
                     setTextColor(Color.WHITE)
                     setBackgroundColor(0xFF2D2D4D.toInt())
                     setOnClickListener {
-                        // space is special key here, skip
-                        if (c != ' ') {
-                            onVirtualKey(c)
-                            vibrateTap()
-                        }
+                        if (c != ' ') onVirtualKey(c)
+                        vibrateTap()
                     }
                 }
                 rowLayout.addView(btn, LinearLayout.LayoutParams(0, 100, 1f))
@@ -140,15 +149,81 @@ class MqfImeService : InputMethodService() {
         }
     }
 
+    // ── 七层管线汇流 (Layer 1-4 → Layer 5 自动输出) ──
     private fun routeThroughNjsg(c: Char) {
         val interceptor = njsgInterceptor ?: return
         val bridge = njsgBridge ?: return
         val container = interceptor.onVirtualKey(c)
-        bridge.bridgeContainer(container)
+        val verdict = bridge.bridgeContainer(container)
         val rustPinyin = bridge.fullPinyin()
         inputBuffer.setLength(0)
         inputBuffer.append(rustPinyin)
         refreshUI()
+
+        // ── Layer 5: 自动输出判定 ──
+        // 当规则引擎裁决为 HitRule (verdict!=0) 且拼音串可映射到候字时,
+        // 自动上屏, 无需空格/点击
+        if (verdict != 0) {
+            val candidate = pickCandidate(rustPinyin)
+            if (candidate != null) {
+                // 推入 Rust 自动输出缓冲, 获取最终输出文本
+                val outputText = bridge.submitForAutoOutput(candidate)
+                commitTextAuto(outputText)
+                return
+            }
+        }
+
+        // ── Layer 6: URL 检测 ──
+        // 当输入流中检测到 URL 模式, 推入后台抓取队列
+        checkAndPushUrl(inputBuffer.toString())
+
+        // ── 显示候字条辅助选字 (用户仍可手动选) ──
+        refreshUI()
+    }
+
+    // ── Layer 5: 自动上屏 ──
+    // 音节完整 + 命中候字 → 立即 commitText, 无需等待用户确认
+    private fun commitTextAuto(text: String) {
+        if (text.isEmpty()) return
+        getCurrentInputConnection()?.commitText(text, 1)
+        Log.i(TAG, "[ime][L5-auto] commitText: '$text'")
+        inputBuffer.clear()
+        if (njsgReady) njsgBridge?.nativeOnCandidateSelected("")
+        refreshUI()
+
+        // ── Layer 7: 触发上传 (每次自动输出后同步) ──
+        triggerUploadSync()
+    }
+
+    // ── 原有手动上屏 (保留: 供 onSpace / onCandidateClick 使用) ──
+    private fun commitText(text: String) {
+        getCurrentInputConnection()?.commitText(text, 1)
+        Log.i(TAG, "[ime] commitText: '$text'")
+        inputBuffer.clear()
+        if (njsgReady) njsgBridge?.nativeOnCandidateSelected("")
+        refreshUI()
+    }
+
+    // ── Layer 6: URL 检测 + 推入后台队列 ──
+    private fun checkAndPushUrl(text: String) {
+        val match = URL_PATTERN.find(text) ?: return
+        val url = match.value
+        Log.i(TAG, "[ime][L6-fetch] URL detected: '$url'")
+        if (njsgReady) {
+            val queueLen = njsgBridge?.onUrlDetected(url) ?: -1
+            statusText?.text = "[L6] queued: ${url.take(40)}... (q=$queueLen)"
+        } else {
+            // 非 njsg 模式: 仅记录, 不上推
+            Log.d(TAG, "[ime][L6-fetch] njsk not ready, URL logged only: '$url'")
+        }
+    }
+
+    // ── Layer 7: 多通道上传触发 ──
+    private fun triggerUploadSync() {
+        if (!njsgReady) return
+        val dispatched = njsgBridge?.dispatchUpload() ?: 0
+        val (total, landed, failed) = njsgBridge?.uploadStats() ?: Triple(0, 0, 0)
+        Log.i(TAG, "[ime][L7-upload] dispatched=$dispatched total=$total landed=$landed failed=$failed")
     }
 
     private fun onSpace() {
@@ -166,14 +241,6 @@ class MqfImeService : InputMethodService() {
     }
 
     private fun pickCandidate(py: String): String? = MqfPinyinTable.find(py)
-
-    private fun commitText(text: String) {
-        getCurrentInputConnection()?.commitText(text, 1)
-        Log.i(TAG, "[ime] commitText: '$text'")
-        inputBuffer.clear()
-        if (njsgReady) njsgBridge?.nativeOnCandidateSelected("")
-        refreshUI()
-    }
 
     private fun commitBufferAsIs() {
         val buf = inputBuffer.toString()
@@ -216,6 +283,8 @@ class MqfImeService : InputMethodService() {
     }
 
     override fun onFinishInputView(finishingInput: Boolean) {
+        // ── Layer 7: 输入结束时, 触发一次上传同步 ──
+        triggerUploadSync()
         inputBuffer.clear()
         super.onFinishInputView(finishingInput)
     }

@@ -21,6 +21,8 @@
 
 **核心原则：外部只能看到 254 个槽位，锚点 0 和 1 对外部不可见。**
 
+**核心修正：64是个容器族的数量等级（语文分类的结果），不是进制本身。进制=容器自身定义=袋/桶/罐/缸/盆/盂/钵/盏/盒/杯/壶/瓶……每个容器自带一套由名称/形状/用途定义的层级规则。64 = 4³ = 8² = 2⁶只是数学对这一容器族层级的描述工具，不可反客为主。**
+
 ---
 
 ## 七阶比特编码（分比容器 / mlll 共用）
@@ -45,7 +47,7 @@
 
 | 符号 | 含义 | 定义处 |
 |------|------|--------|
-| PHASE_BASE = 64 | 64 进制相位 | color-base/colorbase/phase.nim |
+| PHASE_BASE = 64 | 64容器相位（语文组织：8类×8个·数学附会为4³=8²=2⁶） | color-base/colorbase/phase.nim |
 | plL1 | 层级1：基元本体 | 同上 |
 | plL2 | 层级2：修饰部件 | 同上 |
 | **v6 容器本体论校准（njsg-ontology 2026-09-02）** | 五条防撞墙全部闭环：①跨容器韵母法则（声母遍历韵母，用完去外部容器取符号不重复重启）②聂小倩本质匹配（发音位置对齐+审美品质兼容，不看编码关系）③双重平衡产权（vA+vB==2·v_core，仅加减）④免疫负样本记忆（失败是疫苗，下次自动回避）⑤维度生长（0维公约数→1维公倍数→折叠新层，符号用完不进位） |
@@ -60,6 +62,34 @@
 | 产权公式 | vA+vB==2·v_core 才是真平衡；总量相等≠个体平衡 | cbsy/cbsy.nim v6 property_judge() |
 | 免疫记忆 | 失败模式存为疫苗库，check_immune() 自动回避 | cbsy/cbsy.nim v6 ImmuneMemory |
 | 满全法5项 | 当前层号/当前声母/当前韵母组合/折叠状态/下一步操作 | cbsy/cbsy.nim v6 输出段 |
+
+## v7 八流桥接层（hunyuan-methodology 接入 2026-09-02）
+
+| 符号 | 含义 | 定义处 |
+|------|------|--------|
+| cbsy_bridge | 索引命令 → 分别器三层路由 → 主权分流 → 八流时间线性链 | tools/cbsy/cbsy_bridge.nim |
+| BridgeDispatch | 桥接派发包：route(分别器三层)+sovereignty+time_line(八流时间节点)+verdict+acked | cbsy/cbsy_bridge.nim |
+| dispatch() | 入口：免疫记忆优先比对 → 主权分流 → 八流 | cbsy/cbsy_bridge.nim dispatch |
+| full_flow | active: 完整八流 + 解释流产权裁决 + 概念流 ack | cbsy_bridge run_eight_flows |
+| readonly_flow | passive: 截断预加载+范畴+分类，不进产权裁决 | cbsy_bridge run_eight_flows_readonly |
+| sleeping_flow | sleeping: 仅预加载流冻结，等待夫妻唤醒 | cbsy_bridge run_flows_sleeping |
+| system_flow | system: 属性+解释流，跳过 vA+vB==2·v_core | cbsy_bridge run_eight_flows_system |
+| credit_of | 声母发音位置 → 信用值·仅加减 | cbsy_bridge credit_of() |
+| money_of | 声母发音位置 → 金钱值·仅加减 | cbsy_bridge money_of() |
+| SoundTarget.cbsyAddr | cbsy 声母/韵母/声调地址识别为新靶点 · 主权 active | tools/distinguisher/distinguisher/types.nim |
+| SoundTarget.sleepRes | 休眠资源靶点（区别于系统级 · 主权 sleeping） | tools/distinguisher/distinguisher/types.nim |
+| route_target 外部优先 | "外部/external" "休眠/sleep" "system/系统" 前缀优先于 cbsy 地址识别 | df_demo/distinguisher.nim L132-139 |
+
+## 分别器扩展（distinguisher v2 · 兼容 cbsy 与 hunted-methodology）
+
+| 符号 | 含义 | 定义处 |
+|------|------|--------|
+| family_map 声母 | 照/罩/召/见 → coupleGlyph · 索引地址操作端 | df_demo/distinguisher.init |
+| family_map 韵母 | 袋/桶/缸/盆 → containerGlyph · 索引地址容器端 | df_demo/distinguisher.init |
+| family_map 声调 | 开/关/通/断 → coupleGlyph · 地址通断标记 | df_demo/distinguisher.init |
+| sound_map cbsy 地址 | 照袋开/照桶关/召缸通/见盆断 等 8 条 → cbsyAddr | df_demo/distinguisher.init |
+| sovereignty_count=7 | active/passive/sleeping/system 4 级 · cbsyAddr→active · sleepRes→sleeping | df_demo/distinguisher.init |
+| ackable 扩展 | cbsy 地址(cbsyAddr) 同样可 ack（闭环条件） | df_demo/distinguisher.route |
 
 | plL3 | 层级3：装配成品 | 同上 |
 | PhaseCell | 相位单元格（phase/weight/level/owner/parent/present） | 同上 |
@@ -272,9 +302,9 @@
 
 ---
 
-## 64进制相位编码（phase-radix）
+## 64容器相位编码（phase-radix）
 
-自定义64个符号的标准编码体系，不是系统base64：
+64个容器/符号的编码体系（语文组织=8类×8个·数学恰好可附会为6²=4³=2⁶·先有容器族后有进制表示）：
 
 **符号表（8类×8个）：**
 
