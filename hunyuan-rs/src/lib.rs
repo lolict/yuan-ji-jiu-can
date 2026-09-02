@@ -73,6 +73,30 @@ pub use preload::{PreloadFlow, Preload, 预编译容器, SymbolRegistry, Family,
                   安全边界, 二进制因果, 预家长,
                   系统标识符, 混元合一, 审美测试};
 
+// ── v0.10.5 高维代数引擎 (n-1)×0.1偏移率 ──
+pub mod high_algebra;
+pub use high_algebra::{
+    offset_rate, multiplier, add,
+    static_regression, convert_to_level, capture, can_be_captured,
+    sync_offset, verify_self_similarity, residual_check,
+    level_name, level_chinese, level_mltt, level_binary,
+    AlgebraLevel, TierSumState, HighBitAlignment,
+    DELTA_PER_LEVEL, BASE_FOUNDATION, ANCHOR_COUNT, BASE_RADIX, MAX_LEVELS,
+};
+
+// ── v0.10.5 全映射引擎 · 五系统互联 ──
+pub mod full_mapping;
+pub use full_mapping::{
+    Polarity, MappingEntry, FullMapReport, DocPolarity,
+};
+
+// ── v0.10.5 真实数据输入编排器 · Mode C ──
+pub mod data_orchestrator;
+pub use data_orchestrator::{
+    fnv1a, estimate_polarity, estimate_weight,
+    scan_project, DocEntry, ClusterResult, PolarityScore,
+};
+
 // ── v0.11 关系代数子系统 ──
 pub mod rel;
 
