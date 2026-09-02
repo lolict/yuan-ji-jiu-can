@@ -82,7 +82,7 @@
 | 40 | full-mapping | tools/full-mapping/ | ✅ 全映射引擎·九元↔YinYang↔二进制↔mltt↔偏移率·7项全通过 |
 | 41 | njsg-swarm | tools/njsg-swarm/ | ✅ 分布式分身协调·6分身并行·冲突裁决·心跳检测 |
 | 42 | kernel-v1.7-perception | kernel/src/njsg_kernel.c | ✅ 九元感知引擎·九家族分类·谐音靶点路由·固定点迭代(0.82衰减/23次收敛) |
-| 43 | kernel-v1.7-mccp | kernel/src/njsg_kernel.c | ✅ MCCP自举编译器·DSL→C struct·袋子级加法 |
+| 43 | kernel-v1.7-mccp | kernel/src/njsg_kernel.c | ✅ MCCP完整自举编译器·DSL→独立可编译C程序(struct+构造+袋子加法训练+见证裁定+main)·自举闭环已验证 |
 | 44 | data-input | tools/minlian/ | ✅ 真实数据输入·JSON·200文档·FNV-1a·极性分析 |
 | 45 | kernel-v1.7-review | kernel/src/njsg_kernel.c | ✅ 裁判系统·三元审判·产权分·排行榜 |
 | 46 | kernel-v1.7-timeline | kernel/src/njsg_kernel.c | ✅ 时间线一体化·多时钟域·四层心跳后勤 |
