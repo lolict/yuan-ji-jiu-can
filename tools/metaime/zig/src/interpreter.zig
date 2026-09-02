@@ -109,34 +109,34 @@ pub fn load(comptime domain: []const u8, comptime symbol: []const u8) OpResult {
 // === 显示 ===
 
 pub fn displayContainer(comptime domain: []const u8) void {
-    const stdout = std.io.getStdOut().writer();
+    
     const container = loader.getContainer(domain) orelse {
-        stdout.print("容器 {s} 不存在\n", .{domain}) catch {};
+        std.debug.print("容器 {s} 不存在\n", .{domain});
         return;
     };
 
-    stdout.print("袋.{s} = [ ", .{domain}) catch {};
+    std.debug.print("袋.{s} = [ ", .{domain});
     for (container.symbols[0..container.symbol_count]) |entry| {
-        stdout.print("{s} ", .{entry.symbol}) catch {};
+        std.debug.print("{s} ", .{entry.symbol});
     }
-    stdout.print("]\n", .{}) catch {};
+    std.debug.print("]\n", .{});
 }
 
 pub fn displaySymbol(comptime domain: []const u8, comptime identity: []const u8) void {
-    const stdout = std.io.getStdOut().writer();
+    
     const sym = linker.lookupByIdentity(domain, identity) orelse {
-        stdout.print("{s}.{s} = [空]\n", .{ domain, identity }) catch {};
+        std.debug.print("{s}.{s} = [空]\n", .{ domain, identity });
         return;
     };
-    stdout.print("袋.{s}.{s} = {s}\n", .{ domain, identity, sym }) catch {};
+    std.debug.print("袋.{s}.{s} = {s}\n", .{ domain, identity, sym });
 }
 
 pub fn displayMemory() void {
-    const stdout = std.io.getStdOut().writer();
+    
     const sep = "============================================================";
-    stdout.print("\n{s}\n", .{sep}) catch {};
-    stdout.print("内存状态（本体论路径 -> 符号）\n", .{}) catch {};
-    stdout.print("{s}\n", .{sep}) catch {};
+    std.debug.print("\n{s}\n", .{sep});
+    std.debug.print("内存状态（本体论路径 -> 符号）\n", .{});
+    std.debug.print("{s}\n", .{sep});
 
     const entries = linker.getOntologyEntries();
     // Group by domain
@@ -157,15 +157,15 @@ pub fn displayMemory() void {
 
     var di: u8 = 0;
     while (di < domain_count) : (di += 1) {
-        stdout.print("  [{s}]\n", .{domains[di]}) catch {};
+        std.debug.print("  [{s}]\n", .{domains[di]});
         for (entries) |entry| {
             if (std.mem.eql(u8, entry.domain, domains[di])) {
-                stdout.print("    {s}.{s} -> {s}\n", .{ entry.domain, entry.identity, entry.symbol }) catch {};
+                std.debug.print("    {s}.{s} -> {s}\n", .{ entry.domain, entry.identity, entry.symbol });
             }
         }
     }
 
-    stdout.print("{s}\n\n", .{sep}) catch {};
+    std.debug.print("{s}\n\n", .{sep});
 }
 
 // === 测试 ===

@@ -207,7 +207,7 @@ pub use observer::{Observer, SenseForm, SenseKind, Attention};
 
 // ── v0.24 意识运行时 · 完整管道统一调度 (Consciousness Runtime) ──
 pub mod consciousness_runtime;
-pub use consciousness_runtime::{ConsciousnessRuntime, ConsciousnessReport};
+pub use consciousness_runtime::{ConsciousnessRuntime, ConsciousnessReport, ConsciousnessChronicle};
 
 // ── v0.26 天觉 · 视觉 · 袋层级 · 审判奖惩 · 历史积累 (CelestialPerception) ──
 pub mod celestial_perception;
@@ -392,7 +392,7 @@ pub use couple::{XiYaoProtocol, ManQuanFa, EclipseError, ManQuanFaStatus,
 
 // v0.10 协议本体论类型系统 (命名本体 → 编译期存在 + 进制编码)
 pub use protocol_ontology::{
-    ProtocolEntity, Base, Polarity, Layer, LayerSet, OntoCell,
+    ProtocolEntity, Base, Polarity as OntoPolarity, Layer, LayerSet, OntoCell,
     B2, B16, B64, B256, Yang, Yin,
     StandardSovereignty, CoupleSovereignty,
     // ── 标准协议 ──

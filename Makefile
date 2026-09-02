@@ -58,8 +58,33 @@ test: kernel
 	@echo "═══ 囡囝共生内核测试 ═══"
 	./kernel/src/njsg_kernel.elf
 
+# 独立 fqm 工具链（纯 C，无外部协议）
+fqm-tools: fqm_browser.c fqm_gtti.c fqm_call.c fqm_bare.c fqm_cpu.c fqm_net.c fqm_radix.c fqm_time.c fqm_yy.c
+	$(CC) -O2 -o fqm_browser fqm_browser.c
+	$(CC) -O2 -o fqm_gtti fqm_gtti.c
+	$(CC) -O2 -o fqm_call fqm_call.c
+	$(CC) -O2 -o fqm_bare fqm_bare.c
+	$(CC) -O2 -o fqm_cpu fqm_cpu.c
+	$(CC) -O2 -o fqm_net fqm_net.c
+	$(CC) -O2 -o fqm_radix fqm_radix.c -lm
+	$(CC) -O2 -o fqm_time fqm_time.c
+	$(CC) -O2 -o fqm_yy fqm_yy.c
+	@echo "═══ fqm 独立工具链构建完成 ═══"
+
+fqm-test: fqm-tools
+	./fqm_browser
+	./fqm_gtti
+	./fqm_call
+	./fqm_bare
+	./fqm_cpu fqm_program.txt
+	./fqm_net
+	./fqm_radix
+	./fqm_time
+	./fqm_yy
+
 clean:
 	rm -f kernel/src/njsg_kernel.elf kernel/src/mlll_symbols.elf
+	rm -f fqm_browser fqm_gtti fqm_call fqm_bare fqm_cpu fqm_net fqm_radix fqm_time fqm_yy
 
 docs:
 	@echo "═══ 囡囝共生 v2.0 文档入口 ═══"

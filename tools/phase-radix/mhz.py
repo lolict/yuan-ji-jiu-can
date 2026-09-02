@@ -12,6 +12,18 @@ Python 只是壳，审判/衍射/注册全部由 C 执行。
   mhz register <name> <type> <level>  注册符号
   mhz demo              运行演示
   mhz status            系统状态
+  mhz wk                WASM 内核操作 (add/find/route/state/flow/stats)
+  mhz ime               元输入法 MetaIME (encode/decode/feed/demo)
+  mhz court             天庭空间规则引擎 (judge/state/flow/metaime/demo)
+  mhz mo                距离感知聚类 DBSCAN
+  mhz bridge            启动 WASM 内核 HTTP 桥接服务器
+  mhz cocoon            蚕蛹反向寄生壳
+  mhz docs              统计文档聚合浏览器
+  mhz bootstrap         自举编译器 (registry/check/manifest)
+  mhz interlock         全局互锁横轴
+  mhz property          产权流
+  mhz verify            漂移验证链
+  mhz history           历史登记
 """
 
 import sys as _sys
@@ -21,6 +33,18 @@ import os
 _sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from phase_radix._native import (
+    MetaImeEngine,
+    METAIME_POL_WIFE, METAIME_POL_HUSBAND, METAIME_POL_SYSTEM,
+    METAIME_POL_OBSERVER, METAIME_POL_ARBITER, METAIME_POL_SECRET,
+    METAIME_FLOW_PRELOAD, METAIME_FLOW_CATEGORY, METAIME_FLOW_CLUSTER,
+    METAIME_FLOW_DISTINGUISH, METAIME_FLOW_PROPERTY, METAIME_FLOW_INTERPRET,
+    METAIME_FLOW_RELATION, METAIME_FLOW_CONCEPT,
+    SYLLABLE_WILDCARD,
+    CourtEngine,
+    COURT_MERGE, COURT_REPEL, COURT_WITNESS, COURT_TRANSFORM, COURT_DEFER, COURT_ESCALATE,
+    COURT_STATE_NN, COURT_STATE_NJSG, COURT_STATE_JJ, COURT_STATE_JN,
+    REASON_SOUL_OK, REASON_SOV_CONFLICT, REASON_POL_MISMATCH, REASON_WIT_INSUFFICIENT,
+    REASON_FLOW_SLEEP, REASON_DISTANCE_FAR, REASON_HISTORY_REJECT, REASON_STATE_FORBID,
     ColorSystemRef,
     TYPE_BASE, TYPE_TONE, TYPE_COMPOUND, TYPE_SYMBOL,
     TYPE_EXTRA, TYPE_SHENG_MU, TYPE_MODIFIER,
@@ -42,6 +66,8 @@ from phase_radix._native import (
     REASON_CROSS_LEVEL, REASON_CROSS_TYPE, REASON_CROSS_ANCHOR,
     CONTOUR_FLAT, CONTOUR_RISE, CONTOUR_FALL, CONTOUR_DIP,
     WasmKernelRef,
+    MindOrganRef,
+    MO_DIST_GEOMETRIC, MO_DIST_SOVEREIGN, MO_DIST_POLARITY, MO_DIST_WITNESS, MO_DIST_MCCP,
     WK_STATE_NN, WK_STATE_NJSG, WK_STATE_JJ, WK_STATE_JN,
     WK_POLARITY_WIFE, WK_POLARITY_HUSBAND, WK_POLARITY_SYSTEM,
     WK_FLOW_PRELOAD, WK_FLOW_CATEGORY, WK_FLOW_CLUSTER, WK_FLOW_DISTINGUISH,
@@ -820,6 +846,19 @@ def main():
     elif command == "docs":
         cmd_docs(args)
     
+    elif command == "mo":
+        cmd_mo(args)
+
+    elif command == "bridge":
+        cmd_bridge(args)
+
+    elif command == "ime":
+        cmd_ime(args)
+
+    elif command == "court":
+        court = CourtEngine()
+        cmd_court(court, args)
+
     elif command == "verify":
         import subprocess
         # __file__ = .../tools/phase-radix/mhz.py
@@ -847,6 +886,280 @@ def main():
         print(__doc__)
 
 
+def cmd_bridge(args: list):
+    """启动 WASM 内核桥接服务器: mhz bridge [--port N] [--host H]"""
+    import argparse
+    parser = argparse.ArgumentParser(prog='mhz bridge', description='WASM 内核 HTTP 桥接服务器')
+    parser.add_argument('--host', default='127.0.0.1', help='监听地址 (默认 127.0.0.1)')
+    parser.add_argument('--port', type=int, default=19800, help='监听端口 (默认 19800)')
+    parser.add_argument('--state', default=None, help='内核状态文件路径')
+    parsed = parser.parse_args(args)
+
+    from kernel_bridge import start_server
+    start_server(parsed.host, parsed.port, parsed.state)
+
+
+# ── MetaIME 元输入法 ──────────────────────────────────────
+
+_SHENGMU_NAMES = {
+    "b": 0, "p": 1, "m": 2, "f": 3,
+    "d": 4, "t": 5, "n": 6, "l": 7,
+    "g": 8, "k": 9, "h": 10, "w": 11,
+    "j": 12, "q": 13, "x": 14, "y": 15,
+    "z": 16, "c": 17, "s": 18, "r": 19,
+    "zh": 20, "ch": 21, "sh": 22, "ri": 23,
+}
+
+_YUNMU_NAMES = {
+    "a": 0, "o": 2, "e": 4, "i": 6, "u": 8, "v": 18, "ü": 18,
+    "ai": 10, "ei": 12, "ao": 14, "ou": 16, "er": 20,
+    "ia": 22, "ie": 24, "ua": 26, "uo": 28,
+    "an": 30, "en": 32, "in": 34, "ün": 36,
+    "ang": 38, "eng": 40, "ing": 42, "ong": 44,
+    "iao": 46, "uai": 48, "ian": 50, "uan": 52, "üan": 54,
+    "iang": 56, "uang": 58, "iong": 60,
+    "üe": 62, "iu": 64,
+}
+
+
+def _parse_syl(s: str):
+    """解析音节 'ba1' → (sm_idx, ym_idx, tone)"""
+    s = s.strip()
+    if not s:
+        return None
+    tone = 0
+    if s[-1] in '012345':
+        tone = int(s[-1])
+        s = s[:-1]
+    sm_name = ""
+    sm_idx = -1
+    for name, idx in _SHENGMU_NAMES.items():
+        if s.startswith(name) and len(name) > len(sm_name):
+            sm_name = name
+            sm_idx = idx
+    if sm_idx < 0:
+        return None
+    ym_part = s[len(sm_name):]
+    ym_idx = _YUNMU_NAMES.get(ym_part)
+    if ym_idx is None:
+        return None
+    return (sm_idx, ym_idx, tone)
+
+
+def cmd_ime(args: list):
+    """元输入法 MetaIME: mhz ime <encode|decode|feed|demo|stats>"""
+
+    ime = MetaImeEngine()
+
+    if not args:
+        print("用法: mhz ime <encode|decode|feed|demo|stats>")
+        print("  decode <hex_cell>")
+        print("  feed <音节...>   如: ba1 ma3")
+        print("  demo            运行七层编码演示")
+        return
+
+    subcmd = args[0]
+
+    if subcmd == "encode":
+        sm = _SHENGMU_NAMES.get(args[1], 0) if len(args) > 1 else 0
+        ym = _YUNMU_NAMES.get(args[2], 0) if len(args) > 2 else 0
+        tone = int(args[3]) if len(args) > 3 else 0
+        pol = int(args[4], 0) if len(args) > 4 else 0
+        wit = int(args[5], 0) if len(args) > 5 else 0
+        flow = int(args[6], 0) if len(args) > 6 else 0
+        sov = int(args[7], 0) if len(args) > 7 else 0
+        cell = ime.encode(sm, ym, tone, pol, wit, flow, sov)
+        print(f"七层编码: sm={sm} ym={ym} tone={tone}")
+        print(f"  pol={pol} wit={wit} flow={flow} sov=0x{sov:05X}")
+        print(f"  → cell = 0x{cell:012X}")
+        d = ime.decode(cell)
+        print(f"  → decode: {d}")
+
+    elif subcmd == "decode":
+        cell = int(args[1], 0)
+        d = ime.decode(cell)
+        print(f"解码 0x{cell:012X}: sm={d['shengmu']} ym={d['yunmu']} tone={d['tone']}")
+        print(f"  pol={d['polarity']} wit={d['wit']} flow={d['flow']} sov=0x{d['sovereignty']:05X}")
+
+    elif subcmd == "feed":
+        if len(args) < 2:
+            print("用法: mhz ime feed <音节1> <音节2> ...")
+            return
+        # 注册 demo 规则
+        ime.add_rule([ime.syllable(0, 0, 1)], '八', cell=0x100, priority=10)
+        ime.add_rule([ime.syllable(2, 0, 3)], '马', cell=0x200, priority=10)
+        ime.add_rule([ime.syllable(4, 0, 3)], '大', cell=0x300, priority=10)
+
+        for s_str in args[1:]:
+            parsed = _parse_syl(s_str)
+            if parsed:
+                r = ime.feed(parsed[0], parsed[1], parsed[2])
+                if r["matched"]:
+                    print(f"  {s_str} → rule#{r['rule_id']} '{r['text']}' (置信{r['confidence']}%)")
+                else:
+                    print(f"  {s_str} → 无匹配")
+            else:
+                print(f"  {s_str} → 解析失败")
+        print(ime.stats())
+
+    elif subcmd == "demo":
+        print("═══ MetaIME 七层编码演示 ═══\n")
+        print("── 编码/解码 ──")
+        tests = [
+            (0, 0, 1, 0, 0, 0, 0x100, "bā"),
+            (20, 44, 1, 2, 3, 7, 0x400, "zhōng·见证3级·概念流"),
+        ]
+        for sm, ym, tone, pol, wit, flow, sov, desc in tests:
+            cell = ime.encode(sm, ym, tone, pol, wit, flow, sov)
+            d = ime.decode(cell)
+            print(f"  {desc}: cell=0x{cell:012X}")
+            print(f"    → sm={d['shengmu']} ym={d['yunmu']} tone={d['tone']} pol={d['polarity']} wit={d['wit']} flow={d['flow']}")
+
+        print("\n── 意图匹配 ──")
+        ime2 = MetaImeEngine()
+        syl_w = ime2.syllable(SYLLABLE_WILDCARD, 0, 1)
+        syl_ba = ime2.syllable(0, 0, 1)
+        syl_pa = ime2.syllable(1, 0, 1)
+        ime2.add_rule([syl_w], '? a一声字', cell=0xFFFF, priority=1)
+        ime2.add_rule([syl_ba], '八(精确)', cell=0x100, priority=10)
+        ime2.add_rule([syl_pa], '趴(精确)', cell=0x110, priority=10)
+
+        for inp in ["ba1", "pa1", "da1"]:
+            ime2.reset()
+            p = _parse_syl(inp)
+            if p:
+                r = ime2.feed(p[0], p[1], p[2])
+                if r["matched"]:
+                    print(f"  {inp} → '{r['text']}'")
+                else:
+                    print(f"  {inp} → 无匹配")
+
+    elif subcmd == "stats":
+        print(ime.stats())
+
+    else:
+        print(f"未知: {subcmd}")
+
+
+# ── 天庭空间 ──────────────────────────────────────────────
+
+_COURT_STATE_NAMES = {
+    COURT_STATE_NN: "囡囡(NN)", COURT_STATE_NJSG: "囡囝(NJSG)",
+    COURT_STATE_JJ: "囝囝(JJ)", COURT_STATE_JN: "囝囡(JN)",
+}
+
+_COURT_VERDICT_NAMES = {
+    COURT_MERGE: "融合", COURT_REPEL: "排斥", COURT_WITNESS: "见证",
+    COURT_TRANSFORM: "转化", COURT_DEFER: "延迟", COURT_ESCALATE: "升维",
+}
+
+
+def cmd_court(court: CourtEngine, args: list):
+    """天庭空间: mhz court <judge|state|flow|metaime|stats|demo>"""
+    if not args:
+        print("用法: mhz court <judge|state|flow|metaime|stats|demo>")
+        print("  judge <cell_a_hex> <cell_b_hex> [flow] — 裁决两个细胞交互")
+        print("  state <nn|njsg|jj|jn>                  — 设置囡囝四态")
+        print("  flow <0-7>                              — 激活流")
+        print("  metaime <sm> <ym> <tone> <pol> <wit>    — MetaIME 意图路由")
+        print("  stats                                   — 天庭统计")
+        print("  demo                                    — 四态裁决演示")
+        return
+
+    subcmd = args[0]
+
+    if subcmd == "judge":
+        if len(args) < 3:
+            print("用法: mhz court judge <cell_a_hex> <cell_b_hex> [flow]")
+            return
+        cell_a = int(args[1], 0)
+        cell_b = int(args[2], 0)
+        flow = int(args[3], 0) if len(args) > 3 else 0
+        r = court.judge(cell_a, cell_b, flow)
+        print(f"裁决 A=0x{cell_a:012X} B=0x{cell_b:012X} (flow={flow}):")
+        print(f"  结果: {r['verdict_str']} (置信 {r['confidence']:.2f})")
+        print(f"  事由: {r['reason_str']}")
+        if r['output_cell']:
+            print(f"  输出细胞: 0x{r['output_cell']:012X}")
+
+    elif subcmd == "state":
+        if len(args) < 2:
+            print("用法: mhz court state <nn|njsg|jj|jn>")
+            return
+        smap = {"nn": COURT_STATE_NN, "njsg": COURT_STATE_NJSG,
+                "jj": COURT_STATE_JJ, "jn": COURT_STATE_JN}
+        s = smap.get(args[1].lower())
+        if s is None:
+            print(f"无效状态: {args[1]}")
+            return
+        court.set_state(s)
+        print(f"囡囝态已切换: {_COURT_STATE_NAMES[s]}")
+
+    elif subcmd == "flow":
+        if len(args) < 2:
+            print("用法: mhz court flow <0-7>")
+            return
+        flow = int(args[1], 0)
+        if flow < 0 or flow > 7:
+            print(f"无效流: {flow}")
+            return
+        court.activate_flow(flow)
+        print(f"流 {flow} 已激活")
+
+    elif subcmd == "metaime":
+        if len(args) < 6:
+            print("用法: mhz court metaime <sm> <ym> <tone> <pol> <wit>")
+            return
+        sm = int(args[1], 0)
+        ym = int(args[2], 0)
+        tone = int(args[3], 0)
+        pol = int(args[4], 0)
+        wit = int(args[5], 0)
+        r = court.route_metaime(sm, ym, tone, pol, wit)
+        print(f"MetaIME 路由 sm={sm} ym={ym} tone={tone} pol={pol} wit={wit}:")
+        print(f"  裁决: {r['verdict_str']} (置信 {r['confidence']:.2f})")
+        if r['output_cell']:
+            print(f"  输出: 0x{r['output_cell']:012X}")
+
+    elif subcmd == "stats":
+        print(court.stats())
+
+    elif subcmd == "demo":
+        print("═══ 天庭空间 · 四态裁决演示 ═══\n")
+        # 构造细胞: 妻极性兼容 vs 夫极性
+        # cell 编码: low32=MCCP, hi32: [63:60]=pol [59:56]=wit [55:52]=flow [51:32]=sov(21bit)
+        def make_cell(mccp, sov, pol, wit):
+            return ((pol & 0xF) << 60) | ((wit & 0xF) << 56) | ((sov & 0x1FFFFF) << 32) | (mccp & 0xFFFFFFFF)
+
+        cell_wife = make_cell(0x1000, 0x10000, 0, 2)   # 妻极性
+        cell_husb = make_cell(0x2000, 0x20000, 1, 2)   # 夫极性
+        cell_sys  = make_cell(0x3000, 0x30000, 2, 3)   # 系统极性
+
+        for state_val, state_name in sorted(_COURT_STATE_NAMES.items()):
+            court.set_state(state_val)
+            court.activate_flow(0)
+            print(f"── {state_name} ──")
+            r1 = court.judge(cell_wife, cell_husb, 0)
+            print(f"  妻×夫: {r1['verdict_str']} ({r1['reason_str']}) conf={r1['confidence']:.2f}")
+            r2 = court.judge(cell_wife, cell_sys, 0)
+            print(f"  妻×系统: {r2['verdict_str']} ({r2['reason_str']}) conf={r2['confidence']:.2f}")
+            r3 = court.judge(cell_husb, cell_sys, 0)
+            print(f"  夫×系统: {r3['verdict_str']} ({r3['reason_str']}) conf={r3['confidence']:.2f}")
+            print()
+
+        # MetaIME 路由演示
+        print("── MetaIME 意图路由 ──")
+        court.set_state(COURT_STATE_NJSG)
+        court.activate_flow(7)  # CONCEPT
+        r = court.route_metaime(0, 0, 1, 0, 1)  # bā · 妻极性 · 见证1级
+        print(f"  bā(route): {r['verdict_str']} (conf={r['confidence']:.2f})")
+        r = court.route_metaime(20, 44, 1, 2, 3)  # zhōng · 系统 · 见证3
+        print(f"  zhōng(route): {r['verdict_str']} (conf={r['confidence']:.2f})")
+
+    else:
+        print(f"未知子命令: {subcmd}")
+
+
 # ── 文档聚合浏览器 ────────────────────────────────────────
 
 def cmd_docs(args: list):
@@ -859,9 +1172,6 @@ def cmd_docs(args: list):
     
     if not args:
         print("用法: mhz docs <scan|clusters|tree>")
-        print("  scan      — 扫描文档")
-        print("  clusters  — 态势聚类")
-        print("  tree      — 连接包裹树")
         return
     
     subcmd = args[0]
@@ -889,6 +1199,86 @@ def cmd_docs(args: list):
         tree.build()
         print("═══ 连接包裹树 ═══")
         print(tree.render_text())
+    else:
+        print(f"未知子命令: {subcmd}")
+
+
+def cmd_mo(args: list):
+    """距离感知聚类: mhz mo <子命令>"""
+    if not args:
+        print("用法: mhz mo <add|dist|nearest|cluster|demo>")
+        print("  add <mccp> <sov> <pol> <wit>  — 添加 cell")
+        print("  dist <i> <j> [type]           — 计算距离 (type=0几何 1主权 2极性 3见证 4码点)")
+        print("  nearest <i> [type]            — 查找最近邻")
+        print("  cluster [eps] [min_pts] [type] — DBSCAN 聚类")
+        print("  demo                          — 演示")
+        return
+    
+    subcmd = args[0]
+    
+    if subcmd == "demo":
+        mo = MindOrganRef()
+        # 构造测试数据: 3 个接近的簇
+        mo.add_cell(0x1000, 0x10000, 0, 1)   # A
+        mo.add_cell(0x1001, 0x10001, 0, 1)   # B
+        mo.add_cell(0x1002, 0x10002, 0, 2)   # C
+        mo.add_cell(0x5000, 0x50000, 1, 5)   # D
+        mo.add_cell(0x5001, 0x50001, 1, 5)   # E
+        mo.add_cell(0x9000, 0x90000, 2, 9)   # F
+        
+        print("═══ 距离感知聚类演示 ═══")
+        print(f"Cell 数: 6")
+        print(f"d(A,B) = {mo.distance(0, 1):.4f}")
+        print(f"d(A,D) = {mo.distance(0, 3):.4f}")
+        print(f"A 最近邻: 索引 {mo.nearest(0)}")
+        print()
+        print("── 聚类结果 ──")
+        # Use Python list to persist cells
+        result = mo.cluster(eps=0.3, min_pts=2, dist_type=MO_DIST_GEOMETRIC)
+        print(result)
+        return
+    
+    # 其他子命令需要持久化状态 · 使用全局 _mo_instance
+    global _mo_instance
+    if '_mo_instance' not in globals():
+        _mo_instance = MindOrganRef()
+    mo = _mo_instance
+    
+    if subcmd == "add":
+        if len(args) < 5:
+            print("用法: mhz mo add <mccp> <sov> <pol> <wit>")
+            return
+        mccp = int(args[1], 0)
+        sov = int(args[2], 0)
+        pol = int(args[3], 0)
+        wit = int(args[4], 0)
+        idx = mo.add_cell(mccp, sov, pol, wit)
+        print(f"添加 cell[{idx}]: MCCP=0x{mccp:04X} SOV=0x{sov:05X} POL={pol} WIT={wit}")
+    elif subcmd == "dist":
+        if len(args) < 3:
+            print("用法: mhz mo dist <i> <j> [type]")
+            return
+        i, j = int(args[1]), int(args[2])
+        dtype = int(args[3]) if len(args) > 3 else 0
+        d = mo.distance(i, j, dtype)
+        print(f"d({i},{j}) = {d:.4f}")
+    elif subcmd == "nearest":
+        if len(args) < 2:
+            print("用法: mhz mo nearest <i> [type]")
+            return
+        i = int(args[1])
+        dtype = int(args[2]) if len(args) > 2 else 0
+        nn = mo.nearest(i, dtype)
+        print(f"cell[{i}] 最近邻: 索引 {nn}")
+    elif subcmd == "cluster":
+        eps = float(args[1]) if len(args) > 1 else 0.3
+        min_pts = int(args[2]) if len(args) > 2 else 2
+        dtype = int(args[3]) if len(args) > 3 else 0
+        result = mo.cluster(eps, min_pts, dtype)
+        if result:
+            print(result)
+        else:
+            print("无数据")
     else:
         print(f"未知子命令: {subcmd}")
 

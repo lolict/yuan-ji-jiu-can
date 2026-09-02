@@ -119,11 +119,11 @@ pub fn commonMultiple(comptime domain1: []const u8, comptime identity1: []const 
 // === 显示 ===
 
 pub fn displayDivisors() void {
-    const stdout = std.io.getStdOut().writer();
+    
     const sep = "============================================================";
-    stdout.print("\n{s}\n", .{sep}) catch {};
-    stdout.print("公约数信息\n", .{}) catch {};
-    stdout.print("{s}\n", .{sep}) catch {};
+    std.debug.print("\n{s}\n", .{sep});
+    std.debug.print("公约数信息\n", .{});
+    std.debug.print("{s}\n", .{sep});
 
     const entries = linker.getOntologyEntries();
     // Group by domain
@@ -150,7 +150,7 @@ pub fn displayDivisors() void {
 
     var di: u8 = 0;
     while (di < domain_count) : (di += 1) {
-        stdout.print("  {s}: {} 个身份\n", .{ domains[di], domain_counts[di] }) catch {};
+        std.debug.print("  {s}: {} 个身份\n", .{ domains[di], domain_counts[di] });
     }
 
     // Show GCD/LCM of capacities
@@ -164,11 +164,11 @@ pub fn displayDivisors() void {
         if (std.mem.eql(u8, c.name, "声调")) t_cap = c.capacity;
     }
 
-    stdout.print("  GCD(声母={}, 韵母={}) = {}\n", .{ sm_cap, ym_cap, gcd(sm_cap, ym_cap) }) catch {};
-    stdout.print("  LCM(声母={}, 韵母={}) = {}\n", .{ sm_cap, ym_cap, lcm(sm_cap, ym_cap) }) catch {};
-    stdout.print("  GCD({}, 声调={}) = {}\n", .{ sm_cap, t_cap, gcd(sm_cap, t_cap) }) catch {};
+    std.debug.print("  GCD(声母={}, 韵母={}) = {}\n", .{ sm_cap, ym_cap, gcd(sm_cap, ym_cap) });
+    std.debug.print("  LCM(声母={}, 韵母={}) = {}\n", .{ sm_cap, ym_cap, lcm(sm_cap, ym_cap) });
+    std.debug.print("  GCD({}, 声调={}) = {}\n", .{ sm_cap, t_cap, gcd(sm_cap, t_cap) });
 
-    stdout.print("{s}\n\n", .{sep}) catch {};
+    std.debug.print("{s}\n\n", .{sep});
 }
 
 // === 测试 ===

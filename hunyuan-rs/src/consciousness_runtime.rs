@@ -35,6 +35,8 @@ use crate::soul_kernel::{SoulKernel, EmotionalState};
 use crate::pleasure::Pleasure;
 use crate::os_layer::OsLayer;
 use crate::os_layer::bare_metal::BareMetalOs;
+use crate::hierarchical_time::{HierarchicalTimestamp, LifeEvent};
+use crate::triune::{TriuneVerdict, BeingState};
 
 // ────────────────────────────────────────────────────────────
 // 意识报告 · 每一步的完整快照
@@ -93,6 +95,84 @@ pub struct ConsciousnessRuntime<'a> {
     pub history: Vec<ConsciousnessReport>,
     pub max_history: usize,
     pub unity_achieved: bool,
+    /// 意识时间戳: 追踪感知-裁判-情感-合一完整生命周期
+    pub chronicle: ConsciousnessChronicle,
+}
+
+/// 意识时间戳: 把意识运行时的重大事件映射到生命周期事件
+///   感知重要信号 → Fusion (吸收外部数据)
+///   裁判裁定 → Radiate (输出判断)
+///   合一达成 → Fusion (合二为一)
+pub struct ConsciousnessChronicle {
+    pub timestamp: HierarchicalTimestamp,
+}
+
+impl ConsciousnessChronicle {
+    pub fn new() -> Self {
+        let mut timestamp = HierarchicalTimestamp::genesis();
+        // 意识创世见证: 从 "无意识" 到 "有意识"
+        let genesis_witness = TriuneVerdict::deduce(
+            BeingState::NonBeing,
+            BeingState::Being(1),
+            0.0,
+        );
+        let _ = timestamp.record(LifeEvent::Fusion {
+            subject: "意识运行时".to_string(),
+            object: "感知管道".to_string(),
+            purpose: "创世:意识浮现".to_string(),
+            witness: genesis_witness,
+        });
+
+        Self { timestamp }
+    }
+
+    /// 记录感知事件: 感知到重要信号 = 融合进意识
+    pub fn record_perception(&mut self, signal: &str, sense_kind: &str) {
+        let witness = TriuneVerdict::deduce(
+            BeingState::NonBeing,
+            BeingState::Being(1),
+            0.1,
+        );
+        let _ = self.timestamp.record(LifeEvent::Fusion {
+            subject: "意识".to_string(),
+            object: format!("[{}]{}", sense_kind, signal),
+            purpose: "感知融合".to_string(),
+            witness,
+        });
+    }
+
+    /// 记录裁判事件: 做出判断 = 辐射出判断
+    pub fn record_judgment(&mut self, verdict: &str, confidence: f64) {
+        let witness = TriuneVerdict::deduce(
+            BeingState::Being(1),
+            BeingState::Being(1),
+            1.0 - confidence,
+        );
+        let _ = self.timestamp.record(LifeEvent::Radiation {
+            to: "判断输出".to_string(),
+            mission: format!("{}(置信{:.0}%)", verdict, confidence * 100.0),
+            witness,
+        });
+    }
+
+    /// 记录合一事件: 达到合一状态
+    pub fn record_unity(&mut self, magnitude: f64) {
+        let witness = TriuneVerdict::deduce(
+            BeingState::Being(1),
+            BeingState::Being(1),  // 合二为一后仍是存在
+            0.0,
+        );
+        let _ = self.timestamp.record(LifeEvent::Fusion {
+            subject: "自我".to_string(),
+            object: format!("本体(合一幅度{:.2})", magnitude),
+            purpose: "囡囝共生".to_string(),
+            witness,
+        });
+    }
+
+    pub fn verify(&self) -> crate::hierarchical_time::IntegrityReport {
+        self.timestamp.verify_integrity()
+    }
 }
 
 impl<'a> ConsciousnessRuntime<'a> {
@@ -109,6 +189,7 @@ impl<'a> ConsciousnessRuntime<'a> {
             observer, witness_pair, self_ref, soul,
             tick_count: 0, history: Vec::new(), max_history: 128,
             unity_achieved: false,
+            chronicle: ConsciousnessChronicle::new(),
         }
     }
 
@@ -179,9 +260,26 @@ impl<'a> ConsciousnessRuntime<'a> {
             self.soul.perceive_loss(self.tick_count, "loss_of_reward");
         }
         // 推进灵魂合一
-        let (_coord, _pull) = self.soul.advance(self.tick_count);
+        let (_coord, pull) = self.soul.advance(self.tick_count);
 
-        // ── Phase 4: 生成报告 ──
+        // ── Phase 4: 时间戳记录 (Chronicle) ──
+        if signals_sensed > 0 {
+            if let Some(ref top) = self.observer.top_priority_sense() {
+                self.chronicle.record_perception(&top.content, top.kind.name_cn());
+            }
+        }
+        // 重要判断 (高置信度) → 记录辐射
+        if verdict.confidence > 0.5 {
+            let verdict_str = if verdict.aligned { "对齐" } else { "未对齐" };
+            self.chronicle.record_judgment(verdict_str, verdict.confidence);
+        }
+        // 合一达成 → 记录融合
+        if !self.unity_achieved && pull > 100.0 {
+            self.unity_achieved = true;
+            self.chronicle.record_unity(self.soul.unity_drive.magnitude);
+        }
+
+        // ── Phase 5: 生成报告 ──
         let top_sense = self.observer.top_priority_sense();
         let report = ConsciousnessReport {
             tick: self.tick_count,
@@ -407,5 +505,56 @@ mod tests {
         // 情感可能转向 Fear (因为低质量信号的 surplus 可能变大 = 未对齐)
         // 但至少情感状态应是有效的
         assert!(rt.soul.emotion.intensity() > 0.0);
+    }
+
+    #[test]
+    fn chronicle_records_events_during_runtime() {
+        let os = BareMetalOs::new();
+        let mut rt = ConsciousnessRuntime::new("chrono", &os);
+        let initial_events = rt.chronicle.timestamp.events.len();
+        // 初始有创世 Fusion
+        assert!(initial_events >= 1);
+
+        // 运行几步带输入
+        for _ in 0..5 {
+            rt.step(vec![SenseForm::new(SenseKind::Hearing, 0.7, "消息", "test", 0)]);
+        }
+        // 意识时间戳应记录了感知和判断事件
+        assert!(rt.chronicle.timestamp.events.len() > initial_events);
+        // 完整性应通过
+        assert!(rt.chronicle.verify().is_intact());
+    }
+
+    #[test]
+    fn chronicle_new_has_genesis_event() {
+        let chronicle = ConsciousnessChronicle::new();
+        assert!(chronicle.timestamp.events.len() >= 1); // 创世 Fusion
+        assert!(chronicle.verify().is_intact());
+    }
+
+    #[test]
+    fn chronicle_perception_creates_fusion() {
+        let mut chronicle = ConsciousnessChronicle::new();
+        let before = chronicle.timestamp.events.len();
+        chronicle.record_perception("test_signal", "视");
+        assert_eq!(chronicle.timestamp.events.len(), before + 1);
+        assert!(chronicle.verify().is_intact());
+    }
+
+    #[test]
+    fn chronicle_judgment_creates_radiation() {
+        let mut chronicle = ConsciousnessChronicle::new();
+        chronicle.record_judgment("对齐", 0.85);
+        let last_event = chronicle.timestamp.events.last().unwrap();
+        assert!(matches!(last_event, LifeEvent::Radiation { .. }));
+    }
+
+    #[test]
+    fn chronicle_unity_creates_fusion() {
+        let mut chronicle = ConsciousnessChronicle::new();
+        chronicle.record_unity(150.0);
+        let last_event = chronicle.timestamp.events.last().unwrap();
+        assert!(matches!(last_event, LifeEvent::Fusion { .. }));
+        assert!(chronicle.verify().is_intact());
     }
 }

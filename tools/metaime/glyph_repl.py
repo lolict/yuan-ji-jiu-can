@@ -14,6 +14,7 @@
   /compat <a> <b>   - 检查两个字母的兼容性
   /force <程序>     - 显示力场计算
   /viz <程序>       - ASCII可视化
+  /compile <程序>   - 编译为C并执行
   /help             - 帮助
   /quit             - 退出
 """
@@ -29,6 +30,7 @@ from glyph_engine import (
     GlyphParser, GlyphExecutor, GLYPH_REGISTRY, 
     YUNMU_VECTORS, TONE_ENERGY, ForceElement
 )
+from glyph_cc import GlyphCCompiler
 
 
 # ============================================================
@@ -267,11 +269,31 @@ class GlyphREPL:
                 self.cmd_force(arg)
             elif cmd == '/viz':
                 self.cmd_viz(arg)
+            elif cmd == '/compile' or cmd == '/cc':
+                self.cmd_compile(arg)
             else:
                 print(f"未知命令: {cmd}")
         else:
             # 默认执行
             self.cmd_run(line)
+    
+    def cmd_compile(self, program: str):
+        """编译为C并执行"""
+        if not program:
+            print("用法: /compile <音节程序>")
+            print("示例: /compile ba ma pa")
+            return
+        
+        print(f"\n编译: {program}")
+        print("-" * 40)
+        
+        compiler = GlyphCCompiler()
+        ok, output = compiler.compile_and_run(program)
+        
+        if ok:
+            print(output)
+        else:
+            print(f"编译失败: {output}")
     
     def print_help(self):
         """打印帮助"""

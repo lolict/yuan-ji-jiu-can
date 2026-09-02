@@ -85,21 +85,21 @@ pub fn translateLine(comptime line: []const u8) []const u8 {
 // === 显示 ===
 
 pub fn displayTranslation(comptime foreign: []const u8) void {
-    const stdout = std.io.getStdOut().writer();
+    
     const result = translate(foreign);
     if (result) |ont| {
-        stdout.print("  {s:12} -> {s}\n", .{ foreign, ont }) catch {};
+        std.debug.print("  {s:12} -> {s}\n", .{ foreign, ont });
     } else {
-        stdout.print("  {s:12} -> [拒绝]\n", .{foreign}) catch {};
+        std.debug.print("  {s:12} -> [拒绝]\n", .{foreign});
     }
 }
 
 pub fn displayAllTranslations() void {
-    const stdout = std.io.getStdOut().writer();
+    
     const sep = "============================================================";
-    stdout.print("\n{s}\n", .{sep}) catch {};
-    stdout.print("翻译表\n", .{}) catch {};
-    stdout.print("{s}\n", .{sep}) catch {};
+    std.debug.print("\n{s}\n", .{sep});
+    std.debug.print("翻译表\n", .{});
+    std.debug.print("{s}\n", .{sep});
 
     const test_symbols = [_][]const u8{
         "class", "def", "import", "return", "if", "else", "for", "while",
@@ -113,7 +113,7 @@ pub fn displayAllTranslations() void {
         displayTranslation(sym);
     }
 
-    stdout.print("{s}\n\n", .{sep}) catch {};
+    std.debug.print("{s}\n\n", .{sep});
 }
 
 // === 测试 ===

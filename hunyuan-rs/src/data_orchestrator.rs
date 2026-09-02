@@ -248,8 +248,8 @@ mod tests {
     #[test]
     fn test_estimate_weight() {
         assert_eq!(estimate_weight(""), 0.0);
-        assert_eq(&estimate_weight("a".repeat(100).as_str()), &1.0);
-        assert_eq(&estimate_weight("a".repeat(200).as_str()), &2.0);
+        assert_eq!(estimate_weight(&"a".repeat(100)), 1.0);
+        assert_eq!(estimate_weight(&"a".repeat(200)), 2.0);
     }
 
     #[test]

@@ -11,6 +11,7 @@ const locator = @import("locator.zig");
 pub const phaser = @import("phaser.zig");
 const angler = @import("angler.zig");
 const frequencer = @import("frequencer.zig");
+const arbiter = @import("arbiter.zig");
 
 // ============================================================
 // 1. 协调器配置 (Orchestrator Config)
@@ -58,6 +59,7 @@ pub const Orchestrator = struct {
     phaser: phaser.Phaser,
     angler: angler.Angler,
     frequencer: frequencer.Frequencer,
+    arbiter: arbiter.Arbiter,
 
     // 参考点（用于定位器）
     reference_point: locator.Coordinate,
@@ -76,6 +78,7 @@ pub const Orchestrator = struct {
         orchestrator.phaser = phaser.Phaser.init(allocator, config.phaser_strategy, config.phaser_adjustment_rate, config.phaser_tolerance);
         orchestrator.angler = angler.Angler.init(allocator, config.angler_tolerance);
         orchestrator.frequencer = frequencer.Frequencer.init(allocator, config.frequencer_tolerance_hz);
+        orchestrator.arbiter = arbiter.Arbiter.init(allocator);
 
         return orchestrator;
     }
@@ -87,6 +90,7 @@ pub const Orchestrator = struct {
         self.phaser.deinit();
         self.angler.deinit();
         self.frequencer.deinit();
+        self.arbiter.deinit();
     }
 
     // 启动协调器
@@ -153,6 +157,19 @@ pub const Orchestrator = struct {
     // 获取容器统计
     pub fn getContainerStats(self: *const Orchestrator) []const indexer.Container {
         return self.indexer.containers.items;
+    }
+
+    // 满全法裁决器报告
+    pub fn judgeAllContainers(self: *Orchestrator) !void {
+        const stats = self.indexer.containers.items;
+        for (stats) |*container| {
+            _ = try self.arbiter.judge(container);
+        }
+    }
+
+    // 获取编码后的裁决报告
+    pub fn getJudgmentReport(self: *const Orchestrator, allocator: std.mem.Allocator) ![]const u8 {
+        return self.arbiter.encodeJudgmentReport(allocator);
     }
 
     // 运行完整流程

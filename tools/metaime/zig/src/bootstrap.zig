@@ -152,42 +152,42 @@ pub const BootstrapResult = struct {
     resonance: ResonanceReport,
 
     pub fn print(self: BootstrapResult, writer: anytype) void {
-        writer.print("\n", .{}) catch {};
+        writer.print("\n", .{});
         printDrumSeparator(writer);
-        writer.print(" 骨魔自举程序启动 \n", .{}) catch {};
+        writer.print(" 骨魔自举程序启动 \n", .{});
         printDrumSeparator(writer);
-        writer.print("\n", .{}) catch {};
+        writer.print("\n", .{});
 
         // 振荡器
-        writer.print("  [振荡器] {s}\n", .{self.oscillator.message()}) catch {};
-        writer.print("  [振荡器] 签名: {s}\n", .{self.oscillator.signature}) catch {};
-        writer.print("  [振荡器] 频率: {d}Hz\n", .{self.oscillator.frequency}) catch {};
+        writer.print("  [振荡器] {s}\n", .{self.oscillator.message()});
+        writer.print("  [振荡器] 签名: {s}\n", .{self.oscillator.signature});
+        writer.print("  [振荡器] 频率: {d}Hz\n", .{self.oscillator.frequency});
 
         // 骨膜骨架
-        writer.print("\n  [骨膜骨架] 不可变元规则:\n", .{}) catch {};
-        writer.print("    运算: 仅add/sub, 禁mul/div/pow/mod\n", .{}) catch {};
-        writer.print("    单位: 袋级（不数米）\n", .{}) catch {};
-        writer.print("    见证: 非空+已见证+锚点一致\n", .{}) catch {};
-        writer.print("    容器: 声母、韵母\n", .{}) catch {};
+        writer.print("\n  [骨膜骨架] 不可变元规则:\n", .{});
+        writer.print("    运算: 仅add/sub, 禁mul/div/pow/mod\n", .{});
+        writer.print("    单位: 袋级（不数米）\n", .{});
+        writer.print("    见证: 非空+已见证+锚点一致\n", .{});
+        writer.print("    容器: 声母、韵母\n", .{});
 
         // 回响
-        writer.print("\n  [鼓膜回响] 自检:\n", .{}) catch {};
+        writer.print("\n  [鼓膜回响] 自检:\n", .{});
         for (self.resonance.results) |r| {
             const status = if (r.passed) "✅" else "❌";
-            writer.print("    {s} {s}: {s}\n", .{ status, r.name, r.detail }) catch {};
+            writer.print("    {s} {s}: {s}\n", .{ status, r.name, r.detail });
         }
 
-        writer.print("\n  [鼓膜回响] {s}\n", .{self.resonance.message()}) catch {};
+        writer.print("\n  [鼓膜回响] {s}\n", .{self.resonance.message()});
 
-        writer.print("\n", .{}) catch {};
+        writer.print("\n", .{});
         printDrumSeparator(writer);
         if (self.ok) {
-            writer.print(" 鼓膜振动正常，系统就绪 \n", .{}) catch {};
+            writer.print(" 鼓膜振动正常，系统就绪 \n", .{});
         } else {
-            writer.print(" 自举失败，系统锁定 \n", .{}) catch {};
+            writer.print(" 自举失败，系统锁定 \n", .{});
         }
         printDrumSeparator(writer);
-        writer.print("\n", .{}) catch {};
+        writer.print("\n", .{});
     }
 };
 
@@ -204,7 +204,7 @@ pub fn bootstrap() BootstrapResult {
 
 fn printDrumSeparator(writer: anytype) void {
     const sep = "⸻⸻⸻";
-    writer.print("{s}", .{sep}) catch {};
+    writer.print("{s}", .{sep});
 }
 
 // ============================================================

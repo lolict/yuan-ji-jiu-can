@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><style>
+*{margin:0;background:#030308;color:#ccc;font-family:monospace;font-size:12px}
+canvas{display:block}
+#ui{position:fixed;top:8px;left:8px;font-size:11px;color:#555;pointer-events:none}
+</style></head><body>
+<canvas id="c"></canvas>
+<pre id="ui">
+目标驱动路由 | 容器自带需求,裁判判决最优路径
+前容器: -- | 目标: --
+</pre>
+<script>
+const BASE_X=48, BASE_Y=64, BASE_Z=16;
+
+const cv=document.getElementById('c');
+const X=cv.getContext('2d');
+const ui=document.getElementById('ui');
+
+function gcd(a,b){while(b){[a,b]=[b,a%b]}return a}
+
+const containers=[];
+
+// 定义20个容器:每个有身份、需求(想要连接什么gcd的目标)、能力(能提供什么lcm的服务)
+const defs=[
+  {name:'囡',gcd:2,lcm:4,goal:'center=2',provides:'lcm:4',desc:'容器原点'},
+  {name:'囝',gcd:3,lcm:9,goal:'center=3',provides:'lcm:9',desc:'边界定义'},
+  {name:'因',gcd:5,lcm:20,goal:'center=5',provides:'lcm=20',desc:'回归'},
+  {name:'回',gcd:7,lcm:35,goal:'center=7',provides:'lcm=35',desc:'循环'},
+  {name:'好',gcd:11,lcm:22,goal:'center=11',provides:'lcm=22',desc:'夫妻合'},
+  {name:'林',gcd:13,lcm:39,goal:'center=13',provides:'lcm=39',desc:'聚合'},
+  {name:'网',gcd:2,lcm:8,goal:'center=2',provides:'lcm=8',desc:'连接'},
+  {name:'中',gcd:3,lcm:15,goal:'center=3',provides:'lcm=15',desc:'中心'},
+  {name:'天',gcd:5,lcm:10,goal:'center=5',provides:'lcm=10',desc:'覆盖'},
+  {name:'地',gcd:7,lcm:21,goal:'center=7',provides:'lcm=21',desc:'承载'},
+  {name:'人',gcd:11,lcm:44,goal:'center=11',provides:'lcm:44',desc:'独立'},
+  {name:'心',gcd:13,lcm:65,goal:'center=13',provides:'lcm=65',desc:'核心'},
+  {name:'日',gcd:2,lcm:4,goal:'center=2',provides:'lcm:4',desc:'太阳'},
+  {name:'月',gcd:3,lcm:9,goal:'center=3',provides:'lcm:9',desc:'太阴'},
+  {name:'山',gcd:5,lcm:20,goal:'center=5',provides:'lcm=20',desc:'稳固'},
+  {name:'石',gcd:7,lcm:35,goal:'center=7',provides:'lcm=35',desc:'坚硬'},
+  {name:'火',gcd:11,lcm:22,goal:'center=11',provides:'lcm=22',desc:'燃烧'},
+  {name:'水',gcd:13,lcm:39,goal:'center=13',provides:'lcm=39',desc:'流动'},
+  {name:'木',gcd:2,lcm:8,goal:'center=2',provides:'lcm=8',desc:'生长'},
+  {name:'土',gcd:3,lcm:15,goal:'center=3',provides:'lcm=15',desc:'包容'},
+];
+
+for(let i=0;i<20;i++){
+  const d=defs[i];
+  containers.push({
+    id:i,x:(i*7+3)%BASE_X,y:(i*11+5)%BASE_Y,z:Math.floor(i/5),
+    gcd:d.gcd,lcm:d.lcm,goalGcd:d.gcd,
+    name:d.name,desc:d.desc,
+    links:[]  // 不预设,由裁判实时生成
+  });
+}
+
+// ── 裁判引擎 ──
+// 给定当前容器A,评分所有可能被连接的容器B
+// 评分依据:
+//   1. A.lcm % B.goalGcd === 0 → end2begin (+30)
+//   2. A.lcm === B.gcd → 完美对接 (+50):A的边界恰好是B的中心
+//   3. A.goalGcd === B.lcm → 目标达到 (+40):B的边界正是我想要进入的中心
+//   4. gcd(A.lcm,B.lcm) 越大 → 兼容性越好 (+gcd值)
+//   5. distance penalty: 空间距离越近越好
+
+function scoreLink(A, B) {
+  let score = 0;
+  const reasons = [];
+
+  if (A.lcm % B.gcd === 0 && A.lcm !== B.lcm) {
+    score += 30; reasons.push('end2begin');
+  }
+
+  if (A.lcm === B.gcd) {
+    score += 50; reasons.push('perfect-fit(A.lcm=B.gcd)');
+  }
+
+  if (A.goalGcd === B.lcm % 100) {
+    score += 40; reasons.push('goal-met:A想要B的边界');
+  } else if (A.goalGcd % B.lcm === 0 || B.lcm % A.goalGcd === 0) {
+    score += 20; reasons.push('goal-related');
+  }
+
+  const commonDiv = gcd(A.lcm, B.lcm);
+  if (commonDiv > 1) { score += commonDiv; reasons.push('common='+commonDiv); }
+
+  // spatial proximity bonus
+  const dx = A.x - B.x, dy = A.y - B.y, dz = A.z - B.z;
+  const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+  const proxBonus = Math.max(0, 10 - dist / 10);
+  score += proxBonus;
+
+  return { score, reasons, dist };
+}
+
+// 裁判: 从A出发,选择一个最优的下一步
+function judgeRoute(Aindex, targetIndex, depth = 0, visited = new Set()) {
+  if (Aindex === targetIndex) return { path: [Aindex], score: 0, log: [] };
+  if (depth > 6) return null;
+  visited.add(Aindex);
+
+  const A = containers[Aindex];
+  const candidates = [];
+
+  for (let j = 0; j < containers.length; j++) {
+    if (visited.has(j)) continue;
+    const B = containers[j];
+    const { score, reasons, dist } = scoreLink(A, B);
+    candidates.push({ j, score, reasons, dist, B });
+  }
+
+  candidates.sort((a, b) => b.score - a.score);
+
+  if (candidates.length === 0) return null;
+
+  // 尝试最优的几个候选
+  for (let c = 0; c < Math.min(3, candidates.length); c++) {
+    const cand = candidates[c];
+    const subRoute = judgeRoute(cand.j, targetIndex, depth + 1, new Set(visited));
+    if (subRoute) {
+      return {
+        path: [Aindex, ...subRoute.path],
+        score: cand.score + subRoute.score,
+        log: [{ from: Aindex, to: cand.j, score: cand.score, reasons: cand.reasons }, ...subRoute.log],
+      };
+    }
+  }
+
+  // 没有通向目标的路径,返回最优单步
+  const best = candidates[0];
+  return {
+    path: [Aindex, best.j],
+    score: best.score,
+    log: [{ from: Aindex, to: best.j, score: best.score, reasons: best.reasons }],
+  };
+}
+
+let rotX = -0.7, rotY = 0.5, zoom = 1;
+let drag = false, lx = 0, ly = 0;
+let hover = null;
+let selected = [];
+let routeResult = null;
+
+function project(x, y, z) {
+  const angle = (x / BASE_X) * 6.283;
+  const radius = 60 + z * 16;
+  const h = (y - BASE_Y / 2) * 3.5;
+  const cx = Math.cos(angle) * radius, cz = Math.sin(angle) * radius;
+  const cosY = Math.cos(rotY), sinY = Math.sin(rotY), cosX = Math.cos(rotX), sinX = Math.sin(rotX);
+  const rx = cx * cosY - cz * sinY;
+  const rz = cx * sinY + cz * cosY;
+  const ry2 = h * cosX - rz * sinX, rz2 = h * sinX + rz * cosX;
+  const fov = 600;
+  const s = fov / (fov + rz2 + 200) * zoom;
+  return { sx: cv.width / 2 + rx * s, sy: cv.height / 2 + ry2 * s, z: rz2, s };
+}
+
+// 获取当前容器的最佳候选连接
+function getCandidates(idx) {
+  const A = containers[idx];
+  const cands = [];
+  for (let j = 0; j < containers.length; j++) {
+    if (j === idx) continue;
+    cands.push({ j, ...scoreLink(A, containers[j]) });
+  }
+  return cands.sort((a, b) => b.score - a.score);
+}
+
+function draw() {
+  cv.width = window.innerWidth;
+  cv.height = window.innerHeight;
+  X.fillStyle = '#030308';
+  X.fillRect(0, 0, cv.width, cv.height);
+
+  // Grid
+  X.lineWidth = 0.3;
+  for (let h = 0; h <= BASE_Y; h += 8) {
+    X.strokeStyle = 'rgba(255,255,255,0.018)';
+    X.beginPath();
+    for (let a = 0; a <= BASE_X; a += 3) {
+      const p = project(a, h, 0);
+      if (a === 0) X.moveTo(p.sx, p.sy); else X.lineTo(p.sx, p.sy);
+    }
+    X.stroke();
+  }
+  for (let a = 0; a < BASE_X; a += 8) {
+    X.strokeStyle = 'rgba(255,255,255,0.015)';
+    X.beginPath();
+    for (let h = 0; h <= BASE_Y; h += 4) {
+      const p = project(a, h, 0);
+      if (h === 0) X.moveTo(p.sx, p.sy); else X.lineTo(p.sx, p.sy);
+    }
+    X.stroke();
+  }
+
+  // Route path
+  if (routeResult && routeResult.path.length > 1) {
+    // Draw path
+    X.strokeStyle = 'rgba(201,168,76,0.6)';
+    X.lineWidth = 3;
+    X.beginPath();
+    routeResult.path.forEach((idx, i) => {
+      const c = containers[idx];
+      const p = project(c.x, c.y, c.z);
+      if (i === 0) X.moveTo(p.sx, p.sy); else X.lineTo(p.sx, p.sy);
+    });
+    X.stroke();
+    // Numbers
+    routeResult.path.forEach((idx, i) => {
+      const c = containers[idx];
+      const p = project(c.x, c.y, c.z);
+      X.fillStyle = '#c9a84c';
+      X.beginPath(); X.arc(p.sx, p.sy, 12, 0, 6.28); X.fill();
+      X.fillStyle = '#000';
+      X.font = 'bold 9px monospace';
+      X.textAlign = 'center'; X.textBaseline = 'middle';
+      X.fillText(i, p.sx, p.sy);
+    });
+  }
+
+  // Show top candidates for first selected
+  if (selected.length >= 1) {
+    const cands = getCandidates(selected[0]).slice(0, 5);
+    cands.forEach(cd => {
+      const A = containers[selected[0]];
+      const B = containers[cd.j];
+      const pa = project(A.x, A.y, A.z);
+      const pb = project(B.x, B.y, B.z);
+      X.strokeStyle = 'rgba(201,168,76,0.15)';
+      X.lineWidth = 1;
+      X.setLineDash([3, 3]);
+      X.beginPath(); X.moveTo(pa.sx, pa.sy); X.lineTo(pb.sx, pb.sy); X.stroke();
+      X.setLineDash([]);
+    });
+  }
+
+  // Containers
+  const pp = containers.map((c, i) => ({ c, p: project(c.x, c.y, c.z), i }))
+    .sort((a, b) => a.p.z - b.p.z);
+
+  pp.forEach(({ c, p, i }) => {
+    const isSel = selected.includes(i);
+    const isHover = hover === i;
+    const inRoute = routeResult && routeResult.path.includes(i);
+    const r = (isSel ? 11 : (isHover ? 8 : 5)) * p.s;
+
+    // Outer boundary ring
+    X.beginPath();
+    X.arc(p.sx, p.sy, r + 4, 0, 6.28);
+    X.strokeStyle = inRoute ? '#c9a84c' : (isSel ? '#fff' : 'rgba(100,100,100,0.15)');
+    X.lineWidth = isSel ? 1.5 : 0.8;
+    X.stroke();
+
+    // Core
+    X.beginPath();
+    X.arc(p.sx, p.sy, r, 0, 6.28);
+    if (isSel) X.fillStyle = '#c9a84c';
+    else if (inRoute) X.fillStyle = 'rgba(201,168,76,0.6)';
+    else if (isHover) X.fillStyle = '#fff';
+    else X.fillStyle = ['#4a7c59', '#8b4513', '#9b59b6', '#3498db', '#7f8c8d'][i % 5];
+    X.fill();
+
+    // Name
+    if (isHover || isSel || inRoute) {
+      X.font = `${Math.max(8, 10 * p.s)}px monospace`;
+      X.textAlign = 'center'; X.textBaseline = 'bottom';
+      X.fillStyle = '#ddd';
+      X.fillText(c.name, p.sx, p.sy - r - 5);
+      X.textBaseline = 'top';
+      X.fillStyle = '#777';
+      X.font = `${Math.max(7, 8 * p.s)}px monospace`;
+      X.fillText('gcd='+c.gcd+' lcm='+c.lcm, p.sx, p.sy + r + 3);
+    }
+  });
+
+  // UI
+  let status = '目标驱动路由 | 容器自带需求,裁判判决最优路径\n';
+  if (selected.length === 0) status += '点击容器选起点 → 再点一个选终点 → 裁判自动寻路';
+  else if (selected.length === 1) {
+    status += '前容器: ' + containers[selected[0]].name + ' (goal gcd=' + containers[selected[0]].goalGcd + ')\n';
+    status += '再点击一个容器作为目标 → 裁判判决路径';
+  } else {
+    if (routeResult) {
+      status += '路径: ' + routeResult.path.map(i => containers[i].name).join(' → ') + '\n';
+      status += '步数: ' + (routeResult.path.length - 1) + ' | 总分: ' + routeResult.score + '\n';
+      routeResult.log.forEach((step, idx) => {
+        step.reasons.forEach(r => { });
+      });
+      status += '判决:\n';
+      routeResult.log.forEach((s, idx) => {
+        const N = s.reasons.length > 0 ? s.reasons.join('+') : 'no-match';
+        status += '  步' + (idx+1) + ': ' + containers[s.from].name + ' → ' + containers[s.to].name + ' (' + N + ') score=' + s.score + '\n';
+      });
+    } else {
+      status += '裁判: 未找到路径\n';
+      status += '候选评分(\n';
+      const cands = getCandidates(selected[0]).slice(0, 5);
+      cands.forEach(cd => {
+        status += '  ' + containers[cd.j].name + ': ' + cd.score + ' (' + cd.reasons.join(',') + ')\n';
+      });
+    }
+  }
+  ui.textContent = status;
+}
+
+// Interaction
+cv.addEventListener('mousedown', e => { drag = true; lx = e.clientX; ly = e.clientY; });
+cv.addEventListener('mousemove', e => {
+  if (drag) {
+    rotY += (e.clientX - lx) * 0.006;
+    rotX += (e.clientY - ly) * 0.006;
+    rotX = Math.max(-1.5, Math.min(1.5, rotX));
+    lx = e.clientX; ly = e.clientY;
+  }
+  const mx = e.clientX, my = e.clientY;
+  let fd = null, md = 18;
+  containers.forEach((c, i) => {
+    const p = project(c.x, c.y, c.z);
+    const d = Math.sqrt((mx - p.sx) ** 2 + (my - p.sy) ** 2);
+    if (d < md) { md = d; fd = i; }
+  });
+  hover = fd;
+  draw();
+});
+cv.addEventListener('mouseup', () => drag = false);
+cv.addEventListener('wheel', e => { e.preventDefault(); zoom *= e.deltaY > 0 ? 0.9 : 1.1; zoom = Math.max(0.3, Math.min(3, zoom)); draw(); }, { passive: false });
+cv.addEventListener('click', e => {
+  const mx = e.clientX, my = e.clientY;
+  let fd = null, md = 18;
+  containers.forEach((c, i) => {
+    const p = project(c.x, c.y, c.z);
+    const d = Math.sqrt((mx - p.sx) ** 2 + (my - p.sy) ** 2);
+    if (d < md) { md = d; fd = i; }
+  });
+  if (fd !== null) {
+    if (selected.length === 0) { selected = [fd]; routeResult = null; }
+    else if (selected.length === 1) {
+      if (fd === selected[0]) { selected = []; routeResult = null; }
+      else { selected = [selected[0], fd]; routeResult = judgeRoute(selected[0], selected[1]); }
+    } else { selected = [fd]; routeResult = null; }
+  }
+  draw();
+});
+
+function resize() { cv.width = window.innerWidth; cv.height = window.innerHeight; draw(); }
+window.addEventListener('resize', resize);
+resize();
+</script>
+</body></html>

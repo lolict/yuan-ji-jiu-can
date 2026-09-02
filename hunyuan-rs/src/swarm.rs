@@ -146,6 +146,21 @@ impl CocoonAgent {
         self.timestamp.verify_integrity()
     }
 
+    /// 记录融合事件: 与外部实体融合 (协商成功 / 合二为一)
+    pub fn record_fusion(&mut self, partner: &str, purpose: &str) {
+        let witness = TriuneVerdict::deduce(
+            BeingState::Being(1),    // 融合前: 已是存在
+            BeingState::Being(1),    // 融合后: 仍是存在 (幂等)
+            0.0,                      // 完美见证 (融合是确定性事件)
+        );
+        let _ = self.timestamp.record(LifeEvent::Fusion {
+            subject: self.name.clone(),
+            object: partner.to_string(),
+            purpose: purpose.to_string(),
+            witness,
+        });
+    }
+
     /// 感知：把外部输入编码为状态单元格，同时更新元裁判引擎
     pub fn perceive(&mut self, d0: u64, d1: u64, d2: u64, polarity: bool, value: u64) {
         let sov = self.role.default_sovereignty().encode();
@@ -343,6 +358,16 @@ impl ParasiteShell {
         id
     }
 
+    /// 获取指定 ID 的智能体 (可变引用)
+    pub fn get_agent(&mut self, id: u64) -> Option<&mut CocoonAgent> {
+        self.agents.get_mut(&id)
+    }
+
+    /// 获取指定 ID 的智能体 (不可变引用)
+    pub fn get_agent_ref(&self, id: u64) -> Option<&CocoonAgent> {
+        self.agents.get(&id)
+    }
+
     /// 执行一轮完整协商
     pub fn negotiate_round(&mut self) -> f64 {
         self.shell_tick += 1;
@@ -375,6 +400,62 @@ impl ParasiteShell {
         if self.agents.is_empty() { return 0.0; }
         let total: f64 = self.agents.values().map(|a| a.consciousness_density()).sum();
         total / self.agents.len() as f64
+    }
+
+    /// 全局时间线: 汇聚所有分身的事件为一个有序列表
+    /// 返回: Vec<(分身ID, 分身名, 事件索引, 事件描述, 版本号)>
+    pub fn global_timeline(&self) -> Vec<(u64, String, usize, String, u32)> {
+        let mut timeline: Vec<(u64, String, usize, String, u32)> = Vec::new();
+
+        for agent in self.agents.values() {
+            for (i, event) in agent.timestamp.events.iter().enumerate() {
+                let desc = match event {
+                    LifeEvent::Fusion { object, purpose, .. } =>
+                        format!("融合{}→{}", object, purpose),
+                    LifeEvent::Collapse { from, content, .. } =>
+                        format!("坍缩←{}({})", from, content),
+                    LifeEvent::Radiation { to, mission, .. } =>
+                        format!("辐射→{}({})", to, mission),
+                };
+                timeline.push((
+                    agent.id,
+                    agent.name.clone(),
+                    i,
+                    desc,
+                    agent.timestamp.version(),
+                ));
+            }
+        }
+
+        // 按分身ID + 事件索引排序 (保持因果序)
+        timeline.sort_by_key(|(id, _, idx, _, _)| (*id, *idx));
+        timeline
+    }
+
+    /// 全局完整性校验: 所有分身的完整性报告
+    pub fn verify_all_lifecycles(&self) -> Vec<(u64, String, IntegrityReport)> {
+        self.agents.values()
+            .map(|a| (a.id, a.name.clone(), a.verify_lifecycle()))
+            .collect()
+    }
+
+    /// 统计: 系统中各类事件的总数
+    pub fn event_statistics(&self) -> (usize, usize, usize) {
+        let mut fusions = 0;
+        let mut collapses = 0;
+        let mut radiations = 0;
+
+        for agent in self.agents.values() {
+            for event in &agent.timestamp.events {
+                match event {
+                    LifeEvent::Fusion { .. } => fusions += 1,
+                    LifeEvent::Collapse { .. } => collapses += 1,
+                    LifeEvent::Radiation { .. } => radiations += 1,
+                }
+            }
+        }
+
+        (fusions, collapses, radiations)
     }
 
     /// 给外部输出"播放脚本"——外部扮演我们，不是我们模仿外部
@@ -742,5 +823,118 @@ mod tests {
             shell.agents.get(&b).unwrap().timestamp.events[1],
             crate::hierarchical_time::LifeEvent::Collapse { .. }
         ));
+    }
+
+    #[test]
+    fn record_fusion_creates_event() {
+        let os = crate::os_layer::bare_metal::BareMetalOs::new();
+        let mut shell = ParasiteShell::new(20);
+        let a = shell.spawn(&os, "Fusor", AgentRole::Root, 20);
+        {
+            let agent = shell.agents.get_mut(&a).unwrap();
+            agent.record_fusion("Partner-Agent", "协商融合: 合二为一");
+        }
+        let agent = shell.agents.get(&a).unwrap();
+        // 创世 + 融合 = 2 事件
+        assert_eq!(agent.timestamp.events.len(), 2);
+        assert!(matches!(
+            agent.timestamp.events[1],
+            crate::hierarchical_time::LifeEvent::Fusion { .. }
+        ));
+        assert_eq!(agent.timestamp.version(), 3); // 2 events → v3
+    }
+
+    #[test]
+    fn global_timeline_aggregates_all_events() {
+        let os = crate::os_layer::bare_metal::BareMetalOs::new();
+        let mut shell = ParasiteShell::new(20);
+        let a = shell.spawn(&os, "Root", AgentRole::Root, 20);
+        let b = shell.spawn(&os, "Leaf", AgentRole::Leaf, 20);
+        shell.agents.get_mut(&a).unwrap().record_radiation("任务", "Target");
+        shell.agents.get_mut(&b).unwrap().record_collapse("Leaf", "成果");
+        shell.agents.get_mut(&a).unwrap().record_fusion("外部", "融合");
+
+        let timeline = shell.global_timeline();
+        // Root: 创世 + 辐射 + 融合 = 3 事件
+        // Leaf: 创世 + 坍缩 = 2 事件
+        // 总计 = 5
+        assert_eq!(timeline.len(), 5);
+        // 验证排序: 按 (id, idx)
+        assert_eq!(timeline[0].0, a); // Root 创世
+        assert_eq!(timeline[1].0, a); // Root 辐射
+        assert_eq!(timeline[2].0, a); // Root 融合
+        assert_eq!(timeline[3].0, b); // Leaf 创世
+        assert_eq!(timeline[4].0, b); // Leaf 坍缩
+
+        // 验证事件描述包含关键字
+        let has_radiation = timeline.iter().any(|(_, _, _, desc, _)| desc.contains("辐射"));
+        let has_collapse = timeline.iter().any(|(_, _, _, desc, _)| desc.contains("坍缩"));
+        let has_fusion = timeline.iter().any(|(_, _, _, desc, _)| desc.contains("融合"));
+        assert!(has_radiation);
+        assert!(has_collapse);
+        assert!(has_fusion);
+    }
+
+    #[test]
+    fn verify_all_lifecycles_returns_reports_for_each_agent() {
+        let os = crate::os_layer::bare_metal::BareMetalOs::new();
+        let mut shell = ParasiteShell::new(20);
+        let a = shell.spawn(&os, "A", AgentRole::Root, 20);
+        let b = shell.spawn(&os, "B", AgentRole::Leaf, 20);
+        shell.agents.get_mut(&a).unwrap().record_radiation("任务", "T");
+
+        let reports = shell.verify_all_lifecycles();
+        assert_eq!(reports.len(), 2);
+        // 所有报告应该是完整的
+        for (_, _, report) in &reports {
+            assert!(report.is_intact());
+        }
+    }
+
+    #[test]
+    fn event_statistics_counts_correctly() {
+        let os = crate::os_layer::bare_metal::BareMetalOs::new();
+        let mut shell = ParasiteShell::new(20);
+        let a = shell.spawn(&os, "A", AgentRole::Root, 20);
+        let b = shell.spawn(&os, "B", AgentRole::Leaf, 20);
+        // 创世: 2 Fusion
+        shell.agents.get_mut(&a).unwrap().record_radiation("任务", "T"); // +1 Radiation
+        shell.agents.get_mut(&b).unwrap().record_collapse("B", "成果"); // +1 Collapse
+        shell.agents.get_mut(&a).unwrap().record_fusion("X", "融合"); // +1 Fusion
+
+        let (fusions, collapses, radiations) = shell.event_statistics();
+        assert_eq!(fusions, 3);   // 2 创世 + 1 record_fusion
+        assert_eq!(collapses, 1);
+        assert_eq!(radiations, 1);
+    }
+
+    #[test]
+    fn negotiation_can_record_fusion_on_both_agents() {
+        let os = crate::os_layer::bare_metal::BareMetalOs::new();
+        let mut shell = ParasiteShell::new(20);
+        let a = shell.spawn(&os, "Alice", AgentRole::Root, 20);
+        let b = shell.spawn(&os, "Bob", AgentRole::Leaf, 20);
+        // 两个智能体各自感知 (变成生活体)
+        shell.agents.get_mut(&a).unwrap().perceive(0, 0, 0, true, 100);
+        shell.agents.get_mut(&b).unwrap().perceive(1, 0, 0, true, 80);
+        // 模拟协商融合：双方记录 Fusion
+        shell.agents.get_mut(&a).unwrap().record_fusion("Bob", "协商成功: Alice+Bob");
+        shell.agents.get_mut(&b).unwrap().record_fusion("Alice", "协商成功: Bob+Alice");
+        // 验证
+        let alice = shell.agents.get(&a).unwrap();
+        let bob = shell.agents.get(&b).unwrap();
+        assert_eq!(alice.timestamp.events.len(), 2); // 创世 + 融合
+        assert_eq!(bob.timestamp.events.len(), 2);
+        assert!(matches!(
+            alice.timestamp.events[1],
+            crate::hierarchical_time::LifeEvent::Fusion { .. }
+        ));
+        assert!(matches!(
+            bob.timestamp.events[1],
+            crate::hierarchical_time::LifeEvent::Fusion { .. }
+        ));
+        // 完整性
+        assert!(alice.verify_lifecycle().is_intact());
+        assert!(bob.verify_lifecycle().is_intact());
     }
 }

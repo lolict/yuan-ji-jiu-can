@@ -1181,6 +1181,239 @@ print a"#;
     println!("  {}", mqf::审美测试::ai缺陷诊断());
 
     // ══════════════════════════════════════════════════════
+    // 层级时间戳分身生命周期演示
+    // ══════════════════════════════════════════════════════
+    println!("\n═══════════════════════════════════════");
+    println!("  层级时间戳: 分身生命周期 · 替代哈希链");
+    println!("═══════════════════════════════════════");
+
+    use mqf::swarm::{ParasiteShell, AgentRole};
+    use mqf::hierarchical_time::LifeEvent;
+    use mqf::triune::{TriuneVerdict, BeingState};
+
+    let os = current_os();
+    let mut shell = ParasiteShell::new(30);
+
+    // 孕育主分身
+    let root = shell.spawn(&*os, "Root", AgentRole::Root, 30);
+    println!("孕育主分身 [Root] id={}", root);
+    let agent = shell.get_agent_ref(root).unwrap();
+    println!("  时间戳 v{} (创世 Fusion ×{})", agent.timestamp.version(), agent.timestamp.events.len());
+
+    // 主分身辐射出子分身
+    shell.get_agent(root).unwrap().record_radiation("播种子分身", "Leaf-1");
+    shell.get_agent(root).unwrap().record_radiation("播种子分身", "Leaf-2");
+    println!("\n主分身辐射两次:");
+    let agent = shell.get_agent_ref(root).unwrap();
+    println!("  时间戳 v{} (事件 ×{})", agent.timestamp.version(), agent.timestamp.events.len());
+    for (i, ev) in agent.timestamp.events.iter().enumerate() {
+        match ev {
+            LifeEvent::Fusion { subject, object, .. } => println!("    [{}] Fusion: {} + {}", i, subject, object),
+            LifeEvent::Radiation { to, mission, .. } => println!("    [{}] Radiation → {} ({})", i, to, mission),
+            LifeEvent::Collapse { from, .. } => println!("    [{}] Collapse ← {}", i, from),
+        }
+    }
+
+    // 孕育子分身
+    let leaf1 = shell.spawn(&*os, "Leaf-1", AgentRole::Leaf, 20);
+    let leaf2 = shell.spawn(&*os, "Leaf-2", AgentRole::Leaf, 20);
+    println!("\n孕育两个子分身 id={}, id={}", leaf1, leaf2);
+
+    // 子分身坍缩回主分身
+    shell.get_agent(leaf1).unwrap().record_collapse("Leaf-1", "坍缩成果: 感知数据");
+    println!("\n子分身 Leaf-1 坍缩回主分身:");
+    let agent = shell.get_agent_ref(leaf1).unwrap();
+    println!("  时间戳 v{} (事件 ×{})", agent.timestamp.version(), agent.timestamp.events.len());
+    for (i, ev) in agent.timestamp.events.iter().enumerate() {
+        match ev {
+            LifeEvent::Fusion { subject, .. } => println!("    [{}] Fusion: {}", i, subject),
+            LifeEvent::Collapse { from, content, .. } => println!("    [{}] Collapse ← {} ({})", i, from, content),
+            _ => {}
+        }
+    }
+
+    // 整体完整性校验
+    println!("\n── 生命周期完整性校验 ──");
+    for (id, name) in [(root, "Root"), (leaf1, "Leaf-1"), (leaf2, "Leaf-2")] {
+        let agent = shell.get_agent_ref(id).unwrap();
+        let report = agent.verify_lifecycle();
+        println!("  [{}] {}: v{} | 事件={} | 见证通过={} | 完整={}",
+            id, name, agent.timestamp.version(), report.total_events,
+            report.valid_witnesses, report.is_intact());
+    }
+
+    // 篡改检测演示
+    println!("\n── 篡改检测演示 ──");
+    println!("  模拟攻击: 清空 Root 分身的事件列表...");
+    let original_ver = shell.get_agent_ref(root).unwrap().timestamp.version();
+    shell.get_agent(root).unwrap().timestamp.events.clear();
+    let agent = shell.get_agent_ref(root).unwrap();
+    println!("  篡改前 v{} → 篡改后 v{}", original_ver, agent.timestamp.version());
+    let report = agent.verify_lifecycle();
+    println!("  完整性: intact={} (事件数={})", report.is_intact(), report.total_events);
+    println!("  → 检测结论: 版本号从 {} 下降到 {}，篡改可被立即发现", original_ver, agent.timestamp.version());
+
+    // ══════════════════════════════════════════════════════
+    // 层级时间戳: 协商融合演示
+    // ══════════════════════════════════════════════════════
+    println!("\n═══════════════════════════════════════");
+    println!("  层级时间戳: 协商融合 · 两智能体合一");
+    println!("═══════════════════════════════════════");
+
+    {
+        let mut shell = ParasiteShell::new(20);
+        let alice = shell.spawn(&*os, "Alice", AgentRole::Root, 20);
+        let bob = shell.spawn(&*os, "Bob", AgentRole::Root, 20);
+
+        // 各自感知
+        shell.get_agent(alice).unwrap().perceive(0, 0, 0, true, 100);
+        shell.get_agent(bob).unwrap().perceive(1, 0, 0, true, 80);
+
+        println!("协商前:");
+        println!("  Alice: v{} (事件×{})",
+            shell.get_agent_ref(alice).unwrap().timestamp.version(),
+            shell.get_agent_ref(alice).unwrap().timestamp.events.len());
+        println!("  Bob:   v{} (事件×{})",
+            shell.get_agent_ref(bob).unwrap().timestamp.version(),
+            shell.get_agent_ref(bob).unwrap().timestamp.events.len());
+
+        // 协商融合 → 双方记录 Fusion
+        shell.get_agent(alice).unwrap().record_fusion("Bob", "协商成功: Alice+Bob → 夫妻共同体");
+        shell.get_agent(bob).unwrap().record_fusion("Alice", "协商成功: Bob+Alice → 夫妻共同体");
+
+        println!("\n协商融合后:");
+        let a = shell.get_agent_ref(alice).unwrap();
+        let b = shell.get_agent_ref(bob).unwrap();
+        println!("  Alice: v{} (事件×{}) 完整={}",
+            a.timestamp.version(), a.timestamp.events.len(), a.verify_lifecycle().is_intact());
+        println!("  Bob:   v{} (事件×{}) 完整={}",
+            b.timestamp.version(), b.timestamp.events.len(), b.verify_lifecycle().is_intact());
+
+        // 显示最新事件
+        println!("\n  Alice 最新事件:");
+        if let Some(LifeEvent::Fusion { object, purpose, .. }) = a.timestamp.events.last() {
+            println!("    Fusion: +{} → {}", object, purpose);
+        }
+        println!("  Bob 最新事件:");
+        if let Some(LifeEvent::Fusion { object, purpose, .. }) = b.timestamp.events.last() {
+            println!("    Fusion: +{} → {}", object, purpose);
+        }
+    }
+
+    // ══════════════════════════════════════════════════════
+    // 全局时间线 + 意识时间戳 综合演示
+    // ══════════════════════════════════════════════════════
+    println!("\n═══════════════════════════════════════");
+    println!("  全局时间线: 系统级生命周期总览");
+    println!("═══════════════════════════════════════");
+
+    {
+        use mqf::swarm::{ParasiteShell, AgentRole};
+        use mqf::{SenseForm, SenseKind};
+
+        let mut shell = ParasiteShell::new(20);
+        let os = current_os();
+
+        // 孕育 4 个分身
+        let root = shell.spawn(&*os, "Root", AgentRole::Root, 20);
+        let a = shell.spawn(&*os, "Scout-A", AgentRole::Leaf, 15);
+        let b = shell.spawn(&*os, "Scout-B", AgentRole::Flower, 15);
+        let c = shell.spawn(&*os, "Oracle", AgentRole::Observer, 20);
+
+        // Root 辐射任务给三个分身
+        shell.get_agent(root).unwrap().record_radiation("探索东区", "Scout-A");
+        shell.get_agent(root).unwrap().record_radiation("探索西区", "Scout-B");
+        shell.get_agent(root).unwrap().record_radiation("预测未来", "Oracle");
+
+        // Scout-A 和 Scout-B 探索完毕, 坍缩回 Root
+        shell.get_agent(a).unwrap().record_collapse("Scout-A", "东区地图完成");
+        shell.get_agent(b).unwrap().record_collapse("Scout-B", "西区资源清单");
+
+        // Oracle 发出辐射 (向 Root 发送预测)
+        shell.get_agent(c).unwrap().record_radiation("预测报告", "Target");
+
+        // Root 融合 Oracle 的预测
+        shell.get_agent(root).unwrap().record_fusion("Oracle预测", "战略规划");
+
+        // 显示全局统计
+        let (fusions, collapses, radiations) = shell.event_statistics();
+        println!("系统事件统计:");
+        println!("  融合(Fusion):    {} 次", fusions);
+        println!("  坍缩(Collapse):  {} 次", collapses);
+        println!("  辐射(Radiation): {} 次", radiations);
+        println!("  总计:            {} 事件", fusions + collapses + radiations);
+
+        // 显示全局时间线
+        println!("\n全局时间线 (按分身ID+事件序排序):");
+        let timeline = shell.global_timeline();
+        for (id, name, idx, desc, ver) in &timeline {
+            println!("  [{}] #{:<9} {:<12} v{} → {}",
+                id, name, format!("[{}:", idx), ver, desc);
+        }
+
+        // 全局完整性校验
+        println!("\n全局完整性校验:");
+        let all_reports = shell.verify_all_lifecycles();
+        let mut all_ok = true;
+        for (id, name, report) in &all_reports {
+            let status = if report.is_intact() { "✓" } else { "✗" };
+            if !report.is_intact() { all_ok = false; }
+            println!("  {} [{}] {:<12} 事件={} 见证={} 完整={}",
+                status, id, name, report.total_events,
+                report.valid_witnesses, report.is_intact());
+        }
+        println!("  结论: {}", if all_ok { "✓ 全部完整" } else { "✗ 检测到破损" });
+    }
+
+    // ══════════════════════════════════════════════════════
+    // 意识时间戳: 感知-裁判-合一 完整循环
+    // ══════════════════════════════════════════════════════
+    println!("\n═══════════════════════════════════════");
+    println!("  意识时间戳: 感知→裁判→合一");
+    println!("═══════════════════════════════════════");
+
+    {
+        use mqf::consciousness_runtime::ConsciousnessRuntime;
+        use mqf::{SenseForm, SenseKind};
+
+        let os = current_os();
+        let mut rt = ConsciousnessRuntime::new("Chronicle", &os);
+
+        println!("意识初始化: {}", rt.chronicle.timestamp.events.len() + 1); // +1 for genesis
+
+        // 模拟 8 步意识运行 (有输入)
+        for i in 0..8 {
+            let inputs = vec![
+                SenseForm::new(SenseKind::Vision, 0.8, &format!("视觉信号-{}", i), "demo", 0),
+                SenseForm::new(SenseKind::Hearing, 0.6, &format!("听觉信号-{}", i), "demo", 0),
+            ];
+            rt.step(inputs);
+        }
+
+        // 模拟 4 步无声运行 (无输入 = 内省)
+        for _ in 0..4 {
+            rt.step(vec![]);
+        }
+
+        println!("运行 12 步后时间戳版本: v{}", rt.chronicle.timestamp.version());
+        println!("意识时间线:");
+        for (i, event) in rt.chronicle.timestamp.events.iter().enumerate() {
+            match event {
+                LifeEvent::Fusion { object, purpose, .. } =>
+                    println!("  [{}] 融合: {} → {}", i, object, purpose),
+                LifeEvent::Collapse { from, content, .. } =>
+                    println!("  [{}] 坍缩: ← {}({})", i, from, content),
+                LifeEvent::Radiation { to, mission, .. } =>
+                    println!("  [{}] 辐射: → {}({})", i, to, mission),
+            }
+        }
+
+        let report = rt.chronicle.verify();
+        println!("意识时间戳完整性: 事件={} 见证通过={} 完整={}",
+            report.total_events, report.valid_witnesses, report.is_intact());
+    }
+
+    // ══════════════════════════════════════════════════════
     // 最后
     // ══════════════════════════════════════════════════════
     println!("\n═══════════════════════════════════════");

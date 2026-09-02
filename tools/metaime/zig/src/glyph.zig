@@ -317,7 +317,7 @@ pub const glyph_registry = [_]GlyphInfo{
         },
         .prim_count = 4,
         .operation = "包围: 半包围，开口向右",
-        .zone_used = .right,
+        .zone_used = .middle,
     },
     // o: 闭环
     GlyphInfo{
@@ -418,8 +418,8 @@ pub fn lookupGlyph(symbol: u8) ?GlyphInfo {
 
 pub fn calculateForce(glyph: GlyphInfo) u8 {
     var force: u8 = 0;
-    for (glyph.primitives[0..glyph.prim_count]) |prim| {
-        force += switch (prim.geo_type) {
+    for (glyph.primitives[0..glyph.prim_count]) |p| {
+        force += switch (p.geo_type) {
             .straight => 2,   // 直线 = 张力 = 2
             .curve => 3,      // 曲线 = 扭力 = 3
             .cross => 4,      // 交叉 = 分支 = 4
@@ -458,7 +458,7 @@ pub fn isCompatible(a: GlyphInfo, b: GlyphInfo) bool {
 // 音节几何分析（声母+韵母 = 力场配置）
 // ============================================================
 
-pub const SyllableField = struct
+pub const SyllableField = struct {
     shengmu: GlyphInfo,
     yunmu: GlyphInfo,
     interaction: u8,

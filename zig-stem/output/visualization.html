@@ -18,7 +18,7 @@ h1 { color: #e94560; font-size: 1.2em; }
 <div id="container">
 <canvas id="canvas"></canvas>
 <div id="sidebar">
-<h1>系统状态</h1><div class='stat'>总点数: 7<br>总线数: 2</div><h2>坐标点</h2><div class='stat' style='border-left: 3px solid #00ff00;'>1. color_base (0.0, 0.0, 0.0)</div><div class='stat' style='border-left: 3px solid #00c800;'>2. positive (1.0, 0.5, 0.0)</div><div class='stat' style='border-left: 3px solid #00ff00;'>3. sound_base (0.0, 2.0, 0.0)</div><div class='stat' style='border-left: 3px solid #c80000;'>4. negative (-1.0, 2.5, 0.0)</div><div class='stat' style='border-left: 3px solid #808080;'>5. relation_base (0.0, 4.0, 0.0)</div><div class='stat' style='border-left: 3px solid #0064ff;'>6. origin (0.0, 5.0, 0.0)</div><div class='stat' style='border-left: 3px solid #0064ff;'>7. partner (1.0, 5.0, 0.0)</div></div>
+<h1>系统状态</h1><div class='stat'>总点数: 8<br>总线数: 3</div><h2>坐标点</h2><div class='stat' style='border-left: 3px solid #808080;'>1. color_base (0.0, 0.0, 0.0)</div><div class='stat' style='border-left: 3px solid #00c800;'>2. positive (1.0, 0.5, 0.0)</div><div class='stat' style='border-left: 3px solid #c80000;'>3. negative (-1.0, 0.5, 0.0)</div><div class='stat' style='border-left: 3px solid #00ff00;'>4. sound_base (0.0, 2.0, 0.0)</div><div class='stat' style='border-left: 3px solid #00c800;'>5. positive (1.0, 2.5, 0.0)</div><div class='stat' style='border-left: 3px solid #808080;'>6. relation_base (0.0, 4.0, 0.0)</div><div class='stat' style='border-left: 3px solid #0064ff;'>7. origin (0.0, 5.0, 0.0)</div><div class='stat' style='border-left: 3px solid #0064ff;'>8. partner (1.0, 5.0, 0.0)</div></div>
 </div>
 <script>
 const canvas = document.getElementById('canvas');
@@ -26,10 +26,11 @@ const ctx = canvas.getContext('2d');
 canvas.width = canvas.offsetWidth;
 canvas.height = canvas.offsetHeight;
 
-const points = [  {x: 0.00, y: 0.00, z: 0.00, r: 0, g: 255, b: 0, label: 'color_base', size: 1.5},
-  {x: 1.00, y: 0.50, z: 0.00, r: 0, g: 200, b: 0, label: 'positive', size: 0.6},
+const points = [  {x: 0.00, y: 0.00, z: 0.00, r: 128, g: 128, b: 128, label: 'color_base', size: 1.5},
+  {x: 1.00, y: 0.50, z: 0.00, r: 0, g: 200, b: 0, label: 'positive', size: 0.3},
+  {x: -1.00, y: 0.50, z: 0.00, r: 200, g: 0, b: 0, label: 'negative', size: 0.3},
   {x: 0.00, y: 2.00, z: 0.00, r: 0, g: 255, b: 0, label: 'sound_base', size: 1.5},
-  {x: -1.00, y: 2.50, z: 0.00, r: 200, g: 0, b: 0, label: 'negative', size: 0.3},
+  {x: 1.00, y: 2.50, z: 0.00, r: 0, g: 200, b: 0, label: 'positive', size: 0.3},
   {x: 0.00, y: 4.00, z: 0.00, r: 128, g: 128, b: 128, label: 'relation_base', size: 0.5},
   {x: 0.00, y: 5.00, z: 0.00, r: 0, g: 100, b: 255, label: 'origin', size: 0.5},
   {x: 1.00, y: 5.00, z: 0.00, r: 0, g: 100, b: 255, label: 'partner', size: 0.5}];

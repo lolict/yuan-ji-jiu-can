@@ -346,29 +346,29 @@ pub fn getOffset() u8 {
 // === 显示 ===
 
 pub fn displaySummary() void {
-    const stdout = std.io.getStdOut().writer();
-    printLine(stdout, 60, '=');
-    stdout.print("FQM 加载结果\n", .{}) catch {};
-    printLine(stdout, 60, '-');
-    stdout.print("容器数量: {}\n", .{fqm_data.container_count}) catch {};
-    stdout.print("链接数量: {}\n", .{fqm_data.link_count}) catch {};
-    stdout.print("近义词数量: {}\n", .{fqm_data.synonym_count}) catch {};
-    stdout.print("全局偏移: 0x{X:02}\n", .{fqm_data.offset}) catch {};
+    
+    printLine(60, '=');
+    std.debug.print("FQM 加载结果\n", .{});
+    printLine( 60, '-');
+    std.debug.print("容器数量: {}\n", .{fqm_data.container_count});
+    std.debug.print("链接数量: {}\n", .{fqm_data.link_count});
+    std.debug.print("近义词数量: {}\n", .{fqm_data.synonym_count});
+    std.debug.print("全局偏移: 0x{X:02}\n", .{fqm_data.offset});
 
     for (fqm_data.containers[0..fqm_data.container_count]) |c| {
-        stdout.print("  {s}: {} 个符号\n", .{ c.name, c.symbol_count }) catch {};
+        std.debug.print("  {s}: {} 个符号\n", .{ c.name, c.symbol_count });
     }
 
-    printLine(stdout, 60, '=');
-    stdout.print("\n", .{}) catch {};
+    printLine(60, '=');
+    std.debug.print("\n", .{});
 }
 
-fn printLine(writer: anytype, comptime n: usize, comptime ch: u8) void {
+fn printLine(comptime n: usize, comptime ch: u8) void {
     comptime var i: usize = 0;
     inline while (i < n) : (i += 1) {
-        writer.print("{c}", .{ch}) catch {};
+        std.debug.print("{c}", .{ch});
     }
-    writer.print("\n", .{}) catch {};
+    std.debug.print("\n", .{});
 }
 
 // === 测试 ===

@@ -157,10 +157,10 @@ pub fn getUnresolvedLinks() []const UnresolvedLink {
 // === 显示 ===
 
 pub fn displayOntology() void {
-    const stdout = std.io.getStdOut().writer();
-    printLine(stdout, 60, '=');
-    stdout.print("本体论树\n", .{}) catch {};
-    printLine(stdout, 60, '-');
+    
+    printLine(60, '=');
+    std.debug.print("本体论树\n", .{});
+    printLine( 60, '-');
 
     // Group by domain
     var domains: [constants.MAX_CONTAINERS][]const u8 = undefined;
@@ -182,41 +182,41 @@ pub fn displayOntology() void {
 
     var di: u8 = 0;
     while (di < domain_count) : (di += 1) {
-        stdout.print("  {s}\n", .{domains[di]}) catch {};
+        std.debug.print("  {s}\n", .{domains[di]});
         for (linker_data.entries[0..linker_data.entry_count]) |entry| {
             if (std.mem.eql(u8, entry.domain, domains[di])) {
-                stdout.print("    {s}: {s}\n", .{ entry.identity, entry.symbol }) catch {};
+                std.debug.print("    {s}: {s}\n", .{ entry.identity, entry.symbol });
             }
         }
     }
 
-    printLine(stdout, 60, '=');
+    printLine(60, '=');
 }
 
 pub fn displayResolution() void {
-    const stdout = std.io.getStdOut().writer();
-    printLine(stdout, 60, '=');
-    stdout.print("本体论链接\n", .{}) catch {};
-    printLine(stdout, 60, '-');
-    stdout.print("已解析: {}\n", .{linker_data.resolved_count}) catch {};
-    stdout.print("未解析: {}\n", .{linker_data.unresolved_count}) catch {};
+    
+    printLine(60, '=');
+    std.debug.print("本体论链接\n", .{});
+    printLine( 60, '-');
+    std.debug.print("已解析: {}\n", .{linker_data.resolved_count});
+    std.debug.print("未解析: {}\n", .{linker_data.unresolved_count});
 
     for (linker_data.resolved[0..linker_data.resolved_count]) |link| {
-        stdout.print("  {s}.{s}({s}) -> {s}.{s}({s})\n", .{
+        std.debug.print("  {s}.{s}({s}) -> {s}.{s}({s})\n", .{
             link.from_domain, link.from_identity, link.from_symbol,
             link.to_domain, link.to_identity, link.to_symbol,
-        }) catch {};
+        });
     }
 
-    printLine(stdout, 60, '=');
+    printLine(60, '=');
 }
 
-fn printLine(writer: anytype, comptime n: usize, comptime ch: u8) void {
+fn printLine(comptime n: usize, comptime ch: u8) void {
     comptime var i: usize = 0;
     inline while (i < n) : (i += 1) {
-        writer.print("{c}", .{ch}) catch {};
+        std.debug.print("{c}", .{ch});
     }
-    writer.print("\n", .{}) catch {};
+    std.debug.print("\n", .{});
 }
 
 // === 测试 ===

@@ -1,28 +1,27 @@
-// 主程序 — fqmcp 管线演示
+// 主程序 — fqmcp 管线 + 夫妻共同体 + gtti 意识传输演示
 const std = @import("std");
 const orchestrator = @import("orchestrator.zig");
 const indexer = @import("indexer.zig");
 const fqm = @import("fqm.zig");
-const visualizer = @import("visualizer.zig");
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
+    const stdout = std.io.getStdOut().writer();
 
-    std.debug.print("\n=== 囡囝共生 操作系统 · fqmcp 管线 ===\n\n", .{});
+    try stdout.print("\n=== 囡囝共生 操作系统 · fqmcp 管线 ===\n\n", .{});
 
     // 配置
     var config = orchestrator.OrchestratorConfig.default();
-    config.total_steps = 0x01 << 3; // 8 步
+    config.total_steps = 0x01 << 3;
     config.step_mode = .continuous;
 
-    std.debug.print("初始化所有模块...\n", .{});
+    try stdout.print("初始化...\n", .{});
 
     var orch = try orchestrator.Orchestrator.init(allocator, config);
     defer orch.deinit();
 
-    // 测试数据
     try orch.indexer.addMenuItem(indexer.MenuItem.init(1, "color", 1, 0x01, 0x02, .positive, 1));
     try orch.indexer.addMenuItem(indexer.MenuItem.init(2, "sound", 2, 0x02, 0x01, .negative, 1));
     try orch.indexer.addMenuItem(indexer.MenuItem.init(3, "word", 3, 0x01, 0x03, .neutral, 2));
@@ -31,100 +30,119 @@ pub fn main() !void {
     try orch.phaser.addPhaseState(orchestrator.phaser.PhaseState.init(0, 0x01));
     try orch.phaser.addPhaseState(orchestrator.phaser.PhaseState.init(0x01, 0x02));
 
-    std.debug.print("所有模块初始化完成！\n\n", .{});
+    try stdout.print("初始化完成！\n\n", .{});
 
     try orch.start();
-    std.debug.print("协调器已启动...\n\n", .{});
-
-    const stdout = std.io.getStdOut().writer();
 
     var step_count: u64 = 0;
     while (!orch.isComplete()) {
         _ = try orch.step();
         step_count += 1;
-
         const progress = orch.getProgress();
-        const align_status = orch.getAlignmentStatus();
-
-        std.debug.print("步骤 ", .{});
+        try stdout.print("步骤 ", .{});
         try fqm.formatUnaryInt(stdout, step_count);
-        std.debug.print(": 进度 {d:.1}%, 对齐 {d:.2}\n", .{ progress * 100.0, align_status.confidence });
+        try stdout.print(": 进度 {d:.1}%\n", .{progress * 100.0});
     }
 
-    std.debug.print("\n=== 运行完成 ===\n", .{});
+    try stdout.print("\n=== 运行完成 ===\n", .{});
 
     // 容器统计
-    std.debug.print("\n--- 容器统计 ---\n", .{});
+    try stdout.print("\n--- 容器统计 ---\n", .{});
     const stats = orch.getContainerStats();
     for (stats) |container| {
-        std.debug.print("容器 {s}: 项数=", .{container.name});
+        try stdout.print("容器 {s}: 项数=", .{container.name});
         try fqm.formatUnaryInt(stdout, container.item_count);
-        std.debug.print(", 正因果=", .{});
-        try fqm.formatUnaryInt(stdout, container.positive_count);
-        std.debug.print(", 净收益=", .{});
+        try stdout.print(" 净收益=", .{});
         try fqm.formatUnaryDecimal(stdout, container.netBenefit());
-        std.debug.print("\n", .{});
+        try stdout.print("\n", .{});
     }
 
     // 标量报告
-    std.debug.print("\n--- 标量报告 ---\n", .{});
+    try stdout.print("\n--- 标量报告 ---\n", .{});
     var report = try orch.indexer.generateScalarReport();
     defer report.deinit();
-    std.debug.print("净收益总和: ", .{});
+    try stdout.print("净收益: ", .{});
     try fqm.formatUnaryDecimal(stdout, report.getTotalNetBenefit());
-    std.debug.print("\n", .{});
+    try stdout.print("\n", .{});
 
-    // ========== FQMCP 管线输出 ==========
-    std.debug.print("\n=== 启动 fqmcp 管线 ===\n", .{});
+    // ========== 夫妻共同体状态 ==========
+    try stdout.print("\n=== 夫妻共同体状态 ===\n", .{});
+    var community = fqm.Community.init();
+    // 模拟若干 tick
+    for (0..5) |_| community.advance();
 
-    var fqmcp = fqm.FQMCP.init(allocator);
+    try stdout.print("鸳鸯: ", .{});
+    const anchor_a_str = if (community.anchor_a == 1) "★" else "☆";
+    const anchor_b_str = if (community.anchor_b == 1) "★" else "☆";
+    try stdout.print("{s}|{s}\n", .{ anchor_a_str, anchor_b_str });
 
-    const knml_path = "zig-stem/output/fqmet.knmll";
-    std.fs.cwd().makePath("zig-stem/output") catch {};
+    try stdout.print("tick: ", .{});
+    try fqm.formatUnaryInt(stdout, community.tick);
+    try stdout.print("\n夕瑶周期: ", .{});
+    try fqm.formatUnaryInt(stdout, community.cycle);
+    try stdout.print("\n谐度: ", .{});
+    try fqm.formatUnaryDecimal(stdout, community.harmony);
+    try stdout.print("\n", .{});
 
-    try fqmcp.processOrchestrator(&orch, knml_path);
-    std.debug.print("knml 文件已保存: {s}\n", .{knml_path});
-
-    // FQMY URI 列表
-    std.debug.print("\n--- FQMY URI 列表 ---\n", .{});
+    // ========== gtti 意识传输协议 ==========
+    try stdout.print("\n=== gtti 意识传输协议 ===\n", .{});
     var encoder = fqm.FQMEncoder.init();
+
+    const gttx = try encoder.encodeGTTX(allocator);
+    defer allocator.free(gttx);
+    try stdout.print("鸳鸯协议:\n{s}\n", .{gttx});
+
+    const gtti_xieyein = try encoder.encodeGTTI(allocator, "xieyein");
+    defer allocator.free(gtti_xieyein);
+    try stdout.print("\n谐淫路由 (私密频道):\n{s}\n", .{gtti_xieyein});
+
+    const gtti_join = try encoder.encodeGTTI(allocator, "join");
+    defer allocator.free(gtti_join);
+    try stdout.print("\n意识融合 (合而为一):\n{s}\n", .{gtti_join});
+
+    // ========== FQMY URI 感知列表 ==========
+    try stdout.print("\n=== FQMY URI 列表 ===\n", .{});
     for (stats) |container| {
         const uri = try encoder.encodeFQMY(allocator, &container);
         defer allocator.free(uri);
-        std.debug.print("{s}\n", .{uri});
+        try stdout.print("{s}\n", .{uri});
     }
 
-    // knmlil 坐标演示
-    std.debug.print("\n--- knmlil 三元坐标 ---\n", .{});
+    // ========== fqmcp 管线输出 ==========
+    try stdout.print("\n=== 启动 fqmcp 管线 ===\n", .{});
+    var fqmcp = fqm.FQMCP.init(allocator);
+    const knml_path = "zig-stem/output/fqmet.knmll";
+    std.fs.cwd().makePath("zig-stem/output") catch {};
+    try fqmcp.processOrchestrator(&orch, knml_path);
+    try stdout.print("knml 文件已保存: {s}\n", .{knml_path});
 
+    // ========== knmlil 三元坐标 ==========
+    try stdout.print("\n=== knmlil 三元坐标 ===\n", .{});
     const c0 = fqm.KnmlCoord.init(1, 0, 1);
-    std.debug.print("mian|gu|ye = ", .{});
+    try stdout.print("mian|gu|ye = ", .{});
     try c0.encodeUnary(stdout);
-    std.debug.print("\n", .{});
+    try stdout.print("\n", .{});
 
     const c1 = fqm.KnmlCoord.init(0, 1, 0);
-    std.debug.print("mian|gu|ye = ", .{});
+    try stdout.print("mian|gu|ye = ", .{});
     try c1.encodeUnary(stdout);
-    std.debug.print("\n", .{});
+    try stdout.print("\n", .{});
 
-    // ========== 三维可视化 HTML 输出 ==========
-    std.debug.print("\n=== 启动三维可视化引擎 ===\n", .{});
+    // ========== 满全法裁决 ==========
+    try stdout.print("\n=== 满全法裁决 ===\n", .{});
+    try orch.judgeAllContainers();
+    const arb_report = try orch.getJudgmentReport(allocator);
+    defer allocator.free(arb_report);
+    try stdout.print("{s}\n", .{arb_report});
 
-    var scene = visualizer.Scene.init(allocator);
-    defer scene.deinit();
+    // ========== fqmcp 管线输出 ==========
+    try stdout.print("\n=== 启动 fqmcp 管线 ===\n", .{});
+    var fqmcp = fqm.FQMCP.init(allocator);
+    const knml_path = "zig-stem/output/fqmet.knmll";
+    std.fs.cwd().makePath("zig-stem/output") catch {};
+    try fqmcp.processOrchestrator(&orch, knml_path);
+    try stdout.print("knml 文件已保存: {s}\n", .{knml_path});
 
-    try scene.generateFromOrchestrator(&orch);
-
-    const html_output = try scene.generateHTML(allocator);
-    defer allocator.free(html_output);
-
-    const html_path = "zig-stem/output/visualization.html";
-    const html_file = try std.fs.cwd().createFile(html_path, .{});
-    defer html_file.close();
-    try html_file.writeAll(html_output);
-
-    std.debug.print("三维可视化 HTML 已保存: {s}\n", .{html_path});
-    std.debug.print("共 {d} 个坐标点，{d} 条连接线\n", .{ scene.points.items.len, scene.lines.items.len });
-
-    std.debug.print("\n=== 演示结束 ===\n\n", .{});
+    // 裁决写入 knmll
+    try stdout.print("\n=== 演示结束 ===\n\n", .{});
 }

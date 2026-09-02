@@ -112,15 +112,15 @@ pub fn expand(comptime shengmu_sym: []const u8, comptime yunmu_sym: []const u8, 
 // === 显示 ===
 
 pub fn displayDimInfo() void {
-    const stdout = std.io.getStdOut().writer();
+    
     const info = getDimInfo();
-    stdout.print("\n维度信息:\n", .{}) catch {};
-    stdout.print("  声母轴: {} 个位置\n", .{info.shengmu_count}) catch {};
-    stdout.print("  韵母轴: {} 个位置\n", .{info.yunmu_count}) catch {};
-    stdout.print("  声调轴: {} 个位置\n", .{info.tone_count}) catch {};
-    stdout.print("  三维空间总容量: {}x{}x{} = {}\n", .{
+    std.debug.print("\n维度信息:\n", .{});
+    std.debug.print("  声母轴: {} 个位置\n", .{info.shengmu_count});
+    std.debug.print("  韵母轴: {} 个位置\n", .{info.yunmu_count});
+    std.debug.print("  声调轴: {} 个位置\n", .{info.tone_count});
+    std.debug.print("  三维空间总容量: {}x{}x{} = {}\n", .{
         info.shengmu_count, info.yunmu_count, info.tone_count, info.total_capacity,
-    }) catch {};
+    });
 }
 
 // === 测试 ===

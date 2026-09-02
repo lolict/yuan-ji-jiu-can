@@ -19,12 +19,21 @@ CHAIN_OBJS = $(CHAIN_SRCS:.c=.o)
 MEMORY_SRCS = memory_chain.c growth_ring.c version_graph.c observer_v2.c
 MEMORY_OBJS = $(MEMORY_SRCS:.c=.o)
 
+# Lifecycle engine
+LIFE_OBJS = lifecycle_engine.c
+
 # Full system demos
 TEST_FULL_V1 = test_full_system
 TEST_FULL_V2 = test_full_system_v2
+TEST_LIFECYCLE = test_lifecycle
+TEST_SWARM = test_swarm
+TEST_SELFBOOT = test_selfboot
+TEST_CHRYSALIS = test_chrysalis
+MAIN = hunyuanos
 
 ALL = $(TEST_COLOR) $(TEST_LEVEL) $(TEST_TYPE) $(TEST_DIFF) $(TEST_WOV) \
-      $(TEST_FULL_V1) $(TEST_FULL_V2)
+      $(TEST_FULL_V1) $(TEST_FULL_V2) $(TEST_LIFECYCLE) $(MAIN) $(TEST_SWARM) \
+      $(TEST_SELFBOOT) $(TEST_CHRYSALIS)
 
 .PHONY: all clean test lib
 
@@ -64,6 +73,21 @@ $(TEST_FULL_V1): test_full_system.o $(CHAIN_OBJS)
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
 $(TEST_FULL_V2): test_full_system_v2.o $(CHAIN_OBJS) $(MEMORY_OBJS)
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+
+$(TEST_LIFECYCLE): test_lifecycle.o $(CHAIN_OBJS) $(MEMORY_OBJS) lifecycle_engine.o
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+
+$(MAIN): main.o $(CHAIN_OBJS) $(MEMORY_OBJS) lifecycle_engine.o
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+
+$(TEST_SWARM): test_swarm.o njsg_swarm.o swarm_agents.o chain_block.o
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+
+$(TEST_SELFBOOT): test_selfboot.o bootstrap_compiler.o chain_block.o
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+
+$(TEST_CHRYSALIS): test_chrysalis.o chrysalis_shell.o
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
 test: all

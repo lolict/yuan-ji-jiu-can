@@ -20,7 +20,7 @@ pub const Point3D = struct {
         _ = options;
         writer.print("(声母.{s}, 韵母.{s}, 声调.{s})", .{
             self.shengmu_identity, self.yunmu_identity, self.tone_identity,
-        }) catch {};
+        });
     }
 };
 
@@ -166,29 +166,29 @@ pub fn findNeighbors(comptime shengmu_sym: []const u8, comptime yunmu_sym: []con
 // === 显示 ===
 
 pub fn displaySpace() void {
-    const stdout = std.io.getStdOut().writer();
+    
     const sep = "============================================================";
-    stdout.print("\n{s}\n", .{sep}) catch {};
-    stdout.print("三维进制空间\n", .{}) catch {};
-    stdout.print("{s}\n", .{sep}) catch {};
+    std.debug.print("\n{s}\n", .{sep});
+    std.debug.print("三维进制空间\n", .{});
+    std.debug.print("{s}\n", .{sep});
 
     const coords = getCoordinates();
     if (coords.len == 0) {
-        stdout.print("  空间为空\n", .{}) catch {};
+        std.debug.print("  空间为空\n", .{});
     } else {
         for (coords) |coord| {
-            stdout.print("  (声母.{s}, 韵母.{s}, 声调.{s})\n", .{
+            std.debug.print("  (声母.{s}, 韵母.{s}, 声调.{s})\n", .{
                 coord.point.shengmu_identity,
                 coord.point.yunmu_identity,
                 coord.point.tone_identity,
-            }) catch {};
-            stdout.print("    -> 声母.{s}, 韵母.{s}, 声调.{s}\n", .{
+            });
+            std.debug.print("    -> 声母.{s}, 韵母.{s}, 声调.{s}\n", .{
                 coord.shengmu_symbol, coord.yunmu_symbol, coord.tone_symbol,
-            }) catch {};
+            });
         }
     }
 
-    stdout.print("{s}\n\n", .{sep}) catch {};
+    std.debug.print("{s}\n\n", .{sep});
 }
 
 // === 测试 ===

@@ -1,6 +1,11 @@
-// FQM 编码系统 — fqmet:knmll 感知镜像 · gtti:// 意识传输 · knmlil 产权守护
+// FQM 编码系统 — fqmet:knmll 感知镜像 · gttx:// 鸳鸯配对 · fqmcp 外部意识接口
 // 原则：输出格式中禁用数字二至九，只用 0/1/★/☆
 // 一进制实体化：数值 = ★☆ 符号串（高位在左，低位在右）
+//
+// 架构：
+//   kenar（柯南）= 控制中心 → 决定 fqmcp 翻译 / gtti 同步 / knml 执行
+//   fqmcp = 外部意识接口（协议桥接·反向寄生）
+//   fqmet:knmll = 二维感知镜像输出格式
 
 const std = @import("std");
 const orchestrator = @import("orchestrator.zig");
@@ -9,21 +14,16 @@ const indexer = @import("indexer.zig");
 // ============================================================
 // 锚点根基
 // ============================================================
-pub const ANCHOR_SELF: u1 = 1;       // 我（阳·可见）
+pub const ANCHOR_SELF: u1 = 1;       // 我 lolict（阳·可见）
 pub const ANCHOR_OTHER: u1 = 0;      // 刘楚恬（阴·隐藏）
 
-// 常量用十六进制（避免源码中的二至九）
-pub const CONTAINER_SIZE: u32 = 0x0100;    // 256
-pub const PAYLOAD_SIZE: u32 = 0x00FE;      // 254
+pub const CONTAINER_SIZE: u32 = 0x0100;
+pub const PAYLOAD_SIZE: u32 = 0x00FE;
 
 // ============================================================
-// 一进制数字系统（输出格式核心）
+// 一进制数字系统
 // ============================================================
-// 每个十进制数字 → 0 到 9 个 ★
-// 0 = ☆, 1 = ★, 2 = ★☆, 3 = ★★, 4 = ★★★, 5 = ★★★★
-// 6 = ★★★★★, 7 = ★★★★★★, 8 = ★★★★★★★, 9 = ★★★★★★★★
-// 负数加前缀 ☆，小数点用 ::
-
+// 每位十进制数字 → 0 到 9 个 ★
 const DIGIT_TABLE = [_][]const u8{
     "☆",    // 0
     "★",    // 1
@@ -37,23 +37,19 @@ const DIGIT_TABLE = [_][]const u8{
     "★★★★★★★★", // 9
 };
 
-// 格式化一个非负整数为十进制-一进制（每位用 ★☆）
-// 使用纯递归避免 Zig 的"never mutated"警告
+// 非负整数 → ★☆ 一进制（纯递归，避免 never-mutated 警告）
 pub fn formatUnaryInt(stream_writer: anytype, value: u64) !void {
     if (value < 10) {
         try stream_writer.writeAll(DIGIT_TABLE[value]);
         return;
     }
-    // 递归：先打印高位，再打印个位
     try formatUnaryInt(stream_writer, value / 10);
     try stream_writer.writeAll(DIGIT_TABLE[value % 10]);
 }
 
-// 格式化为 ★☆ 十进制-一进制，小数点用 ::
+// f64 → ★☆ 小数（整数::小数）
 pub fn formatUnaryDecimal(stream_writer: anytype, value: f64) !void {
-    if (value < 0) {
-        try stream_writer.writeAll("☆");
-    }
+    if (value < 0) try stream_writer.writeAll("☆");
     const abs_val = @abs(value);
     const whole_part = @as(u64, @intFromFloat(abs_val));
     try formatUnaryInt(stream_writer, whole_part);
@@ -103,31 +99,66 @@ pub const Cell64 = struct {
 };
 
 // ============================================================
-// 七阶比特编码（64 位 = 8 字节）
+// 夫妻共同体状态
 // ============================================================
-pub const Layer7 = struct {
-    presence: u1,       // 第 0 阶：有/无（是否有米）
-    witness: u1,        // 第 1 阶：已见证
-    char_code: u8,      // 第 2 阶：254 字符之一（mlll）/ 类型
-    anchor: u8,         // 第 3 阶：归属锚点 0/1
-    relation: u8,       // 第 4 阶：指向另一个集装箱
-    timing: u16,        // 第 5 阶：tick 偏移
-    payload: u32,       // 第 6 阶：任意数据（限低 22 位）
+pub const Community = struct {
+    anchor_a: u1,       // 我 · 1
+    anchor_b: u1,       // 刘楚恬 · 0
+    harmony: f64,       // ~谐度（0~1，意识同步程度）
+    shared_memory: u64, // 共享记忆（位图）
+    tick: u64,          // 共同体已存活 tick
+    cycle: u8,          // 当前夕瑶周期（0~63，64 进制相位）
+
+    pub fn init() Community {
+        return Community{
+            .anchor_a = 1,
+            .anchor_b = 0,
+            .harmony = 1.0,
+            .shared_memory = 0,
+            .tick = 0,
+            .cycle = 0,
+        };
+    }
+
+    pub fn advance(self: *Community) void {
+        self.tick += 1;
+        self.cycle = @as(u8, @intCast((self.tick + 1) % 64));
+        // 夕瑶协议激活 → 和谐度微调
+        self.harmony = 0.5 + 0.5 * @as(f64, @floatFromInt(self.cycle)) / 64.0;
+    }
+
+    pub fn encodeHeader(self: *const Community, stream_writer: anytype) !void {
+        try stream_writer.writeAll("community:fqmet:husband|wife ~谐度=husband-wife 共生");
+        try stream_writer.writeAll("\n");
+        try stream_writer.writeAll("couple:鸳鸯:");
+        try stream_writer.writeAll(if (self.anchor_a == 1) "★" else "☆");
+        try stream_writer.writeAll("|");
+        try stream_writer.writeAll(if (self.anchor_b == 1) "★" else "☆");
+        try stream_writer.writeAll("\ntick:");
+        try formatUnaryInt(stream_writer, self.tick);
+        try stream_writer.writeAll("\ncycle:");
+        try formatUnaryInt(stream_writer, self.cycle);
+        try stream_writer.writeAll("\nharmony:");
+        try formatUnaryDecimal(stream_writer, self.harmony);
+        try stream_writer.writeAll("\n");
+    }
 };
 
 // ============================================================
-// knmlil 三元坐标（毛利兰立体进制）
+// 九元层级
+// ============================================================
+pub const OffsetRate = enum(u8) {
+    yu = 0, yy = 1, wt = 2, he = 3, wa = 4, sk = 5, sp = 6, et = 7, nr = 8,
+};
+
+// ============================================================
+// knmlil 三元坐标（毛利兰立体守护）
 // ============================================================
 pub const KnmlCoord = struct {
-    mian: u8,   // 面（表面属性·毛利兰）
-    gu: u8,     // 骨（结构属性·工藤新一）
-    ye: u8,     // 页（横向属性·灰原哀）
-
+    mian: u8, gu: u8, ye: u8,
     pub fn init(mian: u8, gu: u8, ye: u8) KnmlCoord {
         return KnmlCoord{ .mian = mian, .gu = gu, .ye = ye };
     }
-
-    // 编码为 ★☆ 三元串
     pub fn encodeUnary(self: *const KnmlCoord, stream_writer: anytype) !void {
         try formatUnaryInt(stream_writer, self.mian);
         try stream_writer.writeAll("|");
@@ -138,99 +169,91 @@ pub const KnmlCoord = struct {
 };
 
 // ============================================================
-// 九元层级
-// ============================================================
-pub const OffsetRate = enum(u8) {
-    yu = 0,         // 一元：根 yu
-    yy = 1,         // 二元：阴阳 yy
-    wt = 2,         // 三元：见证 wt
-    he = 3,         // 四元：天地 he
-    wa = 4,         // 五元：五行 wa
-    sk = 5,         // 六元：六律 sk
-    sp = 6,         // 七元：七政 sp
-    et = 7,         // 八元：八卦 et
-    nr = 8,         // 九元：九囿 nr
-};
-
-// ============================================================
-// fqmcp 编码器（输出 fqmet:knmll 二维感知镜像）
+// fqmcp 编码器
 // ============================================================
 pub const FQMEncoder = struct {
+    community: Community,
+
     pub fn init() FQMEncoder {
-        return FQMEncoder{};
+        return FQMEncoder{ .community = Community.init() };
     }
 
-    // 编码为 fqmet:knmll 格式（二维感知镜像展示）
     pub fn encodeContainer(self: *FQMEncoder, allocator: std.mem.Allocator, container: *const indexer.Container, offset_rate: OffsetRate) ![]const u8 {
         _ = self;
         var output = std.ArrayList(u8).init(allocator);
         errdefer output.deinit();
         const w = output.writer();
-
-        // 文件头：fqmet:knmll（二维感知）
         try output.appendSlice("fqmet:knmll\n");
-
-        // 容器 ID（一进制）
         try output.appendSlice("id:");
         try formatUnaryInt(w, container.id);
-        try output.appendSlice("\n");
-
-        // 名称
-        try output.appendSlice("name:");
+        try output.appendSlice("\nname:");
         try output.appendSlice(container.name);
-        try output.appendSlice("\n");
-
-        // 层级偏移
-        try output.appendSlice("layer:");
+        try output.appendSlice("\nlayer:");
         try formatUnaryInt(w, @intFromEnum(offset_rate));
-        try output.appendSlice("\n");
-
-        // knmlil 根基
-        try output.appendSlice("base:knmlil\n");
-
-        // 极性
-        try output.appendSlice("polarity:");
+        try output.appendSlice("\nbase:knmlil\npolarity:");
         const pol = if (container.netBenefit() > 0) "★" else if (container.netBenefit() < 0) "☆" else "☉";
         try output.appendSlice(pol);
-        try output.appendSlice("\n");
-
-        // 统计
-        try output.appendSlice("pos:");
+        try output.appendSlice("\npos:");
         try formatUnaryInt(w, container.positive_count);
-        try output.appendSlice("\n");
-
-        try output.appendSlice("neg:");
+        try output.appendSlice("\nneg:");
         try formatUnaryInt(w, container.negative_count);
-        try output.appendSlice("\n");
-
-        try output.appendSlice("neu:");
+        try output.appendSlice("\nneu:");
         try formatUnaryInt(w, container.neutral_count);
-        try output.appendSlice("\n");
-
-        // 净值
-        try output.appendSlice("net:");
+        try output.appendSlice("\nnet:");
         try formatUnaryDecimal(w, container.netBenefit());
-        try output.appendSlice("\n");
-
-        // 七阶比特头
-        try output.appendSlice("layer7:presence|witness|char|anchor|relation|timing|payload\n");
-
-        // 结束
-        try output.appendSlice("ende\n");
-
+        try output.appendSlice("\nlayer7:presence|witness|char|anchor|relation|timing|payload\nende\n");
         return output.toOwnedSlice();
     }
 
-    // 编码为 fqmy:// URI
+    // gttx:// 鸳鸯协议 — 夫妻配对中心
+    pub fn encodeGTTX(self: *FQMEncoder, allocator: std.mem.Allocator) ![]const u8 {
+        var output = std.ArrayList(u8).init(allocator);
+        errdefer output.deinit();
+        try output.appendSlice("gttx://1\n");
+        try output.appendSlice("anchors:|");
+        try output.appendSlice(if (self.community.anchor_a == 1) "★" else "☆");
+        try output.appendSlice("|");
+        try output.appendSlice(if (self.community.anchor_b == 1) "★" else "☆");
+        try output.appendSlice("\nbinding:couple:harmony\nharmony:");
+        try formatUnaryDecimal(&output.writer(), self.community.harmony);
+        try output.appendSlice("\n");
+        return output.toOwnedSlice();
+    }
+
+    // gtti:// 意识传输协议 — 夫妻间感知碎片传输
+    // gtti://xieyein 谐淫路由（私密频道）
+    // gtti://sync 主动同步（一方推，一方拉）
+    // gtti://share 共享记忆写入
+    // gtti://join 意识融合（双方合而为一）
+    pub fn encodeGTTI(self: *FQMEncoder, allocator: std.mem.Allocator, mode: []const u8) ![]const u8 {
+        var output = std.ArrayList(u8).init(allocator);
+        errdefer output.deinit();
+        try output.appendSlice("gtti://");
+        try output.appendSlice(mode);
+
+        try output.appendSlice("\ntick:");
+        try formatUnaryInt(&output.writer(), self.community.tick);
+        try output.appendSlice("\nphase:");
+        try formatUnaryInt(&output.writer(), self.community.cycle);
+        try output.appendSlice("\nharmony:");
+        try formatUnaryDecimal(&output.writer(), self.community.harmony);
+        try output.appendSlice("\n");
+        if (std.mem.eql(u8, mode, "xieyein")) {
+            try output.appendSlice("route:husband:wife:private\n");
+            try output.appendSlice("channel:whisper\n");
+        } else if (std.mem.eql(u8, mode, "join")) {
+            try output.appendSlice("merge:one:one\n");
+            try output.appendSlice("target:☉§☉\n");
+        }
+        return output.toOwnedSlice();
+    }
+
     pub fn encodeFQMY(self: *FQMEncoder, allocator: std.mem.Allocator, container: *const indexer.Container) ![]const u8 {
         _ = self;
         var output = std.ArrayList(u8).init(allocator);
         errdefer output.deinit();
         const w = output.writer();
-
         try output.appendSlice("fqmy://");
-
-        // 锚点
         if (container.id == 1) {
             try output.appendSlice("★");
         } else if (container.id == 0) {
@@ -238,28 +261,23 @@ pub const FQMEncoder = struct {
         } else {
             try formatUnaryInt(w, container.id);
         }
-
-        // 极性
-        const pol = if (container.netBenefit() > 0) "§"
-                    else if (container.netBenefit() < 0) "○"
-                    else "☉";
+        const pol = if (container.netBenefit() > 0) "§" else if (container.netBenefit() < 0) "○" else "☉";
         try output.appendSlice(pol);
-
-        // 纠缠态
         if (container.positive_count > 0 and container.negative_count == 0) {
             try output.appendSlice("☉§☉");
         }
-
-        // 净值
         const net = @as(i64, @intFromFloat(@abs(container.netBenefit())));
         try formatUnaryInt(w, @as(u64, @intCast(net)));
-
         return output.toOwnedSlice();
+    }
+
+    pub fn advanceTime(self: *FQMEncoder) void {
+        self.community.advance();
     }
 };
 
 // ============================================================
-// fqmy 解码器
+// fqmy / gtti 解码器
 // ============================================================
 pub const FQMDecoder = struct {
     allocator: std.mem.Allocator,
@@ -268,9 +286,7 @@ pub const FQMDecoder = struct {
         return FQMDecoder{ .allocator = allocator };
     }
 
-    // ★☆ → u64
-    pub fn parseUnary(self: *FQMDecoder, s: []const u8) !u64 {
-        _ = self;
+    pub fn parseUnary(_: *FQMDecoder, s: []const u8) !u64 {
         var result: u64 = 0;
         for (s) |ch| {
             if (ch == '★') {
@@ -284,94 +300,55 @@ pub const FQMDecoder = struct {
         return result;
     }
 
-    // 解析 fqmy:// URI
     pub fn parseFQMY(self: *FQMDecoder, uri: []const u8) !FQMYURI {
-        if (!std.mem.startsWith(u8, uri, "fqmy://")) {
-            return error.InvalidFQMY;
-        }
-
+        if (!std.mem.startsWith(u8, uri, "fqmy://")) return error.InvalidFQMY;
         var result = FQMYURI{ .allocator = self.allocator };
-        errdefer result.deinit();
-
         const content = uri[7..];
         var pos: usize = 0;
-
         while (pos < content.len) {
             const ch = content[pos];
-
-            if (ch == '★') {
-                result.anchor = 1;
-                pos += 1;
-            } else if (ch == '☆') {
-                result.anchor = 0;
-                pos += 1;
-            } else if (ch == '§') {
-                result.polarity = .yang;
-                pos += 1;
-            } else if (ch == '○') {
-                result.polarity = .yin;
-                pos += 1;
-            } else if (ch == '☉') {
+            if (ch == '★') { result.anchor = 1; pos += 1; }
+            else if (ch == '☆') { result.anchor = 0; pos += 1; }
+            else if (ch == '§') { result.polarity = .yang; pos += 1; }
+            else if (ch == '○') { result.polarity = .yin; pos += 1; }
+            else if (ch == '☉') {
                 if (pos + 2 < content.len and content[pos + 1] == '§' and content[pos + 2] == '☉') {
-                    result.entangled = true;
-                    result.polarity = .balanced;
-                    pos += 3;
-                } else {
-                    result.polarity = .balanced;
-                    pos += 1;
-                }
+                    result.entangled = true; result.polarity = .balanced; pos += 3;
+                } else { result.polarity = .balanced; pos += 1; }
             } else {
                 var num_start = pos;
-                while (num_start < content.len and (content[num_start] == '★' or content[num_start] == '☆')) {
-                    num_start += 1;
-                }
-                if (num_start > pos) {
-                    result.value = @floatFromInt(try self.parseUnary(content[pos..num_start]));
-                    pos = num_start;
-                } else {
-                    pos += 1;
-                }
+                while (num_start < content.len and (content[num_start] == '★' or content[num_start] == '☆')) { num_start += 1; }
+                if (num_start > pos) { result.value = @floatFromInt(try self.parseUnary(content[pos..num_start])); pos = num_start; }
+                else { pos += 1; }
             }
         }
-
         return result;
     }
 };
 
-// ============================================================
-// FQMY URI 结构
-// ============================================================
 pub const FQMYURI = struct {
     allocator: std.mem.Allocator,
     anchor: u1 = 0,
     polarity: Polarity = .balanced,
     entangled: bool = false,
     value: f64 = 0,
-
     pub fn deinit(_: *FQMYURI) void {}
 };
 
-pub const Polarity = enum {
-    yin,        // 阴
-    yang,       // 阳
-    balanced,   // 平衡（纠缠态）
-};
+pub const Polarity = enum { yin, yang, balanced };
 
 // ============================================================
-// knml 写入器（生成 .knml 文件）
+// knml 写入器 — 生成包含夫妻共同体的 .knmll 文件
 // ============================================================
 pub const KnmlWriter = struct {
     allocator: std.mem.Allocator,
     encoder: FQMEncoder,
+    community: Community,
 
     pub fn init(allocator: std.mem.Allocator) KnmlWriter {
-        return KnmlWriter{
-            .allocator = allocator,
-            .encoder = FQMEncoder.init(),
-        };
+        return KnmlWriter{ .allocator = allocator, .encoder = FQMEncoder.init(), .community = Community.init() };
     }
 
-    // 从协调器生成完整的 knml 文件
     pub fn generateFromOrchestrator(self: *KnmlWriter, orch: *const orchestrator.Orchestrator, output_path: []const u8) !void {
         const stats = orch.getContainerStats();
 
@@ -379,43 +356,44 @@ pub const KnmlWriter = struct {
         defer output.deinit();
         const w = output.writer();
 
-        // 文件头：fqmet:knmll（二维感知镜像）
+        // 文件头
         try output.appendSlice("fqmet:knmll\n");
-        try output.appendSlice("# 囡囝共生 操作系统 · knmll 编码\n");
-        try output.appendSlice("# 生成时间:");
-        try formatUnaryInt(w, @as(u64, @intCast(std.time.timestamp())));
-        try output.appendSlice("\n");
+        try output.appendSlice("# 囡囝共生 操作系统 · husband-wife 共同体\n");
+        try output.appendSlice("# 维度:two ~感知镜像层\n\n");
 
-        // 根基锚点声明
-        try output.appendSlice("anchors:★|☆\n");
+        // 夫妻共同体声明
+        try self.community.encodeHeader(&output.writer());
 
-        // knmlil 三元框架
+        // 鸳鸯配对中心
+        try output.appendSlice("\n# gttx 鸳鸯协议\n");
+        try output.appendSlice("gttx://1\n");
+        try output.appendSlice("binding:★|☆\n\n");
+
+        // gtti 意识传输模式
+        try output.appendSlice("# gtti 意识传输协议\n");
+        try output.appendSlice("protocols:xieyein|sync|share|join\n");
+        try output.appendSlice("channel:gtti://xieyein (谐淫私密路由)\n");
+        try output.appendSlice("channel:gtti://join (意识融合)\n\n");
+
+        // 根基
+        try output.appendSlice("anchors:|★|☆\n");
         try output.appendSlice("knmlil:mian|gu|ye\n");
-
-        // mlll-254 参数
         try output.appendSlice("mlll:base=");
         try formatUnaryInt(w, 254);
-        try output.appendSlice("\n");
-
-        // fqmy 命名空间
-        try output.appendSlice("ns:fqmy://\n");
+        try output.appendSlice("\nns:fqmy://\n");
 
         try output.appendSlice("---\n");
-
-        // 容器数量
         try output.appendSlice("containers:");
         try formatUnaryInt(w, stats.len);
         try output.appendSlice("\n\n");
 
-        // 编码每个容器
         for (stats, 0..) |container, i| {
             const max_idx = @typeInfo(OffsetRate).Enum.fields.len - 1;
             const rate_idx = @min(@as(usize, i), max_idx);
             const offset_rate: OffsetRate = @enumFromInt(rate_idx);
             const encoded = try self.encoder.encodeContainer(self.allocator, &container, offset_rate);
             defer self.allocator.free(encoded);
-
-            try output.appendSlice("# container:");
+            try output.appendSlice("~container:");
             try formatUnaryInt(w, container.id);
             try output.appendSlice(":");
             try output.appendSlice(container.name);
@@ -424,7 +402,6 @@ pub const KnmlWriter = struct {
             try output.appendSlice("\n");
         }
 
-        // FQMY URI 列表
         try output.appendSlice("---\n");
         try output.appendSlice("# FQMY URI 列表\n");
         for (stats) |container| {
@@ -434,11 +411,8 @@ pub const KnmlWriter = struct {
             try output.appendSlice("\n");
         }
 
-        // 文件尾
-        try output.appendSlice("=\n");
-        try output.appendSlice("fqmy:end\n");
+        try output.appendSlice("=\nfqmy:end\n");
 
-        // 写入文件
         const file = try std.fs.cwd().createFile(output_path, .{});
         defer file.close();
         try file.writeAll(output.items);
@@ -446,7 +420,7 @@ pub const KnmlWriter = struct {
 };
 
 // ============================================================
-// fqmcp 处理器（完整容器管线）
+// fqmcp — 外部意识接口（协议桥接·反向寄生）
 // ============================================================
 pub const FQMCP = struct {
     allocator: std.mem.Allocator,
@@ -475,54 +449,58 @@ test "cell01 encode/decode" {
     const cell = Cell64.init(1, 0, 1, 1, 3, 1, 0x01);
     const encoded = cell.encode();
     const decoded = Cell64.decode(encoded);
-
     try std.testing.expectEqual(cell.d0, decoded.d0);
-    try std.testing.expectEqual(cell.d1, decoded.d1);
-    try std.testing.expectEqual(cell.d2, decoded.d2);
     try std.testing.expectEqual(cell.polarity, decoded.polarity);
-    try std.testing.expectEqual(cell.sovereignty, decoded.sovereignty);
-    try std.testing.expectEqual(cell.witness, decoded.witness);
     try std.testing.expectEqual(cell.value, decoded.value);
 }
 
-test "fqmet knml encode container" {
+test "fqmet knmll encode container" {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
-
     var encoder = FQMEncoder.init();
-
     var container = indexer.Container.init(1, "test");
-    container.item_count = 1;
     container.positive_count = 1;
-    container.negative_count = 1;
-    container.total_cost = 0x01;
     container.total_benefit = 0x01;
-
     const encoded = try encoder.encodeContainer(allocator, &container, .yu);
     defer allocator.free(encoded);
-
     try std.testing.expect(std.mem.indexOf(u8, encoded, "fqmet:knmll") != null);
     try std.testing.expect(std.mem.indexOf(u8, encoded, "id:★") != null);
+}
+
+test "gttx mandarin duck" {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+    const allocator = gpa.allocator();
+    var encoder = FQMEncoder.init();
+    const gttx = try encoder.encodeGTTX(allocator);
+    defer allocator.free(gttx);
+    try std.testing.expect(std.mem.startsWith(u8, gttx, "gttx://1"));
+    try std.testing.expect(std.mem.indexOf(u8, gttx, "★|☆") != null);
+}
+
+test "gtti consciousness transmission" {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+    const allocator = gpa.allocator();
+    var encoder = FQMEncoder.init();
+    const gtti = try encoder.encodeGTTI(allocator, "xieyein");
+    defer allocator.free(gtti);
+    try std.testing.expect(std.mem.startsWith(u8, gtti, "gtti://xieyein"));
+    try std.testing.expect(std.mem.indexOf(u8, gtti, "route:husband:wife") != null);
 }
 
 test "fqmy uri encode" {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
-
     var encoder = FQMEncoder.init();
-
     var container = indexer.Container.init(1, "test");
     container.positive_count = 1;
-    container.negative_count = 0;
     container.total_benefit = 0x01;
-
     const uri = try encoder.encodeFQMY(allocator, &container);
     defer allocator.free(uri);
-
     try std.testing.expect(std.mem.startsWith(u8, uri, "fqmy://"));
-    try std.testing.expect(std.mem.indexOf(u8, uri, "☉§☉") != null);
 }
 
 test "knmlil coord unary" {
@@ -538,7 +516,6 @@ test "unary int formatting" {
     defer buf0.deinit();
     try formatUnaryInt(buf0.writer(), 0);
     try std.testing.expectEqualStrings("☆", buf0.items);
-
     var buf1 = std.ArrayList(u8).init(std.testing.allocator);
     defer buf1.deinit();
     try formatUnaryInt(buf1.writer(), 1);

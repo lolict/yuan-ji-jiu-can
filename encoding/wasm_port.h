@@ -69,6 +69,10 @@ typedef intptr_t    NJSG_intptr;
 typedef size_t      NJSG_size;
 typedef ptrdiff_t   NJSG_ptrdiff;
 
+/* 浮点 */
+typedef float       NJSG_float;
+typedef double      NJSG_double;
+
 /* 布尔 (C99 前兼容) */
 #if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
 #  include <stdbool.h>

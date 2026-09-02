@@ -575,6 +575,85 @@ _lib.wk_load.restype = ctypes.c_int
 _lib.wk_serialized_size.argtypes = []
 _lib.wk_serialized_size.restype = ctypes.c_uint32
 
+# ── 距离感知聚类 (mind_organ) ─────────────────────────────
+
+# 距离类型
+MO_DIST_GEOMETRIC = 0
+MO_DIST_SOVEREIGN = 1
+MO_DIST_POLARITY  = 2
+MO_DIST_WITNESS   = 3
+MO_DIST_MCCP      = 4
+
+# 最大 cell 数 (与 MO_MAX_CELLS 对齐)
+MO_MAX_CELLS = 254
+
+class MoCluster(ctypes.Structure):
+    """单个簇 (与 C mo_cluster_t 对齐)"""
+    _fields_ = [
+        ("member_ids", ctypes.c_uint16 * 254),  # MO_MAX_CELLS
+        ("member_count", ctypes.c_uint16),
+        ("centroid_id", ctypes.c_uint16),
+        ("cohesion", ctypes.c_float),
+    ]
+
+class MoResult(ctypes.Structure):
+    """聚类结果 (与 C mo_result_t 对齐)"""
+    _fields_ = [
+        ("clusters", MoCluster * 32),  # MO_MAX_CLUSTERS
+        ("cluster_count", ctypes.c_uint16),
+        ("noise_count", ctypes.c_uint16),
+        ("avg_cohesion", ctypes.c_float),
+        ("dist_type", ctypes.c_int),
+    ]
+
+_lib.mo_distance.argtypes = [ctypes.c_uint64, ctypes.c_uint64, ctypes.c_int]
+_lib.mo_distance.restype = ctypes.c_float
+
+_lib.mo_cluster.argtypes = [ctypes.POINTER(ctypes.c_uint64), ctypes.c_uint32,
+                             ctypes.c_float, ctypes.c_uint16, ctypes.c_int,
+                             ctypes.POINTER(MoResult)]
+_lib.mo_cluster.restype = None
+
+_lib.mo_nearest.argtypes = [ctypes.POINTER(ctypes.c_uint64), ctypes.c_uint32,
+                             ctypes.c_uint32, ctypes.c_int]
+_lib.mo_nearest.restype = ctypes.c_int
+
+_lib.mo_stats.argtypes = [ctypes.POINTER(MoResult), ctypes.c_char_p, ctypes.c_size_t]
+_lib.mo_stats.restype = None
+
+
+class MindOrganRef:
+    """距离感知聚类 Python 封装"""
+    
+    def __init__(self):
+        self._cells = []
+    
+    def add_cell(self, mccp, sovereignty, polarity, witness):
+        cell = _wk_cell(mccp, sovereignty, polarity, witness)
+        self._cells.append(cell)
+        return len(self._cells) - 1
+    
+    def distance(self, i, j, dist_type=MO_DIST_GEOMETRIC):
+        if i >= len(self._cells) or j >= len(self._cells):
+            return -1.0
+        return _lib.mo_distance(self._cells[i], self._cells[j], dist_type)
+    
+    def nearest(self, idx, dist_type=MO_DIST_GEOMETRIC):
+        if idx >= len(self._cells):
+            return -1
+        arr = (ctypes.c_uint64 * len(self._cells))(*self._cells)
+        return _lib.mo_nearest(arr, len(self._cells), idx, dist_type)
+    
+    def cluster(self, eps=0.3, min_pts=2, dist_type=MO_DIST_GEOMETRIC):
+        if not self._cells:
+            return None
+        arr = (ctypes.c_uint64 * len(self._cells))(*self._cells)
+        result = MoResult()
+        _lib.mo_cluster(arr, len(self._cells), eps, min_pts, dist_type, ctypes.byref(result))
+        buf = ctypes.create_string_buffer(512)
+        _lib.mo_stats(ctypes.byref(result), buf, 512)
+        return buf.value.decode('utf-8', errors='replace')
+
 
 class WasmKernelRef:
     """WASM 内核 C 核心的 Python 封装"""
@@ -722,3 +801,331 @@ def level_str(l: int) -> str:
         0xFF: "未知",
     }
     return names.get(l, f"?0x{l:02X}")
+
+
+# ═══════════════════════════════════════════════════════════════
+# MetaIME 七层编码引擎 Python 绑定
+# ═══════════════════════════════════════════════════════════════
+
+METAIME_ENGINE_SIZE    = 24720
+METAIME_PATTERN_SIZE   = 34
+METAIME_ACTION_SIZE    = 48
+METAIME_MATCH_SIZE     = 56
+
+METAIME_POL_WIFE     = 0x0
+METAIME_POL_HUSBAND  = 0x1
+METAIME_POL_SYSTEM   = 0x2
+METAIME_POL_OBSERVER = 0x3
+METAIME_POL_ARBITER  = 0x4
+METAIME_POL_SECRET   = 0x5
+METAIME_POL_EMPTY    = 0x6
+
+METAIME_FLOW_PRELOAD    = 0x0
+METAIME_FLOW_CATEGORY   = 0x1
+METAIME_FLOW_CLUSTER    = 0x2
+METAIME_FLOW_DISTINGUISH = 0x3
+METAIME_FLOW_PROPERTY   = 0x4
+METAIME_FLOW_INTERPRET  = 0x5
+METAIME_FLOW_RELATION   = 0x6
+METAIME_FLOW_CONCEPT    = 0x7
+
+SYLLABLE_WILDCARD = 0xFFFF
+
+
+class _MetaImePattern(ctypes.Structure):
+    _fields_ = [
+        ("syllables", ctypes.c_uint16 * 16),
+        ("len", ctypes.c_uint8),
+        ("wildcard_only", ctypes.c_uint8),
+    ]
+
+
+class _MetaImeAction(ctypes.Structure):
+    _fields_ = [
+        ("text", ctypes.c_char * 32),
+        ("cell", ctypes.c_uint64),
+        ("flow", ctypes.c_uint8),
+        ("priority", ctypes.c_uint8),
+    ]
+
+
+class _MetaImeMatch(ctypes.Structure):
+    _fields_ = [
+        ("rule_id", ctypes.c_uint16),
+        ("rule_index", ctypes.c_uint8),
+        ("confidence", ctypes.c_uint8),
+        ("action", _MetaImeAction),
+    ]
+
+
+_lib.metaime_init.argtypes = [ctypes.c_void_p]
+_lib.metaime_init.restype = None
+_lib.metaime_add_rule.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p]
+_lib.metaime_add_rule.restype = ctypes.c_int
+_lib.metaime_feed.argtypes = [ctypes.c_void_p, ctypes.c_uint8, ctypes.c_uint8, ctypes.c_uint8]
+_lib.metaime_feed.restype = ctypes.c_int
+_lib.metaime_try_match.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+_lib.metaime_try_match.restype = ctypes.c_int
+_lib.metaime_autofire.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_size_t,
+                                    ctypes.POINTER(ctypes.c_uint64)]
+_lib.metaime_autofire.restype = ctypes.c_int
+_lib.metaime_reset.argtypes = [ctypes.c_void_p]
+_lib.metaime_reset.restype = None
+_lib.metaime_stats.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_size_t]
+_lib.metaime_stats.restype = None
+_lib.metaime_encode.argtypes = [ctypes.c_uint8, ctypes.c_uint8, ctypes.c_uint8,
+                                 ctypes.c_uint8, ctypes.c_uint8, ctypes.c_uint8, ctypes.c_uint32]
+_lib.metaime_encode.restype = ctypes.c_uint64
+_lib.metaime_decode.argtypes = [ctypes.c_uint64,
+                                 ctypes.POINTER(ctypes.c_uint8), ctypes.POINTER(ctypes.c_uint8),
+                                 ctypes.POINTER(ctypes.c_uint8), ctypes.POINTER(ctypes.c_uint8),
+                                 ctypes.POINTER(ctypes.c_uint8), ctypes.POINTER(ctypes.c_uint8),
+                                 ctypes.POINTER(ctypes.c_uint32)]
+_lib.metaime_decode.restype = None
+
+
+def _make_syllable(sm, ym, tone):
+    return ((sm & 0x3F) << 0) | ((ym & 0x3F) << 6) | ((tone & 0x7) << 12)
+
+
+def _make_token(sm, ym, tone, pol, wit, flow, sov):
+    return ((sm & 0x3F) << 42) | ((ym & 0xFF) << 34) | \
+           ((tone & 0x7) << 31) | ((pol & 0x7) << 28) | \
+           ((wit & 0xF) << 24) | ((flow & 0x7) << 21) | (sov & 0x1FFFFF)
+
+
+class MetaImeEngine:
+    """MetaIME 七层编码引擎 Python 封装"""
+
+    def __init__(self):
+        self._buf = (ctypes.c_uint8 * METAIME_ENGINE_SIZE)()
+        _lib.metaime_init(ctypes.byref(self._buf))
+
+    @property
+    def auto_fire(self):
+        return self._buf[24652]
+
+    @auto_fire.setter
+    def auto_fire(self, val):
+        self._buf[24652] = max(0, min(100, val))
+
+    def add_rule(self, syllables, text, cell=0, flow=0, priority=0):
+        pat = _MetaImePattern()
+        for i, s in enumerate(syllables):
+            if i >= 16:
+                break
+            if s == SYLLABLE_WILDCARD:
+                pat.syllables[i] = SYLLABLE_WILDCARD
+            elif isinstance(s, tuple):
+                pat.syllables[i] = _make_syllable(s[0], s[1], s[2])
+            else:
+                pat.syllables[i] = int(s)
+        pat.len = min(len(syllables), 16)
+
+        act = _MetaImeAction()
+        enc = text.encode('utf-8')[:31]
+        # 将 bytes 复制到 c_char 数组
+        raw = (ctypes.c_char * 32).from_address(ctypes.addressof(act))
+        ctypes.memmove(raw, enc, len(enc))
+        act.cell = cell
+        act.flow = flow
+        act.priority = priority
+
+        return _lib.metaime_add_rule(ctypes.byref(self._buf),
+                                       ctypes.byref(pat), ctypes.byref(act))
+
+    def feed(self, sm, ym, tone):
+        rc = _lib.metaime_feed(ctypes.byref(self._buf), sm, ym, tone)
+        match = _MetaImeMatch()
+        if rc == 1:
+            _lib.metaime_try_match(ctypes.byref(self._buf), ctypes.byref(match))
+            return {
+                "matched": True,
+                "rule_id": match.rule_id,
+                "confidence": match.confidence,
+                "text": match.action.text.decode('utf-8', errors='replace'),
+                "cell": match.action.cell,
+                "flow": match.action.flow,
+                "priority": match.action.priority,
+            }
+        return {"matched": False}
+
+    def try_match(self):
+        match = _MetaImeMatch()
+        rc = _lib.metaime_try_match(ctypes.byref(self._buf), ctypes.byref(match))
+        if rc == 1:
+            return {
+                "matched": True,
+                "rule_id": match.rule_id,
+                "confidence": match.confidence,
+                "text": match.action.text.decode('utf-8', errors='replace'),
+                "cell": match.action.cell,
+                "flow": match.action.flow,
+            }
+        return {"matched": False}
+
+    def autofire(self):
+        buf = ctypes.create_string_buffer(64)
+        cell = ctypes.c_uint64(0)
+        rc = _lib.metaime_autofire(ctypes.byref(self._buf), buf, 64, ctypes.byref(cell))
+        if rc == 1:
+            return {"fired": True, "text": buf.value.decode('utf-8', errors='replace'), "cell": cell.value}
+        return {"fired": False}
+
+    def reset(self):
+        _lib.metaime_reset(ctypes.byref(self._buf))
+
+    def stats(self):
+        buf = ctypes.create_string_buffer(256)
+        _lib.metaime_stats(ctypes.byref(self._buf), buf, 256)
+        return buf.value.decode('utf-8', errors='replace')
+
+    @staticmethod
+    def encode(sm, ym, tone, pol=0, wit=0, flow=0, sovereignty=0):
+        return _lib.metaime_encode(sm, ym, tone, pol, wit, flow, sovereignty)
+
+    @staticmethod
+    def decode(cell):
+        sm = ctypes.c_uint8(); ym = ctypes.c_uint8(); tone = ctypes.c_uint8()
+        pol = ctypes.c_uint8(); wit = ctypes.c_uint8(); flow = ctypes.c_uint8()
+        sov = ctypes.c_uint32()
+        _lib.metaime_decode(cell,
+                             ctypes.byref(sm), ctypes.byref(ym), ctypes.byref(tone),
+                             ctypes.byref(pol), ctypes.byref(wit), ctypes.byref(flow),
+                             ctypes.byref(sov))
+        return {
+            "shengmu": sm.value, "yunmu": ym.value, "tone": tone.value,
+            "polarity": pol.value, "wit": wit.value, "flow": flow.value,
+            "sovereignty": sov.value,
+        }
+
+    @staticmethod
+    def syllable(sm, ym, tone):
+        return _make_syllable(sm, ym, tone)
+
+    @staticmethod
+    def token(sm, ym, tone, pol, wit, flow, sov):
+        return _make_token(sm, ym, tone, pol, wit, flow, sov)
+
+
+# ── 天庭空间 ──────────────────────────────────────────────
+
+COURT_COURT_SIZE = 6440
+
+# 囡囝四态 (与 wasm_kernel.h 一致)
+COURT_STATE_NN   = 0x00
+COURT_STATE_NJSG = 0x01
+COURT_STATE_JJ   = 0x02
+COURT_STATE_JN   = 0x03
+
+# 裁决结果
+COURT_MERGE     = 0x01
+COURT_REPEL     = 0x02
+COURT_WITNESS   = 0x03
+COURT_TRANSFORM = 0x04
+COURT_DEFER     = 0x05
+COURT_ESCALATE  = 0x06
+
+# 裁决事由
+REASON_SOUL_OK       = 0x00
+REASON_SOV_CONFLICT  = 0x01
+REASON_POL_MISMATCH  = 0x02
+REASON_WIT_INSUFFICIENT = 0x03
+REASON_FLOW_SLEEP    = 0x04
+REASON_DISTANCE_FAR  = 0x05
+REASON_HISTORY_REJECT = 0x06
+REASON_STATE_FORBID  = 0x07
+
+# 天庭空间 C API
+_lib.court_init.argtypes = [ctypes.c_void_p]
+_lib.court_init.restype = None
+
+_lib.court_set_state.argtypes = [ctypes.c_void_p, ctypes.c_uint8]
+_lib.court_set_state.restype = None
+
+_lib.court_activate_flow.argtypes = [ctypes.c_void_p, ctypes.c_uint8]
+_lib.court_activate_flow.restype = None
+
+_lib.court_judge.argtypes = [ctypes.c_void_p, ctypes.c_uint64, ctypes.c_uint64, ctypes.c_uint8,
+                              ctypes.POINTER(ctypes.c_uint8), ctypes.POINTER(ctypes.c_uint8),
+                              ctypes.POINTER(ctypes.c_uint64)]
+_lib.court_judge.restype = ctypes.c_float
+
+_lib.court_retry_pending.argtypes = [ctypes.c_void_p]
+_lib.court_retry_pending.restype = None
+
+_lib.court_route_metaime.argtypes = [ctypes.c_void_p, ctypes.c_uint8, ctypes.c_uint8, ctypes.c_uint8,
+                                      ctypes.c_uint8, ctypes.c_uint8,
+                                      ctypes.POINTER(ctypes.c_uint8), ctypes.POINTER(ctypes.c_uint64)]
+_lib.court_route_metaime.restype = ctypes.c_float
+
+_lib.court_stats.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_size_t]
+_lib.court_stats.restype = None
+
+_lib.court_verdict_str.argtypes = [ctypes.c_uint8]
+_lib.court_verdict_str.restype = ctypes.c_char_p
+
+_lib.court_reason_str.argtypes = [ctypes.c_uint8]
+_lib.court_reason_str.restype = ctypes.c_char_p
+
+
+class CourtEngine:
+    """天庭空间 · 规则引擎 Python 封装"""
+
+    def __init__(self):
+        self._buf = ctypes.create_string_buffer(COURT_COURT_SIZE)
+        _lib.court_init(self._buf)
+
+    def set_state(self, state):
+        _lib.court_set_state(self._buf, state)
+
+    def activate_flow(self, flow):
+        _lib.court_activate_flow(self._buf, flow)
+
+    def judge(self, cell_a, cell_b, flow=0):
+        verdict = ctypes.c_uint8(0)
+        reason = ctypes.c_uint8(0)
+        out_cell = ctypes.c_uint64(0)
+        conf = _lib.court_judge(self._buf, cell_a, cell_b, flow,
+                                ctypes.byref(verdict), ctypes.byref(reason),
+                                ctypes.byref(out_cell))
+        v = verdict.value
+        r = reason.value
+        vs = _lib.court_verdict_str(v)
+        rs = _lib.court_reason_str(r)
+        if isinstance(vs, bytes):
+            vs = vs.decode('utf-8', errors='replace')
+        if isinstance(rs, bytes):
+            rs = rs.decode('utf-8', errors='replace')
+        return {
+            'confidence': conf,
+            'verdict': v,
+            'verdict_str': vs,
+            'reason': r,
+            'reason_str': rs,
+            'output_cell': out_cell.value,
+        }
+
+    def retry_pending(self):
+        _lib.court_retry_pending(self._buf)
+
+    def route_metaime(self, sm, ym, tone, pol, wit):
+        verdict = ctypes.c_uint8(0)
+        out_cell = ctypes.c_uint64(0)
+        conf = _lib.court_route_metaime(self._buf, sm, ym, tone, pol, wit,
+                                         ctypes.byref(verdict), ctypes.byref(out_cell))
+        v = verdict.value
+        vs = _lib.court_verdict_str(v)
+        if isinstance(vs, bytes):
+            vs = vs.decode('utf-8', errors='replace')
+        return {
+            'confidence': conf,
+            'verdict': v,
+            'verdict_str': vs,
+            'output_cell': out_cell.value,
+        }
+
+    def stats(self):
+        buf = ctypes.create_string_buffer(2048)
+        _lib.court_stats(self._buf, buf, 2048)
+        return buf.value.decode('utf-8', errors='replace')

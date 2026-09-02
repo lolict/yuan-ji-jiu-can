@@ -86,16 +86,16 @@ pub fn downgrade(comptime element: []const u8) YuanResult {
 // === 层级显示 ===
 
 pub fn displayHierarchy() void {
-    const stdout = std.io.getStdOut().writer();
+    
     const sep = "============================================================";
-    stdout.print("\n{s}\n", .{sep}) catch {};
-    stdout.print("元层级结构\n", .{}) catch {};
-    stdout.print("{s}\n", .{sep}) catch {};
-    stdout.print("  【一元】(时间因果) - 中心不变量、受益者\n", .{}) catch {};
-    stdout.print("  【二元】(盈亏镜像) - 可统计、可镜像\n", .{}) catch {};
-    stdout.print("  【三元】(见证镜像) - 裁判/观测者\n", .{}) catch {};
-    stdout.print("  【四元】(包含镜像) - 归属权、容积包裹\n", .{}) catch {};
-    stdout.print("{s}\n\n", .{sep}) catch {};
+    std.debug.print("\n{s}\n", .{sep});
+    std.debug.print("元层级结构\n", .{});
+    std.debug.print("{s}\n", .{sep});
+    std.debug.print("  【一元】(时间因果) - 中心不变量、受益者\n", .{});
+    std.debug.print("  【二元】(盈亏镜像) - 可统计、可镜像\n", .{});
+    std.debug.print("  【三元】(见证镜像) - 裁判/观测者\n", .{});
+    std.debug.print("  【四元】(包含镜像) - 归属权、容积包裹\n", .{});
+    std.debug.print("{s}\n\n", .{sep});
 }
 
 // === 测试 ===

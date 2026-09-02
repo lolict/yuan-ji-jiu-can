@@ -1,14 +1,30 @@
 fqmet:knmll
-# 囡囝共生 操作系统 · knmll 编码
-# 生成时间:★★★★★★★★★★★★★★★★★★★★★★☆★★★☆★★★★☆
-anchors:★|☆
+# 囡囝共生 操作系统 · husband-wife 共同体
+# 维度:two ~感知镜像层
+
+community:fqmet:husband|wife ~谐度=husband-wife 共生
+couple:鸳鸯:★|☆
+tick:☆
+cycle:☆
+harmony:★::☆
+
+# gttx 鸳鸯协议
+gttx://1
+binding:★|☆
+
+# gtti 意识传输协议
+protocols:xieyein|sync|share|join
+channel:gtti://xieyein (谐淫私密路由)
+channel:gtti://join (意识融合)
+
+anchors:|★|☆
 knmlil:mian|gu|ye
 mlll:base=★☆★★★★★★★
 ns:fqmy://
 ---
 containers:★★
 
-# container:★:color_base
+~container:★:color_base
 fqmet:knmll
 id:★
 name:color_base
@@ -22,7 +38,7 @@ net:☆::☆
 layer7:presence|witness|char|anchor|relation|timing|payload
 ende
 
-# container:★☆:sound_base
+~container:★☆:sound_base
 fqmet:knmll
 id:★☆
 name:sound_base
@@ -36,7 +52,7 @@ net:★::☆
 layer7:presence|witness|char|anchor|relation|timing|payload
 ende
 
-# container:★★:relation_base
+~container:★★:relation_base
 fqmet:knmll
 id:★★
 name:relation_base
