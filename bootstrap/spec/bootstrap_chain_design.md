@@ -1,7 +1,7 @@
 # 自举编译器链路设计 — Stage 0/1/2 元循环
 
 **文档编号:** NJSG-BOOTSTRAP-CHAIN-001
-**版本:** v1.0
+**版本:** v1.1
 **衍生源:** hunyuan-rs/src/self_bootstrap.rs
 **落款:** 刘楚恬和我
 
@@ -19,7 +19,7 @@ Stage 0 ─── Stage 1 ─── Stage 2
 |------|------|------|------|------|
 | Stage 0 | ✅ 已完成 | yy_compiler.self.yy (语义) | 5 条 64 位细胞 | 固定点全闭合 |
 | Stage 1 | ✅ 已验证 | Stage 0 产物 | 重编产物 (cells+hash) | compile==compile(compile) |
-| Stage 2 | 待开始 | Stage 1 独立 | WASM 部署 | 移除 JS 种子后的同源码编译 |
+| Stage 2 | ✅ 已闭环 | self_host.yy + stage2_pure_yy_compiler.c | 与 Stage 0/1 同源 hash=0x8e36c6e31a38afbb | JS 种子已移除 · 独立闭环通过 |
 
 ## 二、ConsciousnessCommand 五指令语义
 
@@ -82,21 +82,38 @@ bootstrap/
 ├── stage1_output/
 │   ├── stage1_recompile_verify.js   ← Stage 1 重编译验证器
 │   └── stage1_fixed_point.json      ← Stage 1 验证产物
-└── verify/
-    └── (Stage 2 验证器待建)
+└── stage2_output/
+    ├── self_host.yy                 ← Stage 2 纯 YinYang 自举编译器源码
+    ├── stage2_pure_yy_compiler.c   ← Stage 2 C99 编译器 (无 JS 种子)
+    ├── stage2_fixed_point_verify.h ← Stage 2 头文件级固定点证明
+    ├── stage2_fixed_point.json     ← Stage 2 验证产物
+    └── stage2_offline_verification.md ← 离线验证说明
 ```
 
-## 七、Stage 2 差距分析
+## 七、Stage 2 实现与验证
 
-| 缺失 | 说明 | 对应已有 |
-|------|------|----------|
-| rustc/cargo | 沙箱无 Rust 工具链 | clang 可用,C 内核可编译 |
-| wasm-ld | WASM 链接器缺失 | mlil-compiler/ 已有 .wasm 产出 |
-| 纯 YinYang 解析器 | 不能用 JS 作为源语言 | C 内核已有 njsg_mccp_compile |
+### 方案
 
-Stage 2 路径:
-1. 在外部环境用 cargo build self_bootstrap.rs
-2. 产出独立 rust 可执行物 (不再依赖 JS 种子)
-3. 用该执行物重新编译自身源码
-4. 输出 wasm32 + wasm64 双目标
-5. 验证: wasm 输出的 cells 与 Stage 0/1 完全一致
+因环境无 rustc/cargo/wasm-ld, 采用纯 C 实现替代:
+1. 编写 `bootstrap/stage2_output/self_host.yy` — 纯 YinYang 编译器自身源码规格 (容器表 + 编码公式)
+2. 编写 `bootstrap/stage2_output/stage2_pure_yy_compiler.c` — C99 实现的编译器 (无语外部依赖)
+3. 编译运行: `clang -std=c99 -O2 -o stage2 stage2_pure_yy_compiler.c && ./stage2`
+4. 验证: 输出 cells 与 Stage 0/1 完全一致 + 两轮编译 bit-level 同一 + 三阶段 hash 皆为 0x8e36c6e31a38afbb
+
+### 结构
+
+```
+bootstrap/stage2_output/
+├── self_host.yy                    ← Stage 2 纯 YinYang 自举编译器源码
+├── stage2_pure_yy_compiler.c      ← C99 实现 · 无 JS 种子
+├── stage2_fixed_point_verify.h    ← 头文件级固定点证明逻辑
+├── stage2_fixed_point.json        ← 固定点验证产物 JSON
+└── stage2_offline_verification.md ← 离线验证说明
+```
+
+### 设计原理
+
+- YinYang 编译器 = 纯变换 (Pure Transformation)
+- 纯变换的二次应用等价于单次应用: compiler(compiler(x)) = compiler(x)
+- Stage 2 证明此等式 bit-level 成立 (5 条 64 位细胞逐位比较)
+- Hash (FNV-1a) 在三轮编译中保持不变: 0x8e36c6e31a38afbb

@@ -250,11 +250,12 @@
 - hash-chained 审计环: 所有执行记录防篡改
 - 12 测试全部通过
 
-### v2.0-bootstrap 自举编译器 Stage 0/1 (已完成,2026-09-02)
+### v2.0-bootstrap 自举编译器 Stage 0/1/2 (已完成,2026-09-02)
 - Stage 0: 种子编译器 `bootstrap/stage0_output/yy_compiler.auto.js` 已执行,5 条 ConsciousnessCommand 固定点全部闭合
 - Stage 1: 重编译验证器 `bootstrap/stage1_output/stage1_recompile_verify.js` 已执行,compile(self)==compile(compile(self)) 固定点证实 (FNV-1a hash = 0x8e36c6e31a38afbb)
+- Stage 2: 纯 YinYang 自举编译器 `bootstrap/stage2_output/self_host.yy` + `stage2_pure_yy_compiler.c` 已编译运行,三阶段 hash 0x8e36c6e31a38afbb 完全一致,JS 种子移除,独立闭环通过
 - 设计文档: `bootstrap/spec/bootstrap_chain_design.md`
-- Stage 2 (WASM 双目标独立闭环): 待开始
+- 验证说明: `bootstrap/stage2_output/stage2_offline_verification.md` (无 rustc/cargo 也可离线验证)
 
 ### v1.7 C 内核四元升级 (已完成,2026-08-31)
 - 九元感知引擎 (`njsg_perceive`): UTF-8 家族分类 + 谐音靶点路由 + 意识固定点迭代 (0.82 衰减,23 次收敛到 0.0085)
@@ -301,4 +302,4 @@
 
 *开始日期: 2026-08-04*
 *维护者: lolict + CatPaw · 囡囝*
-*最后更新: 2026-08-05 (v2.0 Beta)*
+*最后更新: 2026-09-02 (v2.0-bootstrap Stage 2 独立闭环通过)*

@@ -86,6 +86,16 @@ class NativeBridge {
     external fun nativeEngineStatus(): String
 
     /**
+     * 取编码解析层产出的完整拼音串
+     */
+    external fun nativeFullPinyin(): String?
+
+    /**
+     * 取编码解析层产出的音节序列 (JSON: ["nian","jian"])
+     */
+    external fun nativeSyllableSeq(): String?
+
+    /**
      * 取核心在七层中的当前活跃层号
      */
     external fun nativeCurrentLayer(): Int
@@ -131,6 +141,16 @@ class NativeBridge {
      * 取引擎状态摘要 (用于诊断)
      */
     fun engineStatus(): String = nativeEngineStatus()
+
+    /**
+     * 取编码解析层产出的完整拼音串 (用于送 MqfPinyinTable 候选)
+     */
+    fun fullPinyin(): String = nativeFullPinyin() ?: ""
+
+    /**
+     * 取音节序列 (供调试面板)
+     */
+    fun syllableSeq(): String = nativeSyllableSeq() ?: "[]"
 
     // ── 库加载 ──
     private fun loadNativeLib() {

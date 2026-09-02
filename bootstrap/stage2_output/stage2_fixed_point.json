@@ -1,0 +1,23 @@
+{
+  "stage": 2,
+  "stage1_source": "bootstrap/stage1_output/stage1_fixed_point.json",
+  "self_host_source": "bootstrap/stage2_output/self_host.yy",
+  "compiler_language": "Pure C (no JS seed)",
+  "fixedPointClosed": true,
+  "matchStage0": true,
+  "matchStage1": true,
+  "fpEncodingClosed": true,
+  "hashRecompileMatch": true,
+  "hash": "8e36c6e31a38afbb",
+  "expectedHash": "8e36c6e31a38afbb",
+  "cells": [
+    "0003e80000019000",
+    "0003e80040019001",
+    "0007d00200032002",
+    "0001f4014000c803",
+    "0003200140014004"
+  ],
+  "verificationRule": "compile(self) == compile(compile(self))",
+  "removedJSSeed": true,
+  "standalone": true
+}
