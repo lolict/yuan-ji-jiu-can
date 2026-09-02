@@ -95,21 +95,21 @@
       "status": "compile_ready",
       "priority": 2,
       "entry_file": "android/src/com/njsg/parasite/",
-      "description": "Android IME 七层编码驱动完整管线接通:IMEInterceptor(第1层)→NativeBridge(JNI)→EncodeParser(第2层声母坐标→音节)→RuleEngine(第3层裁决)→ShengYunEngine(第4层候选)→MqfImeService commitText闭环。新增nativeFullPinyin+nativeSyllableSeq JNI符号,MqfImeService已接入njsg管线(routeThroughNjsg路径),产出libnjsg_ime.so真机编译说明(android/docs/build_so.md)。30+声母-韵母组合候字表已激活,真机编译待验证",
+      "description": "Android IME 七层编码驱动完整管线：Layer 1 拦截(IMEInterceptor) → JNI桥(NativeBridge + 17符号) → Layer 2 编码解析(EncodeParser) → Layer 3 规则判定(RuleEngine) → Layer 4 候选(ShengYunEngine) → Layer 5 自动输出(MqfImeService.commitTextAuto, 无需空格) → Layer 6 内容抓取(URL正则推入后台队列) → Layer 7 多通道上传(upload_channel.rs: GitHub/Gitee/原地三通道)。新增JNI符号8个(nativeSubmitForAutoOutput/nativeAutoCommitCheck/nativeAutoOutputText/nativeResetAutoOutput/nativeOnUrlDetected/nativeUploadDispatch/nativeUploadStatus/nativeUploadStats), 完整符号表见android/docs/offline_compile_chain.md, 真机编译链路已文档化",
       "assignee": null,
-      "progress": 35,
+      "progress": 55,
       "dependencies": []
     },
     {
       "id": "mengji-network",
       "version": "v1.4-v1.6",
       "name": "盟机合网络+多节点同步",
-      "status": "not_started",
+      "status": "in_progress",
       "priority": 3,
       "entry_file": "kernel/src/njsg_kernel.c",
-      "description": "盟机合掌/盟机场/Gossip风格去中心化裁定同步+v1.4-v1.6合伙人协议。仅有规划文档，未实现",
+      "description": "盟机合骨架已实现:kjsg_mengji.c+h(Gossip节点注册/推送/拉取/三元见证/冲突裁决)+njsg_kernel.c融合+mengji_tool.nim CLI+MENGJI_NETWORK.md文档。进度15%。待:持久化/跨网络/增量同步/邻居发现/联盟博弈",
       "assignee": null,
-      "progress": 0,
+      "progress": 15,
       "dependencies": ["v1.3-full-stack"]
     },
     {

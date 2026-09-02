@@ -75,7 +75,7 @@ typedef struct {
 /* ---- 盟机合节点 ---- */
 typedef struct {
     int                 id;                                     /* 节点编号 */
-    char                node_id[MENGJI_MAX_NEIGHBORS];            /* 节点标识(编码摘要) */
+    char                node_id[MENGJI_NODE_ID_LEN];             /* 节点标识(编码摘要) */
     mengji_node_type_t  type;                                   /* PHONG/FARM */
     float               trust;                                  /* 信任值 0-100 */
     time_t              last_heartbeat;                         /* 最后心跳时间 */

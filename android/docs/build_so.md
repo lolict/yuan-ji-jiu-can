@@ -71,15 +71,18 @@ cp -r libnjsg_ime/jniLibs/* ../../jniLibs/
 | 2 | Encode Parse | encode_parser.rs | Coords -> syllable |
 | 3 | Rule Engine | rules.rs | Sheng/yun pattern -> verdict |
 | 4 | Classifier | classifier.rs | Coords -> candidate hanzi |
-| 5 | Auto Output | MqfImeService.kt | Candidate -> commitText |
-| 6 | Content Fetch | (reserved) | Background URL fetch |
-| 7 | Multi-Upload | (reserved) | Multi-platform sync |
+| 5 | Auto Output | MqfImeService.kt | Candidate -> commitTextAuto (no space) |
+| 6 | Content Fetch | MqfImeService.kt | URL regex -> background queue |
+| 7 | Multi-Upload | upload_channel.rs | GitHub / Gitee / Local 3-channel sync |
 
 JNI symbols exported:
 - nativeInit / nativeSubmitContainer / nativeTakeCandidates
 - nativeFullPinyin / nativeSyllableSeq
 - nativeEngineStatus / nativeCurrentLayer
 - nativeOnCandidateSelected / nativeOnBackspace
+- **nativeSubmitForAutoOutput / nativeAutoCommitCheck / nativeAutoOutputText / nativeResetAutoOutput**
+- **nativeOnUrlDetected**
+- **nativeUploadDispatch / nativeUploadStatus / nativeUploadStats**
 
 ---
 
@@ -118,8 +121,9 @@ Acceptance flow:
 1. Type "n" -> sealed -> JNI -> EncodeParser accumulates sheng idx=6
 2. Type "i" -> sealed -> JNI -> EncodeParser composes syllable "ni"
       -> RuleEngine HitRule -> ShengYunEngine candidates
-      -> Show candidate bar
-3. Space / tap -> commitText("...") -> Host app receives glyph
+      -> Layer 5 Auto-Output -> commitText("你") // No space needed!
+3. Type "https://github.com" -> URL pattern detected
+      -> Layer 6 queue -> Layer 3-channel push
 
 ---
 
@@ -131,15 +135,17 @@ Acceptance flow:
 | nativeInit != 0 | Rust panic at startup | Check logcat |
 | No candidates | Sheng/yun coord mismatch | Verify IMEInterceptor maps align with EncodeParser |
 | No commitText | InputConnection dead | Verify IME service lifecycle |
+| Auto-Output wrong char | MqfPinyinTable mapping conflict | Check table precedence (后入覆盖先入) |
+| Upload not dispatching | registry pending -> dispatch not called | Verify triggerUploadSync is invoked |
 
 ---
 
 ## 8. Next Steps
 
-- Layer 6: Background URL fetch
-- Layer 7: Multi-platform sync
 - Dynamic sheng/yun table hot-reload
 - MCCP FSM state integration
+- Real network replace for Layer 7 (SSH push to GitHub/Gitee)
+- Background HTTP fetcher for Layer 6
 
 ---
 

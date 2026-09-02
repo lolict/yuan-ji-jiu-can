@@ -382,8 +382,6 @@ int njsg_mengji_conflict_resolve(int subject_slot) {
 
     /* 收集所有节点的裁定 */
     int anchor_vote = -1;     /* 夫妻主权人锚点的裁定 */
-    int farm_votes[MENGJI_MAX_NODES];
-    int farm_count = 0;
     float farm_max_trust = -1;
     time_t farm_min_time = (time_t)((unsigned long)(~0) >> 1);
 
@@ -398,9 +396,7 @@ int njsg_mengji_conflict_resolve(int subject_slot) {
             anchor_vote = (int)v;
         }
 
-        farm_votes[i] = (int)v;
         if (n->type == NODE_FARM) {
-            farm_count++;
             if (n->trust > farm_max_trust) farm_max_trust = n->trust;
             if (n->last_heartbeat < farm_min_time) farm_min_time = n->last_heartbeat;
         }
@@ -515,7 +511,7 @@ void njsg_mengji_print(void) {
     printf("\n=== 盟机合 #全局概览 ===\n");
     printf("节点数:     %d\n", MJ.node_count);
     printf("裁定条目:   %d\n", MJ.verdict_count);
-    printf("Gossip轮:   %d\n", MJ.global_tick);
+    printf("Gossip轮:   %ld\n", (long)MJ.global_tick);
     printf("PUSH次数:   %d\n", MJ.push_count);
     printf("PULL次数:   %d\n", MJ.pull_count);
     printf("共识达成:   %d\n", MJ.consensus_count);
