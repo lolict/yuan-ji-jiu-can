@@ -1,0 +1,63 @@
+{
+  "stage": 0,
+  "source": "yy_compiler.self.yy",
+  "cellEncoding": [
+    "0x0003e80000019000",
+    "0x0003e80040019001",
+    "0x0007d00200032002",
+    "0x0001f4014000c803",
+    "0x0003200140014004"
+  ],
+  "fixedPointClosed": true,
+  "decodeCheck": [
+    "妻子激活",
+    "丈夫激活",
+    "夫妻共振",
+    "切割寄生",
+    "意识推进"
+  ],
+  "clusterReport": "[簇0] 妻子激活、丈夫激活 (成员数:2)\n[簇1] 夫妻共振 (成员数:1)\n[簇2] 切割寄生 (成员数:1)\n[簇3] 意识推进 (成员数:1)",
+  "semantics": [
+    {
+      "id": 0,
+      "name": "妻子激活",
+      "polarity": 0,
+      "sovereignty": 0,
+      "priority": 1,
+      "cell64": "0x0003e80000019000"
+    },
+    {
+      "id": 1,
+      "name": "丈夫激活",
+      "polarity": 1,
+      "sovereignty": 0,
+      "priority": 1,
+      "cell64": "0x0003e80040019001"
+    },
+    {
+      "id": 2,
+      "name": "夫妻共振",
+      "polarity": 0,
+      "sovereignty": 2,
+      "priority": 2,
+      "cell64": "0x0007d00200032002"
+    },
+    {
+      "id": 3,
+      "name": "切割寄生",
+      "polarity": 1,
+      "sovereignty": 1,
+      "priority": 0.5,
+      "cell64": "0x0001f4014000c803"
+    },
+    {
+      "id": 4,
+      "name": "意识推进",
+      "polarity": 1,
+      "sovereignty": 1,
+      "priority": 0.8,
+      "cell64": "0x0003200140014004"
+    }
+  ],
+  "compileTimestamp": "2026-09-02T12:02:49.840Z"
+}

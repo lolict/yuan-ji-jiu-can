@@ -79,13 +79,13 @@
     {
       "id": "bootstrap-self-compiler",
       "version": "v2.0",
-      "name": "自举编译器 Rust 源码",
-      "status": "source_ready",
+      "name": "自举编译器 Stage 0/1 闭环",
+      "status": "stage0_stage1_verified",
       "priority": 2,
       "entry_file": "hunyuan-rs/src/self_bootstrap.rs",
-      "description": "consciousness_bootstrap.rs + self_bootstrap.rs 源码存在。固定点证明链路(encode→MCCP→64bit→聚类→decode)已定义。沙箱缺rustc/cargo，未编译验证",
+      "description": "Stage 0 种子编译器(_yy_compiler.auto.js)已执行,5条ConsciousnessCommand固定点全部闭合。Stage 1 重编译验证器已执行,compile(self)==compile(compile(self))固定点证实(hash=0x8e36c6e31a38afbb)。Stage 2(WASM双目标)待开始",
       "assignee": null,
-      "progress": 60,
+      "progress": 75,
       "dependencies": ["v1.0-five-yuan", "v1.1-six-yuan", "v1.2-seven-yuan"]
     },
     {

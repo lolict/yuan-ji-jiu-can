@@ -1,0 +1,17 @@
+{
+  "stage": 1,
+  "stage0_source": "bootstrap/stage0_output/stage0_compiled.json",
+  "fixedPointClosed": true,
+  "matchStage0": true,
+  "hashMatch": true,
+  "hashCells": "8e36c6e31a38afbb",
+  "cells": [
+    "0x0003e80000019000",
+    "0x0003e80040019001",
+    "0x0007d00200032002",
+    "0x0001f4014000c803",
+    "0x0003200140014004"
+  ],
+  "verificationRule": "compile(self) == compile(compile(self))",
+  "compileTimestamp": "2026-09-02T12:03:52.109Z"
+}

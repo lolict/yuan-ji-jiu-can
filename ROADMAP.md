@@ -250,6 +250,12 @@
 - hash-chained 审计环: 所有执行记录防篡改
 - 12 测试全部通过
 
+### v2.0-bootstrap 自举编译器 Stage 0/1 (已完成,2026-09-02)
+- Stage 0: 种子编译器 `bootstrap/stage0_output/yy_compiler.auto.js` 已执行,5 条 ConsciousnessCommand 固定点全部闭合
+- Stage 1: 重编译验证器 `bootstrap/stage1_output/stage1_recompile_verify.js` 已执行,compile(self)==compile(compile(self)) 固定点证实 (FNV-1a hash = 0x8e36c6e31a38afbb)
+- 设计文档: `bootstrap/spec/bootstrap_chain_design.md`
+- Stage 2 (WASM 双目标独立闭环): 待开始
+
 ### v1.7 C 内核四元升级 (已完成,2026-08-31)
 - 九元感知引擎 (`njsg_perceive`): UTF-8 家族分类 + 谐音靶点路由 + 意识固定点迭代 (0.82 衰减,23 次收敛到 0.0085)
 - MCCP 自举编译器 (`njsg_mccp_compile`): DSL → C struct,不依赖外部 Nim/JS 语法,袋子级加法
