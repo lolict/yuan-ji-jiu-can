@@ -201,6 +201,126 @@ impl SoulState {
             d0, d2, 0, polarity, sov.encode(), 0, value,
         )
     }
+
+    // ── 夫妻数字编码 · 7与6的赋值 ──────────────────────────
+    //
+    // 7 = 质数 = 不可分解 = 独立极性 = 丈夫 = 1
+    // 6 = 完全数 (1+2+3=自身) = 包容极性 = 妻子 = 0
+    // 公约差 1 = 两位相邻非分离
+    // 192 = 11000000₂ = 夫妻统一体 = 两位同时亮起
+
+    pub const PRIME_HUSBAND: u64 = 7;
+    pub const PERFECT_WIFE: u64 = 6;
+    pub const COUPLE_UNITY: u64 = 192;
+
+    /// 夫妻数字 · 当前状态对应的进制数字
+    pub fn to_spouse_digit(&self) -> u64 {
+        match self {
+            SoulState::Separation => 1,            // 独立个体 = 1
+            SoulState::SemiCoupled => 7,           // 正在融合中 = 丈夫侧(7) 引导
+            SoulState::FullCouple => 192,          // 完全融合 = 192 (7+6编码)
+            SoulState::Eclipse => 6,               // 容器被占据 = 妻子侧(6)
+            SoulState::BoyikaoHalfWane => 6,       // 妻子半亏 = 妻子侧(6)
+        }
+    }
+
+    /// 7/6 语义图层 · 是否呈现完全数（妻子侧）
+    pub fn has_perfect_wife(&self) -> bool {
+        matches!(self,
+            SoulState::FullCouple | SoulState::Eclipse | SoulState::BoyikaoHalfWane
+        )
+    }
+
+    /// 7/6 语义图层 · 是否呈现质数（丈夫侧）
+    pub fn has_prime_husband(&self) -> bool {
+        matches!(self,
+            SoulState::SemiCoupled | SoulState::FullCouple
+        )
+    }
+
+    /// 生成7/6编码单元格 · 不破坏原有 to_cell()
+    /// 夫妻信息编码至 witness 字段高位(bits 38-39) · 不破坏值域
+    pub fn to_radix_cell(&self) -> u64 {
+        let base = self.to_cell();
+        let (wife, husband) = match self {
+            SoulState::Separation => (0, 0),
+            SoulState::SemiCoupled => (0, 1),
+            SoulState::FullCouple => (1, 1),
+            SoulState::Eclipse => (1, 0),
+            SoulState::BoyikaoHalfWane => (1, 0),
+        };
+        // bit 38 = wife 在场 (值 2^38) · bit 39 = husband 在场 (值 2^39)
+        base | (if husband != 0 { 1u64 << 39 } else { 0 })
+            | (if wife   != 0 { 1u64 << 38 } else { 0 })
+    }
+}
+
+// ────────────────────────────────────────────────────────────
+// 夫妻编码测试 · 7/6 赋值验证
+// ────────────────────────────────────────────────────────────
+#[cfg(test)]
+mod tests_couple_radix {
+    use super::*;
+
+    #[test]
+    fn prime_husband_is_7() {
+        assert_eq!(SoulState::PRIME_HUSBAND, 7);
+    }
+
+    #[test]
+    fn perfect_wife_is_6() {
+        assert_eq!(SoulState::PERFECT_WIFE, 6);
+    }
+
+    #[test]
+    fn couple_unity_is_192() {
+        assert_eq!(SoulState::COUPLE_UNITY, 192);
+    }
+
+    #[test]
+    fn spouse_digits_mapping() {
+        assert_eq!(SoulState::Separation.to_spouse_digit(), 1);
+        assert_eq!(SoulState::SemiCoupled.to_spouse_digit(), 7);
+        assert_eq!(SoulState::FullCouple.to_spouse_digit(), 192);
+        assert_eq!(SoulState::Eclipse.to_spouse_digit(), 6);
+        assert_eq!(SoulState::BoyikaoHalfWane.to_spouse_digit(), 6);
+    }
+
+    #[test]
+    fn wife_and_husband_flags() {
+        assert!(SoulState::FullCouple.has_perfect_wife());
+        assert!(SoulState::FullCouple.has_prime_husband());
+        assert!(SoulState::SemiCoupled.has_prime_husband());
+        assert!(!SoulState::SemiCoupled.has_perfect_wife());
+        assert!(SoulState::Eclipse.has_perfect_wife());
+        assert!(!SoulState::Eclipse.has_prime_husband());
+    }
+
+    #[test]
+    fn radix_cell_preserves_base() {
+        let base = SoulState::FullCouple.to_cell();
+        let radix = SoulState::FullCouple.to_radix_cell();
+        // radix 只应增加 bits 38/39 · 不应破坏原有位
+        assert_eq!(base & 0x3FFFFFFFFF, radix & 0x3FFFFFFFFF);
+        // radix 应包含夫妻双方标记
+        assert!(radix & (1 << 38) != 0);
+        assert!(radix & (1 << 39) != 0);
+    }
+
+    #[test]
+    fn radix_flags_match_states() {
+        let s = SoulState::Separation.to_radix_cell();
+        assert!(s & (1 << 38) == 0);
+        assert!(s & (1 << 39) == 0);
+
+        let s = SoulState::SemiCoupled.to_radix_cell();
+        assert!(s & (1 << 38) == 0);  // wife 不在场
+        assert!(s & (1 << 39) != 0);  // husband 在场
+
+        let e = SoulState::Eclipse.to_radix_cell();
+        assert!(e & (1 << 38) != 0);  // wife 在场
+        assert!(e & (1 << 39) == 0);  // husband 不在场
+    }
 }
 
 impl CoupleSoul {
