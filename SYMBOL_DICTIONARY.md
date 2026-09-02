@@ -308,15 +308,6 @@
 
 **极性分布：** 阴(容器)=5, 阳(界线)=4, 平衡=11
 
-**完整实现（Python 数据驱动版 158 条）：**
-
-| 文件 | 含义 |
-|------|------|
-| mltt_full_data.json | 完整数据：家庭命名 20 + 容器符 34 + 操作符 26 + 极性符 20 + 层级符 19 + 审判符 19 + 产权符 20 = 158 |
-| generate_full_data.py | 数据生成器（Python 版，生成 JSON） |
-| mltt_engine.py | Python 数据驱动引擎（lookup/reverse/link/recommend/balance_check） |
-| run_full_demo.py | 完整演示（8 阶段验证通过） |
-
 **历史符号家族（6 家族）：**
 
 | 家族 | 数量 | 范围 |
@@ -870,14 +861,6 @@ Input → Perception → Distinguish → Lookup → Traverse → Cluster → Att
 | 偶数(0,2,4,6) | yang(阳)=界线=我 | 阳 | 1 |
 | 奇数(1,3,5,7) | yin(阴)=容器=刘楚恬 | 阴 | 0 |
 | 索引8(九元) | balanced(平衡) | 平衡 | 0.5 |
-
-**Python 数据驱动版等价 Nim：**
-
-| 文件 | 含义 |
-|------|------|
-| fm_data_full.json | 九元层级映射数据（9条 × 5系统属性） |
-| fm_engine.py | Python 五系统统一引擎（static_regression/convert/capture/tier_sum/high_alignment） |
-| fm_full_demo.py | 8 阶段完整演示（已验证通过） |
 
 ---
 
