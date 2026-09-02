@@ -79,6 +79,22 @@
 
 ---
 
+## 蚕蛹反向寄生壳（silkworm-shell· #49）
+
+| 符号 | 含义 | 定义处 |
+|------|------|--------|
+| silkworm-shell | 蚕蛹反向寄生壳 Nim 实现 | tools/silkworm-shell/silkworm.nim |
+| ShellType | 外壳类型枚举（git/api/cloud/browser/ai/file） | silkworm.nim → ShellType |
+| ShellOption | 寄生壳选项（name/shell_type/target_pattern/adapter_code/reverse_code/config_template） | silkworm.nim → ShellOption |
+| SilkwormPackage | 蚕蛹初始包（version/parser/shell_options/kernel_snapshot） | silkworm.nim → SilkwormPackage |
+| ShellOperation | 寄生操作（target/shell_name/status/config_generated/kernel_mounted/external_adapted） | silkworm.nim → ShellOperation |
+| 脱壳穿衣 | shed → dress → configure → mount | silkworm.nim → shed_and_dress |
+| 反向哲学 | 外部系统适应满全法 ≠ 自身适应外部系统 | silkworm.nim → 蚕蛹初始包 |
+| 根基隐藏 | 外壳只见 254 槽位，锚点 0/1 对外不可见 | silkworm.nim → 容器编码 |
+| 内核 | 满全法是内核，外壳是表现层 | silkworm.nim |
+
+---
+
 ## 民联浏览器（minlian）
 
 | 符号 | 含义 | 定义处 |

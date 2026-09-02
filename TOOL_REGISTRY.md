@@ -14,7 +14,7 @@
 
 ---
 
-## 工具清单（共25个）
+## 工具清单（共40个）
 
 ### 第一类：满全法核心工具
 
@@ -44,6 +44,7 @@
 | 36 | 全映射引擎 | tools/full-mapping/ | Nim | `nim c --cc:clang --path:fm fm_demo.nim` | ✅ 九元↔YinYang↔二进制↔mltt↔偏移率·全映射报告·7项全通过 |
 | 37 | 真实数据输入器 | tools/minlian/ | Nim | `nim c --cc:clang --path:dataml dataml_demo.nim` | ✅ 绝对路径扫描·FNV-1a哈希·极性分析·JSON输出·200文档 |
 | 39 | 分布式分身协调 | tools/njsg-swarm/ | Nim | `nim c --cc:clang -r swarm_demo.nim` | ✅ 6分身并行·冲突裁决·心跳检测·规则继承 |
+| 40 | 蚕蛹反向寄生壳 | tools/silkworm-shell/ | Nim | `nim c --cc:clang --path:silkworm_demo -r sw_demo.nim` | ✅ 6壳寄生·脱壳穿衣·内核挂载·外部系统适应·根基隐藏 |
 
 ### 第三类：检索与判定
 
