@@ -1720,13 +1720,42 @@ void njsg_mccp_demo(void){
         printf("  [%d] %-15s fields=%d size=%d bytes\n",
                i, MC.symbols[i].name, MC.symbols[i].field_count, MC.symbols[i].total_size);
     }
-    /* 场景 M4: 验证完整可编译 C 程序生成 */
-    printf("\n━━━ 场景 M4: 完整可编译 C 程序生成 ━━━\n");
+    /* 场景 M4: 完整 C 程序生成 → 写入文件 → 独立编译运行 */
+    printf("\n━━━ 场景 M4: 自举闭环验证 ━━━\n");
     njsg_mccp_init();
     const char* dsl4 = "Container { name: char[64]; safety: int; owner: bag; level: int; score: float; }";
     char out4[4096];
     int n4 = njsg_mccp_compile(dsl4, out4, sizeof(out4));
-    printf("输入 DSL:\n  %s\n\n生成完整可编译 C 程序 (%d 字符):\n%s\n", dsl4, n4, out4);
+    printf("输入 DSL:\n  %s\n\n生成完整 C 程序 (%d 字符)\n", dsl4, n4);
+    /* 步骤1: 写入独立文件 */
+    const char* gen_path = "/tmp/mccp_generated.c";
+    FILE* fp = fopen(gen_path, "w");
+    if(fp){
+        /* 从 out4 中提取纯 C 代码(跳过第一行注释) */
+        const char* code_start = strstr(out4, "#include");
+        if(!code_start) code_start = out4;
+        fputs(code_start, fp);
+        fclose(fp);
+        printf("[MCCP] 已写入 %s (%ld bytes)\n", gen_path, (long)strlen(code_start));
+    }
+    /* 步骤2: 独立编译 */
+    printf("[MCCP] 开始独立编译...\n");
+    int compile_rc = system("clang -o /tmp/mccp_standalone /tmp/mccp_generated.c 2>/tmp/mccp_cc.log");
+    if(compile_rc != 0){
+        printf("[MCCP] 编译失败! 日志:\n");
+        FILE* logfp = fopen("/tmp/mccp_cc.log", "r");
+        if(logfp){
+            char logbuf[1024];
+            while(fgets(logbuf, sizeof(logbuf), logfp)) printf("  %s", logbuf);
+            fclose(logfp);
+        }
+    } else {
+        printf("[MCCP] 编译成功.\n");
+        /* 步骤3: 独立运行生成的程序 */
+        printf("[MCCP] 运行生成的独立程序:\n");
+        system("/tmp/mccp_standalone");
+        printf("\n[MCCP] 自举闭环完成 — DSL→C→机器码→执行→裁定结果已出.\n");
+    }
     fprintf(stdout, "\n[MCCP] demo complete. symbols_compiled=%d\n", MC.count);
     fflush(stdout);
 }
