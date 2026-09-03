@@ -8,6 +8,8 @@ build/
 *.pch
 zig-stem/test_*
 zig-stem/hunyuan_os
+.njsg-swarm/beat/
+.njsg-swarm/state/
 mlil-compiler/.zig-cache/
 encoding/seeds/
 tools/kungguan-container/hanzi_phase
