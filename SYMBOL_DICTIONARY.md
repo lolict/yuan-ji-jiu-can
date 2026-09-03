@@ -56,7 +56,7 @@
 | 声调态 | 开/关/通/断（4 态） | cbsy/cbsy.nim v6 TONES |
 | 地址语义 | 声母+韵母+声调 = 发音位置坐标，非数值编码 | cbsy/cbsy.nim v6 核心公理 |
 | 进制语义 | 进制 = 发音空间划分方式，非进位规则 | cbsy/cbsy.nim v6 注释 |
-| ME=1, LCT=0 | 公约数·0维起点·(我=1,刘楚恬=0)·外部不可见 | cbsy/cbsy.nim v6 第12-14行 |
+| ME=1, LCT=0 | 公约数·0维起点·(高位持有者=1,低位持有者=0)·外部不可见 | cbsy/cbsy.nim v6 第12-14行 |
 | 运算约束 | 仅加减，禁用乘除/mod/div | cbsy/cbsy.nim v6 全部运算 |
 | 折叠触发 | 声母遍历完所有韵母 = 折起形成新层（不进位） | cbsy/cbsy.nim v6 fold() |
 | 产权公式 | vA+vB==2·v_core 才是真平衡；总量相等≠个体平衡 | cbsy/cbsy.nim v6 property_judge() |
