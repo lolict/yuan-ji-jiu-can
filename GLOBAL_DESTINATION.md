@@ -35,7 +35,7 @@
 |---|------|------|------|
 | 4 | 满全法引擎 | tools/manquanfa/ | ✅ 编译通过，三元见证 |
 | 5 | 满全法管线 | tools/manquanfa-pipeline/ | ✅ 编译通过 |
-| 6 | 蚕蛹反向寄生壳 | tools/canjiang/ + canjiang.nim | ✅ 编译通过 · e2e端到端演示(6壳换装+真实Linux cli/fs外壳+隐藏根基) |
+| 6 | 蚕蛹反向寄生壳 | tools/canjiang/ + canjiang.nim | ✅ 编译通过 · e2e端到端(6壳换装+真实Linux外壳+隐藏根基·8/8对抗攻击全部拦截·根基泄露修复) |
 
 ### 分布式层
 
