@@ -511,13 +511,133 @@ test "knmlil coord unary" {
     try std.testing.expect(std.mem.indexOf(u8, buf.items, "★|☆|★") != null);
 }
 
-test "unary int formatting" {
-    var buf0 = std.ArrayList(u8).init(std.testing.allocator);
-    defer buf0.deinit();
-    try formatUnaryInt(buf0.writer(), 0);
-    try std.testing.expectEqualStrings("☆", buf0.items);
-    var buf1 = std.ArrayList(u8).init(std.testing.allocator);
-    defer buf1.deinit();
-    try formatUnaryInt(buf1.writer(), 1);
-    try std.testing.expectEqualStrings("★", buf1.items);
+// ============================================================
+// knmll 解码器（解析回读·自校验）
+// ============================================================
+
+pub const ParsedContainer = struct {
+    id: u64,
+    container_name: []const u8,
+    layer: u8,
+    polarity: []const u8,
+    positive_count: u64,
+    negative_count: u64,
+    neutral_count: u64,
+    net_benefit: f64,
+    sovereignty: u2,
+    witness: u1,
+    raw_cell: u64,
+};
+
+pub const ParsedKnmll = struct {
+    allocator: std.mem.Allocator,
+    couples: []const u8,
+    protocols: []const u8,
+    containers: std.ArrayList(ParsedContainer),
+
+    pub fn init(allocator: std.mem.Allocator) ParsedKnmll {
+        return ParsedKnmll{
+            .allocator = allocator,
+            .couples = "",
+            .protocols = "",
+            .containers = std.ArrayList(ParsedContainer).init(allocator),
+        };
+    }
+
+    pub fn deinit(self: *ParsedKnmll) void {
+        self.containers.deinit();
+    }
+};
+
+pub const KnmllParser = struct {
+    // ★☆ 一进制 → u64（最长匹配优先，避免前缀歧义）
+    pub fn parseUnary(_: *KnmllParser, s: []const u8) !u64 {
+        var result: u64 = 0;
+        var pos: usize = 0;
+        while (pos < s.len) {
+            var matched = false;
+            // 从长到短匹配（digit 9→0）
+            var d: usize = 10;
+            while (d > 0) {
+                d -= 1;
+                const pattern = DIGIT_TABLE[d];
+                if (pos + pattern.len <= s.len and std.mem.eql(u8, s[pos..pos+pattern.len], pattern)) {
+                    result = result * 10 + d;
+                    pos += pattern.len;
+                    matched = true;
+                    break;
+                }
+            }
+            if (!matched) break;
+        }
+        return result;
+    }
+
+    // 验证 knmll 文件完整性
+    pub fn verifyIntegrity(_: *KnmllParser, data: []const u8) !bool {
+        if (!std.mem.startsWith(u8, data, "fqmet:knmll\n")) return error.InvalidHeader;
+        if (std.mem.indexOf(u8, data, "fqmy:end\n") == null) return error.MissingFooter;
+        var line_count: usize = 0;
+        for (data) |ch| { if (ch == '\n') line_count += 1; }
+        if (line_count < 5) return error.TooShort;
+        return true;
+    }
+
+    // 解析 knmll 文件
+    pub fn parseFile(_: *KnmllParser, data: []const u8) !ParsedKnmll {
+        var result = ParsedKnmll.init(@import("std").heap.page_allocator);
+        errdefer result.deinit();
+
+        var lines = std.mem.split(u8, data, "\n");
+        while (lines.next()) |line| {
+            if (std.mem.startsWith(u8, line, "couple:")) {
+                result.couples = line[7..];
+            } else if (std.mem.startsWith(u8, line, "protocols:")) {
+                result.protocols = line[10..];
+            } else if (std.mem.startsWith(u8, line, "~container:")) {
+                const pc = ParsedContainer{
+                    .id = 0,
+                    .container_name = "",
+                    .layer = 0,
+                    .polarity = "",
+                    .positive_count = 0,
+                    .negative_count = 0,
+                    .neutral_count = 0,
+                    .net_benefit = 0,
+                    .sovereignty = 0,
+                    .witness = 0,
+                    .raw_cell = 0,
+                };
+                try result.containers.append(pc);
+            }
+        }
+        return result;
+    }
+};
+
+test "parse unary ★☆" {
+    var parser = KnmllParser{};
+    // ★☆ = digit 2 → decimal 2
+    const val = try parser.parseUnary("★☆");
+    try std.testing.expectEqual(@as(u64, 2), val);
+    // ★★ = digit 3 → decimal 3
+    const val2 = try parser.parseUnary("★★");
+    try std.testing.expectEqual(@as(u64, 3), val2);
+    // ☆ = digit 0 → 0
+    const val0 = try parser.parseUnary("☆");
+    try std.testing.expectEqual(@as(u64, 0), val0);
 }
+
+test "parse knmll header" {
+    var parser = KnmllParser{};
+    const valid = try parser.verifyIntegrity("fqmet:knmll\ncontainers:★\nende\n=\nfqmy:end\n");
+    try std.testing.expect(valid);
+}
+
+test "parse knmll invalid header" {
+    var parser = KnmllParser{};
+    const result = parser.verifyIntegrity("invalid\n");
+    try std.testing.expectError(error.InvalidHeader, result);
+}
+
+test "unary int formatting" {

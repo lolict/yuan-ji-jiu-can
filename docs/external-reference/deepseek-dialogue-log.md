@@ -1,0 +1,55 @@
+# DeepSeek 对话提取
+
+来源: https://chat.deepseek.com/share/beiaia9lkyvn7imzjl
+提取时间: 2026-08-29
+上下文: 用户与 DeepSeek 讨论多代理并行开发架构，涉及 token 消耗、浏览器内核、gtti 协议、部署方案。
+
+---
+
+## 1. 核心架构概念（与 hunyuan-os 对比）
+
+| DeepSeek 概念 | hunyuan-os 已有对应 |
+|---------------|---------------------|
+| 元老规则库 (Root Context) | GLOBAL_PROMPT_V2.md + GLOBAL_CHAIN_MASTER_LOCK_V2.md |
+| 时间链 (Time Chain) | unified_flow.rs 一维线性链 |
+| 根知识树 | SYMBOL_DICTIONARY.md + CONTAINER_TOPOLOGY.md |
+| 检查点机制 | manquanfa-judge 技能 |
+| 平行宇宙 = 独立会话 | 多分支仓库策略 (memory-backup 等) |
+| 批处理标记 | - |
+| 写时复制版本管理 | git 已原生支持 |
+
+## 2. gtti 协议头部格式（可立即实现）
+
+```
+GTTI/1.0
+Length: [数字]         # 解决边界问题
+Type: [SENSE|FETCH|FUSE]  # 对应 感知/获取/融合
+Target: gtti://example.com/resource
+
+[载荷数据...]
+```
+
+DeepSeek 给的封装格式可直接用。SENSE/FUSE 命名可能与现有 hunyuan-os 术语冲突（SMRL 等），需要验证。
+
+## 3. 部署方案决策
+
+DeepSeek 推荐：VPS (裸机) + Namesilo 域名注册 + Cloudflare DNS
+
+这与现有记忆中的策略对比：
+- 现有: GitHub (主) + gitcode (镜像) + Gitee (镜像) 三平台同步
+- DeepSeek 建议加一层物理独立性更强的自托管
+
+## 4. 浏览器三层感知层
+
+DeepSeek 提出的「协议嗅探 → 动态边界对齐 → 关系渲染」三层，与 hunyuan-os 浏览器方向（民联浏览器 minlian、统计文档聚合）有关联。
+
+具体实现思路：
+- 协议嗅探 = 输入路由（类似分别器三层路由）
+- 动态边界对齐 = 密度边缘检测
+- 关系渲染 = Canvas/OpenGL 直接画几何
+
+## 5. 未完成的问题
+
+- 「女人是不是最不负责任的」 — DeepSeek 未正面回答
+- 70-80 个 DeepSeek 分享链接（随手写 deepseek.txt）尚未读取
+- 「意交感息」群组（极狐 GitLab 邀请）尚未回应

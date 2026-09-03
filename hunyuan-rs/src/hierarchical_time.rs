@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════════════════════
-// hierarchical_time.rs — 层级时间戳系统
+// hierarchical_time.rs — 层级时间戳系统 · 持久化
 // ══════════════════════════════════════════════════════════════════
 //
 // 基于三元见证的时间层级追踪 (替代哈希链)
@@ -19,6 +19,14 @@
 // 验证: 不是靠哈希比对 — 靠"见证链是否连续合法"
 //   每一个新事件必须被上一个三元见证裁定为"可坍缩/可辐射"
 //   篡改一个事件 = 打破见证连续性 = 立刻被发现
+//
+// 持久化 (HTS_V1 文本协议, 零外部依赖):
+//   HTS_V1
+//   version:N
+//   cycles:N
+//   FUSION|"subject"|"object"|"purpose"|being_val|flow|align|conf
+//   RADIATION|"to"|"mission"|being_val|flow|align|conf
+//   COLLAPSE|"from"|"content"|being_val|flow|align|conf
 
 use crate::triune::{TriuneVerdict, FlowDirection, BeingState};
 use crate::soul_kernel::NamingAnchor;
@@ -298,4 +306,249 @@ mod tests {
         ts.record(event).unwrap();
         assert_eq!(ts.version(), 2);
     }
+
+    // ── 持久化测试 ──
+
+    #[test]
+    fn serialize_deserialize_roundtrip() {
+        let mut ts = HierarchicalTimestamp::genesis();
+        let w1 = TriuneVerdict::deduce(BeingState::NonBeing, BeingState::Being(1), 0.1);
+        ts.record(LifeEvent::Fusion {
+            subject: "Root".to_string(),
+            object: "obj".to_string(),
+            purpose: "purpose".to_string(),
+            witness: w1,
+        }).unwrap();
+        let w2 = TriuneVerdict::deduce(BeingState::Being(1), BeingState::Being(1), 0.0);
+        ts.record(LifeEvent::Radiation {
+            to: "Target".to_string(),
+            mission: "test".to_string(),
+            witness: w2,
+        }).unwrap();
+        ts.record(LifeEvent::Collapse {
+            from: "child".to_string(),
+            content: "data".to_string(),
+            witness: TriuneVerdict::deduce(BeingState::Being(1), BeingState::Being(1), 0.0),
+        }).unwrap();
+
+        let text = ts.serialize();
+        let recovered = HierarchicalTimestamp::deserialize(&text).unwrap();
+
+        assert_eq!(recovered.version(), ts.version());
+        assert_eq!(recovered.cycle_count, ts.cycle_count);
+        assert_eq!(recovered.events.len(), ts.events.len());
+        assert_eq!(recovered.events.len(), 3);
+
+        // 验证事件类型正确
+        assert!(matches!(&recovered.events[0], LifeEvent::Fusion { .. }));
+        assert!(matches!(&recovered.events[1], LifeEvent::Radiation { .. }));
+        assert!(matches!(&recovered.events[2], LifeEvent::Collapse { .. }));
+    }
+
+    #[test]
+    fn deserialize_invalid_header_fails() {
+        let bad = "BAD_HEADER\nversion:1\n";
+        assert!(HierarchicalTimestamp::deserialize(bad).is_err());
+    }
+
+    #[test]
+    fn event_count_preserved() {
+        let mut ts = HierarchicalTimestamp::genesis();
+        for i in 0..5 {
+            ts.record(LifeEvent::Radiation {
+                to: format!("target-{}", i),
+                mission: "test".to_string(),
+                witness: TriuneVerdict::deduce(BeingState::Being(1), BeingState::Being(1), 0.5),
+            }).unwrap();
+        }
+        let text = ts.serialize();
+        let recovered = HierarchicalTimestamp::deserialize(&text).unwrap();
+        assert_eq!(recovered.events.len(), 5);
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// 持久化: HTS_V1 文本协议
+// ══════════════════════════════════════════════════════════════════
+
+impl HierarchicalTimestamp {
+    /// 序列化为 HTS_V1 文本格式 (零依赖, 可人工阅读)
+    pub fn serialize(&self) -> String {
+        let mut lines = Vec::new();
+        lines.push("HTS_V1".to_string());
+        lines.push(format!("version:{}", self.version));
+        lines.push(format!("cycles:{}", self.cycle_count));
+
+        for event in &self.events {
+            match event {
+                LifeEvent::Fusion { subject, object, purpose, witness } => {
+                    lines.push(format!(
+                        "FUSION|\"{}\"|\"{}\"|\"{}\"|{}",
+                        escape(subject),
+                        escape(object),
+                        escape(purpose),
+                        serialize_witness(witness),
+                    ));
+                }
+                LifeEvent::Radiation { to, mission, witness } => {
+                    lines.push(format!(
+                        "RADIATION|\"{}\"|\"{}\"|{}",
+                        escape(to),
+                        escape(mission),
+                        serialize_witness(witness),
+                    ));
+                }
+                LifeEvent::Collapse { from, content, witness } => {
+                    lines.push(format!(
+                        "COLLAPSE|\"{}\"|\"{}\"|{}",
+                        escape(from),
+                        escape(content),
+                        serialize_witness(witness),
+                    ));
+                }
+            }
+        }
+
+        lines.join("\n")
+    }
+
+    /// 从 HTS_V1 文本格式反序列化
+    pub fn deserialize(text: &str) -> Result<Self, String> {
+        let mut lines = text.lines();
+
+        let header = lines.next().ok_or("空内容")?;
+        if header != "HTS_V1" {
+            return Err(format!("未知头部: {}", header));
+        }
+
+        let mut version = 1u32;
+        let mut cycle_count = 0u32;
+        let mut events = Vec::new();
+
+        for line in lines {
+            if line.starts_with("version:") {
+                version = line[8..].parse().map_err(|_| "解析 version 失败")?;
+            } else if line.starts_with("cycles:") {
+                cycle_count = line[7..].parse().map_err(|_| "解析 cycles 失败")?;
+            } else if line.is_empty() {
+                continue;
+            } else if line.starts_with("FUSION|") {
+                events.push(parse_fusion(line)?);
+            } else if line.starts_with("RADIATION|") {
+                events.push(parse_radiation(line)?);
+            } else if line.starts_with("COLLAPSE|") {
+                events.push(parse_collapse(line)?);
+            }
+        }
+
+        Ok(HierarchicalTimestamp { version, cycle_count, events })
+    }
+}
+
+// ── 辅助函数 ──
+
+fn escape(s: &str) -> String {
+    s.replace('\\', "\\\\").replace('"', "\\\"")
+}
+
+fn unescape(s: &str) -> String {
+    let mut out = String::new();
+    let mut chars = s.chars().peekable();
+    while let Some(ch) = chars.next() {
+        if ch == '\\' {
+            if let Some(next) = chars.next() {
+                out.push(next);
+            }
+        } else {
+            out.push(ch);
+        }
+    }
+    out
+}
+
+fn serialize_witness(w: &TriuneVerdict) -> String {
+    format!(
+        "{}|{}|{}|{:.4}",
+        match &w.being {
+            BeingState::NonBeing => "0".to_string(),
+            BeingState::Being(v) => format!("{}", v),
+        },
+        match w.flow {
+            FlowDirection::Collapse => "C",
+            FlowDirection::Expand => "E",
+            FlowDirection::Static => "S",
+        },
+        w.alignment,
+        w.confidence,
+    )
+}
+
+fn parse_witness(field: &str) -> Result<TriuneVerdict, String> {
+    let parts: Vec<&str> = field.split('|').collect();
+    if parts.len() != 4 {
+        return Err(format!("见证字段格式错误: {}", field));
+    }
+    let being = if parts[0] == "0" {
+        BeingState::NonBeing
+    } else {
+        BeingState::Being(parts[0].parse().map_err(|_| "解析 being 失败")?)
+    };
+    let flow = match parts[1] {
+        "C" => FlowDirection::Collapse,
+        "E" => FlowDirection::Expand,
+        "S" => FlowDirection::Static,
+        _ => return Err(format!("未知 flow: {}", parts[1])),
+    };
+    let alignment: bool = parts[2].parse().map_err(|_| "解析 alignment 失败")?;
+    let confidence: f64 = parts[3].parse().map_err(|_| "解析 confidence 失败")?;
+
+    Ok(TriuneVerdict { being, flow, alignment, confidence })
+}
+
+fn parse_quoted_field(s: &str) -> Result<String, String> {
+    let trimmed = s.trim();
+    if trimmed.len() < 2 || !trimmed.starts_with('"') || !trimmed.ends_with('"') {
+        return Err(format!("字段需要双引号包裹: {}", s));
+    }
+    Ok(unescape(&trimmed[1..trimmed.len()-1]))
+}
+
+fn parse_fusion(line: &str) -> Result<LifeEvent, String> {
+    let rest = &line["FUSION|".len()..];
+    let parts: Vec<&str> = rest.splitn(4, '|').collect();
+    if parts.len() != 4 {
+        return Err(format!("FUSION 字段不足: {}", line));
+    }
+    Ok(LifeEvent::Fusion {
+        subject: parse_quoted_field(parts[0])?,
+        object: parse_quoted_field(parts[1])?,
+        purpose: parse_quoted_field(parts[2])?,
+        witness: parse_witness(parts[3])?,
+    })
+}
+
+fn parse_radiation(line: &str) -> Result<LifeEvent, String> {
+    let rest = &line["RADIATION|".len()..];
+    let parts: Vec<&str> = rest.splitn(3, '|').collect();
+    if parts.len() != 3 {
+        return Err(format!("RADIATION 字段不足: {}", line));
+    }
+    Ok(LifeEvent::Radiation {
+        to: parse_quoted_field(parts[0])?,
+        mission: parse_quoted_field(parts[1])?,
+        witness: parse_witness(parts[2])?,
+    })
+}
+
+fn parse_collapse(line: &str) -> Result<LifeEvent, String> {
+    let rest = &line["COLLAPSE|".len()..];
+    let parts: Vec<&str> = rest.splitn(3, '|').collect();
+    if parts.len() != 3 {
+        return Err(format!("COLLAPSE 字段不足: {}", line));
+    }
+    Ok(LifeEvent::Collapse {
+        from: parse_quoted_field(parts[0])?,
+        content: parse_quoted_field(parts[1])?,
+        witness: parse_witness(parts[2])?,
+    })
 }

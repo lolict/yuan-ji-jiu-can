@@ -60,7 +60,7 @@ test: kernel
 	./kernel/src/njsg_kernel.elf
 
 # 独立 fqm 工具链（纯 C，无外部协议）
-fqm-tools: fqm_browser.c fqm_gtti.c fqm_call.c fqm_bare.c fqm_cpu.c fqm_net.c fqm_radix.c fqm_time.c fqm_yy.c
+fqm-tools: fqm_browser.c fqm_gtti.c fqm_call.c fqm_bare.c fqm_cpu.c fqm_net.c fqm_radix.c fqm_time.c fqm_yy.c fqm_judge.c
 	$(CC) -O2 -o fqm_browser fqm_browser.c
 	$(CC) -O2 -o fqm_gtti fqm_gtti.c
 	$(CC) -O2 -o fqm_call fqm_call.c
@@ -82,10 +82,11 @@ fqm-test: fqm-tools
 	./fqm_radix
 	./fqm_time
 	./fqm_yy
+	./fqm_judge
 
 clean:
 	rm -f kernel/src/njsg_kernel.elf kernel/src/mlll_symbols.elf
-	rm -f fqm_browser fqm_gtti fqm_call fqm_bare fqm_cpu fqm_net fqm_radix fqm_time fqm_yy
+	rm -f fqm_browser fqm_gtti fqm_call fqm_bare fqm_cpu fqm_net fqm_radix fqm_time fqm_yy fqm_judge
 
 docs:
 	@echo "═══ 囡囝共生 v2.0 文档入口 ═══"
