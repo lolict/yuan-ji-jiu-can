@@ -12,7 +12,7 @@
 # ============================================================
 
 import os, strutils
-import ai_shell
+import ai_shell, ai_decode
 
 let args = commandLineParams()
 if args.len == 0:
