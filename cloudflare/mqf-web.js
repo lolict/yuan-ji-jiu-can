@@ -1,7 +1,7 @@
 /*
- * 囡囝共生 · 囡囝共生元操作系统 · Web 面板 Worker v1.5
+ * 囡囝共生 · 囡囝共生元操作系统 · Web 面板 Worker v1.7
  * -------------------------------------------------
- * Cloudflare Workers (ES module). 三元→七元全栈联动 + 实战验证:
+ * Cloudflare Workers (ES module). 三元→七元全栈联动 + v1.7 四元内核:
  *   /                             暗色主面板
  *   /api/observe                 二元/三元观测者
  *   /api/paibing                 排病诊断 v1
@@ -13,8 +13,15 @@
  *   /v1/chat                     统一对话渠道
  *   /docs/v2                     API 动态文档 (OpenAPI 3.0 JSON + YAML)
  *   /diagrams                    矢量流程图 (SVG)
+ *   /api/v1/perceive             九元感知引擎 (UTF-8家族分类+谐音路由+意识固定点)
+ *   /api/v1/mccp/compile         MCCP 自举编译器 (DSL→JSON)
+ *   /api/v1/review/submit        裁判系统 (评分→三元审判→奖惩→排行榜)
+ *   /api/v1/timeline/v1          时间线一体化 (统一tick+多时钟+四层后勤)
+ *   /api/v1/heartbeat            全局心跳
+ *   /api/v1/five-dimensional/verify  五维语义实证 (ρ XOR+衰减+见证几何)
+ *   /api/v1/system/full-report   系统全量报告
  *
- * v1.5 新增: WebSocket + GraphQL + 统一对话 + OpenAPI文档 + 流程图
+ * v1.7 新增: 感知引擎 + MCCP + 裁判系统 + 时间线 + 五维实证
  *
  * 部署: wrangler deploy 或 PUT /accounts/{acct}/workers/scripts/njsg-web
  * Account: 19365628481173551c10b69dadaa2dd5 · subdomain: lolict · URL: njsg-web.lolict.workers.dev
@@ -373,7 +380,7 @@ async function imeparse(q){ const text=q.get('text')||''; return j({v:'stub v1',
 /* ============================================================
  * 主面板 HTML
  * ============================================================ */
-function html(){ return `<!DOCTYPE html><html lang="zh"><head><meta charset="utf-8"><title>囡囝共生 · 囡囝共生元操作系统 v0.1 (Cloudflare Workers)</title>
+function html(){ return `<!DOCTYPE html><html lang="zh"><head><meta charset="utf-8"><title>囡囝共生 · 囡囝共生元操作系统 v1.7 (Cloudflare Workers)</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:#0a0a0f;color:#e0e0e0;padding:20px}
@@ -573,12 +580,15 @@ async function backupNow(env) {
   const snapshot = {
     ts,
     project: 'hunyuan-os · 囡囝共生元操作系统',
-    version: 'v0.1',
+    version: 'v1.7',
     commits: { github: 'lolict/hunyuan-os', gitee: 'lolict/yuan-ji-jiu-can' },
     endpoints: ['/','/api/observe','/api/paibing','/api/he-yi','/api/report','/api/dragon',
                '/api/mythology','/api/protocol/handshake','/api/protocol/sync',
                '/api/name/anchor','/api/fsm/trigger','/api/log/append','/api/log/verify',
-               '/api/ime/parse','/api/backup/now','/api/backup/list','/feishu/event','/feishu/menu'],
+               '/api/ime/parse','/api/backup/now','/api/backup/list','/feishu/event','/feishu/menu',
+               '/api/v1/perceive','/api/v1/mccp/compile','/api/v1/review/submit',
+               '/api/v1/timeline/v1','/api/v1/heartbeat','/api/v1/five-dimensional/verify',
+               '/api/v1/system/full-report'],
     feishu: { app:'cli_aae37ced6a785bdb', callback:'/feishu/event', llm:'qwen-max' }
   };
   const key = `snapshot-${ts}`;
@@ -702,13 +712,14 @@ function apiDocs() {
 function apiHealth() {
   return {
     ok: true,
-    version: 'v1.6',
+    version: 'v1.7',
     status: 'healthy',
     timestamp: new Date().toISOString(),
-    kernel: 'C17 单文件,三元→七元+全栈+生态+盟机合掌',
-    engine: '囡囝共生 MQ裁定引擎',
+    kernel: 'C17 njsg_kernel v1.7 + njsg_wasm v2.1',
+    engine: '囡囝共生 MQ裁定引擎 + 四元内核',
     mengji_ready: true,
-    architecture: 'domain-agnostic, self-contained Worker'
+    architecture: 'domain-agnostic, self-contained Worker',
+    modules: ['perceive', 'mccp', 'review', 'timeline']
   };
 }
 
@@ -798,7 +809,7 @@ function apiDomainCheck(request) {
 function apiTimeline() {
   return {
     ok: true,
-    version: 'v1.6',
+    version: 'v1.7',
     timeline: [
       { version: 'v0.1-0.5', period: '2026-07-28 → 2026-07-30', desc: '基础建设:编码+契约+WASM_v0', status: 'completed' },
       { version: 'v0.6', period: '2026-07-30', desc: '三元:身份编码+规则引擎+空间代数+统计锥', status: 'completed' },
@@ -810,7 +821,7 @@ function apiTimeline() {
       { version: 'v1.4', period: '2026-08-05', desc: '生态:Cloudflare Worker + 对外API', status: 'completed' },
       { version: 'v1.5', period: '2026-08-05', desc: '统一对话渠道 + OpenAPI文档', status: 'completed' },
       { version: 'v1.6', period: '2026-08-05', desc: '盟机合:合伙人子节点 + 域无关化', status: 'completed' },
-      { version: 'v1.7', period: '2026-08-05', desc: 'WASM内核 + 民联浏览器壳', status: 'completed' }
+      { version: 'v1.7', period: '2026-08-31', desc: '四元内核升级:感知引擎+MCCP+裁判+时间线+五维实证', status: 'completed' }
     ],
     philosophy: '域名只是入口,裁定才是核心'
   };

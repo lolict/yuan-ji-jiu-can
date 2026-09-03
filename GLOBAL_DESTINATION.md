@@ -91,6 +91,7 @@
 | 49 | silkworm-shell 蚕蛹反向寄生壳 | tools/silkworm-shell/ | ✅ Nim·6壳寄生·脱壳穿衣·内核挂载·外部系统适应满全法·根基隐藏·6目标全部成功 |
 | 50 | property-mirror 产权镜像·四维经过图 | tools/property-mirror/ | ✅ 镜像版本号·D0-D3四维·边界内外自由空间·归属空间开始/经过/结束闭环·写代码前强制核对时间链·5演示全通过 |
 | 51 | isa-ref 五架构机器码对齐参考 | tools/isa-ref/ | ✅ ARM·x86-64·RISC-V·MIPS32·MTK 按功能交叉对齐·位域+汇编标注·位号编码·系统调用·原子操作 |
+| 52 | hunyuan-orchestrator NJSG 四层栈编排器 | tools/cbsy/ | ✅ v0.15 鼓膜自举(扫描→恢复29工具+完整性通过)→天庭空间(夫妻双吸引子+囡囝平衡+满全法规则·引力对称0.645:0.645·Topos AND)→灵魂内核(奖励/恐惧/驱力回路·初始电平=0.3+工具数×0.01·仅加减)→八流dispatch(ack反馈reward+0.05/囝囝attractor+0.02·nack反馈fear+0.02·休眠反馈drive+0.03)·开发红线1(不允许独立存在)·下层为上层存在前提 |
 
 ---
 
