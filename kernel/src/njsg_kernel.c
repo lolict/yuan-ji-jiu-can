@@ -44,6 +44,11 @@
 #include "njsg_mengji.h"
 #endif
 
+/* 离线认证引擎 (njsg_offline_auth.c) */
+#ifndef MLLL_LIBRARY
+#include "njsg_offline_auth.c"
+#endif
+
 /* ============================================================
  * v1.0 五元旋钮前置声明
  * ============================================================ */
@@ -504,7 +509,7 @@ int njsg_rule_resolve(const char* head_pred, const char** head_args, int arg_cou
  * ============================================================ */
 typedef struct { char identity[128]; int target_level; perm_t target_perm; char note[256]; } contract_t;
 typedef struct { contract_t rules[MAX_RULES]; int count; } contract_engine_t;
-typedef struct { char auth_code[NJSG_HASH_LEN+1]; perm_t perm; int max_slots, time_limit_sec, require_network; time_t created_at, expires_at; } capability_t;
+typedef struct { char auth_code[NJSG_HASH_LEN+1]; perm_t perm; int max_slots, time_limit_sec, require_network; time_t created_at, expires_at; offline_cap_t offline; } capability_t;
 static contract_engine_t CE;
 
 void njsg_contract_add(const char* id, int lv, perm_t perm, const char* note){ if(CE.count<MAX_RULES) { contract_t* c=&CE.rules[CE.count++]; strncpy(c->identity,id,127); c->target_level=lv; c->target_perm=perm; if(note) strncpy(c->note,note,255); } }
@@ -861,7 +866,15 @@ void njsg_init(){ memset(&K,0,sizeof(K)); K.ver=12; memset(&AUDIT,0,sizeof(AUDIT
 
 int njsg_reg(const char* name, void(*fn)(void*), void* arg){ njsg_identity_t id=njsg_encode(name); capability_t cap; njsg_evaluate(name,&cap); memcpy(cap.auth_code,id.auth_code,NJSG_HASH_LEN+1); if(cap.perm==PERM_NONE){ njsg_audit_log(AUDIT_REJECT,name,-1); return -1; } int i=-1; pthread_mutex_lock(&K_LOCK); for(int j=0;j<MAX_EXEC_SLOTS;j++) if(!K.s[j].used){ i=j; break; } if(i<0){ pthread_mutex_unlock(&K_LOCK); return -1; } K.s[i].used=1; memcpy(K.s[i].auth,cap.auth_code,NJSG_HASH_LEN+1); strncpy(K.s[i].name,name,127); K.s[i].st=EXEC_PENDING; K.s[i].cap=cap; K.s[i].fn=fn; K.s[i].arg=arg; K.s[i].exec_count=0; pthread_mutex_unlock(&K_LOCK); njsg_audit_log(AUDIT_REGISTER,name,i); return i; }
 
-int njsg_on(int s, const char* auth){ if(s<0||s>=MAX_EXEC_SLOTS) return 0; pthread_mutex_lock(&K_LOCK); slot_t* p=&K.s[s]; if(!p->used||p->st!=EXEC_PENDING){ pthread_mutex_unlock(&K_LOCK); return 0; } if(strcmp(p->cap.auth_code,auth)!=0){ pthread_mutex_unlock(&K_LOCK); njsg_audit_log(AUDIT_FREEZE,p->name,s); return 0; } p->st=EXEC_ALIVE; p->activated_at=time(NULL); p->expire_at=p->activated_at+p->cap.time_limit_sec; K.alive++; pthread_mutex_unlock(&K_LOCK); njsg_audit_log(AUDIT_ACTIVATE,p->name,s); return 1; }
+int njsg_on(int s, const char* auth){ if(s<0||s>=MAX_EXEC_SLOTS) return 0; pthread_mutex_lock(&K_LOCK); slot_t* p=&K.s[s]; if(!p->used||p->st!=EXEC_PENDING){ pthread_mutex_unlock(&K_LOCK); return 0; } if(strcmp(p->cap.auth_code,auth)!=0){ pthread_mutex_unlock(&K_LOCK); njsg_audit_log(AUDIT_FREEZE,p->name,s); return 0; } p->st=EXEC_ALIVE; p->activated_at=time(NULL); p->expire_at=p->activated_at+p->cap.time_limit_sec; /* 主权人自动完整绑定离线能力 */ if(p->cap.require_network==0){ offline_bind(&p->cap.offline, p->name); printf("[离线] 主权人 %s 离线能力已就绪\n", p->name); } K.alive++; pthread_mutex_unlock(&K_LOCK); njsg_audit_log(AUDIT_ACTIVATE,p->name,s); return 1; }
+
+/* 离线 TOTP 续期 (由用户态调用, 不依赖网络) */
+int njsg_offline_renew(int s, const char* totp){ if(s<0||s>=MAX_EXEC_SLOTS) return 0; pthread_mutex_lock(&K_LOCK); slot_t* p=&K.s[s]; if(!p->used||p->st!=EXEC_ALIVE){ pthread_mutex_unlock(&K_LOCK); return 0; } int ok = offline_totp_verify(&p->cap.offline, totp, 1); if(ok){ /* 续期: 扩展 time_limit_sec, 重置 activated_at 和 expire_at */ p->activated_at = time(NULL); p->expire_at = p->activated_at + p->cap.time_limit_sec; printf("[离线] %s TOTP 续期 → 有效期延后 %d 秒\n", p->name, p->cap.time_limit_sec); } pthread_mutex_unlock(&K_LOCK); return ok; }
+
+/* 离线挑战-响应 (身份核验, 不依赖网络) */
+int njsg_offline_challenge_issue(int s, char* challenge){ if(s<0||s>=MAX_EXEC_SLOTS) return 0; int r; pthread_mutex_lock(&K_LOCK); slot_t* p=&K.s[s]; if(!p->used||p->st!=EXEC_ALIVE){ pthread_mutex_unlock(&K_LOCK); return 0; } r = offline_challenge_issue(&p->cap.offline, challenge); if(r==0) printf("[离线] %s 挑战已发出\n", p->name); pthread_mutex_unlock(&K_LOCK); return r==0; }
+
+int njsg_offline_challenge_verify(int s, const char* response){ if(s<0||s>=MAX_EXEC_SLOTS) return 0; int r; pthread_mutex_lock(&K_LOCK); slot_t* p=&K.s[s]; if(!p->used||p->st!=EXEC_ALIVE){ pthread_mutex_unlock(&K_LOCK); return 0; } r = offline_response_verify(&p->cap.offline, response); if(r) printf("[离线] %s 身份核验通过\n", p->name); pthread_mutex_unlock(&K_LOCK); return r; }
 
 int njsg_go(int s){ if(s<0||s>=MAX_EXEC_SLOTS) return 0; pthread_mutex_lock(&K_LOCK); slot_t* p=&K.s[s]; if(!p->used||p->st!=EXEC_ALIVE){ pthread_mutex_unlock(&K_LOCK); return 0; } if(!(p->cap.perm&PERM_EXEC)){ K.frozen++; K.alive--; pthread_mutex_unlock(&K_LOCK); njsg_audit_log(AUDIT_FREEZE,p->name,s); return 0; } double elapsed=difftime(time(NULL),p->activated_at); if(p->cap.time_limit_sec>0 && elapsed>(double)p->cap.time_limit_sec){ K.zombie++; K.alive--; pthread_mutex_unlock(&K_LOCK); return 0; } p->exec_count++; p->fn(p->arg); pthread_mutex_unlock(&K_LOCK); njsg_audit_log(AUDIT_EXECUTE,p->name,s); return 1; }
 
