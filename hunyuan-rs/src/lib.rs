@@ -202,13 +202,11 @@ pub mod yinyang_codec;
 pub use yinyang_codec::{YUYANG_MARK, FrameMode, Frame, YuYangCodec};
 
 // ── v1.2 七元蜂窝套壳 · 容器族管理模 (container_nest) ──
-// NOTE: 暂时注释掉, container_nest 内部有未定义类型 (ContainerPolarity/ContainerContainerPolarity)
-// 导致整个 crate 无法编译, 与 container_radix 无关
-// pub mod container_nest;
-// pub use container_nest::{
-//     NestLevel, ContainerNest, ContainerPolarity, Content,
-//     OverflowPolicy, PutResult, MirrorResult,
-// };
+pub mod container_nest;
+pub use container_nest::{
+    NestLevel, ContainerNest, ContainerPolarity, Content,
+    OverflowPolicy, PutResult, MirrorResult,
+};
 
 // ── v0.21 编程语言工具链 · 角色-模块映射层 (toolchain_mapping) ──
 pub mod toolchain_mapping;

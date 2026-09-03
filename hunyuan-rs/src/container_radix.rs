@@ -308,7 +308,8 @@ pub trait RadixOps {
             GROUP_CONTAINER => 0,
             GROUP_OPERATION => 1,
             GROUP_INITIAL   => 2,
-            _               => 3, // GROUP_VOWEL
+            GROUP_VOWEL     => 3,
+            _               => 3, // unreachable due to 2-bit mask
         }
     }
 
