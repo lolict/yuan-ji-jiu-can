@@ -1431,3 +1431,14 @@ print a"#;
     println!("  编译期 = 运行时 · 无 CPU 占用 · 仅存储");
     println!("═══════════════════════════════════════");
 }
+
+#[test]
+fn debug_export_format() {
+    use crate::os_layer::bare_metal::BareMetalOs;
+    let os = BareMetalOs::new();
+    let mut shell = ParasiteShell::new(20);
+    let a = shell.spawn(&os, "Test", crate::swarm::AgentRole::Root, 20);
+    shell.agents.get_mut(&a).unwrap().record_radiation("task", "target");
+    let exported = shell.export_timestamps();
+    eprintln!("EXPORTED:\n{}", exported);
+}

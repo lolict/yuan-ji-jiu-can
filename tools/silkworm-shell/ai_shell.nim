@@ -18,7 +18,7 @@
 #   九元=0.8 → temperature=0.8 (创造)
 # ============================================================
 
-import os, osproc, strutils, json, tables
+import os, osproc, strutils, json
 import git_run
 
 # ═══════════════════════════════════════════
@@ -83,9 +83,8 @@ proc encode_prompt*(mqf_input: string): string =
 proc decode_llm_response*(raw: string): string =
   ## 从 LLM 自然语言输出中提取/转换满全法符号
   ## 使用占位符策略防止双重替换
-  var result = raw
-  const
-    PH = "\x01"  # 占位符 (不可能在正常文本中出现)
+  let ph = "\x01"
+  var res = raw
   var mappings: seq[tuple[pattern: string, mqf: string]] = @[
     ("MUTUAL", "njsg"), ("共生", "njsg"),
     ("ROOT", "mlll"), ("根基", "mlll"),
@@ -98,16 +97,15 @@ proc decode_llm_response*(raw: string): string =
     ("PRELOAD", "lctqf"), ("预加载", "lctqf"),
     ("BINARY", "mlnnn"), ("仅加减", "mlnnn"),
   ]
-  # 第一阶段：全部替换为占位符+编码
   var ph_map: seq[tuple[string, string]] = @[]
-  for i, m in mappings:
-    let placeholder = PH & $i & PH
-    if m.pattern != "":  # 跳过空
-      result = result.replace(m.pattern, placeholder)
-      ph_map.add((placeholder, m.mqf))
-  # 第二阶段：占位符替换为编码
+  for i in 0..<mappings.len:
+    let (pattern, mqf) = mappings[i]
+    let placeholder = ph & $i & ph
+    res = res.replace(pattern, placeholder)
+    ph_map.add((placeholder, mqf))
   for pm in ph_map:
-    result = result.replace(pm[0], pm[1])
+    res = res.replace(pm[0], pm[1])
+  result = res
 
 # ═══════════════════════════════════════════
 # AI Shell 操作

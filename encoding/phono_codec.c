@@ -706,7 +706,7 @@ static void decode_symbol_to_pinyin(const char* sym) {
                 int base = -1;
                 for (int b = 0; b < 6; b++) {
                     for (int t = 0; t < 4; t++) {
-                        const char** tone_table[] = {TONE_A,TONE_E,TONE_I,TONE_O,TONE_U,TONE_V};
+                        const char* const* tone_table[] = {TONE_A,TONE_E,TONE_I,TONE_O,TONE_U,TONE_V};
                         if (strcmp(sym, tone_table[b][t]) == 0) {
                             base = b; tone_idx = t; break;
                         }
@@ -738,7 +738,7 @@ static void decode_symbol_to_pinyin(const char* sym) {
 }
 
 /* ============================================================
- * 第十一部分：交互模式
+ * 第十二部分：交互模式
  * ============================================================ */
 
 static void interactive_mode(void) {
@@ -746,6 +746,7 @@ static void interactive_mode(void) {
     printf("\n═══ 语音编码解码器 - 交互模式 ═══\n");
     printf("输入: <符号>     — 分类并编码\n");
     printf("      py <拼音>  — 拼音→符号编码\n");
+    printf("      d  <符号>  — 符号→拼音解码\n");
     printf("      symbols    — 显示全部符号表\n");
     printf("      quit       — 退出\n");
     printf("─────────────────────────────────\n");
@@ -762,6 +763,10 @@ static void interactive_mode(void) {
         }
         if (strncmp(buf, "py ", 3) == 0) {
             encode_pinyin(buf + 3);
+            continue;
+        }
+        if (strncmp(buf, "d ", 2) == 0) {
+            decode_symbol_to_pinyin(buf + 2);
             continue;
         }
         if (strlen(buf) == 0) continue;

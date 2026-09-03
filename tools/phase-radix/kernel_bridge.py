@@ -217,7 +217,7 @@ class KernelBridgeHandler(BaseHTTPRequestHandler):
     def _handle_index(self):
         _json_response(self, {
             "name": "囡囝共生 WASM 内核桥接器",
-            "version": "0.3.0",
+            "version": "0.4.0",
             "endpoints": {
                 "GET": ["/api/kernel/state", "/api/kernel/stats", "/api/kernel/cells",
                         "/api/interlock/status", "/api/property/stats", "/api/mo/demo"],
@@ -226,7 +226,11 @@ class KernelBridgeHandler(BaseHTTPRequestHandler):
                          "/api/kernel/lock", "/api/kernel/flow",
                          "/api/interlock/register",
                          "/api/property/register", "/api/property/check",
-                         "/api/mo/cluster", "/api/mo/distance"]
+                         "/api/mo/cluster", "/api/mo/distance",
+                         "/api/metaime/encode", "/api/metaime/decode",
+                         "/api/metaime/feed", "/api/metaime/stats",
+                         "/api/court/state", "/api/court/flow",
+                         "/api/court/judge", "/api/court/metaime", "/api/court/stats"]
             }
         })
 
@@ -493,6 +497,8 @@ class KernelBridgeHandler(BaseHTTPRequestHandler):
         wit = body.get('witness', 0)
         flow = body.get('flow', 0)
         sov = body.get('sovereignty', 0x100)
+        if isinstance(sov, str):
+            sov = int(sov, 0)
         cell = mi.encode(sm, ym, tone, pol, wit, flow, sov)
         d = mi.decode(cell)
         _json_response(self, {
@@ -513,10 +519,13 @@ class KernelBridgeHandler(BaseHTTPRequestHandler):
     def _handle_metaime_feed(self):
         body = _read_json_body(self)
         mi = _get_metaime()
-        syllables = body.get('syllables', [])
-        match = mi.feed(syllables)
+        # feed 接受单个音节 (sm, ym, tone)
+        sm = body.get('shengmu', 0)
+        ym = body.get('yunmu', 0)
+        tone = body.get('tone', 0)
+        match = mi.feed(sm, ym, tone)
         _json_response(self, {
-            "matched": match is not None,
+            "matched": match.get('matched', False),
             "match": match,
             "stats": mi.stats(),
         })

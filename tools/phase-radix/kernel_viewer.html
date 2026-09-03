@@ -201,6 +201,56 @@
     </div>
   </div>
 
+  <!-- MetaIME -->
+  <div class="panel">
+    <h2>◈ MetaIME 编码</h2>
+    <div class="input-row">
+      <label>声母</label><input type="number" id="ime-sm" value="0" min="0" max="63">
+      <label>韵母</label><input type="number" id="ime-ym" value="0" min="0" max="255">
+      <label>声调</label><input type="number" id="ime-tone" value="1" min="0" max="7">
+    </div>
+    <div class="input-row">
+      <label>极性</label>
+      <select id="ime-pol" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:4px;font-size:11px;border-radius:3px;">
+        <option value="0">妻(0)</option>
+        <option value="1">夫(1)</option>
+        <option value="2">系统(2)</option>
+      </select>
+      <label>见证</label><input type="number" id="ime-wit" value="1" min="0" max="15">
+      <label>流</label><input type="number" id="ime-flow" value="0" min="0" max="7">
+    </div>
+    <div class="input-row">
+      <label>主权</label><input type="text" id="ime-sov" value="0x100">
+      <button class="btn btn-success" onclick="imeEncode()">编码</button>
+      <button class="btn btn-secondary" onclick="imeDecode()">解码</button>
+    </div>
+    <div id="ime-output" class="log" style="margin-top:6px;">等待编码...</div>
+  </div>
+
+  <!-- 天庭裁决 -->
+  <div class="panel">
+    <h2>◈ 天庭裁决</h2>
+    <div class="input-row">
+      <label>Cell A</label><input type="text" id="ca-a" value="0x100" style="width:120px;">
+      <label>Cell B</label><input type="text" id="ca-b" value="0x200" style="width:120px;">
+    </div>
+    <div class="input-row">
+      <label>态</label>
+      <select id="ca-state" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:4px;font-size:11px;border-radius:3px;">
+        <option value="0">囡囡(NN)</option>
+        <option value="1" selected>囡囝(NJSG)</option>
+        <option value="2">囝囝(JJ)</option>
+        <option value="3">囝囡(JN)</option>
+      </select>
+      <label>流</label><input type="number" id="ca-flow" value="0" min="0" max="7">
+      <button class="btn btn-danger" onclick="courtJudge()">裁决</button>
+    </div>
+    <div class="input-row">
+      <button class="btn" onclick="caFromCells()">从内核取 A,B</button>
+    </div>
+    <div id="ca-output" class="log" style="margin-top:6px;">等待裁决...</div>
+  </div>
+
   <!-- Cells 列表 -->
   <div class="panel full-width">
     <h2>◈ Cells 列表</h2>
@@ -448,6 +498,78 @@ async function calcDistance() {
   }
   table.innerHTML = html;
   log(`距离矩阵 ${n}x${n} 计算完成`, 'ok');
+}
+
+// ── MetaIME 编码 ──
+
+async function imeEncode() {
+  const body = {
+    shengmu: parseInt(document.getElementById('ime-sm').value),
+    yunmu: parseInt(document.getElementById('ime-ym').value),
+    tone: parseInt(document.getElementById('ime-tone').value),
+    polarity: parseInt(document.getElementById('ime-pol').value),
+    witness: parseInt(document.getElementById('ime-wit').value),
+    flow: parseInt(document.getElementById('ime-flow').value),
+    sovereignty: document.getElementById('ime-sov').value,
+  };
+  try {
+    const r = await api_post('/api/metaime/encode', body);
+    document.getElementById('ime-output').innerHTML =
+      `<span style="color:var(--green)">Cell: ${r.cell}</span><br>` +
+      `<span style="color:var(--cyan)">解码: sm=${r.decode.shengmu} ym=${r.decode.yunmu} tone=${r.decode.tone} pol=${r.decode.polarity} wit=${r.decode.wit} sov=0x${r.decode.sovereignty?.toString(16).toUpperCase() || '?'}</span>`;
+    log(`MetaIME 编码: ${r.cell}`, 'ok');
+  } catch(e) {
+    document.getElementById('ime-output').textContent = '失败: ' + e.message;
+    log('MetaIME 编码失败: ' + e.message, 'err');
+  }
+}
+
+async function imeDecode() {
+  const inp = prompt('输入 cell 值 (十六进制或十进制):', '0x100');
+  if (!inp) return;
+  try {
+    const r = await api_post('/api/metaime/decode', { cell: inp });
+    document.getElementById('ime-output').innerHTML =
+      `<span style="color:var(--cyan)">sm=${r.shengmu} ym=${r.yunmu} tone=${r.tone} pol=${r.polarity} wit=${r.wit} sov=0x${r.sovereignty?.toString(16).toUpperCase() || '?'}</span>`;
+    log(`MetaIME 解码: sm=${r.shengmu} ym=${r.yunmu} pol=${r.polarity}`, 'ok');
+  } catch(e) {
+    document.getElementById('ime-output').textContent = '失败: ' + e.message;
+  }
+}
+
+// ── 天庭裁决 ──
+
+async function courtJudge() {
+  const cellA = document.getElementById('ca-a').value;
+  const cellB = document.getElementById('ca-b').value;
+  const state = parseInt(document.getElementById('ca-state').value);
+  const flow = parseInt(document.getElementById('ca-flow').value);
+  try {
+    // 先设置态
+    await api_post('/api/court/state', { state });
+    await api_post('/api/court/flow', { flow });
+    const r = await api_post('/api/court/judge', { cell_a: cellA, cell_b: cellB, flow });
+    const vColor = r.verdict === 1 ? 'var(--green)' : r.verdict === 2 ? 'var(--red)' : 'var(--yellow)';
+    document.getElementById('ca-output').innerHTML =
+      `<span style="color:${vColor};font-weight:bold;font-size:13px;">${r.verdict_str || '?'}</span> ` +
+      `<span style="color:var(--muted)">(conf=${r.confidence?.toFixed(2) || '?'})</span><br>` +
+      `<span style="color:var(--cyan)">事由: ${r.reason_str || '?'}</span>` +
+      (r.output_cell ? `<br><span style="color:var(--accent2)">输出: 0x${r.output_cell.toString(16).toUpperCase()}</span>` : '');
+    log(`天庭裁决: ${r.verdict_str} (${r.reason_str}) conf=${r.confidence}`, 'info');
+  } catch(e) {
+    document.getElementById('ca-output').textContent = '失败: ' + e.message;
+    log('天庭裁决失败: ' + e.message, 'err');
+  }
+}
+
+function caFromCells() {
+  if (cellsData.length >= 2) {
+    document.getElementById('ca-a').value = cellsData[0].raw;
+    document.getElementById('ca-b').value = cellsData[1].raw;
+    log(`取 A=${cellsData[0].raw} B=${cellsData[1].raw}`, 'info');
+  } else {
+    log('内核中 cells 不足 2 个', 'err');
+  }
 }
 
 // ── 启动 ──
