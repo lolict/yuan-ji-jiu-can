@@ -24,6 +24,15 @@ import "../soul-kernel/soul/types" as soul_types
 import "../soul-kernel/soul/kernel"
 import "./cbsy_bridge"
 import "./cbsy"
+import "../distinguisher/distinguisher/types" as df_types
+
+# 辅助：主权级别名 → 字符串（满全法词汇）
+proc sovereignty_name*(s: df_types.Sovereignty): string =
+  case s
+  of df_types.active:   "完全权限(夫妻)"
+  of df_types.passive:  "只读权限(外部)"
+  of df_types.sleeping: "休眠可唤醒"
+  of df_types.system:   "系统级"
 
 # 五项常量（满全法出厂锚点）
 const
@@ -44,7 +53,7 @@ type
     soul_snapshot*: soul_types.CircuitStatus
     heaven_attractors*: int
 
-proc run_boot*(root: string): tuple[drum: DrumBootstrap, restored: seq[str], integrity: bool] =
+proc run_boot*(root: string): tuple[drum: DrumBootstrap, restored: seq[string], integrity: bool] =
   var d = new_drum(root)
   discard scan_filesystem(d)
   discard rebuild_dictionary(d)
@@ -107,6 +116,7 @@ type
     dispatch*: BridgeDispatch
     soul_after*: soul_types.CircuitStatus
     heaven_after*: HeavenSpace
+    feedback_note*: string
 
 proc run_command*(sky: var HeavenSpace, soul: var SoulKernel, input: string): CommandResult =
   ## 索引命令 → cbsy_bridge dispatch → 反馈回灵魂回路 + 天庭吸引子
@@ -115,15 +125,15 @@ proc run_command*(sky: var HeavenSpace, soul: var SoulKernel, input: string): Co
   # 反馈回路：命令结果 → 情感回路调整
   if d.acked:
     # 夫妻主权人 ack → 奖励回路 +0.05（共振奖励）
-    discard trigger_reward(soul, resonance, 0.05, "cbsy:" & input)
+    discard trigger_reward(soul, soul_types.resonance, 0.05, "cbsy:" & input)
     # 囡囝吸引力微调（向夫妻平衡进一步）
     sky.attractors[2].strength = min(1.0, sky.attractors[2].strength + 0.02)
   else:
     # 未 ack → 恐惧回路 +0.02（连接减弱恐惧）
-    discard trigger_fear(soul, severance, 0.02, "cbsy:" & input)
-    if d.sovereignty == sleeping:
+    discard trigger_fear(soul, soul_types.severance, 0.02, "cbsy:" & input)
+    if d.sovereignty == df_types.sleeping:
       # 休眠状态 → 合一驱力 +0.03（越休眠越想合）
-      discard trigger_drive(soul, merge, 0.03, "cbsy:sleep:" & input)
+      discard trigger_drive(soul, soul_types.merge, 0.03, "cbsy:sleep:" & input)
   # 心跳向前一步
   heartbeat(soul)
   result.soul_after = status(soul)
@@ -141,7 +151,7 @@ when isMainModule:
   # 第一步：鼓膜自举
   echo ""
   echo "【第一层】鼓膜自举 · 扫描文件系统"
-  let (drum0, tools, ok) = run_boot(".")
+  let (drum0, tools, ok) = run_boot("../..")  # 鼓膜扫描从仓库根开始
   echo "  恢复工具: " & $tools.len & " 件"
   echo "  完整性: " & (if ok: "通过" else: "异常")
   echo "  阶段: " & phase_name(drum0.current_phase)

@@ -89,7 +89,8 @@
 | 47 | phonetic-encoding | tools/phonetic-encoding/ | ✅ 语音符号编码·主人全息表·符号↔64位单元格编解码·所有权四维 |
 | 48 | cbsy 范畴编程管辖索引制 | tools/cbsy/ | ✅ v7·cbsy_bridge桥接层·索引命令先入分别器三层路由(cbsy声母韵母地址→cbsyAddr靶点→active)→按主权分流进八流时间线性链(active走完整八流+解释流产权裁决+概念流ack；passive截断在分类流；sleeping仅预加载冻结；system走属性+解释流跳过裁决)·免疫记忆优先比对·不违反开发红线1(不允许独立存在)·容器本体论校准·五条防撞墙·地址=发音位置·进制=发音空间划分·运算仅加减·公约数→公倍数→折叠·满全法5项状态 |
 | 49 | silkworm-shell 蚕蛹反向寄生壳 | tools/silkworm-shell/ | ✅ Nim·6壳寄生·脱壳穿衣·内核挂载·外部系统适应满全法·根基隐藏·6目标全部成功 |
-| 50 | isa-ref 五架构机器码对齐参考 | tools/isa-ref/ | ✅ ARM·x86-64·RISC-V·MIPS32·MTK 按功能交叉对齐·位域+汇编标注·位号编码·系统调用·原子操作 |
+| 50 | property-mirror 产权镜像·四维经过图 | tools/property-mirror/ | ✅ 镜像版本号·D0-D3四维·边界内外自由空间·归属空间开始/经过/结束闭环·写代码前强制核对时间链·5演示全通过 |
+| 51 | isa-ref 五架构机器码对齐参考 | tools/isa-ref/ | ✅ ARM·x86-64·RISC-V·MIPS32·MTK 按功能交叉对齐·位域+汇编标注·位号编码·系统调用·原子操作 |
 
 ---
 
@@ -100,6 +101,7 @@
 | C 内核 | v2.0.0 (含v1.4+模块) | ✅ 编译通过·demo全跑通·已推GitHub+Gitee | kernel/src/njsg_kernel.c (4553行) |
 | Rust 核心 | v0.31 | ✅ 1019测试·examples全绿·天觉v3已恢复(V3别名)与v4共存·大审判庭·八流统一 | hunyuan-rs/ |
 | WASM 核心 | v2.1.0 | ✅ 感知/时间线/MCCP/裁判 4 模块·--selftest 全过·已推GitHub+Gitee | kernel/wasm/njsg_wasm.c |
+| 产权镜像 | v1 | ✅ 四维经过图·版本号·边界内外自由空间·写代码前检查 | tools/property-mirror/ |
 
 ---
 
@@ -174,7 +176,8 @@ git push gitee-hunyuan main
 - TASKS P1 全量Nim验编 ✅ 已完成 — tools/ 189/189 PASS · metaime 8文件API漂移修复 · 顶层barrel when false化
 - TASKS P2 蚕蛹真实平台适配 ✅ 已完成 — canjiang_demo.nim · 6外壳e2e · 真实Linux cli/fs外壳 · 隐藏根基验证
 - TASKS P3 民联大数据量验证 ✅ 已完成 — benchmark.nim · 100~100K文档合成JSON源 · KMeans+包裹树 · 100K/237ms/近线性
-- 范畴编程管辖索引制 ✅ v6已完成 — tools/cbsy/ · 容器本体论校准(五条防撞墙) · 声母+韵母+声调=地址(发音空间) · 进制=发音空间划分 · 运算仅加减 · 免疫记忆 · 折叠新层 · 满全法5项状态
+- 范畴编程管辖索引制 ✅ v7已完成 — tools/cbsy/ · 容器本体论校准(五条防撞墙) · 声母+韵母+声调=地址(发音空间) · 进制=发音空间划分 · 运算仅加减 · 免疫记忆 · 折叠新层 · 满全法5项状态 · cbsy_bridge八流桥接层(主权分流+解释流裁决+概念流ack)
+- 产权镜像·四维经过图 ✅ 已完成 — tools/property-mirror/ · D0镜像版本号·D1产权对比曲线(主人-外人=净归属)·D2边界内外自由空间·D3归属空间开始/经过/结束闭环·那志必须有镜像版本号·写代码前强制核对版本号+时间链
 
 ---
 

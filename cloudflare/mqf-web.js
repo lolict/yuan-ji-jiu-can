@@ -962,7 +962,15 @@ export default {
       if (p === '/api/v1/mengji/status') return j(apiMengjiStatus(u.searchParams));
       if (p === '/api/v1/domain-check') return j(apiDomainCheck(request));
       if (p === '/api/v1/timeline') return j(apiTimeline());
-      return j({ error: 'not found', path: p, apis: ['/api/observe','/api/paibing','/api/kernel/paibing','/api/he-yi','/api/report','/api/mythology','/api/mythology/lookup','/api/name/anchor','/api/fsm/trigger','/api/dragon','/api/protocol/handshake','/api/protocol/sync','/api/test-crypto','/api/log/append','/api/log/verify','/api/ime/parse','/api/v1/verdict','/api/v1/qimei','/api/v1/health','/docs','/v1/chat','/docs/v2','/diagrams','/api/v1/mengji/register','/api/v1/mengji/list','/api/v1/mengji/status','/api/v1/domain-check','/api/v1/timeline'] }, { status: 404 });
+      if (p === '/api/v1/perceive' && request.method === 'POST') return j(apiPerceive(request));
+      if (p === '/api/v1/perceive' && request.method === 'GET') return j({ok:true,note:'POST JSON {input,family} for perception. Families: latin,cjk,punctuation,emoji,numeric,symbol,space,control,other'});
+      if (p === '/api/v1/mccp/compile' && (request.method === 'POST' || request.method === 'GET')) return j(apiMccpCompile(request, u.searchParams));
+      if (p === '/api/v1/review/submit' && (request.method === 'POST' || request.method === 'GET')) return j(apiReviewSubmit(request, u.searchParams));
+      if (p === '/api/v1/timeline/v1' && request.method === 'GET') return j(apiTimelineV2());
+      if (p === '/api/v1/heartbeat' && request.method === 'GET') return j(apiHeartbeat());
+      if (p === '/api/v1/five-dimensional/verify' && request.method === 'GET') return j(apiFiveDimVerify(u.searchParams));
+      if (p === '/api/v1/system/full-report' && request.method === 'GET') return j(apiSystemFullReport());
+      return j({ error: 'not found', path: p, apis: ['/api/observe','/api/paibing','/api/kernel/paibing','/api/he-yi','/api/report','/api/mythology','/api/mythology/lookup','/api/name/anchor','/api/fsm/trigger','/api/dragon','/api/protocol/handshake','/api/protocol/sync','/api/test-crypto','/api/log/append','/api/log/verify','/api/ime/parse','/api/v1/verdict','/api/v1/qimei','/api/v1/health','/docs','/v1/chat','/docs/v2','/diagrams','/api/v1/mengji/register','/api/v1/mengji/list','/api/v1/mengji/status','/api/v1/domain-check','/api/v1/timeline','/api/v1/perceive','/api/v1/mccp/compile','/api/v1/review/submit','/api/v1/timeline/v1','/api/v1/heartbeat','/api/v1/five-dimensional/verify','/api/v1/system/full-report'] }, { status: 404 });
     } catch (e) {
       return j({ error: e.message, stack: e.stack });
     }
