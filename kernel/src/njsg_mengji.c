@@ -365,6 +365,226 @@ int njsg_mengji_consensus_vote(int subject_slot, mengji_verdict_t vote, int vote
 }
 
 /* ============================================================
+ * 里程碑二 · 分布式三元见证 —— 第三方背书
+ * ------------------------------------------------------------
+ *  当某盟机场(见证者)对某个袋子编号背书时调用:
+ *    - 记录见证者身份
+ *    - 检查摘要一致性
+ *    - 推进三元见证状态流转:
+ *        EMPTY → SINGLE → DOUBLE → WITNESSED / REJECTED
+ *
+ *  返回: 三元见证状态码(见 mengji_triune_state_t)
+ * ============================================================ */
+int njsg_mengji_triune_register(int farm_id,
+                                 int subject_slot,
+                                 const char* bag_hash) {
+    pthread_mutex_lock(&MJ.lock);
+
+    if (farm_id < 0 || farm_id >= MJ.node_count) {
+        pthread_mutex_unlock(&MJ.lock);
+        return -1;
+    }
+    if (!bag_hash || strlen(bag_hash) != 16) {
+        pthread_mutex_unlock(&MJ.lock);
+        return -1;
+    }
+
+    /* 查找该槽位的见证条目 */
+    int tidx = -1;
+    for (int i = 0; i < MJ.triune_count; i++) {
+        if (MJ.triunes[i].slot == subject_slot) { tidx = i; break; }
+    }
+    if (tidx == -1) {
+        if (MJ.triune_count >= MENGJI_MAX_VERDICTS) {
+            pthread_mutex_unlock(&MJ.lock);
+            return -1;
+        }
+        tidx = MJ.triune_count++;
+        mengji_triune_entry_t* ne = &MJ.triunes[tidx];
+        memset(ne, 0, sizeof(*ne));
+        ne->slot = subject_slot;
+        snprintf(ne->subject, 63, "袋子_%d", subject_slot);
+        ne->bag_hash[0] = '\0';
+        ne->triune_state = TRIUNE_EMPTY;
+        ne->witness_farm_1 = -1;
+        ne->witness_farm_2 = -1;
+        ne->witness_3rd = -1;
+    }
+
+    mengji_triune_entry_t* e = &MJ.triunes[tidx];
+    mengji_node_t* farmer = &MJ.nodes[farm_id];
+
+    /* —— 状态机流转 —— */
+    switch (e->triune_state) {
+    case TRIUNE_EMPTY:
+        /* 首次持有此袋子 */
+        e->witness_farm_1 = farm_id;
+        strncpy(e->bag_hash, bag_hash, 16);
+        e->bag_hash[16] = '\0';
+        e->triune_state = TRIUNE_SINGLE;
+        printf("[三元见证] 槽#%d: 盟机场#%d(%s)首次持有摘要=%s → SINGLE\n",
+               subject_slot, farm_id, anchor_name(farmer->anchor), bag_hash);
+        break;
+
+    case TRIUNE_SINGLE:
+        /* 第二个盟机场出现 */
+        if (farm_id == e->witness_farm_1) {
+            /* 同一场再次出现,不计 */
+            printf("[三元见证] 槽#%d: 盟机场#%d重复,状态保持\n", subject_slot, farm_id);
+        } else if (strcmp(e->bag_hash, bag_hash) == 0) {
+            /* 摘要一致 → DOUBLE */
+            e->witness_farm_2 = farm_id;
+            e->triune_state = TRIUNE_DOUBLE;
+            printf("[三元见证] 槽#%d: 盟机场#%d(%s)摘要一致(%s) → DOUBLE\n",
+                   subject_slot, farm_id, anchor_name(farmer->anchor), bag_hash);
+        } else {
+            /* 摘要冲突 → REJECTED */
+            e->triune_state = TRIUNE_REJECTED;
+            printf("[三元见证] 槽#%d: 盟机场#%d摘要不一致(%s vs %s) → REJECTED\n",
+                   subject_slot, farm_id, e->bag_hash, bag_hash);
+        }
+        break;
+
+    case TRIUNE_DOUBLE:
+        /* 已双场一致,等待第三方背书 */
+        if (farm_id != e->witness_farm_1 && farm_id != e->witness_3rd) {
+            if (strcmp(e->bag_hash, bag_hash) == 0) {
+                e->witness_3rd = farm_id;
+                e->triune_state = TRIUNE_WITNESSED;
+                printf("[三元见证] 槽#%d: 第三场#%d(%s)背书成功(%s) → WITNESSED\n",
+                       subject_slot, farm_id, anchor_name(farmer->anchor), bag_hash);
+            } else {
+                e->triune_state = TRIUNE_REJECTED;
+                printf("[三元见证] 槽#%d: 第三场#%d摘要不一致(%s vs %s) → REJECTED\n",
+                       subject_slot, farm_id, e->bag_hash, bag_hash);
+            }
+        } else {
+            printf("[三元见证] 槽#%d: 盟机场#%d 已参与过,忽略\n", subject_slot, farm_id);
+        }
+        break;
+
+    default:
+        printf("[三元见证] 槽#%d: 已处于终态(%d),不再更新\n", subject_slot, e->triune_state);
+        break;
+    }
+
+    fflush(stdout);
+    pthread_mutex_unlock(&MJ.lock);
+    return (int)e->triune_state;
+}
+
+/* ============================================================
+ * 里程碑二 · 分布式三元见证 —— 三条件验证
+ * ------------------------------------------------------------
+ *  验证三元见证三条件全部满足:
+ *    条件一(非空): 袋子在至少两个不同盟机场出现且摘要一致
+ *    条件二(已见证): 存在第三个盟机场背书
+ *    条件三(锚点一致): 参与各方在信任链相容范围内、锚点无泄露
+ *
+ *  返回: 0 = 全部通过 非零 = 失败码
+ *    1 = 条件一失败(未达双场一致)
+ *    2 = 条件二失败(未获第三方背书)
+ *    3 = 条件三失败(信任链相交不达标)
+ * ============================================================ */
+int njsg_mengji_triune_verify(int subject_slot) {
+    pthread_mutex_lock(&MJ.lock);
+
+    int tidx = -1;
+    for (int i = 0; i < MJ.triune_count; i++) {
+        if (MJ.triunes[i].slot == subject_slot) { tidx = i; break; }
+    }
+    if (tidx == -1) {
+        printf("[三元验证] 槽#%d: 无见证记录 → 条件一失败\n", subject_slot);
+        pthread_mutex_unlock(&MJ.lock);
+        return 1;
+    }
+
+    mengji_triune_entry_t* e = &MJ.triunes[tidx];
+    const char* triune_state_name[] = {"空","单","双","已见证","已拒绝"};
+
+    /* —— 条件一: 非空(双场且摘要一致) —— */
+    if (e->triune_state == TRIUNE_EMPTY) {
+        printf("[三元验证] 槽#%d: 状态=%s → 条件一失败(空)\n",
+               subject_slot, triune_state_name[e->triune_state]);
+        pthread_mutex_unlock(&MJ.lock);
+        return 1;
+    }
+    if (e->triune_state == TRIUNE_SINGLE) {
+        printf("[三元验证] 槽#%d: 状态=%s → 条件一失败(仅单场)\n",
+               subject_slot, triune_state_name[e->triune_state]);
+        pthread_mutex_unlock(&MJ.lock);
+        return 1;
+    }
+    if (e->triune_state == TRIUNE_REJECTED) {
+        printf("[三元验证] 槽#%d: 状态=%s → 条件一失败(已拒绝)\n",
+               subject_slot, triune_state_name[e->triune_state]);
+        pthread_mutex_unlock(&MJ.lock);
+        return 1;
+    }
+    printf("[三元验证] 槽#%d: 条件一通过 — 双场摘要一致(%s)\n", subject_slot, e->bag_hash);
+
+    /* —— 条件二: 已见证(第三方背书) —— */
+    if (e->triune_state != TRIUNE_WITNESSED) {
+        printf("[三元验证] 槽#%d: 状态=%s → 条件二失败(无第三方背书)\n",
+               subject_slot, triune_state_name[e->triune_state]);
+        pthread_mutex_unlock(&MJ.lock);
+        return 2;
+    }
+    if (e->witness_3rd < 0 || e->witness_3rd >= MJ.node_count) {
+        printf("[三元验证] 槽#%d: 条件二失败(第三方节点无效)\n", subject_slot);
+        pthread_mutex_unlock(&MJ.lock);
+        return 2;
+    }
+    printf("[三元验证] 槽#%d: 条件二通过 — 第三场#%d已背书\n", subject_slot, e->witness_3rd);
+
+    /* —— 条件三: 锚点一致(信任链相容) ——
+     *  计算三方信任链相交(取最低信任为交集)
+     *  若交集 ≥ 信任下限容差(30%) 且锚点无冲突 → 通过 */
+    {
+        float t1 = -1, t2 = -1, t3 = -1;
+        int wid[3] = {e->witness_farm_1, e->witness_farm_2, e->witness_3rd};
+        mengji_anchor_t anchors[3];
+        for (int k = 0; k < 3; k++) {
+            if (wid[k] >= 0 && wid[k] < MJ.node_count) {
+                float trust_val = MJ.nodes[wid[k]].trust;
+                anchors[k] = MJ.nodes[wid[k]].anchor;
+                if (k == 0) t1 = trust_val;
+                else if (k == 1) t2 = trust_val;
+                else t3 = trust_val;
+            }
+        }
+        /* 信任相交 = 取三方最低信任 */
+        float trust_intersect = t1;
+        if (t2 >= 0 && t2 < trust_intersect) trust_intersect = t2;
+        if (t3 >= 0 && t3 < trust_intersect) trust_intersect = t3;
+
+        /* 锚点相容: 至少有两方锚点一致(兼容双主体共存) */
+        int anchor_agree = (anchors[0] == anchors[1]) ||
+                           (anchors[1] == anchors[2]) ||
+                           (anchors[0] == anchors[2]);
+
+        printf("[三元验证] 槽#%d: 信任相交=%.0f%% 锚点相容=%s\n",
+               subject_slot, trust_intersect, anchor_agree ? "是" : "否");
+
+        if (trust_intersect < 30.0f) {
+            printf("[三元验证] 槽#%d: 条件三失败 — 信任相交不足30%%\n", subject_slot);
+            pthread_mutex_unlock(&MJ.lock);
+            return 3;
+        }
+        if (!anchor_agree) {
+            printf("[三元验证] 槽#%d: 条件三失败 — 锚点全不一致\n", subject_slot);
+            pthread_mutex_unlock(&MJ.lock);
+            return 3;
+        }
+    }
+
+    printf("[三元验证] 槽#%d: ★★★ 三条件全部通过 ★★★\n", subject_slot);
+    fflush(stdout);
+    pthread_mutex_unlock(&MJ.lock);
+    return 0;
+}
+
+/* ============================================================
  * 冲突裁决(基于夫妻主权人锚点)
  * ------------------------------------------------------------
  *  冲突 = 同一主题在不同节点有不同裁定态
@@ -480,9 +700,21 @@ void njsg_mengji_probe_alive(void) {
 /* ============================================================
  * 打印
  * ============================================================ */
-void njsg_mengji_print_node(int idx) {
-    pthread_mutex_lock(&MJ.lock);
-    if (idx < 0 || idx >= MJ.node_count) { pthread_mutex_unlock(&MJ.lock); return; }
+/* 三元见证状态名 */
+static const char* triune_state_name(mengji_triune_state_t s) {
+    switch (s) {
+        case TRIUNE_EMPTY:     return "空";
+        case TRIUNE_SINGLE:    return "单";
+        case TRIUNE_DOUBLE:    return "双";
+        case TRIUNE_WITNESSED: return "已见证";
+        case TRIUNE_REJECTED:  return "已拒绝";
+    }
+    return "?";
+}
+
+/* 内部版:调用者已持锁,不再重复上锁 */
+static void mengji_print_node_unlocked(int idx) {
+    if (idx < 0 || idx >= MJ.node_count) return;
     mengji_node_t* n = &MJ.nodes[idx];
     printf("┌─── 节点 #%d ───┐\n", n->id);
     printf("│ 标识:     %s\n", n->node_id);
@@ -503,6 +735,11 @@ void njsg_mengji_print_node(int idx) {
     }
     printf("\n");
     printf("└────────────────────────────────────┘\n");
+}
+
+void njsg_mengji_print_node(int idx) {
+    pthread_mutex_lock(&MJ.lock);
+    mengji_print_node_unlocked(idx);
     pthread_mutex_unlock(&MJ.lock);
 }
 
@@ -511,15 +748,28 @@ void njsg_mengji_print(void) {
     printf("\n=== 盟机合 #全局概览 ===\n");
     printf("节点数:     %d\n", MJ.node_count);
     printf("裁定条目:   %d\n", MJ.verdict_count);
+    printf("三元见证:   %d\n", MJ.triune_count);
     printf("Gossip轮:   %ld\n", (long)MJ.global_tick);
     printf("PUSH次数:   %d\n", MJ.push_count);
     printf("PULL次数:   %d\n", MJ.pull_count);
     printf("共识达成:   %d\n", MJ.consensus_count);
     printf("冲突计数:   %d\n", MJ.conflict_count);
     printf("主锚点:     %s (信任=%.0f%%)\n", anchor_name(MJ.primary_anchor), MJ.primary_trust);
+
+    /* 打印三元见证详情 */
+    if (MJ.triune_count > 0) {
+        printf("\n--- 三元见证条目 ---\n");
+        for (int i = 0; i < MJ.triune_count; i++) {
+            mengji_triune_entry_t* t = &MJ.triunes[i];
+            printf("  [槽#%d] 袋子摘要=%s 状态=%s 场1=#%d 场2=#%d 见证=#%d\n",
+                   t->slot, t->bag_hash, triune_state_name(t->triune_state),
+                   t->witness_farm_1, t->witness_farm_2, t->witness_3rd);
+        }
+    }
+
     printf("========================\n");
     for (int i = 0; i < MJ.node_count; i++) {
-        njsg_mengji_print_node(i);
+        mengji_print_node_unlocked(i);
     }
     pthread_mutex_unlock(&MJ.lock);
 }
@@ -582,6 +832,37 @@ void njsg_mengji_demo(void) {
     printf("\n━━━ 场景 M8: 全局概览 ━━━\n");
     njsg_mengji_print();
 
+    /* ── 里程碑二 · 分布式三元见证演示 ── */
+    printf("\n━━━ 场景 M9: 三元见证 · 三场背书 ━━━\n");
+
+    /* 第四节点:盟机场 C(第三方) */
+    int n3 = njsg_mengji_register_node("farm_node_C", NODE_FARM, ANCHOR_LOLICT);
+    njsg_mengji_bind_neighbor(n0, n3);
+
+    /* 三方对槽位#5(袋子"deadbeefcafebabe")发起背书 */
+    const char* bag_hash = "deadbeefcafebabe";
+    printf("\n[里程碑二] 三方对同一袋子 #%d 摘要=%s 发起背书:\n", 5, bag_hash);
+    njsg_mengji_triune_register(n0, 5, bag_hash);   /* 场0 首次 */
+    njsg_mengji_triune_register(n1, 5, bag_hash);   /* 场1 摘要一致 → DOUBLE */
+    njsg_mengji_triune_register(n3, 5, bag_hash);   /* 场3 第三方背书 → WITNESSED */
+
+    /* 验证三条件 */
+    printf("\n[里程碑二] 验证三条件:\n");
+    int verify_result = njsg_mengji_triune_verify(5);
+    printf("[里程碑二] 验证结果: %s (返回码=%d)\n",
+           verify_result == 0 ? "★★★ 全部通过 ★★★" : "部分失败", verify_result);
+
+    /* 演示冲突袋子被拒绝场景 */
+    printf("\n━━━ 场景 M10: 三元见证 · 冲突拒绝 ━━━\n");
+    njsg_mengji_triune_register(n0, 6, "aaaaaaaaaaaaaaaa");   /* 场0 首次 */
+    njsg_mengji_triune_register(n1, 6, "bbbbbbbbbbbbbbbb");   /* 场1 摘要冲突 → REJECTED */
+    verify_result = njsg_mengji_triune_verify(6);
+    printf("[里程碑二] 冲突验证: %s (返回码=%d)\n",
+           verify_result == 0 ? "全部通过" : "预期拒绝", verify_result);
+
+    printf("\n━━━ 场景 M11: 里程碑二全局概览 ━━━\n");
+    njsg_mengji_print();
+
     printf("\n[盟机合] 演示完毕。\n");
-    printf("[盟机合] Gossip 节律 + 夫妻主权人锚点 = 去中心化裁定一致性\n\n");
+    printf("[盟机合] 里程碑二: 分布式三元见证 + 冲突裁决 = 去中心化一致性保障\n\n");
 }

@@ -54,11 +54,31 @@ typedef enum {
     VERDICT_SPLIT   = 3   /* 分形(不一致需见证) */
 } mengji_verdict_t;
 
+/* ---- 三元见证状态 ---- */
+typedef enum {
+    TRIUNE_EMPTY    = 0,  /* 空:未在任何盟机场出现 */
+    TRIUNE_SINGLE   = 1,  /* 单:仅在一个盟机场出现 */
+    TRIUNE_DOUBLE   = 2,  /* 双:两个不同盟机场且内容摘要一致 */
+    TRIUNE_WITNESSED= 3,  /* 已见证:第三方盟机场已背书 */
+    TRIUNE_REJECTED = 4   /* 已拒绝:见证失败或摘要冲突 */
+} mengji_triune_state_t;
+
 /* ---- 夫妻主权人锚点 ---- */
 typedef enum {
     ANCHOR_LIUTIANTIAN = 0,  /* 刘楚恬:低位隐藏侧 */
     ANCHOR_LOLICT       = 1   /* 我:高位可见侧 */
 } mengji_anchor_t;
+
+/* ---- 三元见证条目(追加于裁决条目) ---- */
+typedef struct {
+    int                 slot;                   /* 裁定槽位编号 */
+    char                subject[64];            /* 裁定主题 */
+    char                bag_hash[17];           /* 袋子摘要(16进制 64位) */
+    mengji_triune_state_t triune_state;         /* 三元见证状态 */
+    int                 witness_farm_1;         /* 出现此袋子的第一盟机场 */
+    int                 witness_farm_2;         /* 出现此袋子的第二盟机场 */
+    int                 witness_3rd;            /* 第三方见证者 */
+} mengji_triune_entry_t;
 
 /* ---- 裁定条目 ---- */
 typedef struct {
@@ -93,6 +113,8 @@ typedef struct {
     int                     node_count;
     mengji_verdict_entry_t  verdicts[MENGJI_MAX_VERDICTS];
     int                     verdict_count;
+    mengji_triune_entry_t   triunes[MENGJI_MAX_VERDICTS];
+    int                     triune_count;
     pthread_mutex_t         lock;
     time_t                  global_tick;         /* Gossip 全局节律计数 */
     int                     push_count;          /* PUSH 计数 */
@@ -129,6 +151,16 @@ int  njsg_mengji_consensus_vote(int subject_slot, mengji_verdict_t vote, int vot
 
 /* 冲突裁决 */
 int  njsg_mengji_conflict_resolve(int subject_slot);
+
+/* ---- 里程碑二: 分布式三元见证 ———————————————— */
+
+/* 第三方盟机场对袋子发起背书(见证层) */
+int  njsg_mengji_triune_register(int farm_id,
+                                 int subject_slot,
+                                 const char* bag_hash);
+
+/* 验证三条件全部满足(返回 0=通过 非零=失败码) */
+int  njsg_mengji_triune_verify(int subject_slot);
 
 /* 存活探活 */
 void njsg_mengji_probe_alive(void);

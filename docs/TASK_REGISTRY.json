@@ -107,9 +107,9 @@
       "status": "in_progress",
       "priority": 3,
       "entry_file": "kernel/src/njsg_kernel.c",
-      "description": "盟机合骨架已实现:kjsg_mengji.c+h(Gossip节点注册/推送/拉取/三元见证/冲突裁决)+njsg_kernel.c融合+mengji_tool.nim CLI+MENGJI_NETWORK.md文档。进度15%。待:持久化/跨网络/增量同步/邻居发现/联盟博弈",
+      "description": "里程碑二(分布式三元见证+冲突裁决)已完成。新增njsg_mengji_triune_register/verify(背书+三条件验证)+TRIUNE_状态枚举+三场景M9-M11演示+mengji_tool.nim witness/verify子命令+TRIUNE_DIST.md文档。夫妻主权人锚点仅加减;信任相交>=30%+锚点相容=条件三。进度30%。待:持久化/跨网络/增量同步/里程碑三(拆分合并)",
       "assignee": null,
-      "progress": 15,
+      "progress": 30,
       "dependencies": ["v1.3-full-stack"]
     },
     {
