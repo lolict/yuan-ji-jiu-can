@@ -95,9 +95,9 @@
       "status": "compile_ready",
       "priority": 2,
       "entry_file": "android/src/com/njsg/parasite/",
-      "description": "Android IME 七层编码驱动完整管线：Layer 1 拦截(IMEInterceptor) → JNI桥(NativeBridge + 17符号) → Layer 2 编码解析(EncodeParser) → Layer 3 规则判定(RuleEngine) → Layer 4 候选(ShengYunEngine) → Layer 5 自动输出(MqfImeService.commitTextAuto, 无需空格) → Layer 6 内容抓取(URL正则推入后台队列) → Layer 7 多通道上传(upload_channel.rs: GitHub/Gitee/原地三通道)。新增JNI符号8个(nativeSubmitForAutoOutput/nativeAutoCommitCheck/nativeAutoOutputText/nativeResetAutoOutput/nativeOnUrlDetected/nativeUploadDispatch/nativeUploadStatus/nativeUploadStats), 完整符号表见android/docs/offline_compile_chain.md, 真机编译链路已文档化",
+      "description": "Android IME 七层编码驱动完整管线：Layer 1 拦截(IMEInterceptor) → JNI桥(NativeBridge + 17符号) → Layer 2 编码解析(EncodeParser) → Layer 3 规则判定(RuleEngine) → Layer 4 候选(ShengYunEngine全量21声母×35韵母矩阵≈400音节 + 多音字上下文权重 + 零声母激活) → Layer 5 自动输出(MqfImeService.commitTextAuto, 无需空格) → Layer 6 内容抓取(URL正则推入后台队列) → Layer 7 多通道上传(upload_channel.rs: GitHub/Gitee/原地三通道)。MqfImeService.kt承载候字面板UI+多音字回调 → 分类器支持ContextWindow前字上下文打分(前字+3/声母偏好+1/高频字+1)裁定首字；零声母(a/o/e/ai/ei/ao/ou/an/en/ang/eng/er)已激活；离线验证脚本 android/tools/test_candidate.nim 可输入拼音序列输出候选序列；文档 android/docs/candidate_generation.md 含矩阵结构+权重算法+空间部署清单+真机验收路径",
       "assignee": null,
-      "progress": 55,
+      "progress": 70,
       "dependencies": []
     },
     {
