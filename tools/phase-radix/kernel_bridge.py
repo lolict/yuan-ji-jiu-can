@@ -481,6 +481,103 @@ class KernelBridgeHandler(BaseHTTPRequestHandler):
         })
 
 
+    # ── MetaIME 处理器 ──
+
+    def _handle_metaime_encode(self):
+        body = _read_json_body(self)
+        mi = _get_metaime()
+        sm = body.get('shengmu', 0)
+        ym = body.get('yunmu', 0)
+        tone = body.get('tone', 0)
+        pol = body.get('polarity', 0)
+        wit = body.get('witness', 0)
+        flow = body.get('flow', 0)
+        sov = body.get('sovereignty', 0x100)
+        cell = mi.encode(sm, ym, tone, pol, wit, flow, sov)
+        d = mi.decode(cell)
+        _json_response(self, {
+            "cell": f"0x{cell:012X}",
+            "cell_int": cell,
+            "decode": d,
+        })
+
+    def _handle_metaime_decode(self):
+        body = _read_json_body(self)
+        mi = _get_metaime()
+        cell = body.get('cell', 0)
+        if isinstance(cell, str):
+            cell = int(cell, 0)
+        d = mi.decode(cell)
+        _json_response(self, d)
+
+    def _handle_metaime_feed(self):
+        body = _read_json_body(self)
+        mi = _get_metaime()
+        syllables = body.get('syllables', [])
+        match = mi.feed(syllables)
+        _json_response(self, {
+            "matched": match is not None,
+            "match": match,
+            "stats": mi.stats(),
+        })
+
+    def _handle_metaime_stats(self):
+        mi = _get_metaime()
+        _json_response(self, {"stats": mi.stats()})
+
+    # ── Court 处理器 ──
+
+    def _handle_court_state(self):
+        body = _read_json_body(self)
+        co = _get_court()
+        state = body.get('state', 1)
+        co.set_state(state)
+        _json_response(self, {"state": state, "state_name": _court_state_name(state)})
+
+    def _handle_court_flow(self):
+        body = _read_json_body(self)
+        co = _get_court()
+        flow = body.get('flow', 0)
+        co.activate_flow(flow)
+        _json_response(self, {"flow": flow})
+
+    def _handle_court_judge(self):
+        body = _read_json_body(self)
+        co = _get_court()
+        cell_a = body.get('cell_a', 0)
+        cell_b = body.get('cell_b', 0)
+        if isinstance(cell_a, str):
+            cell_a = int(cell_a, 0)
+        if isinstance(cell_b, str):
+            cell_b = int(cell_b, 0)
+        flow = body.get('flow', 0)
+        r = co.judge(cell_a, cell_b, flow)
+        _json_response(self, r)
+
+    def _handle_court_metaime(self):
+        body = _read_json_body(self)
+        co = _get_court()
+        sm = body.get('shengmu', 0)
+        ym = body.get('yunmu', 0)
+        tone = body.get('tone', 0)
+        pol = body.get('polarity', 0)
+        wit = body.get('witness', 0)
+        r = co.route_metaime(sm, ym, tone, pol, wit)
+        _json_response(self, r)
+
+    def _handle_court_stats(self):
+        co = _get_court()
+        _json_response(self, {"stats": co.stats()})
+
+
+# ── 辅助 ─────────────────────────────────────────────────
+
+_COURT_STATE_NAMES = {0: "囡囡(NN)", 1: "囡囝(NJSG)", 2: "囝囝(JJ)", 3: "囝囡(JN)"}
+
+def _court_state_name(s):
+    return _COURT_STATE_NAMES.get(s, f"未知({s})")
+
+
 # ── 服务器启动 ─────────────────────────────────────────────
 
 def start_server(host='127.0.0.1', port=19800, state_file=None):
