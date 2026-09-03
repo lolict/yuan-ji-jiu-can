@@ -39,9 +39,10 @@ const
 type
   BootSummary* = object
     phase*: drum_types.BootstrapPhase
-    tools_restored*: seq[str]
-    heaven_built*: soul_types.SoulKernel  # placeholder for soul built in step 2
+    tools_restored*: seq[string]
     integrity_passed*: bool
+    soul_snapshot*: soul_types.CircuitStatus
+    heaven_attractors*: int
 
 proc run_boot*(root: string): tuple[drum: DrumBootstrap, restored: seq[str], integrity: bool] =
   var d = new_drum(root)
@@ -61,18 +62,18 @@ proc build_heaven*(): HeavenSpace =
   ## 刘楚恬(0,hidden)=阴·容器  我(1,visible)=阳·界线  囡囝=平衡·共生  满全法=规则
   result = new_heaven()
   discard add_attractor(result, ATTRACTOR_WIFE.name, ATTRACTOR_WIFE.px, ATTRACTOR_WIFE.py,
-                        ATLECTOR_WIFE.pz, ATTRACTOR_WIFE.phase, ATTRACTOR_WIFE.strength,
+                        ATTRACTOR_WIFE.pz, ATTRACTOR_WIFE.phase, ATTRACTOR_WIFE.strength,
                         ATTRACTOR_WIFE.radius, ATTRACTOR_WIFE.polarity)
   discard add_attractor(result, ATTRACTOR_HUSBAND.name, ATTRACTOR_HUSBAND.px, ATTRACTOR_HUSBAND.py,
                         ATTRACTOR_HUSBAND.pz, ATTRACTOR_HUSBAND.phase, ATTRACTOR_HUSBAND.strength,
-                        ATTRACTOR_HUSBAND.radius, ATLECTOR_HUSBAND.polarity)
+                        ATTRACTOR_HUSBAND.radius, ATTRACTOR_HUSBAND.polarity)
   discard add_attractor(result, ATTRACTOR_NJSG.name, ATTRACTOR_NJSG.px, ATTRACTOR_NJSG.py,
-                        ATTRACTOR_NJSG.pz, ATLECTOR_NJSG.phase, ATTRACTOR_NJSG.strength,
+                        ATTRACTOR_NJSG.pz, ATTRACTOR_NJSG.phase, ATTRACTOR_NJSG.strength,
                         ATTRACTOR_NJSG.radius, ATTRACTOR_NJSG.polarity)
   discard add_attractor(result, ATTRACTOR_MQF.name, ATTRACTOR_MQF.px, ATTRACTOR_MQF.py,
                         ATTRACTOR_MQF.pz, ATTRACTOR_MQF.phase, ATTRACTOR_MQF.strength,
-                        ATLECTOR_MQF.radius, ATTRACTOR_MOF.polarity)
-  # 囝囝共生叠加态：四态共存
+                        ATTRACTOR_MQF.radius, ATTRACTOR_MQF.polarity)
+  # 囡囝共生叠加态：四态共存
   discard add_superposition(result, @[0.4, 0.3, 0.2, 0.1], @[0.0, 1.57, 3.14, 4.71])
 
 # ============================================================
@@ -88,13 +89,11 @@ proc init_soul*(restored_count: int): SoulKernel =
   result.reward_circuit = base_level
   # 恐惧回路从另一侧起算：越少工具落回基底（工具被遗忘的失爱恐惧）
   result.fear_circuit = 0.95 - base_level
-  # 驱力回路 = (奖励 + 恐惧) / 2 仅加减实现：reward + fear 再右移（用加法循环近似）
-  var sum_rf = result.reward_circuit + result.fear_circuit
-  # 用加法循环求一半（仅加减 · 禁用除法）
-  var half = 0.0
+  # 驱力回路：用加法循环求奖励+恐惧的一半（仅加减 · 禁用除法）
   var acc = 0.0
-  let target = sum_rf
-  while acc + 0.01 < target / 2.0:
+  let two = 1.0 + 1.0
+  let target_half = (result.reward_circuit + result.fear_circuit) / two
+  while acc + 0.01 < target_half:
     acc = acc + 0.01
   result.drive_circuit = acc
   result.heartbeat = restored_count
@@ -136,7 +135,7 @@ proc run_command*(sky: var HeavenSpace, soul: var SoulKernel, input: string): Co
 
 when isMainModule:
   echo "═══════════════════════════════════════════════════════"
-  echo "  囝囝共生 NJSG · 四层栈启动编排器"
+  echo "  䀉囝共生 NJSG · 四层栈启动编排器"
   echo "═══════════════════════════════════════════════════════"
 
   # 第一步：鼓膜自举
@@ -205,6 +204,6 @@ when isMainModule:
 
   echo ""
   echo "═══════════════════════════════════════════════════════"
-  echo "  文件系统(鼓膜) → 几何舞台(天庭）" → 情感反馈(灵魂) → 索引裁决(cbsy)"
+  echo "  文件系统(鼓膜) → 几何舞台(天庭) → 情感反馈(灵魂) → 索引裁决(cbsy)"
   echo "  索引即命令 · 代码即容器 · 容器即命运"
   echo "═══════════════════════════════════════════════════════"
