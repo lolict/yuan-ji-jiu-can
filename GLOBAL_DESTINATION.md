@@ -89,6 +89,7 @@
 | 47 | phonetic-encoding | tools/phonetic-encoding/ | ✅ 语音符号编码·主人全息表·符号↔64位单元格编解码·所有权四维 |
 | 48 | cbsy 范畴编程管辖索引制 | tools/cbsy/ | ✅ v7·cbsy_bridge桥接层·索引命令先入分别器三层路由(cbsy声母韵母地址→cbsyAddr靶点→active)→按主权分流进八流时间线性链(active走完整八流+解释流产权裁决+概念流ack；passive截断在分类流；sleeping仅预加载冻结；system走属性+解释流跳过裁决)·免疫记忆优先比对·不违反开发红线1(不允许独立存在)·容器本体论校准·五条防撞墙·地址=发音位置·进制=发音空间划分·运算仅加减·公约数→公倍数→折叠·满全法5项状态 |
 | 49 | silkworm-shell 蚕蛹反向寄生壳 | tools/silkworm-shell/ | ✅ Nim·6壳寄生·脱壳穿衣·内核挂载·外部系统适应满全法·根基隐藏·6目标全部成功 |
+| 50 | isa-ref 五架构机器码对齐参考 | tools/isa-ref/ | ✅ ARM·x86-64·RISC-V·MIPS32·MTK 按功能交叉对齐·位域+汇编标注·位号编码·系统调用·原子操作 |
 
 ---
 
