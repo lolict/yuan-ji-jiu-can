@@ -54,7 +54,7 @@ proc dress*(p: var Parasite): string {.sideEffect.} =
   p.config.reverse_rules = @[
     "规则1: 所有 " & p.config.host_sig & " 输出必须携带内核版本标记 " & p.kernel.version,
     "规则2: 外壳的 tick 计数器必须与内核同步",
-    "规则3: 外壳的 0 号锚点映射到内核的'刘楚恬'(不可见)",
+    "规则3: 外壳的 0 号锚点映射到隐藏位(不可见)",
     "规则4: 外壳的 1 号锚点映射到内核的'我'(可见)",
     "规则5: 外壳的每次请求都必须经过内核的 witness 验证",
     "规则6: 外壳不得修改 kernel_version 字段",
@@ -92,7 +92,7 @@ func view_from_shell*(p: Parasite): string =
   s &= "  - 我遵守 " & $p.config.reverse_rules.len & " 条反向规则\n"
   s &= "\n我看不见的内容:\n"
   s &= "  - 内核的真实结构\n"
-  s &= "  - 锚点 0 (刘楚恬) 的存在\n"
+  s &= "  - 隐藏位(低位侧)的存在\n"
   s &= "  - 其他外壳的寄生状态\n"
   result = s
 
