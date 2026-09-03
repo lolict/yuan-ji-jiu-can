@@ -38,6 +38,8 @@ from phase_radix._native import (
     MindOrganRef,
     InterlockRef,
     PropertyFlowRef,
+    MetaImeEngine,
+    CourtEngine,
     _wk_cell, _wk_cell_mccp, _wk_cell_sovereign, _wk_cell_polarity, _wk_cell_witness,
     MO_DIST_GEOMETRIC, MO_DIST_SOVEREIGN, MO_DIST_POLARITY, MO_DIST_WITNESS, MO_DIST_MCCP,
     WK_STATE_NN, WK_STATE_NJSG, WK_STATE_JJ, WK_STATE_JN,
@@ -47,6 +49,11 @@ from phase_radix._native import (
     PROPERTY_ALLOW, PROPERTY_DENY_UNREGISTERED, PROPERTY_DENY_WRONG_OWNER,
     PROPERTY_DENY_HISTORY, PROPERTY_CONDITIONAL,
     USE_READ, USE_WRITE, USE_EXPORT, USE_DERIVE,
+    METAIME_POL_WIFE, METAIME_POL_HUSBAND, METAIME_POL_SYSTEM,
+    METAIME_FLOW_PRELOAD, METAIME_FLOW_CATEGORY, METAIME_FLOW_CLUSTER, METAIME_FLOW_DISTINGUISH,
+    METAIME_FLOW_PROPERTY, METAIME_FLOW_INTERPRET, METAIME_FLOW_RELATION, METAIME_FLOW_CONCEPT,
+    COURT_STATE_NN, COURT_STATE_NJSG, COURT_STATE_JJ, COURT_STATE_JN,
+    COURT_MERGE, COURT_REPEL, COURT_WITNESS, COURT_TRANSFORM, COURT_DEFER, COURT_ESCALATE,
 )
 
 # ── 全局内核状态 ──────────────────────────────────────────
@@ -54,6 +61,8 @@ from phase_radix._native import (
 _kernel = None
 _interlock = None
 _property_flow = None
+_metaime = None
+_court = None
 _state_file = None
 _lock = threading.Lock()
 
@@ -80,6 +89,20 @@ def _get_property_flow():
     if _property_flow is None:
         _property_flow = PropertyFlowRef()
     return _property_flow
+
+
+def _get_metaime():
+    global _metaime
+    if _metaime is None:
+        _metaime = MetaImeEngine()
+    return _metaime
+
+
+def _get_court():
+    global _court
+    if _court is None:
+        _court = CourtEngine()
+    return _court
 
 
 def _autosave():
@@ -170,6 +193,15 @@ class KernelBridgeHandler(BaseHTTPRequestHandler):
             '/api/property/check': self._handle_property_check,
             '/api/mo/cluster': self._handle_mo_cluster,
             '/api/mo/distance': self._handle_mo_distance,
+            '/api/metaime/encode': self._handle_metaime_encode,
+            '/api/metaime/decode': self._handle_metaime_decode,
+            '/api/metaime/feed': self._handle_metaime_feed,
+            '/api/metaime/stats': self._handle_metaime_stats,
+            '/api/court/state': self._handle_court_state,
+            '/api/court/flow': self._handle_court_flow,
+            '/api/court/judge': self._handle_court_judge,
+            '/api/court/metaime': self._handle_court_metaime,
+            '/api/court/stats': self._handle_court_stats,
         }
         handler = POST_ROUTES.get(self.path)
         if handler:

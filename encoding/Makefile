@@ -29,11 +29,12 @@ TEST_LIFECYCLE = test_lifecycle
 TEST_SWARM = test_swarm
 TEST_SELFBOOT = test_selfboot
 TEST_CHRYSALIS = test_chrysalis
+TEST_MLIL3D = test_mlil3d
 MAIN = hunyuanos
 
 ALL = $(TEST_COLOR) $(TEST_LEVEL) $(TEST_TYPE) $(TEST_DIFF) $(TEST_WOV) \
       $(TEST_FULL_V1) $(TEST_FULL_V2) $(TEST_LIFECYCLE) $(MAIN) $(TEST_SWARM) \
-      $(TEST_SELFBOOT) $(TEST_CHRYSALIS)
+      $(TEST_SELFBOOT) $(TEST_CHRYSALIS) $(TEST_MLIL3D)
 
 .PHONY: all clean test lib
 
@@ -89,6 +90,9 @@ $(TEST_SELFBOOT): test_selfboot.o bootstrap_compiler.o chain_block.o
 
 $(TEST_CHRYSALIS): test_chrysalis.o chrysalis_shell.o
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+
+$(TEST_MLIL3D): test_mlil3d.o mlil_visual.o chain_block.o
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) -lm
 
 test: all
 	@echo ""

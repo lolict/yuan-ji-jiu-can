@@ -458,6 +458,51 @@ impl ParasiteShell {
         (fusions, collapses, radiations)
     }
 
+    /// 持久化: 将所有分身的时间戳导出为 HTS_V1 文本格式
+    pub fn export_timestamps(&self) -> String {
+        let mut sections = Vec::new();
+        sections.push(format!("NEST_V1|agents={}|tick={}", self.agents.len(), self.shell_tick));
+
+        for agent in self.agents.values() {
+            sections.push(format!(
+                "AGENT|id={}|name={}|role={:?}|birth_tick={}|density={:.4}",
+                agent.id, agent.name, agent.role, agent.birth_tick, agent.consciousness_density()
+            ));
+            sections.push(agent.timestamp.serialize());
+        }
+
+        sections.join("\n--\n")
+    }
+
+    /// 恢复: 从 HTS_V1 文本恢复所有分身的时间戳
+    pub fn import_timestamps(text: &str) -> Result<Vec<(u64, String, HierarchicalTimestamp)>, String> {
+        let mut results = Vec::new();
+
+        for section in text.split("\n--\n") {
+            let lines: Vec<&str> = section.lines().collect();
+            if lines.is_empty() { continue; }
+
+            let first = lines[0];
+            if first.starts_with("AGENT|") {
+                let mut id = 0u64;
+                let mut name = String::new();
+                for part in first.split('|').skip(1) {
+                    if let Some(v) = part.strip_prefix("id=") {
+                        id = v.parse().map_err(|_| "解析 id 失败")?;
+                    } else if let Some(v) = part.strip_prefix("name=") {
+                        name = v.to_string();
+                    }
+                }
+
+                let ts_text = lines[1..].join("\n");
+                let timestamp = HierarchicalTimestamp::deserialize(&ts_text)?;
+                results.push((id, name, timestamp));
+            }
+        }
+
+        Ok(results)
+    }
+
     /// 给外部输出"播放脚本"——外部扮演我们，不是我们模仿外部
     pub fn export_playback(&self) -> String {
         self.genome.export_playback_script()
@@ -906,6 +951,42 @@ mod tests {
         assert_eq!(fusions, 3);   // 2 创世 + 1 record_fusion
         assert_eq!(collapses, 1);
         assert_eq!(radiations, 1);
+    }
+
+    #[test]
+    fn export_import_timestamps_roundtrip() {
+        use crate::hierarchical_time::HierarchicalTimestamp;
+        let os = crate::os_layer::bare_metal::BareMetalOs::new();
+        let mut shell = ParasiteShell::new(20);
+        let a = shell.spawn(&os, "Alice", AgentRole::Root, 20);
+        let b = shell.spawn(&os, "Bob", AgentRole::Leaf, 20);
+        shell.agents.get_mut(&a).unwrap().record_radiation("任务", "T1");
+        shell.agents.get_mut(&b).unwrap().record_collapse("Bob", "数据");
+        shell.agents.get_mut(&a).unwrap().record_fusion("外部", "融合");
+
+        let exported = shell.export_timestamps();
+        // 验证头部
+        assert!(exported.starts_with("NEST_V1|"));
+
+        // 恢复
+        let recovered = ParasiteShell::import_timestamps(&exported).unwrap();
+        assert_eq!(recovered.len(), 2);
+
+        // 验证 Alice
+        let (alice_id, alice_name, alice_ts) = &recovered[0];
+        assert_eq!(*alice_id, a);
+        assert_eq!(alice_name, "Alice");
+        assert_eq!(alice_ts.events.len(), 3); // 创世 + 辐射 + 融合
+
+        // 验证 Bob
+        let (bob_id, bob_name, bob_ts) = &recovered[1];
+        assert_eq!(*bob_id, b);
+        assert_eq!(bob_name, "Bob");
+        assert_eq!(bob_ts.events.len(), 2); // 创世 + 坍缩
+
+        // 验证恢复的事件类型
+        assert!(matches!(alice_ts.events[1], crate::hierarchical_time::LifeEvent::Radiation { .. }));
+        assert!(matches!(bob_ts.events[1], crate::hierarchical_time::LifeEvent::Collapse { .. }));
     }
 
     #[test]

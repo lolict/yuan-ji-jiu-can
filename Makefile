@@ -70,6 +70,7 @@ fqm-tools: fqm_browser.c fqm_gtti.c fqm_call.c fqm_bare.c fqm_cpu.c fqm_net.c fq
 	$(CC) -O2 -o fqm_radix fqm_radix.c -lm
 	$(CC) -O2 -o fqm_time fqm_time.c
 	$(CC) -O2 -o fqm_yy fqm_yy.c
+	$(CC) -O2 -o fqm_judge fqm_judge.c
 	@echo "═══ fqm 独立工具链构建完成 ═══"
 
 fqm-test: fqm-tools

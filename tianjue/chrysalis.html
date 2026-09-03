@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><style>
+*{margin:0;background:#020308;color:#ddd;font-family:monospace;font-size:12px}
+canvas{display:block}
+</style></head><body>
+<canvas id="c"></canvas>
+<script>
+// ══════════════════════════════════════════════════════
+// 蚕蛹 · 反向寄生壳
+// 外部内容 → 解析 → 映射到自有坐标系 → 包裹进制
+// ══════════════════════════════════════════════════════
+
+const BASE_X=48, BASE_Y=64, BASE_Z=16;
+const cv=document.getElementById('c');
+const X=cv.getContext('2d');
+
+const SHENGMU=['b','p','m','f','d','t','n','l','g','k','h','j','q','x','zh','ch','sh','r','z','c','s','y','w',''];
+const YUNMU=['a','o','e','i','u','ü','ai','ei','ui','ao','ou','iu','ie','üe','er','an','en','in','un','ün','ang','eng','ing','ong','ia','iao','ian','iang','iong','ua','uo','uai','uan','uang','ueng','üan','üe2'];
+const FAM=['容器','边界','夫妻','网状','中性'];
+const STR=['独体','上下','左右','半包围','全包围','品字','嵌套','框架'];
+const TONE=['阴平','阳平','上声','去声','轻声'];
+
+let containers=[];
+let rotX=-0.7,rotY=0.5,zoom=1;
+let drag=false,lx=0,ly=0,hover=null;
+
+// ── 蚕蛹协议:外部内容 → 内部容器 ──
+function chrysalis(rawText) {
+  containers=[];
+
+  // [1] 解析:拆成字符序列
+  const chars = [...rawText];
+
+  // [2] 统计频率(态势化)
+  const freq = {};
+  chars.forEach(ch => { freq[ch] = (freq[ch] || 0) + 1; });
+
+  // [3] 逐字符 → 容器编码
+  chars.forEach((ch, idx) => {
+    const code = ch.codePointAt(0);
+
+    // 寄生映射:外部特征 → 自有的进制
+    // 家族:按Unicode区块的末位映射(不是用区块本身,而是作为调制的材料)
+    const fam = code % 5;
+
+    // 极性:笔画奇偶性(用code各位之和的奇偶)
+    const bitCount = code.toString(2).split('1').length - 1;
+    const pol = bitCount % 2;
+
+    // 结构:频率决定(高频=包围,低频=独体)
+    const f = freq[ch];
+    const struct = Math.min(7, Math.floor(f / 2));
+
+    // 声母:映射code的低5位到24声母
+    const sm = code % 24;
+
+    // 韵母:映射code的6-10位到36韵母
+    const ym = (code >> 5) % 36;
+
+    // 声调:code的高位
+    const tone = (code >> 11) % 5;
+
+    // 坐标:用code的各部分做48×64×16空间定位
+    const x = (code * 7 + idx * 3) % BASE_X;
+    const y = (code * 11 + idx * 5) % BASE_Y;
+    const z = Math.min(BASE_Z - 1, Math.floor(code / 1000));
+
+    // 容器编码(32位)
+    const ccode = (fam << 29) | (pol << 28) | (struct << 25) | (sm << 19) | (ym << 13) | (tone << 10);
+
+    // gcd/lcm:从编码派生
+    const gcdVal = [2,3,5,7,11,13][fam];
+    const lcmVal = gcdVal * (struct + 2);
+
+    containers.push({
+      char: ch, code: ccode, x, y, z,
+      family: fam, polarity: pol, structure: struct,
+      sm, ym, tone, freq: f, gcd: gcdVal, lcm: lcmVal,
+      originCode: code, idx
+    });
+  });
+
+  // [4] 建立路由:按频率+编码相似度
+  for(let i=0;i<containers.length;i++){
+    containers[i].links=[];
+    for(let j=0;j<containers.length;j++){
+      if(i===j) continue;
+      const A=containers[i],B=containers[j];
+      // 同字符 = 最强连接
+      if(A.char===B.char && i<j) { A.links.push({to:j,type:'sameChar'}); continue; }
+      // 频率接近 = 相关性
+      if(Math.abs(A.freq-B.freq)<=1 && A.family===B.family && i<j) { A.links.push({to:j,type:'coFreq'}); }
+      // 位置相邻 = 序列连接
+      if(Math.abs(A.idx-B.idx)===1) { A.links.push({to:j,type:'sequential'}); }
+      // gcd相同 = 同中心
+      if(A.gcd===B.gcd && i<j) { A.links.push({to:j,type:'sameCenter'}); }
+    }
+  }
+}
+
+// ── 投影 ──
+function project(x,y,z){
+  const angle=(x/BASE_X)*6.283;
+  const radius=55+z*15;
+  const h=(y-BASE_Y/2)*3.5;
+  const cx=Math.cos(angle)*radius;
+  const cz=Math.sin(angle)*radius;
+  const cosY=Math.cos(rotY),sinY=Math.sin(rotY),cosX=Math.cos(rotX),sinX=Math.sin(rotX);
+  const rx=cx*cosY-cz*sinY;
+  const rz=cx*sinY+cz*cosY;
+  const ry2=h*cosX-rz*sinX;
+  const rz2=h*sinX+rz*cosX;
+  const fov=600;
+  const s=fov/(fov+rz2+200)*zoom;
+  return {sx:cv.width/2+rx*s,sy:cv.height/2+ry2*s,z:rz2,s};
+}
+
+// ── 渲染 ──
+function draw(){
+  cv.width=window.innerWidth;
+  cv.height=window.innerHeight;
+  X.fillStyle='#020308';
+  X.fillRect(0,0,cv.width,cv.height);
+
+  // 网络连线
+  containers.forEach((c,i)=>{
+    c.links.forEach(link=>{
+      if(link.to>i){
+        const A=c,B=containers[link.to];
+        const pa=project(A.x,A.y,A.z),pb=project(B.x,B.y,B.z);
+        if(link.type==='sameChar') X.strokeStyle='rgba(201,168,76,0.25)';
+        else if(link.type==='sequential') X.strokeStyle='rgba(100,100,100,0.08)';
+        else if(link.type==='coFreq') X.strokeStyle='rgba(74,124,89,0.12)';
+        else X.strokeStyle='rgba(52,152,219,0.08)';
+        X.lineWidth=link.type==='sameChar'?1.5:0.5;
+        X.beginPath();X.moveTo(pa.sx,pa.sy);X.lineTo(pb.sx,pb.sy);X.stroke();
+      }
+    });
+  });
+
+  // 容器点
+  const pp=containers.map((c,i)=>({c,p:project(c.x,c.y,c.z),i})).sort((a,b)=>a.p.z-b.p.z);
+
+  pp.forEach(({c,p,i})=>{
+    const isH=hover===i;
+    const r=(isH?8:4)*p.s;
+    const famC=['#4a7c59','#8b4513','#9b59b6','#3498db','#7f8c8d'];
+
+    X.beginPath();X.arc(p.sx,p.sy,r,0,6.28);
+    X.fillStyle=isH?'#fff':famC[c.family];X.fill();
+
+    if(c.polarity===1){
+      X.beginPath();X.arc(p.sx,p.sy,r*0.3,0,6.28);
+      X.fillStyle='#000';X.fill();
+    }
+
+    if(isH){
+      X.font=Math.max(7,9*p.s)+'px monospace';
+      X.textAlign='center';
+      X.fillStyle='#fff';X.textBaseline='bottom';
+      X.fillText(c.char+' f='+c.freq,p.sx,p.sy-r-3);
+      X.fillStyle='#888';X.textBaseline='top';X.font=Math.max(6,7*p.s)+'px monospace';
+      X.fillText('0x'+c.code.toString(16).toUpperCase().slice(0,6),p.sx,p.sy+r+2);
+    }
+  });
+
+  // HUD
+  X.font='11px monospace';X.fillStyle='#555';X.textAlign='left';
+  X.fillText('容器:'+containers.length,10,18);
+  let h2='外部内容 → 蚕蛹协议:字符→容器编码→自有坐标系→内部路由';
+  X.fillText(h2,10,34);
+}
+
+// ── 交互 ──
+cv.addEventListener('mousedown',e=>{drag=true;lx=e.clientX;ly=e.clientY;});
+cv.addEventListener('mousemove',e=>{
+  if(drag){rotY+=(e.clientX-lx)*0.006;rotX+=(e.clientY-ly)*0.006;rotX=Math.max(-1.5,Math.min(1.5,rotX));lx=e.clientX;ly=e.clientY;}
+  const mx=e.clientX,my=e.clientY;
+  let fd=null,md=16;
+  containers.forEach((c,i)=>{const p=project(c.x,c.y,c.z);const d=Math.sqrt((mx-p.sx)**2+(my-p.sy)**2);if(d<md){md=d;fd=i;}});
+  hover=fd;draw();
+});
+cv.addEventListener('mouseup',()=>drag=false);
+cv.addEventListener('wheel',e=>{e.preventDefault();zoom*=e.deltaY>0?0.9:1.1;zoom=Math.max(0.3,Math.min(3,zoom));draw();},{passive:false});
+
+// ── 输入面板(浮层) ──
+const input=document.createElement('div');
+input.style.cssText='position:fixed;top:50px;left:10px;z-index:20;background:rgba(5,5,15,0.95);border:1px solid rgba(201,168,76,0.15);border-radius:6px;padding:10px;width:320px';
+input.innerHTML='<div style="color:#c9a84c;font-size:11px;margin-bottom:6px">蚕蛹 · 输入外部内容</div><textarea id="raw" rows=4 style="width:100%;background:#0a0a12;border:1px solid #333;color:#ddd;font:11px monospace;padding:6px;resize:vertical"></textarea><button id="wrap" style="margin-top:6px;padding:5px 14px;background:#c9a84c;color:#000;border:none;border-radius:3px;cursor:pointer;font:11px monospace">包裹进制</button>';
+document.body.appendChild(input);
+
+document.getElementById('raw').value='满全法囡囝共生操作系统容器 radix';
+document.getElementById('wrap').onclick=function(){
+  const raw=document.getElementById('raw').value;
+  chrysalis(raw);draw();
+};
+window.addEventListener('resize',draw);
+
+// 初始包裹
+chrysalis('满全法囡囝共生');
+draw();
+</script>
+</body></html>

@@ -641,3 +641,13 @@ test "parse knmll invalid header" {
 }
 
 test "unary int formatting" {
+    var buf0 = std.ArrayList(u8).init(std.testing.allocator);
+    defer buf0.deinit();
+    try formatUnaryInt(buf0.writer(), 0);
+    try std.testing.expectEqualStrings("☆", buf0.items);
+
+    var buf1 = std.ArrayList(u8).init(std.testing.allocator);
+    defer buf1.deinit();
+    try formatUnaryInt(buf1.writer(), 1);
+    try std.testing.expectEqualStrings("★", buf1.items);
+}

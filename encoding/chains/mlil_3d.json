@@ -1,0 +1,201 @@
+{
+  "schema": "njsg-mlil-3d",
+  "version": "v0.3.0",
+  "title": "夫妻共同体 · 三维编码链",
+  "count": 24,
+  "view": {"ax": 30.0, "ay": 45.0, "zoom": 1.0},
+  "points": [
+    {
+      "label": "b",
+      "coord": [158.00, 8.00, 0.00],
+      "color": [64, 156, 255],
+      "version": 1,
+      "level": 0,
+      "chain": 0
+    },
+    {
+      "label": "p",
+      "coord": [137.27, 16.00, 15.00],
+      "color": [64, 156, 255],
+      "version": 2,
+      "level": 1,
+      "chain": 0
+    },
+    {
+      "label": "m",
+      "coord": [103.73, 24.00, 30.00],
+      "color": [64, 156, 255],
+      "version": 3,
+      "level": 2,
+      "chain": 0
+    },
+    {
+      "label": "f",
+      "coord": [103.73, 32.00, 45.00],
+      "color": [64, 156, 255],
+      "version": 4,
+      "level": 3,
+      "chain": 0
+    },
+    {
+      "label": "a",
+      "coord": [170.00, 8.00, 60.00],
+      "color": [255, 128, 128],
+      "version": 1,
+      "level": 4,
+      "chain": 1
+    },
+    {
+      "label": "o",
+      "coord": [140.98, 16.00, 75.00],
+      "color": [255, 128, 128],
+      "version": 2,
+      "level": 5,
+      "chain": 1
+    },
+    {
+      "label": "e",
+      "coord": [94.02, 24.00, 90.00],
+      "color": [255, 128, 128],
+      "version": 3,
+      "level": 6,
+      "chain": 1
+    },
+    {
+      "label": "i",
+      "coord": [94.02, 32.00, 105.00],
+      "color": [255, 128, 128],
+      "version": 4,
+      "level": 7,
+      "chain": 1
+    },
+    {
+      "label": "平",
+      "coord": [182.00, 8.00, 0.00],
+      "color": [128, 255, 128],
+      "version": 1,
+      "level": 0,
+      "chain": 2
+    },
+    {
+      "label": "升",
+      "coord": [101.00, 16.00, 15.00],
+      "color": [128, 255, 128],
+      "version": 2,
+      "level": 1,
+      "chain": 2
+    },
+    {
+      "label": "袋",
+      "coord": [194.00, 8.00, 30.00],
+      "color": [255, 200, 64],
+      "version": 1,
+      "level": 2,
+      "chain": 3
+    },
+    {
+      "label": "桶",
+      "coord": [128.00, 16.00, 45.00],
+      "color": [255, 200, 64],
+      "version": 2,
+      "level": 3,
+      "chain": 3
+    },
+    {
+      "label": "罐",
+      "coord": [62.00, 24.00, 60.00],
+      "color": [255, 200, 64],
+      "version": 3,
+      "level": 4,
+      "chain": 3
+    },
+    {
+      "label": "照",
+      "coord": [206.00, 8.00, 75.00],
+      "color": [200, 128, 255],
+      "version": 1,
+      "level": 5,
+      "chain": 4
+    },
+    {
+      "label": "见",
+      "coord": [89.00, 16.00, 90.00],
+      "color": [200, 128, 255],
+      "version": 2,
+      "level": 6,
+      "chain": 4
+    },
+    {
+      "label": "阴",
+      "coord": [218.00, 8.00, 105.00],
+      "color": [255, 255, 128],
+      "version": 1,
+      "level": 7,
+      "chain": 5
+    },
+    {
+      "label": "阳",
+      "coord": [83.00, 16.00, 0.00],
+      "color": [255, 255, 128],
+      "version": 2,
+      "level": 0,
+      "chain": 5
+    },
+    {
+      "label": "元",
+      "coord": [230.00, 8.00, 15.00],
+      "color": [128, 255, 200],
+      "version": 1,
+      "level": 1,
+      "chain": 6
+    },
+    {
+      "label": "阶",
+      "coord": [128.00, 16.00, 30.00],
+      "color": [128, 255, 200],
+      "version": 2,
+      "level": 2,
+      "chain": 6
+    },
+    {
+      "label": "层",
+      "coord": [26.00, 24.00, 45.00],
+      "color": [128, 255, 200],
+      "version": 3,
+      "level": 3,
+      "chain": 6
+    },
+    {
+      "label": "裁",
+      "coord": [242.00, 8.00, 60.00],
+      "color": [255, 160, 200],
+      "version": 1,
+      "level": 4,
+      "chain": 7
+    },
+    {
+      "label": "判",
+      "coord": [71.00, 16.00, 75.00],
+      "color": [255, 160, 200],
+      "version": 2,
+      "level": 5,
+      "chain": 7
+    },
+    {
+      "label": "产",
+      "coord": [254.00, 8.00, 90.00],
+      "color": [180, 180, 180],
+      "version": 1,
+      "level": 6,
+      "chain": 8
+    },
+    {
+      "label": "权",
+      "coord": [65.00, 16.00, 105.00],
+      "color": [180, 180, 180],
+      "version": 2,
+      "level": 7,
+      "chain": 8
+    }
+  ]
+}

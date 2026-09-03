@@ -376,7 +376,7 @@ impl HierarchicalTimestamp {
     pub fn serialize(&self) -> String {
         let mut lines = Vec::new();
         lines.push("HTS_V1".to_string());
-        lines.push(format!("version:{}", self.version));
+        lines.push(format!("version:{}", self.version()));
         lines.push(format!("cycles:{}", self.cycle_count));
 
         for event in &self.events {
@@ -421,13 +421,13 @@ impl HierarchicalTimestamp {
             return Err(format!("未知头部: {}", header));
         }
 
-        let mut version = 1u32;
-        let mut cycle_count = 0u32;
+        let mut cycle_count = 0u64;
         let mut events = Vec::new();
 
         for line in lines {
             if line.starts_with("version:") {
-                version = line[8..].parse().map_err(|_| "解析 version 失败")?;
+                // version 由 events.len()+1 推导, 这里仅做校验
+                let _v: u32 = line[8..].parse().map_err(|_| "解析 version 失败")?;
             } else if line.starts_with("cycles:") {
                 cycle_count = line[7..].parse().map_err(|_| "解析 cycles 失败")?;
             } else if line.is_empty() {
@@ -441,7 +441,23 @@ impl HierarchicalTimestamp {
             }
         }
 
-        Ok(HierarchicalTimestamp { version, cycle_count, events })
+        // 重建创世见证 (从第一个事件的见证推导)
+        let genesis_witness = if let Some(first) = events.first() {
+            match first {
+                LifeEvent::Fusion { witness, .. } => witness.clone(),
+                LifeEvent::Collapse { witness, .. } => witness.clone(),
+                LifeEvent::Radiation { witness, .. } => witness.clone(),
+            }
+        } else {
+            TriuneVerdict::deduce(BeingState::Being(1), BeingState::NonBeing, 0.0)
+        };
+
+        Ok(HierarchicalTimestamp {
+            genesis: vec![genesis_witness],
+            events,
+            anchor: NamingAnchor::new(),
+            cycle_count,
+        })
     }
 }
 
