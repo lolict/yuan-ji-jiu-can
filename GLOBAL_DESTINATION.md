@@ -100,8 +100,9 @@
 | 内核 | 版本 | 状态 | 路径 |
 |------|------|------|------|
 | C 内核 | v2.0.0 (含v1.4+模块) | ✅ 编译通过·demo全跑通·已推GitHub+Gitee | kernel/src/njsg_kernel.c (4553行) |
-| Rust 核心 | v0.31 | ✅ 1019测试·examples全绿·天觉v3已恢复(V3别名)与v4共存·大审判庭·八流统一 | hunyuan-rs/ |
+| Rust 核心 | v0.31 | ✅ 1135测试·examples全绿·天觉v3已恢复(V3别名)与v4共存·大审判庭·八流统一·五维语义已实证 | hunyuan-rs/ |
 | WASM 核心 | v2.1.0 | ✅ 感知/时间线/MCCP/裁判 4 模块·--selftest 全过·已推GitHub+Gitee | kernel/wasm/njsg_wasm.c |
+| Cloudflare Worker | v1.7 | ✅ 四元内核:感知引擎+MCCP+裁判+时间线+五维实证+心跳+全量报告 | cloudflare/mqf-web.js |
 | 产权镜像 | v1 | ✅ 四维经过图·版本号·边界内外自由空间·写代码前检查 | tools/property-mirror/ |
 
 ---
