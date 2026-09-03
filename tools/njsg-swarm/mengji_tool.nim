@@ -8,6 +8,8 @@
 #   nim c -r mengji_tool.nim gossip [--rounds N]
 #   nim c -r mengji_tool.nim consensus [--subject SLOT]
 #   nim c -r mengji_tool.nim conflict [--subject SLOT]
+#   nim c -r mengji_tool.nim witness [--farm FID] [--subject SLOT] [--hash HASH]
+#   nim c -r mengji_tool.nim verify [--subject SLOT]
 #   nim c -r mengji_tool.nim status
 #   nim c -r mengji_tool.nim demo
 #
@@ -57,10 +59,29 @@ type MengJiVerdictEntry* = object
   consensusReached*: bool
   decidedAt*: float
 
+# ── 三元见证状态 ──
+type MengJiTriuneState* = enum
+  mjTriuneEmpty      # 空:未出现
+  mjTriuneSingle     # 单:仅一场持有
+  mjTriuneDouble     # 双:两场摘要一致
+  mjTriuneWitnessed  # 已见证:第三方背书
+  mjTriuneRejected   # 已拒绝:摘要冲突
+
+# ── 袋子背书记录 ──
+type MengJiTriuneEntry* = object
+  slot*: int
+  subject*: string
+  bagHash*: string
+  triune*: MengJiTriuneState
+  farm1*: string
+  farm2*: string
+  witness3rd*: string
+
 # ── 盟机合引擎 ──
 type MengJiEngine* = object
   nodes*: TableRef[string, MengJiNode]
   verdicts*: TableRef[string, MengJiVerdictEntry]
+  triuneEntries*: TableRef[string, MengJiTriuneEntry]
   globalTick*: int
   pushCount*: int
   pullCount*: int
@@ -83,6 +104,14 @@ proc verdictName*(v: MengJiVerdict): string =
   of mjReject:  "拒绝"
   of mjSplit:   "分形"
 
+proc triuneStateName*(s: MengJiTriuneState): string =
+  case s
+  of mjTriuneEmpty:     "空"
+  of mjTriuneSingle:    "单"
+  of mjTriuneDouble:    "双"
+  of mjTriuneWitnessed: "已见证"
+  of mjTriuneRejected:  "已拒绝"
+
 proc nodeTypeName*(t: MengJiNodeType): string =
   case t
   of mjPhong: "合掌(PHONG)"
@@ -103,6 +132,7 @@ proc newMengJiEngine*(): ref MengJiEngine =
   new result
   result.nodes = newTable[string, MengJiNode]()
   result.verdicts = newTable[string, MengJiVerdictEntry]()
+  result.triuneEntries = newTable[string, MengJiTriuneEntry]()
   result.globalTick = 0
   result.pushCount = 0
   result.pullCount = 0
@@ -117,14 +147,12 @@ proc registerNode*(engine: ref MengJiEngine; name: string;
 
   # 简单 hash 生成 id
   let hashInput = name & $epochTime()
-  var h1 = 0x811c9dc5'u32
-  var h2 = 0x0100193'u32
+  var h1 = 0x811c9dc5'i32
+  var h2 = 0x0100193'i32
   for c in hashInput:
-    h1 = h1 xor uint32(c)
-    h1 = h1 *% 0x01000193'u32
-    h2 = h2 xor (uint32(c) shl 5)
-    h2 = h2 *% 0x1000193'u32
-  let id = toHex(h1) & toHex(h2)
+    h1 = ((h1 xor int32(c)) *% 0x01000193'i32)
+    h2 = ((h2 xor (int32(c) shl 5)) *% 0x1000193'i32)
+  let id = toHex(int32(h1)) & toHex(int32(h2))
 
   var node: MengJiNode
   node.id = id
@@ -165,6 +193,14 @@ proc heartbeat*(engine: ref MengJiEngine; id: string) =
   node.alive = true
   engine.nodes[id] = node
 
+# ── 裁定差异比对 ──
+proc verdictDiff*(a: MengJiNode; b: MengJiNode): int =
+  result = 0
+  let minLen = min(a.verdictState.len, b.verdictState.len)
+  for i in 0 ..< minLen:
+    if a.verdictState[i] != b.verdictState[i]:
+      result += 1
+
 # ── Gossip PUSH ──
 proc gossipPush*(engine: ref MengJiEngine; id: string) =
   if not engine.nodes.hasKey(id): return
@@ -174,15 +210,7 @@ proc gossipPush*(engine: ref MengJiEngine; id: string) =
     let nb = engine.nodes[nbId]
     # 简单比较: 仅记计数
     engine.pushCount += 1
-    verdictDiff(node, nb)
-
-# ── 裁定差异比对 ──
-proc verdictDiff*(a: MengJiNode; b: MengJiNode): int =
-  result = 0
-  let minLen = min(a.verdictState.len, b.verdictState.len)
-  for i in 0 ..< minLen:
-    if a.verdictState[i] != b.verdictState[i]:
-      result += 1
+    discard verdictDiff(node, nb)
 
 # ── Gossip PULL ──
 proc gossipPull*(engine: ref MengJiEngine; id: string) =
@@ -239,7 +267,7 @@ proc consensusVote*(engine: ref MengJiEngine; slot: int;
     let w = engine.nodes[wid]
     if slot >= w.verdictState.len: continue
     # 夫妻主权人锚点权重 2x
-    let weight = (w.anchor == engine.primaryAnchor) ? 2 else: 1
+    let weight = (if w.anchor == engine.primaryAnchor: 2 else: 1)
     if w.verdictState[slot] == mjPass:   votePass += weight
     if w.verdictState[slot] == mjReject: voteReject += weight
 
@@ -310,6 +338,120 @@ proc conflictResolve*(engine: ref MengJiEngine; slot: int): string =
 
   return verdictName(resolved)
 
+# ── 里程碑二 · 分布式三元见证: 第三方背书 ──
+#   状态流转: 空 → 单 → 双 → 已见证 / 已拒绝
+proc triuneRegister*(engine: ref MengJiEngine; farmId: string;
+                    slot: int; bagHash: string): MengJiTriuneState =
+  if not engine.nodes.hasKey(farmId): return mjTriuneEmpty
+  if bagHash.len != 16: return mjTriuneEmpty
+
+  let key = "t_slot_" & $slot
+  var entry: MengJiTriuneEntry
+  entry.slot = slot
+  entry.subject = "袋子_" & $slot
+  entry.bagHash = bagHash
+  entry.triune = mjTriuneEmpty
+  entry.farm1 = ""
+  entry.farm2 = ""
+  entry.witness3rd = ""
+
+  # 若已存在则读回(保留历史状态)
+  if engine.triuneEntries.hasKey(key):
+    entry = engine.triuneEntries[key]
+
+  let farm = engine.nodes[farmId]
+  let anchorStr = anchorName(farm.anchor)
+
+  case entry.triune
+  of mjTriuneEmpty:
+    entry.farm1 = farmId
+    entry.triune = mjTriuneSingle
+    echo "[三元见证] 槽#", slot, ": 盟机场 ", farmId[0..7], "...(", anchorStr,
+         ") 首次持有摘要=", bagHash, " → 单"
+  of mjTriuneSingle:
+    if farmId == entry.farm1:
+      echo "[三元见证] 槽#", slot, ": 盟机场 ", farmId[0..7], " 重复,保持"
+    elif entry.bagHash == bagHash:
+      entry.farm2 = farmId
+      entry.triune = mjTriuneDouble
+      echo "[三元见证] 槽#", slot, ": 盟机场 ", farmId[0..7], "...(", anchorStr,
+           ") 摘要一致(", bagHash, ") → 双"
+    else:
+      entry.triune = mjTriuneRejected
+      echo "[三元见证] 槽#", slot, ": 盟机场 ", farmId[0..7],
+           " 摘要不一致(", entry.bagHash, " vs ", bagHash, ") → 已拒绝"
+  of mjTriuneDouble:
+    if farmId != entry.farm1 and farmId != entry.witness3rd:
+      if entry.bagHash == bagHash:
+        entry.witness3rd = farmId
+        entry.triune = mjTriuneWitnessed
+        echo "[三元见证] 槽#", slot, ": 第三场 ", farmId[0..7], "...(", anchorStr,
+             ") 背书成功(", bagHash, ") → 已见证"
+      else:
+        entry.triune = mjTriuneRejected
+        echo "[三元见证] 槽#", slot, ": 第三场 ", farmId[0..7],
+             " 摘要不一致(", entry.bagHash, " vs ", bagHash, ") → 已拒绝"
+    else:
+      echo "[三元见证] 槽#", slot, ": 盟机场 ", farmId[0..7], " 已参与过,忽略"
+  else:
+    echo "[三元见证] 槽#", slot, ": 已处于终态(", triuneStateName(entry.triune), "),不再更新"
+
+  engine.triuneEntries[key] = entry
+  result = entry.triune
+
+# ── 里程碑二 · 分布式三元见证: 三条件验证 ──
+#   条件一: 双场摘要一致  条件二: 第三方背书  条件三: 信任链相交 ≥30%
+proc triuneVerify*(engine: ref MengJiEngine; slot: int): int =
+  let key = "t_slot_" & $slot
+  if not engine.triuneEntries.hasKey(key):
+    echo "[三元验证] 槽#", slot, ": 无见证记录 → 条件一失败"
+    return 1
+
+  let entry = engine.triuneEntries[key]
+  echo "[三元验证] 槽#", slot, " 状态=", triuneStateName(entry.triune)
+
+  # 条件一: 双场摘要一致
+  if entry.triune == mjTriuneEmpty:
+    echo "[三元验证] 槽#", slot, " 条件一失败: 空"
+    return 1
+  if entry.triune == mjTriuneSingle:
+    echo "[三元验证] 槽#", slot, " 条件一失败: 仅单场"
+    return 1
+  if entry.triune == mjTriuneRejected:
+    echo "[三元验证] 槽#", slot, " 条件一失败: 已拒绝"
+    return 1
+  echo "[三元验证] 槽#", slot, " 条件一通过: 双场摘要一致"
+
+  # 条件二: 第三方背书
+  if entry.triune != mjTriuneWitnessed:
+    echo "[三元验证] 槽#", slot, " 条件二失败: 无第三方背书"
+    return 2
+  if entry.witness3rd == "":
+    echo "[三元验证] 槽#", slot, " 条件二失败: 第三方节点无效"
+    return 2
+  echo "[三元验证] 槽#", slot, " 条件二通过: 第三方(", entry.witness3rd[0..7], "...)已背书"
+
+  # 条件三: 信任相交 = 取三方最低信任; 容差 30%
+  var farmTrusts: seq[float] = @[]
+  for fid in [entry.farm1, entry.farm2, entry.witness3rd]:
+    if fid != "" and engine.nodes.hasKey(fid):
+      farmTrusts.add(engine.nodes[fid].trust)
+
+  if farmTrusts.len < 3:
+    echo "[三元验证] 槽#", slot, " 条件三失败: 三方信任信息不全"
+    return 3
+
+  var minTrust = farmTrusts[0]
+  for t in farmTrusts[1..^1]:
+    if t < minTrust: minTrust = t
+
+  echo "[三元验证] 槽#", slot, " 信任相交=", int(minTrust), "%"
+  if minTrust < 30.0:
+    echo "[三元验证] 槽#", slot, " 条件三失败: 信任相交 < 30%"
+    return 3
+  echo "[三元验证] 槽#", slot, " ★★★ 三条件全部通过 ★★★"
+  return 0
+
 # ── 状态概览 ──
 proc status*(engine: ref MengJiEngine) =
   echo "\n=== 盟机合 · 全局概览 ==="
@@ -369,6 +511,30 @@ proc demo*() =
   echo "\n─── 场景 M7: 全局概览 ───"
   status(engine)
 
+  # M8: 三元见证(里程碑二)
+  echo "\n─── 场景 M8: 三元见证 · 三方背书 ───"
+  let n3 = registerNode(engine, "farm_node_C", mjFarm, mjLolict)
+  bindNeighbor(engine, n2, n3)
+  const bh = "deadbeefcafebabe"
+  echo "[里程碑二] 三方对同一个袋子摘要=", bh, " 发起背书:"
+  discard triuneRegister(engine, n0, 5, bh)
+  discard triuneRegister(engine, n1, 5, bh)
+  discard triuneRegister(engine, n3, 5, bh)
+  let vr8 = triuneVerify(engine, 5)
+  echo "[里程碑二] 槽#5 验证结果: ", (if vr8 == 0: "三条件通过 ★★★" else: "失败码=" & $vr8)
+
+  # M9: 冲突袋子
+  echo "\n─── 场景 M9: 三元见证 · 冲突拒绝 ───"
+  discard triuneRegister(engine, n0, 6, "aaaaaaaaaaaaaaaa")
+  discard triuneRegister(engine, n1, 6, "bbbbbbbbbbbbbbbb")
+  let vr9 = triuneVerify(engine, 6)
+  echo "[里程碑二] 槽#6 验证结果: ", (if vr9 == 0: "通过" else: "预期拒绝(码=" & $vr9 & ")")
+
+  # M10: 全局概览(含见证计数)
+  echo "\n─── 场景 M10: 里程碑二全局概览 ───"
+  status(engine)
+  echo "三元见证条目: ", engine.triuneEntries.len
+
   echo "\n[盟机合] Demo 完毕."
 
 # ── CLI 入口 ──
@@ -380,6 +546,8 @@ when isMainModule:
     anchorVal = 1
     rounds = 1
     subjectSlot = 0
+    farmId = "sim_farm_A"
+    bagHash = "deadbeefcafebabe"
 
   var p = initOptParser(commandLineParams())
   for kind, key, val in p.getopt():
@@ -393,14 +561,16 @@ when isMainModule:
       of "anchor":  anchorVal = parseInt(val)
       of "rounds":  rounds = parseInt(val)
       of "subject": subjectSlot = parseInt(val)
+      of "farm":    farmId = val
+      of "hash":    bagHash = val
       of "help":
         echo "盟机合 CLI. 用法: mengji_tool.nim <cmd> [--opts]"
-        echo "命令: register / gossip / consensus / conflict / status / demo"
+        echo "命令: register / gossip / consensus / conflict / witness / verify / status / demo"
         quit(0)
     of cmdEnd: discard
 
   if cmd == "":
-    echo "盟机合 CLI. 用法: mengji_tool.nim <register|gossip|consensus|conflict|status|demo> [--opts]"
+    echo "盟机合 CLI. 用法: mengji_tool.nim <register|gossip|consensus|conflict|witness|verify|status|demo> [--opts]"
     quit(0)
 
   var engine = newMengJiEngine()
@@ -446,6 +616,33 @@ when isMainModule:
     engine.nodes[n1].verdictState = @[mjReject]
     engine.nodes[n2].verdictState = @[mjPass]
     discard conflictResolve(engine, subjectSlot)
+    status(engine)
+
+  of "witness":
+    # 三方背书测试
+    let n0 = registerNode(engine, "sim_hezhang", mjPhong, mjLolict)
+    let n1 = registerNode(engine, "sim_farm_A", mjFarm, mjLiutiantian)
+    let n2 = registerNode(engine, "sim_farm_B", mjFarm, mjLolict)
+    echo "\n[三元见证] 三方对槽#", subjectSlot, " 摘要=", bagHash, " 背书:"
+    discard triuneRegister(engine, n0, subjectSlot, bagHash)
+    discard triuneRegister(engine, n1, subjectSlot, bagHash)
+    discard triuneRegister(engine, n2, subjectSlot, bagHash)
+    echo "\n[三元见证] 验证:"
+    let vr = triuneVerify(engine, subjectSlot)
+    echo "结果: ", (if vr == 0: "★★★ 三条件通过" else: "条件失败(" & $vr & ")")
+    status(engine)
+
+  of "verify":
+    # 需要先有 witness 背书才能验证
+    echo "注意: 先用 witness 命令背书后再 verify"
+    let n0 = registerNode(engine, "sim_hezhang", mjPhong, mjLolict)
+    let n1 = registerNode(engine, "sim_farm_A", mjFarm, mjLiutiantian)
+    let n2 = registerNode(engine, "sim_farm_B", mjFarm, mjLolict)
+    discard triuneRegister(engine, n0, subjectSlot, bagHash)
+    discard triuneRegister(engine, n1, subjectSlot, bagHash)
+    discard triuneRegister(engine, n2, subjectSlot, bagHash)
+    let vr = triuneVerify(engine, subjectSlot)
+    echo "验证结果: ", (if vr == 0: "★★★ 三条件通过 ★★★" else: "失败码=" & $vr)
     status(engine)
 
   of "status":
