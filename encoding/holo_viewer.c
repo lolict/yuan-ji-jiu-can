@@ -110,9 +110,9 @@ void 全息视图(const holo_snapshot_t* snap) {
     if (g_coord && g_coord->agent_count > 0) {
         printf("║   ");
         for (uint32_t i = 0; i < g_coord->agent_count && i < 6; i++) {
-            printf("%s(%c H%u)  ",
+            printf("%s(%s H%u)  ",
                    g_coord->agents[i]->id,
-                   g_coord->agents[i]->active ? '●' : '○',
+                   g_coord->agents[i]->active ? "*" : ".",
                    g_coord->agents[i]->health);
         }
         printf("          ║\n");

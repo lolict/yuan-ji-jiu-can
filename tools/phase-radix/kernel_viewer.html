@@ -262,6 +262,17 @@
     </div>
   </div>
 
+  <!-- 文档聚合 -->
+  <div class="panel">
+    <h2>◈ 文档聚合浏览器</h2>
+    <div class="input-row">
+      <button class="btn" onclick="docsScan()">扫描文档</button>
+      <button class="btn btn-secondary" onclick="docsClusters()">态势聚类</button>
+      <button class="btn btn-success" onclick="docsTree()">包裹树 (DOT)</button>
+    </div>
+    <div id="docs-output" class="log" style="margin-top:6px;max-height:250px;">等待操作...</div>
+  </div>
+
   <!-- 距离感知聚类 -->
   <div class="panel">
     <h2>◈ 距离感知聚类 (mind_organ)</h2>
@@ -569,6 +580,51 @@ function caFromCells() {
     log(`取 A=${cellsData[0].raw} B=${cellsData[1].raw}`, 'info');
   } else {
     log('内核中 cells 不足 2 个', 'err');
+  }
+}
+
+// ── 文档聚合 ──
+
+async function docsScan() {
+  try {
+    const r = await api_get('/api/docs/scan');
+    let html = `<span style="color:var(--green)">文档: ${r.total_docs} | 关键词: ${r.total_keywords}</span><br>`;
+    for (const d of r.docs.slice(0, 20)) {
+      html += `<span style="color:var(--muted)">• ${d.title}</span> <span style="color:var(--cyan)">${d.size}B</span><br>`;
+    }
+    if (r.docs.length === 50 && r.total_docs > 50) {
+      html += `<span style="color:var(--muted)">... 还有 ${r.total_docs - 50} 个文档</span>`;
+    }
+    document.getElementById('docs-output').innerHTML = html;
+    log(`文档扫描: ${r.total_docs} docs`, 'ok');
+  } catch(e) {
+    document.getElementById('docs-output').textContent = '失败: ' + e.message;
+  }
+}
+
+async function docsClusters() {
+  try {
+    const r = await api_get('/api/docs/clusters');
+    let html = `<span style="color:var(--green)">簇: ${r.total_clusters} | 总文档: ${r.total_docs}</span><br><br>`;
+    for (const c of r.clusters) {
+      const kws = c.keywords.map(kw => kw.word).join(', ');
+      html += `<span style="color:var(--accent2)">簇 ${c.index}</span> <span style="color:var(--muted)">[${c.size} docs]</span><br>`;
+      html += `  <span style="color:var(--cyan)">${kws}</span><br>`;
+    }
+    document.getElementById('docs-output').innerHTML = html;
+    log(`态势聚类: ${r.total_clusters} 簇`, 'ok');
+  } catch(e) {
+    document.getElementById('docs-output').textContent = '失败: ' + e.message;
+  }
+}
+
+async function docsTree() {
+  try {
+    const r = await api_get('/api/docs/tree');
+    document.getElementById('docs-output').textContent = r.dot || '无 DOT 输出';
+    log(`包裹树 DOT: ${r.nodes} 节点`, 'ok');
+  } catch(e) {
+    document.getElementById('docs-output').textContent = '失败: ' + e.message;
   }
 }
 

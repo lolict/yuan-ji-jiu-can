@@ -1,0 +1,249 @@
+{
+  "schema": "njsg-mlil-3d",
+  "version": "v0.3.0",
+  "title": "夫妻共同体 · 三维编码链",
+  "count": 30,
+  "view": {"ax": 30.0, "ay": 45.0, "zoom": 1.0},
+  "points": [
+    {
+      "label": "甲",
+      "coord": [158.00, 8.00, 0.00],
+      "color": [64, 156, 255],
+      "version": 1,
+      "level": 0,
+      "chain": 0
+    },
+    {
+      "label": "乙",
+      "coord": [153.24, 16.00, 15.00],
+      "color": [64, 156, 255],
+      "version": 2,
+      "level": 1,
+      "chain": 0
+    },
+    {
+      "label": "丙",
+      "coord": [140.46, 24.00, 30.00],
+      "color": [64, 156, 255],
+      "version": 3,
+      "level": 2,
+      "chain": 0
+    },
+    {
+      "label": "丁",
+      "coord": [123.73, 32.00, 45.00],
+      "color": [64, 156, 255],
+      "version": 4,
+      "level": 3,
+      "chain": 0
+    },
+    {
+      "label": "戊",
+      "coord": [108.35, 40.00, 60.00],
+      "color": [64, 156, 255],
+      "version": 5,
+      "level": 4,
+      "chain": 0
+    },
+    {
+      "label": "己",
+      "coord": [99.22, 48.00, 75.00],
+      "color": [64, 156, 255],
+      "version": 6,
+      "level": 5,
+      "chain": 0
+    },
+    {
+      "label": "庚",
+      "coord": [99.22, 56.00, 90.00],
+      "color": [64, 156, 255],
+      "version": 7,
+      "level": 6,
+      "chain": 0
+    },
+    {
+      "label": "辛",
+      "coord": [108.35, 64.00, 105.00],
+      "color": [64, 156, 255],
+      "version": 8,
+      "level": 7,
+      "chain": 0
+    },
+    {
+      "label": "壬",
+      "coord": [123.73, 72.00, 0.00],
+      "color": [64, 156, 255],
+      "version": 9,
+      "level": 0,
+      "chain": 0
+    },
+    {
+      "label": "癸",
+      "coord": [140.46, 80.00, 15.00],
+      "color": [64, 156, 255],
+      "version": 10,
+      "level": 1,
+      "chain": 0
+    },
+    {
+      "label": "子",
+      "coord": [170.00, 8.00, 0.00],
+      "color": [255, 128, 128],
+      "version": 1,
+      "level": 0,
+      "chain": 1
+    },
+    {
+      "label": "丑",
+      "coord": [165.19, 16.00, 15.00],
+      "color": [255, 128, 128],
+      "version": 2,
+      "level": 1,
+      "chain": 1
+    },
+    {
+      "label": "寅",
+      "coord": [151.86, 24.00, 30.00],
+      "color": [255, 128, 128],
+      "version": 3,
+      "level": 2,
+      "chain": 1
+    },
+    {
+      "label": "卯",
+      "coord": [133.06, 32.00, 45.00],
+      "color": [255, 128, 128],
+      "version": 4,
+      "level": 3,
+      "chain": 1
+    },
+    {
+      "label": "辰",
+      "coord": [113.11, 40.00, 60.00],
+      "color": [255, 128, 128],
+      "version": 5,
+      "level": 4,
+      "chain": 1
+    },
+    {
+      "label": "巳",
+      "coord": [96.56, 48.00, 75.00],
+      "color": [255, 128, 128],
+      "version": 6,
+      "level": 5,
+      "chain": 1
+    },
+    {
+      "label": "午",
+      "coord": [87.22, 56.00, 90.00],
+      "color": [255, 128, 128],
+      "version": 7,
+      "level": 6,
+      "chain": 1
+    },
+    {
+      "label": "未",
+      "coord": [87.22, 64.00, 105.00],
+      "color": [255, 128, 128],
+      "version": 8,
+      "level": 7,
+      "chain": 1
+    },
+    {
+      "label": "申",
+      "coord": [96.56, 72.00, 0.00],
+      "color": [255, 128, 128],
+      "version": 9,
+      "level": 0,
+      "chain": 1
+    },
+    {
+      "label": "酉",
+      "coord": [113.11, 80.00, 15.00],
+      "color": [255, 128, 128],
+      "version": 10,
+      "level": 1,
+      "chain": 1
+    },
+    {
+      "label": "戌",
+      "coord": [133.06, 88.00, 30.00],
+      "color": [255, 128, 128],
+      "version": 11,
+      "level": 2,
+      "chain": 1
+    },
+    {
+      "label": "亥",
+      "coord": [151.86, 96.00, 45.00],
+      "color": [255, 128, 128],
+      "version": 12,
+      "level": 3,
+      "chain": 1
+    },
+    {
+      "label": "乾",
+      "coord": [182.00, 8.00, 0.00],
+      "color": [128, 255, 128],
+      "version": 1,
+      "level": 0,
+      "chain": 2
+    },
+    {
+      "label": "坤",
+      "coord": [169.37, 16.00, 15.00],
+      "color": [128, 255, 128],
+      "version": 2,
+      "level": 1,
+      "chain": 2
+    },
+    {
+      "label": "震",
+      "coord": [137.38, 24.00, 30.00],
+      "color": [128, 255, 128],
+      "version": 3,
+      "level": 2,
+      "chain": 2
+    },
+    {
+      "label": "巽",
+      "coord": [101.00, 32.00, 45.00],
+      "color": [128, 255, 128],
+      "version": 4,
+      "level": 3,
+      "chain": 2
+    },
+    {
+      "label": "坎",
+      "coord": [77.26, 40.00, 60.00],
+      "color": [128, 255, 128],
+      "version": 5,
+      "level": 4,
+      "chain": 2
+    },
+    {
+      "label": "离",
+      "coord": [77.26, 48.00, 75.00],
+      "color": [128, 255, 128],
+      "version": 6,
+      "level": 5,
+      "chain": 2
+    },
+    {
+      "label": "艮",
+      "coord": [101.00, 56.00, 90.00],
+      "color": [128, 255, 128],
+      "version": 7,
+      "level": 6,
+      "chain": 2
+    },
+    {
+      "label": "兑",
+      "coord": [137.38, 64.00, 105.00],
+      "color": [128, 255, 128],
+      "version": 8,
+      "level": 7,
+      "chain": 2
+    }
+  ]
+}

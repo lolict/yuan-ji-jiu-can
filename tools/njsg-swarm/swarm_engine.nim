@@ -7,7 +7,7 @@
 #   协调器裁决冲突 · 监控心跳 · 继承规则
 # ============================================================
 
-import os, osproc, strutils, json, tables, times, sequtils,algorithm
+import os, osproc, strutils, json, tables, times, sequtils, algorithm, streams
 
 const
   REPO_ROOT = "/mnt/data/catpaw/home/.meituan-catpaw/desk_default_workspace/hunyuan-os"
@@ -165,6 +165,67 @@ proc report_result*(s: Swarm; clone_name: string; work_result: string): string =
           s.tasks[ti].status = "completed"
       return "分身[" & clone_name & "] 报告完成"
   return "ERROR: 分身不存在"
+
+# ═══════════════════════════════════════════
+# 真实并行执行: 为每个工作中的分身 fork Worker 子进程
+# ═══════════════════════════════════════════
+proc spawn_parallel*(s: Swarm): seq[string] =
+  ## 并行执行: fork worker 子进程，每个任务一个 OS 进程
+  ## 从 .njsg-swarm/beat/<name>.hb 读心跳
+  result = @[]
+  let worker_bin = getCurrentDir() / "worker"
+  if not fileExists(worker_bin):
+    return @["ERROR: worker 二进制缺失，先编译 worker.nim"]
+
+  var processes: seq[tuple[p: Process, clone_idx: int, task_idx: int]] = @[]
+
+  for i in 0..<s.clones.len:
+    if s.clones[i].state == cloneWorking:
+      # 找任务
+      for ti in 0..<s.tasks.len:
+        if s.tasks[ti].assigned_to == s.clones[i].name and s.tasks[ti].status == "working":
+          # 构造 JSON 输入
+          let task_json = $( %* {
+            "task_id": s.tasks[ti].id,
+            "description": s.tasks[ti].description,
+            "role": s.clones[i].role,
+            "rule_version": s.clones[i].rule_version
+          })
+          var p = startProcess(worker_bin, args = @["--name", s.clones[i].name],
+                                options = {poUsePath, poStdErrToStdOut, poInteractive})
+          let stdin = p.inputStream()
+          stdin.write(task_json & "\n")
+          stdin.flush()
+          stdin.close()
+          processes.add((p, i, ti))
+          break
+
+  # 等待所有子进程完成，收集结果
+  for item in processes:
+    let output = item.p.outputStream().readAll()
+    let ec = item.p.waitForExit()
+    s.clones[item.clone_idx].result = output
+    s.clones[item.clone_idx].state = cloneIdle
+    s.tasks[item.task_idx].status = "completed"
+    s.clones[item.clone_idx].adaptation_count += 1
+    result.add("分身[" & s.clones[item.clone_idx].name & "] 并行执行完成 (ec=" & $ec & ")")
+
+proc check_disk_heartbeats*(s: Swarm): seq[string] =
+  ## 从 .njsg-swarm/beat/ 目录读心跳文件，检测存活
+  result = @[]
+  let beat_dir = REPO_ROOT / ".njsg-swarm" / "beat"
+  if not dirExists(beat_dir):
+    return
+  for i in 0..<s.clones.len:
+    let hb = beat_dir / (s.clones[i].name & ".hb")
+    if fileExists(hb):
+      let ts = parseFloat(strip(readFile(hb)))
+      let now = epochTime()
+      if now - ts > s.heartbeat_timeout:
+        s.clones[i].state = cloneDormant
+        result.add("分身[" & s.clones[i].name & "] 心跳超时(磁盘)")
+      else:
+        result.add("分身[" & s.clones[i].name & "] 心跳正常(" & $(now - ts).formatFloat(ffDecimal, 1) & "s)")
 
 proc complete_clone_task*(s: Swarm; clone_name: string) =
   for i in 0..<s.clones.len:

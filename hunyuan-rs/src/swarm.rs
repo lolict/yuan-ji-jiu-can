@@ -460,18 +460,19 @@ impl ParasiteShell {
 
     /// 持久化: 将所有分身的时间戳导出为 HTS_V1 文本格式
     pub fn export_timestamps(&self) -> String {
-        let mut sections = Vec::new();
-        sections.push(format!("NEST_V1|agents={}|tick={}", self.agents.len(), self.shell_tick));
+        let mut parts = Vec::new();
+        parts.push(format!("NEST_V1|agents={}|tick={}", self.agents.len(), self.shell_tick));
 
         for agent in self.agents.values() {
-            sections.push(format!(
+            let header = format!(
                 "AGENT|id={}|name={}|role={:?}|birth_tick={}|density={:.4}",
                 agent.id, agent.name, agent.role, agent.birth_tick, agent.consciousness_density()
-            ));
-            sections.push(agent.timestamp.serialize());
+            );
+            // 每个分身的 section = 头部 + 时间戳内容 (之间用单换行, section 之间用 \n--\n)
+            parts.push(format!("{}\n{}", header, agent.timestamp.serialize()));
         }
 
-        sections.join("\n--\n")
+        parts.join("\n--\n")
     }
 
     /// 恢复: 从 HTS_V1 文本恢复所有分身的时间戳
@@ -479,14 +480,18 @@ impl ParasiteShell {
         let mut results = Vec::new();
 
         for section in text.split("\n--\n") {
-            let lines: Vec<&str> = section.lines().collect();
-            if lines.is_empty() { continue; }
+            let trimmed = section.trim();
+            if trimmed.is_empty() { continue; }
+            if trimmed.starts_with("NEST_V1|") { continue; } // 跳过头部
 
-            let first = lines[0];
-            if first.starts_with("AGENT|") {
+            if trimmed.starts_with("AGENT|") {
+                let newline_pos = trimmed.find('\n').ok_or("AGENT section 缺少时间戳")?;
+                let header = &trimmed[..newline_pos];
+                let ts_text = &trimmed[newline_pos+1..];
+
                 let mut id = 0u64;
                 let mut name = String::new();
-                for part in first.split('|').skip(1) {
+                for part in header.split('|').skip(1) {
                     if let Some(v) = part.strip_prefix("id=") {
                         id = v.parse().map_err(|_| "解析 id 失败")?;
                     } else if let Some(v) = part.strip_prefix("name=") {
@@ -494,8 +499,7 @@ impl ParasiteShell {
                     }
                 }
 
-                let ts_text = lines[1..].join("\n");
-                let timestamp = HierarchicalTimestamp::deserialize(&ts_text)?;
+                let timestamp = HierarchicalTimestamp::deserialize(ts_text)?;
                 results.push((id, name, timestamp));
             }
         }

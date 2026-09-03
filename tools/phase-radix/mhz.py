@@ -1172,6 +1172,9 @@ def cmd_docs(args: list):
     
     if not args:
         print("用法: mhz docs <scan|clusters|tree>")
+        print("  scan      扫描文档 (显示总数和关键词)")
+        print("  clusters  态势化聚类 (Jaccard 距离 + 凝聚)")
+        print("  tree      连接包裹树 (Graphviz DOT)")
         return
     
     subcmd = args[0]
@@ -1182,23 +1185,46 @@ def cmd_docs(args: list):
         docs = scanner.scan()
         print(f"文档总数: {len(docs)}")
         print(f"独立关键词: {len(scanner.inverted_index)}")
+        print(f"扫描根目录: {WORKSPACE_DIR}")
+        # 显示前 10 个文档
+        print("\n前 10 个文档:")
+        for d in docs[:10]:
+            print(f"  • {d.title} ({len(d.text)}B)")
     elif subcmd == "clusters":
         docs = scanner.scan()
-        clusterer = SituationalClusterer(docs, scanner.inverted_index)
+        # 采样 500 用于聚类
+        sample_size = 500
+        sampled = docs[:sample_size] if len(docs) > sample_size else docs
+        sampled_index = {}
+        for i, d in enumerate(sampled):
+            for kw in d.keywords:
+                sampled_index.setdefault(kw, set()).add(i)
+        clusterer = SituationalClusterer(sampled, sampled_index)
         clusters = clusterer.cluster()
-        print("═══ 态势聚类 ═══")
+        print(f"═══ 态势聚类 ═══")
+        print(f"总文档: {len(docs)} | 采样聚类: {len(sampled)}")
         for i, c in enumerate(clusters):
             kws = clusterer.cluster_keywords(c)
             kw_str = ', '.join(f'{kw}({cnt})' for kw, cnt in kws[:5])
-            print(f"  簇 {i}: {len(c)} docs | {kw_str}")
+            doc_preview = ', '.join(sampled[idx].title[:20] for idx in c[:3])
+            print(f"  簇 {i}: {len(c)} docs")
+            print(f"    关键词: {kw_str}")
+            print(f"    示例: {doc_preview}")
     elif subcmd == "tree":
         docs = scanner.scan()
-        clusterer = SituationalClusterer(docs, scanner.inverted_index)
+        sample_size = 500
+        sampled = docs[:sample_size] if len(docs) > sample_size else docs
+        sampled_index = {}
+        for i, d in enumerate(sampled):
+            for kw in d.keywords:
+                sampled_index.setdefault(kw, set()).add(i)
+        clusterer = SituationalClusterer(sampled, sampled_index)
         clusterer.cluster()
         tree = WrappingTree(clusterer)
         tree.build()
-        print("═══ 连接包裹树 ═══")
-        print(tree.render_text())
+        dot = tree.render_dot()
+        print("═══ 连接包裹树 (DOT) ═══")
+        print(dot)
     else:
         print(f"未知子命令: {subcmd}")
 

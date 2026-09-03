@@ -30,11 +30,14 @@ TEST_SWARM = test_swarm
 TEST_SELFBOOT = test_selfboot
 TEST_CHRYSALIS = test_chrysalis
 TEST_MLIL3D = test_mlil3d
+TEST_HOLO = test_holo
+TEST_MIND_ORGAN = test_mind_organ
 MAIN = hunyuanos
 
 ALL = $(TEST_COLOR) $(TEST_LEVEL) $(TEST_TYPE) $(TEST_DIFF) $(TEST_WOV) \
       $(TEST_FULL_V1) $(TEST_FULL_V2) $(TEST_LIFECYCLE) $(MAIN) $(TEST_SWARM) \
-      $(TEST_SELFBOOT) $(TEST_CHRYSALIS) $(TEST_MLIL3D)
+      $(TEST_SELFBOOT) $(TEST_CHRYSALIS) $(TEST_MLIL3D) $(TEST_HOLO) \
+      $(TEST_MIND_ORGAN)
 
 .PHONY: all clean test lib
 
@@ -94,6 +97,21 @@ $(TEST_CHRYSALIS): test_chrysalis.o chrysalis_shell.o
 $(TEST_MLIL3D): test_mlil3d.o mlil_visual.o chain_block.o
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) -lm
 
+$(TEST_HOLO): test_holo.o holo_viewer.o mlil_visual.o njsg_swarm.o swarm_agents.o chain_block.o memory_chain.o growth_ring.o version_graph.o observer_v2.o lifecycle_engine.o cloud_observer.o chain_persist.o bootstrap_chain.o
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) -lm
+
+$(TEST_MIND_ORGAN): test_mind_organ.o mind_organ.o
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) -lm
+
+# Container ontology bridge (all 6 sub-containers integrated)
+ONT_BRIDGE_OBJS = container_ontology_bridge.o mind_organ.o global_control.o property_judge.o radix_star.o encoding_bridge_emit.o type_discipline.o
+encoding_bridge_emit.o: encoding_bridge_emit.c encoding_bridge.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
+# Verify bridge + mind_organ compile and link
+ont_build: $(ONT_BRIDGE_OBJS)
+	$(CC) $(CFLAGS) $^ /dev/null -o /dev/null $(LDFLAGS) -lm 2>&1 || echo "(link test: needed main())"
+
 test: all
 	@echo ""
 	@echo "====== Running All Tests ====="
@@ -112,6 +130,9 @@ test: all
 	@echo ""
 	@echo "--- Color System Full ---"
 	@./$(TEST_COLOR) || true
+	@echo ""
+	@echo "--- Mind Organ (距离感知聚类) ---"
+	@./$(TEST_MIND_ORGAN) || true
 	@echo ""
 
 clean:

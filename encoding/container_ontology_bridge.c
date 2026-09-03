@@ -169,3 +169,44 @@ int container_is_known_failure(uint32_t pattern) {
     (void)pattern;
     return 0;
 }
+
+/* ═══════════════════════════════════════════════════════════
+ * 子容器6: 感知器官 (距离感知聚类 · 聂小倩匹配)
+ * ═══════════════════════════════════════════════════════════ */
+
+static mo_engine_t mo_organ;
+
+void container_mind_organ_init(double threshold) {
+    mind_organ_init(&mo_organ, threshold);
+}
+
+int container_mo_add_cell(int id, uint32_t container_code) {
+    return mind_organ_add_cell(&mo_organ, id, container_code);
+}
+
+double container_mo_distance(uint32_t code_a, uint32_t code_b) {
+    return mind_organ_distance(code_a, code_b);
+}
+
+int container_mo_clusterize(void) {
+    return mind_organ_clusterize(&mo_organ);
+}
+
+int container_mo_find_body(uint32_t ghost_code, double *dist_out) {
+    return mind_organ_find_body(&mo_organ, ghost_code, dist_out);
+}
+
+int container_mo_cluster_count(void) {
+    return mo_organ.cluster_count;
+}
+
+void container_mo_report(char *buf, int bufsize) {
+    mind_organ_report(&mo_organ, buf, bufsize);
+}
+
+/* 容器本体论初始化时同时初始化感知器官 (默认阈值 5.0) */
+__attribute__((constructor))
+static void container_mind_organ_auto_init(void) {
+    /* 注意: 实际在 container_ontology_init() 调用时也可手动初始化 */
+    mind_organ_init(&mo_organ, 5.0);
+}

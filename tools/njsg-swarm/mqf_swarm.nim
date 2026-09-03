@@ -23,7 +23,7 @@ var swarm = new_swarm()
 let args = commandLineParams()
 if args.len == 0:
   echo "mqf-swarm — NJSG-Swarm 协调器"
-  echo "用法: mqf-swarm <demo|spawn|task|assign|report|heartbeat|resolve|check|status>"
+  echo "用法: mqf-swarm <demo|spawn|task|assign|parallel|report|heartbeat|resolve|check|beat|status>"
   quit(0)
 
 let cmd = args[0]
@@ -58,14 +58,19 @@ of "demo":
     echo "  " & a
 
   echo ""
-  echo "── 4. 分身报告 ──"
-  echo "  " & swarm.report_result("clf-1", "编码完成:mlll→ROOT|")
-  echo "  " & swarm.report_result("clf-2", "API完成:HTTP 200")
-  swarm.complete_clone_task("clf-1")
-  swarm.complete_clone_task("clf-2")
+  echo "── 4. 真实并行执行 (fork worker 子进程) ──"
+  # 让未完成的保持 working 状态，由 spawn_parallel 处理
+  let par = swarm.spawn_parallel()
+  for r in par:
+    echo "  " & r
+  echo ""
+  echo "── 5. 磁盘心跳检测 ──"
+  let beats = swarm.check_disk_heartbeats()
+  for b in beats:
+    echo "  " & b
 
   echo ""
-  echo "── 5. 冲突检测 ──"
+  echo "── 6. 冲突检测 ──"
   # 制造冲突
   discard swarm.submit_task("token:eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJtZXNzYWdlIjoiSGVsbG8gZnJvbSBDYXRQYXcifQ", 9)
   discard swarm.submit_task("token:eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJtZXNzYWdlIjoiSGVsbG8gZnJvbSBDYXRQYXcifQ", 9)
@@ -79,7 +84,7 @@ of "demo":
       echo "  " & swarm.resolve_conflict(c.id)
 
   echo ""
-  echo "── 6. 协调器报告 ──"
+  echo "── 7. 协调器报告 ──"
   swarm.report()
 
 of "spawn":
@@ -101,6 +106,22 @@ of "assign":
     echo "无可分配任务"
   for a in assigns:
     echo a
+
+of "parallel":
+  # 真实并行执行: fork worker 子进程
+  let res = swarm.spawn_parallel()
+  if res.len == 0:
+    echo "无工作中的分身可执行"
+  for r in res:
+    echo r
+
+of "beat":
+  # 磁盘心跳检测
+  let res = swarm.check_disk_heartbeats()
+  if res.len == 0:
+    echo "无心跳文件，未检测到活动分身"
+  for r in res:
+    echo r
 
 of "report":
   if rest.len < 2:

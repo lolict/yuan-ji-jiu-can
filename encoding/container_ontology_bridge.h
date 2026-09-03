@@ -78,6 +78,38 @@ int  container_star_group_size(uint8_t radical_idx);
 int  container_record_failure(uint32_t pattern, const char *reason);
 int  container_is_known_failure(uint32_t pattern);
 
+/* ═══════════════════════════════════════════════════════════
+ * 子容器6: 感知器官 (距离感知聚类 · 聂小倩匹配)
+ *
+ * 基于32位容器编码的距离计算, 实现:
+ *   - 感知属性距离度量 (家族/极性/结构/声母/韵母/声调)
+ *   - 迭代最近邻聚类
+ *   - 聂小倩找躯壳 (最近匹配)
+ * ═══════════════════════════════════════════════════════════ */
+
+#include "mind_organ.h"
+
+/* 初始化感知器官 */
+void container_mind_organ_init(double threshold);
+
+/* 添加感知单元 (返回 id, -1 = 已满) */
+int  container_mo_add_cell(int id, uint32_t container_code);
+
+/* 计算两个编码之间的距离 */
+double container_mo_distance(uint32_t code_a, uint32_t code_b);
+
+/* 聚类 (返回簇数) */
+int  container_mo_clusterize(void);
+
+/* 聂小倩找躯壳 (返回最近匹配的单元id, 距离写入 dist_out) */
+int  container_mo_find_body(uint32_t ghost_code, double *dist_out);
+
+/* 获取簇数 */
+int  container_mo_cluster_count(void);
+
+/* 格式化输出到缓冲区 */
+void container_mo_report(char *buf, int bufsize);
+
 #ifdef __cplusplus
 }
 #endif

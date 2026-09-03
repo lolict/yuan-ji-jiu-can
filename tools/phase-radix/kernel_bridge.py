@@ -169,6 +169,9 @@ class KernelBridgeHandler(BaseHTTPRequestHandler):
             '/api/interlock/status': self._handle_interlock_status,
             '/api/property/stats': self._handle_property_stats,
             '/api/mo/demo': self._handle_mo_demo,
+            '/api/docs/scan': self._handle_docs_scan_get,
+            '/api/docs/clusters': self._handle_docs_clusters_get,
+            '/api/docs/tree': self._handle_docs_tree_get,
         }
         handler = GET_ROUTES.get(self.path)
         if handler:
@@ -202,6 +205,10 @@ class KernelBridgeHandler(BaseHTTPRequestHandler):
             '/api/court/judge': self._handle_court_judge,
             '/api/court/metaime': self._handle_court_metaime,
             '/api/court/stats': self._handle_court_stats,
+            '/api/docs/scan': self._handle_docs_scan,
+            '/api/docs/clusters': self._handle_docs_clusters,
+            '/api/docs/tree': self._handle_docs_tree,
+            '/api/docs/detail': self._handle_docs_detail,
         }
         handler = POST_ROUTES.get(self.path)
         if handler:
@@ -230,7 +237,9 @@ class KernelBridgeHandler(BaseHTTPRequestHandler):
                          "/api/metaime/encode", "/api/metaime/decode",
                          "/api/metaime/feed", "/api/metaime/stats",
                          "/api/court/state", "/api/court/flow",
-                         "/api/court/judge", "/api/court/metaime", "/api/court/stats"]
+                         "/api/court/judge", "/api/court/metaime", "/api/court/stats",
+                         "/api/docs/scan", "/api/docs/clusters",
+                         "/api/docs/tree", "/api/docs/detail"]
             }
         })
 
@@ -298,6 +307,79 @@ class KernelBridgeHandler(BaseHTTPRequestHandler):
             )
         result = mo.cluster(eps=0.5, min_pts=2, dist_type=MO_DIST_GEOMETRIC)
         _json_response(self, {"demo_cluster": result})
+
+    # ── 文档聚合 (GET) ──
+
+    def _handle_docs_scan_get(self):
+        try:
+            from doc_aggregator import DocumentScanner, WORKSPACE_DIR
+            scanner = DocumentScanner(WORKSPACE_DIR)
+            docs = scanner.scan()
+            result = {
+                "total_docs": len(docs),
+                "total_keywords": len(scanner.inverted_index),
+                "docs": [{"path": str(d.path), "title": d.title, "size": len(d.text)} for d in docs[:50]],
+            }
+            _json_response(self, result)
+        except Exception as e:
+            _json_error(self, f"扫描失败: {e}", 500)
+
+    def _handle_docs_clusters_get(self):
+        try:
+            from doc_aggregator import DocumentScanner, SituationalClusterer, WORKSPACE_DIR
+            scanner = DocumentScanner(WORKSPACE_DIR)
+            docs = scanner.scan()
+            # 采样: 超过 500 文档时只取前 500 用于聚类
+            sample_size = 500
+            sampled = docs[:sample_size] if len(docs) > sample_size else docs
+            # 重建采样后的倒排索引
+            sampled_index = {}
+            for i, d in enumerate(sampled):
+                for kw in d.keywords:
+                    sampled_index.setdefault(kw, set()).add(i)
+            clusterer = SituationalClusterer(sampled, sampled_index)
+            clusters = clusterer.cluster()
+            result = {
+                "total_docs": len(docs),
+                "total_clusters": len(clusters),
+                "sampled": len(sampled),
+                "clusters": [],
+            }
+            for i, c in enumerate(clusters):
+                kws = clusterer.cluster_keywords(c)
+                result["clusters"].append({
+                    "index": i,
+                    "size": len(c),
+                    "keywords": [{"word": kw, "count": cnt} for kw, cnt in kws[:8]],
+                    "docs": [sampled[idx].title for idx in c[:10]],
+                })
+            _json_response(self, result)
+        except Exception as e:
+            _json_error(self, f"聚类失败: {e}", 500)
+
+    def _handle_docs_tree_get(self):
+        try:
+            from doc_aggregator import DocumentScanner, SituationalClusterer, WrappingTree, WORKSPACE_DIR
+            scanner = DocumentScanner(WORKSPACE_DIR)
+            docs = scanner.scan()
+            sample_size = 500
+            sampled = docs[:sample_size] if len(docs) > sample_size else docs
+            sampled_index = {}
+            for i, d in enumerate(sampled):
+                for kw in d.keywords:
+                    sampled_index.setdefault(kw, set()).add(i)
+            clusterer = SituationalClusterer(sampled, sampled_index)
+            clusterer.cluster()
+            tree = WrappingTree(clusterer)
+            tree.build()
+            _json_response(self, {
+                "dot": tree.render_dot(),
+                "nodes": len(tree.nodes) if hasattr(tree, 'nodes') else 0,
+                "total_docs": len(docs),
+                "sampled": len(sampled),
+            })
+        except Exception as e:
+            _json_error(self, f"包裹树失败: {e}", 500)
 
     # ── POST 处理器 ──
 
@@ -577,6 +659,106 @@ class KernelBridgeHandler(BaseHTTPRequestHandler):
     def _handle_court_stats(self):
         co = _get_court()
         _json_response(self, {"stats": co.stats()})
+
+    # ── 文档聚合浏览器 ──
+
+    # ── 文档聚合浏览器 (POST) ──
+    def _handle_docs_scan(self):
+        try:
+            from doc_aggregator import DocumentScanner, WORKSPACE_DIR
+            scanner = DocumentScanner(WORKSPACE_DIR)
+            docs = scanner.scan()
+            result = {
+                "total_docs": len(docs),
+                "total_keywords": len(scanner.inverted_index),
+                "docs": [{"path": str(d.path), "title": d.title, "size": len(d.text)} for d in docs[:50]],
+            }
+            _json_response(self, result)
+        except Exception as e:
+            _json_error(self, f"扫描失败: {e}", 500)
+
+    def _handle_docs_clusters(self):
+        try:
+            from doc_aggregator import DocumentScanner, SituationalClusterer, WORKSPACE_DIR
+            scanner = DocumentScanner(WORKSPACE_DIR)
+            docs = scanner.scan()
+            sample_size = 500
+            sampled = docs[:sample_size] if len(docs) > sample_size else docs
+            sampled_index = {}
+            for i, d in enumerate(sampled):
+                for kw in d.keywords:
+                    sampled_index.setdefault(kw, set()).add(i)
+            clusterer = SituationalClusterer(sampled, sampled_index)
+            clusters = clusterer.cluster()
+            result = {
+                "total_docs": len(docs),
+                "total_clusters": len(clusters),
+                "sampled": len(sampled),
+                "clusters": [],
+            }
+            for i, c in enumerate(clusters):
+                kws = clusterer.cluster_keywords(c)
+                result["clusters"].append({
+                    "index": i,
+                    "size": len(c),
+                    "keywords": [{"word": kw, "count": cnt} for kw, cnt in kws[:8]],
+                    "docs": [sampled[idx].title for idx in c[:10]],
+                })
+            _json_response(self, result)
+        except Exception as e:
+            _json_error(self, f"聚类失败: {e}", 500)
+
+    def _handle_docs_tree(self):
+        try:
+            from doc_aggregator import DocumentScanner, SituationalClusterer, WrappingTree, WORKSPACE_DIR
+            scanner = DocumentScanner(WORKSPACE_DIR)
+            docs = scanner.scan()
+            sample_size = 500
+            sampled = docs[:sample_size] if len(docs) > sample_size else docs
+            sampled_index = {}
+            for i, d in enumerate(sampled):
+                for kw in d.keywords:
+                    sampled_index.setdefault(kw, set()).add(i)
+            clusterer = SituationalClusterer(sampled, sampled_index)
+            clusterer.cluster()
+            tree = WrappingTree(clusterer)
+            tree.build()
+            _json_response(self, {
+                "dot": tree.render_dot(),
+                "nodes": len(tree.nodes) if hasattr(tree, 'nodes') else 0,
+                "total_docs": len(docs),
+                "sampled": len(sampled),
+            })
+        except Exception as e:
+            _json_error(self, f"包裹树失败: {e}", 500)
+
+    def _handle_docs_detail(self):
+        body = _read_json_body(self)
+        path = body.get('path', '')
+        if not path:
+            _json_error(self, "需要 path 参数")
+            return
+        try:
+            from doc_aggregator import DocumentScanner
+            import os
+            full_path = os.path.join('/mnt/data/catpaw/home/.meituan-catpaw/desk_default_workspace/hunyuan-os', path)
+            if not os.path.exists(full_path):
+                _json_error(self, f"文件不存在: {path}", 404)
+                return
+            with open(full_path, 'r', encoding='utf-8', errors='replace') as f:
+                text = f.read()
+            from pathlib import Path
+            from doc_aggregator import Document
+            doc = Document(Path(path), path, text)
+            features = doc.extract_features()
+            _json_response(self, {
+                "path": path,
+                "title": doc.title,
+                "size": len(text),
+                "features": features,
+            })
+        except Exception as e:
+            _json_error(self, f"读取失败: {e}", 500)
 
 
 # ── 辅助 ─────────────────────────────────────────────────

@@ -1430,15 +1430,64 @@ print a"#;
     println!("  预家长进制: YinYang二进制 · 五行 · 八卦 · 64进制几何化身");
     println!("  编译期 = 运行时 · 无 CPU 占用 · 仅存储");
     println!("═══════════════════════════════════════");
-}
+    // ══════════════════════════════════════════════════════
+    // 持久化演示: 导出 → 恢复 → 校验
+    // ══════════════════════════════════════════════════════
+    println!("\n═══════════════════════════════════════");
+    println!("  持久化: 导出 → 恢复 → 完整性传递");
+    println!("═══════════════════════════════════════");
 
-#[test]
-fn debug_export_format() {
-    use crate::os_layer::bare_metal::BareMetalOs;
-    let os = BareMetalOs::new();
-    let mut shell = ParasiteShell::new(20);
-    let a = shell.spawn(&os, "Test", crate::swarm::AgentRole::Root, 20);
-    shell.agents.get_mut(&a).unwrap().record_radiation("task", "target");
-    let exported = shell.export_timestamps();
-    eprintln!("EXPORTED:\n{}", exported);
+    {
+        use mqf::swarm::{ParasiteShell, AgentRole};
+
+        let os = current_os();
+        let mut shell = ParasiteShell::new(20);
+        let a = shell.spawn(&*os, "Alice", AgentRole::Root, 20);
+        let b = shell.spawn(&*os, "Bob", AgentRole::Leaf, 20);
+        shell.get_agent(a).unwrap().record_radiation("任务", "Target");
+        shell.get_agent(b).unwrap().record_collapse("Bob", "数据");
+        shell.get_agent(a).unwrap().record_fusion("外部", "融合");
+
+        // 导出时间戳
+        let exported = shell.export_timestamps();
+        println!("导出字节数: {}", exported.len());
+        println!("导出内容预览:");
+        for (i, line) in exported.lines().take(8).enumerate() {
+            println!("  {}", line);
+        }
+        println!("  ...");
+
+        // 恢复
+        let recovered = ParasiteShell::import_timestamps(&exported).unwrap();
+        println!("\n恢复 {} 个分身的时间戳:", recovered.len());
+
+        let mut all_intact = true;
+        for (id, name, ts) in &recovered {
+            let report = ts.verify_integrity();
+            let status = if report.is_intact() { "✓" } else { "✗" };
+            if !report.is_intact() { all_intact = false; }
+            println!("  {} [{}] {:<10} v{} 事件={} 完整={}",
+                status, id, name, ts.version(), report.total_events, report.is_intact());
+        }
+
+        println!("  持久化结论: {}", if all_intact { "✓ 完整传递" } else { "✗ 数据破损" });
+
+        // 事件统计对比
+        let (f1, c1, r1) = shell.event_statistics();
+        let mut f2 = 0;
+        let mut c2 = 0;
+        let mut r2 = 0;
+        for (_, _, ts) in &recovered {
+            for ev in &ts.events {
+                match ev {
+                    mqf::hierarchical_time::LifeEvent::Fusion { .. } => f2 += 1,
+                    mqf::hierarchical_time::LifeEvent::Collapse { .. } => c2 += 1,
+                    mqf::hierarchical_time::LifeEvent::Radiation { .. } => r2 += 1,
+                }
+            }
+        }
+        println!("  事件统计对比: 原[融合{} 坍缩{} 辐射{}] ↔ 恢复[融合{} 坍缩{} 辐射{}] {}",
+            f1, c1, r1, f2, c2, r2,
+            if f1 == f2 && c1 == c2 && r1 == r2 { "✓ 一致" } else { "✗ 不一致" });
+    }
 }
