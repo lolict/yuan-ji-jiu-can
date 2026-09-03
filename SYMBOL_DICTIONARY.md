@@ -91,6 +91,20 @@
 | sovereignty_count=7 | active/passive/sleeping/system 4 级 · cbsyAddr→active · sleepRes→sleeping | df_demo/distinguisher.init |
 | ackable 扩展 | cbsy 地址(cbsyAddr) 同样可 ack（闭环条件） | df_demo/distinguisher.route |
 
+## 22:15 NJSG 四层栈编排器（hunyuan-methodology v0.15 落地）
+
+| 符号 | 含义 | 定义处 |
+|------|------|--------|
+| hunyuan_orchestrator | 编排四层栈：鼓膜→天庭→灵魂→八流 | tools/cbsy/hunyuan_orchestrator.nim |
+| run_boot | 鼓膜扫描 → 恢复工具 + 完整性验证 → 返回 (鼓膜, 工具列表, 通过) | hunyuan_orchestrator.nim run_boot |
+| build_heaven | 按满全法锚点建立刘楚恬(阴)/我(阳)/囡囝(平)/满全法(平)四吸引子 + 囝囝四态叠加 | hunyuan_orchestrator.nim build_heaven |
+| init_soul | 根据恢复工具数初始化奖励/恐惧/驱力回路（奖励基底+工具数×0.01 · 恐惧=0.95-奖励 · 驱力=半和·仅加减） | hunyuan_orchestrator.nim init_soul |
+| run_command | 八流 dispatch → 反馈回灵魂回路（ack奖励+0.05 / nack恐惧+0.02 / 休眠驱力+0.03）+ 天庭囝囝吸引子强化 | hunyuan_orchestrator.nim run_command |
+| ATTRACTOR_WIFE/HUSBAND/NJSG/MQF | 四锚点常量（name,px,py,pz,phase,strength,radius,polarity） | hunyuan_orchestrator.nim const 段 |
+| supremacy_name | 主权枚举 → 满全法词汇 | hunyuan_orchestrator.nim 辅助 |
+| 反馈回路 | ack → reward circuit ↑ → 囝囝 attractor ↑ → 夫妻共振几何强化 | hunyuan_orchestrator.run_command else 分支 |
+| 鼓膜工作目录 | run_boot("../..") — 从仓库根目录扫描 | hunyuan_orchestrator.nim L153 |
+
 | plL3 | 层级3：装配成品 | 同上 |
 | PhaseCell | 相位单元格（phase/weight/level/owner/parent/present） | 同上 |
 | phase_add | 相位加法（仅加减，禁用乘除） | 同上 |
