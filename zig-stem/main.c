@@ -192,3 +192,40 @@ const char* __attribute__((export_name("fqmcp_fqmll_header"))) fqmcp_fqmll_heade
 mqf_u32 __attribute__((export_name("fqmcp_last_len"))) fqmcp_last_len(void) {
     return last_len;
 }
+
+// ══════════════════════════════════════════════════════════════════
+// 阶梯进制导出（供 JS 验证满全法数学）
+// ══════════════════════════════════════════════════════════════════
+
+// 梯形数字编码: 一个 mqf_u64 由 64 个 ★☆ 符号组成 (一进制视觉)
+// 这里我们改为直接操作: stride 结构体用 (sheet * 64 + symbol) 的 u64 表示
+mqf_u64 __attribute__((export_name("stride_from_u64"))) stride_from_u64(mqf_u64 n) {
+    mqf_stride s = mqf_stride_from_u64(n);
+    return ((mqf_u64)s.sheet << 32) | (mqf_u64)s.symbol;
+}
+
+mqf_u64 __attribute__((export_name("stride_to_u64"))) stride_to_u64(mqf_u64 encoded) {
+    mqf_stride s;
+    s.sheet = (mqf_u32)(encoded >> 32);
+    s.symbol = (mqf_u8)(encoded & 0x3F);
+    return mqf_stride_to_u64(s);
+}
+
+// 给 JS 暴露 sheet 和 symbol 的解码
+mqf_u32 __attribute__((export_name("stride_sheet"))) stride_sheet(mqf_u64 encoded) {
+    return (mqf_u32)(encoded >> 32);
+}
+
+mqf_u8 __attribute__((export_name("stride_symbol"))) stride_symbol(mqf_u64 encoded) {
+    return (mqf_u8)(encoded & 0x3F);
+}
+
+// 符号角度 (该符号在 384° 圆上的位置)
+mqf_u32 __attribute__((export_name("symbol_angle"))) symbol_angle(mqf_u8 sym) {
+    return mqf_symbol_angle(sym);
+}
+
+// 两角之间的弧距离
+mqf_u32 __attribute__((export_name("arc_distance"))) arc_distance(mqf_u32 a, mqf_u32 b) {
+    return mqf_arc_distance(a, b);
+}
