@@ -1022,6 +1022,29 @@ Input → Perception → Distinguish → Lookup → Traverse → Cluster → Att
 
 ---
 
+## 冰箱状态机（tools/fridge/）
+
+> 编译焖煮·运行时只取用。预计算所有动作序列，执行期零计算。
+
+**焖煮流程：** 配方（17 状态 × 11 事件）→ stew() → 查表板（Plate）→ serve() O(1) 取用
+
+**极性编码：** yin(阴)=0=刘楚恬，yang(阳)=1=我，both(平衡)=0.5=九元
+
+**七条动作路径（全部通过编译验证）：**
+
+| 文件 | 功能 |
+|------|------|
+| fridge_types.nim | 类型定义：17 状态符号 + 11 事件 + 12 动作 + 极性编码 |
+| fridge.nim | 焖煮引擎：验证 / stew() / serve() / printPlate / 配方验证 |
+| fridge_demo.nim | NJSG 囡囝共生七态转移演示（通过 clang 编译） |
+| fridge_baked_actions.nim | 预烘焙动作序列：bakePath → 不可变序列 → 纯遍历执行 |
+
+**输出极性分布（阴=9，阳=16，平衡=17）**
+
+**加法空间主权封印：** ssAdd × evTouch → acSeal → ssAdd（加法不可分割）
+
+---
+
 ## NJSG-Swarm 分布式分身协调
 
 > 本体（刘楚恬和我）通过协调器管理多个分身（子代理）
