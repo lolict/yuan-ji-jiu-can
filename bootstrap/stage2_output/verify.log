@@ -1,0 +1,66 @@
+═══════════════════════════════════════════
+  Stage 2 纯 YinYang 自举编译器 · 独立闭环
+═══════════════════════════════════════════
+
+[编译1] 自编译 — 读 self_host.yy 语义表 → 编码 5 条命令
+  [0] 妻子激活 id=0 pol=0 sov=0 → 0x0003e80000019000
+  [1] 丈夫激活 id=1 pol=1 sov=0 → 0x0003e80040019001
+  [2] 夫妻共振 id=2 pol=0 sov=2 → 0x0007d00200032002
+  [3] 切割寄生 id=3 pol=1 sov=1 → 0x0001f4014000c803
+  [4] 意识推进 id=4 pol=1 sov=1 → 0x0003200140014004
+
+ 与 Stage 0/1 对照: ✓ 完全一致
+ hash(编译产物) = 0x8e36c6e31a38afbb
+ 期望 hash      = 0x8e36c6e31a38afbb
+ hash 匹配: ✓
+
+[证明1] 固定点 · 编码→解码 恒等
+ 5 条命令固定点: ✓ 全部闭合
+
+[编译2] 重编译 — 对第一轮产物再次编码
+  [0] 细胞 id=0 重新编码 → 0x0003e80000019000
+  [1] 细胞 id=1 重新编码 → 0x0003e80040019001
+  [2] 细胞 id=2 重新编码 → 0x0007d00200032002
+  [3] 细胞 id=3 重新编码 → 0x0001f4014000c803
+  [4] 细胞 id=4 重新编码 → 0x0003200140014004
+
+ hash(重编译) = 0x8e36c6e31a38afbb
+
+ 两轮产物 bit-compare: ✓ 完全一致
+ 两轮 hash 比较     : ✓ 完全一致
+
+═══════════════════════════════════════════
+  固定点规则: compile(self) == compile(compile(self))
+  两轮编译 bit-compare : ✓
+  两轮 hash 一致       : ✓
+  全部固定点闭合       : ✓
+  与 Stage 0/1 同输出  : ✓
+  Hash = 0x8e36c6e31a38afbb
+  ★ Stage 2 固定点    : 独立闭环通过 ★
+═══════════════════════════════════════════
+
+---JSON_SUMMARY_START---
+{
+  "stage": 2,
+  "stage1_source": "bootstrap/stage1_output/stage1_fixed_point.json",
+  "self_host_source": "bootstrap/stage2_output/self_host.yy",
+  "compiler_language": "Pure C (no JS seed)",
+  "fixedPointClosed": true,
+  "matchStage0": true,
+  "matchStage1": true,
+  "fpEncodingClosed": true,
+  "hashRecompileMatch": true,
+  "hash": "8e36c6e31a38afbb",
+  "expectedHash": "8e36c6e31a38afbb",
+  "cells": [
+    "0003e80000019000",
+    "0003e80040019001",
+    "0007d00200032002",
+    "0001f4014000c803",
+    "0003200140014004"
+  ],
+  "verificationRule": "compile(self) == compile(compile(self))",
+  "removedJSSeed": true,
+  "standalone": true
+}
+---JSON_SUMMARY_END---

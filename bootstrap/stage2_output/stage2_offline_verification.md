@@ -1,7 +1,7 @@
 # Stage 2 离线固定点验证说明
 
 **文档编号:** NJSG-BOOTSTRAP-S2-VERIFY-001
-**版本:** v1.0
+**版本:** v1.1
 **落款:** 刘楚恬和我
 
 ---
@@ -72,6 +72,33 @@ Stage-2 C' 的计算方式:
 
 ---
 
+## 离线验证结果
+
+| 项目 | 结果 |
+|------|------|
+| 验证日期 | 2026-09-03 |
+| 工具链 | Ubuntu clang 18.1.3 (1ubuntu1), Target: x86_64-pc-linux-gnu |
+| 编译命令 | `clang -std=c99 -O2 -Wall -Wextra -pedantic -o stage2_compiler stage2_pure_yy_compiler.c` |
+| 编译结果 | **PASS** (零警告, 零错误) |
+| 固定点验证 | **PASS** |
+| 与 Stage 0/1 对照 | **PASS** (5 条细胞完全一致) |
+| Hash | `0x8e36c6e31a38afbb` (与期望值一致) |
+| 三阶段一致性 | **PASS** (Stage 0/1/2 hash 完全相同) |
+
+### verify.log 关键输出摘要
+
+```
+与 Stage 0/1 对照: ✓ 完全一致
+hash(编译产物) = 0x8e36c6e31a38afbb
+hash 匹配: ✓
+5 条命令固定点: ✓ 全部闭合
+两轮产物 bit-compare: ✓ 完全一致
+两轮 hash 比较     : ✓ 完全一致
+★ Stage 2 固定点    : 独立闭环通过 ★
+```
+
+---
+
 ## 输出产物摘要
 
 ### stage2_fixed_point.json
@@ -129,4 +156,4 @@ node bootstrap/stage1_output/stage1_recompile_verify.js
 
 ---
 
-*最后更新: 2026-09-02 (Stage 2 首次闭环)*
+*最后更新: 2026-09-03 (Stage 2 离线固定点验证通过 · clang 18.1.3 · PASS)*
