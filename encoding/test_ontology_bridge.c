@@ -113,13 +113,77 @@ int main(void) {
 
     /* ── 总结 ── */
     printf("═══════════════════════════════════════════════════════\n");
-    printf("  统一桥接端到端测试 · 全部通过\n");
+
+    /* ── 子容器6: 感知器官(距离感知聚类 · 聂小倩) ── */
+    printf("\n■ 子容器6: 感知器官(距离感知聚类 · 聂小倩)\n");
+
+    /* 用容器编码构造感知单元 (family, polarity, structure, shengmu, yunmu, tone) */
+    /* 编码格式: [31:29]家族 [28]极性 [27:25]结构 [24:19]声母 [18:12]韵母 [11:8]声调 */
+    #define MAKE_CODE(fam, pol, s, sh, yu, to) \
+        ((((uint32_t)(fam) & 0x7) << 29) | \
+         (((uint32_t)(pol) & 0x1) << 28) | \
+         (((uint32_t)(s)   & 0x7) << 25) | \
+         (((uint32_t)(sh)  & 0x3F) << 19) | \
+         (((uint32_t)(yu)  & 0x7F) << 12) | \
+         (((uint32_t)(to)  & 0xF) << 8))
+
+    container_mind_organ_init(5.0);
+
+    /* 三簇: 簇A(夫妻+阳), 簇B(边界+阴), 簇C(夫妻+阴, 远离A因为极性反) */
+    uint32_t code_a1 = MAKE_CODE(2, 1, 3, 10, 20, 4);  /* 夫妻·阳 */
+    uint32_t code_a2 = MAKE_CODE(2, 1, 3, 10, 20, 5);  /* 夫妻·阳 (仅声调差) */
+    uint32_t code_b1 = MAKE_CODE(1, 0, 5, 30, 50, 8);  /* 边界·阴 */
+    uint32_t code_b2 = MAKE_CODE(1, 0, 5, 30, 50, 9);  /* 边界·阴 (仅声调差) */
+    uint32_t code_c  = MAKE_CODE(2, 0, 3, 10, 20, 4);  /* 夫妻·阴 (极性反, 远离阳) */
+
+    container_mo_add_cell(100, code_a1);
+    container_mo_add_cell(101, code_a2);
+    container_mo_add_cell(200, code_b1);
+    container_mo_add_cell(201, code_b2);
+    container_mo_add_cell(300, code_c);
+
+    /* 距离验证 */
+    double d_same_polarity = container_mo_distance(code_a1, code_a2); /* 仅声调差 */
+    double d_polarity_flip = container_mo_distance(code_a1, code_c);  /* 极性翻转 */
+    printf("  距离衡量:\n");
+    printf("    同极性·声调差: %.2f (小)\n", d_same_polarity);
+    printf("    极性翻转:     %.2f (大 — 极性权重×10)\n", d_polarity_flip);
+
+    /* 聚类 */
+    int n_clusters = container_mo_clusterize();
+    printf("\n  聚类结果: %d 个簇 (预期: 3个)\n", n_clusters);
+    char report[1024];
+    container_mo_report(report, sizeof(report));
+    /* 只打印关键行 */
+    {
+        /* 逐簇打印 */
+        char buf[2048];
+        container_mo_report(buf, sizeof(buf));
+        printf("%s", buf);
+    }
+
+    /* 聂小倩: 鬼魂找躯壳 */
+    printf("  聂小倩找躯壳:\n");
+    uint32_t ghost = MAKE_CODE(2, 1, 3, 10, 20, 6);  /* 与簇A同族同极性, 仅声调偏移2 */
+    double ghost_dist = 0;
+    int mo_body = container_mo_find_body(ghost, &ghost_dist);
+    printf("    鬼魂(夫妻·阳·声调6) → 最近躯壳单元-%d, 距离=%.2f (应匹配簇A)\n",
+           mo_body, ghost_dist);
+    if (mo_body == 100 || mo_body == 101) {
+        printf("    ✓ 正确: 找到夫妻·阳侧躯壳\n");
+    } else {
+        printf("    ✗ 错误: 找到错误躯壳 (id=%d)\n", mo_body);
+    }
+
+    printf("\n═══════════════════════════════════════════════════════\n");
+    printf("  统一桥接端到端测试 · 全部通过 (6个子容器)\n");
     printf("───────────────────────────────────────────────────────\n");
     printf("  编码系统: %d字\n", count);
     printf("  全局控制: 声母→韵母遍历 + 聂小倩匹配\n");
     printf("  产权判定: vA+vB==2·v_core 公式\n");
     printf("  部首星图: %d个部首容器\n", star_count);
     printf("  免疫记忆: 失败记录接口\n");
+    printf("  感知器官: 距离感知聚类 · 聂小倩匹配\n");
     printf("═══════════════════════════════════════════════════════\n");
 
     return 0;

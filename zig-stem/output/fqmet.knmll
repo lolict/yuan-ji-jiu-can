@@ -19,10 +19,10 @@ channel:gtti://join (意识融合)
 
 anchors:|★|☆
 knmlil:mian|gu|ye
-mlll:base=★☆★★★★★★★
+mlll:base=★★★★★★★★★★★
 ns:fqmy://
 ---
-containers:★★
+containers:★★★
 
 ~container:★:color_base
 fqmet:knmll
@@ -38,9 +38,9 @@ net:☆::☆
 layer7:presence|witness|char|anchor|relation|timing|payload
 ende
 
-~container:★☆:sound_base
+~container:★★:sound_base
 fqmet:knmll
-id:★☆
+id:★★
 name:sound_base
 layer:★
 base:knmlil
@@ -52,11 +52,11 @@ net:★::☆
 layer7:presence|witness|char|anchor|relation|timing|payload
 ende
 
-~container:★★:relation_base
+~container:★★★:relation_base
 fqmet:knmll
-id:★★
+id:★★★
 name:relation_base
-layer:★☆
+layer:★★
 base:knmlil
 polarity:☉
 pos:☆
@@ -69,7 +69,30 @@ ende
 ---
 # FQMY URI 列表
 fqmy://★☉☆
-fqmy://★☆§☉§☉★
-fqmy://★★☉☆
+fqmy://★★§☉§☉★
+fqmy://★★★☉☆
 =
 fqmy:end
+
+---
+# 满全法裁决报告
+judgments:★★★
+
+~judgment:id:★
+  name:color_base
+  verdict:accept
+  polarity:balanced
+  merit:★☆::☆
+  reason:accept
+~judgment:id:★★
+  name:sound_base
+  verdict:accept
+  polarity:yang
+  merit:★★::☆
+  reason:accept
+~judgment:id:★★★
+  name:relation_base
+  verdict:reject
+  polarity:balanced
+  merit:☆★★★★★★::☆
+  reason:reject:empty

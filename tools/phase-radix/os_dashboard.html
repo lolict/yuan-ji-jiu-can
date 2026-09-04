@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>囡囝共生 OS · 系统仪表盘</title>
+<style>
+:root {
+  --bg: #080c12; --panel: #111722; --border: #1a2535;
+  --text: #c8d0dc; --muted: #4a5a6e; --green: #35d07f;
+  --red: #e5484d; --yellow: #e5a148; --cyan: #3baded;
+  --accent: #8b5cf6; --accent2: #ec4899;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'JetBrains Mono', monospace; background: var(--bg); color: var(--text); min-height: 100vh; padding: 20px; }
+.header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+.header h1 { font-size: 16px; color: var(--accent); letter-spacing: 0.05em; }
+.status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--green); margin-right: 6px; animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.panel { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 14px; }
+.panel.full { grid-column: 1 / -1; }
+.panel h2 { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+.metric { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.metric:first-child { padding-top: 0; }
+.metric:last-child { border-bottom: none; }
+.metric-val { font-weight: 600; color: var(--cyan); }
+.btn { background: var(--border); border: none; color: var(--text); padding: 5px 10px; border-radius: 3px; cursor: pointer; font-size: 11px; font-family: inherit; }
+.btn:hover { opacity: 0.85; }
+.bar { height: 6px; background: var(--bg); border-radius: 3px; margin-top: 3px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+.verdict-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-top: 8px; }
+.verdict-cell { text-align: center; padding: 6px 4px; border-radius: 4px; background: var(--bg); }
+.verdict-cell .num { font-size: 16px; font-weight: 700; }
+.verdict-cell .lbl { font-size: 8px; color: var(--muted); margin-top: 2px; }
+.btn-row { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>◈ 囡囝共生 OS · 系统仪表盘</h1>
+  <div style="font-size:11px;color:var(--muted);">
+    <span class="status-dot" id="conn-dot"></span>
+    <span id="conn-text">连接中...</span>
+    <button class="btn" onclick="refreshAll()" style="margin-left:12px;">刷新</button>
+  </div>
+</div>
+
+<div class="grid">
+  <!-- WASM 内核状态 -->
+  <div class="panel">
+    <h2><span style="color:var(--cyan)">◆</span> WASM 内核</h2>
+    <div id="wk-metrics">
+      <div class="metric"><span>囡囝态</span><span class="metric-val" id="wk-state">—</span></div>
+      <div class="metric"><span>细胞数</span><span class="metric-val" id="wk-cells">—</span></div>
+      <div class="metric"><span>版本</span><span class="metric-val" id="wk-ver">—</span></div>
+      <div class="metric"><span>流激活</span><span class="metric-val" id="wk-flow">—</span></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn" onclick="apiGet('/api/kernel/state').then(r=>refreshAll())">状态</button>
+      <button class="btn" onclick="addRandomCell()">+细胞</button>
+    </div>
+  </div>
+
+  <!-- 天庭空间 -->
+  <div class="panel">
+    <h2><span style="color:var(--accent)">◆</span> 天庭空间</h2>
+    <div id="court-metrics">
+      <div class="metric"><span>当前态</span><span class="metric-val" id="court-state">—</span></div>
+      <div class="metric"><span>累计裁决</span><span class="metric-val" id="court-total">—</span></div>
+    </div>
+    <div class="verdict-row" id="court-verdicts">
+      <div class="verdict-cell"><div class="num" style="color:var(--green)" id="cv-merge">0</div><div class="lbl">融合</div></div>
+      <div class="verdict-cell"><div class="num" style="color:var(--red)" id="cv-repel">0</div><div class="lbl">排斥</div></div>
+      <div class="verdict-cell"><div class="num" style="color:var(--yellow)" id="cv-witness">0</div><div class="lbl">见证</div></div>
+      <div class="verdict-cell"><div class="num" style="color:var(--accent)" id="cv-transform">0</div><div class="lbl">转化</div></div>
+      <div class="verdict-cell"><div class="num" style="color:var(--muted)" id="cv-defer">0</div><div class="lbl">延迟</div></div>
+      <div class="verdict-cell"><div class="num" style="color:var(--cyan)" id="cv-escalate">0</div><div class="lbl">升维</div></div>
+    </div>
+  </div>
+
+  <!-- MetaIME -->
+  <div class="panel">
+    <h2><span style="color:var(--accent2)">◆</span> MetaIME</h2>
+    <div id="ime-metrics">
+      <div class="metric"><span>规则数</span><span class="metric-val" id="ime-rules">—</span></div>
+      <div class="metric"><span>输入缓冲</span><span class="metric-val" id="ime-buf">—</span></div>
+      <div class="metric"><span>总匹配</span><span class="metric-val" id="ime-matches">—</span></div>
+      <div class="metric"><span>自动阈值</span><span class="metric-val" id="ime-thresh">—</span></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn" onclick="quickEncode()">快速编码</button>
+    </div>
+  </div>
+
+  <!-- 文档聚合 -->
+  <div class="panel">
+    <h2><span style="color:var(--green)">◆</span> 文档聚合</h2>
+    <div id="docs-metrics">
+      <div class="metric"><span>文档总数</span><span class="metric-val" id="docs-total">—</span></div>
+      <div class="metric"><span>关键词</span><span class="metric-val" id="docs-kws">—</span></div>
+      <div class="metric"><span>聚类簇</span><span class="metric-val" id="docs-clusters">—</span></div>
+      <div class="metric"><span>采样</span><span class="metric-val" id="docs-sampled">—</span></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn" onclick="refreshDocs()">扫描</button>
+      <button class="btn" onclick="window.open('/','_blank')">浏览器</button>
+    </div>
+  </div>
+
+  <!-- REST API 端点状态 -->
+  <div class="panel">
+    <h2><span style="color:var(--yellow)">◆</span> REST 端点</h2>
+    <div id="ep-list" style="font-size:10px;"></div>
+  </div>
+
+  <!-- 链接 -->
+  <div class="panel">
+    <h2><span style="color:var(--cyan)">◆</span> 子系统入口</h2>
+    <div class="btn-row">
+      <button class="btn" onclick="window.open('/','_blank')">内核浏览器</button>
+      <button class="btn" onclick="window.open('/simulator','_blank')">细胞模拟器</button>
+      <button class="btn" onclick="window.open('/api/','_blank')">API 文档</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const ENDPOINTS = [
+  '/api/kernel/state', '/api/kernel/stats', '/api/kernel/cells',
+  '/api/interlock/status', '/api/property/stats',
+  '/api/metaime/stats', '/api/court/stats',
+  '/api/docs/scan', '/api/docs/clusters',
+];
+
+async function apiGet(path) {
+  try {
+    const r = await fetch(path);
+    return await r.json();
+  } catch(e) { return null; }
+}
+
+async function apiPost(path, body) {
+  try {
+    const r = await fetch(path, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(body || {})
+    });
+    return await r.json();
+  } catch(e) { return null; }
+}
+
+function setConn(ok) {
+  const dot = document.getElementById('conn-dot');
+  const txt = document.getElementById('conn-text');
+  if (ok) { dot.style.background = 'var(--green)'; txt.textContent = '已连接'; }
+  else { dot.style.background = 'var(--red)'; txt.textContent = '连接失败'; }
+}
+
+async function refreshKernel() {
+  const s = await apiGet('/api/kernel/state');
+  if (!s) return;
+  document.getElementById('wk-state').textContent = ['NN','NJSG','JJ','JN'][s.state] || s.state;
+  document.getElementById('wk-cells').textContent = s.cell_count;
+  document.getElementById('wk-ver').textContent = s.version || '0.4';
+  document.getElementById('wk-flow').textContent = s.flow_active || '—';
+}
+
+async function refreshCourt() {
+  const s = await apiGet('/api/court/stats');
+  if (!s || !s.stats) return;
+  const stats = s.stats;
+  // 解析统计字符串
+  const match = (re) => { const m = stats.match(re); return m ? m[1] : '0'; };
+  document.getElementById('court-state').textContent = (stats.match(/囡囝态: (.+)/) || ['','—'])[1];
+  document.getElementById('court-total').textContent = (
+    parseInt(match(/融合: (\d+)/)) + parseInt(match(/排斥: (\d+)/)) +
+    parseInt(match(/见证: (\d+)/)) + parseInt(match(/转化: (\d+)/))
+  );
+  document.getElementById('cv-merge').textContent = match(/融合: (\d+)/);
+  document.getElementById('cv-repel').textContent = match(/排斥: (\d+)/);
+  document.getElementById('cv-witness').textContent = match(/见证: (\d+)/);
+  document.getElementById('cv-transform').textContent = match(/转化: (\d+)/);
+}
+
+async function refreshIme() {
+  const s = await apiGet('/api/metaime/stats');
+  if (!s || !s.stats) return;
+  const stats = s.stats;
+  const match = (re) => { const m = stats.match(re); return m ? m[1] : '—'; };
+  document.getElementById('ime-rules').textContent = match(/规则: (\d+)/);
+  document.getElementById('ime-buf').textContent = match(/输入缓冲: (\d+)/);
+  document.getElementById('ime-matches').textContent = match(/总匹配: (\d+)/);
+  document.getElementById('ime-thresh').textContent = match(/自动阈值: (.+)/);
+}
+
+async function refreshDocs() {
+  const r = await apiGet('/api/docs/scan');
+  if (!r) return;
+  document.getElementById('docs-total').textContent = r.total_docs;
+  document.getElementById('docs-kws').textContent = r.total_keywords;
+  
+  const c = await apiGet('/api/docs/clusters');
+  if (c) {
+    document.getElementById('docs-clusters').textContent = c.total_clusters;
+    document.getElementById('docs-sampled').textContent = c.sampled;
+  }
+}
+
+async function refreshEndpoints() {
+  const el = document.getElementById('ep-list');
+  let html = '';
+  for (const ep of ENDPOINTS) {
+    try {
+      const r = await fetch(ep);
+      const ok = r.ok;
+      html += `<div style="display:flex;align-items:center;gap:6px;padding:3px 0;">
+        <span style="color:${ok ? 'var(--green)' : 'var(--red)'}">${ok ? '●' : '●'}</span>
+        <span style="color:var(--muted)">${ep}</span>
+      </div>`;
+    } catch(e) {
+      html += `<div style="display:flex;align-items:center;gap:6px;padding:3px 0;">
+        <span style="color:var(--red)">●</span><span style="color:var(--muted)">${ep}</span></div>`;
+    }
+  }
+  el.innerHTML = html;
+}
+
+async function addRandomCell() {
+  const pol = Math.floor(Math.random() * 3);
+  const mccp = Math.floor(Math.random() * 0xFFF) + 0x100;
+  const sov = (Math.floor(Math.random() * 20) + 1) * 0x1000;
+  await apiPost('/api/kernel/cell/add', {
+    mccp, sovereignty: sov, polarity: pol, witness: Math.floor(Math.random() * 4)
+  });
+  refreshKernel();
+}
+
+async function quickEncode() {
+  await apiPost('/api/metaime/encode', { shengmu: 0, yunmu: 0, tone: 1, polarity: 0, sovereignty: '0x100' });
+  refreshIme();
+}
+
+async function refreshAll() {
+  const r = await apiGet('/api/');
+  setConn(!!r);
+  await refreshKernel();
+  await refreshCourt();
+  await refreshIme();
+  await refreshDocs();
+  await refreshEndpoints();
+}
+
+refreshAll();
+setInterval(refreshAll, 15000);
+</script>
+</body>
+</html>

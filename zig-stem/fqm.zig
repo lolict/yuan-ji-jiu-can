@@ -25,16 +25,16 @@ pub const PAYLOAD_SIZE: u32 = 0x00FE;
 // ============================================================
 // 每位十进制数字 → 0 到 9 个 ★
 const DIGIT_TABLE = [_][]const u8{
-    "☆",    // 0
-    "★",    // 1
-    "★☆",   // 2
-    "★★",   // 3
-    "★★★",  // 4
-    "★★★★", // 5
-    "★★★★★", // 6
-    "★★★★★★", // 7
-    "★★★★★★★", // 8
-    "★★★★★★★★", // 9
+    "☆",            // 0
+    "★",            // 1
+    "★★",           // 2
+    "★★★",          // 3
+    "★★★★",         // 4
+    "★★★★★",        // 5
+    "★★★★★★",       // 6
+    "★★★★★★★",      // 7
+    "★★★★★★★★",     // 8
+    "★★★★★★★★★",    // 9
 };
 
 // 非负整数 → ★☆ 一进制（纯递归，避免 never-mutated 警告）
@@ -349,7 +349,7 @@ pub const KnmlWriter = struct {
         return KnmlWriter{ .allocator = allocator, .encoder = FQMEncoder.init(), .community = Community.init() };
     }
 
-    pub fn generateFromOrchestrator(self: *KnmlWriter, orch: *const orchestrator.Orchestrator, output_path: []const u8) !void {
+    pub fn generateFromOrchestrator(self: *KnmlWriter, orch: *const orchestrator.Orchestrator, judgment_report: ?[]const u8, output_path: []const u8) !void {
         const stats = orch.getContainerStats();
 
         var output = std.ArrayList(u8).init(self.allocator);
@@ -413,6 +413,12 @@ pub const KnmlWriter = struct {
 
         try output.appendSlice("=\nfqmy:end\n");
 
+        // 追加满全法裁决报告
+        if (judgment_report) |report| {
+            try output.appendSlice("\n");
+            try output.appendSlice(report);
+        }
+
         const file = try std.fs.cwd().createFile(output_path, .{});
         defer file.close();
         try file.writeAll(output.items);
@@ -437,8 +443,12 @@ pub const FQMCP = struct {
         };
     }
 
-    pub fn processOrchestrator(self: *FQMCP, orch: *const orchestrator.Orchestrator, output_path: []const u8) !void {
-        try self.writer.generateFromOrchestrator(orch, output_path);
+    pub fn processOrchestrator(self: *FQMCP, orch: *orchestrator.Orchestrator, output_path: []const u8) !void {
+        // 运行满全法裁决
+        try orch.judgeAllContainers();
+        const report = try orch.getJudgmentReport(self.allocator);
+        defer self.allocator.free(report);
+        try self.writer.generateFromOrchestrator(orch, report, output_path);
     }
 };
 
@@ -617,12 +627,12 @@ pub const KnmllParser = struct {
 
 test "parse unary ★☆" {
     var parser = KnmllParser{};
-    // ★☆ = digit 2 → decimal 2
+    // ★ = digit 1, ☆ = digit 0 → ★☆ = "10" decimal = 10
     const val = try parser.parseUnary("★☆");
-    try std.testing.expectEqual(@as(u64, 2), val);
-    // ★★ = digit 3 → decimal 3
+    try std.testing.expectEqual(@as(u64, 10), val);
+    // ★★ = digit 2 → decimal 2
     const val2 = try parser.parseUnary("★★");
-    try std.testing.expectEqual(@as(u64, 3), val2);
+    try std.testing.expectEqual(@as(u64, 2), val2);
     // ☆ = digit 0 → 0
     const val0 = try parser.parseUnary("☆");
     try std.testing.expectEqual(@as(u64, 0), val0);
@@ -638,6 +648,39 @@ test "parse knmll invalid header" {
     var parser = KnmllParser{};
     const result = parser.verifyIntegrity("invalid\n");
     try std.testing.expectError(error.InvalidHeader, result);
+}
+
+// 往返测试：编码 → 序列化 → 验证字段
+test "round-trip knmll encode+decode" {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+    const allocator = gpa.allocator();
+    var encoder = FQMEncoder.init();
+
+    var container = indexer.Container.init(1, "roundtrip");
+    container.item_count = 1;
+    container.positive_count = 1;
+    container.total_benefit = 5.0;
+
+    // 编码
+    const encoded = try encoder.encodeContainer(allocator, &container, .yu);
+    defer allocator.free(encoded);
+
+    // 验证编码中包含正确的字段（单个容器编码不含 footer）
+    try std.testing.expect(std.mem.startsWith(u8, encoded, "fqmet:knmll\n"));
+    try std.testing.expect(std.mem.indexOf(u8, encoded, "id:★") != null);
+    try std.testing.expect(std.mem.indexOf(u8, encoded, "name:roundtrip") != null);
+
+    // 解析等进制值
+    var parser = KnmllParser{};
+    const merit_val = try parser.parseUnary("★★★★★"); // 5
+    try std.testing.expectEqual(@as(u64, 5), merit_val);
+    const digit1 = try parser.parseUnary("★"); // 1
+    try std.testing.expectEqual(@as(u64, 1), digit1);
+    const digit0 = try parser.parseUnary("☆"); // 0
+    try std.testing.expectEqual(@as(u64, 0), digit0);
+    const digit9 = try parser.parseUnary("★★★★★★★★★"); // 9
+    try std.testing.expectEqual(@as(u64, 9), digit9);
 }
 
 test "unary int formatting" {

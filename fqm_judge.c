@@ -103,6 +103,7 @@ int create_container(const char *name, int level, int gongyueshu) {
     
     Container *c = &g_containers[g_container_count];
     strncpy(c->name, name, 63);
+    c->name[63] = '\0';
     c->id = g_container_count;
     c->level = level;
     c->version = g_container_count + 1;  /* 版本号=创建时间 */
@@ -412,7 +413,6 @@ int main(void) {
      *  1 = 核心（意识路由、八流统一）
      *  2 = 数据（容器引擎、符号表）
      *  3 = 壳（浏览器、gtti帧、寻址）
-     *  4 = 缓存（临时容器）
      */
     create_container("root",       0, 7);    /* 满全法—公约数7 */
     create_container("core",       1, 7);    /* 核心—公约数7 */
@@ -431,15 +431,15 @@ int main(void) {
     /* ========== 论资排辈 ========== */
     sort_containers();
     
-    /* ========== 提交各种请求 ========== */
-    printf("\n========== 提交裁定请求 ==========\n");
-    
     /*
-     * 排序后 ID 映射：
+     * 排序后 ID 映射（按层级+版本排序）：
      *   0=root(0), 1=core(1), 2=router(1), 3=yinyang(1),
      *   4=data(2), 5=radix(2), 6=time(2), 7=judge(2),
      *   8=browser(3), 9=gtti(3), 10=net(3), 11=call(3), 12=bare(3)
      */
+    
+    /* ========== 提交各种请求 ========== */
+    printf("\n========== 提交裁定请求 ==========\n");
     
     /* 1. root → core: 尊者对卑者，应准入 */
     submit_request(0, 1, REQ_ACCESS, 7, "满全法根容器检查核心状态");
@@ -456,13 +456,13 @@ int main(void) {
     /* 5. radix → yinyang: 卑者对尊者，公约数公共因子=2 */
     submit_request(5, 3, REQ_CALL, 4, "64进制请求YY映射");
     
-    /* 6. gtti → net: 同层级不同道（公约数5 vs 无公共因子 → 防撞） */
+    /* 6. gtti → net: 同层级不同道（公约数5 vs 3无公共因子 → 防撞） */
     submit_request(9, 10, REQ_LOAD, 5, "gtti帧请求网络传输");
     
     /* 7. call → root: 卑者对最尊，公约数7匹配，应准入 */
     submit_request(11, 0, REQ_CALL, 7, "呼唤编程请求满全法");
     
-    /* 8. bare → judge: 公约数=1 vs 7，无公共因子 → 防撞墙 */
+    /* 8. bare → judge: 公约数=1 vs 7，无公共因子见证拒绝 */
     submit_request(12, 7, REQ_EXEC, 1, "裸解析请求裁判");
     
     /* ========== 统计和记录 ========== */

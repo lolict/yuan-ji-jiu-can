@@ -468,6 +468,10 @@ static void encode_report(const char* s) {
     printf("\n");
 }
 
+/* 前向声明 — encode_pinyin_buf / decode_syllable_to_pinyin 定义在文件后部 */
+static int encode_pinyin_buf(const char* py, char* outbuf, int outbuf_size);
+static int decode_syllable_to_pinyin(const char* sym, char* outbuf, int outbuf_size);
+
 /* ============================================================
  * 第九部分：自检测试
  * ============================================================ */
@@ -555,6 +559,36 @@ static int run_self_tests(void) {
     }
     printf("  5个y变体正确\n\n");
 
+    /* 测试7: 拼音→符号编码 (基元韵母声调完全可编码) */
+    printf("[测试7] 拼音→符号编码:\n");
+    struct { const char* in; const char* expected; } enc_tests[] = {
+        {"ma1","mā"}, {"ma2","má"}, {"ma3","mǎ"}, {"ma4","mà"},
+        {"ba1","bā"}, {"de2","dé"}, {"li4","lì"}, {"nv3","nǚ"},
+    };
+    for (int i = 0; i < 8; i++) {
+        char out[64];
+        if (encode_pinyin_buf(enc_tests[i].in, out, sizeof(out)) != 0) {
+            printf("  ✗ '%s' 编码失败\n", enc_tests[i].in); fail++; continue;
+        }
+        if (strcmp(out, enc_tests[i].expected) == 0) { pass++; }
+        else { printf("  ✗ '%s' → 期望=%s, 实际=%s\n", enc_tests[i].in, enc_tests[i].expected, out); fail++; }
+    }
+    printf("  8项编码测试完成\n\n");
+
+    /* 测试8: 往返测试 (基元韵母+声调完全可往返) */
+    printf("[测试8] 往返测试 (基元韵母):\n");
+    const char* rt_tests[] = {"ma1","ma2","ma3","ma4","ba1","de2","li4","nv3"};
+    for (int i = 0; i < 8; i++) {
+        char sym[64], back[64];
+        if (encode_pinyin_buf(rt_tests[i], sym, sizeof(sym)) != 0) {
+            printf("  ✗ '%s' 编码失败\n", rt_tests[i]); fail++; continue;
+        }
+        decode_syllable_to_pinyin(sym, back, sizeof(back));
+        if (strcmp(back, rt_tests[i]) == 0) { pass++; }
+        else { printf("  ✗ '%s' → %s → %s (不匹配)\n", rt_tests[i], sym, back); fail++; }
+    }
+    printf("  8项往返测试完成\n\n");
+
     /* 汇总 */
     printf("═══════════════════════════════════\n");
     printf("  自检测试结果: 通过=%d, 失败=%d\n", pass, fail);
@@ -631,54 +665,92 @@ static int find_yunmu_ascii(const char* yunmu) {
     return -1;
 }
 
-/* 编码拼音到符号 */
-static void encode_pinyin(const char* py) {
+/* 编码拼音到符号 — 写入 outbuf (UTF-8), outbuf_size 含 null */
+static int encode_pinyin_buf(const char* py, char* outbuf, int outbuf_size) {
     pinyin_parsed_t p = parse_pinyin(py);
-    if (!p.valid || strlen(p.yunmu) == 0) {
+    if (!p.valid || strlen(p.yunmu) == 0 || outbuf_size < 2) {
+        outbuf[0] = 0;
+        return -1;
+    }
+    outbuf[0] = 0;
+
+    /* 检查是否单韵母 a o e i u ü — 对应 tone_table 索引 */
+    int base_idx = -1;
+    if (strcmp(p.yunmu, "a") == 0) base_idx = 0;      /* TONE_A */
+    else if (strcmp(p.yunmu, "e") == 0) base_idx = 1; /* TONE_E */
+    else if (strcmp(p.yunmu, "i") == 0) base_idx = 2; /* TONE_I */
+    else if (strcmp(p.yunmu, "o") == 0) base_idx = 3; /* TONE_O */
+    else if (strcmp(p.yunmu, "u") == 0) base_idx = 4; /* TONE_U */
+    else if (strcmp(p.yunmu, "v") == 0 || strcmp(p.yunmu, "ü") == 0) base_idx = 5; /* TONE_V */
+
+    const char* yunmu_sym = NULL;
+    if (base_idx >= 0 && p.tone >= 1 && p.tone <= 4) {
+        const char* const* tone_table[] = {TONE_A, TONE_E, TONE_I, TONE_O, TONE_U, TONE_V};
+        yunmu_sym = tone_table[base_idx][p.tone - 1];
+    } else {
+        int yi = find_yunmu_ascii(p.yunmu);
+        if (yi >= 0 && COMPOUNDS[yi].lower) {
+            yunmu_sym = COMPOUNDS[yi].lower;
+        }
+    }
+
+    /* 拼接: 声母 + 韵母符号 */
+    if (p.shengmu[0]) {
+        strncat(outbuf, p.shengmu, outbuf_size - strlen(outbuf) - 1);
+    }
+    if (yunmu_sym) {
+        strncat(outbuf, yunmu_sym, outbuf_size - strlen(outbuf) - 1);
+    } else {
+        /* 无映射, 保留原始韵母 */
+        strncat(outbuf, p.yunmu, outbuf_size - strlen(outbuf) - 1);
+    }
+    return 0;
+}
+
+/* 编码拼音到符号 — 旧打印接口, 保持兼容 */
+static void encode_pinyin(const char* py) {
+    char buf[64];
+    if (encode_pinyin_buf(py, buf, sizeof(buf)) != 0) {
         printf("  %-10s → [解析失败]\n", py);
         return;
     }
 
-    /* 查找韵母映射 */
-    int yi = find_yunmu_ascii(p.yunmu);
-    const char* yunmu_sym = "--";
-
-    if (yi >= 0 && COMPOUNDS[yi].lower) {
-        yunmu_sym = COMPOUNDS[yi].lower;
-        (void)yi; /* yi already used for lookup */
-    }
-
-    /* 检查是否单韵母 (a o e i u ü) */
-    int base_idx = -1;
-    if (strcmp(p.yunmu, "a") == 0) base_idx = 0;
-    else if (strcmp(p.yunmu, "o") == 0) base_idx = 1;
-    else if (strcmp(p.yunmu, "e") == 0) base_idx = 2;
-    else if (strcmp(p.yunmu, "i") == 0) base_idx = 3;
-    else if (strcmp(p.yunmu, "u") == 0) base_idx = 4;
-    else if (strcmp(p.yunmu, "v") == 0 || strcmp(p.yunmu, "\xc3\xbc") == 0) base_idx = 5; /* ü or v */
-
-    /* 尝试声调韵母 (预组字符形式) */
-    if (base_idx >= 0 && p.tone >= 1 && p.tone <= 4) {
-        /* 使用 TONE_* 数组中的预组字符 */
-        const char* const* tone_table[] = {TONE_A, TONE_E, TONE_I, TONE_O, TONE_U, TONE_V};
-        yunmu_sym = tone_table[base_idx][p.tone - 1];
-        printf("  %-10s → %s%s (声母=%s, 韵母=%s, 声调=%d)\n",
-               py, p.shengmu[0] ? p.shengmu : "_", yunmu_sym,
-               p.shengmu[0] ? p.shengmu : "无", p.yunmu, p.tone);
-        return;
-    }
-
-        printf("  %-10s → %s%s (声母=%s, 韵母=%s%s)\n",
-           py, p.shengmu[0] ? p.shengmu : "_", yunmu_sym,
+    pinyin_parsed_t p = parse_pinyin(py);
+    printf("  %-10s → %s (声母=%s, 韵母=%s, 声调=%d)\n",
+           py, buf,
            p.shengmu[0] ? p.shengmu : "无",
-           p.yunmu, p.tone ? " +tone" : "");
+           p.yunmu, p.tone);
+}
+
+/* 批量编码整句拼音 (空格分隔) */
+static void encode_sentence(const char* sentence) {
+    char buf[1024];
+    char out[2048] = "";
+    strncpy(buf, sentence, sizeof(buf) - 1);
+    buf[sizeof(buf) - 1] = 0;
+
+    printf("  原文: %s\n", sentence);
+
+    char* tok = strtok(buf, " \t\n");
+    int first = 1;
+    while (tok) {
+        char sym[64];
+        if (encode_pinyin_buf(tok, sym, sizeof(sym)) == 0) {
+            if (!first) strcat(out, " ");
+            strcat(out, sym);
+            first = 0;
+        }
+        tok = strtok(NULL, " \t\n");
+    }
+    printf("  编码: %s\n", out);
+    printf("  字节: %zu B\n", strlen(out));
 }
 
 /* ============================================================
  * 第十一部分：符号→拼音反向解码
  * ============================================================ */
 
-static void decode_symbol_to_pinyin(const char* sym) {
+/* (保留) 符号→拼音反向深度解码 */ void decode_symbol_to_pinyin(const char* sym) {
     int detail;
     sym_class_t cls = classify_symbol(sym, &detail);
 
@@ -700,7 +772,8 @@ static void decode_symbol_to_pinyin(const char* sym) {
             };
             if (grp == 0) {
                 /* 预组声调字符: 还原拼音+声调数字 */
-                const char* base_chars = "aeiouü";
+                /* tone_table 顺序: 0=a 1=e 2=i 3=o 4=u 5=ü */
+                const char vowels[] = "aeiouü";
                 int tone_idx = tone;
                 /* 查找是哪个基元 */
                 int base = -1;
@@ -714,9 +787,7 @@ static void decode_symbol_to_pinyin(const char* sym) {
                     if (base >= 0) break;
                 }
                 if (base >= 0) {
-                    if (base == 4) printf(", 韵母=u+%d声", tone_idx + 1);
-                    else if (base == 5) printf(", 韵母=ü+%d声", tone_idx + 1);
-                    else printf(", 韵母=%c+%d声", base_chars[base], tone_idx + 1);
+                    printf(", 韵母=%c+%d声", vowels[base], tone_idx + 1);
                 } else {
                     printf(", 声调组");
                 }
@@ -738,17 +809,87 @@ static void decode_symbol_to_pinyin(const char* sym) {
 }
 
 /* ============================================================
+ * 音节符号→拼音完整往返解码
+ * ============================================================ */
+
+/* 音节符号 → 拼音反向解码 (输入如 "mā", "zhႪ", "Є") */
+static int decode_syllable_to_pinyin(const char* sym, char* outbuf, int outbuf_size) {
+    if (!sym || !outbuf || outbuf_size < 8) return -1;
+    outbuf[0] = 0;
+
+    /* 检查开头是否为声母 (1字节 ASCII) 或 双字母声母 (zh ch sh) */
+    char shengmu[8] = "";
+    const char* rest = sym;
+
+    /* 尝试双字母声母 */
+    if (strncmp(sym, "zh", 2) == 0 || strncmp(sym, "ch", 2) == 0 || strncmp(sym, "sh", 2) == 0) {
+        strncpy(shengmu, sym, 2); shengmu[2] = 0;
+        rest = sym + 2;
+    }
+    /* 尝试单字母声母 */
+    else if (sym[0] >= 'a' && sym[0] <= 'z') {
+        /* 检查是否为已知声母单字母 */
+        int is_shengmu = 0;
+        for (int i = 0; i < SHENGMU_SMALL_COUNT; i++) {
+            if (SHENGMU_SMALL[i][0] == sym[0] && SHENGMU_SMALL[i][1] == 0) {
+                /* 后面紧跟的是韵母符号(多字节 UTF-8)才认为是声母 */
+                if ((unsigned char)sym[1] >= 0x80) {
+                    is_shengmu = 1;
+                }
+                break;
+            }
+        }
+        if (is_shengmu) {
+            shengmu[0] = sym[0]; shengmu[1] = 0;
+            rest = sym + 1;
+        }
+    }
+
+    /* rest 部分是韵母符号 (UTF-8) */
+    /* 先在声调组中查找预组字符 */
+    for (int b = 0; b < 6; b++) {
+        for (int t = 0; t < 4; t++) {
+            const char* const* tone_table[] = {TONE_A,TONE_E,TONE_I,TONE_O,TONE_U,TONE_V};
+            if (strcmp(rest, tone_table[b][t]) == 0) {
+                /* tone_table 索引顺序: 0=a, 1=e, 2=i, 3=o, 4=u, 5=ü */
+                const char vowels[] = "aeiou";
+                char vowel = (b < 5) ? vowels[b] : 'v'; /* ü→v 便于 ASCII 表示 */
+                snprintf(outbuf, outbuf_size, "%s%c%d", shengmu, vowel, t + 1);
+                return 0;
+            }
+        }
+    }
+
+    /* 在复合韵母映射中查找 */
+    for (int i = 0; i < COMPOUND_COUNT; i++) {
+        if (COMPOUNDS[i].lower && strcmp(rest, COMPOUNDS[i].lower) == 0) {
+            snprintf(outbuf, outbuf_size, "%s%s", shengmu, COMPOUNDS[i].pinyin);
+            return 0;
+        }
+        if (COMPOUNDS[i].upper && strcmp(rest, COMPOUNDS[i].upper) == 0) {
+            snprintf(outbuf, outbuf_size, "%s%s", shengmu, COMPOUNDS[i].pinyin);
+            return 0;
+        }
+    }
+
+    /* 未识别: 原样保留 */
+    snprintf(outbuf, outbuf_size, "%s%s", shengmu, rest);
+    return -1;
+}
+
+/* ============================================================
  * 第十二部分：交互模式
  * ============================================================ */
 
 static void interactive_mode(void) {
-    char buf[256];
+    char buf[512];
     printf("\n═══ 语音编码解码器 - 交互模式 ═══\n");
-    printf("输入: <符号>     — 分类并编码\n");
-    printf("      py <拼音>  — 拼音→符号编码\n");
-    printf("      d  <符号>  — 符号→拼音解码\n");
-    printf("      symbols    — 显示全部符号表\n");
-    printf("      quit       — 退出\n");
+    printf("输入: <符号>       — 分类并编码\n");
+    printf("      py <拼音>    — 拼音→符号编码\n");
+    printf("      d  <符号>    — 符号→拼音解码\n");
+    printf("      s  <整句>    — 批量编码句\n");
+    printf("      symbols      — 显示全部符号表\n");
+    printf("      quit         — 退出\n");
     printf("─────────────────────────────────\n");
 
     while (1) {
@@ -766,7 +907,13 @@ static void interactive_mode(void) {
             continue;
         }
         if (strncmp(buf, "d ", 2) == 0) {
-            decode_symbol_to_pinyin(buf + 2);
+            char decoded[64];
+            decode_syllable_to_pinyin(buf + 2, decoded, sizeof(decoded));
+            printf("  '%s' → 拼音=%s\n", buf + 2, decoded);
+            continue;
+        }
+        if (strncmp(buf, "s ", 2) == 0) {
+            encode_sentence(buf + 2);
             continue;
         }
         if (strlen(buf) == 0) continue;
@@ -810,6 +957,39 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
+    if ((strcmp(argv[1], "-s") == 0 || strcmp(argv[1], "--sentence") == 0) && argc >= 3) {
+        /* 合并剩余参数为一句 */
+        char sentence[1024] = "";
+        for (int i = 2; i < argc; i++) {
+            if (i > 2) strcat(sentence, " ");
+            strncat(sentence, argv[i], sizeof(sentence) - strlen(sentence) - 1);
+        }
+        encode_sentence(sentence);
+        return 0;
+    }
+
+    if ((strcmp(argv[1], "-r") == 0 || strcmp(argv[1], "--roundtrip") == 0) && argc >= 3) {
+        /* 往返测试: 拼音 → 符号 → 拼音, 检查是否一致 */
+        printf("往返测试 (拼音→符号→拼音):\n");
+        int ok = 0, bad = 0;
+        for (int i = 2; i < argc; i++) {
+            char sym[64], back[64];
+            if (encode_pinyin_buf(argv[i], sym, sizeof(sym)) != 0) {
+                printf("  %-10s → [编码失败]\n", argv[i]); bad++; continue;
+            }
+            decode_syllable_to_pinyin(sym, back, sizeof(back));
+            int match = (strcmp(back, argv[i]) == 0 ||
+                        (argv[i][strlen(argv[i])-1] >= '1' && argv[i][strlen(argv[i])-1] <= '4' &&
+                         strncmp(back, argv[i], strlen(back)) == 0 &&
+                         strlen(back) == strlen(argv[i])));
+            printf("  %-10s → %s → %s %s\n", argv[i], sym, back,
+                   match ? "✓" : "✗");
+            if (match) ok++; else bad++;
+        }
+        printf("结果: %d 往返成功, %d 不一致\n", ok, bad);
+        return bad > 0 ? 1 : 0;
+    }
+
     if (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0) {
         printf("phono_codec — 满全法语音编解码器\n");
         printf("仅使用 z-api.txt + symbols_list.txt 中的符号\n\n");
@@ -819,6 +999,8 @@ int main(int argc, char* argv[]) {
         printf("  ./phono -l           列出全部符号表\n");
         printf("  ./phono -e <符号>    符号分类报告\n");
         printf("  ./phono -p <拼音>    拼音→符号编码\n");
+        printf("  ./phono -s <整句>    批量编码 (空格分隔)\n");
+        printf("  ./phono -r <拼音>    往返测试 (拼音→符号→拼音)\n");
         printf("  ./phono -h           帮助\n");
         return 0;
     }

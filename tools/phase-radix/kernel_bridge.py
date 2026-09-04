@@ -162,7 +162,11 @@ class KernelBridgeHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         GET_ROUTES = {
-            '/': self._handle_index,
+            '/': self._handle_dashboard_get,
+            '/api': self._handle_index,
+            '/viewer': self._handle_viewer_get,
+            '/simulator': self._handle_simulator_get,
+            '/dashboard': self._handle_dashboard_get,
             '/api/kernel/state': self._handle_kernel_state,
             '/api/kernel/stats': self._handle_kernel_stats,
             '/api/kernel/cells': self._handle_kernel_cells,
@@ -172,15 +176,18 @@ class KernelBridgeHandler(BaseHTTPRequestHandler):
             '/api/docs/scan': self._handle_docs_scan_get,
             '/api/docs/clusters': self._handle_docs_clusters_get,
             '/api/docs/tree': self._handle_docs_tree_get,
+            '/simulator': self._handle_simulator_get,
         }
         handler = GET_ROUTES.get(self.path)
+        if not handler and self.path.endswith('/') and self.path != '/':
+            handler = GET_ROUTES.get(self.path.rstrip('/'))
         if handler:
             try:
                 handler()
             except Exception as e:
-                _json_error(handler, str(e), 500)
+                _json_error(self, str(e), 500)
         else:
-            _json_error(handler, f"未知路径: {self.path}", 404)
+            _json_error(self, f"未知路径: {self.path}", 404)
 
     def do_POST(self):
         POST_ROUTES = {
@@ -211,13 +218,15 @@ class KernelBridgeHandler(BaseHTTPRequestHandler):
             '/api/docs/detail': self._handle_docs_detail,
         }
         handler = POST_ROUTES.get(self.path)
+        if not handler and self.path.endswith('/'):
+            handler = POST_ROUTES.get(self.path.rstrip('/'))
         if handler:
             try:
                 handler()
             except Exception as e:
-                _json_error(handler, str(e), 500)
+                _json_error(self, str(e), 500)
         else:
-            _json_error(handler, f"未知路径: {self.path}", 404)
+            _json_error(self, f"未知 POST 路径: {self.path}", 404)
 
     # ── GET 处理器 ──
 
@@ -380,6 +389,54 @@ class KernelBridgeHandler(BaseHTTPRequestHandler):
             })
         except Exception as e:
             _json_error(self, f"包裹树失败: {e}", 500)
+
+    def _handle_simulator_get(self):
+        """提供天庭空间细胞交互模拟器 HTML 页面"""
+        import os
+        html_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'court_simulator.html')
+        try:
+            with open(html_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/html; charset=utf-8')
+            self.send_header('Content-Length', str(len(content.encode('utf-8'))))
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(content.encode('utf-8'))
+        except FileNotFoundError:
+            _json_error(self, "模拟器页面未找到", 404)
+
+    def _handle_dashboard_get(self):
+        """提供 OS 全系统仪表盘 HTML 页面"""
+        import os
+        html_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'os_dashboard.html')
+        try:
+            with open(html_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/html; charset=utf-8')
+            self.send_header('Content-Length', str(len(content.encode('utf-8'))))
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(content.encode('utf-8'))
+        except FileNotFoundError:
+            _json_error(self, "仪表盘页面未找到", 404)
+
+    def _handle_viewer_get(self):
+        """提供旧版内核浏览器 HTML 页面"""
+        import os
+        html_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'kernel_viewer.html')
+        try:
+            with open(html_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/html; charset=utf-8')
+            self.send_header('Content-Length', str(len(content.encode('utf-8'))))
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(content.encode('utf-8'))
+        except FileNotFoundError:
+            _json_error(self, "浏览器页面未找到", 404)
 
     # ── POST 处理器 ──
 

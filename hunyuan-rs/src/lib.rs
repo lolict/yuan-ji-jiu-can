@@ -504,3 +504,24 @@ pub use os_layer::{
     OsLayer, OsError, current_os,
     bare_metal::BareMetalOs,
 };
+
+// ── v0.36 时间链式身份编码 · 高维进制码校验 (TimeChainIdentity) ──
+pub mod time_chain_identity;
+pub use time_chain_identity::{
+    // 私有锚点
+    PrivateAnchor,
+    // 时间坐标
+    TimeCoordinate,
+    // 链事件与链环
+    ChainEvent, ChainLink,
+    // 身份主体
+    TimeChainIdentity,
+    // 声明与校验
+    IdentityClaim, ClaimValidation,
+    // 报告
+    ChainIntegrityReport,
+    // 错误
+    ChainError,
+    // 兼容层
+    hash_to_coordinate,
+};

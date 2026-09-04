@@ -22,7 +22,7 @@ pub const Oscillator = struct {
     frequency: u32 = Frequency,
     status: DrumStatus = .vibrating,
 
-    pub fn message(self: Oscillator) []const _ {
+    pub fn message(self: Oscillator) []const u8 {
         _ = self;
         return "鼓膜已振动";
     }
@@ -75,7 +75,7 @@ pub const ResonanceReport = struct {
     all_passed: bool,
 
     pub fn message(self: ResonanceReport) []const u8 {
-        if self.all_passed {
+        if (self.all_passed) {
             return "自检通过：鼓膜完整，允许加载外部代码";
         } else {
             return "自检失败：鼓膜破损 — 系统锁定";
@@ -297,12 +297,7 @@ fn invokeRadix(code: []const u8) []const u8 {
 /// 呼唤一个关系/链接
 fn invokeRelation(target: []const u8, params: []const []const u8) []const u8 {
     _ = target;
-    if (params.len >= 2) {
-        // 格式: 关系(b, a) → 声母.首 引 韵母.首
-        const buf = std.page_allocator.alloc(u8, 64) catch return "内存不足";
-        defer std.page_allocator.free(buf);
-        _ = buf;
-    }
+    _ = params;
     return "关系查询: 声母↔韵母 跨容器链接";
 }
 

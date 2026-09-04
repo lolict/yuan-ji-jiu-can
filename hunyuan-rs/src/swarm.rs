@@ -299,6 +299,43 @@ pub struct ParasiteShell {
     pub next_id: u64,
     pub shell_tick: u64,
     pub genome: ShellGenome, // 壳基因组 = 我们系统规则的精简指纹
+    /// 心跳: 周期性保存时间戳, 用于崩溃恢复
+    pub heartbeat: ShellHeartbeat,
+}
+
+/// 心跳机制: 周期性持久化时间戳
+/// 当系统崩溃后, 可从最后一次心跳恢复所有分身的时间戳
+#[derive(Clone, Debug)]
+pub struct ShellHeartbeat {
+    /// 心跳间隔 (tick 数)
+    pub interval: u64,
+    /// 上次心跳时的 tick
+    pub last_beat: u64,
+    /// 心跳计数 (递增)
+    pub beat_count: u64,
+    /// 保存路径
+    pub path: String,
+}
+
+impl ShellHeartbeat {
+    pub fn new(interval: u64, path: &str) -> Self {
+        Self {
+            interval,
+            last_beat: 0,
+            beat_count: 0,
+            path: path.to_string(),
+        }
+    }
+
+    /// 默认心跳: 每 10 tick 保存到 .nest_heartbeat.hts
+    pub fn default() -> Self {
+        Self::new(10, ".nest_heartbeat.hts")
+    }
+
+    /// 检查是否需要触发心跳
+    pub fn should_beat(&self, current_tick: u64) -> bool {
+        current_tick > 0 && (current_tick - self.last_beat) >= self.interval
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -343,7 +380,40 @@ impl ParasiteShell {
             next_id: 0,
             shell_tick: 0,
             genome: ShellGenome::default(),
+            heartbeat: ShellHeartbeat::default(),
         }
+    }
+
+    /// 自定义心跳间隔和路径
+    pub fn with_heartbeat(max_memory_per_agent: usize, interval: u64, path: &str) -> Self {
+        Self {
+            agents: HashMap::new(),
+            next_id: 0,
+            shell_tick: 0,
+            genome: ShellGenome::default(),
+            heartbeat: ShellHeartbeat::new(interval, path),
+        }
+    }
+
+    /// 心跳脉冲: 每 tick 调用一次, 检查是否需要自动保存
+    /// 返回: Ok(true) = 已保存, Ok(false) = 未到时间, Err = 保存失败
+    pub fn pulse(&mut self, os: &dyn OsLayer) -> Result<bool, String> {
+        if self.heartbeat.should_beat(self.shell_tick) {
+            self.save_to_file(os, &self.heartbeat.path)?;
+            self.heartbeat.last_beat = self.shell_tick;
+            self.heartbeat.beat_count += 1;
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+
+    /// 强制心跳 (忽略间隔, 立即保存)
+    pub fn force_beat(&mut self, os: &dyn OsLayer) -> Result<(), String> {
+        self.save_to_file(os, &self.heartbeat.path)?;
+        self.heartbeat.last_beat = self.shell_tick;
+        self.heartbeat.beat_count += 1;
+        Ok(())
     }
 
     /// 催生一个新智能体
@@ -505,6 +575,30 @@ impl ParasiteShell {
         }
 
         Ok(results)
+    }
+
+    // ─── 文件持久化 (通过 OS 抽象层) ───
+
+    /// 保存全部时间戳到磁盘 (通过 OS 抽象层)
+    pub fn save_to_file(&self, os: &dyn OsLayer, path: &str) -> Result<(), String> {
+        let data = self.export_timestamps();
+        os.file_write(path, data.as_bytes())
+            .map_err(|e| format!("写入失败: {:?}", e))?;
+        Ok(())
+    }
+
+    /// 从磁盘加载全部时间戳 (通过 OS 抽象层)
+    pub fn load_from_file(os: &dyn OsLayer, path: &str) -> Result<Vec<(u64, String, HierarchicalTimestamp)>, String> {
+        let bytes = os.file_read(path)
+            .map_err(|e| format!("读取失败: {:?}", e))?;
+        let text = String::from_utf8(bytes)
+            .map_err(|e| format!("UTF-8 解码失败: {}", e))?;
+        Self::import_timestamps(&text)
+    }
+
+    /// 检查持久化文件是否存在
+    pub fn persisted_exists(os: &dyn OsLayer, path: &str) -> bool {
+        os.file_exists(path)
     }
 
     /// 给外部输出"播放脚本"——外部扮演我们，不是我们模仿外部
@@ -973,10 +1067,13 @@ mod tests {
         assert!(exported.starts_with("NEST_V1|"));
 
         // 恢复
-        let recovered = ParasiteShell::import_timestamps(&exported).unwrap();
+        let mut recovered = ParasiteShell::import_timestamps(&exported).unwrap();
         assert_eq!(recovered.len(), 2);
 
-        // 验证 Alice
+        // 按 ID 排序 (HashMap 迭代顺序不确定)
+        recovered.sort_by_key(|(id, _, _)| *id);
+
+        // 验证 Alice (先 spawn = ID a)
         let (alice_id, alice_name, alice_ts) = &recovered[0];
         assert_eq!(*alice_id, a);
         assert_eq!(alice_name, "Alice");
@@ -1021,5 +1118,131 @@ mod tests {
         // 完整性
         assert!(alice.verify_lifecycle().is_intact());
         assert!(bob.verify_lifecycle().is_intact());
+    }
+
+    // ── 心跳&文件持久化测试 ──
+
+    #[test]
+    fn heartbeat_default_interval() {
+        let hb = ShellHeartbeat::default();
+        assert_eq!(hb.interval, 10);
+        assert_eq!(hb.path, ".nest_heartbeat.hts");
+        assert_eq!(hb.beat_count, 0);
+    }
+
+    #[test]
+    fn heartbeat_should_beat_at_interval() {
+        let hb = ShellHeartbeat::new(5, "test.hts");
+        assert!(!hb.should_beat(0));     // tick 0 = 不触发
+        assert!(!hb.should_beat(1));     // 不到间隔
+        assert!(!hb.should_beat(4));     // 不到间隔
+        assert!(hb.should_beat(5));      // 刚好间隔
+        assert!(hb.should_beat(10));     // 超过间隔
+    }
+
+    #[test]
+    fn shell_with_heartbeat_custom() {
+        let shell = ParasiteShell::with_heartbeat(20, 5, "custom.hts");
+        assert_eq!(shell.heartbeat.interval, 5);
+        assert_eq!(shell.heartbeat.path, "custom.hts");
+    }
+
+    #[test]
+    fn pulse_saves_when_interval_reached() {
+        // 注意: 测试中使用 LinuxOs 而不是 BareMetalOs (后者不支持文件 I/O)
+        use crate::os_layer::linux::LinuxOs;
+        let os = LinuxOs::new();
+        let path = "/tmp/test_nest_pulse.hts";
+        let _ = std::fs::remove_file(path); // 清理旧的
+
+        let mut shell = ParasiteShell::with_heartbeat(20, 5, path);
+
+        // 孕育分身并施加事件
+        let a = shell.spawn(&os, "Test", AgentRole::Root, 20);
+        shell.agents.get_mut(&a).unwrap().record_radiation("任务", "T");
+
+        // tick 0: 不应触发
+        shell.shell_tick = 0;
+        assert_eq!(shell.pulse(&os).unwrap(), false);
+
+        // tick 4: 不应触发 (间隔=5)
+        shell.shell_tick = 4;
+        assert_eq!(shell.pulse(&os).unwrap(), false);
+
+        // tick 5: 应触发
+        shell.shell_tick = 5;
+        assert_eq!(shell.pulse(&os).unwrap(), true);
+        assert_eq!(shell.heartbeat.beat_count, 1);
+
+        // 验证文件已写入
+        assert!(ParasiteShell::persisted_exists(&os, path));
+
+        // 验证文件可恢复
+        let recovered = ParasiteShell::load_from_file(&os, path).unwrap();
+        assert_eq!(recovered.len(), 1);
+
+        // 清理
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn force_beat_saves_immediately() {
+        use crate::os_layer::linux::LinuxOs;
+        let os = LinuxOs::new();
+        let path = "/tmp/test_force_beat.hts";
+        let _ = std::fs::remove_file(path);
+
+        let mut shell = ParasiteShell::with_heartbeat(20, 1000, path);
+
+        let a = shell.spawn(&os, "A", AgentRole::Root, 20);
+        shell.agents.get_mut(&a).unwrap().record_fusion("x", "y");
+
+        shell.shell_tick = 1;
+        shell.force_beat(&os).unwrap();
+        assert_eq!(shell.heartbeat.beat_count, 1);
+
+        let recovered = ParasiteShell::load_from_file(&os, path).unwrap();
+        assert_eq!(recovered.len(), 1);
+        assert_eq!(recovered[0].2.events.len(), 2); // 创世 + 融合
+
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn recovery_preserves_event_statistics() {
+        use crate::os_layer::linux::LinuxOs;
+        let os = LinuxOs::new();
+        let path = "/tmp/test_stats_recovery.hts";
+        let _ = std::fs::remove_file(path);
+
+        let mut shell = ParasiteShell::with_heartbeat(20, 3, path);
+
+        let a = shell.spawn(&os, "A", AgentRole::Root, 20);
+        let b = shell.spawn(&os, "B", AgentRole::Leaf, 20);
+        shell.agents.get_mut(&a).unwrap().record_radiation("任务", "T"); // +1 Radiation
+        shell.agents.get_mut(&b).unwrap().record_collapse("B", "成果");  // +1 Collapse
+        shell.agents.get_mut(&a).unwrap().record_fusion("X", "融合");    // +1 Fusion (创世已2)
+
+        let original_stats = shell.event_statistics();
+        shell.shell_tick = 3;
+        shell.force_beat(&os).unwrap();
+
+        let recovered = ParasiteShell::load_from_file(&os, path).unwrap();
+        let mut f = 0;
+        let mut c = 0;
+        let mut r = 0;
+        for (_, _, ts) in &recovered {
+            for ev in &ts.events {
+                match ev {
+                    LifeEvent::Fusion { .. } => f += 1,
+                    LifeEvent::Collapse { .. } => c += 1,
+                    LifeEvent::Radiation { .. } => r += 1,
+                }
+            }
+        }
+
+        assert_eq!((f, c, r), original_stats);
+
+        let _ = std::fs::remove_file(path);
     }
 }

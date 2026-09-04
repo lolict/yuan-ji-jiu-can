@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><style>
+*{margin:0;background:#020308;color:#ddd;font-family:monospace;font-size:12px}
+canvas{display:block}
+#ui{position:fixed;top:8px;left:8px;font-size:11px;color:#555;background:rgba(5,5,15,0.85);padding:8px 12px;border-radius:4px;border:1px solid rgba(255,255,255,0.04)}
+input,button{color:#ddd;background:#0a0a12;border:1px solid #333;font:11px monospace;padding:4px 8px}
+button{background:#c9a84c;color:#000;border:none;cursor:pointer}
+</style></head><body>
+<canvas id="c"></canvas>
+<div id="ui">
+<div style="margin-bottom:6px">态势感知 · 距离聚类</div>
+<textarea id="raw" rows=2 style="width:260px;margin-bottom:4px"></textarea><br>
+<button id="run" style="width:100px">包裹+聚类</button>
+<span id="stat" style="margin-left:8px"></span>
+</div>
+<script>
+// ══════════════════════════════════════════════════════
+// 态势化聚类 · 全局感知 · 距离感知聚类
+// ══════════════════════════════════════════════════════
+
+const BASE_X=48,BASE_Y=64,BASE_Z=16;
+const cv=document.getElementById('c');
+const X=cv.getContext('2d');
+
+const FAM=['容器','边界','夫妻','网状','中性'];
+const FAM_C=['#4a7c59','#8b4513','#9b59b6','#3498db','#7f8c8d'];
+
+let containers=[];
+let clusters=[];
+
+// ── 蚕蛹:外部→内部 ──
+function chrysalis(text){
+  containers=[];
+  const chars=[...text];
+  const freq={};
+  chars.forEach(ch=>{freq[ch]=(freq[ch]||0)+1;});
+  chars.forEach((ch,idx)=>{
+    const code=ch.codePointAt(0);
+    containers.push({
+      char:ch,idx,
+      family:code%5,
+      polarity:(code.toString(2).split('1').length-1)%2,
+      struct:Math.min(7,Math.floor((freq[ch]||1)/2)),
+      sm:code%24, ym:(code>>5)%36, tone:(code>>11)%5,
+      freq:freq[ch]||1,
+      gcd:[2,3,5,7,11,13][code%5],
+      lcm:[2,3,5,7,11,13][code%5]*(Math.min(7,Math.floor((freq[ch]||1)/2))+2),
+      x:(code*7+idx*3)%BASE_X,
+      y:(code*11+idx*5)%BASE_Y,
+      z:Math.min(15,Math.floor(code/1000)),
+    });
+  });
+}
+
+// ── 多维距离 ──
+function distance(A,B){
+  let d=0;
+  // 空间距离(权 恩 0.5)
+  const dx=(A.x-B.x)/BASE_X, dy=(A.y-B.y)/BASE_Y, dz=(A.z-B.z)/BASE_Z;
+  d += 0.5*Math.sqrt(dx*dx+dy*dy+dz*dz);
+  // 家族不同=加权
+  if(A.family!==B.family) d += 0.8;
+  // 编码距离(汉明近似)
+  const codeA=(A.family<<29)|(A.polarity<<28)|(A.struct<<25)|(A.sm<<19)|(A.ym<<13)|(A.tone<<10);
+  const codeB=(B.family<<29)|(B.polarity<<28)|(B.struct<<25)|(B.sm<<19)|(B.ym<<13)|(B.tone<<10);
+  const xor=codeA^codeB;
+  const bits=xor.toString(2).split('1').length-1;
+  d += bits/32;
+  // 公约数:同gcd减距离
+  if(A.gcd===B.gcd) d -= 0.6;
+  // 公倍数:同lcm减距离
+  if(A.lcm===B.lcm) d -= 0.4;
+  // 频率差
+  d += Math.abs(A.freq-B.freq)*0.1;
+  return Math.max(0,d);
+}
+
+// ── DBSCAN聚类 ──
+function clusterize(eps=1.2,minPts=2){
+  clusters=[];
+  const labels=new Array(containers.length).fill(-1); // -1=未分类
+  let clusterId=0;
+
+  for(let i=0;i<containers.length;i++){
+    if(labels[i]!==-1) continue;
+    // 找邻居
+    const neighbors=[];
+    for(let j=0;j<containers.length;j++){
+      if(i!==j && distance(containers[i],containers[j])<=eps) neighbors.push(j);
+    }
+    if(neighbors.length<minPts){
+      labels[i]=-2; // 噪声
+      continue;
+    }
+    // 创建聚类
+    labels[i]=clusterId;
+    const members=[i];
+    const queue=[...neighbors];
+    while(queue.length>0){
+      const q=queue.shift();
+      if(labels[q]===-2) labels[q]=clusterId; // 噪声→边界点
+      if(labels[q]!==-1) continue;
+      labels[q]=clusterId;
+      members.push(q);
+      const qNeighbors=[];
+      for(let j=0;j<containers.length;j++){
+        if(q!==j && distance(containers[q],containers[j])<=eps) qNeighbors.push(j);
+      }
+      if(qNeighbors.length>=minPts) queue.push(...qNeighbors);
+    }
+    clusters.push({id:clusterId,members});
+    clusterId++;
+  }
+
+  // 分配聚类ID回容器
+  containers.forEach((c,i)=>c.cluster=labels[i]);
+  return clusters;
+}
+
+// ── 力导向布局(用聚类初始化位置) ──
+const W=800,H=600;
+
+function forceLayout(steps=200){
+  // 初始化:聚类中心随机圆周分布
+  const centers=clusters.map((c,i)=>{
+    const angle=(i/clusters.length)*Math.PI*2;
+    return {x:W/2+Math.cos(angle)*150, y:W/2+Math.sin(angle)*150};
+  });
+
+  // 每个节点位置=聚类中心+小扰动
+  containers.forEach(c=>{
+    if(c.cluster>=0 && c.cluster<centers.length){
+      c.px=centers[c.cluster].x+(Math.random()-0.5)*50;
+      c.py=centers[c.cluster].y+(Math.random()-0.5)*50;
+    } else {
+      c.px=W/2+(Math.random()-0.5)*W*0.8;
+      c.py=H/2+(Math.random()-0.5)*H*0.8;
+    }
+    c.vx=0; c.vy=0;
+  });
+
+  // 力仿真
+  for(let s=0;s<steps;s++){
+    const k=0.01; // 库仑常数
+    const damp=0.85;
+
+    // 斥力(所有节点对)
+    for(let i=0;i<containers.length;i++){
+      for(let j=i+1;j<containers.length;j++){
+        const dx=containers[i].px-containers[j].px;
+        const dy=containers[i].py-containers[j].py;
+        const dist=Math.max(1,Math.sqrt(dx*dx+dy*dy));
+        const force=k*30/(dist*dist);
+        const fx=dx/dist*force, fy=dy/dist*force;
+        containers[i].vx+=fx; containers[i].vy+=fy;
+        containers[j].vx-=fx; containers[j].vy-=fy;
+      }
+    }
+
+    // 引力(距离近的)
+    for(let i=0;i<containers.length;i++){
+      for(let j=i+1;j<containers.length;j++){
+        const d=distance(containers[i],containers[j]);
+        if(d<1.5){
+          const dx=containers[j].px-containers[i].px;
+          const dy=containers[j].py-containers[i].py;
+          const dist=Math.max(1,Math.sqrt(dx*dx+dy*dy));
+          const force=0.02*(dist-d*20);
+          containers[i].vx+=dx/dist*force; containers[i].vy+=dy/dist*force;
+          containers[j].vx-=dx/dist*force; containers[j].vy-=dy/dist*force;
+        }
+      }
+    }
+
+    // 聚类中心引力
+    containers.forEach(c=>{
+      if(c.cluster>=0 && clusters[c.cluster]){
+        const center=centers[c.cluster];
+        c.vx+=(center.x-c.px)*0.001;
+        c.vy+=(center.y-c.py)*0.001;
+      }
+      c.vx*=damp; c.vy*=damp;
+      c.px+=c.vx; c.py+=c.vy;
+      // 边界
+      c.px=Math.max(30,Math.min(W-30,c.px));
+      c.py=Math.max(30,Math.min(H-30,c.py));
+    });
+  }
+}
+
+// ── 渲染 ──
+let hover=null;
+
+function draw(){
+  cv.width=window.innerWidth;
+  cv.height=window.innerHeight;
+  X.fillStyle='#020308';
+  X.fillRect(0,0,cv.width,cv.height);
+
+  const scaleX=cv.width/W, scaleY=cv.height/H;
+
+  // 绘制聚类凸包(用椭圆近似)
+  clusters.forEach(c=>{
+    const pts=c.members.map(i=>({x:containers[i].px*scaleX,y:containers[i].py*scaleY}));
+    if(pts.length<2) return;
+    const cx=pts.reduce((a,p)=>a+p.x,0)/pts.length;
+    const cy=pts.reduce((a,p)=>a+p.y,0)/pts.length;
+    const maxR=Math.max(...pts.map(p=>Math.sqrt((p.x-cx)**2+(p.y-cy)**2)))+20;
+
+    X.beginPath();
+    X.ellipse(cx,cy,maxR,maxR*0.7,0,0,Math.PI*2);
+    const famColor=FAM_C[containers[c.members[0]].family];
+    X.fillStyle=famColor+'08';
+    X.fill();
+    X.strokeStyle=famColor+'20';
+    X.lineWidth=1;
+    X.setLineDash([4,4]);
+    X.stroke();
+    X.setLineDash([]);
+
+    // 聚类标签
+    X.font='10px monospace';
+    X.fillStyle=famColor+'99';
+    X.textAlign='center';
+    X.fillText('C'+c.id,cx,cy-maxR-5);
+  });
+
+  // 绘制引力线(距离近的)
+  for(let i=0;i<containers.length;i++){
+    for(let j=i+1;j<containers.length;j++){
+      if(distance(containers[i],containers[j])<1.0){
+        X.strokeStyle='rgba(255,255,255,0.06)';
+        X.lineWidth=0.5;
+        X.beginPath();
+        X.moveTo(containers[i].px*scaleX,containers[i].py*scaleY);
+        X.lineTo(containers[j].px*scaleX,containers[j].py*scaleY);
+        X.stroke();
+      }
+    }
+  }
+
+  // 绘制节点
+  containers.forEach((c,i)=>{
+    const isH=hover===i;
+    const x=c.px*scaleX, y=c.py*scaleY;
+    const r=isH?8: Math.max(3,Math.min(6, c.freq*1.5));
+
+    // 频率热度
+    if(c.freq>1){
+      X.beginPath();X.arc(x,y,r+4,0,Math.PI*2);
+      X.fillStyle=`rgba(255,${100-c.freq*10},0,0.15)`;
+      X.fill();
+    }
+
+    X.beginPath();X.arc(x,y,r,0,Math.PI*2);
+    X.fillStyle=isH?'#fff':FAM_C[c.family];
+    X.fill();
+
+    // 极性标记
+    if(c.polarity===1){
+      X.beginPath();X.arc(x,y,r*0.35,0,Math.PI*2);
+      X.fillStyle='#000';X.fill();
+    }
+
+    // 噪点标记
+    if(c.cluster<0){
+      X.strokeStyle='#666';X.lineWidth=0.5;
+      X.beginPath();X.arc(x,y,r+1,0,Math.PI*2);X.stroke();
+    }
+
+    // hover标签
+    if(isH){
+      X.font='10px monospace';X.textAlign='center';
+      X.fillStyle='#fff';X.textBaseline='bottom';
+      X.fillText(c.char+' f='+c.freq+' c='+(c.cluster>=0?c.cluster:'噪'),x,y-r-4);
+      X.fillStyle='#888';X.textBaseline='top';
+      X.fillText('gcd='+c.gcd+' lcm='+c.lcm,x,y+r+3);
+    }
+  });
+}
+
+// ── 交互 ──
+cv.addEventListener('mousemove',e=>{
+  const mx=cv.width/W, my=cv.height/H;
+  let fd=null,md=12;
+  containers.forEach((c,i)=>{
+    const d=Math.sqrt((e.clientX/mx-c.px)**2+(e.clientY/my-c.py)**2);
+    if(d<md){md=d;fd=i;}
+  });
+  hover=fd;draw();
+});
+
+// ── 主控 ──
+function run(){
+  const text=document.getElementById('raw').value;
+  chrysalis(text);
+  clusterize(1.3,2);
+  forceLayout(150);
+  document.getElementById('stat').textContent=
+    '容器:'+containers.length+' 聚类:'+clusters.length+' 噪声:'+containers.filter(c=>c.cluster<0).length;
+  draw();
+}
+
+document.getElementById('run').onclick=run;
+document.getElementById('raw').value='满全法:囡囝共生操作系统。容器进制。gcd中心,lcm边界,结束=开始。';
+window.addEventListener('resize',draw);
+
+// 初始
+run();
+</script>
+</body></html>

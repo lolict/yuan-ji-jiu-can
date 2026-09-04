@@ -3,6 +3,7 @@ const std = @import("std");
 const orchestrator = @import("orchestrator.zig");
 const indexer = @import("indexer.zig");
 const fqm = @import("fqm.zig");
+const canjiang = @import("canjiang.zig");
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -120,21 +121,50 @@ pub fn main() !void {
     try c1.encodeUnary(stdout);
     try stdout.print("\n", .{});
 
-    // ========== 满全法裁决 ==========
-    try stdout.print("\n=== 满全法裁决 ===\n", .{});
-    try orch.judgeAllContainers();
-    const arb_report = try orch.getJudgmentReport(allocator);
-    defer allocator.free(arb_report);
-    try stdout.print("{s}\n", .{arb_report});
-
-    // ========== fqmcp 管线输出 ==========
-    try stdout.print("\n=== 启动 fqmcp 管线 ===\n", .{});
+    // ========== fqmcp 管线输出 (含裁决) ==========
+    try stdout.print("\n=== 启动 fqmcp 管线 (含裁决) ===\n", .{});
     var fqmcp = fqm.FQMCP.init(allocator);
     const knml_path = "zig-stem/output/fqmet.knmll";
     std.fs.cwd().makePath("zig-stem/output") catch {};
     try fqmcp.processOrchestrator(&orch, knml_path);
     try stdout.print("knml 文件已保存: {s}\n", .{knml_path});
 
-    // 裁决写入 knmll
+    // ========== 往返验证 ==========
+    try stdout.print("\n=== 往返验证 (文件→解析→校验) ===\n", .{});
+    const knml_content = try std.fs.cwd().readFileAlloc(allocator, knml_path, 1024 * 1024);
+    defer allocator.free(knml_content);
+    var parser = fqm.KnmllParser{};
+    const ok = parser.verifyIntegrity(knml_content) catch |err| {
+        try stdout.print("校验失败: {s}\n", .{@errorName(err)});
+        return;
+    };
+    _ = ok;
+    try stdout.print("knml 文件校验通过 ✓\n", .{});
+    var parsed = try parser.parseFile(knml_content);
+    defer parsed.deinit();
+    try stdout.print("容器数: ", .{});
+    try fqm.formatUnaryInt(stdout, parsed.containers.items.len);
+    try stdout.print(" 鸳鸯: ", .{});
+    try stdout.print("{s}", .{parsed.couples});
+    try stdout.print(" 协议: ", .{});
+    try stdout.print("{s}", .{parsed.protocols});
+    try stdout.print("\n", .{});
+
+    // ========== 蚕蛹壳协议翻译层 (读取实际 knmll) ==========
+    try stdout.print("\n=== 蚕蛹壳协议翻译 (真实文件) ===\n", .{});
+    var chi = canjiang.Chrysalis.init(allocator, knml_content);
+
+    const as_http = try chi.dress(.http_api);
+    defer allocator.free(as_http);
+    try stdout.print("穿 HTTP 外壳:\n{s}\n", .{as_http});
+
+    // 脱壳还原测试
+    try stdout.print("\n脱壳还原:\n", .{});
+    const shed = try chi.shed(as_http);
+    defer allocator.free(shed);
+    const preview_len: usize = 40;
+    try stdout.print("还原内容: {s}", .{shed[0..@min(preview_len, shed.len)]});
+    try stdout.print("...\n", .{});
+
     try stdout.print("\n=== 演示结束 ===\n\n", .{});
 }

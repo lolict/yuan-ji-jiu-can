@@ -22,6 +22,10 @@ MEMORY_OBJS = $(MEMORY_SRCS:.c=.o)
 # Lifecycle engine
 LIFE_OBJS = lifecycle_engine.c
 
+# SMRL engine
+SMRL_OBJS = smrl_engine.o
+TEST_SMRL = test_smrl
+
 # Full system demos
 TEST_FULL_V1 = test_full_system
 TEST_FULL_V2 = test_full_system_v2
@@ -34,10 +38,14 @@ TEST_HOLO = test_holo
 TEST_MIND_ORGAN = test_mind_organ
 MAIN = hunyuanos
 
+# Phonetic codec (z-api.txt + symbols_list.txt)
+PHONO = phono
+PHONO_SRC = phono_codec.c
+
 ALL = $(TEST_COLOR) $(TEST_LEVEL) $(TEST_TYPE) $(TEST_DIFF) $(TEST_WOV) \
       $(TEST_FULL_V1) $(TEST_FULL_V2) $(TEST_LIFECYCLE) $(MAIN) $(TEST_SWARM) \
       $(TEST_SELFBOOT) $(TEST_CHRYSALIS) $(TEST_MLIL3D) $(TEST_HOLO) \
-      $(TEST_MIND_ORGAN)
+      $(TEST_MIND_ORGAN) $(TEST_ONT_BRIDGE) $(TEST_SMRL) $(PHONO)
 
 .PHONY: all clean test lib
 
@@ -82,7 +90,7 @@ $(TEST_FULL_V2): test_full_system_v2.o $(CHAIN_OBJS) $(MEMORY_OBJS)
 $(TEST_LIFECYCLE): test_lifecycle.o $(CHAIN_OBJS) $(MEMORY_OBJS) lifecycle_engine.o
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
-$(MAIN): main.o $(CHAIN_OBJS) $(MEMORY_OBJS) lifecycle_engine.o
+$(MAIN): main.o $(CHAIN_OBJS) $(MEMORY_OBJS) lifecycle_engine.o smrl_engine.o
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
 $(TEST_SWARM): test_swarm.o njsg_swarm.o swarm_agents.o chain_block.o
@@ -103,14 +111,20 @@ $(TEST_HOLO): test_holo.o holo_viewer.o mlil_visual.o njsg_swarm.o swarm_agents.
 $(TEST_MIND_ORGAN): test_mind_organ.o mind_organ.o
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) -lm
 
+$(TEST_SMRL): test_smrl.o smrl_engine.o chain_block.o
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+
+smrl_engine.o: smrl_engine.c smrl_engine.h chain_block.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
 # Container ontology bridge (all 6 sub-containers integrated)
-ONT_BRIDGE_OBJS = container_ontology_bridge.o mind_organ.o global_control.o property_judge.o radix_star.o encoding_bridge_emit.o type_discipline.o
+ONT_BRIDGE_OBJS = container_ontology_bridge.o mind_organ.o global_control.o property_judge.o radix_star.o encoding_bridge_emit.o type_discipline.o hanzi_table.o mccp_encdec.o container_pipeline.o
 encoding_bridge_emit.o: encoding_bridge_emit.c encoding_bridge.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# Verify bridge + mind_organ compile and link
-ont_build: $(ONT_BRIDGE_OBJS)
-	$(CC) $(CFLAGS) $^ /dev/null -o /dev/null $(LDFLAGS) -lm 2>&1 || echo "(link test: needed main())"
+TEST_ONT_BRIDGE = test_ontology_bridge
+$(TEST_ONT_BRIDGE): test_ontology_bridge.o $(ONT_BRIDGE_OBJS)
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) -lm
 
 test: all
 	@echo ""
@@ -134,6 +148,12 @@ test: all
 	@echo "--- Mind Organ (距离感知聚类) ---"
 	@./$(TEST_MIND_ORGAN) || true
 	@echo ""
+	@echo "--- Ontology Bridge (6子容器集成) ---"
+	@./$(TEST_ONT_BRIDGE) || true
+	@echo ""
+
+$(PHONO): $(PHONO_SRC)
+	$(CC) $(CFLAGS) -o $@ $<
 
 clean:
 	rm -f $(ALL) *.o
