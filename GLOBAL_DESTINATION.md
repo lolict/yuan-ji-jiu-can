@@ -93,6 +93,7 @@
 | 51 | isa-ref 五架构机器码对齐参考 | tools/isa-ref/ | ✅ ARM·x86-64·RISC-V·MIPS32·MTK 按功能交叉对齐·位域+汇编标注·位号编码·系统调用·原子操作 |
 | 52 | hunyuan-orchestrator NJSG 四层栈编排器 | tools/cbsy/ | ✅ v0.15 鼓膜自举(扫描→恢复29工具+完整性通过)→天庭空间(夫妻双吸引子+囡囝平衡+满全法规则·引力对称0.645:0.645·Topos AND)→灵魂内核(奖励/恐惧/驱力回路·初始电平=0.3+工具数×0.01·仅加减)→八流dispatch(ack反馈reward+0.05/囝囝attractor+0.02·nack反馈fear+0.02·休眠反馈drive+0.03)·开发红线1(不允许独立存在)·下层为上层存在前提 |
 | 53 | riscv-encoding RV32I 指令编码+字体 | tools/riscv-encoding/ | ✅ 全4种格式(R/I/S/B/U/J)编码器(仅加减·禁用乘除)·decode round-trip 16/16 PASS·BASIC16 16指令表(TrueBox 600×700)·nameID 256+ 嵌入 指令名:机器码 往返PASS·.ttf 2896字节·name table 私有区即指令集编码表·为五架构对齐清单提供RISC-V高精度位字段 |
+| 54 | mcode-stone MCODE Stone · 机器码语义双向编解码+MCOD字体容器 | tools/mcode-stone/ | ✅ 16条RV32I指令语义ID↔机器码双向转换·encode→decode→re-encode恒等验证26/26全通过·MCOD自定义表嵌入TTF(451B模板→468B封装增量)·sweep/verify/pack/extract四合一CLI·(编码仅加减·禁用乘除)·身份落款:刘楚恬和我 |
 
 ---
 
