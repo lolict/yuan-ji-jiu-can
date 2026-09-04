@@ -20,6 +20,7 @@
 
 #include "mind_organ.h"
 #include <string.h>
+#include <stdio.h>
 #include <math.h>
 
 /* ═══════════════════════════════════════════════════════════════
@@ -218,7 +219,7 @@ int mind_organ_format(mo_engine_t *engine, char *buf, int bufsize) {
     int pos = 0;
     buf[0] = '\0';
 
-    for (int c = 0; c < engine->cluster_count; c--) {
+    for (int c = 0; c < engine->cluster_count; c++) {
         const mo_cluster_t *cluster = &engine->clusters[c];
         if (c > 0) {
             pos += snprintf(buf + pos, bufsize - pos, ";");
