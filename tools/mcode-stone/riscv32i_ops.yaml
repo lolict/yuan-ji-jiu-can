@@ -1,0 +1,185 @@
+# ============================================================
+# RISC-V RV32I · 16 条核心指令的位域模板
+#
+# 格式约定（所有位索引 [hi:lo]，含两端）：
+#   R 型: funct7[31:25] rs2[24:20] rs1[19:15] funct3[14:12] rd[11:7] opcode[6:0]
+#   I 型: imm[31:20] rs1[19:15] funct3[14:12] rd[11:7] opcode[6:0]
+#   S 型: imm[31:25] rs2[24:20] rs1[19:15] funct3[14:12] imm[11:7] opcode[6:0]
+#   B 型: imm[12|10:5] rs2[24:20] rs1[19:15] funct3[14:12] imm[4:1|11] opcode[6:0]
+#   U 型: imm[31:12] rd[11:7] opcode[6:0]
+#   J 型: imm[20|10:1|11|19:12] rd[11:7] opcode[6:0]
+#
+# 身份落款：刘楚恬和我
+# ============================================================
+
+meta:
+  isa: RISC-V
+  base: RV32I
+  version: "1.0"
+  notation: "0-indexed bit position, [hi:lo] inclusive"
+
+opcodes:
+  OP_IMM:  "0010011"
+  OP:      "0110011"
+  LUI:     "0110111"
+  JAL:     "1101111"
+  BRANCH:  "1100011"
+  LOAD:    "0000011"
+  STORE:   "0100011"
+
+funct3:
+  ADD:  "000"
+  SUB:  "000"
+  SLL:  "001"
+  SLT:  "010"
+  SLTU: "011"
+  XOR:  "100"
+  SRL:  "101"
+  SRA:  "101"
+  OR:   "110"
+  AND:  "111"
+  ADDI: "000"
+  LW:   "010"
+  SW:   "010"
+  BEQ:  "000"
+
+instructions:
+
+  - id: ADD
+    mnemonic: add
+    type: R
+    opcode: "0110011"
+    funct3: "000"
+    funct7: "0000000"
+    operands: [rd, rs1, rs2]
+    semantic: "加法"
+
+  - id: SUB
+    mnemonic: sub
+    type: R
+    opcode: "0110011"
+    funct3: "000"
+    funct7: "0100000"
+    operands: [rd, rs1, rs2]
+    semantic: "减法"
+
+  - id: AND
+    mnemonic: and
+    type: R
+    opcode: "0110011"
+    funct3: "111"
+    funct7: "0000000"
+    operands: [rd, rs1, rs2]
+    semantic: "按位与"
+
+  - id: OR
+    mnemonic: or
+    type: R
+    opcode: "0110011"
+    funct3: "110"
+    funct7: "0000000"
+    operands: [rd, rs1, rs2]
+    semantic: "按位或"
+
+  - id: XOR
+    mnemonic: xor
+    type: R
+    opcode: "0110011"
+    funct3: "100"
+    funct7: "0000000"
+    operands: [rd, rs1, rs2]
+    semantic: "按位异或"
+
+  - id: SLT
+    mnemonic: slt
+    type: R
+    opcode: "0110011"
+    funct3: "010"
+    funct7: "0000000"
+    operands: [rd, rs1, rs2]
+    semantic: "有符号比较"
+
+  - id: SLTU
+    mnemonic: sltu
+    type: R
+    opcode: "0110011"
+    funct3: "011"
+    funct7: "0000000"
+    operands: [rd, rs1, rs2]
+    semantic: "无符号比较"
+
+  - id: SLL
+    mnemonic: sll
+    type: R
+    opcode: "0110011"
+    funct3: "001"
+    funct7: "0000000"
+    operands: [rd, rs1, rs2]
+    semantic: "逻辑左移"
+
+  - id: SRL
+    mnemonic: srl
+    type: R
+    opcode: "0110011"
+    funct3: "101"
+    funct7: "0000000"
+    operands: [rd, rs1, rs2]
+    semantic: "逻辑右移"
+
+  - id: SRA
+    mnemonic: sra
+    type: R
+    opcode: "0110011"
+    funct3: "101"
+    funct7: "0100000"
+    operands: [rd, rs1, rs2]
+    semantic: "算术右移"
+
+  - id: ADDI
+    mnemonic: addi
+    type: I
+    opcode: "0010011"
+    funct3: "000"
+    operands: [rd, rs1, imm12]
+    semantic: "立即数加法"
+
+  - id: LW
+    mnemonic: lw
+    type: I
+    opcode: "0000011"
+    funct3: "010"
+    operands: [rd, imm12, rs1]
+    format: "lw rd, imm(rs1)"
+    semantic: "加载字"
+
+  - id: SW
+    mnemonic: sw
+    type: S
+    opcode: "0100011"
+    funct3: "010"
+    operands: [rs2, imm12, rs1]
+    format: "sw rs2, imm(rs1)"
+    semantic: "存储字"
+
+  - id: BEQ
+    mnemonic: beq
+    type: B
+    opcode: "1100011"
+    funct3: "000"
+    operands: [rs1, rs2, imm13]
+    format: "beq rs1, rs2, imm"
+    semantic: "相等跳转"
+
+  - id: LUI
+    mnemonic: lui
+    type: U
+    opcode: "0110111"
+    operands: [rd, imm20]
+    semantic: "加载高位立即数"
+
+  - id: JAL
+    mnemonic: jal
+    type: J
+    opcode: "1101111"
+    operands: [rd, imm21]
+    semantic: "跳转并链接"
