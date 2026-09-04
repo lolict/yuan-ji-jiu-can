@@ -11,6 +11,9 @@
 #   nim c -r mengji_tool.nim witness [--farm FID] [--subject SLOT] [--hash HASH]
 #   nim c -r mengji_tool.nim verify [--subject SLOT]
 #   nim c -r mengji_tool.nim status
+#   nim c -r mengji_tool.nim bag-merge [--bag-a ID] [--bag-b ID]
+#   nim c -r mengji_tool.nim bag-split [--parent ID] [--weight W]
+#   nim c -r mengji_tool.nim bag-validate
 #   nim c -r mengji_tool.nim demo
 #
 # 满全法协议:
@@ -77,11 +80,47 @@ type MengJiTriuneEntry* = object
   farm2*: string
   witness3rd*: string
 
+# ── 袋子操作类型(里程碑三 · v1.6) ──
+type MengJiBagOp* = enum
+  mjBagMerge     # 加法合并
+  mjBagSplit     # 减法拆分
+  mjBagLog       # 增量日志
+  mjBagValidate  # 袋子验证
+
+# ── 袋子条目 ──
+type MengJiBagEntry* = object
+  bagId*: int
+  weight*: int
+  witnessHash*: string
+  parentId*: int       # -1 = 根袋子
+  sourceA*: int        # 合并源A(-1 = 非合并)
+  sourceB*: int        # 合并源B
+  triuneSlot*: int
+  createdAt*: float
+  anchor*: MengJiAnchor
+
+# ── 袋子增量日志条目 ──
+type MengJiBagLogEntry* = object
+  logId*: int
+  op*: MengJiBagOp
+  sourceBag*: int
+  auxiliaryBag*: int
+  resultBag*: int
+  weightDelta*: int
+  resultHash*: string
+  witnessNode*: int
+  timestamp*: float
+
 # ── 盟机合引擎 ──
 type MengJiEngine* = object
   nodes*: TableRef[string, MengJiNode]
   verdicts*: TableRef[string, MengJiVerdictEntry]
   triuneEntries*: TableRef[string, MengJiTriuneEntry]
+  bags*: seq[MengJiBagEntry]
+  bagCount*: int
+  bagLogs*: seq[MengJiBagLogEntry]
+  bagLogCount*: int
+  bagTotalWeight*: int
   globalTick*: int
   pushCount*: int
   pullCount*: int
@@ -91,10 +130,14 @@ type MengJiEngine* = object
 const
   MAX_NODES*    = 32
   MAX_VERDICTS* = 64
+  MAX_BAGS*     = 64
+  MAX_BAG_LOGS* = 128
   GOSSIP_INTERVAL* = 5
   HEARTBEAT_TIMEOUT* = 30
   TRUST_MAX*   = 100.0
   TRUST_MIN*   = 0.0
+  BAG_WEIGHT_MIN* = 1
+  BAG_WEIGHT_MAX* = 256
 
 # ── 工具函数 ──
 proc verdictName*(v: MengJiVerdict): string =
@@ -133,6 +176,11 @@ proc newMengJiEngine*(): ref MengJiEngine =
   result.nodes = newTable[string, MengJiNode]()
   result.verdicts = newTable[string, MengJiVerdictEntry]()
   result.triuneEntries = newTable[string, MengJiTriuneEntry]()
+  result.bags = @[]
+  result.bagCount = 0
+  result.bagLogs = @[]
+  result.bagLogCount = 0
+  result.bagTotalWeight = 0
   result.globalTick = 0
   result.pushCount = 0
   result.pullCount = 0
@@ -460,6 +508,8 @@ proc status*(engine: ref MengJiEngine) =
   echo "Gossip 轮:  ", engine.globalTick
   echo "PUSH 计数:  ", engine.pushCount
   echo "PULL 计数:  ", engine.pullCount
+  echo "袋子数:     ", engine.bags.len, " (总权值=", engine.bagTotalWeight, ")"
+  echo "增量日志:   ", engine.bagLogs.len
   echo "主锚点:     ", anchorName(engine.primaryAnchor)
   echo ""
   for id, node in engine.nodes:
@@ -468,6 +518,170 @@ proc status*(engine: ref MengJiEngine) =
         " | ", anchorName(node.anchor),
         " | trust=", int(node.trust), "%",
         " | ", (if node.alive: "存活" else: "失活")
+
+# ── 名称辅助 ──
+proc bagOpName*(op: MengJiBagOp): string =
+  case op
+  of mjBagMerge:    "合并"
+  of mjBagSplit:    "拆分"
+  of mjBagLog:      "日志"
+  of mjBagValidate: "验证"
+
+# ── 里程碑三 · 袋子操作 ──
+
+# 组合见证哈希: 简单拼接摘要做 FNV-散列
+proc combineWitnessHash(ha: string; hb: string): string =
+  var h1 = 0x811c9dc5'i64
+  var h2 = 0x0100193'i64
+  let combined = ha & hb
+  for c in combined:
+    h1 = ((h1 xor int64(c)) *% 0x01000193'i64)
+    h2 = ((h2 xor (int64(c) shl 3)) *% 0x1000193'i64)
+  result = toHex(h1 and 0xFFFFFFFF'i64) & toHex(h2 and 0xFFFFFFFF'i64)
+
+# 按袋号查找
+proc findBagIdx(engine: ref MengJiEngine; bagId: int): int =
+  for i in 0 ..< engine.bags.len:
+    if engine.bags[i].bagId == bagId:
+      return i
+  return -1
+
+# 加法合并
+proc bagMerge*(engine: ref MengJiEngine; bagA: int; bagB: int; note: string): int =
+  let ia = findBagIdx(engine, bagA)
+  let ib = findBagIdx(engine, bagB)
+  if ia < 0 or ib < 0:
+    echo "[袋子合并] 袋号未找到: a=", bagA, " b=", bagB
+    return -1
+  if engine.bags.len >= MAX_BAGS:
+    echo "[袋子合并] 容量已满"
+    return -2
+  let newWeight = engine.bags[ia].weight + engine.bags[ib].weight
+  if newWeight < BAG_WEIGHT_MIN or newWeight > BAG_WEIGHT_MAX:
+    echo "[袋子合并] 权值 ", newWeight, " 超限"
+    return -3
+
+  var entry: MengJiBagEntry
+  entry.bagId = engine.bags[ia].bagId * 1000 + engine.bags[ib].bagId
+  entry.weight = newWeight
+  entry.witnessHash = combineWitnessHash(engine.bags[ia].witnessHash, engine.bags[ib].witnessHash)
+  entry.parentId = -1
+  entry.sourceA = bagA
+  entry.sourceB = bagB
+  entry.triuneSlot = -1
+  entry.createdAt = epochTime()
+  entry.anchor = engine.primaryAnchor
+
+  engine.bags.add(entry)
+  engine.bagCount = engine.bags.len
+  engine.bagTotalWeight += newWeight
+
+  echo "[袋子合并] ★ 袋#", bagA, "(w=", engine.bags[ia].weight,
+       ") + 袋#", bagB, "(w=", engine.bags[ib].weight,
+       ") → 袋#", entry.bagId, "(w=", newWeight, ",见证=", entry.witnessHash,
+       ") 总权值=", engine.bagTotalWeight
+
+  # 产出增量日志
+  discard bagIncrementalLog(engine, mjBagMerge, bagA, bagB, entry.bagId, newWeight, entry.witnessHash, -1)
+  return entry.bagId
+
+# 减法拆分
+proc bagSplit*(engine: ref MengJiEngine; parentBag: int; subWeight: int; note: string): int =
+  let ip = findBagIdx(engine, parentBag)
+  if ip < 0:
+    echo "[袋子拆分] 父袋#", parentBag, " 未找到"
+    return -1
+  if engine.bags.len >= MAX_BAGS:
+    echo "[袋子拆分] 容量已满"
+    return -2
+  if subWeight < BAG_WEIGHT_MIN or subWeight > BAG_WEIGHT_MAX:
+    echo "[袋子拆分] 权值 ", subWeight, " 超限"
+    return -3
+  if engine.bags[ip].weight < subWeight:
+    echo "[袋子拆分] 父袋权值不足"
+    return -4
+
+  var entry: MengJiBagEntry
+  entry.bagId = parentBag * 100 + 1
+  entry.weight = subWeight
+  entry.witnessHash = engine.bags[ip].witnessHash
+  entry.parentId = parentBag
+  entry.sourceA = -1
+  entry.sourceB = -1
+  entry.triuneSlot = -1
+  entry.createdAt = epochTime()
+  entry.anchor = engine.bags[ip].anchor
+
+  engine.bags.add(entry)
+  engine.bagCount = engine.bags.len
+  engine.bags[ip].weight -= subWeight
+
+  echo "[袋子拆分] ■ 父袋#", parentBag, "(w余=", engine.bags[ip].weight,
+       ") - 子袋#", entry.bagId, "(w=", subWeight, ",继承见证=", entry.witnessHash,
+       ") 总权值=", engine.bagTotalWeight, "(守恒)"
+
+  discard bagIncrementalLog(engine, mjBagSplit, parentBag, -1, entry.bagId, -subWeight, entry.witnessHash, -1)
+  return entry.bagId
+
+# 增量日志
+proc bagIncrementalLog*(engine: ref MengJiEngine; op: MengJiBagOp;
+                        source: int; auxiliary: int; result: int;
+                        weightDelta: int; resultHash: string; witnessNode: int): int =
+  if engine.bagLogs.len >= MAX_BAG_LOGS:
+    return -1
+  var entry: MengJiBagLogEntry
+  entry.logId = engine.bagLogs.len
+  entry.op = op
+  entry.sourceBag = source
+  entry.auxiliaryBag = auxiliary
+  entry.resultBag = result
+  entry.weightDelta = weightDelta
+  entry.resultHash = if resultHash.len == 16: resultHash else: "0000000000000000"
+  entry.witnessNode = witnessNode
+  entry.timestamp = epochTime()
+  engine.bagLogs.add(entry)
+  engine.bagLogCount = engine.bagLogs.len
+  echo "[增量日志#", entry.logId, "] ", bagOpName(op),
+       " 源#", source, " 辅#", auxiliary, " 结果#", result,
+       " Δ=", weightDelta, " ", entry.resultHash
+  return entry.logId
+
+# 验证单个袋子合规
+proc bagValidate*(engine: ref MengJiEngine; bagId: int): int =
+  let idx = findBagIdx(engine, bagId)
+  if idx < 0:
+    echo "[袋子验证] 袋#", bagId, " 不存在 → 袋号无效"
+    return 1
+  let b = engine.bags[idx]
+  if b.bagId < 0:
+    echo "[袋子验证] 袋#", bagId, " 袋号为负"
+    return 1
+  if b.weight < BAG_WEIGHT_MIN or b.weight > BAG_WEIGHT_MAX:
+    echo "[袋子验证] 袋#", bagId, " 权值 ", b.weight, " 超限"
+    return 2
+  if b.witnessHash.len != 16:
+    echo "[袋子验证] 袋#", bagId, " 见证摘要长度异常"
+    return 3
+  if b.parentId >= 0:
+    let pidx = findBagIdx(engine, b.parentId)
+    if pidx < 0:
+      echo "[袋子验证] 袋#", bagId, " 父袋#", b.parentId, " 不存在 → 链断裂"
+      return 4
+    echo "[袋子验证] 袋#", bagId, " 父袋#", b.parentId, " 存在,见证链完整"
+  echo "[袋子验证] 袋#", bagId, " ★★★ 合规(w=", b.weight, ",见证=", b.witnessHash, ") ★★★"
+  return 0
+
+# 验证全集守恒
+proc bagValidateAll*(engine: ref MengJiEngine): int =
+  var sum = 0
+  for b in engine.bags:
+    sum += b.weight
+  echo "[全集验证] 袋子数=", engine.bags.len, " 累加权值=", sum, " 记录权值=", engine.bagTotalWeight
+  if sum != engine.bagTotalWeight:
+    echo "[全集验证] ★ 权值不匹配(累加", sum, " ≠ 记录", engine.bagTotalWeight, ") ★"
+    return 1
+  echo "[全集验证] ★★★ 权值守恒通过 ★★★"
+  return 0
 
 # ── Demo ──
 proc demo*() =
@@ -535,6 +749,49 @@ proc demo*() =
   status(engine)
   echo "三元见证条目: ", engine.triuneEntries.len
 
+  # M11: 袋子注册 + 加法合并
+  echo "\n─── 场景 M11: 里程碑三 · 袋子注册 + 加法合并 ───"
+  # 注入两个根袋子
+  block:
+    var ba: MengJiBagEntry
+    ba.bagId = 101; ba.weight = 5; ba.witnessHash = "aaaaaaaaaaaaaaaa"
+    ba.parentId = -1; ba.sourceA = -1; ba.sourceB = -1; ba.anchor = mjLiutiantian
+    ba.createdAt = epochTime()
+    var bb: MengJiBagEntry
+    bb.bagId = 102; bb.weight = 3; bb.witnessHash = "bbbbbbbbbbbbbbbb"
+    bb.parentId = -1; bb.sourceA = -1; bb.sourceB = -1; bb.anchor = mjLolict
+    bb.createdAt = epochTime()
+    engine.bags.add(ba)
+    engine.bags.add(bb)
+    engine.bagCount = engine.bags.len
+    engine.bagTotalWeight = 8
+  echo "[里程碑三] 注入袋#101(w=5) + 袋#102(w=3) 总权值=8"
+  discard bagValidate(engine, 101)
+  discard bagValidate(engine, 102)
+  echo "\n[里程碑三] 执行加法合并 袋#101 + 袋#102:"
+  let merged = bagMerge(engine, 101, 102, "合并M11")
+  echo "[里程碑三] 合并结果: 新袋号=", merged
+  discard bagValidate(engine, merged)
+  discard bagValidateAll(engine)
+
+  # M12: 袋子减法拆分
+  echo "\n─── 场景 M12: 里程碑三 · 袋子减法拆分 + 子袋见证链继承 ───"
+  echo "[里程碑三] 从合并袋#", merged, " 减出子袋 w=4:"
+  let child = bagSplit(engine, merged, 4, "拆分M12")
+  echo "[里程碑三] 子袋号=", child
+  discard bagValidate(engine, merged)
+  discard bagValidate(engine, child)
+  let allOk2 = bagValidateAll(engine)
+  echo "[里程碑三] 全集守恒验证: ", (if allOk2 == 0: "★★★ 通过 ★★★" else: "失败")
+
+  # M13: 里程碑三全局概览
+  echo "\n─── 场景 M13: 里程碑三全局概览 ───"
+  status(engine)
+  echo "增量日志条目: ", engine.bagLogs.len
+  for i, lg in engine.bagLogs:
+    echo "  日志#", i, " ", bagOpName(lg.op),
+         " 源#", lg.sourceBag, " 结果#", lg.resultBag, " Δ=", lg.weightDelta
+
   echo "\n[盟机合] Demo 完毕."
 
 # ── CLI 入口 ──
@@ -548,6 +805,10 @@ when isMainModule:
     subjectSlot = 0
     farmId = "sim_farm_A"
     bagHash = "deadbeefcafebabe"
+    bagA = 101
+    bagB = 102
+    parentBag = 0
+    subWeight = 4
 
   var p = initOptParser(commandLineParams())
   for kind, key, val in p.getopt():
@@ -563,14 +824,18 @@ when isMainModule:
       of "subject": subjectSlot = parseInt(val)
       of "farm":    farmId = val
       of "hash":    bagHash = val
+      of "bag-a":   bagA = parseInt(val)
+      of "bag-b":   bagB = parseInt(val)
+      of "parent":  parentBag = parseInt(val)
+      of "weight":  subWeight = parseInt(val)
       of "help":
         echo "盟机合 CLI. 用法: mengji_tool.nim <cmd> [--opts]"
-        echo "命令: register / gossip / consensus / conflict / witness / verify / status / demo"
+        echo "命令: register / gossip / consensus / conflict / witness / verify / status / demo / bag-merge / bag-split / bag-validate"
         quit(0)
     of cmdEnd: discard
 
   if cmd == "":
-    echo "盟机合 CLI. 用法: mengji_tool.nim <register|gossip|consensus|conflict|witness|verify|status|demo> [--opts]"
+    echo "盟机合 CLI. 用法: mengji_tool.nim <register|gossip|consensus|conflict|witness|verify|status|demo|bag-merge|bag-split|bag-validate> [--opts]"
     quit(0)
 
   var engine = newMengJiEngine()
@@ -650,6 +915,62 @@ when isMainModule:
 
   of "demo":
     demo()
+
+  of "bag-merge":
+    # 注入两个根袋子后执行加法合并
+    block:
+      var ba: MengJiBagEntry
+      ba.bagId = 101; ba.weight = 5; ba.witnessHash = "aaaaaaaaaaaaaaaa"
+      ba.parentId = -1; ba.sourceA = -1; ba.sourceB = -1; ba.anchor = mjLiutiantian
+      ba.createdAt = epochTime()
+      var bb: MengJiBagEntry
+      bb.bagId = bagB; bb.weight = 3; bb.witnessHash = "bbbbbbbbbbbbbbbb"
+      bb.parentId = -1; bb.sourceA = -1; bb.sourceB = -1; bb.anchor = mjLolict
+      bb.createdAt = epochTime()
+      engine.bags.add(ba)
+      engine.bags.add(bb)
+      engine.bagCount = engine.bags.len
+      engine.bagTotalWeight = 8
+    let mergedId = bagMerge(engine, bagA, bagB, "CLI合并")
+    echo "合并完成: 新袋号=", mergedId
+    discard bagValidate(engine, mergedId)
+    discard bagValidateAll(engine)
+
+  of "bag-split":
+    # 注入一个父袋子后执行减法拆分
+    block:
+      var bp: MengJiBagEntry
+      bp.bagId = parentBag; bp.weight = 10; bp.witnessHash = "cccccccccccccccc"
+      bp.parentId = -1; bp.sourceA = -1; bp.sourceB = -1; bp.anchor = mjLolict
+      bp.createdAt = epochTime()
+      engine.bags.add(bp)
+      engine.bagCount = engine.bags.len
+      engine.bagTotalWeight = 10
+    let childId = bagSplit(engine, parentBag, subWeight, "CLI拆分")
+    echo "拆分完成: 子袋号=", childId
+    discard bagValidate(engine, parentBag)
+    discard bagValidate(engine, childId)
+    discard bagValidateAll(engine)
+
+  of "bag-validate":
+    block:
+      var bp: MengJiBagEntry
+      bp.bagId = 201; bp.weight = 7; bp.witnessHash = "dddddddddddddddd"
+      bp.parentId = -1; bp.sourceA = -1; bp.sourceB = -1; bp.anchor = mjLiutiantian
+      bp.createdAt = epochTime()
+      var bc: MengJiBagEntry
+      bc.bagId = 202; bc.weight = 3; bc.witnessHash = "dddddddddddddddd"
+      bc.parentId = 201; bc.sourceA = -1; bc.sourceB = -1; bc.anchor = mjLiutiantian
+      bc.createdAt = epochTime()
+      engine.bags.add(bp)
+      engine.bags.add(bc)
+      engine.bagCount = engine.bags.len
+      engine.bagTotalWeight = 10
+    let vr201 = bagValidate(engine, 201)
+    let vr202 = bagValidate(engine, 202)
+    echo "验证结果: 袋#201=", (if vr201 == 0: "通过" else: "失败码" & $vr201),
+         " 袋#202=", (if vr202 == 0: "通过" else: "失败码" & $vr202)
+    discard bagValidateAll(engine)
 
   else:
     echo "未知命令: ", cmd

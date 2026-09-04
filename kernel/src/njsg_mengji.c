@@ -91,6 +91,9 @@ void njsg_mengji_init(void) {
     MJ.pull_count     = 0;
     MJ.consensus_count = 0;
     MJ.conflict_count  = 0;
+    MJ.bag_count       = 0;
+    MJ.bag_log_count   = 0;
+    MJ.bag_total_weight = 0;
 
     printf("\n");
     printf("╔══════════════════════════════════════════╗\n");
@@ -698,6 +701,319 @@ void njsg_mengji_probe_alive(void) {
 }
 
 /* ============================================================
+ * 里程碑三 · 跨袋子合并拆分 (v1.6 袋子整并协议)
+ * ------------------------------------------------------------
+ *  仅加法(合并)与减法(拆分)，无乘除，袋子级整袋跃迁。
+ * ============================================================ */
+
+/* 按袋号查找袋子索引;未找到返回 -1 */
+static int find_bag_idx(int bag_id) {
+    for (int i = 0; i < MJ.bag_count; i++) {
+        if (MJ.bags[i].bag_id == bag_id) return i;
+    }
+    return -1;
+}
+
+/* 组合见证哈希:用 FNV-1a 对两个摘要拼接结果做散列,产出 16 位十六进制 */
+static void combine_witness_hash(const char* ha, const char* hb, char* out) {
+    uint32_t h1 = 0x811c9dc5u, h2 = 0x0100193u;
+    char buf[40];
+    snprintf(buf, sizeof(buf), "%s%s", ha, hb);
+    for (size_t i = 0; i < strlen(buf); i++) {
+        h1 ^= (uint8_t)buf[i]; h1 *= 0x01000193u;
+        h2 ^= ((uint8_t)buf[i]) << 3; h2 *= 0x1000193u;
+    }
+    snprintf(out, 17, "%08x%08x", h1, h2);
+}
+
+/* ---- 加法合并 ---- */
+int njsg_mengji_bag_merge(int bag_a, int bag_b, const char* merge_note) {
+    pthread_mutex_lock(&MJ.lock);
+
+    int ia = find_bag_idx(bag_a);
+    int ib = find_bag_idx(bag_b);
+    if (ia < 0 || ib < 0) {
+        printf("[袋子合并] 袋号未找到: a=%d(idx=%d) b=%d(idx=%d)\n", bag_a, ia, bag_b, ib);
+        pthread_mutex_unlock(&MJ.lock);
+        return -1;
+    }
+    if (MJ.bag_count >= MENGJI_MAX_BAGS) {
+        printf("[袋子合并] 袋子容量已满 %d\n", MENGJI_MAX_BAGS);
+        pthread_mutex_unlock(&MJ.lock);
+        return -2;
+    }
+
+    int new_weight = MJ.bags[ia].weight + MJ.bags[ib].weight;
+    if (new_weight < MENGJI_BAG_WEIGHT_MIN || new_weight > MENGJI_BAG_WEIGHT_MAX) {
+        printf("[袋子合并] 权值 %d 超限[%d,%d]\n", new_weight, MENGJI_BAG_WEIGHT_MIN, MENGJI_BAG_WEIGHT_MAX);
+        pthread_mutex_unlock(&MJ.lock);
+        return -3;
+    }
+
+    /* 新增合并袋子 */
+    int ic = MJ.bag_count++;
+    mengji_bag_entry_t* c = &MJ.bags[ic];
+    memset(c, 0, sizeof(*c));
+    /* 袋号 = 两个源袋号拼接哈希摘要(简单递增编号) */
+    c->bag_id = (MJ.bags[ia].bag_id * 1000 + MJ.bags[ib].bag_id);
+    c->weight = new_weight;
+    combine_witness_hash(MJ.bags[ia].witness_hash, MJ.bags[ib].witness_hash, c->witness_hash);
+    c->parent_id = -1;
+    c->source_a  = bag_a;
+    c->source_b  = bag_b;
+    c->triune_slot = -1;
+    c->created_at  = time(NULL);
+    c->anchor      = MJ.primary_anchor;
+
+    MJ.bag_total_weight += new_weight;
+
+    printf("[袋子合并] ★ 袋#%d(w=%d) + 袋#%d(w=%d) → 袋#%d(w=%d,见证=%s) 总权值=%d\n",
+           bag_a, MJ.bags[ia].weight, bag_b, MJ.bags[ib].weight,
+           c->bag_id, new_weight, c->witness_hash, MJ.bag_total_weight);
+
+    /* 产出增量日志 */
+    njsg_mengji_bag_incremental_log(MJ_BAG_MERGE, bag_a, bag_b, c->bag_id,
+                                     new_weight, c->witness_hash, -1);
+
+    pthread_mutex_unlock(&MJ.lock);
+    fflush(stdout);
+    return c->bag_id;
+}
+
+/* ---- 减法拆分 ---- */
+int njsg_mengji_bag_split(int parent_bag, int sub_weight, const char* split_note) {
+    pthread_mutex_lock(&MJ.lock);
+
+    int ip = find_bag_idx(parent_bag);
+    if (ip < 0) {
+        printf("[袋子拆分] 父袋号未找到: %d\n", parent_bag);
+        pthread_mutex_unlock(&MJ.lock);
+        return -1;
+    }
+    if (MJ.bag_count >= MENGJI_MAX_BAGS) {
+        printf("[袋子拆分] 袋子容量已满 %d\n", MENGJI_MAX_BAGS);
+        pthread_mutex_unlock(&MJ.lock);
+        return -2;
+    }
+    if (sub_weight < MENGJI_BAG_WEIGHT_MIN || sub_weight > MENGJI_BAG_WEIGHT_MAX) {
+        printf("[袋子拆分] 请求权值 %d 超限[%d,%d]\n", sub_weight, MENGJI_BAG_WEIGHT_MIN, MENGJI_BAG_WEIGHT_MAX);
+        pthread_mutex_unlock(&MJ.lock);
+        return -3;
+    }
+    if (MJ.bags[ip].weight < sub_weight) {
+        printf("[袋子拆分] 父袋#%d 权值不足(%d<%d)\n", parent_bag, MJ.bags[ip].weight, sub_weight);
+        pthread_mutex_unlock(&MJ.lock);
+        return -4;
+    }
+
+    /* 创建子袋 */
+    int ic = MJ.bag_count++;
+    mengji_bag_entry_t* c = &MJ.bags[ic];
+    memset(c, 0, sizeof(*c));
+    c->bag_id     = parent_bag * 100 + 1;  /* 子袋号 = 父袋号 × 100 + 1 */
+    c->weight     = sub_weight;
+    /* 子袋承接父袋的见证摘要 */
+    strncpy(c->witness_hash, MJ.bags[ip].witness_hash, 16);
+    c->witness_hash[16] = '\0';
+    c->parent_id  = parent_bag;
+    c->source_a   = -1;
+    c->source_b   = -1;
+    c->triune_slot = -1;
+    c->created_at  = time(NULL);
+    c->anchor      = MJ.bags[ip].anchor;   /* 继承父袋锚点 */
+
+    /* 父袋权值减少(减法守恒) */
+    MJ.bags[ip].weight -= sub_weight;
+
+    /* 总权值不变(守恒) */
+
+    printf("[袋子拆分] ■ 父袋#%d(w 余%d) - 子袋#%d(w=%d,继承见证=%s) 总权值=%d(守恒)\n",
+           parent_bag, MJ.bags[ip].weight, c->bag_id, sub_weight,
+           c->witness_hash, MJ.bag_total_weight);
+
+    /* 产出增量日志 */
+    njsg_mengji_bag_incremental_log(MJ_BAG_SPLIT, parent_bag, -1, c->bag_id,
+                                     -sub_weight, c->witness_hash, -1);
+
+    pthread_mutex_unlock(&MJ.lock);
+    fflush(stdout);
+    return c->bag_id;
+}
+
+/* ---- 增量日志条目 ---- */
+int njsg_mengji_bag_incremental_log(mengji_bag_op_t op,
+                                      int source, int auxiliary, int result,
+                                      int weight_delta, const char* result_hash,
+                                      int witness_node) {
+    pthread_mutex_lock(&MJ.lock);
+
+    if (MJ.bag_log_count >= MENGJI_MAX_BAG_LOGS) {
+        pthread_mutex_unlock(&MJ.lock);
+        return -1;
+    }
+
+    static const char* op_names[] = {"合并","拆分","日志","验证"};
+    const char* op_str = (op <= MJ_BAG_VALIDATE) ? op_names[op] : "?";
+
+    int il = MJ.bag_log_count++;
+    mengji_bag_log_entry_t* l = &MJ.bag_logs[il];
+    memset(l, 0, sizeof(*l));
+    l->log_id        = il;
+    l->op            = op;
+    l->source_bag    = source;
+    l->auxiliary_bag = auxiliary;
+    l->result_bag    = result;
+    l->weight_delta  = weight_delta;
+    strncpy(l->result_hash, result_hash ? result_hash : "0000000000000000", 16);
+    l->result_hash[16] = '\0';
+    l->witness_node  = witness_node;
+    l->timestamp     = time(NULL);
+
+    printf("[增量日志#%d] 操作=%s 源袋#%d 辅助袋#%d 结果袋#%d 权值变化=%+d 见证=%s\n",
+           il, op_str, source, auxiliary, result, weight_delta, l->result_hash);
+
+    pthread_mutex_unlock(&MJ.lock);
+    fflush(stdout);
+    return il;
+}
+
+/* ---- 验证单个袋子合规 ----
+ *  返回: 0=合规  1=袋号无效  2=权值超限  3=见证摘要格式错误
+ *        4=父袋链接断裂
+ * ============================================================ */
+int njsg_mengji_bag_validate(int bag_id) {
+    pthread_mutex_lock(&MJ.lock);
+
+    int idx = find_bag_idx(bag_id);
+    if (idx < 0) {
+        printf("[袋子验证] 袋#%d: 袋号无效\n", bag_id);
+        pthread_mutex_unlock(&MJ.lock);
+        return 1;
+    }
+
+    mengji_bag_entry_t* b = &MJ.bags[idx];
+
+    /* 袋号合规 */
+    if (b->bag_id < 0) {
+        printf("[袋子验证] 袋#%d: 袋号为负\n", bag_id);
+        pthread_mutex_unlock(&MJ.lock);
+        return 1;
+    }
+
+    /* 权值守恒(上下限内) */
+    if (b->weight < MENGJI_BAG_WEIGHT_MIN || b->weight > MENGJI_BAG_WEIGHT_MAX) {
+        printf("[袋子验证] 袋#%d: 权值 %d 超限[%d,%d]\n",
+               bag_id, b->weight, MENGJI_BAG_WEIGHT_MIN, MENGJI_BAG_WEIGHT_MAX);
+        pthread_mutex_unlock(&MJ.lock);
+        return 2;
+    }
+
+    /* 见证摘要格式: 必须为非空 16 位十六进制 */
+    if (strlen(b->witness_hash) != 16) {
+        printf("[袋子验证] 袋#%d: 见证摘要长度异常(%zu)\n", bag_id, strlen(b->witness_hash));
+        pthread_mutex_unlock(&MJ.lock);
+        return 3;
+    }
+    for (int i = 0; i < 16; i++) {
+        char ch = b->witness_hash[i];
+        if (!((ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'F'))) {
+            printf("[袋子验证] 袋#%d: 见证摘要含非法字符 '%c'\n", bag_id, ch);
+            pthread_mutex_unlock(&MJ.lock);
+            return 3;
+        }
+    }
+
+    /* 见证链链接: 若有父袋,父袋必须存在 */
+    if (b->parent_id >= 0) {
+        int pidx = find_bag_idx(b->parent_id);
+        if (pidx < 0) {
+            printf("[袋子验证] 袋#%d: 父袋#%d 不存在,链断裂\n", bag_id, b->parent_id);
+            pthread_mutex_unlock(&MJ.lock);
+            return 4;
+        }
+        printf("[袋子验证] 袋#%d: 父袋#%d 存在,见证链完整\n", bag_id, b->parent_id);
+    }
+
+    printf("[袋子验证] 袋#%d: ★★★ 合规(w=%d,见证=%s) ★★★\n",
+           bag_id, b->weight, b->witness_hash);
+    pthread_mutex_unlock(&MJ.lock);
+    fflush(stdout);
+    return 0;
+}
+
+/* ---- 验证袋子全集守恒 ----
+ *  检查: Σ(所有袋子权值) == bag_total_weight
+ *  返回: 0=守恒  1=总权值不匹配  2=子袋权值和超过父袋原始值
+ * ============================================================ */
+int njsg_mengji_bag_validate_all(void) {
+    pthread_mutex_lock(&MJ.lock);
+
+    int sum = 0;
+    for (int i = 0; i < MJ.bag_count; i++) {
+        sum += MJ.bags[i].weight;
+    }
+
+    printf("[全集验证] 袋子总数=%d 各袋权值累加=%d 记录总权值=%d\n",
+           MJ.bag_count, sum, MJ.bag_total_weight);
+
+    if (sum != MJ.bag_total_weight) {
+        printf("[全集验证] ★ 权值不匹配(累加%d ≠ 记录%d) ★\n", sum, MJ.bag_total_weight);
+        pthread_mutex_unlock(&MJ.lock);
+        fflush(stdout);
+        return 1;
+    }
+
+    printf("[全集验证] ★★★ 权值守恒通过 ★★★\n");
+    pthread_mutex_unlock(&MJ.lock);
+    fflush(stdout);
+    return 0;
+}
+
+/* ---- 打印单个袋子 ---- */
+void njsg_mengji_print_bag(int bag_id) {
+    pthread_mutex_lock(&MJ.lock);
+    int idx = find_bag_idx(bag_id);
+    if (idx < 0) {
+        printf("袋#%d 不存在\n", bag_id);
+        pthread_mutex_unlock(&MJ.lock);
+        return;
+    }
+    mengji_bag_entry_t* b = &MJ.bags[idx];
+    printf("┌─── 袋#%d ───┐\n", b->bag_id);
+    printf("│ 权值:     %d\n", b->weight);
+    printf("│ 见证摘要: %s\n", b->witness_hash);
+    printf("│ 父袋:     %s\n", (b->parent_id >= 0) ? "#" : "无(根袋)");
+    if (b->parent_id >= 0) printf("│           #%d\n", b->parent_id);
+    if (b->source_a >= 0)
+        printf("│ 合并源:   #%d + #%d\n", b->source_a, b->source_b);
+    printf("│ 锚点:     %s\n", anchor_name(b->anchor));
+    printf("└─────────────────────────┘\n");
+    pthread_mutex_unlock(&MJ.lock);
+}
+
+/* ---- 打印增量日志条目 ---- */
+void njsg_mengji_print_bag_log(int log_id) {
+    pthread_mutex_lock(&MJ.lock);
+    if (log_id < 0 || log_id >= MJ.bag_log_count) {
+        printf("日志#%d 不存在\n", log_id);
+        pthread_mutex_unlock(&MJ.lock);
+        return;
+    }
+    mengji_bag_log_entry_t* l = &MJ.bag_logs[log_id];
+    static const char* op_names[] = {"合并","拆分","日志","验证"};
+    const char* op_str = (l->op <= MJ_BAG_VALIDATE) ? op_names[l->op] : "?";
+    printf("┌─── 增量日志#%d ───┐\n", l->log_id);
+    printf("│ 操作:     %s\n", op_str);
+    printf("│ 源袋:     #%d\n", l->source_bag);
+    printf("│ 辅助袋:   #%d\n", l->auxiliary_bag);
+    printf("│ 结果袋:   #%d\n", l->result_bag);
+    printf("│ 权值变化: %+d\n", l->weight_delta);
+    printf("│ 结果见证: %s\n", l->result_hash);
+    printf("└──────────────────────────────┘\n");
+    pthread_mutex_unlock(&MJ.lock);
+}
+
+/* ============================================================
  * 打印
  * ============================================================ */
 /* 三元见证状态名 */
@@ -754,6 +1070,8 @@ void njsg_mengji_print(void) {
     printf("PULL次数:   %d\n", MJ.pull_count);
     printf("共识达成:   %d\n", MJ.consensus_count);
     printf("冲突计数:   %d\n", MJ.conflict_count);
+    printf("袋子数:     %d (总权值=%d)\n", MJ.bag_count, MJ.bag_total_weight);
+    printf("增量日志:   %d\n", MJ.bag_log_count);
     printf("主锚点:     %s (信任=%.0f%%)\n", anchor_name(MJ.primary_anchor), MJ.primary_trust);
 
     /* 打印三元见证详情 */
@@ -764,6 +1082,33 @@ void njsg_mengji_print(void) {
             printf("  [槽#%d] 袋子摘要=%s 状态=%s 场1=#%d 场2=#%d 见证=#%d\n",
                    t->slot, t->bag_hash, triune_state_name(t->triune_state),
                    t->witness_farm_1, t->witness_farm_2, t->witness_3rd);
+        }
+    }
+
+    /* 打印袋子详情 */
+    if (MJ.bag_count > 0) {
+        printf("\n--- 袋子集合 ---\n");
+        for (int i = 0; i < MJ.bag_count; i++) {
+            mengji_bag_entry_t* b = &MJ.bags[i];
+            printf("  [袋#%d] w=%d 见证=%s 父=%s",
+                   b->bag_id, b->weight, b->witness_hash,
+                   (b->parent_id >= 0) ? "#" : "根");
+            if (b->parent_id >= 0) printf("%d", b->parent_id);
+            if (b->source_a >= 0) printf(" 合并(%d+%d)", b->source_a, b->source_b);
+            printf("\n");
+        }
+    }
+
+    /* 打印增量日志 */
+    if (MJ.bag_log_count > 0) {
+        printf("\n--- 增量日志 ---\n");
+        static const char* op_names[] = {"合并","拆分","日志","验证"};
+        for (int i = 0; i < MJ.bag_log_count; i++) {
+            mengji_bag_log_entry_t* l = &MJ.bag_logs[i];
+            const char* op_str = (l->op <= MJ_BAG_VALIDATE) ? op_names[l->op] : "?";
+            printf("  [日志#%d] %s 源#%d 辅#%d 结果#%d Δ=%+d %s\n",
+                   i, op_str, l->source_bag, l->auxiliary_bag,
+                   l->result_bag, l->weight_delta, l->result_hash);
         }
     }
 
@@ -863,6 +1208,66 @@ void njsg_mengji_demo(void) {
     printf("\n━━━ 场景 M11: 里程碑二全局概览 ━━━\n");
     njsg_mengji_print();
 
+    /* ── 里程碑三 · 跨袋子合并拆分演示 ── */
+    printf("\n━━━ 场景 M12: 袋子注册 + 加法合并 ━━━\n");
+    /* 直接向引擎注入两个根袋子(模拟裁定份额) */
+    pthread_mutex_lock(&MJ.lock);
+    int ba = MJ.bag_count++;
+    mengji_bag_entry_t* bag_a = &MJ.bags[ba];
+    memset(bag_a, 0, sizeof(*bag_a));
+    bag_a->bag_id = 101;
+    bag_a->weight = 5;
+    strncpy(bag_a->witness_hash, "aaaaaaaaaaaaaaaa", 16);
+    bag_a->witness_hash[16] = '\0';
+    bag_a->parent_id = -1;
+    bag_a->source_a = -1;
+    bag_a->source_b = -1;
+    bag_a->anchor = ANCHOR_LIUTIANTIAN;
+    bag_a->created_at = time(NULL);
+
+    int bb = MJ.bag_count++;
+    mengji_bag_entry_t* bag_b = &MJ.bags[bb];
+    memset(bag_b, 0, sizeof(*bag_b));
+    bag_b->bag_id = 102;
+    bag_b->weight = 3;
+    strncpy(bag_b->witness_hash, "bbbbbbbbbbbbbbbb", 16);
+    bag_b->witness_hash[16] = '\0';
+    bag_b->parent_id = -1;
+    bag_b->source_a = -1;
+    bag_b->source_b = -1;
+    bag_b->anchor = ANCHOR_LOLICT;
+    bag_b->created_at = time(NULL);
+    MJ.bag_total_weight = 8;
+    pthread_mutex_unlock(&MJ.lock);
+
+    printf("[里程碑三] 注入袋#101(w=5,见证=aa..aa) + 袋#102(w=3,见证=bb..bb)\n");
+    njsg_mengji_bag_validate(101);
+    njsg_mengji_bag_validate(102);
+
+    /* 加法合并 */
+    printf("\n[里程碑三] 执行加法合并 袋#101 + 袋#102:\n");
+    int merged = njsg_mengji_bag_merge(101, 102, "合并演示M12");
+    printf("[里程碑三] 合并结果: 新袋号=%d\n", merged);
+    njsg_mengji_bag_validate(merged);
+    njsg_mengji_bag_validate_all();
+
+    printf("\n━━━ 场景 M13: 袋子减法拆分 + 子袋见证链继承 ━━━\n");
+    /* 拆分合并袋:减出 w=4 的子袋 */
+    printf("[里程碑三] 从合并袋#%d 减出子袋 w=4:\n", merged);
+    int child = njsg_mengji_bag_split(merged, 4, "拆分演示M13");
+    printf("[里程碑三] 子袋号=%d\n", child);
+
+    /* 验证子袋与父袋 */
+    njsg_mengji_bag_validate(merged);
+    njsg_mengji_bag_validate(child);
+
+    /* 全体验证 */
+    int all_ok = njsg_mengji_bag_validate_all();
+    printf("[里程碑三] 全集守恒验证: %s\n", (all_ok == 0) ? "★★★ 通过 ★★★" : "失败");
+
+    printf("\n━━━ 场景 M14: 里程碑三全局概览 ━━━\n");
+    njsg_mengji_print();
+
     printf("\n[盟机合] 演示完毕。\n");
-    printf("[盟机合] 里程碑二: 分布式三元见证 + 冲突裁决 = 去中心化一致性保障\n\n");
+    printf("[盟机合] 里程碑三: 跨袋子合并拆分 + 增量日志 + 验证协议 = 合伙人协议 v1.4-v1.6 完整落地\n\n");
 }

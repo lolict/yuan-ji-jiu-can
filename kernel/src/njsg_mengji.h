@@ -39,6 +39,10 @@
 #define MENGJI_HEARTBEAT_TIMEOUT 30  /* 心跳超时(秒) */
 #define MENGJI_TRUST_MAX       100   /* 信任上限 */
 #define MENGJI_TRUST_MIN         0   /* 信任下限 */
+#define MENGJI_MAX_BAGS         64   /* 最大袋子数(里程碑三) */
+#define MENGJI_MAX_BAG_LOGS     128  /* 最大增量日志条目数 */
+#define MENGJI_BAG_WEIGHT_MIN    1   /* 袋子权值下限 */
+#define MENGJI_BAG_WEIGHT_MAX  256   /* 袋子权值上限 */
 
 /* ---- 节点类型 ---- */
 typedef enum {
@@ -92,6 +96,40 @@ typedef struct {
     time_t              decided_at;             /* 裁定时间戳 */
 } mengji_verdict_entry_t;
 
+/* ---- 袋子操作类型 (里程碑三 · v1.6) ---- */
+typedef enum {
+    MJ_BAG_MERGE    = 0,  /* 加法合并 */
+    MJ_BAG_SPLIT    = 1,  /* 减法拆分 */
+    MJ_BAG_LOG      = 2,  /* 增量日志 */
+    MJ_BAG_VALIDATE = 3   /* 袋子验证 */
+} mengji_bag_op_t;
+
+/* ---- 袋子条目 ---- */
+typedef struct {
+    int                 bag_id;             /* 袋号 */
+    int                 weight;             /* 权值(整袋份额) */
+    char                witness_hash[17];   /* 组合见证摘要(16进制64位) */
+    int                 parent_id;          /* 父袋号(-1=根袋子) */
+    int                 source_a;           /* 合并源袋A(-1=非合并来源) */
+    int                 source_b;           /* 合并源袋B(-1=非合并来源) */
+    int                 triune_slot;        /* 关联的三元见证槽位 */
+    time_t              created_at;         /* 创建时间戳 */
+    mengji_anchor_t     anchor;             /* 夫妻主权人锚点归属 */
+} mengji_bag_entry_t;
+
+/* ---- 袋子增量日志条目 ---- */
+typedef struct {
+    int                 log_id;             /* 日志序号 */
+    mengji_bag_op_t     op;                 /* MERGE/SPLIT/LOG/VALIDATE */
+    int                 source_bag;         /* 源袋号(合并A/拆分父袋子) */
+    int                 auxiliary_bag;      /* 辅助袋号(合并B) */
+    int                 result_bag;         /* 结果袋号(合并C/拆分子袋子) */
+    int                 weight_delta;       /* 权值变化量(+加-减) */
+    char                result_hash[17];    /* 结果见证摘要 */
+    int                 witness_node;       /* 见证节点 */
+    time_t              timestamp;          /* 时间戳 */
+} mengji_bag_log_entry_t;
+
 /* ---- 盟机合节点 ---- */
 typedef struct {
     int                 id;                                     /* 节点编号 */
@@ -115,6 +153,11 @@ typedef struct {
     int                     verdict_count;
     mengji_triune_entry_t   triunes[MENGJI_MAX_VERDICTS];
     int                     triune_count;
+    mengji_bag_entry_t      bags[MENGJI_MAX_BAGS];
+    int                     bag_count;
+    mengji_bag_log_entry_t  bag_logs[MENGJI_MAX_BAG_LOGS];
+    int                     bag_log_count;
+    int                     bag_total_weight;
     pthread_mutex_t         lock;
     time_t                  global_tick;         /* Gossip 全局节律计数 */
     int                     push_count;          /* PUSH 计数 */
@@ -168,6 +211,30 @@ void njsg_mengji_probe_alive(void);
 /* 打印 */
 void njsg_mengji_print(void);
 void njsg_mengji_print_node(int idx);
+
+/* ---- 里程碑三 · 跨袋子合并拆分 -------------------------------- */
+
+/* 加法合并: bag_a + bag_b → 新袋子(权值累加,见证摘要组合) */
+int  njsg_mengji_bag_merge(int bag_a, int bag_b, const char* merge_note);
+
+/* 减法拆分: parent_bag → parent_bag' + child_bag(子袋承接部分权值与见证) */
+int  njsg_mengji_bag_split(int parent_bag, int sub_weight, const char* split_note);
+
+/* 产出增量日志条目(作为Gossip裁决袋内容) */
+int  njsg_mengji_bag_incremental_log(mengji_bag_op_t op,
+                                      int source, int auxiliary, int result,
+                                      int weight_delta, const char* result_hash,
+                                      int witness_node);
+
+/* 验证袋子合规(袋号/权值/见证链) */
+int  njsg_mengji_bag_validate(int bag_id);
+
+/* 验证袋子全集守恒(所有袋子权值总和一致性) */
+int  njsg_mengji_bag_validate_all(void);
+
+/* 打印 */
+void njsg_mengji_print_bag(int bag_id);
+void njsg_mengji_print_bag_log(int log_id);
 
 /* Demo */
 void njsg_mengji_demo(void);

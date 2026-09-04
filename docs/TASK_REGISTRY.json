@@ -107,9 +107,9 @@
       "status": "in_progress",
       "priority": 3,
       "entry_file": "kernel/src/njsg_kernel.c",
-      "description": "里程碑二(分布式三元见证+冲突裁决)已完成。新增njsg_mengji_triune_register/verify(背书+三条件验证)+TRIUNE_状态枚举+三场景M9-M11演示+mengji_tool.nim witness/verify子命令+TRIUNE_DIST.md文档。夫妻主权人锚点仅加减;信任相交>=30%+锚点相容=条件三。进度30%。待:持久化/跨网络/增量同步/里程碑三(拆分合并)",
+      "description": "里程碑二(分布式三元见证+冲突裁决)+里程碑三(跨袋子合并拆分+增量日志+验证协议)已完成。新增njsg_mengji_triune_register/verify+njsg_mengji_bag_merge/split/incremental_log/validate/validate_all+MJ_BAG_操作枚举+袋子数组+增量日志+MJ_BAG_WEIGHT_约束+三场景M12-M14演示+mengji_tool.nim bag-merge/bag-split/bag-validate子命令+BAG_MERGE_SPLIT.md文档。仅加减无乘除;袋子级整袋跃迁;子袋继承父袋见证链;全集权值守恒Σ==bag_total_weight。进度50%。待:持久化/跨网络/实际传输层/横向多场接入",
       "assignee": null,
-      "progress": 30,
+      "progress": 50,
       "dependencies": ["v1.3-full-stack"]
     },
     {
