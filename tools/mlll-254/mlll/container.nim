@@ -1,9 +1,10 @@
-('# ', '')@name: container
-('# ', '')@type: encoding-container
-('# ', '')@owner: 五彩石
-('# ', '')@status: stable
-('# ', '')@priority: P0
-('# ', '')@description: mlll核心容器定义
+# @name: container
+# @type: encoding-container
+# @owner: 五彩石
+# @status: stable
+# @priority: P0
+# @description: mlll核心容器定义
+
 
 # ============================================================
 # mlll 254+2 集装箱编码

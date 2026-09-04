@@ -79,7 +79,8 @@ def inject_meta(filepath, meta):
     if ext not in COMMENT_FORMATS:
         return False, f"不支持的文件类型: {ext}"
     
-    prefix = COMMENT_FORMATS[ext]
+    prefix_tuple = COMMENT_FORMATS[ext]
+    prefix = prefix_tuple[0] if isinstance(prefix_tuple, tuple) else prefix_tuple
     
     try:
         content = filepath.read_text(encoding='utf-8')

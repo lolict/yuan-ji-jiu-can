@@ -1,9 +1,10 @@
-('// ', '')@name: mind_organ
-('// ', '')@type: core-mind-organ
-('// ', '')@owner: 五彩石
-('// ', '')@status: stable
-('// ', '')@priority: P0
-('// ', '')@description: 心智器官
+// @name: mind_organ
+// @type: core-mind-organ
+// @owner: 五彩石
+// @status: stable
+// @priority: P0
+// @description: 心智器官
+
 
 // ══════════════════════════════════════════════════════════════════
 // mind_organ.rs — 感知器官 · 聚类思维自迭代引擎

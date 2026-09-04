@@ -1,9 +1,10 @@
-('// ', '')@name: entity_identity
-('// ', '')@type: core-identity
-('// ', '')@owner: 五彩石
-('// ', '')@status: stable
-('// ', '')@priority: P0
-('// ', '')@description: 身份编码系统
+// @name: entity_identity
+// @type: core-identity
+// @owner: 五彩石
+// @status: stable
+// @priority: P0
+// @description: 身份编码系统
+
 
 // ══════════════════════════════════════════════════════════════════════
 // entity_identity.rs · 实体身份协议

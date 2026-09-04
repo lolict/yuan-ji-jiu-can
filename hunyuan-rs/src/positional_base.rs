@@ -1,9 +1,10 @@
-('// ', '')@name: positional_base
-('// ', '')@type: encoding-positional
-('// ', '')@owner: 五彩石
-('// ', '')@status: stable
-('// ', '')@priority: P1
-('// ', '')@description: 位置进制
+// @name: positional_base
+// @type: encoding-positional
+// @owner: 五彩石
+// @status: stable
+// @priority: P1
+// @description: 位置进制
+
 
 // ══════════════════════════════════════════════════════════════════
 // positional_base.rs — 位置进制基础 · 打米机

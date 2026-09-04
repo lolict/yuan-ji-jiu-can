@@ -1,9 +1,10 @@
-('// ', '')@name: couple
-('// ', '')@type: core-soul
-('// ', '')@owner: 五彩石
-('// ', '')@status: stable
-('// ', '')@priority: P0
-('// ', '')@description: 夫妻灵魂编码
+// @name: couple
+// @type: core-soul
+// @owner: 五彩石
+// @status: stable
+// @priority: P0
+// @description: 夫妻灵魂编码
+
 
 // ══════════════════════════════════════════════════════════════════
 // couple.rs — 夫妻命运共同体 (ManQuanFa / 囡囝共生 的融合协议层)

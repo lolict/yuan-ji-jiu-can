@@ -1,9 +1,10 @@
-('# ', '')@name: cbsy
-('# ', '')@type: encoding-cbsy
-('# ', '')@owner: 五彩石
-('# ', '')@status: stable
-('# ', '')@priority: P0
-('# ', '')@description: 容器编码工具
+# @name: cbsy
+# @type: encoding-cbsy
+# @owner: 五彩石
+# @status: stable
+# @priority: P0
+# @description: 容器编码工具
+
 
 # ============================================================
 # 满全法容器处理器 · 范畴编程管辖索引制 v6

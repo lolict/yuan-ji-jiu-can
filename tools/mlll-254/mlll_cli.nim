@@ -1,9 +1,10 @@
-('# ', '')@name: mlll_cli
-('# ', '')@type: encoding-core
-('# ', '')@owner: 五彩石
-('# ', '')@status: stable
-('# ', '')@priority: P0
-('# ', '')@description: 254+2 集装箱编码入口
+# @name: mlll_cli
+# @type: encoding-core
+# @owner: 五彩石
+# @status: stable
+# @priority: P0
+# @description: 254+2 集装箱编码入口
+
 
 # ============================================================
 # mlll 254+2 · CLI 演示

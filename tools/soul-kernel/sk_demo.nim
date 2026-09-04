@@ -1,9 +1,10 @@
-('# ', '')@name: sk_demo
-('# ', '')@type: kernel-soul
-('# ', '')@owner: 五彩石
-('# ', '')@status: stable
-('# ', '')@priority: P0
-('# ', '')@description: 夫妻灵魂内核演示
+# @name: sk_demo
+# @type: kernel-soul
+# @owner: 五彩石
+# @status: stable
+# @priority: P0
+# @description: 夫妻灵魂内核演示
+
 
 # ============================================================
 # 灵魂情感内核 · 完整演示

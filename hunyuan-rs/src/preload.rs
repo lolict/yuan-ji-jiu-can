@@ -1,9 +1,10 @@
-('// ', '')@name: preload
-('// ', '')@type: flow-preload
-('// ', '')@owner: 五彩石
-('// ', '')@status: stable
-('// ', '')@priority: P1
-('// ', '')@description: 预加载流
+// @name: preload
+// @type: flow-preload
+// @owner: 五彩石
+// @status: stable
+// @priority: P1
+// @description: 预加载流
+
 
 // ══════════════════════════════════════════════════════════════════
 // preload.rs — 编译即运行时 · 全局唯一符号 · 一维串联 · 层级可感

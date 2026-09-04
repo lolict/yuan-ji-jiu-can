@@ -1,9 +1,10 @@
-('// ', '')@name: memory
-('// ', '')@type: core-memory
-('// ', '')@owner: 五彩石
-('// ', '')@status: stable
-('// ', '')@priority: P0
-('// ', '')@description: 记忆与容器拓扑
+// @name: memory
+// @type: core-memory
+// @owner: 五彩石
+// @status: stable
+// @priority: P0
+// @description: 记忆与容器拓扑
+
 
 // ══════════════════════════════════════════════════════════════════
 // memory.rs — 层级记忆 + 元裁判 (Layered Memory · Meta-Judge)
