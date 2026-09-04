@@ -39,7 +39,7 @@ type
 const SYM_BASE* = 0xF000'u32
 
 # ── 指令表 (19 条核心指令) ───────────────────────────────
-const INSTR_TABLE: array[19, InstrRecord] = [
+const INSTR_TABLE*: array[19, InstrRecord] = [
   # R-type 算术逻辑
   InstrRecord(name: "add",  kind: ikR, opcode: OP_OP,     funct3: 0b000, funct7: 0b0000000, sym_codepoint: SYM_BASE + 0),
   InstrRecord(name: "sub",  kind: ikR, opcode: OP_OP,     funct3: 0b000, funct7: 0b0100000, sym_codepoint: SYM_BASE + 1),
@@ -113,7 +113,7 @@ proc encode_j(imm, rd, opcode: uint32): uint32 =
            (b19_12 shl 12) or (rd shl 7) or opcode
 
 # ── 指令骨架编码 (操作数=0) ─────────────────────────────
-proc encode_instr_stub(idx: int): uint32 =
+proc encode_instr_stub*(idx: int): uint32 =
   let rec = INSTR_TABLE[idx]
   case rec.kind
   of ikR: encode_r(rec.funct7, 0, 0, rec.funct3, 0, rec.opcode)
