@@ -31,6 +31,10 @@ path = "src/bin/glyph.rs"
 name = "court"
 path = "src/bin/court.rs"
 
+[[bin]]
+name = "isa-encode"
+path = "src/bin/isa-encode.rs"
+
 [profile.release]
 opt-level = "z"      # 体积优先
 lto = true           # 链接期优化

@@ -186,6 +186,9 @@ pub mod pulse;
 pub mod l0_self_hosting;
 pub use l0_self_hosting::{compile_ir_v2, classify_output_to_ir};
 
+// ── ISA 编码层: RISC-V RV32I 编码器/解码器 ──
+pub mod isa;
+
 // ── ENTITY_IDENTITY_PROTOCOL v0.1 · 指纹身份 (解决"名字=身份"死锁) ──
 pub mod entity_identity;
 pub use entity_identity::{Fingerprint, Cooperativity, EntityMeta, register_entity,
