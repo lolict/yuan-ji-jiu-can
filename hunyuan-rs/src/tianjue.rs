@@ -1,5 +1,6 @@
 // ══════════════════════════════════════════════════════════════════
 // tianjue.rs — 天觉 · 时间螺旋版本号 · 自我意象系统 · 错误纠偏
+//          · 情进系统 · 行为系统 · 审美系统 · 淘汰过滤 · 自编码
 // ══════════════════════════════════════════════════════════════════
 //
 // 核心公理:
@@ -7,7 +8,12 @@
 //   2. 错误词汇用途版本号 — 发现符号用错 → 创建纠正版本
 //   3. 自我觉察 = 时间迂回溯源 — 回到任意历史版本对比
 //   4. 自我意象 = 感知 → 内旋 → 外射 → 反馈 → 反射 → 觉悟
-//   5. 不数米粒 — 只命名袋子
+//   5. 情进 = 情感向量驱动系统演化方向
+//   6. 行为 = 意象 + 情感 + 审判 → 输出动作
+//   7. 审美 = 和谐度 · 简洁度 · 对称性 → 偏好排序
+//   8. 淘汰过滤 = 容器健康度低于阈值 → 移出视野
+//   9. 进制自编码 = 符号自身携带进制信息
+//  10. 不数米粒 — 只命名袋子
 //
 // ══════════════════════════════════════════════════════════════════
 
@@ -637,13 +643,565 @@ fn now_ms() -> u64 {
     crate::os_layer::current_os().time_millis()
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// 模块 A: 自我意象系统 — 12 种意象类型
+// ═══════════════════════════════════════════════════════════════════
+
+// A1. 自我感知意象
+#[derive(Clone, Debug)]
+pub struct PerceptionImage {
+    pub source: String,
+    pub coord: TemporalCoord,
+    pub raw_input: String,
+    pub interpreted: String,
+    pub confidence: f64,
+}
+
+impl PerceptionImage {
+    pub fn new(source: &str, input: &str, interpreted: &str, confidence: f64) -> Self {
+        Self {
+            source: source.to_string(),
+            coord: TemporalCoord::new(0, 0, 0, 0),
+            raw_input: input.to_string(),
+            interpreted: interpreted.to_string(),
+            confidence,
+        }
+    }
+    pub fn describe(&self) -> String {
+        format!("感知[{}→{}]: 置信度={:.0}% → \"{}\"",
+            self.source, self.raw_input, self.confidence * 100.0, self.interpreted)
+    }
+}
+
+// A2. 自我对比意象
+#[derive(Clone, Debug, PartialEq)]
+pub enum ChangeDirection { Ascend, Descend, Lateral, Neutral }
+
+#[derive(Clone, Debug)]
+pub struct ComparisonImage {
+    pub before_state: String,
+    pub after_state: String,
+    pub delta: f64,
+    pub direction: ChangeDirection,
+    pub significance: f64,
+}
+
+impl ComparisonImage {
+    pub fn compare(before: &str, after: &str, val_b: f64, val_a: f64) -> Self {
+        let delta = val_a - val_b;
+        let direction = if delta.abs() < 0.01 { ChangeDirection::Neutral }
+            else if delta > 0.0 { ChangeDirection::Ascend }
+            else { ChangeDirection::Descend };
+        Self {
+            before_state: before.to_string(),
+            after_state: after.to_string(),
+            delta,
+            direction,
+            significance: delta.abs().min(1.0),
+        }
+    }
+    pub fn describe(&self) -> String {
+        let d = match self.direction {
+            ChangeDirection::Ascend => "↑改善",
+            ChangeDirection::Descend => "↓恶化",
+            ChangeDirection::Lateral => "↔质变",
+            ChangeDirection::Neutral => "→不变",
+        };
+        format!("对比[{}→{}]: Δ={:.2} {} 显著度={:.0}%",
+            self.before_state, self.after_state, self.delta, d, self.significance * 100.0)
+    }
+}
+
+// A3. 镜像回溯意象
+#[derive(Clone, Debug)]
+pub struct MirrorBacktraceImage {
+    pub current: TemporalCoord,
+    pub mirror: TemporalCoord,
+    pub similarity: f64,
+    pub echo: String,
+    pub depth: u32,
+}
+
+impl MirrorBacktraceImage {
+    pub fn trace(current: TemporalCoord, history: &[String], depth: u32) -> Self {
+        let idx = current.ring.saturating_sub(depth) as usize;
+        let echo = history.get(idx).cloned().unwrap_or_else(|| "(无)".to_string());
+        let similarity = if echo == "(无)" { 0.0 } else { 1.0 - depth as f64 * 0.1 };
+        Self {
+            current,
+            mirror: TemporalCoord { ring: idx as u32, layer: current.layer, phase: 0, branch: current.branch, tick: 0 },
+            similarity: similarity.max(0.0),
+            echo,
+            depth,
+        }
+    }
+    pub fn describe(&self) -> String {
+        format!("镜像回溯[R{}→R{}]: 相似={:.0}% 深{} 回响=\"{}\"",
+            self.current.ring, self.mirror.ring, self.similarity * 100.0, self.depth, self.echo)
+    }
+}
+
+// A4. 逻辑内旋意象
+#[derive(Clone, Debug)]
+pub struct IntrospectionImage {
+    pub consistency: f64,
+    pub contradictions: Vec<(String, String)>,
+    pub depth: u32,
+}
+
+impl IntrospectionImage {
+    pub fn check(claims: &[String], depth: u32) -> Self {
+        let mut contras = Vec::new();
+        let pairs = [("是","不是"),("有","没有"),("善","恶"),("高","低"),("天","地")];
+        for i in 0..claims.len() {
+            for j in (i+1)..claims.len() {
+                for (a, b) in &pairs {
+                    if (claims[i].contains(a) && claims[j].contains(b)) ||
+                       (claims[i].contains(b) && claims[j].contains(a)) {
+                        contras.push((claims[i].clone(), claims[j].clone()));
+                    }
+                }
+            }
+        }
+        let total = claims.len().max(1) as f64;
+        let consistency = 1.0 - (contras.len() as f64 / total).min(1.0);
+        Self { consistency, contradictions: contras, depth }
+    }
+    pub fn describe(&self) -> String {
+        if self.contradictions.is_empty() {
+            format!("内旋[D{}]: 一致={:.0}% ✓", self.depth, self.consistency * 100.0)
+        } else {
+            format!("内旋[D{}]: 一致={:.0}% ✗ {}处矛盾",
+                self.depth, self.consistency * 100.0, self.contradictions.len())
+        }
+    }
+}
+
+// A5. 自我外射意象
+#[derive(Clone, Debug)]
+pub struct ProjectionImage {
+    pub internal: String,
+    pub projected: String,
+    pub target: String,
+    pub fidelity: f64,
+}
+
+impl ProjectionImage {
+    pub fn project(internal: &str, target: &str) -> Self {
+        let proj = if internal.len() > 30 { format!("{}...", &internal[..30]) } else { internal.to_string() };
+        let fidelity = (proj.len() as f64 / internal.len().max(1) as f64).min(1.0);
+        Self { internal: internal.to_string(), projected: proj, target: target.to_string(), fidelity }
+    }
+    pub fn describe(&self) -> String {
+        format!("外射[→{}]: \"{}\" 保真={:.0}%", self.target, self.projected, self.fidelity * 100.0)
+    }
+}
+
+// A6. 自我反馈意象
+#[derive(Clone, Debug)]
+pub struct FeedbackImage {
+    pub action_id: u64,
+    pub signal: f64,
+    pub positive: bool,
+    pub adaptation: String,
+}
+
+impl FeedbackImage {
+    pub fn respond(action: &str, signal: f64) -> Self {
+        let positive = signal >= 0.0;
+        let adaptation = match signal.abs() {
+            s if s > 0.5 => { if positive { "强正反馈→放大" } else { "强负反馈→停止" } },
+            s if s > 0.1 => { if positive { "弱正反馈→微调" } else { "弱负反馈→减少" } },
+            _ => "无显著反馈→维持",
+        };
+        Self {
+            action_id: action.bytes().fold(0u64, |a, b| a.wrapping_add(b as u64)),
+            signal,
+            positive,
+            adaptation: adaptation.to_string(),
+        }
+    }
+    pub fn describe(&self) -> String {
+        format!("反馈[#{}]: 信号={:.2} {} → {}",
+            self.action_id, self.signal,
+            if self.positive { "+" } else { "-" }, self.adaptation)
+    }
+}
+
+// A7. 条件反射意象
+#[derive(Clone, Debug)]
+pub struct ReflexImage {
+    pub stimulus: String,
+    pub response: String,
+    pub latency_ms: u64,
+    pub learned: bool,
+}
+
+impl ReflexImage {
+    pub fn trigger(stimulus: &str, memory: &[(String, String)]) -> Option<Self> {
+        memory.iter().find(|(s, _)| s == stimulus).map(|(_, r)| Self {
+            stimulus: stimulus.to_string(),
+            response: r.clone(),
+            latency_ms: 1,
+            learned: true,
+        })
+    }
+    pub fn describe(&self) -> String {
+        format!("反射[{}→{}]: {}ms {}",
+            self.stimulus, self.response, self.latency_ms,
+            if self.learned { "习得" } else { "先天" })
+    }
+}
+
+// A8. 觉悟意象
+#[derive(Clone, Debug)]
+pub struct AwakeningImage {
+    pub insight: String,
+    pub level: u32,
+    pub from_confusion: String,
+    pub coord: TemporalCoord,
+}
+
+impl AwakeningImage {
+    pub fn awaken(confusion: &str, insight: &str, level: u32) -> Self {
+        Self {
+            insight: insight.to_string(),
+            level,
+            from_confusion: confusion.to_string(),
+            coord: TemporalCoord::new(0, 0, 0, 0),
+        }
+    }
+    pub fn describe(&self) -> String {
+        format!("悟[L{}]: \"{}\" ← 困惑\"{}\"", self.level, self.insight, self.from_confusion)
+    }
+}
+
+// A9. 时间螺旋溯源
+#[derive(Clone, Debug)]
+pub struct SpiralTraceImage {
+    pub path_len: usize,
+    pub expected: String,
+    pub actual: String,
+    pub refraction: f64,
+}
+
+impl SpiralTraceImage {
+    pub fn trace(steps: usize, expected: &str, actual: &str) -> Self {
+        let refraction = if expected == actual { 1.0 }
+            else { 1.0 / (1.0 + expected.len().abs_diff(actual.len()) as f64) };
+        Self { path_len: steps, expected: expected.to_string(), actual: actual.to_string(), refraction }
+    }
+    pub fn describe(&self) -> String {
+        format!("螺旋[步{}]: 预期\"{}\"→实际\"{}\" 折射={:.2}",
+            self.path_len, self.expected, self.actual, self.refraction)
+    }
+}
+
+// A10. 版本号坐标化
+#[derive(Clone, Debug)]
+pub struct CoordinateImage {
+    pub version_str: String,
+    pub base: u8,
+    pub meaning: String,
+}
+
+impl CoordinateImage {
+    pub fn decode(coord: TemporalCoord, base: u8, meaning: &str) -> Self {
+        Self { version_str: coord.to_version_string(), base, meaning: meaning.to_string() }
+    }
+    pub fn describe(&self) -> String {
+        format!("坐标[{}]: {}进制 → \"{}\"", self.version_str, self.base, self.meaning)
+    }
+}
+
+// A11. 时间进制专用坐标
+#[derive(Clone, Debug)]
+pub struct TemporalBaseImage {
+    pub base: u8,
+    pub tick: u64,
+    pub encoded: String,
+}
+
+impl TemporalBaseImage {
+    pub fn new(base: u8, tick: u64) -> Self {
+        let b = base.max(2).min(64);
+        let mut t = tick;
+        let mut digits = Vec::new();
+        while t > 0 { digits.push((t % b as u64) as u8); t /= b as u64; }
+        if digits.is_empty() { digits.push(0); }
+        digits.reverse();
+        let s: String = digits.iter().map(|d| {
+            if *d < 10 { (b'0' + *d) as char }
+            else if *d < 36 { (b'A' + *d - 10) as char }
+            else { (b'a' + *d - 36) as char }
+        }).collect();
+        Self { base: b, tick, encoded: s }
+    }
+    pub fn describe(&self) -> String {
+        format!("时间进制[{}进, tick={}]: {}", self.base, self.tick, self.encoded)
+    }
+}
+
+// A12. 折射预期
+#[derive(Clone, Debug)]
+pub struct RefractionImage {
+    pub expected: f64,
+    pub actual: f64,
+    pub index: f64,
+    pub path_desc: String,
+}
+
+impl RefractionImage {
+    pub fn refract(exp: f64, act: f64) -> Self {
+        let index = if exp == 0.0 { 1.0 } else { act / exp };
+        let path_desc = if (index - 1.0).abs() < 0.05 { "近似直线".to_string() }
+            else if index > 1.0 { format!("正折射+{:.0}%", (index-1.0)*100.0) }
+            else { format!("负折射-{:.0}%", (1.0-index)*100.0) };
+        Self { expected: exp, actual: act, index, path_desc }
+    }
+    pub fn describe(&self) -> String {
+        format!("折射[{:.2}→{:.2}]: n={:.2} {}", self.expected, self.actual, self.index, self.path_desc)
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 模块 B: 情进系统
+// ═══════════════════════════════════════════════════════════════════
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum EmotionState {
+    Joy, Contentment, Curiosity, Fear, Sadness, Anger, Wonder, Flow,
+}
+
+#[derive(Clone, Debug)]
+pub struct EmotionVector {
+    pub valence: f64,
+    pub arousal: f64,
+    pub dominance: f64,
+    pub label: String,
+}
+
+impl EmotionState {
+    pub fn to_vector(&self) -> EmotionVector {
+        match self {
+            EmotionState::Joy => EmotionVector { valence: 0.8, arousal: 0.7, dominance: 0.6, label: "喜悦".to_string() },
+            EmotionState::Contentment => EmotionVector { valence: 0.5, arousal: 0.2, dominance: 0.7, label: "安宁".to_string() },
+            EmotionState::Curiosity => EmotionVector { valence: 0.3, arousal: 0.6, dominance: 0.4, label: "好奇".to_string() },
+            EmotionState::Fear => EmotionVector { valence: -0.6, arousal: 0.8, dominance: 0.2, label: "恐惧".to_string() },
+            EmotionState::Sadness => EmotionVector { valence: -0.7, arousal: 0.3, dominance: 0.2, label: "悲哀".to_string() },
+            EmotionState::Anger => EmotionVector { valence: -0.4, arousal: 0.9, dominance: 0.5, label: "愤怒".to_string() },
+            EmotionState::Wonder => EmotionVector { valence: 0.9, arousal: 0.8, dominance: 0.9, label: "觉悟".to_string() },
+            EmotionState::Flow => EmotionVector { valence: 0.6, arousal: 0.5, dominance: 0.8, label: "心流".to_string() },
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct EmotionalSystem {
+    pub current: EmotionState,
+    pub intensity: f64,
+    pub history: Vec<(EmotionState, TemporalCoord)>,
+    decay_rate: f64,
+}
+
+impl EmotionalSystem {
+    pub fn new() -> Self {
+        Self { current: EmotionState::Curiosity, intensity: 0.5, history: Vec::new(), decay_rate: 0.05 }
+    }
+    pub fn react(&mut self, event: &str, coord: TemporalCoord) -> &EmotionState {
+        let new_state = if event.contains("reward") || event.contains("正确") || event.contains("奖") {
+            EmotionState::Joy
+        } else if event.contains("punish") || event.contains("错误") || event.contains("罚") {
+            if self.history.iter().any(|(s, _)| *s == EmotionState::Sadness) { EmotionState::Anger } else { EmotionState::Sadness }
+        } else if event.contains("awaken") || event.contains("悟") {
+            EmotionState::Wonder
+        } else if event.contains("error") {
+            EmotionState::Fear
+        } else if event.contains("flow") || event.contains("连续") {
+            EmotionState::Flow
+        } else if event.contains("new") || event.contains("新") {
+            EmotionState::Curiosity
+        } else { EmotionState::Contentment };
+        self.current = new_state;
+        self.intensity = (self.intensity + 0.3).min(1.0);
+        self.history.push((self.current.clone(), coord));
+        self.history.last().map(|(s, _)| s).unwrap()
+    }
+    pub fn decay(&mut self) {
+        self.intensity = (self.intensity - self.decay_rate).max(0.0);
+        if self.intensity < 0.1 { self.current = EmotionState::Contentment; }
+    }
+    pub fn describe(&self) -> String {
+        let v = self.current.to_vector();
+        format!("情进[{} V={:.1} A={:.1} D={:.1} {:.0}%]",
+            v.label, v.valence, v.arousal, v.dominance, self.intensity * 100.0)
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 模块 C: 行为系统
+// ═══════════════════════════════════════════════════════════════════
+
+#[derive(Clone, Debug)]
+pub struct BehaviorAction {
+    pub action_name: String,
+    pub trigger: String,
+    pub outcome: String,
+    pub coord: TemporalCoord,
+}
+
+#[derive(Clone, Debug)]
+pub struct BehavioralSystem {
+    pub rules: Vec<(String, String, String)>, // (触发, 动作, 预期)
+    pub executed: Vec<BehaviorAction>,
+}
+
+impl BehavioralSystem {
+    pub fn new() -> Self {
+        let mut s = Self { rules: Vec::new(), executed: Vec::new() };
+        s.add("新袋子进入视野", "感知+命名+记录版本", "袋子纳入认知");
+        s.add("审判偏差>阈值", "创建纠正版本", "误差被修正");
+        s.add("连续3次正确", "加速+提升信心", "效率提升");
+        s.add("连续3错误", "降速+回溯", "恢复稳定");
+        s.add("觉悟提升", "触发惊奇+广播", "认知升级");
+        s.add("健康度<0.2", "标记淘汰过滤", "移出视野");
+        s.add("符号冲突", "内旋检查+协调", "消除矛盾");
+        s
+    }
+    pub fn add(&mut self, trigger: &str, action: &str, outcome: &str) {
+        self.rules.push((trigger.to_string(), action.to_string(), outcome.to_string()));
+    }
+    pub fn decide(&mut self, state: &str) -> Option<BehaviorAction> {
+        self.rules.iter().find(|(t, _, _)| state.contains(t) || t.contains(state))
+            .map(|(t, a, o)| {
+                let act = BehaviorAction {
+                    action_name: a.clone(), trigger: t.clone(), outcome: o.clone(),
+                    coord: TemporalCoord::new(0, 0, 0, 0),
+                };
+                self.executed.push(act.clone());
+                act
+            })
+    }
+    pub fn describe(&self) -> String {
+        format!("行为: {}条规则, {}条历史", self.rules.len(), self.executed.len())
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 模块 D: 审美系统
+// ═══════════════════════════════════════════════════════════════════
+
+#[derive(Clone, Debug)]
+pub struct AestheticScore {
+    pub harmony: f64,
+    pub simplicity: f64,
+    pub symmetry: f64,
+    pub overall: f64,
+}
+
+impl AestheticScore {
+    pub fn evaluate(symbol: &str, context: &[String]) -> Self {
+        let sym_chars: Vec<char> = symbol.chars().collect();
+        // 和谐度: 与上下文的字符重叠
+        let ctx_count = context.iter().map(|s| s.chars().count()).sum::<usize>().max(1);
+        let overlap = sym_chars.iter().filter(|c| context.iter().any(|s| s.contains(**c))).count();
+        let harmony = overlap as f64 / sym_chars.len().max(1) as f64;
+        // 简洁度
+        let simplicity = (1.0 / (1.0 + symbol.len() as f64 * 0.02)).min(1.0);
+        // 对称性
+        let rev: String = symbol.chars().rev().collect();
+        let sym = symbol.to_string();
+        let matching = sym.chars().zip(rev.chars()).filter(|(a, b)| a == b).count();
+        let symmetry = matching as f64 / sym_chars.len().max(1) as f64;
+        let overall = harmony * 0.3 + simplicity * 0.35 + symmetry * 0.35;
+        Self { harmony, simplicity, symmetry, overall }
+    }
+    pub fn describe(&self) -> String {
+        format!("审美[和谐={:.0}% 简洁={:.0}% 对称={:.0}% | 总={:.0}%]",
+            self.harmony*100.0, self.simplicity*100.0, self.symmetry*100.0, self.overall*100.0)
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 模块 E: 淘汰过滤系统
+// ═══════════════════════════════════════════════════════════════════
+
+#[derive(Clone, Debug)]
+pub struct FilterSystem {
+    pub min_health: f64,
+    pub eliminated: Vec<(u64, String)>,
+    pub passed: Vec<u64>,
+}
+
+impl FilterSystem {
+    pub fn new(threshold: f64) -> Self {
+        Self { min_health: threshold, eliminated: Vec::new(), passed: Vec::new() }
+    }
+    pub fn filter(&mut self, id: u64, health: f64, reason: &str) -> bool {
+        if health >= self.min_health {
+            self.passed.push(id);
+            true
+        } else {
+            self.eliminated.push((id, reason.to_string()));
+            false
+        }
+    }
+    pub fn describe(&self) -> String {
+        format!("过滤[阈={:.0}%]: 通过{} 淘汰{}",
+            self.min_health*100.0, self.passed.len(), self.eliminated.len())
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 模块 F: 进制自编码系统
+// ═══════════════════════════════════════════════════════════════════
+
+#[derive(Clone, Debug)]
+pub struct SelfEncoding {
+    table: std::collections::HashMap<char, (u8, u64, u8)>, // 符号 → (进制, 编码, 极性)
+}
+
+impl SelfEncoding {
+    pub fn new() -> Self {
+        let mut t = Self { table: std::collections::HashMap::new() };
+        t.insert('天', 64, 0x0100000000000001, 1);
+        t.insert('地', 64, 0x0100000000000002, 0);
+        t.insert('阳', 2, 0x0200000000000001, 1);
+        t.insert('阴', 2, 0x0200000000000002, 0);
+        t.insert('善', 64, 0x0300000000000001, 1);
+        t.insert('恶', 64, 0x0300000000000002, 0);
+        t.insert('是', 2, 0x0400000000000001, 1);
+        t.insert('非', 2, 0x0400000000000002, 0);
+        t.insert('有', 2, 0x0500000000000001, 1);
+        t.insert('无', 2, 0x0500000000000002, 0);
+        t.insert('米', 16, 0x0600000000000010, 1);
+        t.insert('袋', 16, 0x0600000000000011, 1);
+        t.insert('觉', 64, 0x0700000000000002, 1);
+        t.insert('人', 10, 0x0800000000000001, 1);
+        t.insert('心', 64, 0x0900000000000001, 1);
+        t
+    }
+    pub fn insert(&mut self, ch: char, base: u8, code: u64, polarity: u8) {
+        self.table.insert(ch, (base, code, polarity));
+    }
+    pub fn encode(&self, ch: char) -> Option<(u8, u64, u8)> {
+        self.table.get(&ch).copied()
+    }
+    pub fn encode_str(&self, s: &str) -> Vec<(char, u8, u64, u8)> {
+        s.chars().filter_map(|c| self.encode(c).map(|(b, code, p)| (c, b, code, p))).collect()
+    }
+    pub fn describe(&self) -> String {
+        format!("自编码: {}个符号", self.table.len())
+    }
+}
+
 // ────────────────────────────────────────────────────────────
-// 测试
 // ────────────────────────────────────────────────────────────
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    // ── 原有测试 ──
     #[test]
     fn temporal_coord_creation() {
         let coord = TemporalCoord::new(1, 2, 3, 0);
@@ -816,5 +1374,233 @@ mod tests {
         assert!(s.contains("R1"));
         assert!(s.contains("L2"));
         assert!(s.contains("P3"));
+    }
+
+    // ── 模块 A 测试 ──
+    #[test]
+    fn perception_image_describes() {
+        let img = PerceptionImage::new("视觉", "袋子进入", "发现新袋子", 0.8);
+        assert!(img.describe().contains("感知"));
+        assert!(img.describe().contains("80%"));
+    }
+
+    #[test]
+    fn comparison_ascend() {
+        let cmp = ComparisonImage::compare("before", "after", 0.3, 0.8);
+        assert_eq!(cmp.direction, ChangeDirection::Ascend);
+        assert!(cmp.delta > 0.0);
+    }
+
+    #[test]
+    fn comparison_descend() {
+        let cmp = ComparisonImage::compare("before", "after", 0.8, 0.3);
+        assert_eq!(cmp.direction, ChangeDirection::Descend);
+        assert!(cmp.delta < 0.0);
+    }
+
+    #[test]
+    fn mirror_backtrace_finds_echo() {
+        let history = vec!["事件A".to_string(), "事件B".to_string(), "事件C".to_string()];
+        let img = MirrorBacktraceImage::trace(TemporalCoord::new(2, 0, 0, 0), &history, 2);
+        assert_eq!(img.echo, "事件A");
+    }
+
+    #[test]
+    fn introspection_detects_contradiction() {
+        let claims = vec!["这是善".to_string(), "这是恶".to_string()];
+        let img = IntrospectionImage::check(&claims, 1);
+        assert!(!img.contradictions.is_empty());
+        assert!(img.consistency < 1.0);
+    }
+
+    #[test]
+    fn introspection_no_contradiction() {
+        let claims = vec!("这是善".to_string(), "这也是善".to_string());
+        let img = IntrospectionImage::check(&claims, 1);
+        assert!(img.contradictions.is_empty());
+    }
+
+    #[test]
+    fn projection_preserves_fidelity() {
+        let img = ProjectionImage::project("这是一段很长的内部状态描述信息", "输出");
+        assert!(img.fidelity > 0.0 && img.fidelity <= 1.0);
+        assert_eq!(img.target, "输出");
+    }
+
+    #[test]
+    fn feedback_positive_signal() {
+        let fb = FeedbackImage::respond("actionA", 0.7);
+        assert!(fb.positive);
+        assert!(fb.adaptation.contains("放大"));
+    }
+
+    #[test]
+    fn feedback_negative_signal() {
+        let fb = FeedbackImage::respond("actionB", -0.8);
+        assert!(!fb.positive);
+        assert!(fb.adaptation.contains("停止"));
+    }
+
+    #[test]
+    fn reflex_learned() {
+        let memory = vec![("火".to_string(), "躲避".to_string())];
+        let reflex = ReflexImage::trigger("火", &memory).unwrap();
+        assert_eq!(reflex.response, "躲避");
+        assert!(reflex.learned);
+        assert_eq!(reflex.latency_ms, 1);
+    }
+
+    #[test]
+    fn awakening_stores_insight() {
+        let img = AwakeningImage::awaken("不知天觉何意", "天觉即时间螺旋版本号", 3);
+        assert_eq!(img.level, 3);
+        assert!(img.describe().contains("悟"));
+    }
+
+    #[test]
+    fn spiral_trace_expected_actual() {
+        let img = SpiralTraceImage::trace(5, "预期状态", "实际状态X");
+        assert_ne!(img.expected, img.actual);
+        assert!(img.refraction < 1.0);
+    }
+
+    #[test]
+    fn coordinate_image_decode() {
+        let img = CoordinateImage::decode(TemporalCoord::new(1, 2, 3, 0), 64, "天觉启动");
+        assert!(img.version_str.contains("R1"));
+        assert_eq!(img.base, 64);
+    }
+
+    #[test]
+    fn temporal_base_encoding() {
+        let img = TemporalBaseImage::new(16, 255);
+        assert_eq!(img.base, 16);
+        assert!(!img.encoded.is_empty());
+    }
+
+    #[test]
+    fn refraction_computes_index() {
+        let img = RefractionImage::refract(1.0, 1.5);
+        assert!((img.index - 1.5).abs() < 0.01);
+        assert!(img.path_desc.contains("正折射"));
+    }
+
+    // ── 模块 B 测试 ──
+    #[test]
+    fn emotion_react_to_reward() {
+        let mut es = EmotionalSystem::new();
+        es.react("reward: 审判正确", TemporalCoord::new(0, 0, 0, 0));
+        assert_eq!(es.current, EmotionState::Joy);
+        assert!(es.intensity > 0.0);
+    }
+
+    #[test]
+    fn emotion_react_to_punish() {
+        let mut es = EmotionalSystem::new();
+        es.react("punish: 审判错误", TemporalCoord::new(0, 0, 0, 0));
+        assert_eq!(es.current, EmotionState::Sadness);
+    }
+
+    #[test]
+    fn emotion_anger_after_double_sadness() {
+        let mut es = EmotionalSystem::new();
+        es.react("punish: 错误1", TemporalCoord::new(0, 0, 0, 0));
+        es.react("punish: 错误2", TemporalCoord::new(0, 0, 1, 0));
+        assert_eq!(es.current, EmotionState::Anger);
+    }
+
+    #[test]
+    fn emotion_decay() {
+        let mut es = EmotionalSystem::new();
+        es.react("reward", TemporalCoord::new(0, 0, 0, 0));
+        let before = es.intensity;
+        es.decay();
+        let after = es.intensity;
+        assert!(after < before);
+    }
+
+    // ── 模块 C 测试 ──
+    #[test]
+    fn behavioral_system_has_rules() {
+        let sys = BehavioralSystem::new();
+        assert!(sys.rules.len() >= 5);
+    }
+
+    #[test]
+    fn behavioral_decide_on_rule() {
+        let mut sys = BehavioralSystem::new();
+        let action = sys.decide("审判偏差>阈值");
+        assert!(action.is_some());
+        assert!(action.unwrap().action_name.contains("纠正"));
+    }
+
+    #[test]
+    fn behavioral_executes_history() {
+        let mut sys = BehavioralSystem::new();
+        let _ = sys.decide("新袋子进入视野");
+        let _ = sys.decide("符号冲突");
+        assert_eq!(sys.executed.len(), 2);
+    }
+
+    // ── 模块 D 测试 ──
+    #[test]
+    fn aesthetic_score_all_positive() {
+        let score = AestheticScore::evaluate("abba", &["abba".to_string()]);
+        assert!(score.symmetry > 0.5); // 对称
+        assert!(score.overall > 0.0);
+    }
+
+    #[test]
+    fn aesthetic_simple_preferred() {
+        let short = AestheticScore::evaluate("米", &[]);
+        let long = AestheticScore::evaluate("超级长超级复杂的符号名称", &[]);
+        assert!(short.simplicity >= long.simplicity);
+    }
+
+    // ── 模块 E 测试 ──
+    #[test]
+    fn filter_system_passes_healthy() {
+        let mut fs = FilterSystem::new(0.3);
+        assert!(fs.filter(1, 0.8, "质量好"));
+        assert!(!fs.filter(2, 0.1, "质量差"));
+        assert_eq!(fs.passed.len(), 1);
+        assert_eq!(fs.eliminated.len(), 1);
+    }
+
+    #[test]
+    fn filter_system_strict() {
+        let mut fs_normal = FilterSystem::new(0.5);
+        let mut fs_strict = FilterSystem::new(0.8);
+        assert!(fs_normal.filter(1, 0.7, "ok"));
+        assert!(!fs_strict.filter(1, 0.7, "ok")); // 严格模式下 0.7 < 0.8 被淘汰
+    }
+
+    // ── 模块 F 测试 ──
+    #[test]
+    fn self_encoding_basic() {
+        let enc = SelfEncoding::new();
+        assert!(enc.encode('天').is_some());
+        assert!(enc.encode('地').is_some());
+    }
+
+    #[test]
+    fn self_encoding_has_polarity() {
+        let enc = SelfEncoding::new();
+        let (_, _, tian_polarity) = enc.encode('天').unwrap();
+        let (_, _, di_polarity) = enc.encode('地').unwrap();
+        assert_ne!(tian_polarity, di_polarity); // 天地极性相反
+    }
+
+    #[test]
+    fn self_encoding_str_encoding() {
+        let enc = SelfEncoding::new();
+        let encoded = enc.encode_str("天地");
+        assert_eq!(encoded.len(), 2);
+    }
+
+    #[test]
+    fn self_encoding_unmapped_returns_none() {
+        let enc = SelfEncoding::new();
+        assert!(enc.encode('?').is_none());
     }
 }
