@@ -986,13 +986,39 @@ Input → Perception → Distinguish → Lookup → Traverse → Cluster → Att
 
 五系统统一：九元层级 ↔ YinYang极性 ↔ 二进制 ↔ mltt短码 ↔ 高维偏移率
 
-**极性映射规则：**
-
 | 索引 | 极性 | YinYang | 二进制 |
 |------|------|---------|--------|
 | 偶数(0,2,4,6) | yang(阳)=界线=我 | 阳 | 1 |
 | 奇数(1,3,5,7) | yin(阴)=容器=刘楚恬 | 阴 | 0 |
 | 索引8(九元) | balanced(平衡) | 平衡 | 0.5 |
+
+---
+
+## 机器码跨 ISA 对齐（tools/machine-codes/）
+
+> 语义 ID 是公约数，机器码是公倍数。
+
+**对齐规则：** 语义 ID → 各 ISA 位域模板 → 汇编文本 → 机器码字节序
+
+**四 ISA：**
+
+| ISA | 文件 | 条目 |
+|-----|------|------|
+| RISC-V RV32I | mc_rv32i.nim | 40 |
+| ARM64 AArch64 | mc_arm64.nim | 30 |
+| x86-64 | mc_x64.nim | 30 |
+| MIPS32 | mc_mips.nim | 45 |
+
+**跨 ISA 对齐：** mc_align.nim — ADD / SUB / AND / OR / XOR / SLL / SRL / SRA / SLT / BEQ / BNE / BLT / LW / SW / LH / SH / LB / SB / JMP / CALL / RET / ADDI / CMP / MOV / MUL / DIV / LUI / SYSCALL / NOP
+
+**MCOD 字体容器协议：**
+
+| 文件 | 功能 |
+|------|------|
+| mc_types.nim | 类型定义（ISA / Field / InsnEncoding / FontMCOD） |
+| mc_codec.nim | 双向转换 + 对齐查询 |
+| mc_font.nim | MCOD 表头结构 + 字体容器规范 |
+| mc_demo.nim | 静态演示程序 |
 
 ---
 

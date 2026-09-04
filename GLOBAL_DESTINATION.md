@@ -171,7 +171,7 @@ git push gitee-hunyuan main
 - ~~产权流侵权判定~~ ✅ 已完成
 - 高维代数（(n-1)×0.1 偏移率） ✅ 已完成 — tools/high-algebra/
 - 2²⁵⁶ 等效高位对齐进位制 ✅ 已完成 — tools/radix256/ · 4×64位词 · 进位链仪式 · 溢出折叠 · 根基254+2
-- YIN-YANG-BINARY 完整映射 ✅ 已完成 — tools/full-mapping/
+- 机器码跨 ISA 对齐 ✅ 已完成 — tools/machine-codes/ · 四 ISA（RV32I / ARM64 / x86-64 / MIPS32）· 跨 ISA 语义对齐 · MCOD 字体容器协议（待编译验证）
 - mltt 命名密码表 ✅ 已完成 — tools/mltt-cipher/ · Nim 单源 158 条（静态注册 · 等自有编译器验证）
 - 统计文档聚合浏览器的真实数据输入 ✅ 已完成 — tools/minlian/dataml/ · Mode C JSON数据管道 · 200文档 |
 - 天觉v3/v4 符号冲突清偿 ✅ 已完成 — v3 恢复(V3别名) · 7个example API漂移修复 · lib 1019测试全绿
