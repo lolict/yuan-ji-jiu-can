@@ -277,6 +277,17 @@ pub use celestial_perception_v4::{
     FilterSystem,
 };
 
+// ── v0.30 天觉v5（老五）· 语言系统: 汉字编码+声母韵母+自进制+命令解析+流属性位 ──
+pub mod celestial_perception_v5;
+pub use celestial_perception_v5::{
+    HanziEncoding, CharStructure,
+    Shengmu, Yunmu, HomophoneRouter,
+    SelfRadix,
+    CommandParser, CommandType, CommandParseResult,
+    FlowPropertyBits,
+    CelestialPerceptionV5, PipelineResultV5,
+};
+
 // ── v0.31 大审判庭 · 全链路整合裁判系统 ──
 pub mod grand_court;
 pub use grand_court::{GrandCourt, GrandCourtVerdict};
@@ -496,6 +507,27 @@ pub use macro_isa::{
 pub mod elf_emitter;
 pub use elf_emitter::{
     ElfHeader, ProgramHeader, ElfEmitter, emit_elf,
+};
+
+// ── v0.39 容器关系动力学 · 呼唤编程 · 反馈环路 (ContainerDynamics) ──
+pub mod container_dynamics;
+pub use container_dynamics::{
+    // 活性
+    Vitality,
+    // 观察者/被观察者
+    Observance, Gaze,
+    // 呼唤
+    Call, CallResponse,
+    // 反馈
+    FeedbackLoop, FeedbackKind, FeedbackResult,
+    // 关系
+    ContainerRelation,
+    // 判断/评价
+    JudgmentVerdict, EvaluationScore, EvaluationLevel,
+    // 引擎
+    DynamicsEngine, DynamicsReport,
+    // 工具
+    calculate_gcd,
 };
 
 // ── v0.38 OS 抽象层（跨平台 · Linux/Windows/macOS/Bare Metal）──
