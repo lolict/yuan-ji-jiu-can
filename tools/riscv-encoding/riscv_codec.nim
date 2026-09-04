@@ -8,7 +8,7 @@
 ##
 ## 格式参考 tools/isa-ref/riscv.md
 
-import std/strutils
+import std/[strutils, os, osproc]
 
 # ── 操作码 (7 bit) ─────────────────────────────────────────
 const
@@ -73,18 +73,15 @@ const INSTR_TABLE: array[19, InstrRecord] = [
 ]
 
 # ── 编码函数 ───────────────────────────────────────────────
-## R-type: funct7[31:25] rs2[24:20] rs1[19:15] funct3[14:12] rd[11:7] opcode[6:0]
 proc encode_r(funct7, rs2, rs1, funct3, rd, opcode: uint32): uint32 =
   result = (funct7 shl 25) or (rs2 shl 20) or (rs1 shl 15) or
            (funct3 shl 12) or (rd shl 7) or opcode
 
-## I-type: imm[11:0][31:20] rs1[19:15] funct3[14:12] rd[11:7] opcode[6:0]
 proc encode_i(imm, rs1, funct3, rd, opcode: uint32): uint32 =
   let imm12 = imm and 0xFFF
   result = (imm12 shl 20) or (rs1 shl 15) or (funct3 shl 12) or
            (rd shl 7) or opcode
 
-## S-type: imm[11:5][31:25] rs2[24:20] rs1[19:15] funct3[14:12] imm[4:0][11:7] opcode[6:0]
 proc encode_s(imm, rs2, rs1, funct3, opcode: uint32): uint32 =
   let imm12 = imm and 0xFFF
   let imm_hi = (imm12 shr 5) and 0x7F
@@ -92,7 +89,6 @@ proc encode_s(imm, rs2, rs1, funct3, opcode: uint32): uint32 =
   result = (imm_hi shl 25) or (rs2 shl 20) or (rs1 shl 15) or
            (funct3 shl 12) or (imm_lo shl 7) or opcode
 
-## B-type: imm[12|10:5] rs2 rs1 funct3 imm[4:1|11] opcode
 proc encode_b(imm, rs2, rs1, funct3, opcode: uint32): uint32 =
   let imm13 = imm and 0x1FFF
   let b12    = (imm13 shr 12) and 0x1
@@ -104,11 +100,9 @@ proc encode_b(imm, rs2, rs1, funct3, opcode: uint32): uint32 =
   result = (field_hi shl 25) or (rs2 shl 20) or (rs1 shl 15) or
            (funct3 shl 12) or (field_lo shl 7) or opcode
 
-## U-type: imm[31:12] rd opcode
 proc encode_u(imm, rd, opcode: uint32): uint32 =
   result = (imm and 0xFFFFF000'u32) or (rd shl 7) or opcode
 
-## J-type: inst[31]=imm[20], inst[30:21]=imm[10:1], inst[20]=imm[11], inst[19:12]=imm[19:12]
 proc encode_j(imm, rd, opcode: uint32): uint32 =
   let imm21 = imm and 0x1FFFFF'u32
   let b20    = (imm21 shr 20) and 0x1
@@ -141,7 +135,6 @@ proc decode_machine(code: uint32): string =
   for i in 0 ..< INSTR_TABLE.len:
     let rec = INSTR_TABLE[i]
     if rec.opcode != opcode: continue
-    # U/J 型无 funct3 (位域属立即数)
     if rec.kind notin {ikU, ikJ} and rec.funct3 != funct3: continue
     if rec.kind == ikR and rec.funct7 != funct7: continue
 
@@ -151,9 +144,7 @@ proc decode_machine(code: uint32): string =
     of ikI:
       let imm = (code shr 20) and 0xFFF
       let simm = cast[int32](if imm >= 0x800: imm - 0x1000 else: imm)
-      if rec.opcode == OP_LOAD:
-        return rec.name & " x" & $rd & ", " & $simm & "(x" & $rs1 & ")"
-      elif rec.opcode == OP_JALR:
+      if rec.opcode == OP_LOAD or rec.opcode == OP_JALR:
         return rec.name & " x" & $rd & ", " & $simm & "(x" & $rs1 & ")"
       else:
         return rec.name & " x" & $rd & ", x" & $rs1 & ", " & $simm
@@ -188,16 +179,45 @@ proc decode_machine(code: uint32): string =
 
 # ── 符号 ↔ 指令 查找 ─────────────────────────────────────
 proc sym_to_instr*(cp: uint32): int =
-  ## 私有区码点 → 指令索引
   for i in 0 ..< INSTR_TABLE.len:
     if INSTR_TABLE[i].sym_codepoint == cp: return i
   return -1
 
 proc instr_to_sym*(idx: int): uint32 =
-  ## 指令索引 → 私有区码点
   if idx >= 0 and idx < INSTR_TABLE.len:
     return INSTR_TABLE[idx].sym_codepoint
   return 0
+
+# ── JSON 导出 (给字体生成器) ──────────────────────────────
+proc export_json*(): string =
+  var parts: seq[string] = @[]
+  for i in 0 ..< INSTR_TABLE.len:
+    let rec = INSTR_TABLE[i]
+    let machine = encode_instr_stub(i)
+    var parts_inner: seq[string] = @[]
+    parts_inner.add("\"name\":\"" & rec.name & "\"")
+    parts_inner.add("\"machine\":\"" & toHex(machine).toUpperAscii & "\"")
+    parts_inner.add("\"format\":\"" & $rec.kind & "\"")
+    if rec.kind == ikR:
+      parts_inner.add("\"funct7\":\"" & align($rec.funct7, 7, '0') & "\"")
+    if rec.kind in {ikR, ikI, ikS, ikB}:
+      parts_inner.add("\"funct3\":\"" & align($rec.funct3, 3, '0') & "\"")
+    parts.add("  \"" & toHex(rec.sym_codepoint) & "\": {" & parts_inner.join(",") & "}")
+  result = "{\n" & parts.join(",\n") & "\n}"
+
+# ── 一键生成字体 ─────────────────────────────────────────
+proc gen_font*(out_path: string): bool =
+  let json_str = export_json()
+  let json_path = out_path & ".mapping.json"
+  writeFile(json_path, json_str)
+  let py_script = currentSourcePath().parentDir() / "gen_rv32i_font.py"
+  let cmd = "python3 " & $py_script & " " & json_path & " " & out_path
+  let (output, exit_code) = execCmdEx(cmd)
+  stdout.write(output)
+  if exit_code == 0:
+    removeFile(json_path)
+    return true
+  return false
 
 # ════════════════════════════════════════════════════════════
 # 测试
@@ -246,7 +266,6 @@ when is_main_module:
   echo ""
 
   echo "【字体符号闭环验证】"
-  echo "  (私有区码点 → 指令骨架 → 解码应还原同一指令类型)"
   var sym_ok = 0
   for i in 0 ..< INSTR_TABLE.len:
     let rec = INSTR_TABLE[i]
@@ -257,6 +276,25 @@ when is_main_module:
     else:
       echo "  ✗ ", rec.name, "(U+", toHex(rec.sym_codepoint).toUpperAscii,
            ") → 0x", toHex(machine).toUpperAscii, " → ", decoded
-  echo "  ", sym_ok, "/", INSTR_TABLE.len, " 条指令名称闭环正确"
+  echo "  ", sym_ok, "/", INSTR_TABLE.len, " 条指令闭环正确"
+  echo ""
+
+  # ── 命令行接口 ─────────────────────────────────────────
+  let args = commandLineParams()
+  if args.len >= 1:
+    case args[0]
+    of "--export", "-e":
+      echo export_json()
+    of "--genfont", "-g":
+      let out_path = if args.len >= 2: args[1] else: "rv32i_mc.ttf"
+      echo "═══ 一键生成 RV32I 机器码字体 ═══"
+      echo ""
+      if gen_font(out_path):
+        echo ""
+        echo "═══ 完成: ", out_path, " ═══"
+      else:
+        echo "═══ 字体生成失败 ═══"
+    else:
+      echo "用法: riscv_codec [--export|-e | --genfont|-g [output.ttf]]"
   echo ""
   echo "═══ 完成 ═══"
