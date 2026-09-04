@@ -1,0 +1,172 @@
+{
+  "meta": {
+    "version": "3.0",
+    "description": "Cross-ISA machine code alignment database",
+    "last_updated": "2026-09-04"
+  },
+  "semantic_ids": {
+    "LOAD":   { "id": "0x01", "desc": "Load memory to register" },
+    "STORE":  { "id": "0x02", "desc": "Store register to memory" },
+    "ADD":    { "id": "0x03", "desc": "Register add" },
+    "ADDI":   { "id": "0x04", "desc": "Immediate add" },
+    "SUB":    { "id": "0x05", "desc": "Subtract" },
+    "AND":    { "id": "0x06", "desc": "Bitwise AND" },
+    "OR":     { "id": "0x07", "desc": "Bitwise OR" },
+    "XOR":    { "id": "0x08", "desc": "Bitwise XOR" },
+    "JMP":    { "id": "0x09", "desc": "Unconditional jump" },
+    "BNE":    { "id": "0x0A", "desc": "Branch if not equal" },
+    "CALL":   { "id": "0x0B", "desc": "Call function" },
+    "RET":    { "id": "0x0C", "desc": "Return from function" },
+    "MOV":    { "id": "0x0D", "desc": "Move register" },
+    "MOVI":   { "id": "0x0E", "desc": "Move immediate" },
+    "CMP":    { "id": "0x0F", "desc": "Compare" },
+    "SLL":    { "id": "0x10", "desc": "Shift left logical" },
+    "SRL":    { "id": "0x11", "desc": "Shift right logical" },
+    "SRA":    { "id": "0x12", "desc": "Shift right arithmetic" },
+    "SLT":    { "id": "0x13", "desc": "Set less than" },
+    "MUL":    { "id": "0x14", "desc": "Multiply" },
+    "DIV":    { "id": "0x15", "desc": "Divide" },
+    "NOP":    { "id": "0x16", "desc": "No operation" },
+    "SYSCALL":{ "id": "0x17", "desc": "System call" }
+  },
+  "isas": {
+    "x86-64": {
+      "id": "0x01",
+      "endian": "little",
+      "encoding": "variable",
+      "registers": 16,
+      "opcode_size": "1-3B"
+    },
+    "x86-32": {
+      "id": "0x00",
+      "endian": "little",
+      "encoding": "variable",
+      "registers": 8,
+      "opcode_size": "1-3B"
+    },
+    "ARM64": {
+      "id": "0x03",
+      "endian": "little",
+      "encoding": "fixed",
+      "width": 32,
+      "opcode_size": "4B"
+    },
+    "ARM32": {
+      "id": "0x02",
+      "endian": "big",
+      "encoding": "fixed",
+      "width": 32,
+      "opcode_size": "4B"
+    },
+    "RISC-V-32": {
+      "id": "0x05",
+      "endian": "little",
+      "encoding": "fixed",
+      "width": 32,
+      "opcode_size": "4B"
+    },
+    "RISC-V-64": {
+      "id": "0x06",
+      "endian": "little",
+      "encoding": "fixed",
+      "width": 32,
+      "opcode_size": "4B"
+    },
+    "MIPS32": {
+      "id": "0x07",
+      "endian": "big",
+      "encoding": "fixed",
+      "width": 32,
+      "opcode_size": "4B"
+    }
+  },
+  "encodings": {
+    "0x01": {
+      "x86-64": {
+        "rax_rbx": { "asm": "mov rax, [rbx]", "hex": "48 8B 03", "layout": "REX.W=1|opcode=8B|ModRM=03" },
+        "eax_ebx": { "asm": "mov eax, [ebx]", "hex": "8B 03", "layout": "opcode=8B,ModRM=03" }
+      },
+      "ARM64": {
+        "ldr_x0_x1": { "asm": "ldr x0, [x1]", "hex": "F9400020", "layout": "size=11|op=11101|Rn=x1|imm12=0|Rt=x0" },
+        "ldr_x0_x1_8": { "asm": "ldr x0, [x1, #8]", "hex": "F9400420", "layout": "imm12=1(scaled)" }
+      },
+      "RISC-V-32": {
+        "lw_x3_0_x1": { "asm": "lw x3, 0(x1)", "hex": "0000A183", "layout": "imm12=0|rs1=x1|funct3=010|rd=x3|opcode=0000011" },
+        "lw_x3_4_x1": { "asm": "lw x3, 4(x1)", "hex": "0040A183", "layout": "imm12=4" }
+      },
+      "MIPS32": {
+        "lw_t0_0_s1": { "asm": "lw $t0, 0($s1)", "hex": "8E280000", "layout": "op=100011|base=10001|rt=01000|offset=0" },
+        "lw_t0_20_s1": { "asm": "lw $t0, 20($s1)", "hex": "8E280014", "layout": "offset=0x14" }
+      }
+    },
+    "0x03": {
+      "x86-64": { "add_rax_rbx": { "asm": "add rax, rbx", "hex": "48 01 D8" } },
+      "ARM64": { "add_x0_x1_x2": { "asm": "add x0, x1, x2", "hex": "8B000201" } },
+      "RISC-V-32": {
+        "add_x3_x1_x2": { "asm": "add x3, x1, x2", "hex": "002081B3" },
+        "add_x1_x2_x3": { "asm": "add x1, x2, x3", "hex": "003100B3" }
+      },
+      "MIPS32": { "add_8_9_10": { "asm": "add $8, $9, $10", "hex": "012A4020" } }
+    },
+    "0x04": {
+      "x86-64": { "add_rax_10": { "asm": "add rax, 10", "hex": "48 83 C0 0A" } },
+      "ARM64": { "add_x0_x1_10": { "asm": "add x0, x1, #10", "hex": "91002820" } },
+      "RISC-V-32": { "addi_x3_x1_10": { "asm": "addi x3, x1, 10", "hex": "00A08193" } },
+      "MIPS32": { "addi_t0_t1_10": { "asm": "addi $t0, $t1, 10", "hex": "21280A00" } }
+    },
+    "0x05": {
+      "x86-64": { "sub_rax_rbx": { "asm": "sub rax, rbx", "hex": "48 29 D8" } },
+      "ARM64": { "sub_x0_x1_x2": { "asm": "sub x0, x1, x2", "hex": "CB000201" } },
+      "RISC-V-32": { "sub_x3_x1_x2": { "asm": "sub x3, x1, x2", "hex": "402081B3" } },
+      "MIPS32": { "sub_8_9_10": { "asm": "sub $t0, $t1, $t2", "hex": "012A4022" } }
+    },
+    "0x06": {
+      "x86-64": { "and_rax_rbx": { "asm": "and rax, rbx", "hex": "48 21 D8" } },
+      "ARM64": { "and_x0_x1_x2": { "asm": "and x0, x1, x2", "hex": "8A000201" } },
+      "RISC-V-32": { "and_x3_x1_x2": { "asm": "and x3, x1, x2", "hex": "0020F1B3" } },
+      "MIPS32": { "and_8_9_10": { "asm": "and $t0, $t1, $t2", "hex": "012A4024" } }
+    },
+    "0x07": {
+      "x86-64": { "or_rax_rbx": { "asm": "or rax, rbx", "hex": "48 09 D8" } },
+      "ARM64": { "orr_x0_x1_x2": { "asm": "orr x0, x1, x2", "hex": "AA000232" } },
+      "RISC-V-32": { "or_x3_x1_x2": { "asm": "or x3, x1, x2", "hex": "0020E1B3" } },
+      "MIPS32": { "or_8_9_10": { "asm": "or $t0, $t1, $t2", "hex": "012A4025" } }
+    },
+    "0x08": {
+      "x86-64": { "xor_rax_rbx": { "asm": "xor rax, rbx", "hex": "48 31 D8" } },
+      "ARM64": { "eor_x0_x1_x2": { "asm": "eor x0, x1, x2", "hex": "CA000252" } },
+      "RISC-V-32": { "xor_x3_x1_x2": { "asm": "xor x3, x1, x2", "hex": "0020C1B3" } },
+      "MIPS32": { "xor_8_9_10": { "asm": "xor $t0, $t1, $t2", "hex": "012A4026" } }
+    },
+    "0x09": {
+      "x86-64": { "jmp_rax": { "asm": "jmp rax", "hex": "FF E0" } },
+      "ARM64": { "br_x0": { "asm": "br x0", "hex": "D61F0000" } },
+      "RISC-V-32": { "jalr_x0_x1_0": { "asm": "jalr x0, 0(x1)", "hex": "00008067" } },
+      "MIPS32": { "jr_ra": { "asm": "jr $ra", "hex": "03E00008" } }
+    },
+    "0x0A": {
+      "x86-64": { "jne_10": { "asm": "jne +10", "hex": "75 0A" } },
+      "ARM64": { "b_ne": { "asm": "b.ne target", "hex": "54000001" } },
+      "RISC-V-32": { "bne_x1_x2": { "asm": "bne x1, x2, offset", "hex": "00209??3" } },
+      "MIPS32": { "bne_t1_t2": { "asm": "bne $t1, $t2, offset", "hex": "1562????" } }
+    },
+    "0x0B": {
+      "x86-64": { "call_rax": { "asm": "call rax", "hex": "FF D0" } },
+      "ARM64": { "blr_x0": { "asm": "blr x0", "hex": "D63F0000" } },
+      "RISC-V-32": { "jal_x1_off": { "asm": "jal x1, offset", "hex": "(J-type)" } },
+      "MIPS32": { "jal_target": { "asm": "jal target", "hex": "0C????" } }
+    },
+    "0x0C": {
+      "x86-64": { "ret": { "asm": "ret", "hex": "C3" } },
+      "ARM64": { "ret": { "asm": "ret", "hex": "D65F03C0" } },
+      "RISC-V-32": { "ret": { "asm": "jalr x0, 0(x1)", "hex": "00008067" } },
+      "MIPS32": { "jr_ra": { "asm": "jr $ra", "hex": "03E00008" } }
+    },
+    "0x0E": {
+      "x86-32": { "mov_eax_imm": { "asm": "mov eax, imm32", "hex": "B8 + 4B" } },
+      "ARM64": { "mov_x0_imm": { "asm": "mov x0, #imm16", "hex": "D28????" } },
+      "RISC-V-32": { "lui_x5_imm": { "asm": "lui x5, imm20", "hex": "?????2B7" } },
+      "MIPS32": { "lui_t0_imm": { "asm": "lui $t0, imm16", "hex": "3C08????" } }
+    }
+  }
+}
