@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>FQMCP WASM 测试</title>
+<style>
+body { font-family: monospace; background: #1a1a2e; color: #eee; padding: 20px; }
+h1 { color: #e94560; }
+button { background: #0f3460; color: #4ecca3; border: none; padding: 8px 16px; margin: 4px; cursor: pointer; border-radius: 4px; font-family: monospace; }
+button:hover { background: #16213e; }
+button.active { background: #e94560; color: #fff; }
+#log { background: #0f3460; padding: 12px; border-radius: 6px; line-height: 1.6; white-space: pre-wrap; font-size: 13px; max-height: 70vh; overflow-y: auto; }
+.ok { color: #4ecca3; }
+.err { color: #e94560; }
+.star { color: #ffd700; font-size: 1.1em; }
+.stats { color: #888; font-size: 0.9em; }
+select { background: #16213e; color: #4ecca3; border: 1px solid #0f3460; padding: 6px; border-radius: 4px; font-family: monospace; }
+</style>
+</head>
+<body>
+<h1>☉ FQMCP WASM 管线测试</h1>
+
+<div style="margin: 8px 0;">
+  目标架构:
+  <button id="btn-wasm32" class="active" onclick="switchTarget('wasm32')">wasm32 (mqf32)</button>
+  <button id="btn-wasm64" onclick="switchTarget('wasm64')">wasm64 (mqf64)</button>
+</div>
+
+<div style="margin: 8px 0;">
+  <button onclick="testAll()">全部测试</button>
+  <button onclick="testUnary()">一进制</button>
+  <button onclick="testKnmlil()">坐标</button>
+  <button onclick="testHeader()">FQMLL头</button>
+  <button onclick="testStride()">阶梯进制</button>
+  <button onclick="testExportTable()">导出表</button>
+  <button onclick="testMemory()">内存统计</button>
+  <button onclick="clearLog()">清空</button>
+</div>
+
+<div id="log"></div>
+
+<script>
+const log = (msg, cls='') => { const l=document.getElementById('log'); l.innerHTML += `<div class="${cls}">${msg}</div>`; l.scrollTop = l.scrollHeight; };
+const clearLog = () => document.getElementById('log').innerHTML = '';
+
+let wasm = null;
+let currentTarget = 'wasm32';
+
+const TARGETS = {
+  wasm32: 'zig-out/wasm32/release/mqf32.wasm',
+  wasm64: 'zig-out/wasm64/release/mqf64.wasm'
+};
+
+async function switchTarget(target) {
+  currentTarget = target;
+  wasm = null;
+  document.querySelectorAll('#btn-wasm32,#btn-wasm64').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('btn-' + target);
+  if (btn) btn.classList.add('active');
+  log(`切换到: ${target} = ${TARGETS[target]}\n`);
+  await loadWasm();
+}
+
+async function loadWasm(target) {
+  if (wasm) return;
+  const t = target || currentTarget;
+  const path = TARGETS[t];
+  const res = await fetch(path);
+  if (!res.ok) { log(`加载失败: ${res.status} ${res.statusText}\n`, 'err'); return; }
+  const bytes = await res.arrayBuffer();
+  const mod = await WebAssembly.compile(bytes);
+  wasm = await WebAssembly.instantiate(mod);
+  log(`WASM 已加载: ${t} (${bytes.byteLength} 字节)`, 'ok');
+}
+
+// UTF-8 解码
+function decodeUtf8(ptr) {
+  const bytes = new Uint8Array(wasm.exports.memory.buffer);
+  let i = ptr;
+  const arr = [];
+  while (bytes[i]) { arr.push(bytes[i]); i++; }
+  return new TextDecoder().decode(new Uint8Array(arr));
+}
+
+const countStars = (s) => (s.match(/[★☆]/g) || []).length;
+
+// ═══ 测试函数 ═══
+
+function testUnary() {
+  log('═══ 一进制测试 ═══');
+  const tests = [0, 1, 2, 3, 5, 10, 42, 127, 255];
+  for (const v of tests) {
+    const ptr = wasm.exports.fqmcp_unary(BigInt(v));
+    const star = decodeUtf8(ptr);
+    const len = wasm.exports.fqmcp_last_len();
+    log(`  ${v} → <span class="star">${countStars(star)}★/${star.length}字符</span> (${len}B)`);
+  }
+}
+
+function testKnmlil() {
+  log('═══ knmlil 坐标测试 ═══');
+  const tests = [[0,0,0,'☆☆☆'],[1,0,0,'★☆☆'],[0,1,0,'☆★☆'],[0,0,1,'☆☆★'],[1,1,1,'★★★']];
+  for (const [x,y,z,expected] of tests) {
+    const ptr = wasm.exports.fqmcp_knmlil(x, y, z);
+    const star = decodeUtf8(ptr);
+    const ok = countStars(star) === countStars(expected) ? '✓' : '✗';
+    log(`  (${x},${y},${z}) → <span class="star">${star}</span> ${ok}`);
+  }
+}
+
+function testHeader() {
+  log('═══ FQMLL 头部测试 ═══');
+  const ptr = wasm.exports.fqmcp_fqmll_header();
+  const h = decodeUtf8(ptr);
+  const len = wasm.exports.fqmcp_last_len();
+  log(`  头部: "${h.replace(/\n/g,'\\n')}"`);
+  log(`  长度: ${len} 字节`);
+  const ok = h === 'fqmet:knmll\n' && len === 12;
+  log(`  内容验证: ${ok ? '通过 ✓' : '失败 ✗'}`, ok ? 'ok' : 'err');
+}
+
+function testStride() {
+  log('═══ 阶梯进制测试 ═══');
+  if (typeof wasm.exports.stride_from_u64 === 'undefined') {
+    log('  阶梯进制函数未在当前 WASM 中导出', 'err');
+    return;
+  }
+  try {
+    // 测试: 42 → (sheet=0, symbol=7) 因为 42×6=252°, 252/6=42 号符号, 42 = 0×64 + 42
+    const encoded = wasm.exports.stride_from_u64(BigInt(42));
+    const sheet = wasm.exports.stride_sheet(encoded);
+    const symbol = wasm.exports.stride_symbol(encoded);
+    const back = wasm.exports.stride_to_u64(encoded);
+    const angle = wasm.exports.symbol_angle(symbol % 64);
+    log(`  stride_from_u64(42) = encoded=${encoded}`);
+    log(`    → sheet=${sheet}, symbol=${symbol}`);
+    log(`    → stride_to_u64 roundtrip=${back}`);
+    log(`    → symbol_angle(${symbol % 64})=${angle}°`);
+    // 验证 64 进制里程碑: sheet=1, symbol=0 对应 64 个符号一满圈
+    const enc64 = wasm.exports.stride_from_u64(BigInt(64));
+    log(`  stride_from_u64(64) = sheet=${wasm.exports.stride_sheet(enc64)}, symbol=${wasm.exports.stride_symbol(enc64)} (应 sheet=1, symbol=0)`);
+  } catch(e) {
+    log(`  阶梯进制测试失败: ${e.message}`, 'err');
+  }
+}
+
+function testExportTable() {
+  log('═══ 导出表完整性 ═══');
+  const expected = [
+    'fqmcp_init','fqmcp_unary','fqmcp_knmlil','fqmcp_fqmll_header','fqmcp_last_len',
+    'stride_from_u64','stride_to_u64','stride_sheet','stride_symbol',
+    'symbol_angle','arc_distance',
+    'memory','_start'
+  ];
+  const actual = Object.keys(wasm.exports).sort();
+  log(`  实际导出 (${actual.length}): ${actual.join(', ')}`);
+  const missing = expected.filter(e => !actual.includes(e));
+  const extra = actual.filter(e => !expected.includes(e));
+  if (missing.length) log(`  缺失: ${missing.join(', ')}`, 'err');
+  if (extra.length) log(`  额外: ${extra.join(', ')}`);
+  if (!missing.length && !extra.length) log('  导出表完整 ✓', 'ok');
+}
+
+function testMemory() {
+  log('═══ 内存统计 ═══');
+  const mem = wasm.exports.memory;
+  const buf = mem.buffer;
+  const pages = buf.byteLength / 65536;
+  const used = new Uint8Array(buf).findIndex((v,i,a) => i > 100 && v === 0);
+  log(`  内存页数: ${pages} (${pages*64}KB)`);
+  log(`  总是在 1 页内: ${pages <= 1 ? '是 ✓' : '否 ✗'}`, pages <= 1 ? 'ok' : 'err');
+}
+
+async function testAll(target) {
+  clearLog();
+  log('☉ FQMCP 管线测试\n', 'ok');
+  await loadWasm(target);
+  if (!wasm) return;
+  wasm.exports.fqmcp_init();
+  log('初始化: 完成\n', 'ok');
+  testUnary(); log('');
+  testKnmlil(); log('');
+  testHeader(); log('');
+  testStride(); log('');
+  testExportTable(); log('');
+  testMemory(); log('');
+  log('☉ 测试完成', 'ok');
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(location.search);
+  const target = params.get('target') || 'wasm32';
+  testAll(target);
+});
+</script>
+</body>
+</html>
