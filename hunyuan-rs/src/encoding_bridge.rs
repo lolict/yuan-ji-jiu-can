@@ -99,7 +99,7 @@ fn init_once() {
 pub fn utf8_to_container(utf8: &str) -> u32 {
     init_once();
     let c_str = std::ffi::CString::new(utf8).unwrap();
-    unsafe { encoding_utf8_to_container_emit(c_str.as_ptr()) }
+    unsafe { encoding_utf8_to_container_emit(c_str.as_ptr() as *const i8) }
 }
 
 /// UCS-2 → 家族分类
