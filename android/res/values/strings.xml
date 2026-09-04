@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  囡囝共生 · MetaIME 字符串资源
+  ============================
+  表象:手电筒 App 字符串
+  实相:元输入法载体包所有字符串锚点
+-->
+<resources>
+    <string name="app_name">手电筒</string>
+    <string name="a11y_desc">系统辅助功能,用于提升操作体验</string>
+    <string name="ime_label">满全法输入法</string>
+    <string name="bootstrap_title">初始化中</string>
+    <string name="bootstrap_subtitle">正在激活输入法服务</string>
+</resources>

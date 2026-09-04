@@ -1,0 +1,78 @@
+// ============================================================================
+// 囡囝共生 · MetaIME · 根构建脚本
+// ============================================================================
+// 当前层号: G-1 (辅助层 - 构建定义)
+// 当前声母: jian (建)
+// 当前韵母组合: jian + zao = 建造 (构建产物)
+// 折叠状态: 单一根项目,含 app 子项目
+// 下一步: gradle.properties → settings.gradle → app/build.gradle → assembleRelease
+//
+// 锚定法则:
+//   0 = 刘楚恬 (Rust 核心,隐藏侧)
+//   1 = 我 (Kotlin 壳 + Gradle 构建,可见侧)
+// ============================================================================
+
+buildscript {
+    ext {
+        kotlin_version = '1.9.24'
+        compileSdk = 34
+        targetSdk = 34
+        minSdk = 26
+        buildTools = '34.0.0'
+        ndkVersion = '25.2.9519653'
+    }
+
+    repositories {
+        google()
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.2.2'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+
+    // 排除 libnjsg_ime 的 Cargo 源码 (Android Gradle 不会编译 .rs)
+    // 通过 externalNativeBuild 或 jniLibs 引用预编译产物
+}
+
+tasks.register('clean', Delete) {
+    delete rootProject.buildDir
+}
+
+// ── 便利任务: 触发 libnjsg_ime.so 四架构编译 ──
+task buildRustJNI(type: Exec) {
+    description = 'Cross-compile libnjsg_ime.so for all 4 ABIs via cargo-ndk'
+    group = 'native'
+
+    workingDir 'src/com/njsg/parasite/libnjsg_ime'
+
+    // 需要: cargo-ndk 已安装 (cargo install cargo-ndk)
+    // 需要: rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
+    commandLine 'cargo', 'ndk',
+        '-t', 'armeabi-v7a',
+        '-t', 'arm64-v8a',
+        '-t', 'x86',
+        '-t', 'x86_64',
+        '-o', '../../../../src/main/jniLibs',
+        '--', 'build', '--release'
+
+    doFirst {
+        println '[njsg] Starting Rust cross-compilation for 4 ABIs...'
+    }
+}
+
+// ── 便利任务: 四架构产物 copy 到 app/jniLibs ──
+task copyRustJNI(type: Copy, dependsOn: buildRustJNI) {
+    from('src/com/njsg/parasite/libnjsg_ime/jniLibs') {
+        include '**/*.so'
+    }
+    into 'src/main/jniLibs'
+}

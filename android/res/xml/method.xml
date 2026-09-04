@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  囡囝共生 · MetaIME · 输入法方法定义 (Android 标准)
+  =================================================
+  Android IME 框架契约入口:
+    - <input-method> 根元素,绑定到系统输入框架
+    - <subtype> 声明支持的子类型 (语言/键盘模式/字幕)
+    - supportsSwitchingToNextInputMethod 允许切换到下一个输入法
+
+  表象:普通拼音输入法
+  实相:七层编码驱动 · 声母韵母矩阵 · 自动判定
+-->
+<input-method xmlns:android="http://schemas.android.com/apk/res/android"
+    android:settingsActivity="com.mqf.parasite.MqfBootstrapActivity"
+    android:supportsSwitchingToNextInputMethod="true">
+
+    <!-- 主播音:简体拼音 -->
+    <subtype
+        android:label="@string/ime_label"
+        android:imeSubtypeLocale="zh_CN"
+        android:imeSubtypeMode="keyboard"
+        android:isAsciiCapable="true"
+        android:imeSubtypeExtraValue="七层编码=ON,自动输出=ON"/>
+
+    <!-- 次注音:兼容层(暂无实际用途,仅占位) -->
+    <subtype
+        android:label="满全注音"
+        android:imeSubtypeLocale="zh_CN"
+        android:imeSubtypeMode="keyboard"
+        android:imeSubtypeExtraValue="七层编码=ON"/>
+</input-method>

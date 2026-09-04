@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  囡囝共生 · MetaIME 主题
+  =======================
+  表象:手电筒 App 主题
+  实相:元输入法载体包主题集
+
+  TransparentTheme: 入口即蚕的无形引导
+-->
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- 透明引导主题 (蚕蛹入口) -->
+    <style name="TransparentTheme" parent="@android:style/Theme.Translucent.NoTitleBar">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowAnimationStyle">@null</item>
+    </style>
+</resources>

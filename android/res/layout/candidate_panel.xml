@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  囡囝共生 · MetaIME 候字面板 XML 布局
+  ======================================
+  横向候字条 + 数字选字区 (1-9 映射)
+
+  当前层号: 5 (自动输出承载层)
+  当前声母: hou (候)
+  当前韵母组合: hou + xuan = 候选 (候字面板承载第5层自动输出)
+  折叠状态: RecyclerView 风格横向 LinearLayout
+  下一步: 候字显示 → 用户点击 or 自动判定 → commitText
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:background="#FF1A1A2E"
+    android:padding="6dp"
+    android:minHeight="48dp">
+
+    <!-- 当前输入拼音显示 -->
+    <TextView
+        android:id="@+id/pinyin_display"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="14sp"
+        android:textColor="#FF6B9D99"
+        android:minWidth="60dp"
+        android:gravity="center"
+        android:padding="4dp"
+        android:text=""/>
+
+    <!-- 分隔线 -->
+    <View
+        android:layout_width="1dp"
+        android:layout_height="36dp"
+        android:background="#FF3D3D5D"
+        android:layout_marginStart="4dp"
+        android:layout_marginEnd="4dp"/>
+
+    <!-- 候字横条 (动态填充,最多9个候字) -->
+    <TextView
+        android:id="@+id/candidate_1"
+        android:layout_width="0dp"
+        android:layout_height="40dp"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:textSize="20sp"
+        android:textColor="#FFFFFFFF"
+        android:background="#FF2D2D4D"
+        android:layout_margin="1dp"
+        android:contentDescription="候字1"/>
+
+    <TextView
+        android:id="@+id/candidate_2"
+        android:layout_width="0dp"
+        android:layout_height="40dp"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:textSize="20sp"
+        android:textColor="#FFFFFFFF"
+        android:background="#FF2D2D4D"
+        android:layout_margin="1dp"
+        android:contentDescription="候字2"/>
+
+    <TextView
+        android:id="@+id/candidate_3"
+        android:layout_width="0dp"
+        android:layout_height="40dp"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:textSize="20sp"
+        android:textColor="#FFFFFFFF"
+        android:background="#FF2D2D4D"
+        android:layout_margin="1dp"
+        android:contentDescription="候字3"/>
+
+    <TextView
+        android:id="@+id/candidate_4"
+        android:layout_width="0dp"
+        android:layout_height="40dp"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:textSize="20sp"
+        android:textColor="#FFFFFFFF"
+        android:background="#FF2D2D4D"
+        android:layout_margin="1dp"
+        android:contentDescription="候字4"/>
+
+    <TextView
+        android:id="@+id/candidate_5"
+        android:layout_width="0dp"
+        android:layout_height="40dp"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:textSize="20sp"
+        android:textColor="#FFFFFFFF"
+        android:background="#FF2D2D4D"
+        android:layout_margin="1dp"
+        android:contentDescription="候字5"/>
+
+    <TextView
+        android:id="@+id/candidate_6"
+        android:layout_width="0dp"
+        android:layout_height="40dp"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:textSize="20sp"
+        android:textColor="#FFFFFFFF"
+        android:background="#FF2D2D4D"
+        android:layout_margin="1dp"
+        android:contentDescription="候字6"/>
+
+    <TextView
+        android:id="@+id/candidate_7"
+        android:layout_width="0dp"
+        android:layout_height="40dp"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:textSize="20sp"
+        android:textColor="#FFFFFFFF"
+        android:background="#FF2D2D4D"
+        android:layout_margin="1dp"
+        android:contentDescription="候字7"/>
+
+    <TextView
+        android:id="@+id/candidate_8"
+        android:layout_width="0dp"
+        android:layout_height="40dp"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:textSize="20sp"
+        android:textColor="#FFFFFFFF"
+        android:background="#FF2D2D4D"
+        android:layout_margin="1dp"
+        android:contentDescription="候字8"/>
+
+    <TextView
+        android:id="@+id/candidate_9"
+        android:layout_width="0dp"
+        android:layout_height="40dp"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:textSize="20sp"
+        android:textColor="#FFFFFFFF"
+        android:background="#FF2D2D4D"
+        android:layout_margin="1dp"
+        android:contentDescription="候字9"/>
+</LinearLayout>
