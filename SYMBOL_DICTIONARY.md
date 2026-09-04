@@ -1170,3 +1170,26 @@ Input → Perception → Distinguish → Lookup → Traverse → Cluster → Att
 | 位域格式 | opcode/operands/registers 逐位标注 |
 
 *登记日期：2026-09-03*
+
+---
+
+## RISC-V RV32I 编码+字体（riscv-encoding · 工具#53）
+
+> 路径: tools/riscv-encoding/
+> Python 纯加法实现 — 禁用乘除（仅加减循环）
+> 编码+解码往返 PASS 16/16；BASIC16 字体 .ttf 2896 字节 · name 表私有区即指令集编码表
+
+| 符号 | 含义 |
+|------|------|
+| rv32i_fields.py | 全 4 类型(R/I/S/B/U/J)编码器 + 解码器 + BASIC16 指令表 |
+| generate_font.py | fontBuilder 生成 .ttf · glyph=指令名称ID · nameID 256+ 嵌入"指令名:机器码" |
+| _bv_set | 纯加法位写入操作(code, val, lo, width) |
+| encode_r/i/s/b/u/j | 各类型opcode可插(caller从查表传入 · LW=0x03 ADDI=0x13 不混) |
+| assemble_line | 字符串→机器码("ADD x5, x6, x7" → 0x007302B3) |
+| decode_to_str | 机器码→可读汇编 · round-trip 16/16 PASS |
+| BASIC16 | 16 条核心指令(ADD/SUB/AND/OR/XOR/SLT/SLL/SRL/SRA/ADDI/LW/SW/BEQ/JAL/LUI) |
+| nameID 256+ | TrueType 私有 name 区 · 每条指令占一组(索引=指令表位置) |
+| rv32i_instructions.ttf | 2896 字节字体文件 · 含 16 个 box glyph + 16 条私有编码记录 |
+| 编码表即字体 | glyph=语义ID；name record 第 256 位起 = 指令集编码 |
+
+*登记日期：2026-09-04（RV32I 编码+字体 · 仅加减 · round-trip PASS）*
