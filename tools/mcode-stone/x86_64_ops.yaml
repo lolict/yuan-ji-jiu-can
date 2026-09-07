@@ -1,0 +1,262 @@
+# x86-64 · 基础指令位域模板
+# 编码格式参考 Intel SDM Vol. 2
+meta:
+  isa: x86_64
+  base: x86-64
+  version: "1.0"
+  note: "变长指令1-15字节，此处仅记录32位固定格式核心操作码"
+
+instructions:
+  - id: ADD_R_R
+    mnemonic: add
+    type: R
+    opcode: "0000000"
+    bits: [7, 0]
+    prefix: []
+    fields:
+      d: [2, 2]
+      w: [0, 0]
+      reg: [5, 3]
+      rm: [7, 0]
+      mod: [7, 6]  # ModRM
+    prefix_bytes: []
+    modrm: true
+    operands: [reg, rm]
+    semantic: "寄存器加法 r/m64 += r64 (opcode 01 /r)"
+
+  - id: ADD_R_IMM
+    mnemonic: add
+    type: I
+    opcode: "1000000"
+    bits: [7, 0]
+    fields:
+      w: [3, 0]
+      rm: [7, 3]
+      simm: [39, 32]  # 32位符号扩展立即数
+    modrm: true
+    imm32: true
+    operands: [rm, simm]
+    semantic: "立即数加法 r/m64 += imm32 (opcode 81 /0)"
+
+  - id: SUB_R_R
+    mnemonic: sub
+    type: R
+    opcode: "0010100"
+    bits: [7, 0]
+    modrm: true
+    operands: [reg, rm]
+    semantic: "减法 (opcode 29)"
+
+  - id: AND_R_R
+    mnemonic: and
+    type: R
+    opcode: "0010000"
+    bits: [7, 0]
+    modrm: true
+    operands: [reg, rm]
+    semantic: "按位与 (opcode 21)"
+
+  - id: OR_R_R
+    mnemonic: or
+    type: R
+    opcode: "0000100"
+    bits: [7, 0]
+    modrm: true
+    operands: [reg, rm]
+    semantic: "按位或 (opcode 09)"
+
+  - id: XOR_R_R
+    mnemonic: xor
+    type: R
+    opcode: "0011000"
+    bits: [7, 0]
+    modrm: true
+    operands: [reg, rm]
+    semantic: "按位异或 (opcode 31)"
+
+  - id: MOV_R_IMM64
+    mnemonic: movabs
+    type: I
+    opcode: "10111"
+    bits: [7, 0]
+    fields:
+      w: [7, 7]
+      reg: [2, 0]
+      imm64: [71, 8]
+    operands: [reg, imm64]
+    semantic: "64位立即数加载 (opcode B8+r imm64)"
+
+  - id: MOV_R_R
+    mnemonic: mov
+    type: R
+    opcode: "1000100"
+    bits: [7, 0]
+    modrm: true
+    operands: [reg, rm]
+    semantic: "寄存器传送 (opcode 89)"
+
+  - id: MOV_R_IMM32
+    mnemonic: mov
+    type: I
+    opcode: "1100011"
+    bits: [7, 0]
+    w: 1
+    modrm: true
+    imm32: true
+    operands: [rm, simm32]
+    semantic: "32位立即数加载 (opcode C7 /0)"
+
+  - id: LEA
+    mnemonic: lea
+    type: I
+    opcode: "10001101"
+    bits: [7, 0]
+    fields:
+      reg: [13, 11]
+      rm: [10, 8]
+      mod: [15, 14]
+      scale: [17, 16]
+      index: [20, 18]
+      base: [23, 21]
+      disp: [55, 24]
+    modrm: true
+    sib: true
+    operands: [reg, base, index, scale, disp]
+    semantic: "加载有效地址"
+
+  - id: CMP_R_R
+    mnemonic: cmp
+    type: R
+    opcode: "0011100"
+    bits: [7, 0]
+    modrm: true
+    operands: [reg, rm]
+    semantic: "比较 (opcode 39)"
+
+  - id: TEST_R_R
+    mnemonic: test
+    type: R
+    opcode: "10000100"
+    bits: [7, 0]
+    modrm: true
+    operands: [reg, rm]
+    semantic: "测试 (opcode 85)"
+
+  - id: JMP_REL
+    mnemonic: jmp
+    type: I
+    opcode: "11101011"
+    bits: [7, 0]
+    imm8: true
+    operands: [simm8]
+    semantic: "短跳转 (opcode EB imm8)"
+
+  - id: JMP_FAR
+    mnemonic: jmp
+    type: I
+    opcode: "11101001"
+    bits: [7, 0]
+    imm32: true
+    operands: [simm32]
+    semantic: "近跳转 (opcode E9 imm32)"
+
+  - id: JE
+    mnemonic: je
+    type: I
+    opcode: "01110100"
+    bits: [7, 0]
+    imm8: true
+    operands: [simm8]
+    semantic: "相等短跳转 (opcode 74)"
+
+  - id: JNE
+    mnemonic: jne
+    type: I
+    opcode: "01110101"
+    bits: [7, 0]
+    imm8: true
+    operands: [simm8]
+    semantic: "不等短跳转 (opcode 75)"
+
+  - id: CALL_REL
+    mnemonic: call
+    type: I
+    opcode: "11101000"
+    bits: [7, 0]
+    imm32: true
+    operands: [simm32]
+    semantic: "调用 (opcode E8)"
+
+  - id: RET
+    mnemonic: ret
+    type: Z
+    opcode: "11000011"
+    bits: [7, 0]
+    operands: []
+    semantic: "返回 (opcode C3)"
+
+  - id: NOP
+    mnemonic: nop
+    type: Z
+    opcode: "0000111100011111"
+    bits: [7, 0]
+    operands: []
+    prefix_bytes: ["0x0F", "0x1F"]
+    semantic: "空操作 (opcode 0F 1F /0)"
+
+  - id: PUSH
+    mnemonic: push
+    type: I
+    opcode: "01010"
+    bits: [7, 0]
+    fields: { reg: [2, 0] }
+    operands: [reg]
+    semantic: "压栈 (opcode 50+r)"
+
+  - id: POP
+    mnemonic: pop
+    type: I
+    opcode: "01011"
+    bits: [7, 0]
+    fields: { reg: [2, 0] }
+    operands: [reg]
+    semantic: "出栈 (opcode 58+r)"
+
+  - id: SYSCALL
+    mnemonic: syscall
+    type: Z
+    opcode: "0000111100000101"
+    bits: [7, 0]
+    prefix_bytes: ["0x0F", "0x05"]
+    operands: []
+    semantic: "系统调用 (opcode 0F 05)"
+
+  - id: NEG
+    mnemonic: neg
+    type: R
+    opcode: "0011100"
+    bits: [7, 0]
+    w: 1
+    modrm: true
+    operands: [rm]
+    semantic: "求补 (opcode F7 /3)"
+
+  - id: INC
+    mnemonic: inc
+    type: R
+    opcode: "01000"
+    bits: [7, 0]
+    w: 0
+    modrm: true
+    operands: [rm]
+    semantic: "自增 (opcode 40+r, 32位模式下)"
+
+  - id: MUL
+    mnemonic: mul
+    type: R
+    opcode: "00100"
+    bits: [7, 0]
+    w: 1
+    modrm: true
+    operands: [rm]
+    semantic: "无符号乘法 (opcode F7 /4)"

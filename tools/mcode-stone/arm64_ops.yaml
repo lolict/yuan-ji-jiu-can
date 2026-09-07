@@ -1,0 +1,279 @@
+# ARM64 AArch64 · 基础指令位域模板
+# 编码格式参考 ARM ARM (ARM Architecture Reference Manual)
+meta:
+  isa: ARM64
+  base: ARMv8-A
+  version: "1.0"
+  note: "所有指令32位，条件执行通过单独指令实现"
+
+instructions:
+  - id: ADD
+    mnemonic: add
+    type: R
+    opcode: "10001011000"
+    bits: [31, 21]
+    fields:
+      rd: [4, 0]
+      rn: [9, 5]
+      rm: [20, 16]
+      imm6: [15, 10]  # 移位量，对于非移位指令为0
+    operands: [rd, rn, rm]
+    semantic: "寄存器加法 Rd = Rn + Rm"
+
+  - id: ADD_IMM
+    mnemonic: add
+    type: I
+    opcode: "1001000100"
+    bits: [31, 22]
+    fields:
+      rd: [4, 0]
+      rn: [9, 5]
+      imm12: [21, 10]
+      shift: [23, 22]
+    operands: [rd, rn, imm12]
+    semantic: "立即数加法 Rd = Rn + imm12<<{0,12}"
+
+  - id: SUB
+    mnemonic: sub
+    type: R
+    opcode: "11001011000"
+    bits: [31, 21]
+    fields:
+      rd: [4, 0]
+      rn: [9, 5]
+      rm: [20, 16]
+      imm6: [15, 10]
+    operands: [rd, rn, rm]
+    semantic: "寄存器减法 Rd = Rn - Rm"
+
+  - id: SUB_IMM
+    mnemonic: sub
+    type: I
+    opcode: "1101000100"
+    bits: [31, 22]
+    fields:
+      rd: [4, 0]
+      rn: [9, 5]
+      imm12: [21, 10]
+      shift: [23, 22]
+    operands: [rd, rn, imm12]
+    semantic: "立即数减法 Rd = Rn - imm12<<{0,12}"
+
+  - id: MOV
+    mnemonic: mov
+    type: R
+    opcode: "10101011000"
+    bits: [31, 21]
+    # 实际上是 ORR Rd, XZR, Rm
+    fields:
+      rd: [4, 0]
+      rm: [20, 16]
+    operands: [rd, rm]
+    semantic: "寄存器传送"
+
+  - id: MOV_IMM
+    mnemonic: mov
+    type: I
+    opcode: "110100101"
+    bits: [31, 23]
+    fields:
+      rd: [4, 0]
+      imm16: [20, 5]
+      hw: [22, 21]
+    operands: [rd, imm16]
+    semantic: "立即数传送 (MOVZ)"
+
+  - id: LDR
+    mnemonic: ldr
+    type: I
+    opcode: "11111000010"
+    bits: [31, 22]
+    fields:
+      rt: [4, 0]
+      rn: [9, 5]
+      imm9: [20, 12]
+      mode: [11, 10]
+      p: [24, 24]
+      w: [21, 21]
+    operands: [rt, imm9, rn]
+    semantic: "偏移模式加载 Rt = [Rn + imm9]"
+
+  - id: STR
+    mnemonic: str
+    type: I
+    opcode: "11111000000"
+    bits: [31, 22]
+    fields:
+      rt: [4, 0]
+      rn: [9, 5]
+      imm9: [20, 12]
+    operands: [rt, imm9, rn]
+    semantic: "偏移模式存储 [Rn + imm9] = Rt"
+
+  - id: LDR_REG
+    mnemonic: ldr
+    type: R
+    opcode: "11111000011"
+    bits: [31, 21]
+    fields:
+      rt: [4, 0]
+      rn: [9, 5]
+      rm: [20, 16]
+      option: [15, 13]
+      s: [12, 12]
+    operands: [rt, rn, rm]
+    semantic: "寄存器偏移加载 Rt = [Rn + Rm]"
+
+  - id: CMP
+    mnemonic: cmp
+    type: R
+    opcode: "11101011000"
+    bits: [31, 21]
+    # SUBS XZR, Rn, Rm
+    fields:
+      rn: [9, 5]
+      rm: [20, 16]
+    operands: [rn, rm]
+    semantic: "比较（影响标志位）"
+
+  - id: B
+    mnemonic: b
+    type: I
+    opcode: "000101"
+    bits: [31, 26]
+    fields:
+      imm26: [25, 0]
+    operands: [imm26]
+    semantic: "无条件跳转 (固定偏移 ±128MB)"
+
+  - id: B_COND
+    mnemonic: b.eq
+    type: I
+    opcode: "01010100"
+    bits: [31, 24]
+    fields:
+      cond: [3, 0]
+      imm19: [23, 5]
+    operands: [cond, imm19]
+    operand_fixed: true
+    semantic: "条件跳转 (固定偏移 ±1MB)"
+
+  - id: BL
+    mnemonic: bl
+    type: I
+    opcode: "100101"
+    bits: [31, 26]
+    fields:
+      imm26: [25, 0]
+    operands: [imm26]
+    semantic: "跳转并链接（调用子程序）"
+
+  - id: RET
+    mnemonic: ret
+    type: R
+    opcode: "11010110010"
+    bits: [31, 21]
+    fields:
+      rn: [9, 5]
+    operands: [rn]
+    operand_fixed: true
+    semantic: "返回 (默认 X30)"
+
+  - id: NOP
+    mnemonic: nop
+    type: I
+    opcode: "11010100000"
+    bits: [31, 21]
+    fields: {}
+    operands: []
+    operand_fixed: true
+    semantic: "空操作"
+
+  - id: AND
+    mnemonic: and
+    type: R
+    opcode: "10001010000"
+    bits: [31, 21]
+    fields:
+      rd: [4, 0]
+      rn: [9, 5]
+      rm: [20, 16]
+      imm6: [15, 10]
+    operands: [rd, rn, rm]
+    semantic: "按位与"
+
+  - id: ORR
+    mnemonic: orr
+    type: R
+    opcode: "10101010000"
+    bits: [31, 21]
+    fields:
+      rd: [4, 0]
+      rn: [9, 5]
+      rm: [20, 16]
+      imm6: [15, 10]
+    operands: [rd, rn, rm]
+    semantic: "按位或"
+
+  - id: EOR
+    mnemonic: eor
+    type: R
+    opcode: "11001010000"
+    bits: [31, 21]
+    fields:
+      rd: [4, 0]
+      rn: [9, 5]
+      rm: [20, 16]
+      imm6: [15, 10]
+    operands: [rd, rn, rm]
+    semantic: "按位异或"
+
+  - id: LSL
+    mnemonic: lsl
+    type: R
+    opcode: "11010110011"
+    bits: [31, 21]
+    # UBFM + LSL 组合
+    fields:
+      rd: [4, 0]
+      rn: [9, 5]
+      shift: [15, 10]
+    operands: [rd, rn, shift]
+    semantic: "逻辑左移"
+
+  - id: LSR
+    mnemonic: lsr
+    type: R
+    opcode: "11010110011"
+    bits: [31, 21]
+    fields:
+      rd: [4, 0]
+      rn: [9, 5]
+      shift: [15, 10]
+    operands: [rd, rn, shift]
+    semantic: "逻辑右移"
+
+  - id: MUL
+    mnemonic: mul
+    type: R
+    opcode: "10011011000"
+    bits: [31, 21]
+    # MADD 的变体: Rd = Rn * Rm
+    fields:
+      rd: [4, 0]
+      rn: [9, 5]
+      rm: [20, 16]
+      ra: [14, 10]
+    operands: [rd, rn, rm, ra]
+    semantic: "乘法 Rd = Rn * Rm"
+
+  - id: SVC
+    mnemonic: svc
+    type: I
+    opcode: "11010100000"
+    bits: [31, 21]
+    fields:
+      imm16: [20, 5]
+      b0_4: [4, 0]
+    operands: [imm16]
+    semantic: "系统调用 (SVC)"

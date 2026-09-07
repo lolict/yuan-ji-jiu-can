@@ -1,0 +1,523 @@
+# MIPS32 · 基础指令位域模板
+# 编码格式参考 MIPS32 Architecture For Programmers
+meta:
+  isa: MIPS32
+  base: MIPS32 Release 2
+  version: "1.0"
+  note: "固定长度32位指令，3种格式: R/I/J"
+
+opcodes:
+  SPECIAL: "000000"
+  REGIMM:  "000001"
+  J:       "000010"
+  JAL:     "000011"
+  BEQ:     "000100"
+  BNE:     "000101"
+  BLEZ:    "000110"
+  BGTZ:    "000111"
+  ADDI:    "001000"
+  ADDIU:   "001001"
+  SLTI:    "001010"
+  SLTIU:   "001011"
+  ANDI:    "001100"
+  ORI:     "001101"
+  XORI:    "001110"
+  LUI:     "001111"
+  LW:      "100011"
+  SW:      "101011"
+
+funct:
+  ADD:  "100000"
+  ADDU: "100001"
+  SUB:  "100010"
+  SUBU: "100011"
+  AND:  "100100"
+  OR:   "100101"
+  XOR:  "100110"
+  NOR:  "100111"
+  SLT:  "101010"
+  SLTU: "101011"
+  SLL:  "000000"
+  SRL:  "000010"
+  SRA:  "000011"
+  JR:   "001000"
+  JALR: "001001"
+  SYSCALL: "001100"
+
+instructions:
+  - id: ADD
+    mnemonic: add
+    type: R
+    opcode: "000000"
+    funct: "100000"
+    fields:
+      rs: [25, 21]
+      rt: [20, 16]
+      rd: [15, 11]
+      shamt: [10, 6]
+      funct: [5, 0]
+    operands: [rd, rs, rt]
+    semantics: "加法 rd = rs + rt"
+
+  - id: ADDU
+    mnemonic: addu
+    type: R
+    opcode: "000000"
+    funct: "100001"
+    fields:
+      rs: [25, 21]
+      rt: [20, 16]
+      rd: [15, 11]
+      shamt: [10, 6]
+      funct: [5, 0]
+    operands: [rd, rs, rt]
+    semantic: "无符号加法"
+
+  - id: ADDI
+    mnemonic: addi
+    type: I
+    opcode: "001000"
+    fields:
+      rs: [25, 21]
+      rt: [20, 16]
+      imm: [15, 0]
+    operands: [rt, rs, imm]
+    semantic: "立即数加法 (符号扩展)"
+
+  - id: ADDIU
+    mnemonic: addiu
+    type: I
+    opcode: "001001"
+    fields:
+      rs: [25, 21]
+      rt: [20, 16]
+      imm: [15, 0]
+    operands: [rt, rs, imm]
+    semantic: "无符号立即数加法"
+
+  - id: SUB
+    mnemonic: sub
+    type: R
+    opcode: "000000"
+    funct: "100010"
+    fields:
+      rs: [25, 21]
+      rt: [20, 16]
+      rd: [15, 11]
+      shamt: [10, 6]
+      funct: [5, 0]
+    operands: [rd, rs, rt]
+    semantic: "减法 rd = rs - rt"
+
+  - id: SUBU
+    mnemonic: subu
+    type: R
+    opcode: "000000"
+    funct: "100011"
+    fields:
+      rs: [25, 21]
+      rt: [20, 16]
+      rd: [15, 11]
+      shamt: [10, 6]
+      funct: [5, 0]
+    operands: [rd, rs, rt]
+    semantic: "无符号减法"
+
+  - id: AND
+    mnemonic: and
+    type: R
+    opcode: "000000"
+    funct: "100100"
+    fields:
+      rs: [25, 21]
+      rt: [20, 16]
+      rd: [15, 11]
+      shamt: [10, 6]
+      funct: [5, 0]
+    operands: [rd, rs, rt]
+    semantic: "按位与"
+
+  - id: OR
+    mnemonic: or
+    type: R
+    opcode: "000000"
+    funct: "100101"
+    fields:
+      rs: [25, 21]
+      rt: [20, 16]
+      rd: [15, 11]
+      shamt: [10, 6]
+      funct: [5, 0]
+    operands: [rd, rs, rt]
+    semantic: "按位或"
+
+  - id: XOR
+    mnemonic: xor
+    type: R
+    opcode: "000000"
+    funct: "100110"
+    fields:
+      rs: [25, 21]
+      rt: [20, 16]
+      rd: [15, 11]
+      shamt: [10, 6]
+      funct: [5, 0]
+    operands: [rd, rs, rt]
+    semantic: "按位异或"
+
+  - id: NOR
+    mnemonic: nor
+    type: R
+    opcode: "000000"
+    funct: "100111"
+    fields:
+      rs: [25, 21]
+      rt: [20, 16]
+      rd: [15, 11]
+      shamt: [10, 6]
+      funct: [5, 0]
+    operands: [rd, rs, rt]
+    semantic: "按位或非"
+
+  - id: SLT
+    mnemonic: slt
+    type: R
+    opcode: "000000"
+    funct: "101010"
+    fields:
+      rs: [25, 21]
+      rt: [20, 16]
+      rd: [15, 11]
+      shamt: [10, 6]
+      funct: [5, 0]
+    operands: [rd, rs, rt]
+    semantic: "有符号比较置位"
+
+  - id: SLTU
+    mnemonic: sltu
+    type: R
+    opcode: "000000"
+    funct: "101011"
+    fields:
+      rs: [25, 21]
+      rt: [20, 16]
+      rd: [15, 11]
+      shamt: [10, 6]
+      funct: [5, 0]
+    operands: [rd, rs, rt]
+    semantic: "无符号比较置位"
+
+  - id: SLL
+    mnemonic: sll
+    type: R
+    opcode: "000000"
+    funct: "000000"
+    fields:
+      rs: [25, 21]
+      rt: [20, 16]
+      rd: [15, 11]
+      shamt: [10, 6]
+      funct: [5, 0]
+    operands: [rd, rt, shamt]
+    semantic: "逻辑左移"
+
+  - id: SRL
+    mnemonic: srl
+    type: R
+    opcode: "000000"
+    funct: "000010"
+    fields:
+      rs: [25, 21]
+      rt: [20, 16]
+      rd: [15, 11]
+      shamt: [10, 6]
+      funct: [5, 0]
+    operands: [rd, rt, shamt]
+    semantic: "逻辑右移"
+
+  - id: SRA
+    mnemonic: sra
+    type: R
+    opcode: "000000"
+    funct: "000011"
+    fields:
+      rs: [25, 21]
+      rt: [20, 16]
+      rd: [15, 11]
+      shamt: [10, 6]
+      funct: [5, 0]
+    operands: [rd, rt, shamt]
+    semantic: "算术右移"
+
+  - id: LW
+    mnemonic: lw
+    type: I
+    opcode: "100011"
+    fields:
+      rs: [25, 21]
+      rt: [20, 16]
+      imm: [15, 0]
+    operands: [rt, imm, rs]
+    semantic: "加载字 rt = imm(rs)"
+
+  - id: SW
+    mnemonic: sw
+    type: I
+    opcode: "101011"
+    fields:
+      rs: [25, 21]
+      rt: [20, 16]
+      imm: [15, 0]
+    operands: [rt, imm, rs]
+    semantic: "存储字 imm(rs) = rt"
+
+  - id: LH
+    mnemonic: lh
+    type: I
+    opcode: "100001"
+    fields:
+      rs: [25, 21]
+      rt: [20, 16]
+      imm: [15, 0]
+    operands: [rt, imm, rs]
+    semantic: "加载半字（符号扩展）"
+
+  - id: SH
+    mnemonic: sh
+    type: I
+    opcode: "101001"
+    fields:
+      rs: [25, 21]
+      rt: [20, 16]
+      imm: [15, 0]
+    operands: [rt, imm, rs]
+    semantic: "存储半字"
+
+  - id: LB
+    mnemonic: lb
+    type: I
+    opcode: "100000"
+    fields:
+      rs: [25, 21]
+      rt: [20, 16]
+      imm: [15, 0]
+    operands: [rt, imm, rs]
+    semantic: "加载字节（符号扩展）"
+
+  - id: SB
+    mnemonic: sb
+    type: I
+    opcode: "101000"
+    fields:
+      rs: [25, 21]
+      rt: [20, 16]
+      imm: [15, 0]
+    operands: [rt, imm, rs]
+    semantic: "存储字节"
+
+  - id: LUI
+    mnemonic: lui
+    type: I
+    opcode: "001111"
+    fields:
+      rs: [25, 21]
+      rt: [20, 16]
+      imm: [15, 0]
+    operands: [rt, imm]
+    semantic: "加载高位立即数"
+
+  - id: BEQ
+    mnemonic: beq
+    type: I
+    opcode: "000100"
+    fields:
+      rs: [25, 21]
+      rt: [20, 16]
+      imm: [15, 0]
+    operands: [rs, rt, imm]
+    semantic: "相等跳转"
+
+  - id: BNE
+    mnemonic: bne
+    type: I
+    opcode: "000101"
+    fields:
+      rs: [25, 21]
+      rt: [20, 16]
+      imm: [15, 0]
+    operands: [rs, rt, imm]
+    semantic: "不等跳转"
+
+  - id: BLEZ
+    mnemonic: blez
+    type: I
+    opcode: "000110"
+    fields:
+      rs: [25, 21]
+      imm: [15, 0]
+    operands: [rs, imm]
+    semantic: "小于等于零跳转"
+
+  - id: BGTZ
+    mnemonic: bgtz
+    type: I
+    opcode: "000111"
+    fields:
+      rs: [25, 21]
+      imm: [15, 0]
+    operands: [rs, imm]
+    semantic: "大于零跳转"
+
+  - id: BLTZ
+    mnemonic: bltz
+    type: I
+    opcode: "000001"
+    rt: 0
+    fields:
+      rs: [25, 21]
+      rt: [20, 16]
+      imm: [15, 0]
+    operands: [rs, imm]
+    semantic: "小于零跳转"
+
+  - id: J
+    mnemonic: j
+    type: J
+    opcode: "000010"
+    fields:
+      target: [25, 0]
+    operands: [target]
+    semantic: "无条件跳转"
+
+  - id: JAL
+    mnemonic: jal
+    type: J
+    opcode: "000011"
+    fields:
+      target: [25, 0]
+    operands: [target]
+    semantic: "跳转并链接"
+
+  - id: JR
+    mnemonic: jr
+    type: R
+    opcode: "000000"
+    funct: "001000"
+    fields:
+      rs: [25, 21]
+      rd: [15, 11]
+      shamt: [10, 6]
+      funct: [5, 0]
+    operands: [rs]
+    semantic: "跳转到寄存器地址 (默认 $ra)"
+
+  - id: JALR
+    mnemonic: jalr
+    type: R
+    opcode: "000000"
+    funct: "001001"
+    fields:
+      rs: [25, 21]
+      rd: [15, 11]
+      funct: [5, 0]
+    operands: [rd, rs]
+    semantic: "跳转到寄存器并链接"
+
+  - id: SYSCALL
+    mnemonic: syscall
+    type: R
+    opcode: "000000"
+    funct: "001100"
+    fields:
+      code: [25, 6]
+      funct: [5, 0]
+    operands: []
+    semantic: "系统调用"
+
+  - id: NOP
+    mnemonic: nop
+    type: R
+    opcode: "000000"
+    funct: "000000"
+    fields:
+      rs: [25, 21]
+      rt: [20, 16]
+      rd: [15, 11]
+      shamt: [10, 6]
+      funct: [5, 0]
+    operands: []
+    operand_fixed: true
+    semantic: "空操作 (sll $0, $0, 0)"
+
+  - id: MULT
+    mnemonic: mult
+    type: R
+    opcode: "000000"
+    funct: "011000"
+    fields:
+      rs: [25, 21]
+      rt: [20, 16]
+      funct: [5, 0]
+    operands: [rs, rt]
+    semantic: "有符号乘法"
+
+  - id: MULTU
+    mnemonic: multu
+    type: R
+    opcode: "000000"
+    funct: "011001"
+    fields:
+      rs: [25, 21]
+      rt: [20, 16]
+      funct: [5, 0]
+    operands: [rs, rt]
+    semantic: "无符号乘法"
+
+  - id: DIV
+    mnemonic: div
+    type: R
+    opcode: "000000"
+    funct: "011010"
+    fields:
+      rs: [25, 21]
+      rt: [20, 16]
+      funct: [5, 0]
+    operands: [rs, rt]
+    semantic: "有符号除法"
+
+  - id: MFLO
+    mnemonic: mflo
+    type: R
+    opcode: "000000"
+    funct: "010010"
+    fields:
+      rd: [15, 11]
+      funct: [5, 0]
+    operands: [rd]
+    semantic: "从 LO 寄存器读取"
+
+  - id: MFHI
+    mnemonic: mfhi
+    type: R
+    opcode: "000000"
+    funct: "010000"
+    fields:
+      rd: [15, 11]
+      funct: [5, 0]
+    operands: [rd]
+    semantic: "从 HI 寄存器读取"
+
+  - id: SEB
+    mnemonic: seb
+    type: R
+    opcode: "011111"
+    funct: "100000"
+    sel: "000"
+    fields:
+      rs: [25, 21]
+      rt: [20, 16]
+      rd: [15, 11]
+      sa: [10, 8]
+      funct: [5, 0]
+    operands: [rd, rt]
+    semantic: "符号扩展字节 (MIPS32r2)"
