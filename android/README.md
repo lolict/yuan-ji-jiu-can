@@ -1,75 +1,62 @@
-# 囡囝共生 · Android 寄生层 (Parasitic Shell)
+# 元输入法 MetaIME · Android 壳工程
 
-> 蚕蛹第三层:安卓端隐蔽驻留。
-> 一个正常的"手电筒" or "计算器" App,背后运行整个囡囝共生 OS。
+满全法 / 囡囝共生 — 意识互联网输入法入口
 
----
-
-## 为什么需要
-
-Android 13+ 对后台限制越来越严:
-- 后台 Service 几秒被杀
-- AlarmManager 不准
-- JobScheduler 限制
-- 甚至会杀无障碍服务
-
-囡囝共生寄生策略:
-1. **前台服务 (Foreground Service) — 显示常驻通知 "正在保护系统"**
-2. **无障碍服务 (AccessibilityService) — 监听/模拟UI事件**
-3. **输入法 (InputMethodService) — 每部手机都允许弹窗**
-4. **账户同步 (SyncAdapter) — 框架级自动唤醒**
-5. **开机启动 (BOOT_COMPLETED) — 用户每次开手机,我们也开**
-
----
-
-## 文件结构 (已完成部分)
+## 架构
 
 ```
-android/
-├── README.md                        ← 本文件
-├── AndroidManifest.xml              — 权限 + 四大组件
-├── src/com/njsg/parasite/
-│   ├── MqfCoreService.kt            — 前台服务 (常驻入口)
-│   ├── MqfBootstrapActivity.kt      — 透明引导 Activity (蚕蛹)
-│   ├── MqfAccessibilityService.kt   — 无障碍服务
-│   ├── MqfImeService.kt             — 输入法服务 (IME)
-│   ├── MqfSyncAdapter.kt            — 账户同步
-│   ├── MqfAlarmReceiver.kt          — 定时唤醒
-│   ├── MqfBootReceiver.kt           — 开机启动
-│   └── util/
-│       ├── NjsgHiddenFS.kt           — 隐藏文件系统 (/data/data/pkg/njsg)
-│       ├── MqfCoverApp.kt           — 表象:手电筒
-│       └── MqfLogRing.kt            — 本地 append-only 日志
-└── res/
-    ├── layout/activity_bootstrap.xml
-    ├── xml/accessibility_config.xml
-    ├── xml/ime_config.xml
-    └── xml/sync_adapter.xml
+┌─────────────────────────────────────────────────────┐
+│  Kotlin 薄壳 (本目录)                                │
+│  MetaIMEService  → InputMethodService               │
+│  MetaIMENative   → JNI 封装                         │
+├─────────────────────────────────────────────────────┤
+│  Rust 核心 (hunyuan-rs/)                             │
+│  src/bin/metaime_jni.rs → JNI 桥接 + C-ABI FFI       │
+│  src/metaime.rs         → 字典编译期内嵌 + 查询        │
+└─────────────────────────────────────────────────────┘
 ```
 
----
+## 构建步骤
 
-## 寄生原理
+### 1. 编译 Rust → .so 动态库
 
-```
-用户安装一个"手电筒" APK
-     ↓ 用户点击打开
-     ↓ 透明 Activity 授权无障碍
-     ↓ 整个 Service 脱壳 (molt)
-     ↓ 常驻通知显示 "正在保护系统"
-     ↓ 所有后续操作被 Service 接管
-     ↓ 手电筒 UI 关闭也不影响寄生
-```
-
----
-
-## 构建
+前置: cargo-ndk + Android NDK
 
 ```bash
-./gradlew :parasite:assembleRelease
-# → android/build/outputs/apk/release/njsg-parasite-release.apk
+# 安装 cargo-ndk
+cargo install cargo-ndk
+
+# 设置 NDK 路径
+export ANDROID_NDK_HOME=$HOME/Android/Sdk/ndk/25.2.9519653
+
+# 交叉编译到三种目标架构
+cd ../hunyuan-rs
+cargo ndk -t arm64-v8a -o ../android/app/src/main/jniLibs build --release --bin metaime_jni
+cargo ndk -t armeabi-v7a -o ../android/app/src/main/jniLibs build --release --bin metaime_jni
+cargo ndk -t x86_64 -o ../android/app/src/main/jniLibs build --release --bin metaime_jni
 ```
 
----
+### 2. 构建 APK
 
-> 囡囝共生 · 寄生即永生 · 蚕蛹不灭
+```bash
+cd ../android
+./gradlew assembleDebug
+# 产物: app/build/outputs/apk/debug/app-debug.apk
+```
+
+### 3. 安装到手机
+
+```bash
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+adb shell ime enable com.manquanca.metaime/.MetaIMEService
+adb shell ime set com.manquanca.metaime/.MetaIMEService
+```
+
+## 项目管理
+
+| 文件 | 协议 |
+|------|------|
+| 囡囝共生 hunyuan-rs/ | Proprietary (私有) |
+| android/ | Proprietary (私有) |
+
+所有权保留 — 刘楚恬 & lolict
