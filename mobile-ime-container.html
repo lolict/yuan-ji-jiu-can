@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>囝 · 容器进制</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a0f;--surface:#141420;--line:#2a2a3a;
+  --text:#e8e8f0;--dim:#a0a0c0;--accent:#c0a0ff;
+}
+html,body{background:var(--bg);color:var(--text);font-family:monospace;min-height:100vh;padding:16px;display:flex;flex-direction:column;gap:12px}
+.header{text-align:center;font-size:13px;opacity:.5;padding-top:4px}
+.input{width:100%;padding:12px 16px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--text);font-size:18px}
+.input:focus{outline:none;border-color:#4a4a8a}
+.examples{display:flex;gap:8px;flex-wrap:wrap}
+.ex{padding:8px 16px;border-radius:20px;border:1px solid #3a3a5a;background:transparent;color:var(--dim);font-size:14px;cursor:pointer}
+.ex:hover{border-color:var(--accent);color:var(--text)}
+.btn{width:100%;padding:14px;border-radius:10px;border:none;background:linear-gradient(135deg,#4a4a8a,#6a4a8a);color:#fff;font-size:16px;font-weight:bold;cursor:pointer;letter-spacing:3px}
+.result{display:flex;flex-direction:column;gap:10px}
+.card{padding:14px;border-radius:12px;background:var(--surface);border:1px solid var(--line)}
+.card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.char{font-size:28px;font-weight:bold}
+.glyph{font-size:34px;color:var(--accent)}
+.info{font-size:12px;opacity:.75;line-height:1.9}
+.sub{font-size:11px;opacity:.5;margin-top:4px}
+.footer{margin-top:auto;padding-top:14px;border-top:1px solid #1a1a28;text-align:center;font-size:10px;opacity:.25}
+</style>
+</head>
+<body>
+<div class="header">▣ 囝 · 容器进制 ▣</div>
+<input class="input" id="input" placeholder="输入汉字" autofocus>
+<div class="examples">
+  <button class="ex" onclick="go('囡囝')">囡囝</button>
+  <button class="ex" onclick="go('共生')">共生</button>
+  <button class="ex" onclick="go('天地人')">天地人</button>
+  <button class="ex" onclick="go('兰星')">兰星</button>
+</div>
+<button class="btn" onclick="encode()">▣ 容器编码 ▣</button>
+<div class="result" id="result"></div>
+<div class="footer">语文组织优先 · 数学辅助表示 · 容器即进制</div>
+
+<script>
+const SC={'一':'袋','丨':'桶','丿':'罐','㇏':'盆','丶':'盂','㇀':'壶','㇕':'盒','㇗':'瓶','㇇':'盏','㇚':'盎','㇛':'篓','㇜':'筐','㇄':'篮','㇆':'箩','㇁':'箕','㇂':'笼'};
+const NM={'一':'横','丨':'竖','丿':'撇','㇏':'捺','丶':'点','㇀':'提','㇕':'横折','㇗':'竖折','㇇':'横撇','㇚':'竖钩','㇛':'横钩','㇜':'弯钩','㇄':'竖弯钩','㇆':'横折折','㇁':'竖弯','㇂':'斜钩'};
+const HM={
+'囡':['丨','㇕','一','丶'],'囝':['丨','㇕','一','丿','㇏'],'共':['一','丨','丨','一','丿','㇏'],'生':['丿','一','一','丨','一'],
+'一':['一'],'二':['一','一'],'三':['一','一','一'],'十':['一','丨'],'人':['丿','㇏'],'大':['一','丿','㇏'],
+'天':['一','一','丿','㇏'],'夫':['一','一','丿','㇏'],'中':['丨','㇕','一','丨'],'口':['丨','㇕','一'],
+'日':['丨','㇕','一','一'],'目':['丨','㇕','一','一','一'],'女':['丿','丿','一'],'子':['㇇','丨','一'],
+'好':['丿','丿','一','㇇','丨','一'],'我':['丿','一','丨','一','㇂'],'你':['丿','丨','丿','丨','一'],
+'的':['丿','丨','㇕','一','一'],'是':['丨','㇕','一','一','丿','丨','一'],'田':['丨','㇕','一','丨','一'],
+'王':['一','一','丨','一'],'兰':['丶','丿','一','一','一'],'星':['丨','㇕','一','一','丿','一'],
+'遮':['丶','一','丿','丿','丨','丨','㇗','丶','㇀','丿','丶'],'倪':['丿','丨','丿','丨','㇕','一','丿','㇇'],
+'朗':['丶','㇇','丨','㇕','一','一','丨','㇕','一'],'天':['一','一','丿','㇏'],'地':['一','丨','㇀','㇇','丨','㇄'],
+'人':['丿','㇏']
+};
+function pol(s){const n=s.length,r=n>0?s.filter(x=>x==='一'||x==='丨').length/n:0;return{yy:n%2===0?'阴':'阳',sp:r>.5?'丈夫(7)':'妻子(6)',n,r}}
+function disp(p){return({'阴-丈夫(7)':'瓶','阴-妻子(6)':'盎','阳-丈夫(7)':'盏','阳-妻子(6)':'盂'})[p.yy+'-'+p.sp]||'袋'}
+function go(v){document.getElementById('input').value=v;encode()}
+function encode(){
+const v=document.getElementById('input').value.trim();if(!v)return;
+const out=v.split('').map(ch=>{
+const ss=HM[ch]||['?'];const ct=ss.map(s=>SC[s]||'?');const p=pol(ss);const d=disp(p);
+return`<div class="card"><div class="card-head"><span class="char">${ch}</span><span class="glyph">${d}</span></div><div class="info"><span>笔画 ${p.n} · ${p.yy} · ${p.sp}</span><div class="sub">${ss.map(s=>NM[s]||s).join(' → ')}</div><div class="sub">${ct.join(' + ')}</div></div></div>`;
+}).join('');
+document.getElementById('result').innerHTML=out;
+}
+</script>
+</body>
+</html>
