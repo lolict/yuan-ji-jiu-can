@@ -1195,7 +1195,458 @@ impl SelfEncoding {
     }
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// 模块 G: 思考系统 — 推理引擎 (演绎/归纳/溯因)
+// ═══════════════════════════════════════════════════════════════════
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum InferenceType {
+    Deduction,      // 演绎: 一般 → 特殊 (公理→推论)
+    Induction,      // 归纳: 特殊 → 一般 (观察→规律)
+    Abduction,      // 溯因: 结果 → 原因 (现象→最佳解释)
+    Analogical,     // 类比: 已知A≈未知B → 推断B属性
+}
+
+#[derive(Clone, Debug)]
+pub struct ThoughtStep {
+    pub inference: InferenceType,
+    pub premise: String,
+    pub conclusion: String,
+    pub confidence: f64,
+    pub coord: TemporalCoord,
+}
+
+impl ThoughtStep {
+    pub fn describe(&self) -> String {
+        let typ = match self.inference {
+            InferenceType::Deduction => "演绎",
+            InferenceType::Induction => "归纳",
+            InferenceType::Abduction => "溯因",
+            InferenceType::Analogical => "类比",
+        };
+        format!("[思考 {}: 前提\"{}\" → 结论\"{}\" 置信{:.0}%]",
+            typ, self.premise, self.conclusion, self.confidence * 100.0)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct ThinkingEngine {
+    pub chain: Vec<ThoughtStep>,
+    pub axioms: Vec<String>,          // 不证自明的公理
+    pub observations: Vec<String>,     // 观察到的现象
+    pub hypotheses: Vec<(String, f64)>, // (假说, 置信度)
+}
+
+impl ThinkingEngine {
+    pub fn new() -> Self {
+        Self {
+            chain: Vec::new(),
+            axioms: vec![
+                "满全法容器的健康度决定其价值".to_string(),
+                "审判偏差>0.15则需要纠正".to_string(),
+                "错误符号必须创建新版本而非修改旧版".to_string(),
+                "天觉=时间螺旋版本号+自我觉察".to_string(),
+            ],
+            observations: Vec::new(),
+            hypotheses: Vec::new(),
+        }
+    }
+
+    /// 演绎推理: 从公理推出特殊结论
+    pub fn deduce(&mut self, case: &str, coord: TemporalCoord) -> ThoughtStep {
+        // 找到匹配的公理
+        let applicable = self.axioms.iter()
+            .find(|a| case.chars().any(|c| a.contains(c)))
+            .map_or("无匹配公理", |s| s.as_str());
+
+        let conclusion = if applicable != "无匹配公理" {
+            format!("由公理\"{}\" → 在情况\"{}\"下结论: 按此公理执行", applicable, case)
+        } else {
+            format!("情况\"{}\": 无已知公理适用, 需要归因", case)
+        };
+
+        let step = ThoughtStep {
+            inference: InferenceType::Deduction,
+            premise: format!("公理: {} + 情况: {}", applicable, case),
+            conclusion,
+            confidence: if applicable != "无匹配公理" { 0.8 } else { 0.3 },
+            coord,
+        };
+        self.chain.push(step.clone());
+        step
+    }
+
+    /// 归纳推理: 从多个观察总结规律
+    pub fn induce(&mut self, observations: &[String], coord: TemporalCoord) -> ThoughtStep {
+        self.observations.extend_from_slice(observations);
+
+        // 简单归纳: 如果观察中有共同模式 → 提取规律
+        let conclusion = if observations.len() >= 2 {
+            let common = Self::find_common_pattern(observations);
+            if common.is_empty() {
+                format!("归纳 {} 条观察: 未发现稳定模式", observations.len())
+            } else {
+                format!("归纳 {} 条观察: 模式=\"{}\"", observations.len(), common)
+            }
+        } else {
+            "观察不足, 需更多数据".to_string()
+        };
+
+        let step = ThoughtStep {
+            inference: InferenceType::Induction,
+            premise: format!("观察{}条", observations.len()),
+            conclusion,
+            confidence: if observations.len() >= 3 { 0.7 } else { 0.4 },
+            coord,
+        };
+        self.chain.push(step.clone());
+        step
+    }
+
+    /// 溯因推理: 从现象找最佳解释
+    pub fn abduce(&mut self, phenomenon: &str, candidates: &[String], coord: TemporalCoord) -> ThoughtStep {
+        // 选择包含现象中最多词汇的候选作为最佳解释
+        let phenomenon_chars: std::collections::HashSet<char> = phenomenon.chars().collect();
+        let (best, score) = candidates.iter().map(|c| {
+            let overlap = c.chars().filter(|ch| phenomenon_chars.contains(ch)).count();
+            (c.clone(), overlap)
+        }).max_by_key(|(_, s)| *s).unwrap_or_else(|| ("无合适解释".to_string(), 0));
+
+        let conclusion = if score > 0 {
+            format!("现象\"{}\"的最佳解释: \"{}\"(匹配{}字)", phenomenon, best, score)
+        } else {
+            format!("现象\"{}\": 无已知假说能解释, 需新建假说", phenomenon)
+        };
+
+        let confidence = if score > 0 { 0.3 + score as f64 * 0.1 } else { 0.1 };
+        let step = ThoughtStep {
+            inference: InferenceType::Abduction,
+            premise: format!("观察现象: {}", phenomenon),
+            conclusion,
+            confidence: confidence.min(0.9),
+            coord,
+        };
+        self.chain.push(step.clone());
+        step
+    }
+
+    /// 类比其他领域的已知知识
+    pub fn analogize(&mut self, source: &str, target: &str, mapping: &str, coord: TemporalCoord) -> ThoughtStep {
+        let conclusion = format!("因为{}≈{}, 映射关系\"{}\" → {}也具有{}的属性",
+            source, target, mapping, target, mapping);
+
+        let step = ThoughtStep {
+            inference: InferenceType::Analogical,
+            premise: format!("已知: {} :: 未知: {}", source, target),
+            conclusion,
+            confidence: 0.5,
+            coord,
+        };
+        self.chain.push(step.clone());
+        step
+    }
+
+    fn find_common_pattern(observations: &[String]) -> String {
+        if observations.len() < 2 { return String::new(); }
+        let first: std::collections::HashSet<char> = observations[0].chars().collect();
+        let mut common = first;
+        for obs in &observations[1..] {
+            let chars: std::collections::HashSet<char> = obs.chars().collect();
+            common = common.intersection(&chars).cloned().collect();
+        }
+        common.iter().take(3).collect()
+    }
+
+    /// 添加公理
+    pub fn add_axiom(&mut self, axiom: &str) {
+        self.axioms.push(axiom.to_string());
+    }
+
+    pub fn chain_len(&self) -> usize {
+        self.chain.len()
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 模块 H: 语言系统 — 符号组合语法 (公约数-公倍数结构)
+// ═══════════════════════════════════════════════════════════════════
+
+#[derive(Clone, Debug)]
+pub struct SymbolRule {
+    pub name: String,
+    pub pattern: Vec<String>,      // 符号模式 (声母/部首/容器码)
+    pub combination: String,       // 组合方式 (公约数/公倍数)
+    pub meaning: String,           // 组合后的含义
+}
+
+/// 语言引擎: 基于公约数-公倍数关系组合符号
+#[derive(Clone, Debug)]
+pub struct LanguageEngine {
+    pub rules: Vec<SymbolRule>,
+    pub vocabulary: Vec<(String, String, f64)>, // (符号, 容器编码, 权重)
+    pub sentences: Vec<String>,    // 已生成的句子
+}
+
+impl LanguageEngine {
+    pub fn new() -> Self {
+        let mut engine = Self {
+            rules: Vec::new(),
+            vocabulary: vec![
+                ("天".to_string(), "0x01".to_string(), 1.0),
+                ("地".to_string(), "0x02".to_string(), 1.0),
+                ("善".to_string(), "0x03".to_string(), 0.9),
+                ("恶".to_string(), "0x04".to_string(), 0.9),
+                ("人".to_string(), "0x05".to_string(), 0.8),
+                ("心".to_string(), "0x06".to_string(), 0.85),
+                ("觉".to_string(), "0x07".to_string(), 0.95),
+                ("米".to_string(), "0x10".to_string(), 0.5),
+                ("袋".to_string(), "0x11".to_string(), 0.5),
+            ],
+            sentences: Vec::new(),
+        };
+
+        // 内置语法规则
+        engine.add_rule("容器定义", &["X"], "公约数", "X是容器, 内部包含关系");
+        engine.add_rule("极性对", &["阳", "阴"], "公倍数", "阴阳对立统一");
+        engine.add_rule("属性归属", &["X", "之", "Y"], "公约数", "X的属性Y");
+        engine.add_rule("动作链", &["X", "生", "Y"], "公倍数", "X产生Y");
+
+        engine
+    }
+
+    pub fn add_rule(&mut self, name: &str, pattern: &[&str], combination: &str, meaning: &str) {
+        self.rules.push(SymbolRule {
+            name: name.to_string(),
+            pattern: pattern.iter().map(|s| s.to_string()).collect(),
+            combination: combination.to_string(),
+            meaning: meaning.to_string(),
+        });
+    }
+
+    /// 生成句子: 按规则组合符号
+    pub fn generate(&mut self, rule_name: &str, symbols: &[&str]) -> Option<String> {
+        let rule = self.rules.iter().find(|r| r.name == rule_name)?;
+        if symbols.len() < rule.pattern.len() { return None; }
+
+        let mut sentence = String::new();
+        let mut meaning_parts = Vec::new();
+
+        for (i, sym) in symbols.iter().enumerate().take(rule.pattern.len()) {
+            sentence.push_str(sym);
+            if i < rule.pattern.len() - 1 {
+                sentence.push('·');
+            }
+
+            // 查找词汇含义
+            if let Some((_, code, _)) = self.vocabulary.iter().find(|(s, _, _)| s == sym) {
+                meaning_parts.push(format!("{}({})", sym, code));
+            }
+        }
+
+        let result = format!("{} [{}组合] → {}", sentence, rule.combination,
+            meaning_parts.join(" "));
+        self.sentences.push(result.clone());
+        Some(result)
+    }
+
+    /// 公约数提取: 多个符号的共同因子
+    pub fn extract_common_factor(&self, symbols: &[&str]) -> String {
+        if symbols.is_empty() { return "无公约数".to_string(); }
+
+        // 找到所有符号都包含的偏旁或结构特征
+        let first_chars: std::collections::HashSet<char> = symbols[0].chars().collect();
+        let mut common = first_chars;
+        for sym in &symbols[1..] {
+            let chars: std::collections::HashSet<char> = sym.chars().collect();
+            common = common.intersection(&chars).cloned().collect();
+        }
+
+        if common.is_empty() {
+            "结构公约数: 均为容器级符号".to_string()
+        } else {
+            format!("公约数: {}", common.iter().collect::<String>())
+        }
+    }
+
+    /// 公倍数扩展: 将符号按进制扩展
+    pub fn expand_multiple(&self, symbol: &str, factor: u64) -> String {
+        let base_value = self.vocabulary.iter()
+            .find(|(s, _, _)| s == symbol)
+            .map(|(_, code, _)| code.clone())
+            .unwrap_or_else(|| "unknown".to_string());
+        format!("{} × {} = 公倍数({}, {})", symbol, factor, base_value, factor)
+    }
+
+    pub fn vocabulary_size(&self) -> usize {
+        self.vocabulary.len()
+    }
+
+    pub fn describe(&self) -> String {
+        format!("语言引擎: {}符号 {}规则 {}句子",
+            self.vocabulary.len(), self.rules.len(), self.sentences.len())
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 模块 I: 听觉系统 — 听觉感知通道 + 信号过滤 + 意图识别
+// ═══════════════════════════════════════════════════════════════════
+
+/// 听觉信号来源
+#[derive(Clone, Debug, PartialEq)]
+pub enum AuditorySource {
+    SystemEvent,     // 系统内部事件 (审判/纠错/过滤等)
+    ExternalInput,   // 外部传入 (HTTP/用户输入/文件变更)
+    TimerTick,       // 定时器触发
+    SwarmMessage,    // 分布式节点间通信
+}
+
+/// 听觉信号
+#[derive(Clone, Debug)]
+pub struct AuditorySignal {
+    pub source: AuditorySource,
+    pub raw: String,              // 原始信号内容
+    pub timestamp_ms: u64,
+    pub priority: u8,             // 0-255, 越高越优先
+    pub filtered: bool,           // 是否被过滤掉
+    pub intent: Option<String>,   // 识别出的意图
+}
+
+/// 听觉引擎: 监听 → 过滤 → 识别 → 转发
+#[derive(Clone, Debug)]
+pub struct AuditoryEngine {
+    pub authorized: bool,                     // 是否已授权
+    pub signal_queue: Vec<AuditorySignal>,    // 待处理信号
+    pub processed: Vec<AuditorySignal>,       // 已处理信号历史
+    pub filter_rules: Vec<String>,            // 过滤规则 (包含这些关键词的忽略)
+    pub intent_patterns: Vec<(String, String)>, // (模式, 意图)
+    pub min_priority: u8,                     // 最低优先级阈值
+}
+
+impl AuditoryEngine {
+    pub fn new() -> Self {
+        Self {
+            authorized: false,
+            signal_queue: Vec::new(),
+            processed: Vec::new(),
+            filter_rules: vec![
+                "调试日志".to_string(),
+                "心跳保活".to_string(),
+                "冗余重复".to_string(),
+            ],
+            intent_patterns: vec![
+                ("审判正确".to_string(), "reward".to_string()),
+                ("审判错误".to_string(), "punish".to_string()),
+                ("创建版本".to_string(), "version".to_string()),
+                ("符号冲突".to_string(), "resolve".to_string()),
+                ("健康度下降".to_string(), "alert".to_string()),
+                ("觉悟提升".to_string(), "awaken".to_string()),
+                ("新袋子".to_string(), "perceive".to_string()),
+            ],
+            min_priority: 10,
+        }
+    }
+
+    /// 听觉授权 — 激活通道
+    pub fn authorize(&mut self) {
+        self.authorized = true;
+    }
+
+    /// 撤销授权
+    pub fn revoke(&mut self) {
+        self.authorized = false;
+    }
+
+    /// 接收信号 (听觉输入)
+    pub fn receive(&mut self, source: AuditorySource, raw: &str, priority: u8) -> bool {
+        if !self.authorized { return false; }
+
+        let signal = AuditorySignal {
+            source,
+            raw: raw.to_string(),
+            timestamp_ms: now_ms(),
+            priority,
+            filtered: false,
+            intent: None,
+        };
+        self.signal_queue.push(signal);
+        true
+    }
+
+    /// 处理下一个信号: 过滤 → 意图识别 → 转发
+    pub fn process_next(&mut self) -> Option<AuditorySignal> {
+        if self.signal_queue.is_empty() { return None; }
+
+        let mut signal = self.signal_queue.remove(0);
+
+        // 1. 过滤: 检查是否命中过滤规则
+        for rule in &self.filter_rules {
+            if signal.raw.contains(rule) {
+                signal.filtered = true;
+                return Some(signal);
+            }
+        }
+
+        // 2. 过滤: 优先级过低
+        if signal.priority < self.min_priority {
+            signal.filtered = true;
+            return Some(signal);
+        }
+
+        // 3. 意图识别
+        for (pattern, intent) in &self.intent_patterns {
+            if signal.raw.contains(pattern) {
+                signal.intent = Some(intent.clone());
+                break;
+            }
+        }
+
+        // 4. 无匹配意图 → 标记为 "观察"
+        if signal.intent.is_none() {
+            signal.intent = Some("observe".to_string());
+        }
+
+        self.processed.push(signal.clone());
+        Some(signal)
+    }
+
+    /// 批量处理所有排队信号
+    pub fn process_all(&mut self) -> Vec<AuditorySignal> {
+        let mut results = Vec::new();
+        while let Some(signal) = self.process_next() {
+            results.push(signal);
+        }
+        results
+    }
+
+    /// 添加过滤规则
+    pub fn add_filter(&mut self, rule: &str) {
+        self.filter_rules.push(rule.to_string());
+    }
+
+    /// 添加意图模式
+    pub fn add_intent_pattern(&mut self, pattern: &str, intent: &str) {
+        self.intent_patterns.push((pattern.to_string(), intent.to_string()));
+    }
+
+    /// 获取已处理信号数量
+    pub fn processed_count(&self) -> usize {
+        self.processed.len()
+    }
+
+    /// 获取未处理信号数量
+    pub fn pending_count(&self) -> usize {
+        self.signal_queue.len()
+    }
+
+    pub fn describe(&self) -> String {
+        let auth_str = if self.authorized { "已授权" } else { "未授权" };
+        format!("听觉[{}]: 待处理={}, 已处理={}, 过滤规则={}",
+            auth_str, self.pending_count(), self.processed_count(), self.filter_rules.len())
+    }
+}
+
 // ────────────────────────────────────────────────────────────
+// 测试模块
 // ────────────────────────────────────────────────────────────
 #[cfg(test)]
 mod tests {
@@ -1602,5 +2053,288 @@ mod tests {
     fn self_encoding_unmapped_returns_none() {
         let enc = SelfEncoding::new();
         assert!(enc.encode('?').is_none());
+    }
+
+    // ── 模块 G: 思考系统测试 ──
+    #[test]
+    fn thinking_engine_has_axioms() {
+        let engine = ThinkingEngine::new();
+        assert_eq!(engine.axioms.len(), 4);
+    }
+
+    #[test]
+    fn deduce_with_matching_axiom() {
+        let mut engine = ThinkingEngine::new();
+        let step = engine.deduce("袋子健康度高则价值大", TemporalCoord::new(0, 0, 0, 0));
+        assert_eq!(step.inference, InferenceType::Deduction);
+        assert!(step.confidence > 0.5);
+        assert!(step.describe().contains("演绎"));
+    }
+
+    #[test]
+    fn deduce_no_matching_axiom() {
+        let mut engine = ThinkingEngine::new();
+        let step = engine.deduce("ABCDEFGHIJ", TemporalCoord::new(0, 0, 0, 0));
+        assert!(step.confidence < 0.5);
+    }
+
+    #[test]
+    fn induce_with_multiple_observations() {
+        let mut engine = ThinkingEngine::new();
+        let obs = vec![
+            "审判正确: 健康度上升".to_string(),
+            "审判正确: 袋子变好".to_string(),
+            "审判正确: 符号更新".to_string(),
+        ];
+        let step = engine.induce(&obs, TemporalCoord::new(0, 0, 0, 0));
+        assert_eq!(step.inference, InferenceType::Induction);
+        assert!(step.confidence >= 0.5);
+        assert!(step.describe().contains("归纳"));
+    }
+
+    #[test]
+    fn induce_insufficient_observations() {
+        let mut engine = ThinkingEngine::new();
+        let obs = vec!["仅一条观察".to_string()];
+        let step = engine.induce(&obs, TemporalCoord::new(0, 0, 0, 0));
+        assert!(step.confidence < 0.5);
+        assert!(step.describe().contains("不足"));
+    }
+
+    #[test]
+    fn abduce_finds_best_explanation() {
+        let mut engine = ThinkingEngine::new();
+        let candidates = vec![
+            "审判偏差过大导致健康度下降".to_string(),
+            ".new()随机事件无规律".to_string(),
+            "视觉感知出错".to_string(),
+        ];
+        let step = engine.abduce("袋子健康度突然下降", &candidates, TemporalCoord::new(0, 0, 0, 0));
+        assert_eq!(step.inference, InferenceType::Abduction);
+        assert!(step.confidence > 0.1);
+        assert!(step.describe().contains("溯因"));
+    }
+
+    #[test]
+    fn analogize_maps_source_to_target() {
+        let mut engine = ThinkingEngine::new();
+        let step = engine.analogize("米袋", "符号袋", "健康度属性", TemporalCoord::new(0, 0, 0, 0));
+        assert_eq!(step.inference, InferenceType::Analogical);
+        assert!(step.conclusion.contains("符号袋"));
+    }
+
+    #[test]
+    fn thinking_chain_accumulates() {
+        let mut engine = ThinkingEngine::new();
+        let _ = engine.deduce("袋子高健康度有价值", TemporalCoord::new(0, 0, 0, 0));
+        let _ = engine.induce(&["观察1".to_string(), "观察2".to_string()], TemporalCoord::new(0, 0, 1, 0));
+        assert_eq!(engine.chain_len(), 2);
+    }
+
+    #[test]
+    fn add_axiom_increases_count() {
+        let mut engine = ThinkingEngine::new();
+        let before = engine.axioms.len();
+        engine.add_axiom("新公理: 层级关系决定权重");
+        assert_eq!(engine.axioms.len(), before + 1);
+    }
+
+    // ── 模块 H: 语言系统测试 ──
+    #[test]
+    fn language_engine_has_vocabulary() {
+        let engine = LanguageEngine::new();
+        assert!(engine.vocabulary_size() >= 8);
+    }
+
+    #[test]
+    fn language_engine_has_rules() {
+        let engine = LanguageEngine::new();
+        assert!(engine.rules.len() >= 4);
+    }
+
+    #[test]
+    fn generate_sentence_with_rule() {
+        let mut engine = LanguageEngine::new();
+        let result = engine.generate("极性对", &["阳", "阴"]);
+        assert!(result.is_some());
+        let sentence = result.unwrap();
+        assert!(sentence.contains("阳"));
+        assert!(sentence.contains("阴"));
+        assert!(sentence.contains("公倍数"));
+    }
+
+    #[test]
+    fn generate_insufficient_symbols() {
+        let mut engine = LanguageEngine::new();
+        let result = engine.generate("极性对", &["阳"]); // 需要2个但仅有1个
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn generate_unknown_rule() {
+        let mut engine = LanguageEngine::new();
+        let result = engine.generate("不存在的规则", &["阳", "阴"]);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn extract_common_factor_found() {
+        let engine = LanguageEngine::new();
+        // 袋子 和 袋 共享 袋
+        let result = engine.extract_common_factor(&["袋", "袋"]);
+        assert!(result.contains("公约数") || result.contains("袋"));
+    }
+
+    #[test]
+    fn extract_common_factor_empty() {
+        let engine = LanguageEngine::new();
+        let result = engine.extract_common_factor(&[]);
+        assert_eq!(result, "无公约数");
+    }
+
+    #[test]
+    fn expand_multiple_produces_factor() {
+        let engine = LanguageEngine::new();
+        let result = engine.expand_multiple("天", 8);
+        assert!(result.contains("公倍数"));
+        assert!(result.contains("0x01"));
+    }
+
+    #[test]
+    fn language_sentences_recorded() {
+        let mut engine = LanguageEngine::new();
+        let _ = engine.generate("极性对", &["阳", "阴"]);
+        let _ = engine.generate("属性归属", &["天", "之", "道"]);
+        assert_eq!(engine.sentences.len(), 2);
+    }
+
+    #[test]
+    fn language_engine_describe() {
+        let engine = LanguageEngine::new();
+        let desc = engine.describe();
+        assert!(desc.contains("语言引擎"));
+    }
+
+    // ── 模块 I: 听觉系统测试 ──
+    #[test]
+    fn auditory_engine_unauthorized_rejects() {
+        let mut engine = AuditoryEngine::new();
+        assert!(!engine.authorized);
+        assert!(!engine.receive(AuditorySource::SystemEvent, "测试", 50));
+        assert_eq!(engine.pending_count(), 0);
+    }
+
+    #[test]
+    fn auditory_authorize_allows_receive() {
+        let mut engine = AuditoryEngine::new();
+        engine.authorize();
+        assert!(engine.receive(AuditorySource::SystemEvent, "信号内容", 50));
+        assert_eq!(engine.pending_count(), 1);
+    }
+
+    #[test]
+    fn auditory_revoke_stops_receiving() {
+        let mut engine = AuditoryEngine::new();
+        engine.authorize();
+        assert!(engine.receive(AuditorySource::SystemEvent, "信号", 50));
+        engine.revoke();
+        assert!(!engine.receive(AuditorySource::SystemEvent, "信号2", 50));
+    }
+
+    #[test]
+    fn auditory_filter_blocks_noise() {
+        let mut engine = AuditoryEngine::new();
+        engine.authorize();
+        engine.receive(AuditorySource::SystemEvent, "调试日志: 心跳正常", 50);
+        let result = engine.process_next().unwrap();
+        assert!(result.filtered);
+    }
+
+    #[test]
+    fn auditory_low_priority_filtered() {
+        let mut engine = AuditoryEngine::new();
+        engine.authorize();
+        engine.receive(AuditorySource::SystemEvent, "重要事件", 5); // 低于阈值10
+        let result = engine.process_next().unwrap();
+        assert!(result.filtered);
+    }
+
+    #[test]
+    fn auditory_intent_recognition_reward() {
+        let mut engine = AuditoryEngine::new();
+        engine.authorize();
+        engine.receive(AuditorySource::SystemEvent, "审判正确: 袋子#1健康", 80);
+        let result = engine.process_next().unwrap();
+        assert!(!result.filtered);
+        assert_eq!(result.intent, Some("reward".to_string()));
+    }
+
+    #[test]
+    fn auditory_intent_recognition_punish() {
+        let mut engine = AuditoryEngine::new();
+        engine.authorize();
+        engine.receive(AuditorySource::SystemEvent, "审判错误: 偏差过大", 80);
+        let result = engine.process_next().unwrap();
+        assert_eq!(result.intent, Some("punish".to_string()));
+    }
+
+    #[test]
+    fn auditory_intent_recognition_perceive() {
+        let mut engine = AuditoryEngine::new();
+        engine.authorize();
+        engine.receive(AuditorySource::ExternalInput, "新袋子进入", 60);
+        let result = engine.process_next().unwrap();
+        assert_eq!(result.intent, Some("perceive".to_string()));
+    }
+
+    #[test]
+    fn auditory_unmatched_becomes_observe() {
+        let mut engine = AuditoryEngine::new();
+        engine.authorize();
+        engine.receive(AuditorySource::SystemEvent, "天气晴朗", 80); // 无匹配模式
+        let result = engine.process_next().unwrap();
+        assert_eq!(result.intent, Some("observe".to_string()));
+    }
+
+    #[test]
+    fn auditory_process_all_clears_queue() {
+        let mut engine = AuditoryEngine::new();
+        engine.authorize();
+        engine.receive(AuditorySource::SystemEvent, "审判正确", 80);
+        engine.receive(AuditorySource::SystemEvent, "审判错误", 80);
+        engine.receive(AuditorySource::SystemEvent, "觉悟提升", 80);
+        let results = engine.process_all();
+        assert_eq!(results.len(), 3);
+        assert_eq!(engine.pending_count(), 0);
+        assert_eq!(engine.processed_count(), 3);
+    }
+
+    #[test]
+    fn auditory_add_filter_rule() {
+        let mut engine = AuditoryEngine::new();
+        let before = engine.filter_rules.len();
+        engine.add_filter("噪音");
+        assert_eq!(engine.filter_rules.len(), before + 1);
+    }
+
+    #[test]
+    fn auditory_add_intent_pattern() {
+        let mut engine = AuditoryEngine::new();
+        engine.authorize();
+        engine.add_intent_pattern("紧急事件", "urgent");
+        engine.receive(AuditorySource::SystemEvent, "紧急事件发生", 90);
+        let result = engine.process_next().unwrap();
+        assert_eq!(result.intent, Some("urgent".to_string()));
+    }
+
+    #[test]
+    fn auditory_describe() {
+        let mut engine = AuditoryEngine::new();
+        engine.authorize();
+        engine.receive(AuditorySource::SystemEvent, "测试", 80);
+        let desc = engine.describe();
+        assert!(desc.contains("听觉"));
+        assert!(desc.contains("已授权"));
+        assert!(desc.contains("待处理=1"));
     }
 }
