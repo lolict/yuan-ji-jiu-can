@@ -95,6 +95,9 @@
 | 53 | riscv-encoding RV32I 指令编码+字体 | tools/riscv-encoding/ | ✅ 全4种格式(R/I/S/B/U/J)编码器(仅加减·禁用乘除)·decode round-trip 16/16 PASS·BASIC16 16指令表(TrueBox 600×700)·nameID 256+ 嵌入 指令名:机器码 往返PASS·.ttf 2896字节·name table 私有区即指令集编码表·为五架构对齐清单提供RISC-V高精度位字段 |
 | 54 | mcode-stone MCODE Stone · 机器码语义双向编解码+MCOD字体容器 | tools/mcode-stone/ | ✅ 16条RV32I指令语义ID↔机器码双向转换·encode→decode→re-encode恒等验证26/26全通过·MCOD自定义表嵌入TTF(451B模板→468B封装增量)·sweep/verify/pack/extract四合一CLI·(编码仅加减·禁用乘除)·身份落款:刘楚恬和我 |
 | 55 | isa Rust RV32I 编码器/解码器 | hunyuan-rs/src/isa.rs | ✅ 32条指令·encode/decode·CLI:isa-encode·15测试·B/J-type散布局正确·tools/isa-ref/rs1遗漏已发现 |
+| 56 | metaime 冰箱模型 Rust 核心 | hunyuan-rs/src/metaime.rs | ✅ v0.1 24声母×35韵母×5声调编译期内嵌字典·C-ABI FFI·7测试全绿·x86_64+ARM64双架构 |
+| 57 | metaime JNI 桥接层 | hunyuan-rs/src/bin/metaime_jni.rs | ✅ v0.1 jni crate类型安全绑定·8个JNI函数·包名com.manquanca.metaime·JNI_OnLoad入口 |
+| 58 | metaime Android 壳工程 | android/ | ✅ Kotlin InputMethodService薄壳·三架构NDK配置(arm64-v8a/armeabi-v7a/x86_64)·BIND_INPUT_METHOD权限 |
 
 ---
 

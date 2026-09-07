@@ -94,6 +94,9 @@
 | symbol-registry | 统一符号注册中心（35符号·10工具大汇总通过） |
 | boundary-engine | 边界分析引擎（加法拆分乘法·填充率分析通过） |
 | isa-ref | 五架构机器码对齐参考（ARM·x86-64·RISC-V·MIPS32·MTK交叉对齐·位域标注·素材库） |
+| metaime-core | 元输入法 Rust 核心（冰箱模型·编译期内嵌字典·24声母×35韵母×5声调·C-ABI） |
+| metaime-jni | 元输入法 JNI 桥接（jni crate·8函数·com.manquanca.metaime·JNI_OnLoad） |
+| metaime-android | 元输入法 Android 壳（Kotlin InputMethodService·三架构NDK·BIND_INPUT_METHOD） |
 
 ### 第 5 层：引擎内核
 
