@@ -21,7 +21,22 @@
 //   - 极性必须与 SoulState::has_perfect_wife / has_prime_husband 对齐
 //   数学不是定义, 数学是语文组织表的描述工具
 //
-// 语文定义在先, 数学表示在后 — 这是满全法的进制哲学
+// 语文定义在先, 数学表示后置 — 这是满全法的进制哲学
+//
+// 六边形蜂窝坐标:
+//   6 位容器编码拆分为两组 3 位:
+//     偶数位 (bit0,2,4) → y 坐标
+//     奇数位 (bit1,3,5) → x 坐标
+//   编码值本身 = 容器码 (= 距离码 = 线性量化值)
+//   (x,y) 坐标  = 容器码的三维化身 (蜂窝网眼中的位置)
+//
+// 边数码系统 (每个容器自带):
+//   边数码: 6 (妻子) 或 7 (丈夫)
+//   长度码 / 粗细码 / 色码 / 形状调节码 → 容器几何属性
+//
+// 光标系操作:
+//   选中 / 取消 / 范畴限度框 / 起码 / 终码
+//
 // ══════════════════════════════════════════════════════════════════
 
 use crate::mirror::Sovereignty;
@@ -1083,5 +1098,203 @@ mod tests {
         assert_eq!(Container::Rong.group_index(), 1);  // 操作族
         assert_eq!(Container::Bang.group_index(), 2);  // 声母
         assert_eq!(Container::Ma.group_index(), 3);    // 韵母
+    }
+}
+
+// ────────────────────────────────────────────────────────────
+// 六边形蜂窝坐标模块
+// ────────────────────────────────────────────────────────────
+//
+// 核心公式: 6 位容器码 → (x, y) 蜂窝坐标
+//   偶数位 (bit0, bit2, bit4) → y 坐标  (妻子轴 · 容纳方向)
+//   奇数位 (bit1, bit3, bit5) → x 坐标  (丈夫轴 · 独立方向)
+//
+// 容器码 = 距离码 = 线性量化值 · 其三维化身 = (x, y) 坐标
+// 蜂窝网格 8×8 = 64 容器 · 与 64 容器族一一对应
+//
+// 用户定义:
+//   容器码是进制不是编码 · 容器名是三维形容名 · 夫妻码是激活标记
+//
+
+/// 六边形蜂窝坐标
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct HexCoord {
+    pub x: u8,  // 奇数位 (丈夫轴 · 独立)
+    pub y: u8,  // 偶数位 (妻子轴 · 容纳)
+}
+
+impl HexCoord {
+    /// 从 6 位容器编码计算蜂窝坐标
+    pub fn from_container_code(code: u8) -> Self {
+        // 偶数位: bit0, bit2, bit4 → y
+        let y = ((code >> 0) & 1) << 0 | ((code >> 2) & 1) << 1 | ((code >> 4) & 1) << 2;
+        // 奇数位: bit1, bit3, bit5 → x
+        let x = ((code >> 1) & 1) << 0 | ((code >> 3) & 1) << 1 | ((code >> 5) & 1) << 2;
+        HexCoord { x, y }
+    }
+
+    /// 编码 → (x, y) · 比特自身拆分 · 不是乘法
+    pub fn to_container_code(&self) -> u8 {
+        let mut code: u8 = 0;
+        code |= (self.y & 1) << 0;
+        code |= ((self.y >> 1) & 1) << 2;
+        code |= ((self.y >> 2) & 1) << 4;
+        code |= (self.x & 1) << 1;
+        code |= ((self.x >> 1) & 1) << 3;
+        code |= ((self.x >> 2) & 1) << 5;
+        code
+    }
+
+    /// 两容器码之间的距离 · 外积距离 = 曼哈顿距离在蜂窝坐标上的投影
+    pub fn distance(a: u8, b: u8) -> u8 {
+        let ca = HexCoord::from_container_code(a);
+        let cb = HexCoord::from_container_code(b);
+        // 菱形坐标曼哈顿
+        let dx = if ca.x > cb.x { ca.x - cb.x } else { cb.x - ca.x };
+        let dy = if ca.y > cb.y { ca.y - cb.y } else { cb.y - ca.y };
+        // 蜂窝距离 = max(dx, dy) 菱形坐标系下的圆实际上是菱形
+        if dx > dy { dx } else { dy }
+    }
+
+    /// 六个邻居坐标 · 六边形有六条边 · 因此六个邻居
+    pub fn neighbors(&self) -> [HexCoord; 6] {
+        [
+            HexCoord { x: self.x.wrapping_add(1), y: self.y },
+            HexCoord { x: self.x.wrapping_sub(1), y: self.y },
+            HexCoord { x: self.x, y: self.y.wrapping_add(1) },
+            HexCoord { x: self.x, y: self.y.wrapping_sub(1) },
+            HexCoord { x: self.x.wrapping_add(1), y: self.y.wrapping_sub(1) },
+            HexCoord { x: self.x.wrapping_sub(1), y: self.y.wrapping_add(1) },
+        ]
+    }
+}
+
+// ────────────────────────────────────────────────────────────
+// 边数码系统
+// ────────────────────────────────────────────────────────────
+
+/// 边数码: 边的数量 (6=妻子六边形 · 7=丈夫七边形)
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EdgeCode {
+    Six = 6,   // 妻子 · 蜂巢单元
+    Seven = 7, // 丈夫 · 蜂巢 + 中心
+}
+
+impl EdgeCode {
+    /// 从夫妻极性获取边数
+    pub fn from_polarity(has_husband: bool, has_wife: bool) -> Self {
+        match (has_husband, has_wife) {
+            (true, true) => EdgeCode::Seven,   // 夫妻完整 = 七边形
+            (true, false) => EdgeCode::Seven,  // 只有丈夫 = 七边形(带中心)
+            (false, true) => EdgeCode::Six,    // 只有妻子 = 六边形
+            (false, false) => EdgeCode::Six,   // 独立 = 六边形(杯)
+        }
+    }
+
+    /// 等边长 · 每条边是否等长
+    pub fn is_equilateral(&self) -> bool {
+        match self {
+            EdgeCode::Six => true,   // 正六边形等边
+            EdgeCode::Seven => false, // 七边形不等边(含中心)
+        }
+    }
+}
+
+/// 边数码属性 · 容器的视觉几何参数
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct EdgeAttrs {
+    pub edge_count: EdgeCode,   // 边数量
+    pub length: u8,             // 边数长度码 (像素级)
+    pub thickness: u8,          // 边数粗细码 (线宽)
+    pub hue: u8,                // 边数色码 (色调 0-255)
+    pub deform: u8,             // 边数形状调节码 (形变强度)
+}
+
+impl Default for EdgeAttrs {
+    fn default() -> Self {
+        EdgeAttrs {
+            edge_count: EdgeCode::Six,
+            length: 30,
+            thickness: 2,
+            hue: 120,
+            deform: 0,
+        }
+    }
+}
+
+// ────────────────────────────────────────────────────────────
+// 光标系
+// ────────────────────────────────────────────────────────────
+
+/// 光标操作码
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CursorOp {
+    Select,       // 光标选中
+    Cancel,       // 光标取消
+    ScopeBox,     // 光标控制范畴限度框
+    ScopeMin,     // 光标控制范畴限度起码
+    ScopeEnd,     // 光标控制范畴限度终码
+}
+
+// ────────────────────────────────────────────────────────────
+// 测试: 六边形蜂窝
+// ────────────────────────────────────────────────────────────
+
+#[cfg(test)]
+mod tests_hex_grid {
+    use super::*;
+
+    #[test]
+    fn hex_coord_from_code_42() {
+        // 42 = 0b101010 → y=bit(0,2,4)=010=2 · x=bit(1,3,5)=101=5
+        let c = HexCoord::from_container_code(42);
+        assert_eq!(c.x, 5);
+        assert_eq!(c.y, 2);
+    }
+
+    #[test]
+    fn hex_coord_roundtrip() {
+        // 编码往返一致
+        for code in 0u8..64 {
+            let c = HexCoord::from_container_code(code);
+            let restored = c.to_container_code();
+            assert_eq!(restored, code, "code {} → ({},{}) → {}", code, c.x, c.y, restored);
+        }
+    }
+
+    #[test]
+    fn hex_distance_zero() {
+        // 自身距离为零
+        for code in 0u8..64 {
+            assert_eq!(HexCoord::distance(code, code), 0);
+        }
+    }
+
+    #[test]
+    fn hex_neighbors_have_distance_one() {
+        // 邻居距离为 1
+        let origin = HexCoord::from_container_code(0);
+        let neighbors = origin.neighbors();
+        for n in neighbors.iter() {
+            if n.x < 8 && n.y < 8 {
+                let dist = HexCoord::distance(0, n.to_container_code());
+                assert_eq!(dist, 1, "neighbor ({},{}) should be distance 1 but was {}", n.x, n.y, dist);
+            }
+        }
+    }
+
+    #[test]
+    fn edge_code_from_polarity() {
+        assert_eq!(EdgeCode::from_polarity(true, true), EdgeCode::Seven);
+        assert_eq!(EdgeCode::from_polarity(true, false), EdgeCode::Seven);
+        assert_eq!(EdgeCode::from_polarity(false, true), EdgeCode::Six);
+        assert_eq!(EdgeCode::from_polarity(false, false), EdgeCode::Six);
+    }
+
+    #[test]
+    fn edge_attrs_default_six() {
+        let a = EdgeAttrs::default();
+        assert_eq!(a.edge_count, EdgeCode::Six);
+        assert!(a.is_equilateral());
     }
 }

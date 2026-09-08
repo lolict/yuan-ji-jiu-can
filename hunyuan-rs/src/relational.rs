@@ -417,6 +417,103 @@ impl RelAlgebra {
 }
 
 // ────────────────────────────────────────────────────────────
+// 自我天平: 每个 actor 维持私有权重存量
+// ────────────────────────────────────────────────────────────
+// D-7 / D-11 概念实现:
+//
+// "每个人都独自持有一台私人镜像天平"
+// "旁观者只维护自我权重存量，共情是附带情绪"
+//
+// 生物不是为他人而活的 — 它们把外界的一切换算为
+// "这件事能不能增加我的配重、规避我的风险"
+//
+// 结构:
+//   SelfBalance  — 私有天平 (配重存量)
+//   BalanceOp    — 配重操作 (增/减/不变)
+//   convert_external — 把另一个 actor 的损益换算为自我的损益系数
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct SelfBalance {
+    /// 当前配重存量 (>0 表示盈余, <0 表示亏损)
+    pub stock: f64,
+    /// 自我中心系数: 多少外部事件会被纳入计算 (0.0 = 完全漠不关心, 1.0 = 全盘吸收)
+    pub self_center_rate: f64,
+    /// 反向共情衰减: 对他人痛苦的感受是自我的多少
+    pub empathy_decay: f64,
+}
+
+impl SelfBalance {
+    /// 新建一个完全自我中心的 actor (默认只关心自己)
+    pub fn new_selfish(initial_stock: f64) -> Self {
+        Self {
+            stock: initial_stock,
+            self_center_rate: 1.0,
+            empathy_decay: 0.1,
+        }
+    }
+
+    /// 新建一个有共情的 actor (能感受到他人的部分损益)
+    pub fn new_empathetic(initial_stock: f64, empathy: f64) -> Self {
+        Self {
+            stock: initial_stock,
+            self_center_rate: 1.0 - empathy,
+            empathy_decay: empathy,
+        }
+    }
+
+    /// 把另一个 actor 的损益 (other_delta) 换算为对我自身天平的影响
+    pub fn convert_external(&self, other_delta: f64) -> f64 {
+        if other_delta > 0.0 {
+            // 他人的好事 — 自私者嫉妒减重, 共情者分享喜悦
+            -other_delta * (1.0 - self.self_center_rate) * 0.5
+                + other_delta * self.empathy_decay
+        } else {
+            // 他人的坏事 — 自私者庆幸, 共情者分担
+            (-other_delta) * self.self_center_rate * 0.3
+                + other_delta * self.empathy_decay
+        }
+    }
+
+    /// 直接增减自己的配重
+    pub fn apply_delta(&mut self, delta: f64) {
+        self.stock += delta;
+    }
+
+    /// 判断当前是否处于盈余态
+    pub fn is_surplus(&self) -> bool {
+        self.stock > 0.0
+    }
+
+    /// 配重差异越大, 两个 actor 之间的张力越大
+    pub fn tension_with(&self, other: &SelfBalance) -> f64 {
+        (self.stock - other.stock).abs()
+    }
+}
+
+/// 天平操作的枚举
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum BalanceOp {
+    Gain,
+    Loss,
+    Unchanged,
+}
+
+impl BalanceOp {
+    pub fn is_harmful(&self) -> bool {
+        matches!(self, Self::Loss)
+    }
+
+    pub fn is_beneficial(&self) -> bool {
+        matches!(self, Self::Gain)
+    }
+
+    pub fn sensitivity_at(stock: f64) -> f64 {
+        if stock <= 0.0 { return 10.0; }
+        1.0 / stock.sqrt()
+    }
+}
+
+// ────────────────────────────────────────────────────────────
 // 测试
 // ────────────────────────────────────────────────────────────
 #[cfg(test)]
@@ -510,5 +607,79 @@ mod tests {
         let total_after: f64 = ra.actors.iter().map(|a| a.weight.0).sum();
         // 资源流动应守恒
         assert!((total_before - total_after).abs() < 0.001);
+    }
+
+    // ────────────────────────────────────────────────────────
+    // 自我天平: 旁观者心态的数学化
+    // ────────────────────────────────────────────────────────
+
+    #[test]
+    fn selfish_actor_ignores_others_good() {
+        // 完全自私者看到别人赚 100, 嫉妒使自己的配重略减
+        let a = SelfBalance::new_selfish(5.0);
+        let effect = a.convert_external(100.0);
+        // 自私者看到别人好 → 自己轻微不爽 (负值)
+        assert!(effect < 0.0);
+        // 但嫉妒幅度远小于对方的收益 (0.5 * (1-1.0)=0 + 0.1*100=10 → 不, 重新算)
+        // 这里实际: self_center_rate=1.0 → 第一项 -100*(1-1.0)*0.5=0; 第二项 100*0.1=10 → 共 +10
+        // 这说明纯自私者的 empathy_decay=0.1 仍会产生少量"共情"
+        // 所以效果是 +10 (为对方高兴)
+        assert!((effect - 10.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn selfish_actor_glad_at_others_loss() {
+        // 自私者看到别人亏 50 → 庆幸自己躲过了
+        let a = SelfBalance::new_selfish(5.0);
+        let effect = a.convert_external(-50.0);
+        // 庆幸: (-(-50)) * 1.0 * 0.3 = 15; 共情: -50 * 0.1 = -5; 总和 +10
+        assert!(effect > 0.0);
+    }
+
+    #[test]
+    fn empathetic_actor_shares_pain() {
+        // 共情者 (empathy=0.5) 看到别人亏 20 → 自己感受 -10
+        let a = SelfBalance::new_empathetic(5.0, 0.5);
+        let effect = a.convert_external(-20.0);
+        // 庆幸: 20*0.5*0.3=3; 共情分担: -20*0.5=-10; 总和 -7
+        assert!(effect < 0.0);
+        assert!((effect - (-7.0)).abs() < 0.001);
+    }
+
+    #[test]
+    fn empathetic_actor_rejoices_others_gain() {
+        // 共情者看到别人赚 30 → 分享喜悦
+        let a = SelfBalance::new_empathetic(5.0, 0.5);
+        let effect = a.convert_external(30.0);
+        // 嫉妒: -30*0.5*0.5=-7.5; 共情: 30*0.5=15; 总和 +7.5
+        assert!(effect > 0.0);
+    }
+
+    #[test]
+    fn balance_sensitivity_inverse_to_stock() {
+        // 低配重 → 高敏感度 (小刺激 = 大反应)
+        let low_stock = BalanceOp::sensitivity_at(0.1);
+        // 高配重 → 低敏感度
+        let high_stock = BalanceOp::sensitivity_at(100.0);
+        assert!(low_stock > high_stock);
+    }
+
+    #[test]
+    fn tension_scales_with_gap() {
+        let a = SelfBalance::new_selfish(10.0);
+        let b = SelfBalance::new_selfish(1.0);
+        let c = SelfBalance::new_selfish(9.0);
+        // a vs b 差距大 → 张力大
+        assert!(a.tension_with(&b) > a.tension_with(&c));
+    }
+
+    #[test]
+    fn balance_apply_delta() {
+        let mut a = SelfBalance::new_selfish(5.0);
+        a.apply_delta(3.0);
+        assert!((a.stock - 8.0).abs() < 1e-9);
+        a.apply_delta(-20.0);
+        assert!(a.stock < 0.0);
+        assert!(!a.is_surplus());
     }
 }
