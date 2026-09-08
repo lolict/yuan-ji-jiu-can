@@ -288,4 +288,191 @@ const ALIGN_TABLE*: seq[AlignedEntry] = @[
     bitLen: 32,
     description: "空操作（延时槽填充）"
   ),
+
+  # ── 移位立即数 ──
+  AlignedEntry(
+    semId: "SLLI",
+    asm: @[(isaRISCV32, "slli rd, rs1, shamt"),
+           (isaARM64,   "lsl Rd, Rn, #shamt"),
+           (isaX86_64,  "shl r/m64, imm8"),
+           (isaMIPS32,  "sll rd, rt, shamt")],
+    bitLen: 32,
+    description: "逻辑左移立即数"
+  ),
+  AlignedEntry(
+    semId: "SRLI",
+    asm: @[(isaRISCV32, "srli rd, rs1, shamt"),
+           (isaARM64,   "lsr Rd, Rn, #shamt"),
+           (isaX86_64,  "shr r/m64, imm8"),
+           (isaMIPS32,  "srl rd, rt, shamt")],
+    bitLen: 32,
+    description: "逻辑右移立即数"
+  ),
+  AlignedEntry(
+    semId: "SRAI",
+    asm: @[(isaRISCV32, "srai rd, rs1, shamt"),
+           (isaARM64,   "asr Rd, Rn, #shamt"),
+           (isaX86_64,  "sar r/m64, imm8"),
+           (isaMIPS32,  "sra rd, rt, shamt")],
+    bitLen: 32,
+    description: "算术右移立即数（保留符号位）"
+  ),
+
+  # ── 立即数 ALU ──
+  AlignedEntry(
+    semId: "ANDI",
+    asm: @[(isaRISCV32, "andi rd, rs1, imm"),
+           (isaARM64,   "and Rd, Rn, #imm"),
+           (isaX86_64,  "and r/m64, imm"),
+           (isaMIPS32,  "andi rt, rs, imm")],
+    bitLen: 32,
+    description: "立即数按位与"
+  ),
+  AlignedEntry(
+    semId: "ORI",
+    asm: @[(isaRISCV32, "ori rd, rs1, imm"),
+           (isaARM64,   "orr Rd, Rn, #imm"),
+           (isaX86_64,  "or r/m64, imm"),
+           (isaMIPS32,  "ori rt, rs, imm")],
+    bitLen: 32,
+    description: "立即数按位或"
+  ),
+  AlignedEntry(
+    semId: "XORI",
+    asm: @[(isaRISCV32, "xori rd, rs1, imm"),
+           (isaARM64,   "eor Rd, Rn, #imm"),
+           (isaX86_64,  "xor r/m64, imm"),
+           (isaMIPS32,  "xori rt, rs, imm")],
+    bitLen: 32,
+    description: "立即数按位异或"
+  ),
+  AlignedEntry(
+    semId: "SLTI",
+    asm: @[(isaRISCV32, "slti rd, rs1, imm"),
+           (isaMIPS32,  "slti rt, rs, imm")],
+    bitLen: 32,
+    description: "有符号小于立即数则置位"
+  ),
+
+  # ── 比较扩展 ──
+  AlignedEntry(
+    semId: "SLTU",
+    asm: @[(isaRISCV32, "sltu rd, rs1, rs2"),
+           (isaMIPS32,  "sltu rd, rs, rt")],
+    bitLen: 32,
+    description: "无符号比较置位 (Rd = rs1 < rs2 ? 1 : 0)"
+  ),
+  AlignedEntry(
+    semId: "BGE",
+    asm: @[(isaRISCV32, "bge rs1, rs2, label"),
+           (isaARM64,   "b.ge label"),
+           (isaX86_64,  "jge label"),
+           (isaMIPS32,  "bgezal rs, label")],
+    bitLen: 32,
+    description: "大于等于则跳转"
+  ),
+
+  # ── 原子操作 ──
+  AlignedEntry(
+    semId: "LR",
+    asm: @[(isaRISCV32, "lr.w rd, (rs1)"),
+           (isaARM64,   "ldxr Rd, [Rn]"),
+           (isaX86_64,  "mov r64, [r/m64]  ; lock prefix"),
+           (isaMIPS32,  "ll rt, offset(base)")],
+    bitLen: 32,
+    description: "加载保留（原子开始）"
+  ),
+  AlignedEntry(
+    semId: "SC",
+    asm: @[(isaRISCV32, "sc.w rd, rs2, (rs1)"),
+           (isaARM64,   "stxr Rs, Rd, [Rn]"),
+           (isaX86_64,  "lock cmpxchg [r/m64], r64"),
+           (isaMIPS32,  "sc rt, offset(base)")],
+    bitLen: 32,
+    description: "条件存储（原子提交）"
+  ),
+  AlignedEntry(
+    semId: "AMOSWAP",
+    asm: @[(isaRISCV32, "amoswap.w rd, rs2, (rs1)"),
+           (isaARM64,   "swp Rd, Rm, [Rn]"),
+           (isaX86_64,  "xchg [r/m64], r64"),
+           (isaMIPS32,  "无原生，ll+sc 模拟")],
+    bitLen: 32,
+    description: "原子交换"
+  ),
+  AlignedEntry(
+    semId: "AMOADD",
+    asm: @[(isaRISCV32, "amoadd.w rd, rs2, (rs1)"),
+           (isaARM64,   "stadd Rd, [Rn]"),
+           (isaMIPS32,  "无原生，ll+sc 模拟")],
+    bitLen: 32,
+    description: "原子加法"
+  ),
+
+  # ── 内存屏障 ──
+  AlignedEntry(
+    semId: "FENCE",
+    asm: @[(isaRISCV32, "fence rw, rw"),
+           (isaARM64,   "dmb sy"),
+           (isaX86_64,  "mfence"),
+           (isaMIPS32,  "sync")],
+    bitLen: 32,
+    description: "内存屏障（保证访存顺序）"
+  ),
+
+  # ── 系统指令 ──
+  AlignedEntry(
+    semId: "ECALL",
+    asm: @[(isaRISCV32, "ecall"),
+           (isaARM64,   "svc #0"),
+           (isaX86_64,  "syscall"),
+           (isaMIPS32,  "syscall")],
+    bitLen: 32,
+    description: "系统调用（进入内核态）"
+  ),
+  AlignedEntry(
+    semId: "EBREAK",
+    asm: @[(isaRISCV32, "ebreak"),
+           (isaARM64,   "brk #0"),
+           (isaX86_64,  "int3 / int 0x80"),
+           (isaMIPS32,  "break")],
+    bitLen: 32,
+    description: "断点/调试陷入"
+  ),
+  AlignedEntry(
+    semId: "MRET_SRET",
+    asm: @[(isaRISCV32, "sret / mret"),
+           (isaARM64,   "eret"),
+           (isaX86_64,  "sysexit / sysret"),
+           (isaMIPS32,  "eret")],
+    bitLen: 32,
+    description: "返回上级特权态"
+  ),
+
+  # ── 扩展算术 ──
+  AlignedEntry(
+    semId: "REM",
+    asm: @[(isaRISCV32, "rem rd, rs1, rs2"),
+           (isaARM64,   "sdiv + msub"),
+           (isaX86_64,  "idiv + remainder in rdx"),
+           (isaMIPS32,  "div rs, rt; mfhi rd")],
+    bitLen: 32,
+    description: "取余运算"
+  ),
+  AlignedEntry(
+    semId: "AUIPC",
+    asm: @[(isaRISCV32, "auipc rd, imm20")],
+    bitLen: 32,
+    description: "PC 加立即数（RISC-V 特有高位地址构造）"
+  ),
+
+  # ── 条件移动/CSEL ──
+  AlignedEntry(
+    semId: "CMOV",
+    asm: @[(isaARM64,   "csel Rd, Rn, Rm, cond"),
+           (isaX86_64,  "cmovcc r64, r/m64"),
+           (isaMIPS32,  "movz rd, rs, rt; movn")],
+    bitLen: 32,
+    description: "条件选择（条件成立才赋值）"
+  ),
 ]
