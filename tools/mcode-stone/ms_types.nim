@@ -39,12 +39,12 @@ type
   EncResult* = object
     case ok*: bool
     of true: encoded*: EncodedInsn
-    of false: error*: CodecError; msg*: string
+    of false: error*: CodecError, msg*: string
 
   DecResult* = object
     case ok*: bool
     of true: decoded*: DecodedInsn
-    of false: error*: CodecError; msg*: string
+    of false: error*: CodecError, msg*: string
 
 # ── 辅助 ──────────────────────────────────────────────
 

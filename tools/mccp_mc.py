@@ -461,11 +461,33 @@ def main():
     
     cmd = sys.argv[1]
     
+    # Map common mnemonics to semantic IDs
+    mnemonic_to_semantic = {
+        "LOAD": "LOAD", "LW": "LOAD", "LD": "LOAD", "LB": "LOAD", "LBU": "LOAD", "LH": "LOAD",
+        "STORE": "STORE", "SW": "STORE", "SD": "STORE", "SB": "STORE", "SH": "STORE",
+        "ADD": "ADD", "ADDU": "ADD",
+        "ADDI": "ADDI", "SUBI": "SUB",
+        "SUB": "SUB", "SUBU": "SUB",
+        "AND": "AND", "OR": "OR", "XOR": "XOR",
+        "JMP": "JMP", "J": "JMP",
+        "BNE": "BNE", "BEQ": "BNE",
+        "CALL": "CALL", "JAL": "CALL", "BL": "CALL", "JALR": "CALL",
+        "RET": "RET",
+        "MOV": "MOV",
+        "MOVI": "MOVI",
+        "CMP": "CMP",
+        "SLL": "SLL", "SRL": "SRL", "SRA": "SRA",
+        "SLT": "SLT",
+        "NOP": "NOP",
+        "LUI": "MOVI",
+    }
+    
     if cmd == "encode":
         if len(sys.argv) < 4:
-            print("Usage: encode <semantic_id> <isa> [operands...]")
+            print("Usage: encode <semantic_id/mnemonic> <isa> [operands...]")
             sys.exit(1)
-        sem_id = sys.argv[2]
+        raw_sem = sys.argv[2].upper()
+        sem_id = mnemonic_to_semantic.get(raw_sem, raw_sem)
         isa = sys.argv[3]
         operands = sys.argv[4:]
         

@@ -26,9 +26,11 @@ def _load_json(relative_path: str) -> dict:
         return json.load(f)
 
 
-def _parse_operand(op: str, arch_registers: dict):
+def _parse_operand(op, arch_registers: dict):
     """解析单个操作数：返回 ('reg', 编号) 或 ('imm', 整数值)。"""
-    name = op.strip()
+    if isinstance(op, int):
+        return ("imm", op)
+    name = str(op).strip()
     # 尝试纯数字立即数
     try:
         return ("imm", int(name, 0))
@@ -96,9 +98,15 @@ def _encode_rv32i(semantic_id, operands, mappings, registers):
         code |= (rs2 & 0x1F) << 20
         code |= (funct7_bits & 0x7F) << 25
     elif fmt == "I":
-        rd = _parse_operand(operands[0], registers)[1]
-        rs1 = _parse_operand(operands[1], registers)[1]
-        imm = _parse_operand(operands[2], registers)[1]
+        is_load = semantic_id.startswith("L")  # LW/LH/LB/LBU/LHU: rd, imm, rs1
+        if is_load:
+            rd  = _parse_operand(operands[0], registers)[1]
+            imm = _parse_operand(operands[1], registers)[1]
+            rs1 = _parse_operand(operands[2], registers)[1]
+        else:
+            rd  = _parse_operand(operands[0], registers)[1]
+            rs1 = _parse_operand(operands[1], registers)[1]
+            imm = _parse_operand(operands[2], registers)[1]
         code |= (rd & 0x1F) << 7
         code |= (rs1 & 0x1F) << 15
         code |= (imm & 0xFFF) << 20

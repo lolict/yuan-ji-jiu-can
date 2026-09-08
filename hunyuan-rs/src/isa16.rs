@@ -81,8 +81,7 @@ impl Insn16 {
         assert!(rd >= 8 && rd <= 15 && rs2 >= 8 && rs2 <= 15);
         let rd3 = rd & 0x7;
         let rs2_3 = rs2 & 0x7;
-        Insn16((0b1001 << 13) | (00u16 << 10) | ((rd3 as u16) << 7)
-             | (0b0110011u16 << 2) | 0x01)
+        Insn16(((rd3 as u16) << 7) | ((rs2_3 as u16) << 2) | 0x01)
     }
 
     /// c.xor rd', rs2'
@@ -145,9 +144,7 @@ impl Insn16 {
         let imm3   = (nzuimm >> 3) & 0x1;
         let imm2   = (nzuimm >> 2) & 0x1;
         let rd3 = rd & 0x7;
-        Insn16((0b000u16 << 13)
-             | (imm5_4 << 11) | (imm9_6 << 7) | (imm3 << 6)
-             | (imm2 << 5) | ((rd3 as u16) << 2) | 0x00)
+                Insn16((imm5_4 << 11) | (imm9_6 << 7) | (imm3 << 6) | (imm2 << 5) | ((rd3 as u16) << 2))
     }
 
     /// c.lwsp rd, uimm(x2)  rd ≠ 0, uimm[7:2|7:6]
@@ -157,8 +154,8 @@ impl Insn16 {
         let imm5    = (uimm >> 5) & 0x1;
         let imm4_2  = (uimm >> 2) & 0x7;
         let imm7_6  = (uimm >> 6) & 0x3;
-        Insn16((0b010u16 << 13) | (uimm5 << 12) | ((rd as u16) << 7)
-             | (imm4_2 << 4) | (imm7_6 << 2) | 0x02)
+        Insn16((0b010u16 << 13) | ((imm5 as u16) << 12) | ((rd as u16) << 7)
+             | ((imm4_2 as u16) << 4) | ((imm7_6 as u16) << 2) | 0x02)
     }
 
     /// c.swsp rs2, uimm(x2)
@@ -166,7 +163,7 @@ impl Insn16 {
         assert!(rs2 <= 31);
         let imm5_2 = (uimm >> 2) & 0x1F;
         let imm7_6 = (uimm >> 6) & 0x3;
-        Insn16((0b110u16 << 13) | (imm5_2 << 7) | ((rs2 as u16) << 2) | 0x02)
+        Insn16((0b110u16 << 13) | ((imm5_2 as u16) << 7) | ((rs2 as u16) << 2) | 0x02)
     }
 
     /// c.jr rs1 (rs1 ≠ 0)
@@ -471,7 +468,7 @@ mod tests {
         // c.mv x1, x2
         let i = Insn16::mv(1, 2);
         let d = i.decode();
-        assert_eq!(d, "c.mv x1, x2")//;
+        assert_eq!(d, "c.mv x1, x2");
 
         // c.add x1, x2  (bit 5 = 1)
         let i2 = Insn16::add(1, 2);
