@@ -195,10 +195,10 @@ proc encodeRV32I*(semId: string; op: Operands): EncResult =
   ## 将语义 ID + 操作数编码为 RV32I 机器码（4字节小端序）
   initLuts()
   let sid = semId.toUpperAscii()
-  if sid notin encodeLuts:
+  if sid notin encodeLUT:
     return EncResult(ok: false, error: ceUnknownSemId, msg: "未知语义 ID: " & semId)
 
-  let def = encodeLuts[sid]
+  let def = encodeLUT[sid]
   var dw: uint32 = 0
 
   case def.fmt
@@ -308,11 +308,9 @@ proc decodeRV32I*(code: seq[uint8]): DecResult =
   of 0b1101111: # JAL
     op.imm = decodeJImm(dw)
   of 0b0110111, 0b0010111: # LUI / AUIPC
-    op.imm = int32(dw and 0xFFFFF000)
+    op.imm = int32(dw and 0xFFFFF000'u32)
   of 0b1110011: # ECALL / EBREAK
     discard
-  of 0b1101111:
-    op.imm = decodeJImm(dw)
   else:
     discard
 

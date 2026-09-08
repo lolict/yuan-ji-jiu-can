@@ -206,9 +206,11 @@ def encode_mips(inst, ops):
 # 内置 ARM64 编码 (与 verify.py 中标准值一致)
 ARM64_TABLE = {
     "ADD": 0x8B030041, "SUB": 0xCB030041, "AND": 0x8A030041,
-    "OR":  0xAA030041, "XOR": 0xCA030041, "ADDI":0x91001441,
-    "LW":  0xB9400041, "SW":  0xB9000041, "BEQ": 0x54000040,
-    "JAL": 0x14000000, "LUI": 0xD2800000,
+    "OR":  0xAA030041, "XOR": 0xCA030041, "SLT": 0x91001421,  # CMP 替代
+    "SLTU":0x91001421, "SLL": 0x93407C41, "SRL": 0x93407C81,
+    "SRA": 0x93407CC1, "ADDI":0x91001441, "LW":  0xB9400041,
+    "SW":  0xB9000041, "BEQ": 0x54000040, "JAL": 0x14000000,
+    "LUI": 0xD2800000,
 }
 
 # 内置 MIPS32 编码
@@ -221,10 +223,24 @@ MIPS_TABLE = {
     "LUI": 0x3C011000,
 }
 
-# x86-64 编码
+# x86-64 编码 (opcode + modrm + imm — 参考 verify.py 中标准值)
 X64_TABLE = {
-    "ADD": 0xCA01, "ADDI":0x4883C005, "JAL": 0xE8000000,
-    "BEQ":  0x7400, "LUI":  0x48B80000,
+    "ADD":  0xCA01,   # add rcx, rdx      (01 /r)
+    "SUB":  0xCA29,   # sub rcx, rdx      (29 /r)
+    "AND":  0xCA21,   # and rcx, rdx      (21 /r)
+    "OR":   0xCA09,   # or rcx, rdx       (09 /r)
+    "XOR":  0xCA31,   # xor rcx, rdx      (31 /r)
+    "SLT":  0xCA39,   # cmp rcx, rdx      (39 /r — CMP 替代 SLT)
+    "SLTU": 0xCA39,   # cmp rcx, rdx (x86 不支持无符号区分, 同 SLT 共用)
+    "ADDI": 0x4883C005, # add rax, 5      (48 83 C0 05)
+    "JAL":  0xE8000000, # call +0         (E8 rel32)
+    "BEQ":  0x7400,   # je +0              (74 rel8)
+    "LUI":  0x48B80000, # mov rax, 0     (48 B8 imm64)
+    "SW":   0x8901,   # mov [rcx], rdx    (89 /r — store 替代)
+    "LW":   0x8B0A,   # mov rdx, [rcx]    (8B /r — load 替代)
+    "SLL":  0xE1C104, # shl rcx, 4       (C1 E1 04)
+    "SRL":  0xE9C104, # shr rcx, 4       (C1 E9 04)
+    "SRA":  0xF9C104, # sar rcx, 4       (C1 F9 04)
 }
 
 
@@ -299,9 +315,9 @@ typedef struct {
 } isa_encoding_t;
 
 typedef enum {
-    SEM_ADD=0, SEM_SUB, SEM_AND, SEM_OR, SEM_XOR,
-    SEM_SLT, SEM_SLTU, SEM_SLL, SEM_SRL, SEM_SRA,
-    SEM_ADDI, SEM_LW, SEM_SW, SEM_BEQ, SEM_JAL, SEM_LUI, SEM_COUNT
+    SEM_ID_ADD=0, SEM_ID_SUB, SEM_ID_AND, SEM_ID_OR, SEM_ID_XOR,
+    SEM_ID_SLT, SEM_ID_SLTU, SEM_ID_SLL, SEM_ID_SRL, SEM_ID_SRA,
+    SEM_ID_ADDI, SEM_ID_LW, SEM_ID_SW, SEM_ID_BEQ, SEM_ID_JAL, SEM_ID_LUI, SEM_ID_COUNT
 } sem_id_t;
 
 static const char* SEM_NAMES[] = {
@@ -329,7 +345,8 @@ typedef struct {
 
     buf.write("static sem_instr_t INSTR_TABLE[] = {\n")
     for sem in sem_order:
-        buf.write(f"    [{sem}] = {{ .id={sem}, .desc=\"{descs[sem]}\", .enc = {{\n")
+        sem_id = "SEM_ID_" + sem
+        buf.write(f"    [{sem_id}] = {{ .id={sem_id}, .desc=\"{descs[sem]}\", .enc = {{\n")
         for ie in ISA_ENUMS:
             hx = compute_hex(sem, ie)
             if hx != 0:
@@ -343,12 +360,12 @@ typedef struct {
 static const int INSTR_TABLE_SIZE = sizeof(INSTR_TABLE) / sizeof(INSTR_TABLE[0]);
 
 const sem_instr_t* mlll_isa_get(sem_id_t id) {
-    if (id < 0 || id >= SEM_COUNT) return NULL;
+    if (id < 0 || id >= SEM_ID_COUNT) return NULL;
     return &INSTR_TABLE[id];
 }
 
 const sem_instr_t* mlll_isa_get_by_name(const char* name) {
-    for (int i = 0; i < SEM_COUNT; i++)
+    for (int i = 0; i < SEM_ID_COUNT; i++)
         if (strcasecmp(SEM_NAMES[i], name) == 0) return &INSTR_TABLE[i];
     return NULL;
 }
@@ -362,14 +379,14 @@ const isa_encoding_t* mlll_isa_get_encoding(sem_id_t id, isa_t isa) {
 
 int mlll_isa_selftest(void) {
     int errors = 0;
-    for (int i = 0; i < SEM_COUNT; i++) {
+    for (int i = 0; i < SEM_ID_COUNT; i++) {
         const isa_encoding_t* e = &INSTR_TABLE[i].enc[ISA_RV32I];
         if (!e->asm_ex || e->hex_ex == 0) {
             printf("[自检] 错误: %s 缺失 RV32I 定义\\n", SEM_NAMES[i]);
             errors++;
         }
     }
-    if (errors == 0) printf("[自检] %d 条语义指令 RV32I 全部就绪\\n", SEM_COUNT);
+    if (errors == 0) printf("[自检] %d 条语义指令 RV32I 全部就绪\\n", SEM_ID_COUNT);
     return errors;
 }
 """

@@ -113,8 +113,7 @@ pub use parasite::{
 };
 
 // ── v0.13 呼唤表 · 公约数分发器 ──
-// 临时关闭: invocation_table.rs 存在 Clone/Derive 和借用检查错误
-// pub mod invocation_table;
+pub mod invocation_table;
 
 // ── v0.12 判断之力 · 评价之力 · 逻辑组织 · 反馈闭环 ──
 pub mod judgment_power;

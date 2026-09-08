@@ -4,6 +4,7 @@ const orchestrator = @import("orchestrator.zig");
 const indexer = @import("indexer.zig");
 const fqm = @import("fqm.zig");
 const canjiang = @import("canjiang.zig");
+const visualizer = @import("visualizer.zig");
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -165,6 +166,24 @@ pub fn main() !void {
     const preview_len: usize = 40;
     try stdout.print("还原内容: {s}", .{shed[0..@min(preview_len, shed.len)]});
     try stdout.print("...\n", .{});
+
+    // ========== 三维可视化生成 ==========
+    try stdout.print("\n=== 三维几何可视化 ===\n", .{});
+    var scene = visualizer.Scene.init(allocator);
+    defer scene.deinit();
+    try scene.generateFromOrchestrator(&orch);
+    const html = try scene.generateHTML(allocator);
+    defer allocator.free(html);
+    const viz_path = "zig-stem/output/visualization.html";
+    const viz_file = try std.fs.cwd().createFile(viz_path, .{});
+    defer viz_file.close();
+    try viz_file.writeAll(html);
+    try stdout.print("三维可视化已生成: {s}\n", .{viz_path});
+    try stdout.print("点数: ", .{});
+    try fqm.formatUnaryInt(stdout, scene.points.items.len);
+    try stdout.print(" 线数: ", .{});
+    try fqm.formatUnaryInt(stdout, scene.lines.items.len);
+    try stdout.print("\n", .{});
 
     try stdout.print("\n=== 演示结束 ===\n\n", .{});
 }

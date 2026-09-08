@@ -39,12 +39,16 @@ type
   EncResult* = object
     case ok*: bool
     of true: encoded*: EncodedInsn
-    of false: error*: CodecError, msg*: string
+    of false:
+      error*: CodecError
+      msg*: string
 
   DecResult* = object
     case ok*: bool
     of true: decoded*: DecodedInsn
-    of false: error*: CodecError, msg*: string
+    of false:
+      error*: CodecError
+      msg*: string
 
 # ── 辅助 ──────────────────────────────────────────────
 
@@ -68,10 +72,4 @@ func eq*(a, b: Operands): bool =
 
 func `$`*(op: Operands): string =
   ## 可读格式
-  var parts: seq[string]
-  if op.rd != 0:    parts.add "rd=x" & $op.rd
-  if op.rs1 != 0:   parts.add "rs1=x" & $op.rs1
-  if op.rs2 != 0:   parts.add "rs2=x" & $op.rs2
-  if op.imm != 0:   parts.add "imm=" & $op.imm
-  if op.shamt != 0: parts.add "shamt=" & $op.shamt
-  if parts.len == 0: "(0)" else: parts.join(", ")
+  result = "[" & $op.rd & ", " & $op.rs1 & ", " & $op.rs2 & ", imm=" & $op.imm & ", shamt=" & $op.shamt & "]"
