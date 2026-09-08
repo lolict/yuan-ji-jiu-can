@@ -102,7 +102,7 @@ def encode_arm64(semantic_id, operands):
     elif semantic_id == "ADDI" and len(operands) >= 3:
         rd = int(operands[0].replace("x", ""))
         rn = int(operands[1].replace("x", ""))
-        imm = int(operands[2])
+        imm = int(operands[2], 0)
         if imm < 0 or imm > 0xFFF:
             return None, "Immediate out of range (0-4095)"
         bits = (1 << 31) | (0 << 30) | (0 << 29) | (0x24 << 23) | (0 << 22) | (imm << 10) | (rn << 5) | rd
@@ -153,7 +153,7 @@ def encode_riscv32(semantic_id, operands):
     elif semantic_id == "ADDI" and len(operands) >= 3:
         rd = int(operands[0].replace("x", ""))
         rs1 = int(operands[1].replace("x", ""))
-        imm = int(operands[2])
+        imm = int(operands[2], 0)
         if imm < -2048 or imm > 2047:
             return None, "Immediate out of 12-bit signed range"
         imm &= 0xFFF
@@ -255,7 +255,7 @@ def encode_riscv32(semantic_id, operands):
         return f"{bits:08X}", None
     elif semantic_id == "LUI" and len(operands) >= 2:
         rd = int(operands[0].replace("x", ""))
-        imm20 = int(operands[1])
+        imm20 = int(operands[1], 0)
         bits = (0x37 << 0) | (rd << 7) | (imm20 << 12)
         return f"{bits:08X}", None
     elif semantic_id == "RET":
@@ -316,7 +316,7 @@ def encode_mips32(semantic_id, operands):
     elif semantic_id == "ADDI" and len(operands) >= 3:
         rt = reg_num(operands[0])
         rs = reg_num(operands[1])
-        imm = int(operands[2])
+        imm = int(operands[2], 0)
         if imm < -32768 or imm > 32767:
             return None, "Immediate out of 16-bit signed range"
         imm &= 0xFFFF
@@ -376,11 +376,11 @@ def encode_mips32(semantic_id, operands):
         bits = (0x04 << 26) | (rs << 21) | (rt << 16) | offset
         return f"{bits:08X}", None
     elif semantic_id == "J" and len(operands) >= 1:
-        target = int(operands[0])
+        target = int(operands[0], 0)
         bits = (0x02 << 26) | ((target >> 1) & 0x3FFFFFF)
         return f"{bits:08X}", None
     elif semantic_id == "JAL" and len(operands) >= 1:
-        target = int(operands[0])
+        target = int(operands[0], 0)
         bits = (0x03 << 26) | ((target >> 1) & 0x3FFFFFF)
         return f"{bits:08X}", None
     elif semantic_id == "JR" and len(operands) >= 1:
@@ -461,25 +461,15 @@ def main():
     
     cmd = sys.argv[1]
     
-    # Map common mnemonics to semantic IDs
+    # Map common mnemonics to semantic IDs (only for cross-ISA aliases)
     mnemonic_to_semantic = {
-        "LOAD": "LOAD", "LW": "LOAD", "LD": "LOAD", "LB": "LOAD", "LBU": "LOAD", "LH": "LOAD",
-        "STORE": "STORE", "SW": "STORE", "SD": "STORE", "SB": "STORE", "SH": "STORE",
-        "ADD": "ADD", "ADDU": "ADD",
-        "ADDI": "ADDI", "SUBI": "SUB",
-        "SUB": "SUB", "SUBU": "SUB",
-        "AND": "AND", "OR": "OR", "XOR": "XOR",
-        "JMP": "JMP", "J": "JMP",
-        "BNE": "BNE", "BEQ": "BNE",
-        "CALL": "CALL", "JAL": "CALL", "BL": "CALL", "JALR": "CALL",
-        "RET": "RET",
-        "MOV": "MOV",
+        "LW": "LOAD", "LD": "LOAD", "LB": "LOAD", "LBU": "LOAD", "LH": "LOAD",
+        "SW": "STORE", "SD": "STORE", "SB": "STORE", "SH": "STORE",
+        "ADDU": "ADD", "SUBU": "SUB",
+        "SUBI": "SUB",
+        "BEQ": "BNE",
+        "BL": "CALL",
         "MOVI": "MOVI",
-        "CMP": "CMP",
-        "SLL": "SLL", "SRL": "SRL", "SRA": "SRA",
-        "SLT": "SLT",
-        "NOP": "NOP",
-        "LUI": "MOVI",
     }
     
     if cmd == "encode":
@@ -531,28 +521,33 @@ def main():
         isa_filter = sys.argv[3] if len(sys.argv) > 3 else None
         db = load_db()
         
-        for sem_id, isas in db.get("encodings", {}).items():
-            for isa, encs in isas.items():
+        for sem_name, sem_data in db.get("encodings", {}).items():
+            for isa, encs in sem_data.items():
+                if isa == "description":
+                    continue
                 if isa_filter and isa != isa_filter:
                     continue
                 for name, enc in encs.items():
-                    if name.startswith(mnemonic.lower()) or mnemonic in enc.get("asm", "").upper():
-                        print(f"{sem_id:8s} {isa:10s} {enc['hex']:20s} {enc.get('asm', '')}")
+                    if name.startswith(mnemonic.lower()) or mnemonic in enc.get("asm", "").upper() or mnemonic == sem_name.upper():
+                        print(f"{sem_name:8s} {isa:10s} {enc['hex']:20s} {enc.get('asm', '')}")
     
     elif cmd == "list":
         db = load_db()
         sem_filter = sys.argv[2].upper() if len(sys.argv) > 2 else None
         
-        for sem_id, isas in db.get("encodings", {}).items():
-            if sem_filter and sem_id != sem_filter:
+        for sem_name, sem_data in db.get("encodings", {}).items():
+            if sem_filter and sem_name.upper() != sem_filter:
                 continue
-            sem_info = db.get("semantic_ids", {}).get(sem_id, {})
-            desc = sem_info.get("desc", "")
-            print(f"=== {sem_id} ({desc}) ===")
-            for isa, encs in isas.items():
+            desc = sem_data.get("description", "")
+            print(f"=== {sem_name} ({desc}) ===")
+            for isa, encs in sem_data.items():
+                if isa == "description":
+                    continue
                 print(f"  [{isa}]")
-                for name, enc in encs.items():
-                    print(f"    {name:25s} {enc.get('hex', 'N/A'):30s} {enc.get('asm', '')}")
+                if isinstance(encs, dict):
+                    for name, enc in encs.items():
+                        if isinstance(enc, dict):
+                            print(f"    {name:25s} {enc.get('hex', 'N/A'):30s} {enc.get('asm', '')}")
     
     else:
         print(f"Unknown command: {cmd}")
