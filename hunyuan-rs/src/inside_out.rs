@@ -24,10 +24,8 @@
 //   - 内部地址 = SHA-1 前 12 位（与 universe 同源）
 //   - 测试通过条件：47/47 新增测试
 
-use crate::time_chain_identity::TimeCoordinate;
 use crate::triune::TriuneVerdict;
-use crate::mirror::{Sovereignty, WitnessVerdict};
-use crate::container_dynamics::{ContainerRelation, Observance, Vitality};
+use crate::mirror::Sovereignty;
 
 // ────────────────────────────────────────────────────────────
 // 1. 里外轴 — 容器有三个「观察深度」
@@ -346,7 +344,7 @@ pub fn vector_placeholder(title: &str) -> String {
     let colors = ["#1f2937", "#374151", "#4b5563", "#6b7280", "#111827", "#0f172a"];
     let bg = colors[(hash_val % colors.len() as u64) as usize];
     format!(
-        r#"<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180"><rect width="320" height="180" fill="{}"/><text x="160" y="90" font-family="monospace" font-size="14" fill="#f3f4f6" text-anchor="middle">{}</text></svg>"#,
+        r##"<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180"><rect width="320" height="180" fill="{}"/><text x="160" y="90" font-family="monospace" font-size="14" fill="#f3f4f6" text-anchor="middle">{}</text></svg>"##,
         bg, safe_title
     )
 }
@@ -375,7 +373,7 @@ pub fn simple_hash(s: &str) -> u64 {
 mod tests {
     use super::*;
     use crate::mirror::Sovereignty;
-    use crate::triune::TriuneVerdict;
+    use crate::triune::{TriuneVerdict, BeingState};
 
     // === InsideOut ===
     #[test]
@@ -388,7 +386,7 @@ mod tests {
             entry_code: None,
             witness: None,
         };
-        let r = gaze.attempt_entry(Sovereignty::Primary, Sovereignty::Primary);
+        let r = gaze.attempt_entry(Sovereignty::Active, Sovereignty::Active);
         match r {
             DepthResult::Open => {},
             _ => panic!("表面应直接开放"),
@@ -405,7 +403,7 @@ mod tests {
             entry_code: Some("secret".into()),
             witness: None,
         };
-        let r = gaze.attempt_entry(Sovereignty::Primary, Sovereignty::Primary);
+        let r = gaze.attempt_entry(Sovereignty::Active, Sovereignty::Active);
         match r {
             DepthResult::Allow { new_depth } => assert_eq!(new_depth, InsideOut::Interior),
             _ => panic!("主权持有者应被允许进入"),
@@ -422,7 +420,7 @@ mod tests {
             entry_code: None,
             witness: None,
         };
-        let r = gaze.attempt_entry(Sovereignty::Primary, Sovereignty::Secondary);
+        let r = gaze.attempt_entry(Sovereignty::Active, Sovereignty::Passive);
         match r {
             DepthResult::Deny { .. } => {},
             _ => panic!("非持有者应被拒绝"),
@@ -517,7 +515,7 @@ mod tests {
     #[test]
     fn interior_view_accessible_to_sovereign() {
         let nc = NestedContainer::new(1, FormatKind::PlainText, FormatKind::Html, "seed");
-        let view = nc.interior_view(Sovereignty::Primary, Sovereignty::Primary);
+        let view = nc.interior_view(Sovereignty::Active, Sovereignty::Active);
         assert!(view.is_some());
         let v = view.unwrap();
         assert_eq!(v.inner_format, FormatKind::Html);
@@ -526,7 +524,7 @@ mod tests {
     #[test]
     fn interior_view_blocked_for_outsider() {
         let nc = NestedContainer::new(1, FormatKind::PlainText, FormatKind::Html, "seed");
-        let view = nc.interior_view(Sovereignty::Tertiary, Sovereignty::Primary);
+        let view = nc.interior_view(Sovereignty::PassiveSub, Sovereignty::Active);
         assert!(view.is_none());
     }
 
@@ -579,14 +577,14 @@ mod tests {
 
     #[test]
     fn arbitration_one_verdict() {
-        let v = TriuneVerdedict::Admission;
+        let v = TriuneVerdict::deduce(BeingState::Being(1), BeingState::Being(1), 0.0);
         let r = SingleCenterArbitration::resolve(&[v]);
         assert!(r.is_some());
     }
 
     #[test]
     fn arbitration_two_agreeing() {
-        let v = TriuneVerdict::Admission;
+        let v = TriuneVerdict::deduce(BeingState::Being(1), BeingState::Being(1), 0.0);
         let r = SingleCenterArbitration::resolve(&[v.clone(), v]);
         assert!(r.is_some());
     }
@@ -594,17 +592,17 @@ mod tests {
     #[test]
     fn arbitration_two_disagreeing() {
         let r = SingleCenterArbitration::resolve(&[
-            TriuneVerdict::Admission,
-            TriuneVerdict::Banishment,
+            TriuneVerdict::deduce(BeingState::Being(1), BeingState::NonBeing, 0.0),
+            TriuneVerdict::deduce(BeingState::NonBeing, BeingState::Being(1), 0.0),
         ]);
         assert!(r.is_none());
     }
 
     #[test]
     fn arbitration_three_with_third_confirming() {
-        let a = TriuneVerdict::Admission;
-        let b = TriuneVerdict::Admission;
-        let c = TriuneVerdict::Admission;
+        let a = TriuneVerdict::deduce(BeingState::Being(1), BeingState::Being(1), 0.0);
+        let b = TriuneVerdict::deduce(BeingState::Being(1), BeingState::Being(1), 0.0);
+        let c = TriuneVerdict::deduce(BeingState::Being(1), BeingState::Being(1), 0.0);
         let r = SingleCenterArbitration::resolve(&[a, b, c]);
         assert!(r.is_some());
     }
@@ -667,11 +665,11 @@ mod tests {
         assert!(surface.secured_count == 2);
 
         // 4. 外部不能进入内部
-        let blocked = nc.interior_view(Sovereignty::Tertiary, Sovereignty::Primary);
+        let blocked = nc.interior_view(Sovereignty::PassiveSub, Sovereignty::Active);
         assert!(blocked.is_none());
 
         // 5. 主权持有者可查看
-        let open = nc.interior_view(Sovereignty::Primary, Sovereignty::Primary);
+        let open = nc.interior_view(Sovereignty::Active, Sovereignty::Active);
         assert!(open.is_some());
         assert!(!open.unwrap().address.is_empty());
 
@@ -684,7 +682,7 @@ mod tests {
             entry_code: Some("entry-key".into()),
             witness: None,
         };
-        let result = gaze.attempt_entry(Sovereignty::Primary, Sovereignty::Primary);
+        let result = gaze.attempt_entry(Sovereignty::Active, Sovereignty::Active);
         match result {
             DepthResult::Allow { new_depth } => assert_eq!(new_depth, InsideOut::Interior),
             other => panic!("应允许进入: {:?}", other),

@@ -7,7 +7,7 @@
 // ╚══════════════════════════════════════════════════════════════════╝
 
 use jni::objects::JClass;
-use jni::sys::{jbyteArray, jint, jlong, jstring};
+use jni::sys::{jbyte, jbyteArray, jint, jlong, jstring};
 use jni::JNIEnv;
 use mqf::metaime::{self, MetaImeState};
 use mqf::metaime_flow::FlowState;
@@ -159,22 +159,19 @@ pub extern "system" fn Java_com_manquanca_metaime_MetaIMENative_flowInput(
 ) -> jstring {
     if handle == 0 { return std::ptr::null_mut(); }
 
-    let result = FLOW_STATE.with(|f| {
+    let (segs, cur, cands, done) = FLOW_STATE.with(|f| {
         let mut guard = f.lock().unwrap();
         if let Some(ref mut flow) = *guard {
-            flow.input_char(ch as u8 as char, handle as *mut MetaImeState)
+            let r = flow.input_char(ch as u8 as char, handle as *mut MetaImeState);
+            (r.segments.clone(), r.current_display.clone(), r.current_candidates.clone(), r.completed)
         } else {
-            return String::new();
+            (Vec::new(), String::new(), Vec::new(), false)
         }
     });
 
-    // 将结果序列化为 JSON 字符串返回
     let json = format!(
         r#"{{"segments":{:?},"current":"{}","candidates":{:?},"completed":{}}}"#,
-        result.segments,
-        result.current_display,
-        result.current_candidates,
-        result.completed
+        segs, cur, cands, done
     );
 
     env.new_string(&json)

@@ -43,7 +43,7 @@ pub enum FlowDirection {
 // ────────────────────────────────────────────────────────────
 // 三元推演结果
 // ────────────────────────────────────────────────────────────
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct TriuneVerdict {
     pub being:      BeingState,       // 实际观测到的有无
     pub flow:       FlowDirection,    // 推演出的流动方向

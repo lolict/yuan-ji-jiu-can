@@ -112,6 +112,10 @@ pub use parasite::{
     Parasite, ParasiteConfig,
 };
 
+// ── v0.13 呼唤表 · 公约数分发器 ──
+// 临时关闭: invocation_table.rs 存在 Clone/Derive 和借用检查错误
+// pub mod invocation_table;
+
 // ── v0.12 判断之力 · 评价之力 · 逻辑组织 · 反馈闭环 ──
 pub mod judgment_power;
 
@@ -207,6 +211,7 @@ pub mod isa;
 // ── 元输入法核心 v0.1: 冰箱模型: 编译期内嵌字典 · 零运行时解析 · C-ABI 接口 ──
 pub mod metaime;
 
+// ── v0.11 拼音流式输入引擎: 逐字母输入 · 实时候选 · 自动分段 ──
 // ── v0.11 拼音流式输入引擎: 逐字母输入 · 实时候选 · 自动分段 ──
 pub mod metaime_flow;
 

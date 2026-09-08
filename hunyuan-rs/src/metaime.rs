@@ -33,7 +33,7 @@ pub enum Shengmu {
 }
 
 impl Shengmu {
-    fn from_u8(v: u8) -> Option<Self> {
+    pub fn from_u8(v: u8) -> Option<Self> {
         match v {
             0 => Some(Shengmu::None),
             1 => Some(Shengmu::B),   2 => Some(Shengmu::P),
@@ -50,6 +50,19 @@ impl Shengmu {
             21 => Some(Shengmu::Si),
             22 => Some(Shengmu::Y),   23 => Some(Shengmu::W),
             _ => None,
+        }
+    }
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Shengmu::None => "",
+            Shengmu::B => "b", Shengmu::P => "p", Shengmu::M => "m", Shengmu::F => "f",
+            Shengmu::D => "d", Shengmu::T => "t", Shengmu::N => "n", Shengmu::L => "l",
+            Shengmu::G => "g", Shengmu::K => "k", Shengmu::H => "h",
+            Shengmu::J => "j", Shengmu::Q => "q", Shengmu::X => "x",
+            Shengmu::Zhi => "zh", Shengmu::Chi => "ch", Shengmu::Shi => "sh", Shengmu::Ri => "r",
+            Shengmu::Zi => "z", Shengmu::Ci => "c", Shengmu::Si => "s",
+            Shengmu::Y => "y", Shengmu::W => "w",
         }
     }
 }
@@ -73,7 +86,7 @@ pub enum Yunmu {
 }
 
 impl Yunmu {
-    fn from_u8(v: u8) -> Option<Self> {
+    pub fn from_u8(v: u8) -> Option<Self> {
         match v {
             0 => Some(Yunmu::None), 1 => Some(Yunmu::A), 2 => Some(Yunmu::O),
             3 => Some(Yunmu::E), 4 => Some(Yunmu::I), 5 => Some(Yunmu::U),
@@ -88,6 +101,23 @@ impl Yunmu {
             28 => Some(Yunmu::Ui), 29 => Some(Yunmu::Uan), 30 => Some(Yunmu::Un),
             31 => Some(Yunmu::Ueng), 32 => Some(Yunmu::Vve), 33 => Some(Yunmu::Van),
             34 => Some(Yunmu::Vn), _ => None,
+        }
+    }
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Yunmu::None => "",
+            Yunmu::A => "a", Yunmu::O => "o", Yunmu::E => "e",
+            Yunmu::I => "i", Yunmu::U => "u", Yunmu::Vv => "v",
+            Yunmu::Ai => "ai", Yunmu::Ei => "ei", Yunmu::Ao => "ao", Yunmu::Ou => "ou",
+            Yunmu::An => "an", Yunmu::En => "en", Yunmu::Ang => "ang",
+            Yunmu::Eng => "eng", Yunmu::Ong => "ong",
+            Yunmu::Ia => "ia", Yunmu::Ie => "ie", Yunmu::Iao => "iao", Yunmu::Iu => "iu",
+            Yunmu::Ian => "ian", Yunmu::In => "in", Yunmu::Iang => "iang",
+            Yunmu::Ing => "ing", Yunmu::Ion => "iong",
+            Yunmu::Ua => "ua", Yunmu::Uo => "uo", Yunmu::Uai => "uai", Yunmu::Ui => "ui",
+            Yunmu::Uan => "uan", Yunmu::Un => "un", Yunmu::Ueng => "ueng",
+            Yunmu::Vve => "ve", Yunmu::Van => "van", Yunmu::Vn => "vn",
         }
     }
 }
