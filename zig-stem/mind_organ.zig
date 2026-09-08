@@ -211,8 +211,8 @@ pub const MindOrgan = struct {
                     total_w += node.weight;
                 }
                 if (total_w > 0) {
-                    for (&new_centroid) |*nc| {
-                        *nc /= total_w;
+                    for (0..7) |d| {
+                        new_centroid[d] /= total_w;
                     }
                     cl.centroid = new_centroid;
                 }
