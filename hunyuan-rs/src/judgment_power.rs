@@ -701,12 +701,12 @@ mod tests {
 
     #[test]
     fn engine_full_workflow_solidifies_rules() {
-        let mut engine = JudgmentEngine::new();
+        let mut engine: JudgmentEngine<String> = JudgmentEngine::new();
         // 模拟20次相同模式的事件
         for i in 0..20 {
             let payload = format!("reading_{}", i);
             let _ = engine.run_cycle(
-                Ripple::new(100 + i, "sensor", &payload, (i as f64) * 0.1, 0.0),
+                Ripple::new(100 + i, "sensor", payload, (i as f64) * 0.1, 0.0),
                 &vec!["env_factor".to_string()],
                 "system_response"
             );
