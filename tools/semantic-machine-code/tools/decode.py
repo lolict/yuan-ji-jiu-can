@@ -103,20 +103,19 @@ def _rv32i_operands(sid, fmt, code, rd, rs1, rs2, funct7, regs) -> dict:
             "machine_code": machine_hex
         }
     elif fmt == "U":
-        imm = code & 0xFFFFF000
+        imm20 = (code >> 12) & 0xFFFFF
         return {
             "semantic": sid, "format": "U",
-            "operands": [reg_name(rd), f"0x{imm:08X}"],
-            "fields": {"rd": rd, "imm20": imm},
+            "operands": [reg_name(rd), imm20],
+            "fields": {"rd": rd, "imm20": imm20},
             "machine_code": machine_hex
         }
     return {"semantic": sid, "format": fmt, "operands": [], "machine_code": machine_hex}
 
 
 def _alias(num: int, regs: dict) -> str:
-    """寄存器编号 → 别名。如 1 → ra, 2 → sp。"""
-    key = f"x{num}"
-    return regs.get(key, {}).get("alias", f"x{num}")
+    """寄存器编号 → 规范名（始终 xN 形式，确保往返一致）。"""
+    return f"x{num}"
 
 
 # —— CLI 入口 ——
