@@ -1,0 +1,27 @@
+{
+  "family": "移位族",
+  "description": "容器内部的位移操作：左移、右移、算术右移",
+  "semantics": {
+    "SLL": {
+      "display": "逻辑左移",
+      "arity": 2,
+      "description": "容器值向左位移，低位补零",
+      "polarity": "升/清/动",
+      "glyph_additive": true
+    },
+    "SRL": {
+      "display": "逻辑右移",
+      "arity": 2,
+      "description": "容器值向右位移，高位补零",
+      "polarity": "降/浊/静",
+      "glyph_additive": true
+    },
+    "SRA": {
+      "display": "算术右移",
+      "arity": 2,
+      "description": "容器值向右位移，高位补符号位",
+      "polarity": "降/保号/持",
+      "glyph_additive": true
+    }
+  }
+}

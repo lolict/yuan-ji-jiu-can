@@ -1,0 +1,158 @@
+{
+  "metadata": {
+    "architecture": "RISC-V",
+    "variant": "RV32I",
+    "description": "RISC-V 32位基础整数指令集，无乘法无浮点",
+    "versions": "20190608-Base Ratified",
+    "source": "The RISC-V Instruction Set Manual Volume I: Unprivileged ISA",
+    "endianness": "little",
+    "instruction_width": 32,
+    "register_count": 32,
+    "stored": "2026-09-03",
+    "verifier": "unverified"
+  },
+  "formats": {
+    "R": {
+      "description": "寄存器-寄存器",
+      "fields": [
+        {"name": "funct7", "msb": 31, "lsb": 25, "type": "const"},
+        {"name": "rs2",   "msb": 24, "lsb": 20, "type": "reg"},
+        {"name": "rs1",   "msb": 19, "lsb": 15, "type": "reg"},
+        {"name": "funct3","msb": 14, "lsb": 12, "type": "const"},
+        {"name": "rd",    "msb": 11, "lsb": 7,  "type": "reg"},
+        {"name": "opcode","msb": 6,  "lsb": 0,  "type": "const"}
+      ]
+    },
+    "I": {
+      "description": "寄存器-立即数",
+      "fields": [
+        {"name": "imm12", "msb": 31, "lsb": 20, "type": "imm_signed"},
+        {"name": "rs1",   "msb": 19, "lsb": 15, "type": "reg"},
+        {"name": "funct3","msb": 14, "lsb": 12, "type": "const"},
+        {"name": "rd",    "msb": 11, "lsb": 7,  "type": "reg"},
+        {"name": "opcode","msb": 6,  "lsb": 0,  "type": "const"}
+      ]
+    },
+    "S": {
+      "description": "存储",
+      "fields": [
+        {"name": "imm12hi","msb": 31, "lsb": 25, "type": "imm"},
+        {"name": "rs2",    "msb": 24, "lsb": 20, "type": "reg"},
+        {"name": "rs1",    "msb": 19, "lsb": 15, "type": "reg"},
+        {"name": "funct3", "msb": 14, "lsb": 12, "type": "const"},
+        {"name": "imm12lo","msb": 11, "lsb": 7,  "type": "imm"},
+        {"name": "opcode", "msb": 6,  "lsb": 0,  "type": "const"}
+      ]
+    },
+    "B": {
+      "description": "条件分支",
+      "fields": [
+        {"name": "imm12", "msb": 31, "lsb": 31, "type": "imm"},
+        {"name": "imm10_5","msb": 30, "lsb": 25, "type": "imm"},
+        {"name": "rs2",   "msb": 24, "lsb": 20, "type": "reg"},
+        {"name": "rs1",   "msb": 19, "lsb": 15, "type": "reg"},
+        {"name": "funct3","msb": 14, "lsb": 12, "type": "const"},
+        {"name": "imm4_1", "msb": 11, "lsb": 8, "type": "imm"},
+        {"name": "imm11", "msb": 7,  "lsb": 7,  "type": "imm"},
+        {"name": "opcode","msb": 6,  "lsb": 0,  "type": "const"}
+      ]
+    },
+    "U": {
+      "description": "高位立即数",
+      "fields": [
+        {"name": "imm20",  "msb": 31, "lsb": 12, "type": "imm"},
+        {"name": "rd",     "msb": 11, "lsb": 7,  "type": "reg"},
+        {"name": "opcode", "msb": 6,  "lsb": 0,  "type": "const"}
+      ]
+    },
+    "J": {
+      "description": "跳转",
+      "fields": [
+        {"name": "imm20",  "msb": 31, "lsb": 31, "type": "imm"},
+        {"name": "imm10_1", "msb": 30, "lsb": 21, "type": "imm"},
+        {"name": "imm11",   "msb": 20, "lsb": 20, "type": "imm"},
+        {"name": "imm19_12","msb": 19, "lsb": 12, "type": "imm"},
+        {"name": "rd",      "msb": 11, "lsb": 7,  "type": "reg"},
+        {"name": "opcode",  "msb": 6,  "lsb": 0,  "type": "const"}
+      ]
+    }
+  },
+  "opcodes": {
+    "OP-IMM":  "0010011",
+    "OP":      "0110011",
+    "LUI":     "0110111",
+    "AUIPC":   "0010111",
+    "JAL":     "1101111",
+    "JALR":    "1100111",
+    "BRANCH":  "1100011",
+    "LOAD":    "0000011",
+    "STORE":   "0100011",
+    "MISC-MEM":"0001111",
+    "SYSTEM":  "1110011"
+  },
+  "instructions": {
+    "ADD":  {"format": "R", "opcode": "0110011", "funct3": "000", "funct7": "0000000"},
+    "SUB":  {"format": "R", "opcode": "0110011", "funct3": "000", "funct7": "0100000"},
+    "SLL":  {"format": "R", "opcode": "0110011", "funct3": "001", "funct7": "0000000"},
+    "SLT":  {"format": "R", "opcode": "0110011", "funct3": "010", "funct7": "0000000"},
+    "SLTU": {"format": "R", "opcode": "0110011", "funct3": "011", "funct7": "0000000"},
+    "XOR":  {"format": "R", "opcode": "0110011", "funct3": "100", "funct7": "0000000"},
+    "SRL":  {"format": "R", "opcode": "0110011", "funct3": "101", "funct7": "0000000"},
+    "SRA":  {"format": "R", "opcode": "0110011", "funct3": "101", "funct7": "0100000"},
+    "OR":   {"format": "R", "opcode": "0110011", "funct3": "110", "funct7": "0000000"},
+    "AND":  {"format": "R", "opcode": "0110011", "funct3": "111", "funct7": "0000000"},
+    "ADDI": {"format": "I", "opcode": "0010011", "funct3": "000"},
+    "XORI": {"format": "I", "opcode": "0010011", "funct3": "100"},
+    "ORI":  {"format": "I", "opcode": "0010011", "funct3": "110"},
+    "ANDI": {"format": "I", "opcode": "0010011", "funct3": "111"},
+    "SLLI": {"format": "I", "opcode": "0010011", "funct3": "001", "funct7": "0000000"},
+    "SRLI": {"format": "I", "opcode": "0010011", "funct3": "101", "funct7": "0000000"},
+    "SRAI": {"format": "I", "opcode": "0010011", "funct3": "101", "funct7": "0100000"},
+    "BEQ":  {"format": "B", "opcode": "1100011", "funct3": "000"},
+    "BNE":  {"format": "B", "opcode": "1100011", "funct3": "001"},
+    "BLT":  {"format": "B", "opcode": "1100011", "funct3": "100"},
+    "BGE":  {"format": "B", "opcode": "1100011", "funct3": "101"},
+    "BLTU": {"format": "B", "opcode": "1100011", "funct3": "110"},
+    "BGEU": {"format": "B", "opcode": "1100011", "funct3": "111"},
+    "JAL":  {"format": "J", "opcode": "1101111"},
+    "JALR": {"format": "I", "opcode": "1100111", "funct3": "000"},
+    "LUI":  {"format": "U", "opcode": "0110111"},
+    "AUIPC":{"format": "U", "opcode": "0010111"},
+    "LW":   {"format": "I", "opcode": "0000011", "funct3": "010"},
+    "SW":   {"format": "S", "opcode": "0100011", "funct3": "010"}
+  },
+  "registers": {
+    "x0":  {"alias": "zero", "role": "恒零",     "const": 0},
+    "x1":  {"alias": "ra",   "role": "返回地址"},
+    "x2":  {"alias": "sp",   "role": "栈指针"},
+    "x3":  {"alias": "gp",   "role": "全局指针"},
+    "x4":  {"alias": "tp",   "role": "线程指针"},
+    "x5":  {"alias": "t0",   "role": "临时"},
+    "x6":  {"alias": "t1",   "role": "临时"},
+    "x7":  {"alias": "t2",   "role": "临时"},
+    "x8":  {"alias": "fp",   "role": "帧指针/保存"},
+    "x9":  {"alias": "s1",   "role": "保存"},
+    "x10": {"alias": "a0",   "role": "参数/返回值"},
+    "x11": {"alias": "a1",   "role": "参数/返回值"},
+    "x12": {"alias": "a2",   "role": "参数"},
+    "x13": {"alias": "a3",   "role": "参数"},
+    "x14": {"alias": "a4",   "role": "参数"},
+    "x15": {"alias": "a5",   "role": "参数"},
+    "x16": {"alias": "a6",   "role": "参数"},
+    "x17": {"alias": "a7",   "role": "参数"},
+    "x18": {"alias": "s2",   "role": "保存"},
+    "x19": {"alias": "s3",   "role": "保存"},
+    "x20": {"alias": "s4",   "role": "保存"},
+    "x21": {"alias": "s5",   "role": "保存"},
+    "x22": {"alias": "s6",   "role": "保存"},
+    "x23": {"alias": "s7",   "role": "保存"},
+    "x24": {"alias": "s8",   "role": "保存"},
+    "x25": {"alias": "s9",   "role": "保存"},
+    "x26": {"alias": "s10",  "role": "保存"},
+    "x27": {"alias": "s11",  "role": "保存"},
+    "x28": {"alias": "t3",   "role": "临时"},
+    "x29": {"alias": "t4",   "role": "临时"},
+    "x30": {"alias": "t5",   "role": "临时"},
+    "x31": {"alias": "t6",   "role": "临时"}
+  }
+}

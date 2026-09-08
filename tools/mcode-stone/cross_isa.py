@@ -63,6 +63,7 @@ CROSS_ALIGN = {
     "SH":      {"riscv32": "SW",         "arm64": "STR",       "x86_64": "MOV_R_R",    "mips32": "SH"},
     "JALR":    {"riscv32": "JAL",        "arm64": "RET",       "x86_64": "RET",        "mips32": "JALR"},
     "SRLI":    {"riscv32": "SRL",        "arm64": "LSR",       "x86_64": "ADD_R_R",    "mips32": "SRL"},
+    "SUBU":    {"riscv32": "SUB",        "arm64": "SUB",       "x86_64": "SUB_R_R",    "mips32": "SUBU"},
 }
 
 def get_isa_db(isa):
@@ -315,7 +316,12 @@ def encode_mips32(ops_map):
     if iid == "NOP": return 0x00000000  # sll $0,$0,0
     if iid == "MULT": return mips_r(0x18, 0, reg_to_num(ops[0]), reg_to_num(ops[1]))
     if iid == "DIV": return mips_r(0x1A, 0, reg_to_num(ops[0]), reg_to_num(ops[1]))
-    if iid == "JALR": return mips_r(0x09, reg_to_num(ops[0]), reg_to_num(ops[1]), 0)
+    if iid == "JALR":
+        rd = reg_to_num(ops[0]) if len(ops) > 1 else 0
+        rs = reg_to_num(ops[-1])
+        return mips_r(0x09, rd, rs, 0)
+    if iid == "SLTU": return mips_r(0x2B, reg_to_num(ops[0]), reg_to_num(ops[1]), reg_to_num(ops[2]))
+    if iid == "SUBU": return mips_r(0x23, reg_to_num(ops[0]), reg_to_num(ops[1]), reg_to_num(ops[2]))
     raise ValueError(f"未知 MIPS 指令: {iid}")
 
 # ── 统一编码入口 ──
@@ -330,6 +336,17 @@ def encode(isa, sem_id, ops):
     ops_map = {"inst_id": inst_id, "ops": ops}
 
     if isa == "riscv32":
+        # 特殊处理 BNE (type B, funct3=001)
+        if inst_id == "BNE":
+            inst = get_inst(isa, "BEQ")
+            code = encode_rv32i(inst, ops)
+            return code ^ (1 << 12)  # 切换 funct3 bit2 (000→001)
+        # SRLI/I-type: funct3=101, shamt in imm[4:0]
+        if inst_id == "SRLI":
+            rd = reg_to_num(ops[0])
+            rs1 = reg_to_num(ops[1])
+            shamt = int(ops[2])
+            return (shamt << 20) | (rs1 << 15) | (5 << 12) | (rd << 7) | 0b0010011
         inst = get_inst(isa, inst_id)
         return encode_rv32i(inst, ops)
     if isa == "arm64":  return encode_arm64(ops_map)

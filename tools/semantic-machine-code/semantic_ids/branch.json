@@ -1,0 +1,27 @@
+{
+  "family": "分支族",
+  "description": "对执行流的裁决：是否跳转、跳往何处",
+  "semantics": {
+    "BEQ": {
+      "display": "等跳",
+      "arity": "2容器+1目标",
+      "description": "两容器相等则流向目标",
+      "polarity": "中/衡/断",
+      "glyph_additive": false
+    },
+    "BNE": {
+      "display": "不等跳",
+      "arity": "2容器+1目标",
+      "description": "两容器不等则流向目标",
+      "polarity": "偏/离/逝",
+      "glyph_additive": false
+    },
+    "JMP": {
+      "display": "跳转",
+      "arity": "1目标",
+      "description": "无条件流向目标",
+      "polarity": "行/往/之",
+      "glyph_additive": false
+    }
+  }
+}

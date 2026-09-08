@@ -22,19 +22,28 @@ except ImportError:
     print("安装依赖: pip install fonttools")
     sys.exit(1)
 
-# ── 语义符号字形设计 ─────────────────────────────────────
-# 每种语义对应一个可视几何图案
-# 坐标范围: 0..1000 (em square)
+# ── 字形绘制函数 ─────────────────────────────────────────
+
+def draw_notdef(pen):
+    """notdef: 空心矩形"""
+    pen.moveTo((100, 0))
+    pen.lineTo((400, 0))
+    pen.lineTo((400, 700))
+    pen.lineTo((100, 700))
+    pen.closePath()
+    pen.moveTo((140, 40))
+    pen.lineTo((140, 660))
+    pen.lineTo((360, 660))
+    pen.lineTo((360, 40))
+    pen.closePath()
 
 def draw_plus(pen):
-    """semAdd: 加号 ＋"""
-    # 横
-    pen.moveTo((200, 500))
-    pen.lineTo((800, 500))
-    pen.lineTo((800, 540))
-    pen.lineTo((200, 540))
+    """semAdd: 加号 +"""
+    pen.moveTo((200, 480))
+    pen.lineTo((800, 480))
+    pen.lineTo((800, 520))
+    pen.lineTo((200, 520))
     pen.closePath()
-    # 竖
     pen.moveTo((480, 200))
     pen.lineTo((520, 200))
     pen.lineTo((520, 800))
@@ -42,7 +51,7 @@ def draw_plus(pen):
     pen.closePath()
 
 def draw_minus(pen):
-    """semSub: 减号 －"""
+    """semSub: 减号 -"""
     pen.moveTo((200, 500))
     pen.lineTo((800, 500))
     pen.lineTo((800, 540))
@@ -50,7 +59,7 @@ def draw_minus(pen):
     pen.closePath()
 
 def draw_and(pen):
-    """semAnd: 与 (类似 & 但简化为∧)"""
+    """semAnd: 与 ∧"""
     pen.moveTo((500, 200))
     pen.lineTo((750, 700))
     pen.lineTo((710, 720))
@@ -60,7 +69,7 @@ def draw_and(pen):
     pen.closePath()
 
 def draw_or(pen):
-    """semOr: 或"""
+    """semOr: 或 ∨"""
     pen.moveTo((500, 800))
     pen.lineTo((750, 300))
     pen.lineTo((710, 280))
@@ -71,9 +80,16 @@ def draw_or(pen):
 
 def draw_xor(pen):
     """semXor: 异或 ⊕"""
-    # 中心 +
-    draw_plus(pen)
-    # 底弧
+    pen.moveTo((200, 480))
+    pen.lineTo((800, 480))
+    pen.lineTo((800, 520))
+    pen.lineTo((200, 520))
+    pen.closePath()
+    pen.moveTo((480, 200))
+    pen.lineTo((520, 200))
+    pen.lineTo((520, 800))
+    pen.lineTo((480, 800))
+    pen.closePath()
     pen.moveTo((300, 650))
     pen.qCurveTo((500, 750), (700, 650))
     pen.lineTo((690, 680))
@@ -82,7 +98,6 @@ def draw_xor(pen):
 
 def draw_sll(pen):
     """semSll: 逻辑左移 <<"""
-    # 第一个 <
     pen.moveTo((350, 500))
     pen.lineTo((550, 250))
     pen.lineTo((550, 300))
@@ -90,7 +105,6 @@ def draw_sll(pen):
     pen.lineTo((550, 700))
     pen.lineTo((550, 750))
     pen.closePath()
-    # 第二个 <
     pen.moveTo((500, 500))
     pen.lineTo((700, 250))
     pen.lineTo((700, 300))
@@ -101,7 +115,6 @@ def draw_sll(pen):
 
 def draw_srl(pen):
     """semSrl: 逻辑右移 >>"""
-    # 第一个 >
     pen.moveTo((450, 500))
     pen.lineTo((250, 250))
     pen.lineTo((250, 300))
@@ -109,7 +122,6 @@ def draw_srl(pen):
     pen.lineTo((250, 700))
     pen.lineTo((250, 750))
     pen.closePath()
-    # 第二个 >
     pen.moveTo((600, 500))
     pen.lineTo((400, 250))
     pen.lineTo((400, 300))
@@ -119,9 +131,21 @@ def draw_srl(pen):
     pen.closePath()
 
 def draw_sra(pen):
-    """semSra: 算术右移 >>> (带符号位)"""
-    draw_srl(pen)
-    # 箭头头部加一竖表示符号扩展
+    """semSra: 算术右移 >>> (带符号扩展)"""
+    pen.moveTo((450, 500))
+    pen.lineTo((250, 250))
+    pen.lineTo((250, 300))
+    pen.lineTo((400, 500))
+    pen.lineTo((250, 700))
+    pen.lineTo((250, 750))
+    pen.closePath()
+    pen.moveTo((600, 500))
+    pen.lineTo((400, 250))
+    pen.lineTo((400, 300))
+    pen.lineTo((550, 500))
+    pen.lineTo((400, 700))
+    pen.lineTo((400, 750))
+    pen.closePath()
     pen.moveTo((200, 300))
     pen.lineTo((220, 300))
     pen.lineTo((220, 700))
@@ -139,8 +163,7 @@ def draw_slt(pen):
     pen.closePath()
 
 def draw_load(pen):
-    """semLoad: 加载 ↓ (内存→寄存器)"""
-    # 向下箭头
+    """semLoad: 加载 ↓ (内存到寄存器)"""
     pen.moveTo((500, 250))
     pen.lineTo((540, 250))
     pen.lineTo((540, 550))
@@ -151,8 +174,7 @@ def draw_load(pen):
     pen.closePath()
 
 def draw_store(pen):
-    """semStore: 存储 ↑ (寄存器→内存)"""
-    # 向上箭头
+    """semStore: 存储 ↑ (寄存器到内存)"""
     pen.moveTo((500, 750))
     pen.lineTo((540, 750))
     pen.lineTo((540, 450))
@@ -163,8 +185,7 @@ def draw_store(pen):
     pen.closePath()
 
 def draw_branch_eq(pen):
-    """semBranchEq: 分支相等 =↗"""
-    # 双线等号
+    """semBranchEq: 分支相等 =="""
     pen.moveTo((250, 420))
     pen.lineTo((550, 420))
     pen.lineTo((550, 460))
@@ -175,7 +196,6 @@ def draw_branch_eq(pen):
     pen.lineTo((550, 580))
     pen.lineTo((250, 580))
     pen.closePath()
-    # 右上箭头
     pen.moveTo((600, 300))
     pen.lineTo((750, 200))
     pen.lineTo((750, 250))
@@ -188,18 +208,7 @@ def draw_branch_eq(pen):
     pen.closePath()
 
 def draw_branch_ne(pen):
-    """semBranchNe: 不等 ≠↗"""
-    # 划线不等号
-    draw_branch_eq_shape(pen)
-    # 斜划线
-    pen.moveTo((300, 650))
-    pen.lineTo((500, 350))
-    pen.lineTo((520, 370))
-    pen.lineTo((320, 670))
-    pen.closePath()
-
-def draw_branch_eq_shape(pen):
-    """分支底座"""
+    """semBranchNe: 不等 !="""
     pen.moveTo((250, 420))
     pen.lineTo((450, 420))
     pen.lineTo((450, 460))
@@ -220,10 +229,14 @@ def draw_branch_eq_shape(pen):
     pen.lineTo((650, 200))
     pen.lineTo((600, 200))
     pen.closePath()
+    pen.moveTo((300, 650))
+    pen.lineTo((500, 350))
+    pen.lineTo((520, 370))
+    pen.lineTo((320, 670))
+    pen.closePath()
 
 def draw_jump(pen):
     """semJump: 跳转 ↪"""
-    # 弧形箭头
     pen.moveTo((200, 600))
     pen.lineTo((600, 600))
     pen.lineTo((600, 400))
@@ -239,9 +252,20 @@ def draw_jump(pen):
     pen.closePath()
 
 def draw_jump_reg(pen):
-    """semJumpReg: 间接跳转 ↪x"""
-    draw_jump(pen)
-    # 右下角小 x
+    """semJumpReg: 间接跳转"""
+    pen.moveTo((200, 600))
+    pen.lineTo((600, 600))
+    pen.lineTo((600, 400))
+    pen.lineTo((650, 400))
+    pen.lineTo((600, 300))
+    pen.lineTo((550, 400))
+    pen.lineTo((600, 400))
+    pen.closePath()
+    pen.moveTo((200, 600))
+    pen.lineTo((200, 560))
+    pen.lineTo((560, 560))
+    pen.lineTo((560, 380))
+    pen.closePath()
     pen.moveTo((680, 650))
     pen.lineTo((750, 720))
     pen.lineTo((740, 730))
@@ -254,8 +278,7 @@ def draw_jump_reg(pen):
     pen.closePath()
 
 def draw_lui(pen):
-    """semLui: 高位立即数 ↑H"""
-    # 上箭头 (高位填充)
+    """semLui: 高位立即数"""
     pen.moveTo((500, 200))
     pen.lineTo((540, 200))
     pen.lineTo((540, 500))
@@ -264,7 +287,6 @@ def draw_lui(pen):
     pen.lineTo((440, 500))
     pen.lineTo((500, 500))
     pen.closePath()
-    # H 标记
     pen.moveTo((620, 300))
     pen.lineTo((640, 300))
     pen.lineTo((640, 450))
@@ -279,71 +301,67 @@ def draw_lui(pen):
     pen.lineTo((620, 650))
     pen.closePath()
 
-# ── 导出映射 ─────────────────────────────────────────────
+# ── 符号表 ───────────────────────────────────────────────
 SEM_GLYPHS = [
-    ("sem_add",      0xF100, draw_plus),
-    ("sem_sub",      0xF101, draw_minus),
-    ("sem_and",      0xF102, draw_and),
-    ("sem_or",       0xF103, draw_or),
-    ("sem_xor",      0xF104, draw_xor),
-    ("sem_sll",      0xF105, draw_sll),
-    ("sem_srl",      0xF106, draw_srl),
-    ("sem_sra",      0xF107, draw_sra),
-    ("sem_slt",      0xF108, draw_slt),
-    ("sem_load",     0xF109, draw_load),
-    ("sem_store",    0xF10A, draw_store),
+    ("sem_add",       0xF100, draw_plus),
+    ("sem_sub",       0xF101, draw_minus),
+    ("sem_and",       0xF102, draw_and),
+    ("sem_or",        0xF103, draw_or),
+    ("sem_xor",       0xF104, draw_xor),
+    ("sem_sll",       0xF105, draw_sll),
+    ("sem_srl",       0xF106, draw_srl),
+    ("sem_sra",       0xF107, draw_sra),
+    ("sem_slt",       0xF108, draw_slt),
+    ("sem_load",      0xF109, draw_load),
+    ("sem_store",     0xF10A, draw_store),
     ("sem_branch_eq", 0xF10B, draw_branch_eq),
     ("sem_branch_ne", 0xF10C, draw_branch_ne),
-    ("sem_jump",     0xF10D, draw_jump),
-    ("sem_jump_reg", 0xF10E, draw_jump_reg),
-    ("sem_lui",      0xF10F, draw_lui),
+    ("sem_jump",      0xF10D, draw_jump),
+    ("sem_jump_reg",  0xF10E, draw_jump_reg),
+    ("sem_lui",       0xF10F, draw_lui),
 ]
 
 # ── 机器码查找表 (按 ISA 索引) ──────────────────────────
 MACHINE_CODES = {
-    "sem_add":      {"RiscV": "00208033", "Arm64": "8B020020", "X86_64": "01D8",     "Mips": "00221020"},
-    "sem_sub":      {"RiscV": "40208033", "Arm64": "CB020020", "X86_64": "29D8",     "Mips": "00221022"},
-    "sem_and":      {"RiscV": "00207033", "Arm64": "8A020020", "X86_64": "21D8",     "Mips": None},
-    "sem_or":       {"RiscV": "00206033", "Arm64": "AA020020", "X86_64": "09D8",     "Mips": None},
-    "sem_xor":      {"RiscV": "00204033", "Arm64": "CA020020", "X86_64": "31D8",     "Mips": None},
-    "sem_sll":      {"RiscV": "00201033", "Arm64": None,        "X86_64": None,        "Mips": None},
-    "sem_srl":      {"RiscV": "00205033", "Arm64": None,        "X86_64": None,        "Mips": None},
-    "sem_sra":      {"RiscV": "40205033", "Arm64": None,        "X86_64": None,        "Mips": None},
-    "sem_slt":      {"RiscV": "0020A033", "Arm64": None,        "X86_64": None,        "Mips": None},
-    "sem_load":     {"RiscV": "0080A003", "Arm64": "F9400420", "X86_64": None,        "Mips": "8C220008"},
-    "sem_store":    {"RiscV": "0020A423", "Arm64": "F9000420", "X86_64": None,        "Mips": "AC220008"},
-    "sem_branch_eq": {"RiscV": "00200863", "Arm64": "04000054", "X86_64": None,       "Mips": None},
-    "sem_branch_ne": {"RiscV": "00201863", "Arm64": None,       "X86_64": None,        "Mips": None},
-    "sem_jump":     {"RiscV": "0080006F", "Arm64": None,       "X86_64": None,        "Mips": None},
-    "sem_jump_reg": {"RiscV": "00008067", "Arm64": None,       "X86_64": None,        "Mips": None},
-    "sem_lui":      {"RiscV": "12345037", "Arm64": None,       "X86_64": None,        "Mips": None},
+    "sem_add":       {"RiscV": "00208033", "Arm64": "8B020020", "X86_64": "01D8",  "Mips": "00221020"},
+    "sem_sub":       {"RiscV": "40208033", "Arm64": "CB020020", "X86_64": "29D8",  "Mips": "00221022"},
+    "sem_and":       {"RiscV": "00207033", "Arm64": "8A020020", "X86_64": "21D8",  "Mips": None},
+    "sem_or":        {"RiscV": "00206033", "Arm64": "AA020020", "X86_64": "09D8",  "Mips": None},
+    "sem_xor":       {"RiscV": "00204033", "Arm64": "CA020020", "X86_64": "31D8",  "Mips": None},
+    "sem_sll":       {"RiscV": "00201033", "Arm64": None,       "X86_64": None,     "Mips": None},
+    "sem_srl":       {"RiscV": "00205033", "Arm64": None,       "X86_64": None,     "Mips": None},
+    "sem_sra":       {"RiscV": "40205033", "Arm64": None,       "X86_64": None,     "Mips": None},
+    "sem_slt":       {"RiscV": "0020A033", "Arm64": None,       "X86_64": None,     "Mips": None},
+    "sem_load":      {"RiscV": "0080A003", "Arm64": "F9400420", "X86_64": None,     "Mips": "8C220008"},
+    "sem_store":     {"RiscV": "0020A423", "Arm64": "F9000420", "X86_64": None,     "Mips": "AC220008"},
+    "sem_branch_eq": {"RiscV": "00200863", "Arm64": "04000054", "X86_64": None,     "Mips": None},
+    "sem_branch_ne": {"RiscV": "00201863", "Arm64": None,       "X86_64": None,     "Mips": None},
+    "sem_jump":      {"RiscV": "0080006F", "Arm64": None,       "X86_64": None,     "Mips": None},
+    "sem_jump_reg":  {"RiscV": "00008067", "Arm64": None,       "X86_64": None,     "Mips": None},
+    "sem_lui":       {"RiscV": "12345037", "Arm64": None,       "X86_64": None,     "Mips": None},
 }
 
 def build_font(output_path):
-    """构建跨 ISA 语义字体"""
     glyph_order = [".notdef"]
-    glyphs = {}
+    glyphs = {".notdef": TTGlyphPen(None).glyph()}
     cmap = {}
 
-    # notdef (空白)
-    glyph_order.append(".notdef")
+    # 先创建 notdef
+    pen = TTGlyphPen(None)
+    draw_notdef(pen)
+    glyphs[".notdef"] = pen.glyph()
 
     for name, codepoint, draw_fn in SEM_GLYPHS:
-        glyph_name = name
-        glyph_order.append(glyph_name)
-
+        glyph_order.append(name)
         pen = TTGlyphPen(None)
         draw_fn(pen)
-        glyphs[glyph_name] = pen.glyph()
+        glyphs[name] = pen.glyph()
+        cmap[codepoint] = name
 
-        cmap[codepoint] = glyph_name
-
-    # 构建字体
     fb = FontBuilder(1024, isTTF=True)
     fb.setupGlyphOrder(glyph_order)
     fb.setupGlyf(glyphs)
     fb.setupCharacterMap(cmap)
-    fb.setupOS2(sTypoAscender=800, sTypoDescender=-200, usWinAscent=1024, usWinDescent=256)
     fb.setupNameTable({
         "familyName": "NJSG Semantics",
         "styleName": "Regular",
@@ -352,6 +370,7 @@ def build_font(output_path):
     fb.setupHead(unitsPerEm=1024)
     fb.setupHorizontalHeader(ascent=800, descent=-200)
     fb.setupHorizontalMetrics({g: (500, 0) for g in glyph_order})
+    fb.setupOS2(sTypoAscender=800, sTypoDescender=-200, usWinAscent=1024, usWinDescent=256)
     fb.setupPost()
 
     fb.font.save(output_path)
@@ -359,22 +378,19 @@ def build_font(output_path):
 
 if __name__ == "__main__":
     output = sys.argv[1] if len(sys.argv) > 1 else "semantics.ttf"
-
     font = build_font(output)
 
-    # 保存机器码映射 JSON
     json_path = output.replace(".ttf", "_mc.json")
     with open(json_path, "w") as f:
         json.dump(MACHINE_CODES, f, indent=2)
 
-    # 报告
     print(f"语义字体: {output} ({os.path.getsize(output)} bytes)")
     print(f"机器码映射: {json_path}")
     print(f"字形数: {len(SEM_GLYPHS)}")
     print(f"cmap 条目: {len(font.getBestCmap())}")
     print()
-    print("符号 → 码点 → 机器码 示例:")
-    for name, cp, _ in SEM_GLYPHS[:5]:
+    print("符号 -> 码点 -> 机器码:")
+    for name, cp, _ in SEM_GLYPHS:
         mc = MACHINE_CODES[name]
         rv = mc.get("RiscV") or "--"
         arm = mc.get("Arm64") or "--"

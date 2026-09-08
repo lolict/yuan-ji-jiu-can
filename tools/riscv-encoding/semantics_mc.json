@@ -1,0 +1,98 @@
+{
+  "sem_add": {
+    "RiscV": "00208033",
+    "Arm64": "8B020020",
+    "X86_64": "01D8",
+    "Mips": "00221020"
+  },
+  "sem_sub": {
+    "RiscV": "40208033",
+    "Arm64": "CB020020",
+    "X86_64": "29D8",
+    "Mips": "00221022"
+  },
+  "sem_and": {
+    "RiscV": "00207033",
+    "Arm64": "8A020020",
+    "X86_64": "21D8",
+    "Mips": null
+  },
+  "sem_or": {
+    "RiscV": "00206033",
+    "Arm64": "AA020020",
+    "X86_64": "09D8",
+    "Mips": null
+  },
+  "sem_xor": {
+    "RiscV": "00204033",
+    "Arm64": "CA020020",
+    "X86_64": "31D8",
+    "Mips": null
+  },
+  "sem_sll": {
+    "RiscV": "00201033",
+    "Arm64": null,
+    "X86_64": null,
+    "Mips": null
+  },
+  "sem_srl": {
+    "RiscV": "00205033",
+    "Arm64": null,
+    "X86_64": null,
+    "Mips": null
+  },
+  "sem_sra": {
+    "RiscV": "40205033",
+    "Arm64": null,
+    "X86_64": null,
+    "Mips": null
+  },
+  "sem_slt": {
+    "RiscV": "0020A033",
+    "Arm64": null,
+    "X86_64": null,
+    "Mips": null
+  },
+  "sem_load": {
+    "RiscV": "0080A003",
+    "Arm64": "F9400420",
+    "X86_64": null,
+    "Mips": "8C220008"
+  },
+  "sem_store": {
+    "RiscV": "0020A423",
+    "Arm64": "F9000420",
+    "X86_64": null,
+    "Mips": "AC220008"
+  },
+  "sem_branch_eq": {
+    "RiscV": "00200863",
+    "Arm64": "04000054",
+    "X86_64": null,
+    "Mips": null
+  },
+  "sem_branch_ne": {
+    "RiscV": "00201863",
+    "Arm64": null,
+    "X86_64": null,
+    "Mips": null
+  },
+  "sem_jump": {
+    "RiscV": "0080006F",
+    "Arm64": null,
+    "X86_64": null,
+    "Mips": null
+  },
+  "sem_jump_reg": {
+    "RiscV": "00008067",
+    "Arm64": null,
+    "X86_64": null,
+    "Mips": null
+  },
+  "sem_lui": {
+    "RiscV": "12345037",
+    "Arm64": null,
+    "X86_64": null,
+    "Mips": null
+  }
+}
