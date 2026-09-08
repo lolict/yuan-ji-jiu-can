@@ -1,0 +1,53 @@
+=== MLLL ISA 字体双向查找对照 ===
+
+正向: 语义指令 → 字体码点 → glyph-name
+反向: 字体码点 → 语义指令 → 机器码
+
+[ADD] → 语义键 → 码点 U+E000
+  从字体读 U+E000 → glyph ADD → 机器码 003100B3
+
+[SUB] → 语义键 → 码点 U+E001
+  从字体读 U+E001 → glyph SUB → 机器码 403100B3
+
+[AND] → 语义键 → 码点 U+E002
+  从字体读 U+E002 → glyph AND → 机器码 003170B3
+
+[OR] → 语义键 → 码点 U+E003
+  从字体读 U+E003 → glyph OR → 机器码 003160B3
+
+[XOR] → 语义键 → 码点 U+E004
+  从字体读 U+E004 → glyph XOR → 机器码 003140B3
+
+[SLT] → 语义键 → 码点 U+E005
+  从字体读 U+E005 → glyph SLT → 机器码 003120B3
+
+[SLTU] → 语义键 → 码点 U+E006
+  从字体读 U+E006 → glyph SLTU → 机器码 003130B3
+
+[SLL] → 语义键 → 码点 U+E007
+  从字体读 U+E007 → glyph SLL → 机器码 003110B3
+
+[SRL] → 语义键 → 码点 U+E008
+  从字体读 U+E008 → glyph SRL → 机器码 003150B3
+
+[SRA] → 语义键 → 码点 U+E009
+  从字体读 U+E009 → glyph SRA → 机器码 403150B3
+
+[ADDI] → 语义键 → 码点 U+E00A
+  从字体读 U+E00A → glyph ADDI → 机器码 00510093
+
+[LW] → 语义键 → 码点 U+E00B
+  从字体读 U+E00B → glyph LW → 机器码 00012083
+
+[SW] → 语义键 → 码点 U+E00C
+  从字体读 U+E00C → glyph SW → 机器码 00112023
+
+[BEQ] → 语义键 → 码点 U+E00D
+  从字体读 U+E00D → glyph BEQ → 机器码 00208063
+
+[JAL] → 语义键 → 码点 U+E00E
+  从字体读 U+E00E → glyph JAL → 机器码 000000EF
+
+[LUI] → 语义键 → 码点 U+E00F
+  从字体读 U+E00F → glyph LUI → 机器码 123450B7
+
