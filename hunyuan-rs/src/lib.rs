@@ -106,6 +106,12 @@ pub use data_orchestrator::{
     scan_project, DocEntry, ClusterResult, PolarityScore,
 };
 
+// ── v0.10.5 蚕蛹反向寄生壳 · 内核集成 ──
+pub mod parasite;
+pub use parasite::{
+    Parasite, ParasiteConfig,
+};
+
 // ── v0.12 判断之力 · 评价之力 · 逻辑组织 · 反馈闭环 ──
 pub mod judgment_power;
 
