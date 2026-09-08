@@ -129,9 +129,9 @@ func decodeBImm*(bits: uint32): int32 =
   let v = (imm12 shl 12) or (imm11 shl 11) or (imm10_5 shl 5) or (imm4_1 shl 1)
   # 符号扩展：bit 12
   if (v and (1 shl 12)) != 0:
-    result = int32(v or (0xFFFFFFFF'u32 shl 13))
+    result = cast[int32](v or (0xFFFFFFFF'u32 shl 13))
   else:
-    result = int32(v)
+    result = cast[int32](v)
 
 ## J-type 立即数 [21-bit signed, 20|10:1|11|19:12]
 ## 硬件要求：bit[0] 恒为 0（半字对齐）
@@ -149,29 +149,28 @@ func decodeJImm*(bits: uint32): int32 =
   let imm11    = (bits shr 20) and 0x1
   let imm10_1  = (bits shr 21) and 0x3FF
   let v = (imm20 shl 20) or (imm19_12 shl 12) or (imm11 shl 11) or (imm10_1 shl 1)
-  # 符号扩展：bit 20
   if (v and (1 shl 20)) != 0:
-    result = int32(v or (0xFFFFFFFF'u32 shl 21))
+    result = cast[int32](v or (0xFFFFFFFF'u32 shl 21))
   else:
-    result = int32(v)
+    result = cast[int32](v)
 
 ## I-type 立即数：12-bit signed [-2048, 2047]
 func encodeIImm*(imm: int32): uint32 =
   result = uint32(imm) and 0xFFF
 
 func decodeIImm*(bits: uint32): int32 =
-  # 符号扩展：bit 11
+  # 符号扩展：bit 11 — 使用 cast 做位 cast（避免 RangeDefect）
   if (bits and 0x800) != 0:
-    result = int32(bits or (0xFFFFFFFF'u32 shl 12))
+    result = cast[int32](bits or (0xFFFFFFFF'u32 shl 12))
   else:
-    result = int32(bits and 0xFFF)
+    result = cast[int32](bits and 0xFFF)
 
 ## U-type 立即数：20-bit (bits [31:12] = imm[31:12])
 func encodeUImm*(imm: int32): uint32 =
   result = uint32(imm) and 0xFFFFF
 
 func decodeUImm*(bits: uint32): int32 =
-  result = int32(bits shl 12)
+  result = cast[int32](bits shl 12)
 
 ## S-type 立即数（Store），12-bit signed，拆分 [11:5][4:0]
 func encodeSImm*(imm: int32): array[2, uint32] =
@@ -183,9 +182,9 @@ func decodeSImm*(hi: uint32; lo: uint32): int32 =
   let v = ((hi and 0x7F) shl 5) or (lo and 0x1F)
   # 符号扩展：bit 11
   if (v and 0x800) != 0:
-    result = int32(v or (0xFFFFFFFF'u32 shl 12))
+    result = cast[int32](v or (0xFFFFFFFF'u32 shl 12))
   else:
-    result = int32(v)
+    result = cast[int32](v)
 
 # ═══════════════════════════════════════════════════
 #  encode：semId + Operands → 32-bit 机器码（小端序4字节）
@@ -210,7 +209,9 @@ proc encodeRV32I*(semId: string; op: Operands): EncResult =
   of ifI:
     # 特殊：移位指令 SLLI/SRLI/SRAI 的 funct7 空间存 shamt
     if sid in ["SLLI", "SRLI", "SRAI"]:
-      dw = (uint32(op.shamt) shl 20) or (uint32(op.rs1) shl 15) or
+      # 移位立即数: funct7(0x00 for SLLI/SRLI, 0x20 for SRAI) 在 [31:25]
+      let f7 = if sid == "SRAI": 0x20'u32 else: 0'u32
+      dw = (f7 shl 25) or (uint32(op.shamt) shl 20) or (uint32(op.rs1) shl 15) or
            (uint32(def.funct3) shl 12) or (uint32(op.rd) shl 7) or uint32(def.opcode)
     # 特殊：ECALL/EBREAK 的 imm 字段存系统调用号
     elif sid == "ECALL":
@@ -255,6 +256,35 @@ proc encodeRV32I*(semId: string; op: Operands): EncResult =
 #  decode：32-bit 机器码（小端序4字节） → semId + Operands
 # ═══════════════════════════════════════════════════
 
+proc findDefByBits(opcode, funct3: uint8; dw: uint32): string =
+  ## 根据 opcode + funct3 + 指令中的歧义位定位语义 ID。
+  ## 注意：U-type (LUI=0x37 / AUIPC=0x17) 的 funct3 位是立即数的一部分，
+  ##        不是真实 funct3，必须跳过 funct3 匹配。
+  let funct7Field = uint8((dw shr 25) and 0x7F)
+  let immField12  = (dw shr 20) and 0xFFF
+  for d in RV32I_DEFS:
+    if d.opcode != opcode: continue
+    # U-type: funct3 位是 imm 的高 3 位，按 opcode 唯一匹配
+    if opcode in [0b0110111'u8, 0b0010111'u8]:
+      return d.semId
+    if d.funct3 != funct3: continue
+    case opcode
+    of 0b0110011:  # R-type: funct7 是真实的
+      if d.funct7 == funct7Field: return d.semId
+    of 0b0010011:  # I-type: 区分 SLLI/SRLI/SRAI 用 funct7(位[31:25])，ECALL/EBREAK 用 imm
+      if d.semId == "SLLI" and funct7Field == 0b0000000: return "SLLI"
+      if d.semId == "SRLI" and funct7Field == 0b0000000: return "SRLI"
+      if d.semId == "SRAI" and funct7Field == 0b0100000: return "SRAI"
+      if d.semId == "ECALL" and immField12 == 0: return "ECALL"
+      if d.semId == "EBREAK" and immField12 == 1: return "EBREAK"
+      if d.semId notin ["SLLI", "SRLI", "SRAI", "ECALL", "EBREAK"]: return d.semId
+    of 0b1110011:  # SYSTEM: ECALL / EBREAK
+      if d.semId == "ECALL" and immField12 == 0: return "ECALL"
+      if d.semId == "EBREAK" and immField12 == 1: return "EBREAK"
+    else:  # 其他 opcode+funct3 唯一对应一条指令
+      return d.semId
+  return ""
+
 proc decodeRV32I*(code: seq[uint8]): DecResult =
   ## 从 4 字节小端序 RV32I 机器码反推语义 ID + 操作数
   if code.len < 4:
@@ -264,52 +294,53 @@ proc decodeRV32I*(code: seq[uint8]): DecResult =
            (uint32(code[2]) shl 16) or (uint32(code[3]) shl 24)
 
   let opcode = uint8(dw and 0x7F)
-  let rd     = uint8((dw shr 7) and 0x1F)
   let funct3 = uint8((dw shr 12) and 0x7)
-  let rs1    = uint8((dw shr 15) and 0x1F)
-  let rs2    = uint8((dw shr 20) and 0x1F)
-  let funct7 = uint8((dw shr 25) and 0x7F)
 
-  initLuts()
-  let key = (uint32(opcode) shl 10) or (uint32(funct3) shl 7) or uint32(funct7)
-  let semId = if key in decodeLUT: decodeLUT[key] else: ""
-
+  let semId = findDefByBits(opcode, funct3, dw)
   if semId.len == 0:
     return DecResult(ok: false, error: ceUnknownOpcode,
-                     msg: "未知 opcode=" & toHex(opcode, 2) &
-                          " funct3=" & $funct3 & " funct7=" & $funct7)
+                     msg: "未知 opcode=" & toHex(opcode, 2) & " funct3=" & $funct3)
 
-  # 反推立即数
+  # 按格式相关字段提取操作数
   var op: Operands
-  op.rd  = rd
-  op.rs1 = rs1
-  op.rs2 = rs2
 
   case opcode
-  of 0b0110011: # R-type
-    discard  # 无立即数
-  of 0b0010011: # I-type ALU
+  of 0b0110011:  # R-type: funct7[31:25] rs2[24:20] rs1[19:15] funct3[14:12] rd[11:7] opcode[6:0]
+    op.rd  = uint8((dw shr 7) and 0x1F)
+    op.rs1 = uint8((dw shr 15) and 0x1F)
+    op.rs2 = uint8((dw shr 20) and 0x1F)
+  of 0b0010011:  # I-type ALU: imm[11:0][31:20] rs1[19:15] funct3[14:12] rd[11:7] opcode[6:0]
+    op.rd  = uint8((dw shr 7) and 0x1F)
+    op.rs1 = uint8((dw shr 15) and 0x1F)
     if semId in ["SLLI", "SRLI", "SRAI"]:
       op.shamt = uint8((dw shr 20) and 0x1F)
-    elif semId == "EBREAK":
-      discard  # imm=1 硬编码
     else:
       op.imm = decodeIImm(dw shr 20)
-  of 0b0000011: # Load
+  of 0b0000011:  # Load: imm[11:0][31:20] rs1[19:15] funct3[14:12] rd[11:7] opcode[6:0]
+    op.rd  = uint8((dw shr 7) and 0x1F)
+    op.rs1 = uint8((dw shr 15) and 0x1F)
     op.imm = decodeIImm(dw shr 20)
-  of 0b0100011: # Store
+  of 0b0100011:  # Store: imm[11:5][31:25] rs2[24:20] rs1[19:15] funct3[14:12] imm[4:0][11:7] opcode[6:0]
+    op.rs1 = uint8((dw shr 15) and 0x1F)
+    op.rs2 = uint8((dw shr 20) and 0x1F)
     let sHi = uint32(dw shr 25) and 0x7F
     let sLo = uint32(dw shr 7) and 0x1F
     op.imm = decodeSImm(sHi, sLo)
-  of 0b1100011: # Branch
+  of 0b1100011:  # Branch: rs2[24:20] rs1[19:15] imm 在 [31:25]/[11:7] funct3[14:12]
+    op.rs1 = uint8((dw shr 15) and 0x1F)
+    op.rs2 = uint8((dw shr 20) and 0x1F)
     op.imm = decodeBImm(dw)
-  of 0b1100111: # JALR
+  of 0b1100111:  # JALR: imm[11:0][31:20] rs1[19:15] funct3[14:12] rd[11:7] opcode[6:0]
+    op.rd  = uint8((dw shr 7) and 0x1F)
+    op.rs1 = uint8((dw shr 15) and 0x1F)
     op.imm = decodeIImm(dw shr 20)
-  of 0b1101111: # JAL
+  of 0b1101111:  # JAL: imm[20|10:1|11|19:12] rd[11:7] opcode[6:0]
+    op.rd  = uint8((dw shr 7) and 0x1F)
     op.imm = decodeJImm(dw)
-  of 0b0110111, 0b0010111: # LUI / AUIPC
-    op.imm = int32(dw and 0xFFFFF000'u32)
-  of 0b1110011: # ECALL / EBREAK
+  of 0b0110111, 0b0010111:  # LUI / AUIPC: imm[31:12] rd[11:7] opcode[6:0]
+    op.rd  = uint8((dw shr 7) and 0x1F)
+    op.imm = cast[int32](dw shr 12)    # 20-bit label
+  of 0b1110011:  # ECALL / EBREAK (imm 字段存 0/1，不拆回 Operands)
     discard
   else:
     discard

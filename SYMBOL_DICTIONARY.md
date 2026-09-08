@@ -1108,6 +1108,103 @@ Input → Perception → Distinguish → Lookup → Traverse → Cluster → Att
 
 ---
 
+## MCODE Stone · RV32I 精确编解码+MCOD 字体容器（tools/mcode-stone/）
+
+> 全 41 条 RV32I 指令 · R/I/S/B/U/J 六格式 · 仅加减 · 禁用乘除
+> 57/57 round-trip 全通过 · MCOD 自定义表写盘/读盘往返恒等 10/10
+
+### ms_types.nim — 通用类型层
+
+| 符号 | 含义 |
+|------|------|
+| Operands | 操作数对象（rd/rs1/rs2/imm/shamt）— 语义层配方，与 ISA 无关 |
+| EncodedInsn | encode 结果（semId / code: seq[uint8] / byteLen / bitLen） |
+| DecodedInsn | decode 结果（semId / operands / byteLen） |
+| CodecError | 错误码枚举（ceOk/ceUnknownSemId/ceInvalidOperands/ceTruncatedCode/ceUnknownOpcode/ceOutOfRangeImm） |
+| EncResult / DecResult | 带 ok 分支的结果对象 |
+| newOperands | 便捷构造器 (rd=0, rs1=0, rs2=0, imm=0, shamt=0) |
+| eq | Operands 五字段相等比较 |
+
+### ms_rv32i.nim — RV32I 精确编解码器
+
+| 符号 | 含义 |
+|------|------|
+| RV32I_DEFS | 指令定义序列（semId + opcode + funct3 + funct7）— 覆盖全部 41 条指令 |
+| initLuts() | 初始化双向查找表（bySemId + byOpcodeF3） |
+| encodeRV32I | 语义ID → Operands → seq[uint8]（4字节小端序机器码） |
+| decodeRV32I | seq[uint8] → DecodedInsn（反推 semId + Operands） |
+| roundtripRV32I | encode → decode → 对比原值恒等性 |
+| findDefByBits | opcode+funct3 → semId（LUI/AUIPC 跳 funct3 匹配，因 funct3 位是 imm 高 3 位） |
+| encodeR/I/S/B/U/JImm | 各格式立即数编码（纯加法和位运算，无乘除） |
+| decodeI/S/B/JImm | 各格式立即数解码（符号扩展用加法合成） |
+| rv32iInsnCount | 已注册指令计数 |
+
+**六格式位字段：**
+
+| 类型 | 位布局 | 示例 |
+|------|--------|------|
+| R-type | funct7[31:25] rs2[24:20] rs1[19:15] funct3[14:12] rd[11:7] opcode[6:0] | ADD/SUB/XOR/OR/AND/SLL/SRL/SRA/SLT/SLTU |
+| I-type | imm11:0[31:20] rs1[19:15] funct3[14:12] rd[11:7] opcode[6:0] | ADDI/ANDI/ORI/XORI/SLTI/SLTIU/SLLI/SRLI/SRAI/LW/LB/LH/LBU/LHU/JALR |
+| S-type | imm11:5[31:25] rs2[24:20] rs1 imm4:0[11:7] opcode | SW/SB/SH |
+| B-type | imm[12\|10:5] rs2 rs1 funct3 imm[4:1\|11] opcode | BEQ/BNE/BLT/BGE/BLTU/BGEU |
+| U-type | imm[31:12] rd[11:7] opcode[6:0] | LUI/AUIPC |
+| J-type | imm[20\|10:1\|11\|19:12] rd[11:7] opcode | JAL |
+
+**U-type 特殊性：** funct3 位[14:12] 是 imm 的高 3 位（非真实 funct3）；decode 按 opcode 唯一匹配，返回 imm = dw shr 12（20-bit label），rs1 不提取。
+
+### ms_font.nim — 纯 Nim OpenType/SFNT TTF 写入器
+
+| 符号 | 含义 |
+|------|------|
+| FontConfig | 字体配置（familyName/styleName/psName/version/manufacturer） |
+| CmapSegment / CmapPair | cmap 格式 4 段（编码↔ glyph ID） |
+| NameRecord | 名称记录（platformID/encodingID/languageID/nameID/offset/length/value） |
+| McodEntry | MCOD 条目（codepoint/semId/isaCode） |
+| FontConfig 输出表 | 11 个必需表：cmap/glyf/head/hhea/hmtx/loca/maxp/name/post/OS/2 + 自定义 MCOD 表 |
+
+**TTF 表清单：**
+
+| 表 | 功能 |
+|----|------|
+| head | 全局参数（unitsPerEm=2048, magic=0x5F0F3CF5, checksumAdjustment=0xB1B0AFBA - sum） |
+| hhea | 水平头（ascent=1638, descent=-410, lineGap=184） |
+| maxp | 轮廓最大值（numGlyphs/最大组件字段） |
+| hmtx | 水平度量（advanceWidth + lsb） |
+| cmap | 格式 4 子表（一对一段，PUA U+F000+ 一对一映射） |
+| loca | 偏移表（短格式，各 glyph 轮廓偏移） |
+| glyf | TrueType 轮廓（矩形: 16-bit signed deltas, ON_CURVE flag） |
+| post | PostScript（italicWeight=0,_fixedPitch=1） |
+| OS/2 | OS/2 指标（权重/宽度/xAvgCharWidth） |
+| name | 名称字符串（UTF-16 编码） |
+| MCOD | 自定义表（机器码↔语义ID Embedding） |
+
+### MCOD 自定义表二进制布局
+
+| 字段 | 类型 | 含义 |
+|------|------|------|
+| version | u16 | 版本（当前=1） |
+| numEntries | u16 | 条目数 |
+| strPoolOffset | u32 | 字符串池在表内的偏移（写入后回填） |
+| codePoolOffset | u32 | 代码池在表内的偏移 |
+| entries[] | u16×8 = 16 bytes | 每个条目：codepoint(u32) isaFlags(u32) semIdOffset(u16) semIdLength(u16) codeOffset(u16) codeLength(u16) |
+| strPool | UTF-8 bytes | 所有 semId 字符串池 |
+| codePool | raw bytes | 所有机器码字节池（小端序） |
+
+**PUA 码点：** U+F000 + i（第 i 条指令），glyph i+1（glyph 0 = .notdef）
+
+### ms_demo.nim — 全面验证程序
+
+三部分演示：57/57 round-trip + 9 条精确 decode + 16 条已知机器码对比
+
+### ms_mcod_demo.nim — MCOD 端到端演示
+
+三元组写盘→读盘→解码→re-encode 往返恒等：codepoint↔semId↔machineCode
+输出文件：hunyuan_rv32i_mcod.ttf（1532 字节）
+
+*登记日期：2026-09-08（MCODE Stone · 全 41 条 RV32I · round-trip 57/57 · MCOD E2E 10/10）*
+
+---
+
 ## 冰箱状态机（tools/fridge/）
 
 > 编译焖煮·运行时只取用。预计算所有动作序列，执行期零计算。

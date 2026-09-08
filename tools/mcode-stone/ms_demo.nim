@@ -40,13 +40,13 @@ when isMainModule:
     KnownCase(semId: "ADD",  op: newOperands(rd = 1, rs1 = 2, rs2 = 3),
               expected: "003100B3"),   # add x1, x2, x3
     KnownCase(semId: "SUB",  op: newOperands(rd = 2, rs1 = 3, rs2 = 4),
-              expected: "00418133"),   # sub x2, x3, x4
+              expected: "40418133"),   # sub x2, x3, x4
     KnownCase(semId: "XOR",  op: newOperands(rd = 10, rs1 = 11, rs2 = 12),
               expected: "00C5C533"),   # xor x10, x11, x12
     KnownCase(semId: "AND",  op: newOperands(rd = 5, rs1 = 6, rs2 = 7),
               expected: "007372B3"),   # and x5, x6, x7
     KnownCase(semId: "OR",   op: newOperands(rd = 8, rs1 = 9, rs2 = 10),
-              expected: "00A4C433"),   # or x8, x9, x10
+              expected: "00A4E433"),   # or x8, x9, x10
     KnownCase(semId: "SLL",  op: newOperands(rd = 4, rs1 = 8, rs2 = 2),
               expected: "00241233"),   # sll x4, x8, x2
 
@@ -70,7 +70,7 @@ when isMainModule:
 
     # Upper
     KnownCase(semId: "LUI",  op: newOperands(rd = 1, imm = 0x12345),
-              expected: "000000B7"),   # lui x1, 0x0 (低20位截断)
+              expected: "123450B7"),   # lui x1, 0x12345
     KnownCase(semId: "AUIPC",op: newOperands(rd = 2, imm = 0),
               expected: "00000117"),   # auipc x2, 0
 
@@ -155,9 +155,9 @@ when isMainModule:
     RTCase(semId: "JAL",   op: newOperands(rd = 1, imm = 0x100)),
     RTCase(semId: "JALR",  op: newOperands(rd = 0, rs1 = 1, imm = 4)),
 
-    # Upper
-    RTCase(semId: "LUI",   op: newOperands(rd = 2, imm = 0xABCDE000'i32)),
-    RTCase(semId: "AUIPC", op: newOperands(rd = 3, imm = 0x1000)),
+    # Upper (20-bit label, encode takes bits[31:12] directly)
+    RTCase(semId: "LUI",   op: newOperands(rd = 2, imm = 0xABCDE)),
+    RTCase(semId: "AUIPC", op: newOperands(rd = 3, imm = 0x56789)),
 
     # System
     RTCase(semId: "ECALL", op: noneOperands()),
@@ -194,9 +194,9 @@ when isMainModule:
 
   const DECODE_CASES: seq[CodeCase] = @[
     CodeCase(code: "003100B3", expectedSemId: "ADD"),
-    CodeCase(code: "00418133", expectedSemId: "SUB"),
+    CodeCase(code: "40418133", expectedSemId: "SUB"),
     CodeCase(code: "007372B3", expectedSemId: "AND"),
-    CodeCase(code: "00A4C433", expectedSemId: "OR"),
+    CodeCase(code: "00A4E433", expectedSemId: "OR"),
     CodeCase(code: "00C5C533", expectedSemId: "XOR"),
     CodeCase(code: "00700293", expectedSemId: "ADDI"),
     CodeCase(code: "00022183", expectedSemId: "LW"),
