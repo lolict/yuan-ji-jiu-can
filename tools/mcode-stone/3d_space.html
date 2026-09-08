@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>MCODE 三维空间索引 · 容器=字体=时间</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#0a0a0f; color:#e0e0e0; font-family:monospace; overflow:hidden; }
+  #canvas3d { width:100vw; height:100vh; display:block; }
+  #hud {
+    position:fixed; top:12px; left:12px; z-index:10;
+    background:rgba(10,10,20,0.85); border:1px solid #334;
+    padding:14px 18px; border-radius:6px; max-width:340px;
+    font-size:12px; line-height:1.6;
+  }
+  #hud h1 { font-size:14px; color:#8af; margin-bottom:8px; }
+  .legend { display:flex; align-items:center; gap:6px; margin:3px 0; }
+  .dot { width:10px; height:10px; border-radius:50%; }
+  .rv { background:#4af; }
+  .arm { background:#f4a; }
+  .x64 { background:#fd4; }
+  .mips { background:#4f8; }
+  #info {
+    position:fixed; bottom:12px; left:12px; z-index:10;
+    background:rgba(10,10,20,0.85); border:1px solid #334;
+    padding:10px 14px; border-radius:6px; font-size:11px;
+    min-width:260px;
+  }
+  .axis-x { color:#f4a; }
+  .axis-y { color:#4f8; }
+  .axis-z { color:#4af; }
+  #controls {
+    position:fixed; top:12px; right:12px; z-index:10;
+    background:rgba(10,10,20,0.85); border:1px solid #334;
+    padding:14px 18px; border-radius:6px; font-size:11px;
+    max-width:200px;
+  }
+  #controls label { display:block; margin:4px 0; }
+  #controls input[type=range] { width:100%; }
+</style>
+</head>
+<body>
+<canvas id="canvas3d"></canvas>
+
+<div id="hud">
+  <h1>MCODE 三维空间索引</h1>
+  <div>容器=字体=时间 · 三维投影</div>
+  <div style="margin-top:8px;">
+    <span class="axis-x">X轴=语义ID(8位)</span><br>
+    <span class="axis-y">Y轴=操作数编码(16位)</span><br>
+    <span class="axis-z">Z轴=时间/相位(8位)</span>
+  </div>
+  <div style="margin-top:10px; border-top:1px solid #334; padding-top:8px;">
+    <div class="legend"><span class="dot rv"></span>RISC-V</div>
+    <div class="legend"><span class="dot arm"></span>ARM64</div>
+    <div class="legend"><span class="dot x64"></span>x86-64</div>
+    <div class="legend"><span class="dot mips"></span>MIPS32</div>
+  </div>
+</div>
+
+<div id="info">移动鼠标旋转 · 滚轮缩放</div>
+
+<div id="controls">
+  <label>透明度: <input type="range" id="opacity" min="0.1" max="1" step="0.05" value="0.85"></label>
+  <label>节点大小: <input type="range" id="size" min="1" max="8" step="0.5" value="4"></label>
+  <label><input type="checkbox" id="labels" checked> 显示标签</label>
+  <label><input type="checkbox" id="links" checked> 显示对齐线</label>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// MCODE 三维空间索引渲染器
+// 不使用 Three.js 依赖 — 直接 Canvas 2D 投影
+// 容器(X) × 操作数(Y) × 时间(Z) = 32位坐标
+// ═══════════════════════════════════════════════════
+
+const canvas = document.getElementById('canvas3d');
+const ctx = canvas.getContext('2d');
+
+let W, H;
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ── 视角参数 ──
+let rotX = -0.4, rotY = 0.6, zoom = 1.0;
+let dragging = false, lastMX = 0, lastMY = 0;
+
+canvas.addEventListener('mousedown', e => { dragging=true; lastMX=e.clientX; lastMY=e.clientY; });
+canvas.addEventListener('mouseup', () => dragging=false);
+canvas.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  rotY += (e.clientX - lastMX) * 0.005;
+  rotX += (e.clientY - lastMY) * 0.005;
+  lastMX = e.clientX; lastMY = e.clientY;
+});
+canvas.addEventListener('wheel', e => {
+  zoom *= e.deltaY < 0 ? 1.1 : 0.9;
+  zoom = Math.max(0.3, Math.min(5, zoom));
+  e.preventDefault();
+}, { passive: false });
+
+// ── 3D 点结构 ──
+class P3 {
+  constructor(x, y, z, label, isa, semId) {
+    this.x = x; this.y = y; this.z = z;
+    this.label = label; this.isa = isa; this.semId = semId;
+  }
+  project() {
+    // 旋转
+    let { x, y, z } = this;
+    let cosX = Math.cos(rotX), sinX = Math.sin(rotX);
+    let cosY = Math.cos(rotY), sinY = Math.sin(rotY);
+    let x1 = x*cosY + z*sinY;
+    let z1 = -x*sinY + z*cosY;
+    let y1 = y*cosX - z1*sinX;
+    let z2 = y*sinX + z1*cosX;
+    // 透视投影
+    const f = 600 * zoom;
+    const scale = f / (f + z2 + 400);
+    return { sx: W/2 + x1 * scale, sy: H/2 + y1 * scale, depth: z2, scale };
+  }
+}
+
+// ── ISA 颜色 ──
+const ISA_COLORS = {
+  riscv: '#4af', arm64: '#f4a', x86_64: '#fd4', mips32: '#4f8'
+};
+
+// ── 生成坐标节点 ──
+// 语义ID X: 0x01-0x0F → 映射到 [-120, 120]
+// 操作数 Y: 根据操作数编码 → [-80, 80]
+// 时间 Z: 相位/时钟周期 → [-60, 60]
+const nodes = [];
+
+function makeNodes() {
+  const SEM = [
+    ['LOAD', 'Load'], ['STORE', 'Store'], ['ADD', 'Add'], ['ADDI', 'Addi'],
+    ['SUB', 'Sub'], ['AND', 'And'], ['OR', 'Or'], ['XOR', 'Xor'],
+    ['JMP', 'Jmp'], ['BNE', 'Bne'], ['BEQ', 'Beq'],
+    ['CALL', 'Call'], ['RET', 'Ret'], ['CMP', 'Cmp'], ['MOV', 'Mov']
+  ];
+  const ISAs = ['riscv', 'arm64', 'x86_64', 'mips32'];
+
+  for (let si = 0; si < SEM.length; si++) {
+    const [semId, label] = SEM[si];
+    const x = (si - 7) * 16;  // X: 语义ID → [-112, 112]
+    for (let isaIdx = 0; isaIdx < ISAs.length; isaIdx++) {
+      const isa = ISAs[isaIdx];
+      // Y: 操作数编码 (每个 ISA 略有不同)
+      const yBase = (isaIdx - 1.5) * 22;
+      const y = yBase + (si % 3 - 1) * 8;
+      // Z: 时钟周期相位 (指令延迟)
+      const z = ((si * 7 + isaIdx * 13) % 11 - 5) * 12;
+      nodes.push(new P3(x, y, z, label, isa, semId));
+    }
+  }
+  // 对齐线: ISA Z 方向连接到语义锚点
+  const anchorZ = 90;
+  for (let si = 0; si < SEM.length; si++) {
+    const [semId, label] = SEM[si];
+    const x = (si - 7) * 16;
+    nodes.push(new P3(x, 0, anchorZ, label + '_锚', 'anchor'));
+  }
+}
+makeNodes();
+
+// ── 轴绘制 ──
+function drawAxes(ctx) {
+  const len = 150;
+  const o = new P3(0, 0, 0, '');
+  const ox = new P3(len, 0, 0, '');
+  const oy = new P3(0, len, 0, '');
+  const oz = new P3(0, 0, len, '');
+  const op = o.project();
+  ctx.strokeStyle = '#334'; ctx.lineWidth = 1;
+  for (const [p, color] of [[ox,'#f44'],[oy,'#4f4'],[oz,'#44f']]) {
+    const pp = p.project();
+    ctx.strokeStyle = color + '40';
+    ctx.beginPath(); ctx.moveTo(op.sx, op.sy); ctx.lineTo(pp.sx, pp.sy); ctx.stroke();
+    ctx.fillStyle = color; ctx.font = '11px monospace';
+    ctx.fillText(p===ox?'X语义':p===oy?'Y操作数':'Z相位', pp.sx+4, pp.sy-4);
+  }
+}
+
+// ── 对齐线 ──
+function drawLinks(ctx) {
+  const anchors = nodes.filter(n => n.isa === 'anchor');
+  const anchorsBySem = {};
+  for (const a of anchors) anchorsBySem[a.semId] = a;
+
+  ctx.globalAlpha = 0.15;
+  for (const n of nodes) {
+    if (n.isa === 'anchor') continue;
+    const a = anchorsBySem[n.semId];
+    if (!a) continue;
+    const np = n.project(), ap = a.project();
+    ctx.strokeStyle = ISA_COLORS[n.isa];
+    ctx.lineWidth = 0.5;
+    ctx.beginPath(); ctx.moveTo(np.sx, np.sy); ctx.lineTo(ap.sx, ap.sy); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+}
+
+// ── 主渲染 ──
+function frame() {
+  ctx.clearRect(0, 0, W, H);
+
+  // 背景网格
+  ctx.strokeStyle = '#111118'; ctx.lineWidth = 0.5;
+  for (let i = -200; i <= 200; i += 40) {
+    const a = new P3(-200, 0, i, '').project();
+    const b = new P3(200, 0, i, '').project();
+    ctx.beginPath(); ctx.moveTo(a.sx, a.sy); ctx.lineTo(b.sx, b.sy); ctx.stroke();
+    const c = new P3(i, 0, -200, '').project();
+    const d = new P3(i, 0, 200, '').project();
+    ctx.beginPath(); ctx.moveTo(c.sx, c.sy); ctx.lineTo(d.sx, d.sy); ctx.stroke();
+  }
+
+  // 轴
+  drawAxes(ctx);
+
+  // 对齐线
+  if (document.getElementById('links').checked) drawLinks(ctx);
+
+  // 节点深度排序
+  const showLabels = document.getElementById('labels').checked;
+  const nodeSize = parseFloat(document.getElementById('size').value);
+  const opacity = parseFloat(document.getElementById('opacity').value);
+
+  const projected = nodes
+    .filter(n => n.isa !== 'anchor')
+    .map(n => ({ n, p: n.project() }))
+    .sort((a, b) => a.p.depth - b.p.depth);
+
+  for (const { n, p } of projected) {
+    const color = ISA_COLORS[n.isa] || '#888';
+    const r = nodeSize * p.scale * 1.2;
+    ctx.globalAlpha = opacity;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(p.sx, p.sy, r, 0, Math.PI * 2);
+    ctx.fill();
+    // 高光
+    ctx.globalAlpha = opacity * 0.6;
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(p.sx - r*0.25, p.sy - r*0.25, r*0.3, 0, Math.PI*2);
+    ctx.fill();
+    // 标签
+    if (showLabels && p.scale > 0.55) {
+      ctx.globalAlpha = 0.9;
+      ctx.font = '10px monospace';
+      ctx.fillStyle = color;
+      let tag = n.label;
+      ctx.fillText(tag, p.sx + r + 2, p.sy + 3);
+    }
+  }
+  ctx.globalAlpha = 1;
+
+  // 锚点(隐藏只画对齐线)
+  ctx.globalAlpha = 0.3;
+  for (const a of nodes.filter(n => n.isa === 'anchor')) {
+    const ap = a.project();
+    ctx.fillStyle = '#667';
+    ctx.fillRect(ap.sx-1.5, ap.sy-1.5, 3, 3);
+  }
+  ctx.globalAlpha = 1;
+
+  // HUD 信息
+  document.getElementById('info').textContent =
+    `节点: ${nodes.length} | 缩放: ${zoom.toFixed(2)}x | 视角: ${(rotX*57.3).toFixed(0)}°,${(rotY*57.3).toFixed(0)}°`;
+
+  requestAnimationFrame(frame);
+}
+
+frame();
+</script>
+</body>
+</html>
