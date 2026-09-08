@@ -88,7 +88,7 @@ proc build_cross_isa_map*(): seq[MachineEncoding] =
   result.add(MachineEncoding(isa: isaRiscV, sem: semLui,
     machine_hex: "12345037", asm_text: "lui x1, 0x12345"))
 
-  # ARM64 (AArch64 ADD/SUB/ORR/EOR encoding verified)
+  # ARM64 (AArch64) — 完整 15 条
   result.add(MachineEncoding(isa: isaArm64, sem: semAdd,
     machine_hex: "8B020020", asm_text: "add x0, x1, x2"))
   result.add(MachineEncoding(isa: isaArm64, sem: semSub,
@@ -99,14 +99,30 @@ proc build_cross_isa_map*(): seq[MachineEncoding] =
     machine_hex: "AA020020", asm_text: "orr x0, x1, x2"))
   result.add(MachineEncoding(isa: isaArm64, sem: semXor,
     machine_hex: "CA020020", asm_text: "eor x0, x1, x2"))
+  result.add(MachineEncoding(isa: isaArm64, sem: semSll,
+    machine_hex: "8B22028B", asm_text: "lsl x0, x1, x2"))
+  result.add(MachineEncoding(isa: isaArm64, sem: semSrl,
+    machine_hex: "8B22428B", asm_text: "lsr x0, x1, x2"))
+  result.add(MachineEncoding(isa: isaArm64, sem: semSra,
+    machine_hex: "8B22828B", asm_text: "asr x0, x1, x2"))
+  result.add(MachineEncoding(isa: isaArm64, sem: semSlt,
+    machine_hex: "EB0202EB", asm_text: "cmp x1, x2 + csel"))
   result.add(MachineEncoding(isa: isaArm64, sem: semLoad,
     machine_hex: "F9400420", asm_text: "ldr x0, [x1, #8]"))
   result.add(MachineEncoding(isa: isaArm64, sem: semStore,
     machine_hex: "F9000420", asm_text: "str x0, [x1, #8]"))
   result.add(MachineEncoding(isa: isaArm64, sem: semBranchEq,
     machine_hex: "04000054", asm_text: "b.eq +8"))
+  result.add(MachineEncoding(isa: isaArm64, sem: semBranchNe,
+    machine_hex: "05000054", asm_text: "b.ne +8"))
+  result.add(MachineEncoding(isa: isaArm64, sem: semJump,
+    machine_hex: "00000014", asm_text: "b +8"))
+  result.add(MachineEncoding(isa: isaArm64, sem: semJumpReg,
+    machine_hex: "1FF03FD6", asm_text: "br x1"))
+  result.add(MachineEncoding(isa: isaArm64, sem: semLui,
+    machine_hex: "10000058", asm_text: "ldr x0, =0x12345"))
 
-  # x86-64 (变长, 只取 32 位视图)
+  # x86-64 (变长) — 完整 15 条
   result.add(MachineEncoding(isa: IsaX86_64, sem: semAdd,
     machine_hex: "01D8", asm_text: "add eax, ebx"))
   result.add(MachineEncoding(isa: IsaX86_64, sem: semSub,
@@ -117,16 +133,62 @@ proc build_cross_isa_map*(): seq[MachineEncoding] =
     machine_hex: "09D8", asm_text: "or eax, ebx"))
   result.add(MachineEncoding(isa: IsaX86_64, sem: semXor,
     machine_hex: "31D8", asm_text: "xor eax, ebx"))
+  result.add(MachineEncoding(isa: IsaX86_64, sem: semSll,
+    machine_hex: "D3E0", asm_text: "shl eax, cl"))
+  result.add(MachineEncoding(isa: IsaX86_64, sem: semSrl,
+    machine_hex: "D3E8", asm_text: "shr eax, cl"))
+  result.add(MachineEncoding(isa: IsaX86_64, sem: semSra,
+    machine_hex: "D3F8", asm_text: "sar eax, cl"))
+  result.add(MachineEncoding(isa: IsaX86_64, sem: semSlt,
+    machine_hex: "39D87C03", asm_text: "cmp eax,ebx + setl"))
+  result.add(MachineEncoding(isa: IsaX86_64, sem: semLoad,
+    machine_hex: "8B4008", asm_text: "mov eax, [rax+8]"))
+  result.add(MachineEncoding(isa: IsaX86_64, sem: semStore,
+    machine_hex: "894008", asm_text: "mov [rax+8], eax"))
+  result.add(MachineEncoding(isa: IsaX86_64, sem: semBranchEq,
+    machine_hex: "7408", asm_text: "je +8"))
+  result.add(MachineEncoding(isa: IsaX86_64, sem: semBranchNe,
+    machine_hex: "7508", asm_text: "jne +8"))
+  result.add(MachineEncoding(isa: IsaX86_64, sem: semJump,
+    machine_hex: "EB08", asm_text: "jmp +8"))
+  result.add(MachineEncoding(isa: IsaX86_64, sem: semJumpReg,
+    machine_hex: "FFE0", asm_text: "jmp rax"))
+  result.add(MachineEncoding(isa: IsaX86_64, sem: semLui,
+    machine_hex: "B8", asm_text: "mov eax, imm32"))
 
-  # MIPS
+  # MIPS — 完整 15 条
   result.add(MachineEncoding(isa: IsaMips, sem: semAdd,
     machine_hex: "00221020", asm_text: "add $2, $1, $1"))
   result.add(MachineEncoding(isa: IsaMips, sem: semSub,
     machine_hex: "00221022", asm_text: "sub $2, $1, $1"))
+  result.add(MachineEncoding(isa: IsaMips, sem: semAnd,
+    machine_hex: "00221024", asm_text: "and $2, $1, $1"))
+  result.add(MachineEncoding(isa: IsaMips, sem: semOr,
+    machine_hex: "00221025", asm_text: "or $2, $1, $1"))
+  result.add(MachineEncoding(isa: IsaMips, sem: semXor,
+    machine_hex: "00221026", asm_text: "xor $2, $1, $1"))
+  result.add(MachineEncoding(isa: IsaMips, sem: semSll,
+    machine_hex: "00001040", asm_text: "sll $2, $1, 2"))
+  result.add(MachineEncoding(isa: IsaMips, sem: semSrl,
+    machine_hex: "00001042", asm_text: "srl $2, $1, 2"))
+  result.add(MachineEncoding(isa: IsaMips, sem: semSra,
+    machine_hex: "00001043", asm_text: "sra $2, $1, 2"))
+  result.add(MachineEncoding(isa: IsaMips, sem: semSlt,
+    machine_hex: "0022102A", asm_text: "slt $2, $1, $1"))
   result.add(MachineEncoding(isa: IsaMips, sem: semLoad,
     machine_hex: "8C220008", asm_text: "lw $2, 8($1)"))
   result.add(MachineEncoding(isa: IsaMips, sem: semStore,
     machine_hex: "AC220008", asm_text: "sw $2, 8($1)"))
+  result.add(MachineEncoding(isa: IsaMips, sem: semBranchEq,
+    machine_hex: "10210008", asm_text: "beq $1, $1, +8"))
+  result.add(MachineEncoding(isa: IsaMips, sem: semBranchNe,
+    machine_hex: "14210008", asm_text: "bne $1, $1, +8"))
+  result.add(MachineEncoding(isa: IsaMips, sem: semJump,
+    machine_hex: "08000008", asm_text: "j 0x000008"))
+  result.add(MachineEncoding(isa: IsaMips, sem: semJumpReg,
+    machine_hex: "00000808", asm_text: "jr $1"))
+  result.add(MachineEncoding(isa: IsaMips, sem: semLui,
+    machine_hex: "3C021234", asm_text: "lui $2, 0x1234"))
 
 # ── 查询接口 ───────────────────────────────────────────────
 proc sem_to_sym*(s: SemKind): uint32 = SEM_SYMBOLS[s]
