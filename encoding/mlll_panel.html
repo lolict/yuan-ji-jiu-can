@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>mlll · 囡囝容器面板</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#0a0a0f; color:#e0e0e0; font-family:'Courier New',monospace; font-size:13px; overflow:hidden; height:100vh; }
+
+  /* ── 布局 ── */
+  .main { display:grid; grid-template-columns:1fr 240px; grid-template-rows:1fr auto; height:100vh; gap:2px; }
+
+  /* ── 字车 (左) ── */
+  .cart-panel { background:#111118; padding:12px; overflow-y:auto; grid-row:1; }
+  .cart-title { font-size:11px; color:#666; margin-bottom:8px; letter-spacing:1px; }
+  .anchors { display:flex; gap:6px; margin-bottom:12px; }
+  .anchor-block { padding:6px 12px; border-radius:3px; font-size:11px; font-weight:bold; }
+  .anchor-wo { background:#1a3a5c; color:#7ec8e3; border:1px solid #2a5a7c; }
+  .anchor-cht { background:#3a1a3c; color:#e37ea0; border:1px solid #5a2a5c; }
+
+  .cart-grid { display:grid; grid-template-columns:repeat(10,1fr); gap:3px; }
+  .cart-slot { aspect-ratio:1; border:1px solid #222; border-radius:2px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:10px; color:#555; transition:all 0.2s; position:relative; }
+  .cart-slot:hover { border-color:#555; }
+  .cart-slot.occup { background:#1a2a1a; border-color:#2a4a2a; color:#6a9a6a; }
+  .cart-slot.selected { border-color:#ffcc00; box-shadow:0 0 4px rgba(255,204,0,0.4); }
+  .cart-slot.cursor { box-shadow:inset 0 0 0 2px #ffcc00; }
+  .cart-slot .slot-num { position:absolute; top:1px; left:2px; font-size:8px; color:#444; }
+
+  /* ── 寄存器 (右) ── */
+  .reg-panel { background:#111118; padding:12px; grid-row:1; overflow-y:auto; }
+  .reg-title { font-size:11px; color:#666; margin-bottom:8px; letter-spacing:1px; }
+  .reg-list { display:flex; flex-direction:column; gap:3px; }
+  .reg-entry { display:flex; align-items:center; gap:6px; padding:5px 8px; border:1px solid #222; border-radius:2px; font-size:11px; cursor:pointer; }
+  .reg-entry:hover { border-color:#555; }
+  .reg-entry.active { border-color:#7ec8e3; background:#0a1a2a; }
+  .reg-idx { color:#666; width:24px; }
+  .reg-val { color:#7ec8e3; flex:1; word-break:break-all; font-family:monospace; font-size:10px; }
+
+  .vm-status { margin-top:12px; padding:8px; background:#0a0a0f; border:1px solid #222; border-radius:2px; font-size:10px; color:#888; line-height:1.6; }
+  .vm-status span { color:#aaa; }
+
+  /* ── 详情 (右上折叠) ── */
+  .detail-box { margin-top:12px; padding:8px; background:#0a0a0f; border:1px solid #2a2a3a; border-radius:2px; font-size:10px; line-height:1.8; }
+  .detail-label { color:#666; }
+  .detail-val { color:#ccc; }
+  .detail-polarity-yin { color:#e37ea0; }
+  .detail-polarity-yang { color:#7ec8e3; }
+
+  /* ── 意图面板 (底部) ── */
+  .intent-panel { grid-column:1/3; background:#0d0d14; padding:10px 16px; border-top:1px solid #222; }
+  .intent-row { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+  .intent-row:last-child { margin-bottom:0; }
+  .intent-label { color:#555; font-size:10px; width:56px; text-align:right; letter-spacing:1px; }
+
+  .syllable-group { display:flex; flex-wrap:wrap; gap:3px; }
+  .syll-btn { padding:3px 8px; border:1px solid #333; background:#111; color:#999; border-radius:2px; cursor:pointer; font-size:11px; font-family:monospace; }
+  .syll-btn:hover { border-color:#666; color:#ccc; }
+  .syll-btn.active { border-color:#ffcc00; color:#ffcc00; background:#1a1a0a; }
+  .syll-btn.occup-sym { border-color:#4a6a4a; }
+
+  .call-btn { padding:6px 18px; background:#1a1a2a; border:1px solid #444; color:#ccc; border-radius:2px; cursor:pointer; font-size:11px; letter-spacing:1px; }
+  .call-btn:hover { background:#2a2a3a; border-color:#ffcc00; color:#ffcc00; }
+
+  .op-row { display:flex; gap:4px; }
+  .op-btn { padding:3px 10px; border:1px solid #333; background:#111; color:#888; border-radius:2px; cursor:pointer; font-size:11px; }
+  .op-btn:hover { border-color:#7ec8e3; color:#7ec8e3; }
+  .op-btn.active { border-color:#7ec8e3; background:#0a1a2a; color:#7ec8e3; }
+
+  /* ── log ── */
+  .log-box { margin-top:12px; padding:8px; background:#0a0a0f; border:1px solid #1a1a1a; border-radius:2px; max-height:100px; overflow-y:auto; font-size:10px; color:#555; line-height:1.5; font-family:monospace; }
+  .log-entry { padding:1px 0; border-bottom:1px solid #111; }
+  .log-ok { color:#5a8a5a; }
+  .log-err { color:#8a5a5a; }
+  .log-info { color:#5a6a8a; }
+</style>
+</head>
+<body>
+<div class="main">
+
+  <!-- 字车 -->
+  <div class="cart-panel">
+    <div class="cart-title">字车 MLLL · 254+2</div>
+    <div class="anchors">
+      <div class="anchor-block anchor-cht" id="anchor-0" onclick="showAnchor(0)">刘楚恬 · 0 · 阴</div>
+      <div class="anchor-block anchor-wo" id="anchor-1" onclick="showAnchor(1)">我 · 1 · 阳</div>
+    </div>
+    <div class="cart-grid" id="cartGrid"></div>
+    <div class="log-box" id="logBox"></div>
+  </div>
+
+  <!-- 寄存器 -->
+  <div class="reg-panel">
+    <div class="reg-title">寄存器组 · 16</div>
+    <div class="reg-list" id="regList"></div>
+    <div class="vm-status" id="vmStatus">
+      PC: <span id="stPc">0</span><br>
+      SP: <span id="stSp">0</span><br>
+      状态: <span id="stRun">就绪</span><br>
+      裁判: <span id="stAdmit">—</span>
+    </div>
+    <div class="detail-box" id="detailBox">
+      <span class="detail-label">选中的容器</span><br>
+      <span class="detail-val" id="detInfo">点击字车槽查看</span>
+    </div>
+  </div>
+
+  <!-- 意图面板 -->
+  <div class="intent-panel">
+    <div class="intent-row">
+      <span class="intent-label">声母</span>
+      <div class="syllable-group" id="shengmuGroup"></div>
+    </div>
+    <div class="intent-row">
+      <span class="intent-label">韵母</span>
+      <div class="syllable-group" id="yunmuGroup"></div>
+    </div>
+    <div class="intent-row">
+      <span class="intent-label">声调</span>
+      <div class="syllable-group" id="toneGroup"></div>
+    </div>
+    <div class="intent-row" style="margin-top:4px;">
+      <span class="intent-label">操作</span>
+      <div class="op-row">
+        <button class="op-btn" data-op="LOAD" onclick="selectOp(this)">取 · LOAD</button>
+        <button class="op-btn" data-op="STORE" onclick="selectOp(this)">存 · STORE</button>
+        <button class="op-btn" data-op="MOVE" onclick="selectOp(this)">移 · MOVE</button>
+        <button class="op-btn" data-op="NOP" onclick="selectOp(this)">静 · NOP</button>
+      </div>
+      <button class="call-btn" style="margin-left:16px;" onclick="callOp()">呼唤执行</button>
+      <button class="call-btn" onclick="resetVM()">重置</button>
+      <button class="call-btn" onclick="seedDemo()">注入演示</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// mlll 数据模型 (对应 C 头文件结构)
+// ═══════════════════════════════════════════
+
+const MLLL_CART = 254;
+const MLLL_ANCHOR_COUNT = 2;
+const MLLL_TOTAL = 256;
+const MLLL_REGS = 16;
+
+// 声母 (24 + 零声母)
+const SHENGMU = ['b','p','m','f','d','t','n','l','g','k','h','j','q','x','zh','ch','sh','r','z','c','s','y','w','∅'];
+// 韵母
+const YUNMU = ['a','o','e','i','u','ü','ai','ei','ui','ao','ou','iu','ie','üe','er','an','en','in','un','ün','ang','eng','ing','ong','ia','iao','ian','iang','iong','ua','uo','uai','uan','uang','uei','uen'];
+// 声调
+const TONES = [1,2,3,4];
+
+// 极性
+const POLARITY = { 0:'阴(YIN)↓', 1:'阳(YANG)↑', 2:'盈', 3:'亏', 4:'虚', 5:'实', 6:'表', 7:'里' };
+// 层级
+const LEVEL = ['元','阶','层','代','世','界','域','场','馆','阁','门','户','庭','院','宫','殿','台','榭','楼','阁'];
+
+// 操作码名称
+const OP_NAMES = {
+  NOP:'空静 · NOP', LOAD:'取 · LOAD', STORE:'存 · STORE',
+  MOVE:'移 · MOVE', JUMP:'跳 · JUMP', CALL:'唤 · CALL',
+  RETURN:'归 · RETURN', YIELD:'让 · YIELD',
+  MIRROR:'观 · MIRROR', JUDGE:'裁 · JUDGE',
+  ENCODE:'编 · ENCODE', ADMIT:'准 · ADMIT', REJECT:'拒 · REJECT'
+};
+
+// mlll_whole_t
+let box;
+// mlll_vm_t
+let vm;
+
+function initBox() {
+  box = {
+    anchor: [
+      { slot:254, container:0x00000000, cunit:0, occupied:1 }, // 刘楚恬 = 阴
+      { slot:255, container:0x00000001, cunit:0, occupied:1 }  // 我 = 阳
+    ],
+    cart: [],
+    used: 0
+  };
+  for (let i = 0; i < MLLL_CART; i++) {
+    box.cart.push({ slot:i, container:0, cunit:0, occupied:0 });
+  }
+}
+
+function initVM() {
+  vm = {
+    reg: new Array(MLLL_REGS).fill(0),
+    pc: 0, sp: 0, running: 0, last_admit: 0,
+    program: null, box: box
+  };
+}
+
+// ═══════════════════════════════════════════
+// 渲染
+// ═══════════════════════════════════════════
+
+function renderCart() {
+  const grid = document.getElementById('cartGrid');
+  grid.innerHTML = '';
+  for (let i = 0; i < MLLL_CART; i++) {
+    const s = box.cart[i];
+    const div = document.createElement('div');
+    div.className = 'cart-slot' + (s.occupied ? ' occup' : '');
+    div.id = 'slot-' + i;
+    div.innerHTML = '<span class="slot-num">' + i + '</span>' + (s.occupied ? '●' : '');
+    div.onclick = () => selectSlot(i);
+    grid.appendChild(div);
+  }
+}
+
+function renderRegs() {
+  const list = document.getElementById('regList');
+  list.innerHTML = '';
+  for (let i = 0; i < MLLL_REGS; i++) {
+    const div = document.createElement('div');
+    div.className = 'reg-entry' + (i === 0 ? ' active' : '');
+    div.innerHTML = '<span class="reg-idx">R' + i + '</span><span class="reg-val">0x' + vm.reg[i].toString(16).padStart(8,'0') + '</span>';
+    div.onclick = () => selectReg(i);
+    list.appendChild(div);
+  }
+}
+
+function renderStatus() {
+  document.getElementById('stPc').textContent = vm.pc;
+  document.getElementById('stSp').textContent = vm.sp;
+  document.getElementById('stRun').textContent = vm.running ? '运行中' : '就绪';
+  document.getElementById('stAdmit').textContent = vm.last_admit ? '准入 ✓' : vm.last_admit === 0 ? '否决 ✗' : '—';
+}
+
+// ═══════════════════════════════════════════
+// 选择槽位
+// ═══════════════════════════════════════════
+
+let selectedSlot = -1;
+let selectedReg = 0;
+let selectedShengmu = -1;
+let selectedYunmu = -1;
+let selectedTone = -1;
+let selectedOp = 'NOP';
+
+function selectSlot(i) {
+  // 清除之前选中
+  if (selectedSlot >= 0) document.getElementById('slot-'+selectedSlot)?.classList.remove('selected');
+  selectedSlot = i;
+  document.getElementById('slot-'+i)?.classList.add('selected');
+
+  const s = box.cart[i];
+  const det = document.getElementById('detInfo');
+  if (!s.occupied) {
+    det.innerHTML = '<span class="detail-label">#' + i + ' · 空槽</span>';
+    return;
+  }
+  // 解码容器
+  const decoded = decodeContainer(s.container);
+  det.innerHTML =
+    '<span class="detail-label">#' + i + ' ·</span> <span style="color:#ffcc00">0x' + s.container.toString(16).padStart(8,'0') + '</span><br>' +
+    '<span class="detail-label">坐标:</span><span class="detail-val"> ' + decoded.coord + '</span><br>' +
+    '<span class="detail-label">极性:</span><span class="detail-val detail-polarity-' + (decoded.polarity===1?'yang':'yin') + '">' + POLARITY[decoded.polarity] + '</span><br>' +
+    '<span class="detail-label">主权:</span><span class="detail-val"> ' + decoded.sovereignty + '</span><br>' +
+    '<span class="detail-label">价值:</span><span class="detail-val"> ' + decoded.value + '</span><br>' +
+    '<span class="detail-label">层级:</span><span class="detail-val">' + (LEVEL[decoded.level] || '?') + '</span>';
+
+  log('选中槽 #' + i + ' · 0x' + s.container.toString(16), 'info');
+}
+
+function selectReg(i) {
+  document.querySelectorAll('.reg-entry').forEach(e => e.classList.remove('active'));
+  document.querySelectorAll('.reg-entry')[i]?.classList.add('active');
+  selectedReg = i;
+  log('选中寄存器 R' + i + ' = 0x' + vm.reg[i].toString(16).padStart(8,'0'), 'info');
+}
+
+function showAnchor(idx) {
+  const a = box.anchor[idx];
+  const det = document.getElementById('detInfo');
+  const name = idx === 0 ? '刘楚恬 · 阴(容器侧)' : '我 · 阳(内容侧)';
+  det.innerHTML =
+    '<span class="detail-label">锚点 #' + idx + ' ·</span><span style="color:'+(idx===0?'#e37ea0':'#7ec8e3')+'">' + name + '</span><br>' +
+    '<span class="detail-label">编码:</span><span class="detail-val"> 0x' + a.container.toString(16).padStart(8,'0') + '</span><br>' +
+    '<span class="detail-label">槽:</span><span class="detail-val"> ' + a.slot + '</span><br>' +
+    '<span class="detail-label">状态:</span><span class="detail-val"> 已占据 · 根基</span>';
+  log('查看锚点: ' + name, 'info');
+}
+
+// ═══════════════════════════════════════════
+// 容器编解码 (对应 SMRL 64位 + 自定义32位)
+// ═══════════════════════════════════════════
+
+function makeContainer(coord, polarity, sovereignty, value, level) {
+  // 简化的32位容器: [coord:8][polarity:8][sovereignty:8][level:8]
+  return ((coord & 0xFF) << 24) | ((polarity & 0xFF) << 16) | ((sovereignty & 0xFF) << 8) | (level & 0xFF);
+}
+
+function decodeContainer(c) {
+  return {
+    coord: (c >> 24) & 0xFF,
+    polarity: (c >> 16) & 0xFF,
+    sovereignty: (c >> 8) & 0xFF,
+    level: c & 0xFF
+  };
+}
+
+// ═══════════════════════════════════════════
+// 意面板: 声母 · 韵母 · 声调
+// ═══════════════════════════════════════════
+
+function buildSyllableButtons() {
+  const sg = document.getElementById('shengmuGroup');
+  const yg = document.getElementById('yunmuGroup');
+  const tg = document.getElementById('toneGroup');
+
+  SHENGMU.forEach((s,i) => {
+    const b = document.createElement('button');
+    b.className = 'syll-btn';
+    b.textContent = s;
+    b.onclick = () => selectSyll('shengmu', i, b);
+    sg.appendChild(b);
+  });
+
+  YUNMU.forEach((s,i) => {
+    const b = document.createElement('button');
+    b.className = 'syll-btn';
+    b.textContent = s;
+    b.onclick = () => selectSyll('yunmu', i, b);
+    yg.appendChild(b);
+  });
+
+  TONES.forEach(t => {
+    const b = document.createElement('button');
+    b.className = 'syll-btn';
+    b.textContent = ['阴平','阳平','上声','去声'][t-1];
+    b.onclick = () => selectSyll('tone', t, b);
+    tg.appendChild(b);
+  });
+}
+
+function selectSyll(type, idx, btn) {
+  const group = type === 'shengmu' ? shengmuGroup : type === 'yunmu' ? yyunmuGroup : toneGroup;
+  group.querySelectorAll('.syll-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  if (type === 'shengmu') selectedShengmu = idx;
+  else if (type === 'yunmu') selectedYunmu = idx;
+  else selectedTone = idx;
+
+  log('选择 ' + (type==='shengmu'?'声母':type==='yunmu'?'韵母':'声调') + ': ' + btn.textContent, 'info');
+}
+
+function selectOp(btn) {
+  document.querySelectorAll('.op-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedOp = btn.dataset.op;
+  log('操作: ' + OP_NAMES[selectedOp] + ' · ' + selectedOp, 'info');
+}
+
+// ═══════════════════════════════════════════
+// 呼唤执行
+// ═══════════════════════════════════════════
+
+function callOp() {
+  log('━━━ 呼唤执行: ' + OP_NAMES[selectedOp] + ' ━━━', 'info');
+
+  switch(selectedOp) {
+    case 'LOAD':
+      // 从字车取容器 → 寄存器
+      if (selectedSlot < 0) { log('✗ 未选中字车槽', 'err'); return; }
+      if (!box.cart[selectedSlot].occupied) { log('✗ 槽 #' + selectedSlot + ' 为空', 'err'); return; }
+      vm.reg[selectedReg] = box.cart[selectedSlot].container;
+      log('✓ LOAD: 槽#' + selectedSlot + ' → R' + selectedReg + ' · 0x' + vm.reg[selectedReg].toString(16).padStart(8,'0'), 'ok');
+      break;
+
+    case 'STORE':
+      // 寄存器 → 字车槽
+      if (selectedSlot < 0) { log('✗ 未选中目标槽', 'err'); return; }
+      box.cart[selectedSlot] = {
+        slot: selectedSlot,
+        container: vm.reg[selectedReg],
+        cunit: 1,
+        occupied: 1
+      };
+      box.used++;
+      log('✓ STORE: R' + selectedReg + ' → 槽#' + selectedSlot + ' · 0x' + vm.reg[selectedReg].toString(16).padStart(8,'0'), 'ok');
+      break;
+
+    case 'MOVE':
+      // 寄存器间移动 (R0 → R selectedReg)
+      vm.reg[selectedReg] = vm.reg[0];
+      log('✓ MOVE: R0 → R' + selectedReg + ' · 0x' + vm.reg[selectedReg].toString(16).padStart(8,'0'), 'ok');
+      break;
+
+    case 'NOP':
+      log('○ NOP · 静默', 'info');
+      break;
+  }
+
+  vm.pc++;
+  renderCart();
+  renderRegs();
+  renderStatus();
+}
+
+// ═══════════════════════════════════════════
+// 注入演示数据
+// ═══════════════════════════════════════════
+
+function seedDemo() {
+  // 放入一些演示容器到字车
+  const seeds = [
+    { coord:42, polarity:1, sovereignty:128, value:200, level:3 },  // 阳·代
+    { coord:88, polarity:0, sovereignty:64,  value:150, level:5 },  // 阴·界
+    { coord:13,polarity:1, sovereignty:255, value:80,  level:1 },  // 阳·阶
+    { coord:200,polarity:0, sovereignty:32, value:220, level:8 },  // 阴·馆
+    { coord:77, polarity:1, sovereignty:180,value:170, level:2 },  // 阳·层
+    { coord:155,polarity:0, sovereignty:90, value:40,  level:6 },  // 阴·域
+    { coord:33, polarity:1, sovereignty:200,value:110, level:4 },  // 阳·世
+    { coord:190,polarity:0, sovereignty:10, value:255, level:9 },  // 阴·阁
+  ];
+
+  let slot = 10;
+  seeds.forEach(s => {
+    const c = makeContainer(s.coord, s.polarity, s.sovereignty, s.value, s.level);
+    box.cart[slot] = { slot, container:c, cunit:1, occupied:1 };
+    slot++;
+  });
+  box.used += seeds.length;
+
+  renderCart();
+  log('● 注入 ' + seeds.length + ' 个演示容器 → 槽 #10-#' + (10+seeds.length-1), 'ok');
+}
+
+// ═══════════════════════════════════════════
+// 重置
+// ═══════════════════════════════════════════
+
+function resetVM() {
+  initBox();
+  initVM();
+  selectedSlot = -1;
+  selectedReg = 0;
+  selectedShengmu = -1;
+  selectedYunmu = -1;
+  selectedTone = -1;
+  selectedOp = 'NOP';
+  document.querySelectorAll('.syll-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.op-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('[data-op="NOP"]')?.classList.add('active');
+  renderCart();
+  renderRegs();
+  renderStatus();
+  document.getElementById('detInfo').innerHTML = '<span class="detail-label">选中的容器</span><br><span class="detail-val" id="detInfo">点击字车槽查看</span>';
+  log('═══ mlll 重置完成 ═══', 'ok');
+}
+
+// ═══════════════════════════════════════════
+// Log
+// ═══════════════════════════════════════════
+
+function log(msg, type) {
+  const box = document.getElementById('logBox');
+  const div = document.createElement('div');
+  div.className = 'log-entry log-' + (type || 'info');
+  div.textContent = msg;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+
+// ═══════════════════════════════════════════
+// 初始化
+// ═══════════════════════════════════════════
+
+initBox();
+initVM();
+buildSyllableButtons();
+renderCart();
+renderRegs();
+renderStatus();
+log('═══ mlll 容器面板 启动 ═══', 'ok');
+log('254容器 + 2锚点 · 16寄存器 · 可视化索引', 'info');
+log('或点击"注入演示"快速开始', 'info');
+
+</script>
+</body>
+</html>

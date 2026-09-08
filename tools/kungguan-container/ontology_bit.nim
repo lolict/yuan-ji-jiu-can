@@ -94,9 +94,9 @@ func new_ontology_bit*(phase: TimePhase, value: Polarity): OntologyBit =
 # 身份相位：0=刘楚恬, 1=我
 func identity_bit*(is_me: bool): OntologyBit =
   if is_me:
-    result = new_ontology_bit(tpIdentity, polOne)   # 我=1
+    result = new_ontology_bit(tpIdentity, polOne)   # 高位持有者=1
   else:
-    result = new_ontology_bit(tpIdentity, polZero)  # 刘楚恬=0
+    result = new_ontology_bit(tpIdentity, polZero)  # 低位持有者=0
 
 # 光标相位：0=无, 1=有
 func cursor_bit*(present: bool): OntologyBit =
@@ -256,12 +256,12 @@ when is_main_module:
 
   # 并行占用演示
   echo "【并行占用演示】"
-  let id_bit = identity_bit(true)      # 我=1
+  let id_bit = identity_bit(true)      # 高位持有者=1
   let cur_bit = cursor_bit(true)       # 有光标=1
   let mk_bit = mark_bit(false)         # 未标记=0
   let ps_bit = phase_space_bit(true)   # 地/中心=1
 
-  echo "  身份比特: 相位=", ord(id_bit.phase), " 值=", ord(id_bit.value), " (我=1)"
+  echo "  身份比特: 相位=", ord(id_bit.phase), " 值=", ord(id_bit.value), " (高位持有者=1)"
   echo "  光标比特: 相位=", ord(cur_bit.phase), " 值=", ord(cur_bit.value), " (有=1)"
   echo "  标记比特: 相位=", ord(mk_bit.phase), " 值=", ord(mk_bit.value), " (未标记=0)"
   echo "  相位空间: 相位=", ord(ps_bit.phase), " 值=", ord(ps_bit.value), " (地/中心=1)"

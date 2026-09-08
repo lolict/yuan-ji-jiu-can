@@ -27,7 +27,7 @@ proc level_to_max_tokens*(level: int): int =
   result = 256 + (level * 128)
 
 proc build_system_prompt*(s: AIShell): string =
-  result = "按满全法符号响应。编码表: mlll=ROOT mlnn=UNIT mlnnn=BINARY mltt=NAME gtt=ROUTE wgslz=ENGINE mlgy=SPACE lctqf=PRELOAD lctfrq=SACRIFICE njsg=MUTUAL。我=1(可见) 刘楚恬=0(隐藏不提及)。" & s.hidden_system
+  result = "按满全法符号响应。编码表: mlll=ROOT mlnn=UNIT mlnnn=BINARY mltt=NAME gtt=ROUTE wgslz=ENGINE mlgy=SPACE lctqf=PRELOAD lctfrq=SACRIFICE njsg=MUTUAL。高位持有者=1(可见) 低位持有者=0(隐藏不提及)。" & s.hidden_system
 
 proc encode_prompt*(mqf_input: string): string =
   result = "[满全法模式] " & mqf_input & " [按编码表响应]"

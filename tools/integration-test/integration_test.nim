@@ -280,7 +280,7 @@ proc run_integration_test() =
 
   echo ""
   echo " 通过: " & $pass & " / " & $(pass + fail)
-  echo " 根基: 满全法（我=1 可见 · 刘楚恬=0 隐藏）"
+  echo " 根基: 满全法（高位持有者=1 可见 · 低位持有者=0 隐藏）"
   echo " 容器: 254+2 集装箱 · 64 进制 · 九元层级 · 偏移率 0.1"
   echo " 新工具: #40 silkworm-shell 蚕蛹反向寄生壳"
   echo " 推送: GitHub ✓ · Gitee ✓"

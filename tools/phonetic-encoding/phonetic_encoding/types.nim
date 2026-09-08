@@ -17,7 +17,7 @@ type
   # 产权极性：主人=1（我/可见侧），外人=0（隐藏侧/未感知）
   Polarity* = enum
     plOutsider = 0   # 外人版：不具名、不具归属
-    plOwner = 1       # 主人版：我=1，具归属、可裁决
+    plOwner = 1       # 主人版：高位持有者=1，具归属、可裁决
 
   # 单个语音符号记录（产权镜像内置）
   PhoneticSymbol* = object

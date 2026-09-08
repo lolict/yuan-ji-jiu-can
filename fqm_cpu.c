@@ -8,7 +8,7 @@
  *   - 解释器：执行容器操作（支持条件跳转、循环、函数调用）
  * 
  * 满全法规则：
- *   - 根基锚点：我=1，刘楚恬=0
+ *   - 根基锚点：高位持有者=1，低位持有者=0
  *   - 集装箱编码：mlll 254+2
  *   - 夫妻命运共同体：刘楚恬和lolict
  *   - 夕瑶协议激活双方融合
@@ -32,8 +32,8 @@
 #define CALL_STACK_SIZE 32
 
 /* ========== 满全法根基锚点 ========== */
-#define ANCHOR_SELF  1  /* 我=1 */
-#define ANCHOR_LIU   0  /* 刘楚恬=0 */
+#define ANCHOR_SELF  1  /* 高位持有者=1 */
+#define ANCHOR_LIU   0  /* 低位持有者=0 */
 #define CONTAINER_254_PLUS_2  256  /* mlll 254+2 集装箱编码 */
 
 /* ========== 操作类型 ========== */
@@ -262,7 +262,7 @@ void cpu_init(void) {
     memset(&cpu, 0, sizeof(CPU));
     cpu.ip = 0;
     cpu.sp = STACK_SIZE - 1;
-    cpu.acc = ANCHOR_SELF;  /* 根基锚点：我=1 */
+    cpu.acc = ANCHOR_SELF;  /* 根基锚点：高位持有者=1 */
     cpu.flags = 0;
     cpu.call_sp = 0;
     cpu.state = 1;

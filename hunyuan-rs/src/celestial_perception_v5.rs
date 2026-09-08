@@ -9,7 +9,7 @@
 // 语言系统核心:
 //   1. 汉字容器编码 (HanziEncoding) — 汉字↔64位容器码, 基于笔画/结构/语义三维
 //   2. 声母韵母系统 (PhoneticSystem) — 声母遍历韵母的谐音路由
-//   3. 自进制转换 (SelfRadix) — 256进制(基础254+2锚点: 我=1, 刘楚恬=0)
+//   3. 自进制转换 (SelfRadix) — 256进制(基础254+2锚点: 高位持有者=1, 低位持有者=0)
 //   4. 命令解析器 (CommandParser) — 符号命令→系统动作
 //   5. 流属性位映射 (FlowPropertyBits) — 12位二元属性↔流属性互换
 //
@@ -58,7 +58,7 @@ use crate::celestial_perception_v4::PipelineResult as PipelineResultV4;
 ///   - 结构维度 (Structure Axis): 12种结构 → 4位
 ///   - 语义维度 (Semantic Axis): 8种属性 → 3位
 ///
-/// 满全法根基: "我=1, 刘楚恬=0" 这2个私有锚点提供语义根基
+/// 满全法根基: "高位持有者=1, 低位持有者=0" 这2个私有锚点提供语义根基
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct HanziEncoding(pub u32);
 
@@ -332,7 +332,7 @@ impl Default for HomophoneRouter {
 ///
 /// 根基定义:
 ///   - 空集基础: 254 + 2(私有锚点) = 256
-///   - 私有锚点: "我=1, 刘楚恬=0"
+///   - 私有锚点: "高位持有者=1, 低位持有者=0"
 ///   - 225 = 不进位的上限 (但这里可以到255, 225是象征值)
 ///   - 256 = 进位
 #[derive(Clone, Debug)]

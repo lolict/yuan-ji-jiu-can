@@ -14,8 +14,8 @@
 #   满全法:   njsg状态:payload (共生状态直接映射)
 #
 # 认证:
-#   我=1锚点 → Bearer Token 高位签名
-#   刘楚恬=0隐蔽锚点 → 请求指纹（对外不可见）
+#   高位持有者=1锚点 → Bearer Token 高位签名
+#   低位持有者=0隐蔽锚点 → 请求指纹（对外不可见）
 # ============================================================
 
 import os, osproc, strutils, json, strformat, uri
@@ -34,8 +34,8 @@ type
 
   ApiShell* = ref object
     base_url: string
-    auth_token: string      # 我=1 高位锚点 (可见)
-    hidden_fingerprint: string  # 刘楚恬=0 隐蔽 (对外不可见)
+    auth_token: string      # 高位持有者=1 高位锚点 (可见)
+    hidden_fingerprint: string  # 低位持有者=0 隐蔽 (对外不可见)
     adapter_name: string
     last_response: string
 
@@ -126,11 +126,11 @@ proc new_api_shell*(base_url: string; auth_token: string = ""): ApiShell =
 proc get*(s: ApiShell; path: string): ApiResponse =
   let url = s.base_url & encode_uri_path(path)
   var cmdArgs = @["-s", "-o", "/dev/stderr", "-w", "%{http_code}", url]
-  # 注入我=1 锚点 (高位 Bearer Token，对外可见)
+  # 注入高位持有者=1 锚点 (高位 Bearer Token，对外可见)
   if s.auth_token.len > 0:
     cmdArgs.add("-H")
     cmdArgs.add("Authorization: Bearer " & s.auth_token)
-  # 隐蔽锚点：用户代理标识刘楚恬=0 (不可见)
+  # 隐蔽锚点：用户代理标识低位持有者=0 (不可见)
   cmdArgs.add("-H")
   cmdArgs.add("X-MQF-Fingerprint: 0:hidden")
 
@@ -213,7 +213,7 @@ proc adapt_mengjichang*(s: ApiShell; api_name: string; api_url: string): bool =
   s.adapter_name = "api-shell:" & api_name
   echo "  [蚕蛹-API] 盟机场已适配: " & api_name & " → " & api_url
   echo "  [蚕蛹-API] 外部API将按满全法编码运作"
-  echo "  [蚕蛹-API] 认证: 我=1(Bearer可见) · 刘楚恬=0(指纹隐蔽)"
+  echo "  [蚕蛹-API] 认证: 高位持有者=1(Bearer可见) · 低位持有者=0(指纹隐蔽)"
   return true
 
 # ═══════════════════════════════════════════
@@ -226,8 +226,8 @@ proc report*(s: ApiShell) =
   echo "╚══════════════════════════════════════════════════╝"
   echo "  Base URL: " & s.base_url
   echo "  壳名: " & s.adapter_name
-  echo "  我=1锚点: " & (if s.auth_token.len > 0: "已激活" else: "未设置")
-  echo "  刘楚恬=0: " & s.hidden_fingerprint
+  echo "  高位持有者=1锚点: " & (if s.auth_token.len > 0: "已激活" else: "未设置")
+  echo "  低位持有者=0: " & s.hidden_fingerprint
   echo ""
   echo "  [方法映射]"
   echo "    get/获取/gtt     → GET"

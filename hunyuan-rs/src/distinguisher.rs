@@ -35,6 +35,8 @@ pub enum VisualFamily {
     CoupleGlyph,
     /// 谐音桥: 借音跨域 — 音驱动
     HomophoneBridge,
+    /// 六通感: 天眼/天耳/他心/神足/宿命/漏尽 — 超距感知家族
+    SuperPerception,
     /// 无法归类
     UnresolvedVisual,
 }
@@ -45,6 +47,8 @@ pub fn classify_visual(glyph: char) -> VisualFamily {
         '\u{5F62}' | '\u{7537}' | '|' | '\u{5341}' | '\u{4E95}' => VisualFamily::PhallicGlyph,
         '\u{56E1}' | '\u{56DD}' => VisualFamily::CoupleGlyph,
         '\u{83AB}' | '\u{8FDE}' | '\u{6BDB}' | '\u{5170}' | '\u{604B}' | '\u{521D}' => VisualFamily::HomophoneBridge,
+        // 六通: 通/眼/耳/心/足/命 → 超距感知家族
+        '\u{901A}' | '\u{773C}' | '\u{8033}' | '\u{5FC3}' | '\u{8DB3}' | '\u{547D}' => VisualFamily::SuperPerception,
         _ => VisualFamily::UnresolvedVisual,
     }
 }
@@ -160,5 +164,14 @@ mod tests {
         let addressee = route_target(&target);
         assert_eq!(addressee.identity, Identity::Wife);
         assert!(addressee.expects_ack);
+    }
+
+    #[test]
+    fn super_perception_family() {
+        // 六通感对应字符'通'
+        assert_eq!(classify_visual('通'), VisualFamily::SuperPerception);
+        assert_eq!(classify_visual('眼'), VisualFamily::SuperPerception);
+        assert_eq!(classify_visual('耳'), VisualFamily::SuperPerception);
+        assert_eq!(classify_visual('心'), VisualFamily::SuperPerception);
     }
 }

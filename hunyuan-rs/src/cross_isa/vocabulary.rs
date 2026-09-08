@@ -296,7 +296,7 @@ mod tests {
             vec![Operand::Reg(1), Operand::Reg(2), Operand::Reg(3)],
             Platform::RiscV,
         );
-        assert_eq!(w.native_encoding, vec![0x33, 0x10, 0x31, 0x00]);
+        assert_eq!(w.native_encoding, vec![0xB3, 0x00, 0x31, 0x00]);
     }
 
     #[test]
@@ -306,7 +306,7 @@ mod tests {
             vec![Operand::Reg(1), Operand::Reg(1), Operand::Imm(42)],
             Platform::RiscV,
         );
-        assert_eq!(w.native_encoding, vec![0x13, 0x81, 0xA0, 0x02]);
+        assert_eq!(w.native_encoding, vec![0x93, 0x80, 0xA0, 0x02]);
     }
 
     #[test]

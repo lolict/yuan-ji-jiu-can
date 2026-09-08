@@ -23,7 +23,7 @@ type Polarity* = enum
 # ── 引导阶段 ──
 type BootstrapPhase* = enum
   phaseLoadSpec      # 加载共享域规范
-  phaseVerifyAnchors # 验证锚点（我=1, 刘楚恬=0）
+  phaseVerifyAnchors # 验证锚点（高位持有者=1, 低位持有者=0）
   phaseLoadSymbols   # 加载符号表
   phaseCheckChain    # 检查版本时间链
   phaseLinkDomain    # 链接共享域（非克隆值）
@@ -95,8 +95,8 @@ type SymbolBootstrap* = object
   entanglement*: Entanglement
   
   # 锚点
-  anchor_visible*: string      # 我=1
-  anchor_hidden*: string       # 刘楚恬=0（对外不可见）
+  anchor_visible*: string      # 高位持有者=1
+  anchor_hidden*: string       # 低位持有者=0（对外不可见）
   
   # 引导结果
   bootstrap_ok*: bool

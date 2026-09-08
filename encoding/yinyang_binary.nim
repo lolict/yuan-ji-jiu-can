@@ -55,13 +55,13 @@ proc new_yinyang_engine*(): YinYangEngine =
     name: "lolict",
     value: yyYang,
     visible: true,
-    description: "我=1 · 主动 · 显现"
+    description: "高位持有者=1 · 主动 · 显现"
   )
   result.anchors["刘楚恬"] = Anchor(
     name: "刘楚恬",
     value: yyYin,
     visible: true,
-    description: "刘楚恬=0 · 从动 · 隐藏"
+    description: "低位持有者=0 · 从动 · 隐藏"
   )
 
 # ═══════════════════════════════════════════════════════════════
@@ -156,7 +156,7 @@ proc encode_symbiosis*(e: YinYangEngine, container_values: Table[string, int]): 
 proc report*(e: YinYangEngine): string =
   var lines: seq[string] = @[]
   lines.add("═══ YIN-YANG-BINARY 映射器 ═══")
-  lines.add("  私有锚点: 我(lolict)=1 · 刘楚恬=0")
+  lines.add("  私有锚点: 我(lolict)=1 · 低位持有者=0")
   lines.add("  根基模式: " & (if e.private_mode: "隐藏" else: "可见"))
   lines.add("  加法运算次数: " & $e.sum_history.len)
   lines.add("")

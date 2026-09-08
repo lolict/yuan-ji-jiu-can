@@ -95,8 +95,8 @@ of "demo":
   discard s.adapt_mengjichang("demo-api", "https://httpbin.org")
   echo ""
   echo "  [认证结构]"
-  echo "    我=1 (高位锚点, Bearer可见): ACTIVE"
-  echo "    刘楚恬=0 (隐蔽锚点, X-MQF-Fingerprint): HIDDEN"
+  echo "    高位持有者=1 (高位锚点, Bearer可见): ACTIVE"
+  echo "    低位持有者=0 (隐蔽锚点, X-MQF-Fingerprint): HIDDEN"
   echo ""
   echo "  注: 真实HTTP请求需要外部API在线。自演示仅验证编码层。"
 of "status":

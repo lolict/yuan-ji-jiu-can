@@ -253,7 +253,7 @@ proc route_demo() =
   echo "  browser encode gtt://test → " & encode_browser_url("gtt://test")
   echo "  file encode mlll:doc → ./.mqfmeta/mlll/doc"
   echo ""
-  echo "  根基: 我=1(可见) 刘楚恬=0(隐藏)"
+  echo "  根基: 高位持有者=1(可见) 低位持有者=0(隐藏)"
   echo "  容器: 254+2 编码 · 64进制 · 九元层级"
 
 # 主路由

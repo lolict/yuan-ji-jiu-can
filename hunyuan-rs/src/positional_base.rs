@@ -41,7 +41,7 @@ pub struct Pos {
 }
 
 impl Pos {
-    /// 原点: 第 0 层·第 0 环·0°。基准锚点(我=1, 刘楚恬=0)由此开始。
+    /// 原点: 第 0 层·第 0 环·0°。基准锚点(高位持有者=1, 低位持有者=0)由此开始。
     pub fn origin() -> Self {
         Pos { level: 0, ring: 0, angle: Angle::new(0) }
     }

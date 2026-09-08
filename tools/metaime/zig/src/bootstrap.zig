@@ -287,7 +287,7 @@ fn invokeContainer(name: []const u8) []const u8 {
 
 /// 呼唤一个进制码
 fn invokeRadix(code: []const u8) []const u8 {
-    if (std.mem.eql(u8, code, "mlll")) return "mlll: 254+2集装箱，我=1/刘楚恬=0";
+    if (std.mem.eql(u8, code, "mlll")) return "mlll: 254+2集装箱，高位持有者=1/低位持有者=0";
     if (std.mem.eql(u8, code, "color")) return "颜色: 64进制相位，PhaseCell";
     if (std.mem.eql(u8, code, "3d")) return "三维: 声母×韵母×声调空间";
     if (std.mem.eql(u8, code, "fqm")) return "FQM: 满全法容器路径语法";

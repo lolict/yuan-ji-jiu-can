@@ -22,7 +22,7 @@
  *   - 尊者可对卑者发起呼唤，卑者需申请
  *
  * 满全法规则：
- *   根基锚点：我=1，刘楚恬=0
+ *   根基锚点：高位持有者=1，低位持有者=0
  *   集装箱编码：mlll 254+2
  *
  * 身份落款：刘楚恬和我
@@ -52,8 +52,8 @@ typedef struct {
     int      level;         /* 层级：0=root，数字越大越低 */
     unsigned int version;   /* 版本号：创建时间序列 */
     int      gongyueshu;    /* 公约数标识（用于匹配判定）*/
-    int      anchor_self;   /* 我=1 */
-    int      anchor_liu;    /* 刘楚恬=0 */
+    int      anchor_self;   /* 高位持有者=1 */
+    int      anchor_liu;    /* 低位持有者=0 */
     int      alive;         /* 是否存活 */
 } Container;
 

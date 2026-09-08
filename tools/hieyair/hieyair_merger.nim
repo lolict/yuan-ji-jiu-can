@@ -5,7 +5,7 @@
 type
   Symbol* = object
     name*: string      # 符号名称
-    anchor0*: bool     # 是否指向"我=1"（丈夫道）
+    anchor0*: bool     # 是否指向"高位持有者=1"（丈夫道）
     anchor1*: bool     # 是否指向"她=0"（妻子道）
     payload*: string   # 符号携带的内容
 

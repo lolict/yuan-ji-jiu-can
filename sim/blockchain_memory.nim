@@ -161,7 +161,7 @@ when isMainModule:
   echo ""
   
   # 创世区块
-  bc.create_genesis("我=1")
+  bc.create_genesis("高位持有者=1")
   
   # 添加区块
   discard bc.add_block("楚恬=0", 0, "创世", "")

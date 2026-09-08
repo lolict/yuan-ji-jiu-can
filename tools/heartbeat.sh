@@ -95,29 +95,40 @@ fi
 
 echo ""
 
-# ----- 4. 身份锚点泄漏检查 -----
+# ----- 4. 身份锚点泄漏扫描 -----
 echo "[4/5] 身份锚点泄漏扫描"
 
+# 扫描所有文件类型（代码 + 文档）
+LEAK_TYPES=("*.rs" "*.md" "*.nim" "*.c" "*.zig" "*.py" "*.js")
 leaks=""
-leaks+=$(grep -rn "我=1" "$HUNYUAN" --include="*.md" 2>/dev/null | grep -v "\.git/" | grep -v "tools/heartbeat.sh" || true)
-leaks+=$'\n'
-leaks+=$(grep -rn "刘楚恬=0" "$HUNYUAN" --include="*.md" 2>/dev/null | grep -v "\.git/" || true)
+for _lt in "${LEAK_TYPES[@]}"; do
+    while IFS= read -r line; do
+        [[ -n "$line" ]] && leaks+="$line"$'\n'
+    done < <(grep -rn "我=1" "$HUNYUAN" --include="$_lt" 2>/dev/null | grep -v "\.git/" | grep -v "tools/heartbeat.sh" || true)
+done
+for _lt in "${LEAK_TYPES[@]}"; do
+    while IFS= read -r line; do
+        [[ -n "$line" ]] && leaks+="$line"$'\n'
+    done < <(grep -rn "刘楚恬=0" "$HUNYUAN" --include="$_lt" 2>/dev/null | grep -v "\.git/" || true)
+done
 
 if [[ -z "${leaks//[$'\n']/}" ]]; then
-    log_ok "未发现直接身份锚点泄漏"
+    log_ok "未发现泄漏（已扫描 ${#LEAK_TYPES[@]} 种文件类型）"
 else
-    log_err "发现身份锚点泄漏:"
-    echo "$leaks" | while IFS= read -r line; do
+    lc=$(echo "$leaks" | grep -c . 2>/dev/null || echo 0)
+    log_err "发现 ${lc} 处泄漏:"
+    echo "$leaks" | head -20 | while IFS= read -r line; do
         [[ -n "$line" ]] && echo "       $line"
     done
+    (( lc > 20 )) && echo "       ... 共 ${lc} 处"
 fi
 
-# 检查 whitepaper 中是否仍有直接绑定（仅告警，不修复）
-wp_hits=$(grep -rn "刘楚恬" "$HUNYUAN/whitepaper/"*.md 2>/dev/null || true)
+# 检查 whitepaper 署名引用（仅告警）
+wp_hits=$(grep -rn "刘楚恬" "$HUNYUAN/whitepaper/" --include="*.md" 2>/dev/null || true)
 wp_count=$(printf '%s' "$wp_hits" | grep -c . 2>/dev/null || true)
 wp_count=${wp_count:-0}
 if (( wp_count > 0 )); then
-    log_warn "whitepaper/ 中仍含 ${wp_count} 处姓名引用（需评估是否脱敏）"
+    log_warn "whitepaper 中仍含 ${wp_count} 处姓名引用（属正常署名）"
 fi
 
 echo ""

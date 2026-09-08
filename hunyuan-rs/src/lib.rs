@@ -55,6 +55,12 @@ pub mod unified_flow;
 // ── v0.10 容器进制 · 语文→数学对应规则 ──
 pub mod container_radix;
 
+// ── v0.1 汉字活容器 · 自描述符号系统 (Unicode + 关系层) ──
+pub mod glyph_living;
+
+// ── v0.11 跨平台词汇统一架构 — 容器=字体=时间 ──
+pub mod cross_isa;
+
 // ── v0.10 拓扑描述子系统 ──
 pub mod topo;
 
@@ -99,6 +105,9 @@ pub use data_orchestrator::{
     fnv1a, estimate_polarity, estimate_weight,
     scan_project, DocEntry, ClusterResult, PolarityScore,
 };
+
+// ── v0.12 判断之力 · 评价之力 · 逻辑组织 · 反馈闭环 ──
+pub mod judgment_power;
 
 // ── v0.11 关系代数子系统 ──
 pub mod rel;
@@ -404,7 +413,7 @@ pub use eco::{Ecosystem, snapshot_hash};
 
 // v0.5 底层舞台
 pub use triune::{BeingState, FlowDirection, Funnel, Funnel as TriuneFunnel,
-                 CollapseResult, TriuneVerdict, TriuneEngine};
+                 CollapseResult, TriuneVerdict, TriuneEngine, StaticAnchor};
 pub use funnel::{TimeGovernor, SpaceBatcher, FunnelScheduler, CascadedFunnel,
                 TimeLevel, SchedulerStatus};
 pub use fractal::{FractalNode, FractalLevel, FractalGrid, FractalCollapseResult,

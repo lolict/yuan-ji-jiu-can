@@ -93,8 +93,8 @@ proc check_zero_root*(text: string): CheckResult =
   if text.contains("0=刘") == false and text.contains("1=我") == false:
     # 检查是否修改了零维根(如果提到了0/1但没有正确定义)
     if text.contains("0=") or text.contains("1="):
-      if not text.contains("0=刘楚恬") and not text.contains("1=lolict") and not text.contains("我=1"):
-        if not text.contains("刘楚恬=0") and not text.contains("0=刘"):
+      if not text.contains("0=刘楚恬") and not text.contains("1=lolict") and not text.contains("高位持有者=1"):
+        if not text.contains("低位持有者=0") and not text.contains("0=刘"):
           violations.add("零维根定义可能被修改")
   
   result = CheckResult(
@@ -256,7 +256,7 @@ when isMainModule:
   # 测试1: 合规文本(本系统输出)
   let compliant_text = """
 容器本体论系统 · 公约数=1 · 公倍数=容器边界
-0=刘楚恬 · 1=lolict · 我=1
+0=刘楚恬 · 1=lolict · 高位持有者=1
 产权流追踪 · 容器控制台 · 笔画进制
 折叠操作 · 加法统摄 · 阴阳共生
 声母: b p m f · 韵母: a o e · 声调: 平仄

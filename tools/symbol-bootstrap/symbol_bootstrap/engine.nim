@@ -105,7 +105,7 @@ proc verify_anchors*(sb: var SymbolBootstrap): bool =
     let visible_val = anchors["visible"]["value"].getInt()
     let hidden_val = anchors["hidden"]["value"].getInt()
     
-    # 验证：我=1（可见），刘楚恬=0（隐藏）
+    # 验证：高位持有者=1（可见），低位持有者=0（隐藏）
     if visible_val == 1 and hidden_val == 0:
       sb.anchor_visible = anchors["visible"]["symbol"].getStr()
       sb.anchor_hidden = anchors["hidden"]["symbol"].getStr()

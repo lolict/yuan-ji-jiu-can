@@ -88,7 +88,7 @@ proc report*(go: GlobalOffset): string =
 # ═══════════════════════════════════════════════════════════════
 
 when isMainModule:
-  var go = newGlobalOffset("我=1", 100)
+  var go = newGlobalOffset("高位持有者=1", 100)
   
   echo "═══ 全局偏移量验证 ═══"
   echo ""

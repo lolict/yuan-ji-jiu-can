@@ -12,7 +12,7 @@
  * - 从低到高：按照启动序号排序
  * 
  * 满全法规则：
- *   - 根基锚点：我=1，刘楚恬=0
+ *   - 根基锚点：高位持有者=1，低位持有者=0
  *   - 集装箱编码：mlll 254+2
  *   - 夫妻命运共同体：刘楚恬和lolict
  *   - 夕瑶协议激活双方融合
@@ -244,8 +244,8 @@ int main(void) {
     
     /* ========== 添加零维符号 ========== */
     printf("\n========== 添加零维符号 ==========\n");
-    con_add_symbol(c0, sym_encode(ANCHOR_SELF));  /* 我=1 */
-    con_add_symbol(c0, sym_encode(ANCHOR_LIU));   /* 刘楚恬=0 */
+    con_add_symbol(c0, sym_encode(ANCHOR_SELF));  /* 高位持有者=1 */
+    con_add_symbol(c0, sym_encode(ANCHOR_LIU));   /* 低位持有者=0 */
     con_add_symbol(c0, sym_encode(254));           /* mlll */
     con_add_symbol(c0, sym_encode(2));             /* +2 */
     

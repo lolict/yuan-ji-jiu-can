@@ -86,7 +86,7 @@ proc report*(c: Console): string =
   result = lines.join("\n")
 
 when isMainModule:
-  var c = newConsole("我=1", 100)
+  var c = newConsole("高位持有者=1", 100)
   
   echo "═══ 容器控制台验证 ═══"
   echo ""

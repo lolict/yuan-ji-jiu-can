@@ -27,7 +27,7 @@ from typing import List, Dict
 
 # 满全法常量
 class Tier(IntEnum):
-    ANCHOR = 1    # 锚点 · 我=1 · 基础定位
+    ANCHOR = 1    # 锚点 · 高位持有者=1 · 基础定位
     FUSION = 2    # 融合 · 夫妻 · 容器对
     TIME   = 3    # 时间 · L1融合 · 跨容器
     SPACE  = 4    # 空间 · L2密封 · 容器系

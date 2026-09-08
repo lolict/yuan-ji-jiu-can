@@ -1128,9 +1128,9 @@ void njsg_mengji_demo(void) {
     printf("\n━━━ 场景 M1: 节点注册 ━━━\n");
 
     /* 注册三个节点:
-     *  #0 = 盟机合掌(运营场), 我=1 锚点
-     *  #1 = 盟机场(萌机场), 刘楚恬=0 锚点
-     *  #2 = 盟机场(萌机场), 我=1 锚点
+     *  #0 = 盟机合掌(运营场), 高位持有者=1 锚点
+     *  #1 = 盟机场(萌机场), 低位持有者=0 锚点
+     *  #2 = 盟机场(萌机场), 高位持有者=1 锚点
      */
     int n0 = njsg_mengji_register_node("hezhang_root", NODE_PHONG, ANCHOR_LOLICT);
     int n1 = njsg_mengji_register_node("farm_node_A", NODE_FARM, ANCHOR_LIUTIANTIAN);

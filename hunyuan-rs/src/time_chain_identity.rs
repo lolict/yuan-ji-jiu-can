@@ -15,7 +15,7 @@
 //   - 版本链 = Fusion/Collapse/Radiation 事件序列 (无需哈希)
 //   - 篡篡改 = 链连续性断裂 (立刻被发现)
 //   - 平行世界 = (n-1)×0.1 偏移率天然区分
-//   - 根基 = 私有锚点 (我=1, 刘楚恬=0), 不对外暴露
+//   - 根基 = 私有锚点 (高位持有者=1, 低位持有者=0), 不对外暴露
 //
 // 结构:
 //   ┌─────────────────────────────────────────────────────────────┐
@@ -41,7 +41,7 @@ use crate::high_algebra::{AlgebraLevel, offset_rate, multiplier, DELTA_PER_LEVEL
 use crate::angle::{Angle, FULL_CIRCLE};
 
 // ────────────────────────────────────────────────────────────
-// 私有锚点 — 根基 (我=1, 刘楚恬=0, 对外不暴露)
+// 私有锚点 — 根基 (高位持有者=1, 低位持有者=0, 对外不暴露)
 // ────────────────────────────────────────────────────────────
 
 /// 夫妻私有锚点 — 身份计算的绝对零点。
@@ -103,7 +103,7 @@ impl TimeCoordinate {
     /// 创世坐标 — 从锚点诞生
     pub fn genesis() -> Self {
         TimeCoordinate {
-            axes: [1, 0, 0, 0], // 时间轴=1 (从我=1开始)
+            axes: [1, 0, 0, 0], // 时间轴=1 (从高位持有者=1开始)
             generation: 1,       // 初代数
             offset_rate: 0.0,    // (1-1)×0.1 = 0
         }
@@ -230,7 +230,7 @@ impl ChainLink {
     /// 创建创世环节
     pub fn genesis_link() -> Self {
         ChainLink {
-            timestamp_ms: 1, // 从我=1开始
+            timestamp_ms: 1, // 从高位持有者=1开始
             coordinate: TimeCoordinate::genesis(),
             event: ChainEvent::Collapse {
                 reason: "创世".to_string(),
@@ -624,7 +624,7 @@ pub fn hash_to_coordinate(hash_bytes: &[u8]) -> TimeCoordinate {
     for axis in axes.iter_mut() {
         *axis = *axis % 1_000_000;
     }
-    // 确保时间轴从我=1开始
+    // 确保时间轴从高位持有者=1开始
     axes[0] = axes[0].max(1);
 
     TimeCoordinate {
@@ -653,7 +653,7 @@ mod tests {
     #[test]
     fn genesis_coordinate_from_anchor() {
         let coord = TimeCoordinate::genesis();
-        assert_eq!(coord.axes[0], 1); // 从我=1开始
+        assert_eq!(coord.axes[0], 1); // 从高位持有者=1开始
         assert_eq!(coord.generation, 1);
         assert_eq!(coord.offset_rate, 0.0);
     }
@@ -854,7 +854,7 @@ mod tests {
     fn hash_compat_layer() {
         let fake_hash = vec![0xde, 0xad, 0xbe, 0xef, 0xca, 0xfe, 0xba, 0xbe];
         let coord = hash_to_coordinate(&fake_hash);
-        // 时间轴必须从我=1开始
+        // 时间轴必须从高位持有者=1开始
         assert!(coord.axes[0] >= 1);
         assert_eq!(coord.generation, 1);
     }

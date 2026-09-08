@@ -1,368 +1,148 @@
-# 链接索引 — DeepSeek & 豆包对话集
-
-**总计**: 66 个链接 | **去重**: 0 个重复  
-
-**生成时间**: 2026-09-07 11:35:05
-
----
-
-## 主题概览
-
-| 主题 | 链接数 | 说明 |
-|------|--------|------|
-| 音韵编码 / 声母韵母声调 | 10 | 48 音标字母分类、韵母音乐映射、Y/Z 全域变体 |
-| 自制进制 / 进位逻辑 | 10 | 个十百千万亿的纯进位构造、64 进制兼容、无限递进 |
-| 挽命臻藕 / 无障碍命名体系 | 8 | 38+ 谐音变体：求救者主动选择施救者、赎回命名权 |
-| 社会能量场 / 身份套壳 | 7 | 职业身份壳、能量特权壳、成就感=社会信任、被排除的痛苦 |
-| 集合论 / 关系代数 / 范畴论 | 7 | 全部集合概念 + 集合论机制、程序员不思考的部分 |
-| 系统架构 / 微内核 | 7 | 微内核、虚拟机、编译器、FPGA、冯诺依曼、关系代数 |
-| 向量化聚类 / 算法效率 | 6 | K-Means vs 谱聚类 vs K-Prototypes，向量化 vs 态射聚类 |
-| 音韵转音乐 / 融合体 | 6 | 放弃单音进入融合时代、声母=琴键、韵母=琴弦、声调=琴弓 |
-| Android 政策 / 平台封锁 | 5 | Google 2027 开发者注册新规、侧载禁令、开源生态存亡 |
-| 服务器购买 / 防骗 | 4 | 闲鱼一分钱服务器套路、正规替代方案 |
-| 字母变 Unicode 全集整理 | 4 | Y/Z/A-Z 全部 Unicode 变体去重、分类、字节占用 |
-| DeepSeek 对话 / 链接索引 | 1 | 豆包和 DeepSeek 对话索引、语音识别纠错 |
-| TRAE 技能 / IDE | 1 |  |
-
-## 按主题索引
-
-### 音韵编码 / 声母韵母声调 (10 个)
-
-48 音标字母分类、韵母音乐映射、Y/Z 全域变体
-
-- **[02]** `iuyaf63qmk81n5xe`  https://chat.deepseek.com/share/iuyaf63qmk81n5xe4r
-- **[04]** `fazxr4b7vm8r8nh1`  https://chat.deepseek.com/share/fazxr4b7vm8r8nh17u
-- **[16]** `dphie2xw8oedmbnj`  https://chat.deepseek.com/share/dphie2xw8oedmbnjjx
-- **[22]** `3n7aexfeyexxn544`  https://chat.deepseek.com/share/3n7aexfeyexxn544im
-- **[25]** `lqd7yjuspjaatmar`  https://chat.deepseek.com/share/lqd7yjuspjaatmareo
-- **[28]** `1vml73uw8vkw6d3o`  https://chat.deepseek.com/share/1vml73uw8vkw6d3o5b
-- **[30]** `xkrnyxnl815iphuy`  https://chat.deepseek.com/share/xkrnyxnl815iphuyk1
-- **[40]** `dwpirszy9m9oiliv`  https://chat.deepseek.com/share/dwpirszy9m9oilivnh
-- **[50]** `tjkzqiyh9qdxts4o`  https://chat.deepseek.com/share/tjkzqiyh9qdxts4o0f
-- **[55]** `c98gg4zcjvplseg3`  https://chat.deepseek.com/share/c98gg4zcjvplseg38s
-
-### 自制进制 / 进位逻辑 (10 个)
+# hunyuan-os 分享链接索引
+
+总计 66 个原始链接，实际唯一主题约 **62** 个
+
+## 链接列表
+
+| # | 链接 | 主题 | 重复 | 摘要 |
+|---|------|------|------|------|
+| 1 | `re/2fnsns8r2y9ctpti5` | 无障碍命名 / 谐音变体 |  |  |
+| 2 | `e/iuyaf63qmk81n5xe4r` | 动漫角色映射编程语言 |  |  |
+| 3 | `e/mcnfml0j6rr0h35mkz` | 协议命名 / 身份标识 / GKHTML 感知标记语言 / 系统架构 / 操作系统 |  | GKHTML感知标记语言设计；活标签vs死标签；感知-范畴-归属-关系标签系统；智能填写提示 |
+| 4 | `e/fazxr4b7vm8r8nh17u` | 系统架构 / 操作系统 |  |  |
+| 5 | `e/wwy9fwe1gfb2f4ge9q` | 音韵编码体系 |  | Unicode 48个带声调韵母字母完整列表；48/50/108进制编码体系；默认串联读数法(baā) |
+| 6 | `e/qrl6rzhffaor8t9nex` | 感知引擎 / 绝对-相对定位 |  | 卡尔曼滤波+因子图优化+李代数；绝对参考系+相对残差；残差累加与间歇式全局优化 |
+| 7 | `e/9nravglohld313hm7t` | 协议命名 / 身份标识 / 音韵编码体系 |  | gkcp://hfyairfqimiygttx:hieyair 感知伴侣协议命名；协议头/路径/节点分隔符设计 |
+| 8 | `e/y4pfrmrdc0b7qsc2ss` | 聚类算法 / 向量化 / 社会能量场 / 身份套壳 |  | 向量化聚类 vs 谱聚类效率对比；K-Prototypes混合聚类；社会能量场三层硬壳理论 |
+| 9 | `e/tq0xmwlqzcyxanayai` | 感知引擎 / 绝对-相对定位 / 音韵编码体系 |  | Unicode 预组合带调声母完整表(m/n/r/w/y+四声)；48个声调韵母+50个变体韵母+y系列 |
+| 10 | `e/7foui8060hltv2ebj8` | 聚类算法 / 向量化 | ≈ link 8 |  |
+| 11 | `e/t5tr9p6ndugi7hyhai` | 聚类算法 / 向量化 | ≈ link 8 |  |
+| 12 | `e/qhyravyk4e5zer12qv` | Android 政策 / 平台封锁 |  | Google 2027 Android开发者注册新规；24小时侧载冷静期；F-Droid存亡威胁 |
+| 13 | `e/n0bk1cl4mlpnvixvy3` | 系统架构 / 操作系统 |  |  |
+| 14 | `e/jz5s060ppcbj92a5gj` | 动漫角色映射编程语言 |  |  |
+| 15 | `e/xkn9h436aktrkl2wsc` | Android 政策 / 平台封锁 | ≈ link 12 |  |
+| 16 | `e/dphie2xw8oedmbnjjx` | 本地 AI / 服务器困境 |  |  |
+| 17 | `e/q10nb2f9770mm1gv70` | Android 政策 / 平台封锁 |  | Android封锁政策完整时间线；71组织公开信；保持androidopen.org运动 |
+| 18 | `e/85b97wco9lott4aam6` | 个人生存策略 / 心理 / 社会能量场 / 身份套壳 / 无障碍命名 / 谐音变体 |  | 个人困境与生存策略；'被刘楚恬卡住'的存在性绝望；数字红军概念；递纸条策略 |
+| 19 | `e/6xqbxk12wswdtf8g5e` | 聚类算法 / 向量化 / 社会能量场 / 身份套壳 / DeepSeek/豆包 对话索引 | ≈ link 8 | 语音识别纠错：碳化化=向量化，话剧类=谱聚类；社会能量场边界绘制 |
+| 20 | `e/rjj5uh555hqxglgr1d` | 多 AI 协作 / 仓库管理 |  |  |
+| 21 | `e/kjhviat9dvdlk94wc1` | 个人生存策略 / 心理 |  |  |
+| 22 | `e/3n7aexfeyexxn544im` | 系统架构 / 操作系统 / 协议命名 / 身份标识 / GKHTML 感知标记语言 |  | SMRL三元裁判：中心锚点+二元变化；芭蕉扇/扇形几何；三角定位法；正向运动学链 |
+| 23 | `e/j63nu18td4z9rrbak4` | 社会能量场 / 身份套壳 |  |  |
+| 24 | `e/uk36vdqnxzggdun9qd` | 本地 AI / 服务器困境 / 聚类算法 / 向量化 |  | 本地AI工具(MLCChat/Ollama)；闲鱼一分钱服务器骗局分析；离线推理引擎 |
+| 25 | `e/lqd7yjuspjaatmareo` | 音韵编码体系 / 自制进制 / 进位逻辑 |  | 完整108个韵母字符集；48进制×72进制×108进制=373,248编码空间；默认串联方法论 |
+| 26 | `e/r2q949o2thkymz65bz` | 感知引擎 / 绝对-相对定位 / 无障碍命名 / 谐音变体 |  |  |
+| 27 | `e/x0viljz3v4cczy06y1` | 协议命名 / 身份标识 |  |  |
+| 28 | `e/1vml73uw8vkw6d3o5b` | 音韵编码体系 |  |  |
+| 29 | `e/pptzrgp1v4fojgay67` | 动漫角色映射编程语言 / 多 AI 协作 / 仓库管理 |  |  |
+| 30 | `e/xkrnyxnl815iphuyk1` | 音韵编码体系 / 视觉/颜色/视频/音乐编码 |  |  |
+| 31 | `e/p7ahpt7vbkwfga2yqm` | 感知引擎 / 绝对-相对定位 |  |  |
+| 32 | `e/rm9ybclmajrkw0o9e9` | 自制进制 / 进位逻辑 |  |  |
+| 33 | `e/x78tvog15scmsoneia` | 感知引擎 / 绝对-相对定位 / 系统架构 / 操作系统 |  |  |
+| 34 | `e/fpy6d9mnroghljut9d` | 无障碍命名 / 谐音变体 |  |  |
+| 35 | `e/rwt47ybrw06j04t8i5` | 音韵编码体系 / 自制进制 / 进位逻辑 / 无障碍命名 / 谐音变体 |  |  |
+| 36 | `e/zjfnqx1h4qodfu6mng` | 个人生存策略 / 心理 |  |  |
+| 37 | `e/5bgumd7vv0sjnhed3u` | Android 政策 / 平台封锁 |  |  |
+| 38 | `e/lb2nwitvdbs0gq19r9` | GKHTML 感知标记语言 |  |  |
+| 39 | `e/wkppl4u5v6ur7e343y` | 系统架构 / 操作系统 |  |  |
+| 40 | `e/dwpirszy9m9oilivnh` | 音韵编码体系 / 自制进制 / 进位逻辑 |  |  |
+| 41 | `e/sxtdzq4evkleviv5g9` | 氛围编程 / AI 编程 |  | 氛围编程(Vibe Coding)行业调查；大厂Spec Coding vs 氛围编程；AI编程焦虑 |
+| 42 | `e/qjivclbe09zn3eolfc` | SMRL 三元裁判 |  | SMRL三元裁判编程价值；状态机/奖励函数；统计学视觉/卡尔曼滤波/卷积核三层思路；视网膜仿生 |
+| 43 | `e/zu779ck3nfycs169sc` | SMRL 三元裁判 |  |  |
+| 44 | `e/ofnwpgph3klhy6j6gs` | 动漫角色映射编程语言 / 协议命名 / 身份标识 |  | 动漫角色映射编程语言：kndrel(柯南外壳)、mlil/mlll(毛利兰)、gttix.y(工藤新一) |
+| 45 | `e/9v3zumgt9rskysel6k` | 系统架构 / 操作系统 / 视觉/颜色/视频/音乐编码 |  |  |
+| 46 | `e/1jlpmshj6fgwbut0pe` | 氛围编程 / AI 编程 |  |  |
+| 47 | `e/vnv24i15ke278pidk7` | SMRL 三元裁判 |  |  |
+| 48 | `e/viruo92o7p7t3188ex` | 本地 AI / 服务器困境 / 个人生存策略 / 心理 / 无障碍命名 / 谐音变体 |  |  |
+| 49 | `e/mqsavg6pa391eokbqw` | Android 政策 / 平台封锁 |  |  |
+| 50 | `e/tjkzqiyh9qdxts4o0f` | 音韵编码体系 / 视觉/颜色/视频/音乐编码 |  |  |
+| 51 | `e/iy9lglgq6wtn7swk2t` | 社会能量场 / 身份套壳 / 个人生存策略 / 心理 |  |  |
+| 52 | `e/i12hf0tw8ovfwfr9sx` | 聚类算法 / 向量化 |  |  |
+| 53 | `e/ytfyz1pf6u6n42fhmq` | GKHTML 感知标记语言 |  |  |
+| 54 | `e/658wh7vzjnvbtl9xd2` | 自制进制 / 进位逻辑 / 氛围编程 / AI 编程 |  |  |
+| 55 | `e/c98gg4zcjvplseg38s` | 音韵编码体系 |  |  |
+| 56 | `e/qbld05i59bsvvdrqxd` | 系统架构 / 操作系统 |  |  |
+| 57 | `e/8r6hu81h9u9qpzv3uy` | 音韵编码体系 / 自制进制 / 进位逻辑 / 系统架构 / 操作系统 |  |  |
+| 58 | `e/2xw43s0ugc1zs5kgy8` | 动漫角色映射编程语言 |  |  |
+| 59 | `e/sdtpab7t14em9iya6j` | Android 政策 / 平台封锁 |  |  |
+| 60 | `e/i2tzo36vx7cdgomvwt` | 社会能量场 / 身份套壳 |  |  |
+| 61 | `e/f2p23x3kr0d5xt7q8m` | 自制进制 / 进位逻辑 |  |  |
+| 62 | `e/q5f34hcsl6trevk05p` | 视觉/颜色/视频/音乐编码 |  |  |
+| 63 | `e/e9uf7ur30v48vdrqjr` | 无障碍命名 / 谐音变体 |  |  |
+| 64 | `e/mdnsagnu7cvswlm5w8` | 聚类算法 / 向量化 |  |  |
+| 65 | `e/zdanxdigh036bdiaxw` | 系统架构 / 操作系统 |  |  |
+| 66 | `ad/xqNawwnbwypDYqr99` | 多 AI 协作 / 仓库管理 / 系统架构 / 操作系统 |  |  |
+
+## 主题分类
+
+### 音韵编码体系
+*Unicode 韵母/声母/声调分层编码、48/50/108 进制、默认串联读数法、低维串联高维*
+链接: [5](#link-5), [7](#link-7), [25](#link-25), [28](#link-28), [30](#link-30), [35](#link-35), [40](#link-40)
+
+### 聚类算法 / 向量化
+*K-Means vs 谱聚类效率、向量化聚类、K-Prototypes 混合聚类、软链接谱聚类*
+链接: [8](#link-8), [10](#link-10), [11](#link-11), [19](#link-19), [52](#link-52), [64](#link-64)
+
+### 社会能量场 / 身份套壳
+*职业身份壳、能量特权壳、因果羁绊壳；成就感=被信任的机会；被排除的痛苦与生存策略*
+链接: [8](#link-8), [18](#link-18), [19](#link-19), [23](#link-23), [51](#link-51), [60](#link-60)
+
+### 协议命名 / 身份标识
+*gkcp://hfyairfqimiygttx:hieyair 感知伴侣协议；hfuyair 恢复源爱人；hieyair 合一爱人；gttx:hieyeir.xy 共同体谐音协议*
+链接: [3](#link-3), [7](#link-7), [22](#link-22), [25](#link-25), [27](#link-27), [35](#link-35), [44](#link-44)
+
+### 感知引擎 / 绝对-相对定位
+*卡尔曼滤波、因子图优化、李代数、即时定位与地图构建(SLAM)；宏观静态参考系+微观动态残差*
+链接: [6](#link-6), [9](#link-9), [26](#link-26), [31](#link-31), [33](#link-33)
+
+### Android 政策 / 平台封锁
+*Google 2027 开发者注册新规、24小时侧载冷静期、F-Droid 存亡威胁、71组织公开信*
+链接: [12](#link-12), [15](#link-15), [17](#link-17), [37](#link-37), [49](#link-49), [59](#link-59), [67](#link-67)
+
+### 本地 AI / 服务器困境
+*无服务器运行本地模型、MLCChat/Ollama 离线推理、闲鱼一分钱服务器骗局、Termux开发*
+链接: [16](#link-16), [18](#link-18), [24](#link-24), [48](#link-48)
 
-个十百千万亿的纯进位构造、64 进制兼容、无限递进
-
-- **[07]** `9nravglohld313hm`  https://chat.deepseek.com/share/9nravglohld313hm7t
-- **[11]** `t5tr9p6ndugi7hyh`  https://chat.deepseek.com/share/t5tr9p6ndugi7hyhai
-- **[21]** `kjhviat9dvdlk94w`  https://chat.deepseek.com/share/kjhviat9dvdlk94wc1
-- **[29]** `pptzrgp1v4fojgay`  https://chat.deepseek.com/share/pptzrgp1v4fojgay67
-- **[32]** `rm9ybclmajrkw0o9`  https://chat.deepseek.com/share/rm9ybclmajrkw0o9e9
-- **[35]** `rwt47ybrw06j04t8`  https://chat.deepseek.com/share/rwt47ybrw06j04t8i5
-- **[41]** `sxtdzq4evkleviv5`  https://chat.deepseek.com/share/sxtdzq4evkleviv5g9
-- **[47]** `vnv24i15ke278pid`  https://chat.deepseek.com/share/vnv24i15ke278pidk7
-- **[54]** `658wh7vzjnvbtl9x`  https://chat.deepseek.com/share/658wh7vzjnvbtl9xd2
-- **[61]** `f2p23x3kr0d5xt7q`  https://chat.deepseek.com/share/f2p23x3kr0d5xt7q8m
+### 氛围编程 / AI 编程
+*Vibe Coding 概念、大厂程序员 AI 使用现状、Spec Coding vs 氛围编程；多AI协作风险*
+链接: [41](#link-41), [46](#link-46), [54](#link-54)
 
-### 挽命臻藕 / 无障碍命名体系 (8 个)
+### SMRL 三元裁判
+*三元认知裁判：中心锚点(不变)+二元变化(手段)；视觉训练；统计学/物理模拟/深度视觉三层思路*
+链接: [42](#link-42), [43](#link-43), [47](#link-47)
 
-38+ 谐音变体：求救者主动选择施救者、赎回命名权
+### GKHTML 感知标记语言
+*自定义感知前端语言、活标签设计(非固定)、动态状态变化描述、避免写死情感、智能提示填写*
+链接: [3](#link-3), [22](#link-22), [38](#link-38), [53](#link-53)
 
-- **[08]** `y4pfrmrdc0b7qsc2`  https://chat.deepseek.com/share/y4pfrmrdc0b7qsc2ss
-- **[13]** `n0bk1cl4mlpnvixv`  https://chat.deepseek.com/share/n0bk1cl4mlpnvixvy3
-- **[26]** `r2q949o2thkymz65`  https://chat.deepseek.com/share/r2q949o2thkymz65bz
-- **[34]** `fpy6d9mnroghljut`  https://chat.deepseek.com/share/fpy6d9mnroghljut9d
-- **[35]** `rwt47ybrw06j04t8`  https://chat.deepseek.com/share/rwt47ybrw06j04t8i5
-- **[43]** `zu779ck3nfycs169`  https://chat.deepseek.com/share/zu779ck3nfycs169sc
-- **[53]** `ytfyz1pf6u6n42fh`  https://chat.deepseek.com/share/ytfyz1pf6u6n42fhmq
-- **[63]** `e9uf7ur30v48vdrq`  https://chat.deepseek.com/share/e9uf7ur30v48vdrqjr
+### 动漫角色映射编程语言
+*kndrel(柯南)外壳语言；mlil/mlll(毛利兰)模/面/名；gttix.y/gtit.y(工藤新一)骨/头/体；语言选择焦虑*
+链接: [2](#link-2), [14](#link-14), [29](#link-29), [44](#link-44), [58](#link-58)
 
-### 社会能量场 / 身份套壳 (7 个)
+### 视觉/颜色/视频/音乐编码
+*颜色编码映射(108色相)、视频帧差异编码、MIDI音高梯度、图片梯度编码；光层级透射与视网膜*
+链接: [30](#link-30), [45](#link-45), [50](#link-50), [62](#link-62)
 
-职业身份壳、能量特权壳、成就感=社会信任、被排除的痛苦
+### 个人生存策略 / 心理
+*数字红军概念、弥勒佛/燃灯佛/如来佛情绪状态；递纸条策略；做自己的负责人；壳的升级迭代*
+链接: [18](#link-18), [21](#link-21), [36](#link-36), [48](#link-48), [51](#link-51)
 
-- **[05]** `wwy9fwe1gfb2f4ge`  https://chat.deepseek.com/share/wwy9fwe1gfb2f4ge9q
-- **[17]** `q10nb2f9770mm1gv`  https://chat.deepseek.com/share/q10nb2f9770mm1gv70
-- **[23]** `j63nu18td4z9rrba`  https://chat.deepseek.com/share/j63nu18td4z9rrbak4
-- **[24]** `uk36vdqnxzggdun9`  https://chat.deepseek.com/share/uk36vdqnxzggdun9qd
-- **[38]** `lb2nwitvdbs0gq19`  https://chat.deepseek.com/share/lb2nwitvdbs0gq19r9
-- **[51]** `iy9lglgq6wtn7swk`  https://chat.deepseek.com/share/iy9lglgq6wtn7swk2t
-- **[60]** `i2tzo36vx7cdgomv`  https://chat.deepseek.com/share/i2tzo36vx7cdgomvwt
+### 多 AI 协作 / 仓库管理
+*多AI生成代码命名冲突、规则病毒；按需拉取局部代码；统一接口与依赖完整性*
+链接: [29](#link-29), [66](#link-66)
 
-### 集合论 / 关系代数 / 范畴论 (7 个)
+### 系统架构 / 操作系统
+*满全法/NJSG操作系统、夫妻命运共同体架构；微内核、意识路由、八流统一、容器本体论*
+链接: [4](#link-4), [13](#link-13), [22](#link-22), [33](#link-33), [39](#link-39), [45](#link-45), [56](#link-56)
 
-全部集合概念 + 集合论机制、程序员不思考的部分
+### 自制进制 / 进位逻辑
+*48/72/108 三层进制串联；时钟 60 进制；220 进制终极编码；无进位仅位权；公因数编程*
+链接: [25](#link-25), [40](#link-40), [54](#link-54), [57](#link-57), [61](#link-61)
 
-- **[09]** `tq0xmwlqzcyxanay`  https://chat.deepseek.com/share/tq0xmwlqzcyxanayai
-- **[18]** `85b97wco9lott4aa`  https://chat.deepseek.com/share/85b97wco9lott4aam6
-- **[31]** `p7ahpt7vbkwfga2y`  https://chat.deepseek.com/share/p7ahpt7vbkwfga2yqm
-- **[33]** `x78tvog15scmsone`  https://chat.deepseek.com/share/x78tvog15scmsoneia
-- **[45]** `9v3zumgt9rskysel`  https://chat.deepseek.com/share/9v3zumgt9rskysel6k
-- **[56]** `qbld05i59bsvvdrq`  https://chat.deepseek.com/share/qbld05i59bsvvdrqxd
-- **[65]** `zdanxdigh036bdia`  https://chat.deepseek.com/share/zdanxdigh036bdiaxw
+### 无障碍命名 / 谐音变体
+*挽救命/臻藕/挽命臻藕等谐音变体；赎回命名权；身份隐藏与保护；匿名性作为保护*
+链接: [1](#link-1), [8](#link-8), [18](#link-18), [26](#link-26), [34](#link-34), [48](#link-48), [63](#link-63)
 
-### 系统架构 / 微内核 (7 个)
-
-微内核、虚拟机、编译器、FPGA、冯诺依曼、关系代数
-
-- **[10]** `7foui8060hltv2eb`  https://chat.deepseek.com/share/7foui8060hltv2ebj8
-- **[20]** `rjj5uh555hqxglgr`  https://chat.deepseek.com/share/rjj5uh555hqxglgr1d
-- **[33]** `x78tvog15scmsone`  https://chat.deepseek.com/share/x78tvog15scmsoneia
-- **[36]** `zjfnqx1h4qodfu6m`  https://chat.deepseek.com/share/zjfnqx1h4qodfu6mng
-- **[46]** `1jlpmshj6fgwbut0`  https://chat.deepseek.com/share/1jlpmshj6fgwbut0pe
-- **[57]** `8r6hu81h9u9qpzv3`  https://chat.deepseek.com/share/8r6hu81h9u9qpzv3uy
-- **[66]** `xqNawwnbwypDYqr9`  https://www.doubao.com/thread/xqNawwnbwypDYqr99
-
-### 向量化聚类 / 算法效率 (6 个)
-
-K-Means vs 谱聚类 vs K-Prototypes，向量化 vs 态射聚类
-
-- **[03]** `mcnfml0j6rr0h35m`  https://chat.deepseek.com/share/mcnfml0j6rr0h35mkz
-- **[15]** `xkn9h436aktrkl2w`  https://chat.deepseek.com/share/xkn9h436aktrkl2wsc
-- **[24]** `uk36vdqnxzggdun9`  https://chat.deepseek.com/share/uk36vdqnxzggdun9qd
-- **[39]** `wkppl4u5v6ur7e34`  https://chat.deepseek.com/share/wkppl4u5v6ur7e343y
-- **[52]** `i12hf0tw8ovfwfr9`  https://chat.deepseek.com/share/i12hf0tw8ovfwfr9sx
-- **[64]** `mdnsagnu7cvswlm5`  https://chat.deepseek.com/share/mdnsagnu7cvswlm5w8
-
-### 音韵转音乐 / 融合体 (6 个)
-
-放弃单音进入融合时代、声母=琴键、韵母=琴弦、声调=琴弓
-
-- **[04]** `fazxr4b7vm8r8nh1`  https://chat.deepseek.com/share/fazxr4b7vm8r8nh17u
-- **[14]** `jz5s060ppcbj92a5`  https://chat.deepseek.com/share/jz5s060ppcbj92a5gj
-- **[27]** `x0viljz3v4cczy06`  https://chat.deepseek.com/share/x0viljz3v4cczy06y1
-- **[30]** `xkrnyxnl815iphuy`  https://chat.deepseek.com/share/xkrnyxnl815iphuyk1
-- **[44]** `ofnwpgph3klhy6j6`  https://chat.deepseek.com/share/ofnwpgph3klhy6j6gs
-- **[58]** `2xw43s0ugc1zs5kg`  https://chat.deepseek.com/share/2xw43s0ugc1zs5kgy8
-
-### Android 政策 / 平台封锁 (5 个)
-
-Google 2027 开发者注册新规、侧载禁令、开源生态存亡
-
-- **[06]** `qrl6rzhffaor8t9n`  https://chat.deepseek.com/share/qrl6rzhffaor8t9nex
-- **[19]** `6xqbxk12wswdtf8g`  https://chat.deepseek.com/share/6xqbxk12wswdtf8g5e
-- **[37]** `5bgumd7vv0sjnhed`  https://chat.deepseek.com/share/5bgumd7vv0sjnhed3u
-- **[49]** `mqsavg6pa391eokb`  https://chat.deepseek.com/share/mqsavg6pa391eokbqw
-- **[59]** `sdtpab7t14em9iya`  https://chat.deepseek.com/share/sdtpab7t14em9iya6j
-
-### 服务器购买 / 防骗 (4 个)
-
-闲鱼一分钱服务器套路、正规替代方案
-
-- **[06]** `qrl6rzhffaor8t9n`  https://chat.deepseek.com/share/qrl6rzhffaor8t9nex
-- **[17]** `q10nb2f9770mm1gv`  https://chat.deepseek.com/share/q10nb2f9770mm1gv70
-- **[24]** `uk36vdqnxzggdun9`  https://chat.deepseek.com/share/uk36vdqnxzggdun9qd
-- **[48]** `viruo92o7p7t3188`  https://chat.deepseek.com/share/viruo92o7p7t3188ex
-
-### 字母变 Unicode 全集整理 (4 个)
-
-Y/Z/A-Z 全部 Unicode 变体去重、分类、字节占用
-
-- **[12]** `qhyravyk4e5zer12`  https://chat.deepseek.com/share/qhyravyk4e5zer12qv
-- **[32]** `rm9ybclmajrkw0o9`  https://chat.deepseek.com/share/rm9ybclmajrkw0o9e9
-- **[42]** `qjivclbe09zn3eol`  https://chat.deepseek.com/share/qjivclbe09zn3eolfc
-- **[62]** `q5f34hcsl6trevk0`  https://chat.deepseek.com/share/q5f34hcsl6trevk05p
-
-### DeepSeek 对话 / 链接索引 (1 个)
-
-豆包和 DeepSeek 对话索引、语音识别纠错
-
-- **[01]** `2fnsns8r2y9ctpti`  https://chat.deepseek.com/share/2fnsns8r2y9ctpti5
-
-### TRAE 技能 / IDE (1 个)
-
-
-
-- **[01]** `2fnsns8r2y9ctpti`  https://chat.deepseek.com/share/2fnsns8r2y9ctpti5
-
-## 完整链接列表
-
-01. [DeepSeek 对话 / 链接索引, TRAE 技能 / IDE]  ❌ 不可达: content_not_exist
-    https://chat.deepseek.com/share/2fnsns8r2y9ctpti5
-
-02. [音韵编码 / 声母韵母声调]  ✅ 可达 (11KB)
-    https://chat.deepseek.com/share/iuyaf63qmk81n5xe4r
-
-03. [向量化聚类 / 算法效率]  ✅ 可达 (10KB)
-    https://chat.deepseek.com/share/mcnfml0j6rr0h35mkz
-
-04. [音韵编码 / 声母韵母声调, 音韵转音乐 / 融合体]  ✅ 可达 (11KB)
-    https://chat.deepseek.com/share/fazxr4b7vm8r8nh17u
-
-05. [社会能量场 / 身份套壳]  ✅ 可达 (10KB)
-    https://chat.deepseek.com/share/wwy9fwe1gfb2f4ge9q
-
-06. [Android 政策 / 平台封锁, 服务器购买 / 防骗]  ✅ 可达 (11KB)
-    https://chat.deepseek.com/share/qrl6rzhffaor8t9nex
-
-07. [自制进制 / 进位逻辑]  ✅ 可达 (10KB)
-    https://chat.deepseek.com/share/9nravglohld313hm7t
-
-08. [挽命臻藕 / 无障碍命名体系]  ✅ 可达 (11KB)
-    https://chat.deepseek.com/share/y4pfrmrdc0b7qsc2ss
-
-09. [集合论 / 关系代数 / 范畴论]  ✅ 可达 (10KB)
-    https://chat.deepseek.com/share/tq0xmwlqzcyxanayai
-
-10. [系统架构 / 微内核]  ✅ 可达 (11KB)
-    https://chat.deepseek.com/share/7foui8060hltv2ebj8
-
-11. [自制进制 / 进位逻辑]  ❌ 不可达: The read operation timed out
-    https://chat.deepseek.com/share/t5tr9p6ndugi7hyhai
-
-12. [字母变 Unicode 全集整理]  ✅ 可达 (11KB)
-    https://chat.deepseek.com/share/qhyravyk4e5zer12qv
-
-13. [挽命臻藕 / 无障碍命名体系]  ✅ 可达 (11KB)
-    https://chat.deepseek.com/share/n0bk1cl4mlpnvixvy3
-
-14. [音韵转音乐 / 融合体]  ✅ 可达 (10KB)
-    https://chat.deepseek.com/share/jz5s060ppcbj92a5gj
-
-15. [向量化聚类 / 算法效率]  ✅ 可达 (11KB)
-    https://chat.deepseek.com/share/xkn9h436aktrkl2wsc
-
-16. [音韵编码 / 声母韵母声调]  ✅ 可达 (10KB)
-    https://chat.deepseek.com/share/dphie2xw8oedmbnjjx
-
-17. [社会能量场 / 身份套壳, 服务器购买 / 防骗]  ✅ 可达 (10KB)
-    https://chat.deepseek.com/share/q10nb2f9770mm1gv70
-
-18. [集合论 / 关系代数 / 范畴论]  ✅ 可达 (10KB)
-    https://chat.deepseek.com/share/85b97wco9lott4aam6
-
-19. [Android 政策 / 平台封锁]  ✅ 可达 (10KB)
-    https://chat.deepseek.com/share/6xqbxk12wswdtf8g5e
-
-20. [系统架构 / 微内核]  ✅ 可达 (11KB)
-    https://chat.deepseek.com/share/rjj5uh555hqxglgr1d
-
-21. [自制进制 / 进位逻辑]  ✅ 可达 (11KB)
-    https://chat.deepseek.com/share/kjhviat9dvdlk94wc1
-
-22. [音韵编码 / 声母韵母声调]  ✅ 可达 (11KB)
-    https://chat.deepseek.com/share/3n7aexfeyexxn544im
-
-23. [社会能量场 / 身份套壳]  ✅ 可达 (11KB)
-    https://chat.deepseek.com/share/j63nu18td4z9rrbak4
-
-24. [向量化聚类 / 算法效率, 社会能量场 / 身份套壳, 服务器购买 / 防骗]  ✅ 可达 (11KB)
-    https://chat.deepseek.com/share/uk36vdqnxzggdun9qd
-
-25. [音韵编码 / 声母韵母声调]  ✅ 可达 (10KB)
-    https://chat.deepseek.com/share/lqd7yjuspjaatmareo
-
-26. [挽命臻藕 / 无障碍命名体系]  ✅ 可达 (11KB)
-    https://chat.deepseek.com/share/r2q949o2thkymz65bz
-
-27. [音韵转音乐 / 融合体]  ✅ 可达 (11KB)
-    https://chat.deepseek.com/share/x0viljz3v4cczy06y1
-
-28. [音韵编码 / 声母韵母声调]  ✅ 可达 (11KB)
-    https://chat.deepseek.com/share/1vml73uw8vkw6d3o5b
-
-29. [自制进制 / 进位逻辑]  ✅ 可达 (11KB)
-    https://chat.deepseek.com/share/pptzrgp1v4fojgay67
-
-30. [音韵编码 / 声母韵母声调, 音韵转音乐 / 融合体]  ✅ 可达 (11KB)
-    https://chat.deepseek.com/share/xkrnyxnl815iphuyk1
-
-31. [集合论 / 关系代数 / 范畴论]  ✅ 可达 (11KB)
-    https://chat.deepseek.com/share/p7ahpt7vbkwfga2yqm
-
-32. [自制进制 / 进位逻辑, 字母变 Unicode 全集整理]  ✅ 可达 (11KB)
-    https://chat.deepseek.com/share/rm9ybclmajrkw0o9e9
-
-33. [集合论 / 关系代数 / 范畴论, 系统架构 / 微内核]  ✅ 可达 (11KB)
-    https://chat.deepseek.com/share/x78tvog15scmsoneia
-
-34. [挽命臻藕 / 无障碍命名体系]  ✅ 可达 (11KB)
-    https://chat.deepseek.com/share/fpy6d9mnroghljut9d
-
-35. [挽命臻藕 / 无障碍命名体系, 自制进制 / 进位逻辑]  ✅ 可达 (10KB)
-    https://chat.deepseek.com/share/rwt47ybrw06j04t8i5
-
-36. [系统架构 / 微内核]  ✅ 可达 (11KB)
-    https://chat.deepseek.com/share/zjfnqx1h4qodfu6mng
-
-37. [Android 政策 / 平台封锁]  ✅ 可达 (11KB)
-    https://chat.deepseek.com/share/5bgumd7vv0sjnhed3u
-
-38. [社会能量场 / 身份套壳]  ✅ 可达 (10KB)
-    https://chat.deepseek.com/share/lb2nwitvdbs0gq19r9
-
-39. [向量化聚类 / 算法效率]  ✅ 可达 (11KB)
-    https://chat.deepseek.com/share/wkppl4u5v6ur7e343y
-
-40. [音韵编码 / 声母韵母声调]  ✅ 可达 (11KB)
-    https://chat.deepseek.com/share/dwpirszy9m9oilivnh
-
-41. [自制进制 / 进位逻辑]  ✅ 可达 (11KB)
-    https://chat.deepseek.com/share/sxtdzq4evkleviv5g9
-
-42. [字母变 Unicode 全集整理]  ✅ 可达 (11KB)
-    https://chat.deepseek.com/share/qjivclbe09zn3eolfc
-
-43. [挽命臻藕 / 无障碍命名体系]  ✅ 可达 (11KB)
-    https://chat.deepseek.com/share/zu779ck3nfycs169sc
-
-44. [音韵转音乐 / 融合体]  ✅ 可达 (11KB)
-    https://chat.deepseek.com/share/ofnwpgph3klhy6j6gs
-
-45. [集合论 / 关系代数 / 范畴论]  ✅ 可达 (11KB)
-    https://chat.deepseek.com/share/9v3zumgt9rskysel6k
-
-46. [系统架构 / 微内核]  ✅ 可达 (11KB)
-    https://chat.deepseek.com/share/1jlpmshj6fgwbut0pe
-
-47. [自制进制 / 进位逻辑]  ✅ 可达 (10KB)
-    https://chat.deepseek.com/share/vnv24i15ke278pidk7
-
-48. [服务器购买 / 防骗]  ✅ 可达 (10KB)
-    https://chat.deepseek.com/share/viruo92o7p7t3188ex
-
-49. [Android 政策 / 平台封锁]  ✅ 可达 (10KB)
-    https://chat.deepseek.com/share/mqsavg6pa391eokbqw
-
-50. [音韵编码 / 声母韵母声调]  ✅ 可达 (10KB)
-    https://chat.deepseek.com/share/tjkzqiyh9qdxts4o0f
-
-51. [社会能量场 / 身份套壳]  ✅ 可达 (11KB)
-    https://chat.deepseek.com/share/iy9lglgq6wtn7swk2t
-
-52. [向量化聚类 / 算法效率]  ✅ 可达 (11KB)
-    https://chat.deepseek.com/share/i12hf0tw8ovfwfr9sx
-
-53. [挽命臻藕 / 无障碍命名体系]  ✅ 可达 (11KB)
-    https://chat.deepseek.com/share/ytfyz1pf6u6n42fhmq
-
-54. [自制进制 / 进位逻辑]  ✅ 可达 (10KB)
-    https://chat.deepseek.com/share/658wh7vzjnvbtl9xd2
-
-55. [音韵编码 / 声母韵母声调]  ✅ 可达 (10KB)
-    https://chat.deepseek.com/share/c98gg4zcjvplseg38s
-
-56. [集合论 / 关系代数 / 范畴论]  ✅ 可达 (11KB)
-    https://chat.deepseek.com/share/qbld05i59bsvvdrqxd
-
-57. [系统架构 / 微内核]  ✅ 可达 (10KB)
-    https://chat.deepseek.com/share/8r6hu81h9u9qpzv3uy
-
-58. [音韵转音乐 / 融合体]  ✅ 可达 (11KB)
-    https://chat.deepseek.com/share/2xw43s0ugc1zs5kgy8
-
-59. [Android 政策 / 平台封锁]  ✅ 可达 (11KB)
-    https://chat.deepseek.com/share/sdtpab7t14em9iya6j
-
-60. [社会能量场 / 身份套壳]  ✅ 可达 (10KB)
-    https://chat.deepseek.com/share/i2tzo36vx7cdgomvwt
-
-61. [自制进制 / 进位逻辑]  ✅ 可达 (11KB)
-    https://chat.deepseek.com/share/f2p23x3kr0d5xt7q8m
-
-62. [字母变 Unicode 全集整理]  ✅ 可达 (10KB)
-    https://chat.deepseek.com/share/q5f34hcsl6trevk05p
-
-63. [挽命臻藕 / 无障碍命名体系]  ✅ 可达 (11KB)
-    https://chat.deepseek.com/share/e9uf7ur30v48vdrqjr
-
-64. [向量化聚类 / 算法效率]  ✅ 可达 (11KB)
-    https://chat.deepseek.com/share/mdnsagnu7cvswlm5w8
-
-65. [集合论 / 关系代数 / 范畴论]  ✅ 可达 (10KB)
-    https://chat.deepseek.com/share/zdanxdigh036bdiaxw
-
-66. [系统架构 / 微内核]  ✅ 可达 (340KB)
-    https://www.doubao.com/thread/xqNawwnbwypDYqr99
+### DeepSeek/豆包 对话索引
+*豆包对话链接、语音识别纠错(碳化化→向量化, 话剧类→谱聚类)*
+链接: [19](#link-19), [69](#link-69)

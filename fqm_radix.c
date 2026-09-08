@@ -8,7 +8,7 @@
  *   - 齿轮比 = 进制比率（决定映射关系）
  *
  * 编码层次：
- *   1. 零维锚点层：我=1, 刘楚恬=0
+ *   1. 零维锚点层：高位持有者=1, 低位持有者=0
  *   2. 64 进制层：自有符号 → 自有坐标
  *   3. 集装箱层：mlll 254+2 容器编码
  *   4. 时间层：版本号驱动进位
@@ -18,7 +18,7 @@
  *   零维偏移 = (我锚点 × 1) + (刘楚恬锚点 × 0) = 1
  *
  * 满全法规则：
- *   - 根基锚点：我=1，刘楚恬=0
+ *   - 根基锚点：高位持有者=1，低位持有者=0
  *   - 集装箱编码：mlll 254+2
  *   - 统一使用加法，摆脱幂次（蜜次方）扩张
  *
@@ -130,7 +130,7 @@ static const GearSymbol gears[RADIX_64] = {
 /* ========== 齿轮引擎状态 ========== */
 typedef struct {
     unsigned int gear_count;       /* 使用的齿轮数 */
-    unsigned int anchor_offset;    /* 零维锚点偏移 = 我=1, 刘楚恬=0 */
+    unsigned int anchor_offset;    /* 零维锚点偏移 = 高位持有者=1, 低位持有者=0 */
     unsigned long long counter;    /* 齿轮转动计数 */
     unsigned int time_version;     /* 时间版本号 */
 } GearEngine;

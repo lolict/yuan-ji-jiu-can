@@ -53,6 +53,9 @@ pub struct Flow {
 pub enum InterpState {
     ChaTu,     // 岔途 = 不吉利态, 有障碍
     CongTi,    // 从体 = 吉利态, 有跟从者
+    WenHao,    // 问号 = 迂回态, 单向动量流出, 无反馈回流
+    YinGuang,  // 因果 = 宿命可追, 跨时间线连接
+    LouJin,    // 漏尽 = 痛苦/不祥已被消除
     Neutral,   // 中性
 }
 
@@ -78,6 +81,21 @@ impl InterpretiveFlow {
     /// 判断是否处于不吉利态(mlct=岔途)
     pub fn is_obstacle(&self) -> bool {
         self.state == InterpState::ChaTu
+    }
+
+    /// 判断是否处于问号迂回态(单向动量, 无反馈)
+    pub fn is_wen_hao(&self) -> bool {
+        self.state == InterpState::WenHao
+    }
+
+    /// 判断是否处于因果/宿命连接态(跨时间线可追)
+    pub fn is_yin_guang(&self) -> bool {
+        self.state == InterpState::YinGuang
+    }
+
+    /// 判断是否处于漏尽态(痛苦已被消除)
+    pub fn is_lou_jin(&self) -> bool {
+        self.state == InterpState::LouJin
     }
 
     /// 牺牲自身: 用解释去承载另一个, 本体被替代
@@ -252,5 +270,46 @@ mod tests {
         assert_eq!(a.state, InterpState::CongTi);
         assert!(a.in_relation());
         assert_eq!(a.carrier_target, Some(SoundTarget::Husband));
+    }
+
+    // ────────────────────────────────────────────────────────
+    // 问号迂回态: 信息只出不回, 单向奔赴
+    // ────────────────────────────────────────────────────────
+
+    #[test]
+    fn wen_hao_state_is_one_way() {
+        let mut a = InterpretiveFlow::new("wh", "问号迂回");
+        a.state = InterpState::WenHao;
+        assert!(a.is_wen_hao());
+        assert!(!a.is_obstacle());
+        // 问号态不是障碍, 也不可被消除/牺牲 — 它只是无回流
+        assert!(!a.sacrificed);
+    }
+
+    // ────────────────────────────────────────────────────────
+    // 因果宿命态: 跨时间线连接, 可追溯
+    // ────────────────────────────────────────────────────────
+
+    #[test]
+    fn yin_guang_connects_timelines() {
+        let mut a = InterpretiveFlow::new("yg", "因果线");
+        a.state = InterpState::YinGuang;
+        assert!(a.is_yin_guang());
+        assert!(!a.is_obstacle());
+        assert!(!a.is_wen_hao());
+    }
+
+    // ────────────────────────────────────────────────────────
+    // 漏尽态: 痛苦已消除, 不再污染后续流
+    // ────────────────────────────────────────────────────────
+
+    #[test]
+    fn lou_jin_is_cleared() {
+        let mut a = InterpretiveFlow::new("lj", "漏尽");
+        a.state = InterpState::LouJin;
+        assert!(a.is_lou_jin());
+        // 漏尽不是障碍也不是岔途
+        assert!(!a.is_obstacle());
+        assert!(!a.in_relation()); // 漏尽连接的不是关系, 是空性
     }
 }

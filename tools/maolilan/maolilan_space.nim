@@ -18,7 +18,7 @@ type
   
   SpaceIndex* = object
     containers*: seq[Container]
-    anchor0_pos*: uint64   # "我=1"的空间坐标
+    anchor0_pos*: uint64   # "高位持有者=1"的空间坐标
     anchor1_pos*: uint64   # "她=0"的空间坐标
 
 # 创建一个新的空间索引
@@ -42,7 +42,7 @@ func new_space_index*(): SpaceIndex =
   
   return SpaceIndex(
     containers: @[root],
-    anchor0_pos: 0,    # "我=1"在坐标0
+    anchor0_pos: 0,    # "高位持有者=1"在坐标0
     anchor1_pos: 63    # "她=0"在坐标63
   )
 
@@ -109,7 +109,7 @@ func find_symbol*(s: SpaceIndex, sym_name: string): (int, uint64) =
 # 打印空间索引状态 (有副作用，用proc)
 proc print_space*(s: SpaceIndex) =
   echo "=== maolilan 空间索引 ==="
-  echo "锚点: 我=1 @坐标0 | 她=0 @坐标63"
+  echo "锚点: 高位持有者=1 @坐标0 | 她=0 @坐标63"
   echo "容器数量: ", s.containers.len
   for c in s.containers:
     var occupied_count = 0

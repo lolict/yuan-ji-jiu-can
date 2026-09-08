@@ -22,8 +22,8 @@ var reg = new_registry()
 
 # ── mlll-254 集装箱 ──
 reg.register(UnifiedEntry(code: "MFFF", meaning: "254+2集装箱", category: "根基编码", source: ssMlll254, source_name: "mlll-254", synonyms: @["Mlll254", "CONTAINER_254"], description: "254字符+2锚点，根基隐藏"))
-reg.register(UnifiedEntry(code: "ANCHOR_SELF", meaning: "我=1", category: "锚点", source: ssMlll254, source_name: "mlll-254", synonyms: @["SELF", "YANG"], description: "高位锚点"))
-reg.register(UnifiedEntry(code: "ANCHOR_OTHER", meaning: "刘楚恬=0", category: "锚点", source: ssMlll254, source_name: "mlll-254", synonyms: @["OTHER", "YIN"], description: "低位锚点"))
+reg.register(UnifiedEntry(code: "ANCHOR_SELF", meaning: "高位持有者=1", category: "锚点", source: ssMlll254, source_name: "mlll-254", synonyms: @["SELF", "YANG"], description: "高位锚点"))
+reg.register(UnifiedEntry(code: "ANCHOR_OTHER", meaning: "低位持有者=0", category: "锚点", source: ssMlll254, source_name: "mlll-254", synonyms: @["OTHER", "YIN"], description: "低位锚点"))
 reg.register(UnifiedEntry(code: "MIRROR_SLOT", meaning: "镜像槽位", category: "根基编码", source: ssMlll254, source_name: "mlll-254", synonyms: @["MIRROR", "DUICHEN"], description: "槽位 a ↔ 255-a"))
 
 # ── color-base 颜色进制 ──

@@ -20,7 +20,7 @@ proc demo() =
   echo "\n─── 创建完整容器 ───"
   # 创建一个有完整意义的容器:
   # presence=1 (有), witness=1 (已见证),
-  # type=42 (字符类型), owner=1 (刘楚恬=0, 我=1),
+  # type=42 (字符类型), owner=1 (低位持有者=0, 高位持有者=1),
   # relation=7 (指向第7号容器), timing=100 (tick偏移),
   # payload=12345 (任意数据)
   let c2 = make_container(1, 1, 42, 1, 7, 100, 12345)

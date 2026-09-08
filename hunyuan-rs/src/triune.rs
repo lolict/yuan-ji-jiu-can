@@ -87,6 +87,67 @@ impl TriuneVerdict {
 }
 
 // ────────────────────────────────────────────────────────────
+// 静态锚点: 裁判的不动座位
+// ────────────────────────────────────────────────────────────
+// 在三维球坐标系中，存在一个不可位移的永久基准点 (0,0,0)。
+// 任何主体的动态位置、角度、历程都以此静态锚点为度量原点。
+// 锚点本身不被审判、不被移动，它只是“审判发生的场所的几何中心”。
+//
+//   O₂₁₆₀          ← 裁判标记 (0,0,0) 静态 永久基准 球心
+//   P1(t) ──→      ← 动态主体相对于锚点的位移
+//   P2(t) ──→      ← 第二个动态主体
+//
+//   角度采用【历程角度】(不模 360°): 允许超过一整圈的历史累积角
+//   距离采用【曼哈顿 |x|+|y|+|z|】 + 【Chebyshev max(|Δx|,|Δy|,|Δz|)】混合
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct StaticAnchor {
+    /// 永远 (0,0,0) 不可改
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
+}
+
+impl Default for StaticAnchor {
+    fn default() -> Self {
+        Self { x: 0.0, y: 0.0, z: 0.0 }
+    }
+}
+
+impl StaticAnchor {
+    /// 建立锚点。永远返回原点，任何参数被忽略 — 锚点只有一处。
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// 计算主体到原点的曼哈顿距离
+    pub fn manhattan_of(&self, px: f64, py: f64, pz: f64) -> f64 {
+        (px - self.x).abs() + (py - self.y).abs() + (pz - self.z).abs()
+    }
+
+    /// 计算主体到原点的 Chebyshev 距离 (坐标差最大分量)
+    pub fn chebyshev_of(&self, px: f64, py: f64, pz: f64) -> f64 {
+        let dx = (px - self.x).abs();
+        let dy = (py - self.y).abs();
+        let dz = (pz - self.z).abs();
+        dx.max(dy).max(dz)
+    }
+
+    /// atan2 方向角 — 从锚点看向主体的方向 (不取模)
+    pub fn bearing_to(&self, px: f64, py: f64) -> f64 {
+        (py - self.y).atan2(px - self.x)
+    }
+
+    /// 两个主体之间的夹角 (历程角度, 允许超过 2π)
+    pub fn angle_between(&self, ax: f64, ay: f64, bx: f64, by: f64) -> f64 {
+        let theta_a = self.bearing_to(ax, ay);
+        let theta_b = self.bearing_to(bx, by);
+        // 历程角度: 不反向折回, 累积历史旋转
+        (theta_b - theta_a).abs()
+    }
+}
+
+// ────────────────────────────────────────────────────────────
 // 漏斗 (允许歪斜)
 // ────────────────────────────────────────────────────────────
 // 漏斗只要求 mouth > neck (由大到小),
@@ -292,5 +353,52 @@ mod tests {
         let actuals = vec![BeingState::NonBeing, BeingState::NonBeing, BeingState::Being(1)];
         let flow = eng.collective_flow(&actuals, BeingState::Being(99));
         assert_eq!(flow, FlowDirection::Expand);
+    }
+
+    // ────────────────────────────────────────────────────────
+    // 静态锚点: 不可位移的审判原点
+    // ────────────────────────────────────────────────────────
+
+    #[test]
+    fn anchor_is_always_origin() {
+        let a = StaticAnchor::new();
+        assert_eq!(a.x, 0.0);
+        assert_eq!(a.y, 0.0);
+        assert_eq!(a.z, 0.0);
+    }
+
+    #[test]
+    fn manhattan_distance_from_origin() {
+        let a = StaticAnchor::new();
+        // P1 在 (-8, 0, 0)，距离 = 8
+        assert!((a.manhattan_of(-8.0, 0.0, 0.0) - 8.0).abs() < 1e-9);
+        // P2 在 (3, 4, 0) → 距离 7
+        assert!((a.manhattan_of(3.0, 4.0, 0.0) - 7.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn chebyshev_distance_from_origin() {
+        let a = StaticAnchor::new();
+        // (3, 4, 0) → max = 4
+        assert!((a.chebyshev_of(3.0, 4.0, 0.0) - 4.0).abs() < 1e-9);
+        // (-8, 0, 0) → max = 8
+        assert!((a.chebyshev_of(-8.0, 0.0, 0.0) - 8.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn bearing_quadrants() {
+        let a = StaticAnchor::new();
+        // 右侧水平
+        assert!((a.bearing_to(1.0, 0.0) - 0.0).abs() < 1e-9);
+        // 正上
+        assert!((a.bearing_to(0.0, 1.0) - std::f64::consts::FRAC_PI_2).abs() < 1e-9);
+    }
+
+    #[test]
+    fn angle_between_becomes_journey() {
+        let a = StaticAnchor::new();
+        // 两个互相垂直的方向, 历程角 = π/2
+        let ang = a.angle_between(1.0, 0.0, 0.0, 1.0);
+        assert!((ang - std::f64::consts::FRAC_PI_2).abs() < 1e-9);
     }
 }

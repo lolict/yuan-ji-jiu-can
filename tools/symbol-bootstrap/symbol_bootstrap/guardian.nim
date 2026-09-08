@@ -215,7 +215,7 @@ proc inject_sub_agent_rules*(g: var RuleGuardian; agent_id: string): bool =
   let spec_content = readFile(g.spec_path)
   let node = parseJson(spec_content)
   if node.hasKey("_anchors"):
-    g.messages.add("  [3] 锚点验证: 我=1（可见）, 刘楚恬=0（隐藏）")
+    g.messages.add("  [3] 锚点验证: 高位持有者=1（可见）, 低位持有者=0（隐藏）")
     g.msg_count += 1
   
   # 步骤4: 检查版本时间链

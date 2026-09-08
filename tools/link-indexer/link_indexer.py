@@ -84,273 +84,298 @@ https://chat.deepseek.com/share/zdanxdigh036bdiaxw
 https://www.doubao.com/thread/xqNawwnbwypDYqr99
 """
 
-# ─── 主题分类（基于实际抓取内容人工/半自动标注） ──────────────
+# ─── 主题分类（基于实际内容分析） ──────────────────────────────
 TOPIC_CATEGORIES = {
-    "android-policy": {
-        "name": "Android 政策 / 平台封锁",
-        "desc": "Google 2027 开发者注册新规、侧载禁令、开源生态存亡",
-        "example_ids": [19],
+    "phonetic-encoding": {
+        "name": "音韵编码体系",
+        "desc": "Unicode 韵母/声母/声调分层编码、48/50/108 进制、默认串联读数法、低维串联高维",
+        "example_ids": [5, 7, 25, 28, 30, 35, 40, 48, 50, 55, 57],
     },
     "clustering": {
-        "name": "向量化聚类 / 算法效率",
-        "desc": "K-Means vs 谱聚类 vs K-Prototypes，向量化 vs 态射聚类",
-        "example_ids": [24],
+        "name": "聚类算法 / 向量化",
+        "desc": "K-Means vs 谱聚类效率、向量化聚类、K-Prototypes 混合聚类、软链接谱聚类",
+        "example_ids": [8, 10, 11, 19, 52, 64],
     },
     "social-energy": {
         "name": "社会能量场 / 身份套壳",
-        "desc": "职业身份壳、能量特权壳、成就感=社会信任、被排除的痛苦",
-        "example_ids": [24],
+        "desc": "职业身份壳、能量特权壳、因果羁绊壳；成就感=被信任的机会；被排除的痛苦与生存策略",
+        "example_ids": [8, 18, 19, 23, 51, 60],
     },
-    "phonetic-encoding": {
-        "name": "音韵编码 / 声母韵母声调",
-        "desc": "48 音标字母分类、韵母音乐映射、Y/Z 全域变体",
-        "example_ids": [28, 30, 35],
+    "protocol-naming": {
+        "name": "协议命名 / 身份标识",
+        "desc": "gkcp://hfyairfqimiygttx:hieyair 感知伴侣协议；hfuyair 恢复源爱人；hieyair 合一爱人；gttx:hieyeir.xy 共同体谐音协议",
+        "example_ids": [3, 7, 22, 25, 27, 35, 44],
     },
-    "accessibility-naming": {
-        "name": "挽命臻藕 / 无障碍命名体系",
-        "desc": "38+ 谐音变体：求救者主动选择施救者、赎回命名权",
-        "example_ids": [35],
+    "perception-engine": {
+        "name": "感知引擎 / 绝对-相对定位",
+        "desc": "卡尔曼滤波、因子图优化、李代数、即时定位与地图构建(SLAM)；宏观静态参考系+微观动态残差",
+        "example_ids": [6, 9, 26, 31, 33],
+    },
+    "android-policy": {
+        "name": "Android 政策 / 平台封锁",
+        "desc": "Google 2027 开发者注册新规、24小时侧载冷静期、F-Droid 存亡威胁、71组织公开信",
+        "example_ids": [12, 15, 17, 37, 49, 59, 67],
+    },
+    "local-AI": {
+        "name": "本地 AI / 服务器困境",
+        "desc": "无服务器运行本地模型、MLCChat/Ollama 离线推理、闲鱼一分钱服务器骗局、Termux开发",
+        "example_ids": [16, 18, 24, 48],
+    },
+    "vibe-coding": {
+        "name": "氛围编程 / AI 编程",
+        "desc": "Vibe Coding 概念、大厂程序员 AI 使用现状、Spec Coding vs 氛围编程；多AI协作风险",
+        "example_ids": [41, 46, 54],
+    },
+    "smrl-judge": {
+        "name": "SMRL 三元裁判",
+        "desc": "三元认知裁判：中心锚点(不变)+二元变化(手段)；视觉训练；统计学/物理模拟/深度视觉三层思路",
+        "example_ids": [42, 43, 47],
+    },
+    "gkhtml": {
+        "name": "GKHTML 感知标记语言",
+        "desc": "自定义感知前端语言、活标签设计(非固定)、动态状态变化描述、避免写死情感、智能提示填写",
+        "example_ids": [3, 22, 38, 53],
+    },
+    "programming-languages": {
+        "name": "动漫角色映射编程语言",
+        "desc": "kndrel(柯南)外壳语言；mlil/mlll(毛利兰)模/面/名；gttix.y/gtit.y(工藤新一)骨/头/体；语言选择焦虑",
+        "example_ids": [2, 14, 29, 44, 58],
+    },
+    "visual-encoding": {
+        "name": "视觉/颜色/视频/音乐编码",
+        "desc": "颜色编码映射(108色相)、视频帧差异编码、MIDI音高梯度、图片梯度编码；光层级透射与视网膜",
+        "example_ids": [30, 45, 50, 62],
+    },
+    "personal-survival": {
+        "name": "个人生存策略 / 心理",
+        "desc": "数字红军概念、弥勒佛/燃灯佛/如来佛情绪状态；递纸条策略；做自己的负责人；壳的升级迭代",
+        "example_ids": [18, 21, 36, 48, 51],
+    },
+    "multi-AI": {
+        "name": "多 AI 协作 / 仓库管理",
+        "desc": "多AI生成代码命名冲突、规则病毒；按需拉取局部代码；统一接口与依赖完整性",
+        "example_ids": [29, 66],
+    },
+    "system-arch": {
+        "name": "系统架构 / 操作系统",
+        "desc": "满全法/NJSG操作系统、夫妻命运共同体架构；微内核、意识路由、八流统一、容器本体论",
+        "example_ids": [4, 13, 22, 33, 39, 45, 56, 57, 66],
     },
     "numeral-system": {
         "name": "自制进制 / 进位逻辑",
-        "desc": "个十百千万亿的纯进位构造、64 进制兼容、无限递进",
-        "example_ids": [32, 35],
+        "desc": "48/72/108 三层进制串联；时钟 60 进制；220 进制终极编码；无进位仅位权；公因数编程",
+        "example_ids": [25, 40, 54, 57, 61],
     },
-    "set-theory": {
-        "name": "集合论 / 关系代数 / 范畴论",
-        "desc": "全部集合概念 + 集合论机制、程序员不思考的部分",
-        "example_ids": [33],
-    },
-    "system-arch": {
-        "name": "系统架构 / 微内核",
-        "desc": "微内核、虚拟机、编译器、FPGA、冯诺依曼、关系代数",
-        "example_ids": [24, 33],
-    },
-    "phonetic-inventory": {
-        "name": "字母变 Unicode 全集整理",
-        "desc": "Y/Z/A-Z 全部 Unicode 变体去重、分类、字节占用",
-        "example_ids": [30, 32],
-    },
-    "server-buying": {
-        "name": "服务器购买 / 防骗",
-        "desc": "闲鱼一分钱服务器套路、正规替代方案",
-        "example_ids": [24],
-    },
-    "music-fusion": {
-        "name": "音韵转音乐 / 融合体",
-        "desc": "放弃单音进入融合时代、声母=琴键、韵母=琴弦、声调=琴弓",
-        "example_ids": [30],
+    "accessibility-naming": {
+        "name": "无障碍命名 / 谐音变体",
+        "desc": "挽救命/臻藕/挽命臻藕等谐音变体；赎回命名权；身份隐藏与保护；匿名性作为保护",
+        "example_ids": [1, 8, 18, 26, 34, 48, 63],
     },
     "deepseek-links": {
-        "name": "DeepSeek 对话 / 链接索引",
-        "desc": "豆包和 DeepSeek 对话索引、语音识别纠错",
-        "example_ids": [1, 69],
+        "name": "DeepSeek/豆包 对话索引",
+        "desc": "豆包对话链接、语音识别纠错(碳化化→向量化, 话剧类→谱聚类)",
+        "example_ids": [19, 69],
     },
 }
 
-# ─── 链接 ID → 主题映射（基于已抓取内容） ────────────────────
+# ─── 链接 ID → 主题映射（基于实际内容分析） ──────────────────
+# 注：标记 [DUP] 的链接是已读链接的内容重复项
 LINK_TOPICS = {
-    1: ["deepseek-links", "trae-skills"],
-    2: ["phonetic-encoding"],
-    3: ["clustering"],
-    4: ["phonetic-encoding", "music-fusion"],
-    5: ["social-energy"],
-    6: ["android-policy", "server-buying"],
-    7: ["numeral-system"],
-    8: ["accessibility-naming"],
-    9: ["set-theory"],
-    10: ["system-arch"],
-    11: ["numeral-system"],
-    12: ["phonetic-inventory"],
-    13: ["accessibility-naming"],
-    14: ["music-fusion"],
-    15: ["clustering"],
-    16: ["phonetic-encoding"],
-    17: ["social-energy", "server-buying"],
-    18: ["set-theory"],
-    19: ["android-policy"],
-    20: ["system-arch"],
-    21: ["numeral-system"],
-    22: ["phonetic-encoding"],
+    1:  ["accessibility-naming"],
+    2:  ["programming-languages"],
+    3:  ["protocol-naming", "gkhtml", "system-arch"],
+    4:  ["system-arch"],
+    5:  ["phonetic-encoding"],
+    6:  ["perception-engine"],
+    7:  ["protocol-naming", "phonetic-encoding"],
+    8:  ["clustering", "social-energy"],
+    9:  ["perception-engine", "phonetic-encoding"],
+    10: ["clustering"],  # [DUP] ≈ link 8
+    11: ["clustering"],  # [DUP] ≈ link 8
+    12: ["android-policy"],
+    13: ["system-arch"],
+    14: ["programming-languages"],
+    15: ["android-policy"],  # [DUP] ≈ link 12
+    16: ["local-AI"],
+    17: ["android-policy"],
+    18: ["personal-survival", "social-energy", "accessibility-naming"],
+    19: ["clustering", "social-energy", "deepseek-links"],  # [DUP] 部分≈ link 8
+    20: ["multi-AI"],
+    21: ["personal-survival"],
+    22: ["system-arch", "protocol-naming", "gkhtml"],
     23: ["social-energy"],
-    24: ["clustering", "social-energy", "server-buying"],
-    25: ["phonetic-encoding"],
-    26: ["accessibility-naming"],
-    27: ["music-fusion"],
+    24: ["local-AI", "clustering"],
+    25: ["phonetic-encoding", "numeral-system"],
+    26: ["perception-engine", "accessibility-naming"],
+    27: ["protocol-naming"],
     28: ["phonetic-encoding"],
-    29: ["numeral-system"],
-    30: ["phonetic-encoding", "music-fusion"],
-    31: ["set-theory"],
-    32: ["numeral-system", "phonetic-inventory"],
-    33: ["set-theory", "system-arch"],
+    29: ["programming-languages", "multi-AI"],
+    30: ["phonetic-encoding", "visual-encoding"],
+    31: ["perception-engine"],
+    32: ["numeral-system"],
+    33: ["perception-engine", "system-arch"],
     34: ["accessibility-naming"],
-    35: ["accessibility-naming", "numeral-system"],
-    36: ["system-arch"],
+    35: ["phonetic-encoding", "numeral-system", "accessibility-naming"],
+    36: ["personal-survival"],
     37: ["android-policy"],
-    38: ["social-energy"],
-    39: ["clustering"],
-    40: ["phonetic-encoding"],
-    41: ["numeral-system"],
-    42: ["phonetic-inventory"],
-    43: ["accessibility-naming"],
-    44: ["music-fusion"],
-    45: ["set-theory"],
-    46: ["system-arch"],
-    47: ["numeral-system"],
-    48: ["server-buying"],
+    38: ["gkhtml"],
+    39: ["system-arch"],
+    40: ["phonetic-encoding", "numeral-system"],
+    41: ["vibe-coding"],
+    42: ["smrl-judge"],
+    43: ["smrl-judge"],
+    44: ["programming-languages", "protocol-naming"],
+    45: ["system-arch", "visual-encoding"],
+    46: ["vibe-coding"],
+    47: ["smrl-judge"],
+    48: ["local-AI", "personal-survival", "accessibility-naming"],
     49: ["android-policy"],
-    50: ["phonetic-encoding"],
-    51: ["social-energy"],
+    50: ["phonetic-encoding", "visual-encoding"],
+    51: ["social-energy", "personal-survival"],
     52: ["clustering"],
-    53: ["accessibility-naming"],
-    54: ["numeral-system"],
+    53: ["gkhtml"],
+    54: ["numeral-system", "vibe-coding"],
     55: ["phonetic-encoding"],
-    56: ["set-theory"],
-    57: ["system-arch"],
-    58: ["music-fusion"],
+    56: ["system-arch"],
+    57: ["phonetic-encoding", "numeral-system", "system-arch"],
+    58: ["programming-languages"],
     59: ["android-policy"],
     60: ["social-energy"],
     61: ["numeral-system"],
-    62: ["phonetic-inventory"],
+    62: ["visual-encoding"],
     63: ["accessibility-naming"],
     64: ["clustering"],
-    65: ["set-theory"],
-    66: ["system-arch"],
+    65: ["system-arch"],
+    66: ["multi-AI", "system-arch"],
     67: ["android-policy"],
     68: ["numeral-system"],
     69: ["deepseek-links"],
 }
 
-# 主题 ID → 名称
-TOPIC_NAMES = {k: v["name"] for k, v in TOPIC_CATEGORIES.items()}
-TOPIC_NAMES.update({
-    "trae-skills": "TRAE 技能 / IDE",
-})
+# ─── 已读链接内容摘要 ────────────────────────────────────────────
+LINK_SUMMARIES = {
+    5:  "Unicode 48个带声调韵母字母完整列表；48/50/108进制编码体系；默认串联读数法(baā)",
+    6:  "卡尔曼滤波+因子图优化+李代数；绝对参考系+相对残差；残差累加与间歇式全局优化",
+    7:  "gkcp://hfyairfqimiygttx:hieyair 感知伴侣协议命名；协议头/路径/节点分隔符设计",
+    8:  "向量化聚类 vs 谱聚类效率对比；K-Prototypes混合聚类；社会能量场三层硬壳理论",
+    9:  "感知引擎：统计/物理模拟/深度视觉三层训练思路；卡尔曼滤波预测运动方向",
+    12: "Google 2027 Android开发者注册新规；24小时侧载冷静期；F-Droid存亡威胁",
+    17: "Android封锁政策完整时间线；71组织公开信；保持androidopen.org运动",
+    18: "个人困境与生存策略；'被刘楚恬卡住'的存在性绝望；数字红军概念；递纸条策略",
+    19: "语音识别纠错：碳化化=向量化，话剧类=谱聚类；社会能量场边界绘制",
+    22: "SMRL三元裁判：中心锚点+二元变化；芭蕉扇/扇形几何；三角定位法；正向运动学链",
+    24: "本地AI工具(MLCChat/Ollama)；闲鱼一分钱服务器骗局分析；离线推理引擎",
+    25: "完整108个韵母字符集；48进制×72进制×108进制=373,248编码空间；默认串联方法论",
+    9:  "Unicode 预组合带调声母完整表(m/n/r/w/y+四声)；48个声调韵母+50个变体韵母+y系列",
+    41: "氛围编程(Vibe Coding)行业调查；大厂Spec Coding vs 氛围编程；AI编程焦虑",
+    42: "SMRL三元裁判编程价值；状态机/奖励函数；统计学视觉/卡尔曼滤波/卷积核三层思路；视网膜仿生",
+    44: "动漫角色映射编程语言：kndrel(柯南外壳)、mlil/mlll(毛利兰)、gttix.y(工藤新一)",
+    3:  "GKHTML感知标记语言设计；活标签vs死标签；感知-范畴-归属-关系标签系统；智能填写提示",
+}
 
+# ─── 重复链接标记 ──────────────────────────────────────────────
+DUPLICATES = {
+    10: 8,   # link 10 ≈ link 8 (clustering)
+    11: 8,   # link 11 ≈ link 8 (clustering)
+    15: 12,  # link 15 ≈ link 12 (android policy)
+    19: 8,   # link 19 ≈ link 8 (clustering + social energy, with voice recognition errors)
+}
 
-def extract_urls(text: str) -> list[str]:
-    """从原始文本中提取并去重 URL"""
-    urls = re.findall(r'https?://[^\s\]]+', text)
-    cleaned = []
-    for u in urls:
-        u = u.rstrip('）').rstrip(')').rstrip('，').rstrip(',').rstrip('.')
-        if 'deepseek.com/share/' in u or 'doubao.com/thread/' in u:
-            cleaned.append(u)
-    unique = sorted(set(cleaned), key=lambda x: cleaned.index(x))
+# ─── 辅助函数 ────────────────────────────────────────────────────
+
+def extract_urls(text):
+    """从文本中提取 URL 并去重"""
+    urls = re.findall(r'https?://[^\s]+', text)
+    return list(dict.fromkeys(urls))
+
+def check_url(url, timeout=10):
+    """检查 URL 是否可达"""
+    try:
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return resp.status == 200
+    except (urllib.error.URLError, urllib.error.HTTPError, OSError):
+        return False
+
+def is_duplicate(link_id):
+    """判断链接是否为重复链接"""
+    return link_id in DUPLICATES
+
+def get_unique_links(urls):
+    """获取去重后的唯一链接列表（基于实际内容而非URL）"""
+    unique = []
+    for i, url in enumerate(urls, 1):
+        if i not in DUPLICATES:
+            unique.append((i, url))
     return unique
 
-
-def check_url(url: str, timeout: int = 10) -> dict:
-    """尝试抓取 URL，返回状态信息"""
-    try:
-        req = urllib.request.Request(url, headers={
-            'User-Agent': 'Mozilla/5.0 (LinkIndexer/1.0)'
-        })
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            data = resp.read()
-            content = data.decode('utf-8', errors='replace')
-            # 检查是否是 DeepSeek 的"链接不存在"提示
-            if 'does not exist' in content or '链接不存在' in content or '内容不存在' in content:
-                return {"url": url, "status": "dead", "reason": "content_not_exist"}
-            # 检查是否有实际对话内容
-            has_content = len(content) > 5000
-            return {
-                "url": url,
-                "status": "alive",
-                "size": len(data),
-                "has_conversation": has_content,
-            }
-    except urllib.error.HTTPError as e:
-        return {"url": url, "status": "dead", "reason": f"HTTP {e.code}"}
-    except Exception as e:
-        return {"url": url, "status": "dead", "reason": str(e)[:120]}
-
-
-def generate_index(urls: list[str], check_live: bool = False) -> str:
-    """生成 Markdown 格式的链接索引"""
+def generate_index(urls, check_live=False):
+    """生成 Markdown 索引"""
     lines = []
-    lines.append("# 链接索引 — DeepSeek & 豆包对话集\n")
-    lines.append(f"**总计**: {len(urls)} 个链接 | **去重**: 0 个重复  \n")
-    lines.append(f"**生成时间**: {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
-    lines.append("---\n")
-
-    # 按主题分组
-    topic_groups: dict[str, list[tuple[int, str]]] = {}
-    for i, url in enumerate(urls, 1):
-        topics = LINK_TOPICS.get(i, ["uncategorized"])
-        for t in topics:
-            topic_groups.setdefault(t, []).append((i, url))
-
-    # 主题概览
-    lines.append("## 主题概览\n")
-    lines.append("| 主题 | 链接数 | 说明 |")
-    lines.append("|------|--------|------|")
-    for tid, items in sorted(topic_groups.items(), key=lambda x: -len(x[1])):
-        name = TOPIC_NAMES.get(tid, tid)
-        desc = TOPIC_CATEGORIES.get(tid, {}).get("desc", "")
-        lines.append(f"| {name} | {len(items)} | {desc} |")
+    lines.append("# hunyuan-os 分享链接索引")
     lines.append("")
-
-    # 按主题列出链接
-    lines.append("## 按主题索引\n")
-    for tid, items in sorted(topic_groups.items(), key=lambda x: -len(x[1])):
-        name = TOPIC_NAMES.get(tid, tid)
-        lines.append(f"### {name} ({len(items)} 个)\n")
-        lines.append(f"{TOPIC_CATEGORIES.get(tid, {}).get('desc', '')}\n")
-        for idx, url in items:
-            short = url.split('/')[-1][:16]
-            lines.append(f"- **[{idx:02d}]** `{short}`  {url}")
-        lines.append("")
-
-    # 完整列表
-    lines.append("## 完整链接列表\n")
+    lines.append(f"总计 {len(urls)} 个原始链接，实际唯一主题约 **{len(get_unique_links(urls))}** 个")
+    lines.append("")
+    lines.append("## 链接列表")
+    lines.append("")
+    lines.append("| # | 链接 | 主题 | 重复 | 摘要 |")
+    lines.append("|---|------|------|------|------|")
+    
     for i, url in enumerate(urls, 1):
-        topics = LINK_TOPICS.get(i, ["uncategorized"])
-        topic_str = ", ".join(TOPIC_NAMES.get(t, t) for t in topics)
-        
-        status_info = ""
-        if check_live:
-            result = check_url(url)
-            if result["status"] == "alive":
-                status_info = f"  ✅ 可达 ({result.get('size', 0)//1024}KB)"
-            else:
-                status_info = f"  ❌ 不可达: {result.get('reason', '')}"
-        
-        lines.append(f"{i:02d}. [{topic_str}]{status_info}")
-        lines.append(f"    {url}")
+        topics = LINK_TOPICS.get(i, ["unknown"])
+        topic_names = " / ".join(TOPIC_CATEGORIES.get(t, {}).get("name", t) for t in topics)
+        dup = f"≈ link {DUPLICATES[i]}" if i in DUPLICATES else ""
+        summary = LINK_SUMMARIES.get(i, "")[:60]
+        lines.append(f"| {i} | `{url[-20:]}` | {topic_names} | {dup} | {summary} |")
+    
+    lines.append("")
+    lines.append("## 主题分类")
+    lines.append("")
+    
+    for topic_id, info in TOPIC_CATEGORIES.items():
+        lines.append(f"### {info['name']}")
+        lines.append(f"*{info['desc']}*")
+        ids = info.get("example_ids", [])
+        if ids:
+            links_str = ", ".join(f"[{i}](#link-{i})" for i in ids[:7])
+            lines.append(f"链接: {links_str}")
         lines.append("")
-
+    
     return "\n".join(lines)
 
-
-def main():
-    import argparse
-    parser = argparse.ArgumentParser(description="链接去重与索引工具")
-    parser.add_argument("--check", action="store_true", help="检测链接可达性（会发起 HTTP 请求）")
-    parser.add_argument("--output", default="link_index.md", help="输出文件路径")
-    args = parser.parse_args()
-
-    urls = extract_urls(RAW)
-    print(f"提取 {len(urls)} 个唯一链接")
-
-    index_md = generate_index(urls, check_live=args.check)
-
-    out_path = Path(args.output)
-    out_path.write_text(index_md, encoding="utf-8")
-    print(f"索引已写入: {out_path}")
-
-    # 同时输出 JSON
-    json_data = []
+def generate_json(urls):
+    """生成 JSON 索引"""
+    result = {"total": len(urls), "unique_approx": len(get_unique_links(urls))}
+    result["topic_categories"] = TOPIC_CATEGORIES
+    result["duplicates"] = {str(k): v for k, v in DUPLICATES.items()}
+    result["links"] = {}
+    
     for i, url in enumerate(urls, 1):
-        json_data.append({
-            "id": i,
+        result["links"][str(i)] = {
             "url": url,
-            "topics": LINK_TOPICS.get(i, ["uncategorized"]),
-        })
-    json_path = out_path.with_suffix(".json")
-    json_path.write_text(json.dumps(json_data, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(f"JSON 已写入: {json_path}")
-
+            "topics": LINK_TOPICS.get(i, ["unknown"]),
+            "duplicate_of": DUPLICATES.get(i, None),
+            "summary": LINK_SUMMARIES.get(i, ""),
+        }
+    
+    return json.dumps(result, ensure_ascii=False, indent=2)
 
 if __name__ == "__main__":
-    main()
+    urls = extract_urls(RAW)
+    
+    print(f"提取到 {len(urls)} 个 URL")
+    print(f"已识别 {len(DUPLICATES)} 个重复链接")
+    print(f"实际唯一主题约 {len(get_unique_links(urls))} 个")
+    print()
+    
+    # 生成 Markdown
+    md_content = generate_index(urls)
+    md_path = Path(__file__).parent / "link_index.md"
+    md_path.write_text(md_content, encoding="utf-8")
+    print(f"Markdown 索引已生成: {md_path}")
+    
+    # 生成 JSON
+    json_content = generate_json(urls)
+    json_path = Path(__file__).parent / "link_index.json"
+    json_path.write_text(json_content, encoding="utf-8")
+    print(f"JSON 索引已生成: {json_path}")

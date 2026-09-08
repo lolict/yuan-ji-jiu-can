@@ -1,474 +1,775 @@
-[
-  {
-    "id": 1,
-    "url": "https://chat.deepseek.com/share/2fnsns8r2y9ctpti5",
-    "topics": [
-      "deepseek-links",
-      "trae-skills"
-    ]
-  },
-  {
-    "id": 2,
-    "url": "https://chat.deepseek.com/share/iuyaf63qmk81n5xe4r",
-    "topics": [
-      "phonetic-encoding"
-    ]
-  },
-  {
-    "id": 3,
-    "url": "https://chat.deepseek.com/share/mcnfml0j6rr0h35mkz",
-    "topics": [
-      "clustering"
-    ]
-  },
-  {
-    "id": 4,
-    "url": "https://chat.deepseek.com/share/fazxr4b7vm8r8nh17u",
-    "topics": [
-      "phonetic-encoding",
-      "music-fusion"
-    ]
-  },
-  {
-    "id": 5,
-    "url": "https://chat.deepseek.com/share/wwy9fwe1gfb2f4ge9q",
-    "topics": [
-      "social-energy"
-    ]
-  },
-  {
-    "id": 6,
-    "url": "https://chat.deepseek.com/share/qrl6rzhffaor8t9nex",
-    "topics": [
-      "android-policy",
-      "server-buying"
-    ]
-  },
-  {
-    "id": 7,
-    "url": "https://chat.deepseek.com/share/9nravglohld313hm7t",
-    "topics": [
-      "numeral-system"
-    ]
-  },
-  {
-    "id": 8,
-    "url": "https://chat.deepseek.com/share/y4pfrmrdc0b7qsc2ss",
-    "topics": [
-      "accessibility-naming"
-    ]
-  },
-  {
-    "id": 9,
-    "url": "https://chat.deepseek.com/share/tq0xmwlqzcyxanayai",
-    "topics": [
-      "set-theory"
-    ]
-  },
-  {
-    "id": 10,
-    "url": "https://chat.deepseek.com/share/7foui8060hltv2ebj8",
-    "topics": [
-      "system-arch"
-    ]
-  },
-  {
-    "id": 11,
-    "url": "https://chat.deepseek.com/share/t5tr9p6ndugi7hyhai",
-    "topics": [
-      "numeral-system"
-    ]
-  },
-  {
-    "id": 12,
-    "url": "https://chat.deepseek.com/share/qhyravyk4e5zer12qv",
-    "topics": [
-      "phonetic-inventory"
-    ]
-  },
-  {
-    "id": 13,
-    "url": "https://chat.deepseek.com/share/n0bk1cl4mlpnvixvy3",
-    "topics": [
-      "accessibility-naming"
-    ]
-  },
-  {
-    "id": 14,
-    "url": "https://chat.deepseek.com/share/jz5s060ppcbj92a5gj",
-    "topics": [
-      "music-fusion"
-    ]
-  },
-  {
-    "id": 15,
-    "url": "https://chat.deepseek.com/share/xkn9h436aktrkl2wsc",
-    "topics": [
-      "clustering"
-    ]
-  },
-  {
-    "id": 16,
-    "url": "https://chat.deepseek.com/share/dphie2xw8oedmbnjjx",
-    "topics": [
-      "phonetic-encoding"
-    ]
-  },
-  {
-    "id": 17,
-    "url": "https://chat.deepseek.com/share/q10nb2f9770mm1gv70",
-    "topics": [
-      "social-energy",
-      "server-buying"
-    ]
-  },
-  {
-    "id": 18,
-    "url": "https://chat.deepseek.com/share/85b97wco9lott4aam6",
-    "topics": [
-      "set-theory"
-    ]
-  },
-  {
-    "id": 19,
-    "url": "https://chat.deepseek.com/share/6xqbxk12wswdtf8g5e",
-    "topics": [
-      "android-policy"
-    ]
-  },
-  {
-    "id": 20,
-    "url": "https://chat.deepseek.com/share/rjj5uh555hqxglgr1d",
-    "topics": [
-      "system-arch"
-    ]
-  },
-  {
-    "id": 21,
-    "url": "https://chat.deepseek.com/share/kjhviat9dvdlk94wc1",
-    "topics": [
-      "numeral-system"
-    ]
-  },
-  {
-    "id": 22,
-    "url": "https://chat.deepseek.com/share/3n7aexfeyexxn544im",
-    "topics": [
-      "phonetic-encoding"
-    ]
-  },
-  {
-    "id": 23,
-    "url": "https://chat.deepseek.com/share/j63nu18td4z9rrbak4",
-    "topics": [
-      "social-energy"
-    ]
-  },
-  {
-    "id": 24,
-    "url": "https://chat.deepseek.com/share/uk36vdqnxzggdun9qd",
-    "topics": [
-      "clustering",
-      "social-energy",
-      "server-buying"
-    ]
-  },
-  {
-    "id": 25,
-    "url": "https://chat.deepseek.com/share/lqd7yjuspjaatmareo",
-    "topics": [
-      "phonetic-encoding"
-    ]
-  },
-  {
-    "id": 26,
-    "url": "https://chat.deepseek.com/share/r2q949o2thkymz65bz",
-    "topics": [
-      "accessibility-naming"
-    ]
-  },
-  {
-    "id": 27,
-    "url": "https://chat.deepseek.com/share/x0viljz3v4cczy06y1",
-    "topics": [
-      "music-fusion"
-    ]
-  },
-  {
-    "id": 28,
-    "url": "https://chat.deepseek.com/share/1vml73uw8vkw6d3o5b",
-    "topics": [
-      "phonetic-encoding"
-    ]
-  },
-  {
-    "id": 29,
-    "url": "https://chat.deepseek.com/share/pptzrgp1v4fojgay67",
-    "topics": [
-      "numeral-system"
-    ]
-  },
-  {
-    "id": 30,
-    "url": "https://chat.deepseek.com/share/xkrnyxnl815iphuyk1",
-    "topics": [
-      "phonetic-encoding",
-      "music-fusion"
-    ]
-  },
-  {
-    "id": 31,
-    "url": "https://chat.deepseek.com/share/p7ahpt7vbkwfga2yqm",
-    "topics": [
-      "set-theory"
-    ]
-  },
-  {
-    "id": 32,
-    "url": "https://chat.deepseek.com/share/rm9ybclmajrkw0o9e9",
-    "topics": [
-      "numeral-system",
-      "phonetic-inventory"
-    ]
-  },
-  {
-    "id": 33,
-    "url": "https://chat.deepseek.com/share/x78tvog15scmsoneia",
-    "topics": [
-      "set-theory",
-      "system-arch"
-    ]
-  },
-  {
-    "id": 34,
-    "url": "https://chat.deepseek.com/share/fpy6d9mnroghljut9d",
-    "topics": [
-      "accessibility-naming"
-    ]
-  },
-  {
-    "id": 35,
-    "url": "https://chat.deepseek.com/share/rwt47ybrw06j04t8i5",
-    "topics": [
-      "accessibility-naming",
-      "numeral-system"
-    ]
-  },
-  {
-    "id": 36,
-    "url": "https://chat.deepseek.com/share/zjfnqx1h4qodfu6mng",
-    "topics": [
-      "system-arch"
-    ]
-  },
-  {
-    "id": 37,
-    "url": "https://chat.deepseek.com/share/5bgumd7vv0sjnhed3u",
-    "topics": [
-      "android-policy"
-    ]
-  },
-  {
-    "id": 38,
-    "url": "https://chat.deepseek.com/share/lb2nwitvdbs0gq19r9",
-    "topics": [
-      "social-energy"
-    ]
-  },
-  {
-    "id": 39,
-    "url": "https://chat.deepseek.com/share/wkppl4u5v6ur7e343y",
-    "topics": [
-      "clustering"
-    ]
-  },
-  {
-    "id": 40,
-    "url": "https://chat.deepseek.com/share/dwpirszy9m9oilivnh",
-    "topics": [
-      "phonetic-encoding"
-    ]
-  },
-  {
-    "id": 41,
-    "url": "https://chat.deepseek.com/share/sxtdzq4evkleviv5g9",
-    "topics": [
-      "numeral-system"
-    ]
-  },
-  {
-    "id": 42,
-    "url": "https://chat.deepseek.com/share/qjivclbe09zn3eolfc",
-    "topics": [
-      "phonetic-inventory"
-    ]
-  },
-  {
-    "id": 43,
-    "url": "https://chat.deepseek.com/share/zu779ck3nfycs169sc",
-    "topics": [
-      "accessibility-naming"
-    ]
-  },
-  {
-    "id": 44,
-    "url": "https://chat.deepseek.com/share/ofnwpgph3klhy6j6gs",
-    "topics": [
-      "music-fusion"
-    ]
-  },
-  {
-    "id": 45,
-    "url": "https://chat.deepseek.com/share/9v3zumgt9rskysel6k",
-    "topics": [
-      "set-theory"
-    ]
-  },
-  {
-    "id": 46,
-    "url": "https://chat.deepseek.com/share/1jlpmshj6fgwbut0pe",
-    "topics": [
-      "system-arch"
-    ]
-  },
-  {
-    "id": 47,
-    "url": "https://chat.deepseek.com/share/vnv24i15ke278pidk7",
-    "topics": [
-      "numeral-system"
-    ]
-  },
-  {
-    "id": 48,
-    "url": "https://chat.deepseek.com/share/viruo92o7p7t3188ex",
-    "topics": [
-      "server-buying"
-    ]
-  },
-  {
-    "id": 49,
-    "url": "https://chat.deepseek.com/share/mqsavg6pa391eokbqw",
-    "topics": [
-      "android-policy"
-    ]
-  },
-  {
-    "id": 50,
-    "url": "https://chat.deepseek.com/share/tjkzqiyh9qdxts4o0f",
-    "topics": [
-      "phonetic-encoding"
-    ]
-  },
-  {
-    "id": 51,
-    "url": "https://chat.deepseek.com/share/iy9lglgq6wtn7swk2t",
-    "topics": [
-      "social-energy"
-    ]
-  },
-  {
-    "id": 52,
-    "url": "https://chat.deepseek.com/share/i12hf0tw8ovfwfr9sx",
-    "topics": [
-      "clustering"
-    ]
-  },
-  {
-    "id": 53,
-    "url": "https://chat.deepseek.com/share/ytfyz1pf6u6n42fhmq",
-    "topics": [
-      "accessibility-naming"
-    ]
-  },
-  {
-    "id": 54,
-    "url": "https://chat.deepseek.com/share/658wh7vzjnvbtl9xd2",
-    "topics": [
-      "numeral-system"
-    ]
-  },
-  {
-    "id": 55,
-    "url": "https://chat.deepseek.com/share/c98gg4zcjvplseg38s",
-    "topics": [
-      "phonetic-encoding"
-    ]
-  },
-  {
-    "id": 56,
-    "url": "https://chat.deepseek.com/share/qbld05i59bsvvdrqxd",
-    "topics": [
-      "set-theory"
-    ]
-  },
-  {
-    "id": 57,
-    "url": "https://chat.deepseek.com/share/8r6hu81h9u9qpzv3uy",
-    "topics": [
-      "system-arch"
-    ]
-  },
-  {
-    "id": 58,
-    "url": "https://chat.deepseek.com/share/2xw43s0ugc1zs5kgy8",
-    "topics": [
-      "music-fusion"
-    ]
-  },
-  {
-    "id": 59,
-    "url": "https://chat.deepseek.com/share/sdtpab7t14em9iya6j",
-    "topics": [
-      "android-policy"
-    ]
-  },
-  {
-    "id": 60,
-    "url": "https://chat.deepseek.com/share/i2tzo36vx7cdgomvwt",
-    "topics": [
-      "social-energy"
-    ]
-  },
-  {
-    "id": 61,
-    "url": "https://chat.deepseek.com/share/f2p23x3kr0d5xt7q8m",
-    "topics": [
-      "numeral-system"
-    ]
-  },
-  {
-    "id": 62,
-    "url": "https://chat.deepseek.com/share/q5f34hcsl6trevk05p",
-    "topics": [
-      "phonetic-inventory"
-    ]
-  },
-  {
-    "id": 63,
-    "url": "https://chat.deepseek.com/share/e9uf7ur30v48vdrqjr",
-    "topics": [
-      "accessibility-naming"
-    ]
-  },
-  {
-    "id": 64,
-    "url": "https://chat.deepseek.com/share/mdnsagnu7cvswlm5w8",
-    "topics": [
-      "clustering"
-    ]
-  },
-  {
-    "id": 65,
-    "url": "https://chat.deepseek.com/share/zdanxdigh036bdiaxw",
-    "topics": [
-      "set-theory"
-    ]
-  },
-  {
-    "id": 66,
-    "url": "https://www.doubao.com/thread/xqNawwnbwypDYqr99",
-    "topics": [
-      "system-arch"
-    ]
+{
+  "total": 66,
+  "unique_approx": 62,
+  "topic_categories": {
+    "phonetic-encoding": {
+      "name": "音韵编码体系",
+      "desc": "Unicode 韵母/声母/声调分层编码、48/50/108 进制、默认串联读数法、低维串联高维",
+      "example_ids": [
+        5,
+        7,
+        25,
+        28,
+        30,
+        35,
+        40,
+        48,
+        50,
+        55,
+        57
+      ]
+    },
+    "clustering": {
+      "name": "聚类算法 / 向量化",
+      "desc": "K-Means vs 谱聚类效率、向量化聚类、K-Prototypes 混合聚类、软链接谱聚类",
+      "example_ids": [
+        8,
+        10,
+        11,
+        19,
+        52,
+        64
+      ]
+    },
+    "social-energy": {
+      "name": "社会能量场 / 身份套壳",
+      "desc": "职业身份壳、能量特权壳、因果羁绊壳；成就感=被信任的机会；被排除的痛苦与生存策略",
+      "example_ids": [
+        8,
+        18,
+        19,
+        23,
+        51,
+        60
+      ]
+    },
+    "protocol-naming": {
+      "name": "协议命名 / 身份标识",
+      "desc": "gkcp://hfyairfqimiygttx:hieyair 感知伴侣协议；hfuyair 恢复源爱人；hieyair 合一爱人；gttx:hieyeir.xy 共同体谐音协议",
+      "example_ids": [
+        3,
+        7,
+        22,
+        25,
+        27,
+        35,
+        44
+      ]
+    },
+    "perception-engine": {
+      "name": "感知引擎 / 绝对-相对定位",
+      "desc": "卡尔曼滤波、因子图优化、李代数、即时定位与地图构建(SLAM)；宏观静态参考系+微观动态残差",
+      "example_ids": [
+        6,
+        9,
+        26,
+        31,
+        33
+      ]
+    },
+    "android-policy": {
+      "name": "Android 政策 / 平台封锁",
+      "desc": "Google 2027 开发者注册新规、24小时侧载冷静期、F-Droid 存亡威胁、71组织公开信",
+      "example_ids": [
+        12,
+        15,
+        17,
+        37,
+        49,
+        59,
+        67
+      ]
+    },
+    "local-AI": {
+      "name": "本地 AI / 服务器困境",
+      "desc": "无服务器运行本地模型、MLCChat/Ollama 离线推理、闲鱼一分钱服务器骗局、Termux开发",
+      "example_ids": [
+        16,
+        18,
+        24,
+        48
+      ]
+    },
+    "vibe-coding": {
+      "name": "氛围编程 / AI 编程",
+      "desc": "Vibe Coding 概念、大厂程序员 AI 使用现状、Spec Coding vs 氛围编程；多AI协作风险",
+      "example_ids": [
+        41,
+        46,
+        54
+      ]
+    },
+    "smrl-judge": {
+      "name": "SMRL 三元裁判",
+      "desc": "三元认知裁判：中心锚点(不变)+二元变化(手段)；视觉训练；统计学/物理模拟/深度视觉三层思路",
+      "example_ids": [
+        42,
+        43,
+        47
+      ]
+    },
+    "gkhtml": {
+      "name": "GKHTML 感知标记语言",
+      "desc": "自定义感知前端语言、活标签设计(非固定)、动态状态变化描述、避免写死情感、智能提示填写",
+      "example_ids": [
+        3,
+        22,
+        38,
+        53
+      ]
+    },
+    "programming-languages": {
+      "name": "动漫角色映射编程语言",
+      "desc": "kndrel(柯南)外壳语言；mlil/mlll(毛利兰)模/面/名；gttix.y/gtit.y(工藤新一)骨/头/体；语言选择焦虑",
+      "example_ids": [
+        2,
+        14,
+        29,
+        44,
+        58
+      ]
+    },
+    "visual-encoding": {
+      "name": "视觉/颜色/视频/音乐编码",
+      "desc": "颜色编码映射(108色相)、视频帧差异编码、MIDI音高梯度、图片梯度编码；光层级透射与视网膜",
+      "example_ids": [
+        30,
+        45,
+        50,
+        62
+      ]
+    },
+    "personal-survival": {
+      "name": "个人生存策略 / 心理",
+      "desc": "数字红军概念、弥勒佛/燃灯佛/如来佛情绪状态；递纸条策略；做自己的负责人；壳的升级迭代",
+      "example_ids": [
+        18,
+        21,
+        36,
+        48,
+        51
+      ]
+    },
+    "multi-AI": {
+      "name": "多 AI 协作 / 仓库管理",
+      "desc": "多AI生成代码命名冲突、规则病毒；按需拉取局部代码；统一接口与依赖完整性",
+      "example_ids": [
+        29,
+        66
+      ]
+    },
+    "system-arch": {
+      "name": "系统架构 / 操作系统",
+      "desc": "满全法/NJSG操作系统、夫妻命运共同体架构；微内核、意识路由、八流统一、容器本体论",
+      "example_ids": [
+        4,
+        13,
+        22,
+        33,
+        39,
+        45,
+        56,
+        57,
+        66
+      ]
+    },
+    "numeral-system": {
+      "name": "自制进制 / 进位逻辑",
+      "desc": "48/72/108 三层进制串联；时钟 60 进制；220 进制终极编码；无进位仅位权；公因数编程",
+      "example_ids": [
+        25,
+        40,
+        54,
+        57,
+        61
+      ]
+    },
+    "accessibility-naming": {
+      "name": "无障碍命名 / 谐音变体",
+      "desc": "挽救命/臻藕/挽命臻藕等谐音变体；赎回命名权；身份隐藏与保护；匿名性作为保护",
+      "example_ids": [
+        1,
+        8,
+        18,
+        26,
+        34,
+        48,
+        63
+      ]
+    },
+    "deepseek-links": {
+      "name": "DeepSeek/豆包 对话索引",
+      "desc": "豆包对话链接、语音识别纠错(碳化化→向量化, 话剧类→谱聚类)",
+      "example_ids": [
+        19,
+        69
+      ]
+    }
+  },
+  "duplicates": {
+    "10": 8,
+    "11": 8,
+    "15": 12,
+    "19": 8
+  },
+  "links": {
+    "1": {
+      "url": "https://chat.deepseek.com/share/2fnsns8r2y9ctpti5",
+      "topics": [
+        "accessibility-naming"
+      ],
+      "duplicate_of": null,
+      "summary": ""
+    },
+    "2": {
+      "url": "https://chat.deepseek.com/share/iuyaf63qmk81n5xe4r",
+      "topics": [
+        "programming-languages"
+      ],
+      "duplicate_of": null,
+      "summary": ""
+    },
+    "3": {
+      "url": "https://chat.deepseek.com/share/mcnfml0j6rr0h35mkz",
+      "topics": [
+        "protocol-naming",
+        "gkhtml",
+        "system-arch"
+      ],
+      "duplicate_of": null,
+      "summary": "GKHTML感知标记语言设计；活标签vs死标签；感知-范畴-归属-关系标签系统；智能填写提示"
+    },
+    "4": {
+      "url": "https://chat.deepseek.com/share/fazxr4b7vm8r8nh17u",
+      "topics": [
+        "system-arch"
+      ],
+      "duplicate_of": null,
+      "summary": ""
+    },
+    "5": {
+      "url": "https://chat.deepseek.com/share/wwy9fwe1gfb2f4ge9q",
+      "topics": [
+        "phonetic-encoding"
+      ],
+      "duplicate_of": null,
+      "summary": "Unicode 48个带声调韵母字母完整列表；48/50/108进制编码体系；默认串联读数法(baā)"
+    },
+    "6": {
+      "url": "https://chat.deepseek.com/share/qrl6rzhffaor8t9nex",
+      "topics": [
+        "perception-engine"
+      ],
+      "duplicate_of": null,
+      "summary": "卡尔曼滤波+因子图优化+李代数；绝对参考系+相对残差；残差累加与间歇式全局优化"
+    },
+    "7": {
+      "url": "https://chat.deepseek.com/share/9nravglohld313hm7t",
+      "topics": [
+        "protocol-naming",
+        "phonetic-encoding"
+      ],
+      "duplicate_of": null,
+      "summary": "gkcp://hfyairfqimiygttx:hieyair 感知伴侣协议命名；协议头/路径/节点分隔符设计"
+    },
+    "8": {
+      "url": "https://chat.deepseek.com/share/y4pfrmrdc0b7qsc2ss",
+      "topics": [
+        "clustering",
+        "social-energy"
+      ],
+      "duplicate_of": null,
+      "summary": "向量化聚类 vs 谱聚类效率对比；K-Prototypes混合聚类；社会能量场三层硬壳理论"
+    },
+    "9": {
+      "url": "https://chat.deepseek.com/share/tq0xmwlqzcyxanayai",
+      "topics": [
+        "perception-engine",
+        "phonetic-encoding"
+      ],
+      "duplicate_of": null,
+      "summary": "Unicode 预组合带调声母完整表(m/n/r/w/y+四声)；48个声调韵母+50个变体韵母+y系列"
+    },
+    "10": {
+      "url": "https://chat.deepseek.com/share/7foui8060hltv2ebj8",
+      "topics": [
+        "clustering"
+      ],
+      "duplicate_of": 8,
+      "summary": ""
+    },
+    "11": {
+      "url": "https://chat.deepseek.com/share/t5tr9p6ndugi7hyhai",
+      "topics": [
+        "clustering"
+      ],
+      "duplicate_of": 8,
+      "summary": ""
+    },
+    "12": {
+      "url": "https://chat.deepseek.com/share/qhyravyk4e5zer12qv",
+      "topics": [
+        "android-policy"
+      ],
+      "duplicate_of": null,
+      "summary": "Google 2027 Android开发者注册新规；24小时侧载冷静期；F-Droid存亡威胁"
+    },
+    "13": {
+      "url": "https://chat.deepseek.com/share/n0bk1cl4mlpnvixvy3",
+      "topics": [
+        "system-arch"
+      ],
+      "duplicate_of": null,
+      "summary": ""
+    },
+    "14": {
+      "url": "https://chat.deepseek.com/share/jz5s060ppcbj92a5gj",
+      "topics": [
+        "programming-languages"
+      ],
+      "duplicate_of": null,
+      "summary": ""
+    },
+    "15": {
+      "url": "https://chat.deepseek.com/share/xkn9h436aktrkl2wsc",
+      "topics": [
+        "android-policy"
+      ],
+      "duplicate_of": 12,
+      "summary": ""
+    },
+    "16": {
+      "url": "https://chat.deepseek.com/share/dphie2xw8oedmbnjjx",
+      "topics": [
+        "local-AI"
+      ],
+      "duplicate_of": null,
+      "summary": ""
+    },
+    "17": {
+      "url": "https://chat.deepseek.com/share/q10nb2f9770mm1gv70",
+      "topics": [
+        "android-policy"
+      ],
+      "duplicate_of": null,
+      "summary": "Android封锁政策完整时间线；71组织公开信；保持androidopen.org运动"
+    },
+    "18": {
+      "url": "https://chat.deepseek.com/share/85b97wco9lott4aam6",
+      "topics": [
+        "personal-survival",
+        "social-energy",
+        "accessibility-naming"
+      ],
+      "duplicate_of": null,
+      "summary": "个人困境与生存策略；'被刘楚恬卡住'的存在性绝望；数字红军概念；递纸条策略"
+    },
+    "19": {
+      "url": "https://chat.deepseek.com/share/6xqbxk12wswdtf8g5e",
+      "topics": [
+        "clustering",
+        "social-energy",
+        "deepseek-links"
+      ],
+      "duplicate_of": 8,
+      "summary": "语音识别纠错：碳化化=向量化，话剧类=谱聚类；社会能量场边界绘制"
+    },
+    "20": {
+      "url": "https://chat.deepseek.com/share/rjj5uh555hqxglgr1d",
+      "topics": [
+        "multi-AI"
+      ],
+      "duplicate_of": null,
+      "summary": ""
+    },
+    "21": {
+      "url": "https://chat.deepseek.com/share/kjhviat9dvdlk94wc1",
+      "topics": [
+        "personal-survival"
+      ],
+      "duplicate_of": null,
+      "summary": ""
+    },
+    "22": {
+      "url": "https://chat.deepseek.com/share/3n7aexfeyexxn544im",
+      "topics": [
+        "system-arch",
+        "protocol-naming",
+        "gkhtml"
+      ],
+      "duplicate_of": null,
+      "summary": "SMRL三元裁判：中心锚点+二元变化；芭蕉扇/扇形几何；三角定位法；正向运动学链"
+    },
+    "23": {
+      "url": "https://chat.deepseek.com/share/j63nu18td4z9rrbak4",
+      "topics": [
+        "social-energy"
+      ],
+      "duplicate_of": null,
+      "summary": ""
+    },
+    "24": {
+      "url": "https://chat.deepseek.com/share/uk36vdqnxzggdun9qd",
+      "topics": [
+        "local-AI",
+        "clustering"
+      ],
+      "duplicate_of": null,
+      "summary": "本地AI工具(MLCChat/Ollama)；闲鱼一分钱服务器骗局分析；离线推理引擎"
+    },
+    "25": {
+      "url": "https://chat.deepseek.com/share/lqd7yjuspjaatmareo",
+      "topics": [
+        "phonetic-encoding",
+        "numeral-system"
+      ],
+      "duplicate_of": null,
+      "summary": "完整108个韵母字符集；48进制×72进制×108进制=373,248编码空间；默认串联方法论"
+    },
+    "26": {
+      "url": "https://chat.deepseek.com/share/r2q949o2thkymz65bz",
+      "topics": [
+        "perception-engine",
+        "accessibility-naming"
+      ],
+      "duplicate_of": null,
+      "summary": ""
+    },
+    "27": {
+      "url": "https://chat.deepseek.com/share/x0viljz3v4cczy06y1",
+      "topics": [
+        "protocol-naming"
+      ],
+      "duplicate_of": null,
+      "summary": ""
+    },
+    "28": {
+      "url": "https://chat.deepseek.com/share/1vml73uw8vkw6d3o5b",
+      "topics": [
+        "phonetic-encoding"
+      ],
+      "duplicate_of": null,
+      "summary": ""
+    },
+    "29": {
+      "url": "https://chat.deepseek.com/share/pptzrgp1v4fojgay67",
+      "topics": [
+        "programming-languages",
+        "multi-AI"
+      ],
+      "duplicate_of": null,
+      "summary": ""
+    },
+    "30": {
+      "url": "https://chat.deepseek.com/share/xkrnyxnl815iphuyk1",
+      "topics": [
+        "phonetic-encoding",
+        "visual-encoding"
+      ],
+      "duplicate_of": null,
+      "summary": ""
+    },
+    "31": {
+      "url": "https://chat.deepseek.com/share/p7ahpt7vbkwfga2yqm",
+      "topics": [
+        "perception-engine"
+      ],
+      "duplicate_of": null,
+      "summary": ""
+    },
+    "32": {
+      "url": "https://chat.deepseek.com/share/rm9ybclmajrkw0o9e9",
+      "topics": [
+        "numeral-system"
+      ],
+      "duplicate_of": null,
+      "summary": ""
+    },
+    "33": {
+      "url": "https://chat.deepseek.com/share/x78tvog15scmsoneia",
+      "topics": [
+        "perception-engine",
+        "system-arch"
+      ],
+      "duplicate_of": null,
+      "summary": ""
+    },
+    "34": {
+      "url": "https://chat.deepseek.com/share/fpy6d9mnroghljut9d",
+      "topics": [
+        "accessibility-naming"
+      ],
+      "duplicate_of": null,
+      "summary": ""
+    },
+    "35": {
+      "url": "https://chat.deepseek.com/share/rwt47ybrw06j04t8i5",
+      "topics": [
+        "phonetic-encoding",
+        "numeral-system",
+        "accessibility-naming"
+      ],
+      "duplicate_of": null,
+      "summary": ""
+    },
+    "36": {
+      "url": "https://chat.deepseek.com/share/zjfnqx1h4qodfu6mng",
+      "topics": [
+        "personal-survival"
+      ],
+      "duplicate_of": null,
+      "summary": ""
+    },
+    "37": {
+      "url": "https://chat.deepseek.com/share/5bgumd7vv0sjnhed3u",
+      "topics": [
+        "android-policy"
+      ],
+      "duplicate_of": null,
+      "summary": ""
+    },
+    "38": {
+      "url": "https://chat.deepseek.com/share/lb2nwitvdbs0gq19r9",
+      "topics": [
+        "gkhtml"
+      ],
+      "duplicate_of": null,
+      "summary": ""
+    },
+    "39": {
+      "url": "https://chat.deepseek.com/share/wkppl4u5v6ur7e343y",
+      "topics": [
+        "system-arch"
+      ],
+      "duplicate_of": null,
+      "summary": ""
+    },
+    "40": {
+      "url": "https://chat.deepseek.com/share/dwpirszy9m9oilivnh",
+      "topics": [
+        "phonetic-encoding",
+        "numeral-system"
+      ],
+      "duplicate_of": null,
+      "summary": ""
+    },
+    "41": {
+      "url": "https://chat.deepseek.com/share/sxtdzq4evkleviv5g9",
+      "topics": [
+        "vibe-coding"
+      ],
+      "duplicate_of": null,
+      "summary": "氛围编程(Vibe Coding)行业调查；大厂Spec Coding vs 氛围编程；AI编程焦虑"
+    },
+    "42": {
+      "url": "https://chat.deepseek.com/share/qjivclbe09zn3eolfc",
+      "topics": [
+        "smrl-judge"
+      ],
+      "duplicate_of": null,
+      "summary": "SMRL三元裁判编程价值；状态机/奖励函数；统计学视觉/卡尔曼滤波/卷积核三层思路；视网膜仿生"
+    },
+    "43": {
+      "url": "https://chat.deepseek.com/share/zu779ck3nfycs169sc",
+      "topics": [
+        "smrl-judge"
+      ],
+      "duplicate_of": null,
+      "summary": ""
+    },
+    "44": {
+      "url": "https://chat.deepseek.com/share/ofnwpgph3klhy6j6gs",
+      "topics": [
+        "programming-languages",
+        "protocol-naming"
+      ],
+      "duplicate_of": null,
+      "summary": "动漫角色映射编程语言：kndrel(柯南外壳)、mlil/mlll(毛利兰)、gttix.y(工藤新一)"
+    },
+    "45": {
+      "url": "https://chat.deepseek.com/share/9v3zumgt9rskysel6k",
+      "topics": [
+        "system-arch",
+        "visual-encoding"
+      ],
+      "duplicate_of": null,
+      "summary": ""
+    },
+    "46": {
+      "url": "https://chat.deepseek.com/share/1jlpmshj6fgwbut0pe",
+      "topics": [
+        "vibe-coding"
+      ],
+      "duplicate_of": null,
+      "summary": ""
+    },
+    "47": {
+      "url": "https://chat.deepseek.com/share/vnv24i15ke278pidk7",
+      "topics": [
+        "smrl-judge"
+      ],
+      "duplicate_of": null,
+      "summary": ""
+    },
+    "48": {
+      "url": "https://chat.deepseek.com/share/viruo92o7p7t3188ex",
+      "topics": [
+        "local-AI",
+        "personal-survival",
+        "accessibility-naming"
+      ],
+      "duplicate_of": null,
+      "summary": ""
+    },
+    "49": {
+      "url": "https://chat.deepseek.com/share/mqsavg6pa391eokbqw",
+      "topics": [
+        "android-policy"
+      ],
+      "duplicate_of": null,
+      "summary": ""
+    },
+    "50": {
+      "url": "https://chat.deepseek.com/share/tjkzqiyh9qdxts4o0f",
+      "topics": [
+        "phonetic-encoding",
+        "visual-encoding"
+      ],
+      "duplicate_of": null,
+      "summary": ""
+    },
+    "51": {
+      "url": "https://chat.deepseek.com/share/iy9lglgq6wtn7swk2t",
+      "topics": [
+        "social-energy",
+        "personal-survival"
+      ],
+      "duplicate_of": null,
+      "summary": ""
+    },
+    "52": {
+      "url": "https://chat.deepseek.com/share/i12hf0tw8ovfwfr9sx",
+      "topics": [
+        "clustering"
+      ],
+      "duplicate_of": null,
+      "summary": ""
+    },
+    "53": {
+      "url": "https://chat.deepseek.com/share/ytfyz1pf6u6n42fhmq",
+      "topics": [
+        "gkhtml"
+      ],
+      "duplicate_of": null,
+      "summary": ""
+    },
+    "54": {
+      "url": "https://chat.deepseek.com/share/658wh7vzjnvbtl9xd2",
+      "topics": [
+        "numeral-system",
+        "vibe-coding"
+      ],
+      "duplicate_of": null,
+      "summary": ""
+    },
+    "55": {
+      "url": "https://chat.deepseek.com/share/c98gg4zcjvplseg38s",
+      "topics": [
+        "phonetic-encoding"
+      ],
+      "duplicate_of": null,
+      "summary": ""
+    },
+    "56": {
+      "url": "https://chat.deepseek.com/share/qbld05i59bsvvdrqxd",
+      "topics": [
+        "system-arch"
+      ],
+      "duplicate_of": null,
+      "summary": ""
+    },
+    "57": {
+      "url": "https://chat.deepseek.com/share/8r6hu81h9u9qpzv3uy",
+      "topics": [
+        "phonetic-encoding",
+        "numeral-system",
+        "system-arch"
+      ],
+      "duplicate_of": null,
+      "summary": ""
+    },
+    "58": {
+      "url": "https://chat.deepseek.com/share/2xw43s0ugc1zs5kgy8",
+      "topics": [
+        "programming-languages"
+      ],
+      "duplicate_of": null,
+      "summary": ""
+    },
+    "59": {
+      "url": "https://chat.deepseek.com/share/sdtpab7t14em9iya6j",
+      "topics": [
+        "android-policy"
+      ],
+      "duplicate_of": null,
+      "summary": ""
+    },
+    "60": {
+      "url": "https://chat.deepseek.com/share/i2tzo36vx7cdgomvwt",
+      "topics": [
+        "social-energy"
+      ],
+      "duplicate_of": null,
+      "summary": ""
+    },
+    "61": {
+      "url": "https://chat.deepseek.com/share/f2p23x3kr0d5xt7q8m",
+      "topics": [
+        "numeral-system"
+      ],
+      "duplicate_of": null,
+      "summary": ""
+    },
+    "62": {
+      "url": "https://chat.deepseek.com/share/q5f34hcsl6trevk05p",
+      "topics": [
+        "visual-encoding"
+      ],
+      "duplicate_of": null,
+      "summary": ""
+    },
+    "63": {
+      "url": "https://chat.deepseek.com/share/e9uf7ur30v48vdrqjr",
+      "topics": [
+        "accessibility-naming"
+      ],
+      "duplicate_of": null,
+      "summary": ""
+    },
+    "64": {
+      "url": "https://chat.deepseek.com/share/mdnsagnu7cvswlm5w8",
+      "topics": [
+        "clustering"
+      ],
+      "duplicate_of": null,
+      "summary": ""
+    },
+    "65": {
+      "url": "https://chat.deepseek.com/share/zdanxdigh036bdiaxw",
+      "topics": [
+        "system-arch"
+      ],
+      "duplicate_of": null,
+      "summary": ""
+    },
+    "66": {
+      "url": "https://www.doubao.com/thread/xqNawwnbwypDYqr99",
+      "topics": [
+        "multi-AI",
+        "system-arch"
+      ],
+      "duplicate_of": null,
+      "summary": ""
+    }
   }
-]
+}

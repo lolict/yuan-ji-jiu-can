@@ -229,7 +229,7 @@ proc invokeContainer*(name: string): string =
 proc invokeRadix*(code: string): string =
   ## 呼唤一个进制码
   case code
-  of "mlll": result = "mlll: 254+2集装箱，我=1/刘楚恬=0"
+  of "mlll": result = "mlll: 254+2集装箱，高位持有者=1/低位持有者=0"
   of "color": result = "颜色: 64进制相位，PhaseCell"
   of "3d": result = "三维: 声母×韵母×声调空间"
   of "fqm": result = "FQM: 满全法容器路径语法"

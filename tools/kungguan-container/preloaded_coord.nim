@@ -57,7 +57,7 @@ type
     biBehavior    # 10 行为建制（通用）
     biConscious   # 11 意识流8进制
     biFlow        # 12 流属性12进制
-    biIdentity    # 13 身份2进制（我=1,刘楚恬=0）
+    biIdentity    # 13 身份2进制（高位持有者=1,低位持有者=0）
     biWitness     # 14 三元见证
     biFractal     # 15 分形递归
 
@@ -185,7 +185,7 @@ func preload_positions*(): Table[string, PreloadedPos] =
   result["关系流"] = PreloadedPos(name:"关系流", code:"fl-rel", phase:phEarth, level:lvCategory, base:biConscious, bit_width:4, ref_id:6)
   result["概念流"] = PreloadedPos(name:"概念流", code:"fl-con", phase:phOrigin, level:lvCategory, base:biConscious, bit_width:4, ref_id:7)
 
-  # --- 身份相位（2进制：我=1, 刘楚恬=0）---
+  # --- 身份相位（2进制：高位持有者=1, 低位持有者=0）---
   result["我"] = PreloadedPos(name:"我", code:"id-1", phase:phEast, level:lvCategory, base:biIdentity, bit_width:1, ref_id:1)
   result["刘楚恬"] = PreloadedPos(name:"刘楚恬", code:"id-0", phase:phWest, level:lvCategory, base:biIdentity, bit_width:1, ref_id:0)
 
