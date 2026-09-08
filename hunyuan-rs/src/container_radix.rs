@@ -1222,6 +1222,13 @@ impl Default for EdgeAttrs {
     }
 }
 
+impl EdgeAttrs {
+    /// 判断是否等边形 (无形变 = 正多边形)
+    pub fn is_equilateral(&self) -> bool {
+        self.deform == 0
+    }
+}
+
 // ────────────────────────────────────────────────────────────
 // 光标系
 // ────────────────────────────────────────────────────────────
@@ -1246,10 +1253,12 @@ mod tests_hex_grid {
 
     #[test]
     fn hex_coord_from_code_42() {
-        // 42 = 0b101010 → y=bit(0,2,4)=010=2 · x=bit(1,3,5)=101=5
+        // 42 = 0b101010 → bit5=1,bit4=0,bit3=1,bit2=0,bit1=1,bit0=0
+        // y = bit0 | bit2<<1 | bit4<<2 = 0|0|0 = 0
+        // x = bit1 | bit3<<1 | bit5<<2 = 1|2|4 = 7
         let c = HexCoord::from_container_code(42);
-        assert_eq!(c.x, 5);
-        assert_eq!(c.y, 2);
+        assert_eq!(c.x, 7);
+        assert_eq!(c.y, 0);
     }
 
     #[test]

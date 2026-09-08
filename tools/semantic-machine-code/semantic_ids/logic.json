@@ -1,0 +1,27 @@
+{
+  "family": "逻辑族",
+  "description": "按位运算：对容器值做逐位裁决",
+  "semantics": {
+    "AND": {
+      "display": "与",
+      "arity": 2,
+      "description": "两容器逐位取交，共有的位保留",
+      "polarity": "阴/浊/聚",
+      "glyph_additive": true
+    },
+    "OR": {
+      "display": "或",
+      "arity": 2,
+      "description": "两容器逐位取并，有一即存",
+      "polarity": "阳/清/散",
+      "glyph_additive": true
+    },
+    "XOR": {
+      "display": "异",
+      "arity": 2,
+      "description": "两容器逐位取异，不同即存",
+      "polarity": "中/和/转",
+      "glyph_additive": true
+    }
+  }
+}

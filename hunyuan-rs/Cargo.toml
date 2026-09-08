@@ -36,6 +36,10 @@ path = "src/bin/court.rs"
 name = "isa-encode"
 path = "src/bin/isa-encode.rs"
 
+[[bin]]
+name = "ttf-gen"
+path = "src/bin/ttf_gen.rs"
+
 [profile.release]
 opt-level = "z"      # 体积优先
 lto = true           # 链接期优化

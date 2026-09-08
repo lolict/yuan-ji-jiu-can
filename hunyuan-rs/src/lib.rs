@@ -207,6 +207,9 @@ pub mod isa;
 // ── 元输入法核心 v0.1: 冰箱模型: 编译期内嵌字典 · 零运行时解析 · C-ABI 接口 ──
 pub mod metaime;
 
+// ── v0.11 拼音流式输入引擎: 逐字母输入 · 实时候选 · 自动分段 ──
+pub mod metaime_flow;
+
 // ── ENTITY_IDENTITY_PROTOCOL v0.1 · 指纹身份 (解决"名字=身份"死锁) ──
 pub mod entity_identity;
 pub use entity_identity::{Fingerprint, Cooperativity, EntityMeta, register_entity,
@@ -426,7 +429,7 @@ pub use fractal::{FractalNode, FractalLevel, FractalGrid, FractalCollapseResult,
                   PhoneChipLayout, BILLION_NODE_TARGET, SpaceGridCoord, FractalOutput,
                   associative_scan, combine_fractal_nodes, ScanTree};
 pub use relational::{Identity, Weight, FlowRight, Priority, Actor, Cluster,
-                     Relation, RelationType, RelAlgebra};
+                     Relation, RelationType, RelAlgebra, SelfBalance, BalanceOp};
 pub use pleasure::{Pleasure, ExternalEntity, Attractor, SimplificationReport,
                    PleasureChain, ChainSummary};
 pub use couple::{XiYaoProtocol, ManQuanFa, EclipseError, ManQuanFaStatus,
@@ -529,6 +532,25 @@ pub use elf_emitter::{
 
 // ── v0.39 容器关系动力学 · 呼唤编程 · 反馈环路 (ContainerDynamics) ──
 pub mod container_dynamics;
+
+// ── v0.40 里外维度 · 矢量封装 · 单中心仲裁 (InsideOut) ──
+pub mod inside_out;
+pub use inside_out::{
+    // 里外轴
+    InsideOut, DepthGaze, DepthResult,
+    // 安全插入点
+    InsertionKind, SecuredInsertionPoint,
+    // 嵌套容器
+    FormatKind, NestedContainer, SurfaceView, InteriorView,
+    // 格式信封
+    FormatEnvelope,
+    // 单中心仲裁
+    SingleCenterArbitration,
+    // 矢量占位
+    vector_placeholder,
+    // 工具函数
+    simple_sum, simple_hash,
+};
 pub use container_dynamics::{
     // 活性
     Vitality,
@@ -548,6 +570,7 @@ pub use container_dynamics::{
     calculate_gcd,
 };
 
+// ── v0.36 时间链式身份编码 · 高维进制码校验 (TimeChainIdentity) ──
 // ── v0.38 OS 抽象层（跨平台 · Linux/Windows/macOS/Bare Metal）──
 pub mod os_layer;
 pub use os_layer::{

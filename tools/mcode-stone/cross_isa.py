@@ -46,6 +46,23 @@ CROSS_ALIGN = {
     "SLL":     {"riscv32": "SLL",        "arm64": "LSL",       "x86_64": "ADD_R_R",    "mips32": "SLL"},
     "SRL":     {"riscv32": "SRL",        "arm64": "LSR",       "x86_64": "ADD_R_R",    "mips32": "SRL"},
     "SRA":     {"riscv32": "SRA",        "arm64": "ADD",       "x86_64": "ADD_R_R",    "mips32": "SRA"},
+    # ── 扩展语义 ID ──
+    "SLTU":    {"riscv32": "SLTU",       "arm64": "CMP",       "x86_64": "CMP_R_R",    "mips32": "SLTU"},
+    "ORI":     {"riscv32": "OR",         "arm64": "ORR",       "x86_64": "OR_R_R",     "mips32": "OR"},
+    "ANDI":    {"riscv32": "AND",        "arm64": "AND",       "x86_64": "AND_R_R",    "mips32": "AND"},
+    "XORI":    {"riscv32": "XOR",        "arm64": "EOR",       "x86_64": "XOR_R_R",    "mips32": "XOR"},
+    "BGE":     {"riscv32": "BEQ",        "arm64": "B_COND",    "x86_64": "JE",         "mips32": "BLEZ"},
+    "BLT":     {"riscv32": "BEQ",        "arm64": "B_COND",    "x86_64": "JE",         "mips32": "BLTZ"},
+    "NOR":     {"riscv32": "XOR",        "arm64": "ORR",       "x86_64": "XOR_R_R",    "mips32": "NOR"},
+    "DIV":     {"riscv32": "SUB",        "arm64": "SUB",       "x86_64": "ADD_R_R",    "mips32": "DIV"},
+    "PUSH":    {"riscv32": "SW",         "arm64": "STR",       "x86_64": "PUSH",       "mips32": "SW"},
+    "POP":     {"riscv32": "LW",         "arm64": "LDR",       "x86_64": "POP",        "mips32": "LW"},
+    "LB":      {"riscv32": "LW",         "arm64": "LDR",       "x86_64": "MOV_R_R",    "mips32": "LB"},
+    "SB":      {"riscv32": "SW",         "arm64": "STR",       "x86_64": "MOV_R_R",    "mips32": "SB"},
+    "LH":      {"riscv32": "LW",         "arm64": "LDR",       "x86_64": "MOV_R_R",    "mips32": "LH"},
+    "SH":      {"riscv32": "SW",         "arm64": "STR",       "x86_64": "MOV_R_R",    "mips32": "SH"},
+    "JALR":    {"riscv32": "JAL",        "arm64": "RET",       "x86_64": "RET",        "mips32": "JALR"},
+    "SRLI":    {"riscv32": "SRL",        "arm64": "LSR",       "x86_64": "ADD_R_R",    "mips32": "SRL"},
 }
 
 def get_isa_db(isa):
@@ -244,6 +261,8 @@ def encode_x64_mov_r_imm32(ops):
 def encode_x64_ret(ops): return 0xC3
 def encode_x64_nop(ops): return 0x90
 def encode_x64_syscall(ops): return 0x0F | (0x05 << 8)
+def encode_x64_push(ops): return 0x50 + reg_to_num(ops[0])
+def encode_x64_pop(ops): return 0x58 + reg_to_num(ops[0])
 
 def encode_x64(ops_map):
     iid = ops_map["inst_id"]; ops = ops_map["ops"]
@@ -253,7 +272,7 @@ def encode_x64(ops_map):
         "XOR_R_R": encode_x64_add_r_r, "MOV_R_R": encode_x64_mov_r_r,
         "MOV_R_IMM32": encode_x64_mov_r_imm32, "CMP_R_R": encode_x64_add_r_r,
         "RET": encode_x64_ret, "NOP": encode_x64_nop, "MUL": encode_x64_add_r_r,
-        "SYSCALL": encode_x64_syscall,
+        "SYSCALL": encode_x64_syscall, "PUSH": encode_x64_push, "POP": encode_x64_pop,
     }
     f = fn.get(iid)
     if not f: raise ValueError(f"未知 x86-64 指令: {iid}")
@@ -295,6 +314,8 @@ def encode_mips32(ops_map):
     if iid == "SYSCALL": return 0x0000000C
     if iid == "NOP": return 0x00000000  # sll $0,$0,0
     if iid == "MULT": return mips_r(0x18, 0, reg_to_num(ops[0]), reg_to_num(ops[1]))
+    if iid == "DIV": return mips_r(0x1A, 0, reg_to_num(ops[0]), reg_to_num(ops[1]))
+    if iid == "JALR": return mips_r(0x09, reg_to_num(ops[0]), reg_to_num(ops[1]), 0)
     raise ValueError(f"未知 MIPS 指令: {iid}")
 
 # ── 统一编码入口 ──
@@ -420,6 +441,19 @@ def cli():
             ("x86_64", "RET",     [],                0xC3),
             ("x86_64", "NOP",     [],                0x90),
             ("x86_64", "SYSCALL", [],                0x050F),
+            ("x86_64", "PUSH",    ["rax"],           0x50),
+            ("x86_64", "POP",     ["rax"],           0x58),
+            # 扩展语义 ID
+            ("riscv32", "SLTU",   ["x5","x6","x7"],  0x007332B3),
+            ("riscv32", "BNE",    ["x1","x2",0],     0x00209063),
+            ("riscv32", "ADDI",   ["x1","x0",0],     0x00000093),  # NOP 别名
+            ("riscv32", "SRLI",   ["x5","x6","4"],   0x00435293),
+            ("arm64",  "MOV",     ["x1","x2"],       0xAA0203E1),
+            ("mips32", "NOR",     ["1","2","3"],     0x00430827),
+            ("mips32", "SUBU",    ["1","2","3"],     0x00430823),
+            ("mips32", "DIV",     ["1","2"],         0x0022001A),
+            ("mips32", "JALR",    ["1","2"],         0x00400009),
+            ("mips32", "SLTU",    ["1","2","3"],     0x0043082B),
         ]
         passed = 0
         for isa, sem_id, ops, expected in cases:

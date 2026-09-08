@@ -10,9 +10,17 @@ use jni::objects::JClass;
 use jni::sys::{jbyteArray, jint, jlong, jstring};
 use jni::JNIEnv;
 use mqf::metaime::{self, MetaImeState};
+use mqf::metaime_flow::FlowState;
 use std::ffi::CStr;
+use std::sync::Mutex;
 
-const NATIVE_VERSION: &str = "MetaIME/JNI v0.1.0";
+const NATIVE_VERSION: &str = "MetaIME/JNI v0.1.1";
+
+// ── 全局 FlowState (线程安全) ──────────────────────────────────────────
+
+thread_local! {
+    static FLOW_STATE: Mutex<Option<FlowState>> = Mutex::new(None);
+}
 
 #[no_mangle]
 pub extern "system" fn Java_com_manquanca_metaime_MetaIMENative_init(
@@ -125,6 +133,95 @@ pub extern "system" fn JNI_OnLoad(
     _reserved: *mut std::os::raw::c_void,
 ) -> jint {
     jni::sys::JNI_VERSION_1_6
+}
+
+// ── 流式输入引擎 JNI 接口 ───────────────────────────────────────────────
+
+#[no_mangle]
+pub extern "system" fn Java_com_manquanca_metaime_MetaIMENative_flowInit(
+    _env: JNIEnv,
+    _class: JClass,
+    handle: jlong,
+) {
+    if handle == 0 { return; }
+    FLOW_STATE.with(|f| {
+        let mut guard = f.lock().unwrap();
+        *guard = Some(FlowState::new());
+    });
+}
+
+#[no_mangle]
+pub extern "system" fn Java_com_manquanca_metaime_MetaIMENative_flowInput(
+    mut env: JNIEnv,
+    _class: JClass,
+    handle: jlong,
+    ch: jbyte,
+) -> jstring {
+    if handle == 0 { return std::ptr::null_mut(); }
+
+    let result = FLOW_STATE.with(|f| {
+        let mut guard = f.lock().unwrap();
+        if let Some(ref mut flow) = *guard {
+            flow.input_char(ch as u8 as char, handle as *mut MetaImeState)
+        } else {
+            return String::new();
+        }
+    });
+
+    // 将结果序列化为 JSON 字符串返回
+    let json = format!(
+        r#"{{"segments":{:?},"current":"{}","candidates":{:?},"completed":{}}}"#,
+        result.segments,
+        result.current_display,
+        result.current_candidates,
+        result.completed
+    );
+
+    env.new_string(&json)
+        .map(|j| j.into_raw())
+        .unwrap_or(std::ptr::null_mut())
+}
+
+#[no_mangle]
+pub extern "system" fn Java_com_manquanca_metaime_MetaIMENative_flowReset(
+    _env: JNIEnv,
+    _class: JClass,
+    _handle: jlong,
+) {
+    FLOW_STATE.with(|f| {
+        let mut guard = f.lock().unwrap();
+        *guard = None;
+    });
+}
+
+#[no_mangle]
+pub extern "system" fn Java_com_manquanca_metaime_MetaIMENative_flowBackspace(
+    mut env: JNIEnv,
+    _class: JClass,
+    handle: jlong,
+) -> jstring {
+    if handle == 0 { return std::ptr::null_mut(); }
+
+    let result = FLOW_STATE.with(|f| {
+        let mut guard = f.lock().unwrap();
+        if let Some(ref mut flow) = *guard {
+            flow.input_char('\x08', handle as *mut MetaImeState)
+        } else {
+            return String::new();
+        }
+    });
+
+    let json = format!(
+        r#"{{"segments":{:?},"current":"{}","candidates":{:?},"completed":{}}}"#,
+        result.segments,
+        result.current_display,
+        result.current_candidates,
+        result.completed
+    );
+
+    env.new_string(&json)
+        .map(|j| j.into_raw())
+        .unwrap_or(std::ptr::null_mut())
 }
 
 // main 占位 (仅 cargo check 需要)

@@ -448,7 +448,7 @@ impl SelfBalance {
         Self {
             stock: initial_stock,
             self_center_rate: 1.0,
-            empathy_decay: 0.1,
+            empathy_decay: 0.0,
         }
     }
 
@@ -464,11 +464,11 @@ impl SelfBalance {
     /// 把另一个 actor 的损益 (other_delta) 换算为对我自身天平的影响
     pub fn convert_external(&self, other_delta: f64) -> f64 {
         if other_delta > 0.0 {
-            // 他人的好事 — 自私者嫉妒减重, 共情者分享喜悦
-            -other_delta * (1.0 - self.self_center_rate) * 0.5
+            // 他人获利: 自我中心者嫉妒 (负), 共情者分享喜悦 (正)
+            -other_delta * self.self_center_rate * 0.3
                 + other_delta * self.empathy_decay
         } else {
-            // 他人的坏事 — 自私者庆幸, 共情者分担
+            // 他人受损: 自我中心者庆幸 (正), 共情者分担痛苦 (负)
             (-other_delta) * self.self_center_rate * 0.3
                 + other_delta * self.empathy_decay
         }
@@ -614,17 +614,12 @@ mod tests {
     // ────────────────────────────────────────────────────────
 
     #[test]
-    fn selfish_actor_ignores_others_good() {
-        // 完全自私者看到别人赚 100, 嫉妒使自己的配重略减
+    fn selfish_actor_envy_at_others_good() {
+        // 完全自私者看到别人赚 100 → 嫉妒 (-30)
         let a = SelfBalance::new_selfish(5.0);
         let effect = a.convert_external(100.0);
-        // 自私者看到别人好 → 自己轻微不爽 (负值)
         assert!(effect < 0.0);
-        // 但嫉妒幅度远小于对方的收益 (0.5 * (1-1.0)=0 + 0.1*100=10 → 不, 重新算)
-        // 这里实际: self_center_rate=1.0 → 第一项 -100*(1-1.0)*0.5=0; 第二项 100*0.1=10 → 共 +10
-        // 这说明纯自私者的 empathy_decay=0.1 仍会产生少量"共情"
-        // 所以效果是 +10 (为对方高兴)
-        assert!((effect - 10.0).abs() < 0.001);
+        assert!((effect - (-30.0)).abs() < 0.001);
     }
 
     #[test]
@@ -648,11 +643,12 @@ mod tests {
 
     #[test]
     fn empathetic_actor_rejoices_others_gain() {
-        // 共情者看到别人赚 30 → 分享喜悦
+        // 共情者看到别人赚 30 → 分享喜悦 + 少量嫉妒
         let a = SelfBalance::new_empathetic(5.0, 0.5);
         let effect = a.convert_external(30.0);
-        // 嫉妒: -30*0.5*0.5=-7.5; 共情: 30*0.5=15; 总和 +7.5
+        // 嫉妒: -30*0.5*0.3=-4.5; 共情: 30*0.5=15; 总和 +10.5
         assert!(effect > 0.0);
+        assert!((effect - 10.5).abs() < 0.001);
     }
 
     #[test]

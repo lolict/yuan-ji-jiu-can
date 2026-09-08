@@ -1,0 +1,43 @@
+semid,opcode,funct3,funct7,fmt,asm_tmpl,fields,desc,cat,bytes
+LUI,0110111,,,U,lui {rd},{imm20},"rd,imm20",高位立即数加载,mov,4
+AUIPC,0010111,,,U,auipc {rd},{imm20},"rd,imm20",PC+立即数,mov,4
+JAL,1101111,,,J,jal {rd},{imm20f},"rd,imm2f",跳转并链接(函数调用),branch,4
+JALR,1100111,000,,I,jalr {rd},{rs1},{imm12},"rd,rs1,imm12",间接跳转(返回),branch,4
+BEQ,1100011,000,,B,beq {rs1},{rs2},{imm12f},"rs1,rs2,imm12f",等于分支,branch,4
+BNE,1100011,001,,B,bne {rs1},{rs2},{imm12f},"rs1,rs2,imm12f",不等分支,branch,4
+BLT,1100011,100,,B,blt {rs1},{rs2},{imm12f},"rs1,rs2,imm12f",小于分支(有符号),branch,4
+BGE,1100011,101,,B,bge {rs1},{rs2},{imm12f},"rs1,rs2,imm12f",大于等于分支(有符号),branch,4
+BLTU,1100011,110,,B,bltu {rs1},{rs2},{imm12f},"rs1,rs2,imm12f",小于分支(无符号),branch,4
+BGEU,1100011,111,,B,bgeu {rs1},{rs2},{imm12f},"rs1,rs2,imm12f",大于等于分支(无符号),branch,4
+LB,0000011,000,,I,lb {rd}, {imm12}({rs1}),"rd,imm12,rs1",加载字节(符号扩展),load,4
+LH,0000011,001,,I,lh {rd}, {imm12}({rs1}),"rd,imm12,rs1",加载半字(符号扩展),load,4
+LW,0000011,010,,I,lw {rd}, {imm12}({rs1}),"rd,imm12,rs1",加载字(4字节),load,4
+LBU,0000011,100,,I,lbu {rd},{imm12}({rs1}),"rd,imm12,rs1",加载字节(零扩展),load,4
+LHU,0000011,101,,I,lhu {rd},{imm12}({rs1}),"rd,imm12,rs1",加载半字(零扩展),load,4
+SB,0100011,000,,S,sb {rs2},{imm12}({rs1}),"rs2,imm12,rs1",存储字节,store,4
+SH,0100011,001,,S,sh {rs2},{imm12}({rs1}),"rs2,imm12,rs1",存储半字,store,4
+SW,0100011,010,,S,sw {rs2},{imm12}({rs1}),"rs2,imm12,rs1",存储字,store,4
+ADDI,0010011,000,,I,addi {rd},{rs1},{imm12},"rd,rs1,imm12",立即数加法,arith,4
+SLTI,0010011,010,,I,slti {rd},{rs1},{imm12},"rd,rs1,imm12",小于置位(有符号),comp,4
+SLTIU,0010011,011,,I,sltiu {rd},{rs1},{imm12},"rd,rs1,imm12",小于置位(无符号),comp,4
+XORI,0010011,100,,I,xori {rd},{rs1},{imm12},"rd,rs1,imm12",立即数异或,logic,4
+ORI,0010011,110,,I,ori {rd},{rs1},{imm12},"rd,rs1,imm12",立即数或,logic,4
+ANDI,0010011,111,,I,andi {rd},{rs1},{imm12},"rd,rs1,imm12",立即数与,logic,4
+SLLI,0010011,001,,I,slli {rd},{rs1},{imm12},"rd,rs1,imm12",逻辑左移(立即数),shift,4
+SRLI,0010011,101,0000000,I,srli {rd},{rs1},{imm12},"rd,rs1,imm12",逻辑右移(立即数),shift,4
+SRAI,0010011,101,0100000,I,srai {rd},{rs1},{imm12},"rd,rs1,imm12",算术右移(立即数),shift,4
+ADD,0110011,000,0000000,R,add {rd},{rs1},{rs2},"rd,rs1,rs2",加法,arith,4
+SUB,0110011,000,0100000,R,sub {rd},{rs1},{rs2},"rd,rs1,rs2",减法,arith,4
+SLL,0110011,001,,R,sll {rd},{rs1},{rs2},"rd,rs1,rs2",逻辑左移(寄存器),shift,4
+SLT,0110011,010,,R,slt {rd},{rs1},{rs2},"rd,rs1,rs2",小于置位(有符号比较),comp,4
+SLTU,0110011,011,,R,sltu {rd},{rs1},{rs2},"rd,rs1,rs2",小于置位(无符号比较),comp,4
+XOR,0110011,100,,R,xor {rd},{rs1},{rs2},"rd,rs1,rs2",异或,logic,4
+SRL,0110011,101,0000000,R,srl {rd},{rs1},{rs2},"rd,rs1,rs2",逻辑右移(寄存器),shift,4
+SRA,0110011,101,0100000,R,sra {rd},{rs1},{rs2},"rd,rs1,rs2",算术右移(寄存器),shift,4
+OR,0110011,110,,R,or {rd},{rs1},{rs2},"rd,rs1,rs2",或,logic,4
+AND,0110011,111,,R,and {rd},{rs1},{rs2},"rd,rs1,rs2",与,logic,4
+ECALL,1110011,000,,I,ecall,,环境调用(系统调用),sys,4
+EBREAK,1110011,000,,I,ebreak,,环境断点(调试),sys,4
+FENCE,0001111,000,,I,fence,,内存屏障,fence,4
+MRET,1110011,000,,I,mret,,机器模式异常,mode,4
+WFI,1110011,000,,I,wfi,,等待中断,mode,4

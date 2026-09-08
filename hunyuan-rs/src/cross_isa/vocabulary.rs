@@ -83,10 +83,10 @@ impl Platform {
 pub enum Operand { Reg(u8), Imm(i64), Mem { base: u8, offset: i64 }, Label(u32) }
 
 impl Operand {
-    fn reg(&self) -> Option<u8> { match self { Operand::Reg(n) => Some(*n), _ => None } }
-    fn imm(&self) -> Option<i64> { match self { Operand::Imm(n) => Some(*n), _ => None } }
-    fn label(&self) -> Option<u32> { match self { Operand::Label(n) => Some(*n), _ => None } }
-    fn mem(&self) -> Option<(u8, i64)> { match self { Operand::Mem { base, offset } => Some((*base, *offset)), _ => None } }
+    pub fn reg(&self) -> Option<u8> { match self { Operand::Reg(n) => Some(*n), _ => None } }
+    pub fn imm(&self) -> Option<i64> { match self { Operand::Imm(n) => Some(*n), _ => None } }
+    pub fn label(&self) -> Option<u32> { match self { Operand::Label(n) => Some(*n), _ => None } }
+    pub fn mem(&self) -> Option<(u8, i64)> { match self { Operand::Mem { base, offset } => Some((*base, *offset)), _ => None } }
 }
 
 #[derive(Debug, Clone)]

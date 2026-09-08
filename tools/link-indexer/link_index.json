@@ -1,19 +1,39 @@
 {
   "total": 66,
   "unique_approx": 62,
+  "duplicates": {
+    "10": 8,
+    "11": 8,
+    "15": 12,
+    "19": 8
+  },
   "topic_categories": {
+    "protocol-identity": {
+      "name": "协议命名 / 身份编码",
+      "desc": "gkcp://感知伴侣协议；lctcfqm.y*air*yy*gtt*xy 不可重排的身份字符串；hfuyair/hieyair/gttx 语义定义",
+      "example_ids": [
+        3,
+        7,
+        14,
+        22,
+        25,
+        27,
+        35,
+        44
+      ]
+    },
     "phonetic-encoding": {
       "name": "音韵编码体系",
-      "desc": "Unicode 韵母/声母/声调分层编码、48/50/108 进制、默认串联读数法、低维串联高维",
+      "desc": "Unicode 韵母/声母/声调分层编码；48/50/60/100/108/220/220进制；默认串联读数法",
       "example_ids": [
         5,
         7,
+        9,
         25,
         28,
         30,
         35,
         40,
-        48,
         50,
         55,
         57
@@ -21,19 +41,20 @@
     },
     "clustering": {
       "name": "聚类算法 / 向量化",
-      "desc": "K-Means vs 谱聚类效率、向量化聚类、K-Prototypes 混合聚类、软链接谱聚类",
+      "desc": "K-Means vs 谱聚类效率对比；K-Prototypes 混合聚类；向量化+硬聚类 vs 图嵌入+谱聚类",
       "example_ids": [
         8,
         10,
         11,
         19,
+        24,
         52,
         64
       ]
     },
     "social-energy": {
       "name": "社会能量场 / 身份套壳",
-      "desc": "职业身份壳、能量特权壳、因果羁绊壳；成就感=被信任的机会；被排除的痛苦与生存策略",
+      "desc": "三层硬壳：职业身份壳、能量特权壳、因果羁绊壳；成就感=被信任的机会；被排除的痛苦",
       "example_ids": [
         8,
         18,
@@ -43,33 +64,9 @@
         60
       ]
     },
-    "protocol-naming": {
-      "name": "协议命名 / 身份标识",
-      "desc": "gkcp://hfyairfqimiygttx:hieyair 感知伴侣协议；hfuyair 恢复源爱人；hieyair 合一爱人；gttx:hieyeir.xy 共同体谐音协议",
-      "example_ids": [
-        3,
-        7,
-        22,
-        25,
-        27,
-        35,
-        44
-      ]
-    },
-    "perception-engine": {
-      "name": "感知引擎 / 绝对-相对定位",
-      "desc": "卡尔曼滤波、因子图优化、李代数、即时定位与地图构建(SLAM)；宏观静态参考系+微观动态残差",
-      "example_ids": [
-        6,
-        9,
-        26,
-        31,
-        33
-      ]
-    },
     "android-policy": {
       "name": "Android 政策 / 平台封锁",
-      "desc": "Google 2027 开发者注册新规、24小时侧载冷静期、F-Droid 存亡威胁、71组织公开信",
+      "desc": "Google 2027 开发者注册新规；24小时侧载冷静期；F-Droid 存亡威胁；71组织公开信",
       "example_ids": [
         12,
         15,
@@ -82,7 +79,7 @@
     },
     "local-AI": {
       "name": "本地 AI / 服务器困境",
-      "desc": "无服务器运行本地模型、MLCChat/Ollama 离线推理、闲鱼一分钱服务器骗局、Termux开发",
+      "desc": "无服务器运行本地模型；MLCChat/Ollama 离线推理；闲鱼一分钱服务器骗局；Termux开发",
       "example_ids": [
         16,
         18,
@@ -91,26 +88,22 @@
       ]
     },
     "vibe-coding": {
-      "name": "氛围编程 / AI 编程",
-      "desc": "Vibe Coding 概念、大厂程序员 AI 使用现状、Spec Coding vs 氛围编程；多AI协作风险",
+      "name": "氛围编程 / 语言选择",
+      "desc": "Vibe Coding 概念；Zig/Nim/Rust vs Julia/Mojo/Go；编程语言的\"系统哲学\"匹配标准",
       "example_ids": [
+        2,
+        14,
+        29,
         41,
+        44,
         46,
-        54
+        54,
+        58
       ]
     },
-    "smrl-judge": {
-      "name": "SMRL 三元裁判",
-      "desc": "三元认知裁判：中心锚点(不变)+二元变化(手段)；视觉训练；统计学/物理模拟/深度视觉三层思路",
-      "example_ids": [
-        42,
-        43,
-        47
-      ]
-    },
-    "gkhtml": {
-      "name": "GKHTML 感知标记语言",
-      "desc": "自定义感知前端语言、活标签设计(非固定)、动态状态变化描述、避免写死情感、智能提示填写",
+    "perception-gkhtml": {
+      "name": "GKHTML / 感知引擎标记语言",
+      "desc": "自定义感知前端语言；活标签vs死标签；状态变化描述语言（非静态）；智能填写引导；W3C Custom Elements",
       "example_ids": [
         3,
         22,
@@ -118,9 +111,31 @@
         53
       ]
     },
-    "programming-languages": {
+    "multi-AI": {
+      "name": "多 AI 协作 / 仓库管理",
+      "desc": "多AI生成代码命名冲突；规则病毒；按需索取局部拉取；依赖完整性；去重策略",
+      "example_ids": [
+        9,
+        20,
+        29,
+        66
+      ]
+    },
+    "personal-emotions": {
+      "name": "个人情感 / 古文抒发",
+      "desc": "弥勒佛/燃灯佛/如来佛情绪比喻；伪古文情感宣泄；'人来疯是为了看美丽风景'；躺平等佛",
+      "example_ids": [
+        13,
+        18,
+        21,
+        36,
+        48,
+        51
+      ]
+    },
+    "anime-languages": {
       "name": "动漫角色映射编程语言",
-      "desc": "kndrel(柯南)外壳语言；mlil/mlll(毛利兰)模/面/名；gttix.y/gtit.y(工藤新一)骨/头/体；语言选择焦虑",
+      "desc": "kndrel(柯南)外壳；mlil/mlll(毛利兰)模/面/名；gttix.y(工藤新一)骨/头/体；不可分割的对象",
       "example_ids": [
         2,
         14,
@@ -129,38 +144,21 @@
         58
       ]
     },
-    "visual-encoding": {
-      "name": "视觉/颜色/视频/音乐编码",
-      "desc": "颜色编码映射(108色相)、视频帧差异编码、MIDI音高梯度、图片梯度编码；光层级透射与视网膜",
+    "unicode-inventory": {
+      "name": "Unicode 音标全集整理",
+      "desc": "108个韵母变体；50小写+50大写=100进制；60声调进制；220进制终极编码；IPA符号的情绪映射",
       "example_ids": [
+        25,
         30,
         45,
         50,
+        57,
         62
-      ]
-    },
-    "personal-survival": {
-      "name": "个人生存策略 / 心理",
-      "desc": "数字红军概念、弥勒佛/燃灯佛/如来佛情绪状态；递纸条策略；做自己的负责人；壳的升级迭代",
-      "example_ids": [
-        18,
-        21,
-        36,
-        48,
-        51
-      ]
-    },
-    "multi-AI": {
-      "name": "多 AI 协作 / 仓库管理",
-      "desc": "多AI生成代码命名冲突、规则病毒；按需拉取局部代码；统一接口与依赖完整性",
-      "example_ids": [
-        29,
-        66
       ]
     },
     "system-arch": {
       "name": "系统架构 / 操作系统",
-      "desc": "满全法/NJSG操作系统、夫妻命运共同体架构；微内核、意识路由、八流统一、容器本体论",
+      "desc": "满全法/NJSG操作系统；夫妻命运共同体；感知引擎；容器本体论；公约数编程",
       "example_ids": [
         4,
         13,
@@ -169,52 +167,71 @@
         39,
         45,
         56,
-        57,
+        65,
         66
       ]
     },
-    "numeral-system": {
-      "name": "自制进制 / 进位逻辑",
-      "desc": "48/72/108 三层进制串联；时钟 60 进制；220 进制终极编码；无进位仅位权；公因数编程",
-      "example_ids": [
-        25,
-        40,
-        54,
-        57,
-        61
-      ]
-    },
     "accessibility-naming": {
-      "name": "无障碍命名 / 谐音变体",
-      "desc": "挽救命/臻藕/挽命臻藕等谐音变体；赎回命名权；身份隐藏与保护；匿名性作为保护",
+      "name": "无障碍命名 / 隐私保护",
+      "desc": "挽命臻藕等谐音变体；身份隐藏与保护；匿名性；数字红军概念",
       "example_ids": [
         1,
         8,
         18,
-        26,
-        34,
         48,
         63
       ]
     },
+    "numeral-system": {
+      "name": "自制进制 / 进位逻辑",
+      "desc": "48/60/100/220进制分层；时钟60进制；无进位仅位权；三层嵌套编码",
+      "example_ids": [
+        25,
+        32,
+        40,
+        54,
+        57,
+        61,
+        68
+      ]
+    },
+    "perception-engine": {
+      "name": "感知引擎 / 绝对-相对定位",
+      "desc": "卡尔曼滤波；因子图优化；李代数；三元裁判（中心锚点+二元变化）；正向运动学",
+      "example_ids": [
+        6,
+        9,
+        22,
+        26,
+        31,
+        33,
+        42,
+        43,
+        47
+      ]
+    },
     "deepseek-links": {
       "name": "DeepSeek/豆包 对话索引",
-      "desc": "豆包对话链接、语音识别纠错(碳化化→向量化, 话剧类→谱聚类)",
+      "desc": "豆包对话链接；语音识别纠错(碳化化→向量化, 话剧类→谱聚类)；豆包对比排序",
       "example_ids": [
         19,
         69
       ]
+    },
+    "server-buying": {
+      "name": "服务器购买 / 防骗",
+      "desc": "闲鱼一分钱服务器套路分析；拉新任务骗局；自动续费陷阱；大厂免费试用替代方案",
+      "example_ids": [
+        18,
+        24,
+        48
+      ]
     }
-  },
-  "duplicates": {
-    "10": 8,
-    "11": 8,
-    "15": 12,
-    "19": 8
   },
   "links": {
     "1": {
       "url": "https://chat.deepseek.com/share/2fnsns8r2y9ctpti5",
+      "url_short": "2fnsns8r2y9ctpti5",
       "topics": [
         "accessibility-naming"
       ],
@@ -223,24 +240,28 @@
     },
     "2": {
       "url": "https://chat.deepseek.com/share/iuyaf63qmk81n5xe4r",
+      "url_short": "iuyaf63qmk81n5xe4r",
       "topics": [
-        "programming-languages"
+        "anime-languages",
+        "vibe-coding"
       ],
       "duplicate_of": null,
       "summary": ""
     },
     "3": {
       "url": "https://chat.deepseek.com/share/mcnfml0j6rr0h35mkz",
+      "url_short": "mcnfml0j6rr0h35mkz",
       "topics": [
-        "protocol-naming",
-        "gkhtml",
+        "protocol-identity",
+        "perception-gkhtml",
         "system-arch"
       ],
       "duplicate_of": null,
-      "summary": "GKHTML感知标记语言设计；活标签vs死标签；感知-范畴-归属-关系标签系统；智能填写提示"
+      "summary": "GKHTML感知标记语言设计；活标签vs死标签；感知-范畴-归属-关系标签系统；智能填写引导；状态变化描述语言"
     },
     "4": {
       "url": "https://chat.deepseek.com/share/fazxr4b7vm8r8nh17u",
+      "url_short": "fazxr4b7vm8r8nh17u",
       "topics": [
         "system-arch"
       ],
@@ -249,49 +270,55 @@
     },
     "5": {
       "url": "https://chat.deepseek.com/share/wwy9fwe1gfb2f4ge9q",
+      "url_short": "wwy9fwe1gfb2f4ge9q",
       "topics": [
         "phonetic-encoding"
       ],
       "duplicate_of": null,
-      "summary": "Unicode 48个带声调韵母字母完整列表；48/50/108进制编码体系；默认串联读数法(baā)"
+      "summary": "Unicode 48个带声调韵母字母完整列表；48/50/108进制编码体系；默认串联读数法(baā)；低维串联高维"
     },
     "6": {
       "url": "https://chat.deepseek.com/share/qrl6rzhffaor8t9nex",
+      "url_short": "qrl6rzhffaor8t9nex",
       "topics": [
         "perception-engine"
       ],
       "duplicate_of": null,
-      "summary": "卡尔曼滤波+因子图优化+李代数；绝对参考系+相对残差；残差累加与间歇式全局优化"
+      "summary": "卡尔曼滤波+因子图优化+李代数；绝对参考系+相对残差；残差累加与间歇式全局优化；关节作为节点参考系"
     },
     "7": {
       "url": "https://chat.deepseek.com/share/9nravglohld313hm7t",
+      "url_short": "9nravglohld313hm7t",
       "topics": [
-        "protocol-naming",
+        "protocol-identity",
         "phonetic-encoding"
       ],
       "duplicate_of": null,
-      "summary": "gkcp://hfyairfqimiygttx:hieyair 感知伴侣协议命名；协议头/路径/节点分隔符设计"
+      "summary": "gkcp://hfyairfqimiygttx:hieyair 感知伴侣协议命名；hfuyair=恢复源爱人；hieyair=合一爱人；gttx:hieyeir.xy=共同体谐音协议；'eye'藏在协议中；柯南/灰原哀角色引用"
     },
     "8": {
       "url": "https://chat.deepseek.com/share/y4pfrmrdc0b7qsc2ss",
+      "url_short": "y4pfrmrdc0b7qsc2ss",
       "topics": [
         "clustering",
         "social-energy"
       ],
       "duplicate_of": null,
-      "summary": "向量化聚类 vs 谱聚类效率对比；K-Prototypes混合聚类；社会能量场三层硬壳理论"
+      "summary": "向量化聚类vs谱聚类效率对比；K-Means O(n)碾压谱聚类O(n³)；K-Prototypes混合聚类；社会能量场三层硬壳；成就感=被信任机会；被排除的痛苦"
     },
     "9": {
       "url": "https://chat.deepseek.com/share/tq0xmwlqzcyxanayai",
+      "url_short": "tq0xmwlqzcyxanayai",
       "topics": [
         "perception-engine",
-        "phonetic-encoding"
+        "multi-AI"
       ],
       "duplicate_of": null,
-      "summary": "Unicode 预组合带调声母完整表(m/n/r/w/y+四声)；48个声调韵母+50个变体韵母+y系列"
+      "summary": "感知引擎：统计/物理模拟/深度视觉三层训练思路；卡尔曼滤波预测运动方向；Jacobian零空间；AI命名冲突规则病毒"
     },
     "10": {
       "url": "https://chat.deepseek.com/share/7foui8060hltv2ebj8",
+      "url_short": "7foui8060hltv2ebj8",
       "topics": [
         "clustering"
       ],
@@ -300,6 +327,7 @@
     },
     "11": {
       "url": "https://chat.deepseek.com/share/t5tr9p6ndugi7hyhai",
+      "url_short": "t5tr9p6ndugi7hyhai",
       "topics": [
         "clustering"
       ],
@@ -308,6 +336,7 @@
     },
     "12": {
       "url": "https://chat.deepseek.com/share/qhyravyk4e5zer12qv",
+      "url_short": "qhyravyk4e5zer12qv",
       "topics": [
         "android-policy"
       ],
@@ -316,22 +345,28 @@
     },
     "13": {
       "url": "https://chat.deepseek.com/share/n0bk1cl4mlpnvixvy3",
+      "url_short": "n0bk1cl4mlpnvixvy3",
       "topics": [
+        "personal-emotions",
         "system-arch"
       ],
       "duplicate_of": null,
-      "summary": ""
+      "summary": "弥勒佛/燃灯佛/如来佛情绪状态比喻；用户写伪古文情感宣泄；DeepSeek诊断可读vs乱码句；'人来疯是为了看美丽风景'；'弥勒佛没来弟子躺地等'；多次修改版"
     },
     "14": {
       "url": "https://chat.deepseek.com/share/jz5s060ppcbj92a5gj",
+      "url_short": "jz5s060ppcbj92a5gj",
       "topics": [
-        "programming-languages"
+        "protocol-identity",
+        "anime-languages",
+        "vibe-coding"
       ],
       "duplicate_of": null,
-      "summary": ""
+      "summary": "lctcfqm.y-air-yy*yy-gtt*gtt-xy*xy 不可重排的身份字符串；y=形(空间融合)；yy=样(时间陪伴)；.y=目标守护；.xy=心中的唯一；严厉批评我颠倒顺序；工藤新一不可分割；刘楚恬评分选~版本"
     },
     "15": {
       "url": "https://chat.deepseek.com/share/xkn9h436aktrkl2wsc",
+      "url_short": "xkn9h436aktrkl2wsc",
       "topics": [
         "android-policy"
       ],
@@ -340,6 +375,7 @@
     },
     "16": {
       "url": "https://chat.deepseek.com/share/dphie2xw8oedmbnjjx",
+      "url_short": "dphie2xw8oedmbnjjx",
       "topics": [
         "local-AI"
       ],
@@ -348,6 +384,7 @@
     },
     "17": {
       "url": "https://chat.deepseek.com/share/q10nb2f9770mm1gv70",
+      "url_short": "q10nb2f9770mm1gv70",
       "topics": [
         "android-policy"
       ],
@@ -356,26 +393,30 @@
     },
     "18": {
       "url": "https://chat.deepseek.com/share/85b97wco9lott4aam6",
+      "url_short": "85b97wco9lott4aam6",
       "topics": [
-        "personal-survival",
         "social-energy",
+        "personal-emotions",
+        "server-buying",
         "accessibility-naming"
       ],
       "duplicate_of": null,
-      "summary": "个人困境与生存策略；'被刘楚恬卡住'的存在性绝望；数字红军概念；递纸条策略"
+      "summary": "个人困境与生存策略；'被刘楚恬卡住'的存在性绝望；闲鱼一分钱服务器骗局；数字红军概念；递纸条策略；他人的目标和因果放在谁的篮子里"
     },
     "19": {
       "url": "https://chat.deepseek.com/share/6xqbxk12wswdtf8g5e",
+      "url_short": "6xqbxk12wswdtf8g5e",
       "topics": [
         "clustering",
         "social-energy",
         "deepseek-links"
       ],
       "duplicate_of": 8,
-      "summary": "语音识别纠错：碳化化=向量化，话剧类=谱聚类；社会能量场边界绘制"
+      "summary": "语音识别纠错：碳化化=向量化，话剧类=谱聚类；豆包对比排序选择第一版为社会能量场边界绘制"
     },
     "20": {
       "url": "https://chat.deepseek.com/share/rjj5uh555hqxglgr1d",
+      "url_short": "rjj5uh555hqxglgr1d",
       "topics": [
         "multi-AI"
       ],
@@ -384,24 +425,28 @@
     },
     "21": {
       "url": "https://chat.deepseek.com/share/kjhviat9dvdlk94wc1",
+      "url_short": "kjhviat9dvdlk94wc1",
       "topics": [
-        "personal-survival"
+        "personal-emotions"
       ],
       "duplicate_of": null,
       "summary": ""
     },
     "22": {
       "url": "https://chat.deepseek.com/share/3n7aexfeyexxn544im",
+      "url_short": "3n7aexfeyexxn544im",
       "topics": [
         "system-arch",
-        "protocol-naming",
-        "gkhtml"
+        "protocol-identity",
+        "perception-gkhtml",
+        "perception-engine"
       ],
       "duplicate_of": null,
-      "summary": "SMRL三元裁判：中心锚点+二元变化；芭蕉扇/扇形几何；三角定位法；正向运动学链"
+      "summary": "SMRL三元裁判：中心锚点+二元变化；芭蕉扇/扇形几何；三角定位法；正向运动学链；卡尔曼滤波三层思路"
     },
     "23": {
       "url": "https://chat.deepseek.com/share/j63nu18td4z9rrbak4",
+      "url_short": "j63nu18td4z9rrbak4",
       "topics": [
         "social-energy"
       ],
@@ -410,24 +455,29 @@
     },
     "24": {
       "url": "https://chat.deepseek.com/share/uk36vdqnxzggdun9qd",
+      "url_short": "uk36vdqnxzggdun9qd",
       "topics": [
         "local-AI",
+        "server-buying",
         "clustering"
       ],
       "duplicate_of": null,
-      "summary": "本地AI工具(MLCChat/Ollama)；闲鱼一分钱服务器骗局分析；离线推理引擎"
+      "summary": "本地AI工具(MLCChat/Ollama)；闲鱼一分钱服务器骗局分析(拉新任务/自动续费/网贷)；离线推理引擎"
     },
     "25": {
       "url": "https://chat.deepseek.com/share/lqd7yjuspjaatmareo",
+      "url_short": "lqd7yjuspjaatmareo",
       "topics": [
         "phonetic-encoding",
-        "numeral-system"
+        "numeral-system",
+        "unicode-inventory"
       ],
       "duplicate_of": null,
-      "summary": "完整108个韵母字符集；48进制×72进制×108进制=373,248编码空间；默认串联方法论"
+      "summary": "完整108个韵母字符集；48进制×72进制×108进制=373,248编码空间；默认串联方法论；Unicode变音符号全集；100/60/48/220进制分层"
     },
     "26": {
       "url": "https://chat.deepseek.com/share/r2q949o2thkymz65bz",
+      "url_short": "r2q949o2thkymz65bz",
       "topics": [
         "perception-engine",
         "accessibility-naming"
@@ -437,14 +487,16 @@
     },
     "27": {
       "url": "https://chat.deepseek.com/share/x0viljz3v4cczy06y1",
+      "url_short": "x0viljz3v4cczy06y1",
       "topics": [
-        "protocol-naming"
+        "protocol-identity"
       ],
       "duplicate_of": null,
       "summary": ""
     },
     "28": {
       "url": "https://chat.deepseek.com/share/1vml73uw8vkw6d3o5b",
+      "url_short": "1vml73uw8vkw6d3o5b",
       "topics": [
         "phonetic-encoding"
       ],
@@ -453,8 +505,10 @@
     },
     "29": {
       "url": "https://chat.deepseek.com/share/pptzrgp1v4fojgay67",
+      "url_short": "pptzrgp1v4fojgay67",
       "topics": [
-        "programming-languages",
+        "anime-languages",
+        "vibe-coding",
         "multi-AI"
       ],
       "duplicate_of": null,
@@ -462,15 +516,17 @@
     },
     "30": {
       "url": "https://chat.deepseek.com/share/xkrnyxnl815iphuyk1",
+      "url_short": "xkrnyxnl815iphuyk1",
       "topics": [
         "phonetic-encoding",
-        "visual-encoding"
+        "unicode-inventory"
       ],
       "duplicate_of": null,
-      "summary": ""
+      "summary": "Unicode预组合带调声母完整表(m/n/r/w/y+四声)；48个声调韵母+50个变体韵母+y系列；IPA符号的情绪映射探索"
     },
     "31": {
       "url": "https://chat.deepseek.com/share/p7ahpt7vbkwfga2yqm",
+      "url_short": "p7ahpt7vbkwfga2yqm",
       "topics": [
         "perception-engine"
       ],
@@ -479,6 +535,7 @@
     },
     "32": {
       "url": "https://chat.deepseek.com/share/rm9ybclmajrkw0o9e9",
+      "url_short": "rm9ybclmajrkw0o9e9",
       "topics": [
         "numeral-system"
       ],
@@ -487,6 +544,7 @@
     },
     "33": {
       "url": "https://chat.deepseek.com/share/x78tvog15scmsoneia",
+      "url_short": "x78tvog15scmsoneia",
       "topics": [
         "perception-engine",
         "system-arch"
@@ -496,6 +554,7 @@
     },
     "34": {
       "url": "https://chat.deepseek.com/share/fpy6d9mnroghljut9d",
+      "url_short": "fpy6d9mnroghljut9d",
       "topics": [
         "accessibility-naming"
       ],
@@ -504,24 +563,27 @@
     },
     "35": {
       "url": "https://chat.deepseek.com/share/rwt47ybrw06j04t8i5",
+      "url_short": "rwt47ybrw06j04t8i5",
       "topics": [
         "phonetic-encoding",
         "numeral-system",
-        "accessibility-naming"
+        "protocol-identity"
       ],
       "duplicate_of": null,
       "summary": ""
     },
     "36": {
       "url": "https://chat.deepseek.com/share/zjfnqx1h4qodfu6mng",
+      "url_short": "zjfnqx1h4qodfu6mng",
       "topics": [
-        "personal-survival"
+        "personal-emotions"
       ],
       "duplicate_of": null,
       "summary": ""
     },
     "37": {
       "url": "https://chat.deepseek.com/share/5bgumd7vv0sjnhed3u",
+      "url_short": "5bgumd7vv0sjnhed3u",
       "topics": [
         "android-policy"
       ],
@@ -530,14 +592,16 @@
     },
     "38": {
       "url": "https://chat.deepseek.com/share/lb2nwitvdbs0gq19r9",
+      "url_short": "lb2nwitvdbs0gq19r9",
       "topics": [
-        "gkhtml"
+        "perception-gkhtml"
       ],
       "duplicate_of": null,
       "summary": ""
     },
     "39": {
       "url": "https://chat.deepseek.com/share/wkppl4u5v6ur7e343y",
+      "url_short": "wkppl4u5v6ur7e343y",
       "topics": [
         "system-arch"
       ],
@@ -546,6 +610,7 @@
     },
     "40": {
       "url": "https://chat.deepseek.com/share/dwpirszy9m9oilivnh",
+      "url_short": "dwpirszy9m9oilivnh",
       "topics": [
         "phonetic-encoding",
         "numeral-system"
@@ -555,6 +620,7 @@
     },
     "41": {
       "url": "https://chat.deepseek.com/share/sxtdzq4evkleviv5g9",
+      "url_short": "sxtdzq4evkleviv5g9",
       "topics": [
         "vibe-coding"
       ],
@@ -563,40 +629,46 @@
     },
     "42": {
       "url": "https://chat.deepseek.com/share/qjivclbe09zn3eolfc",
+      "url_short": "qjivclbe09zn3eolfc",
       "topics": [
-        "smrl-judge"
+        "perception-engine"
       ],
       "duplicate_of": null,
       "summary": "SMRL三元裁判编程价值；状态机/奖励函数；统计学视觉/卡尔曼滤波/卷积核三层思路；视网膜仿生"
     },
     "43": {
       "url": "https://chat.deepseek.com/share/zu779ck3nfycs169sc",
+      "url_short": "zu779ck3nfycs169sc",
       "topics": [
-        "smrl-judge"
+        "perception-engine"
       ],
       "duplicate_of": null,
       "summary": ""
     },
     "44": {
       "url": "https://chat.deepseek.com/share/ofnwpgph3klhy6j6gs",
+      "url_short": "ofnwpgph3klhy6j6gs",
       "topics": [
-        "programming-languages",
-        "protocol-naming"
+        "anime-languages",
+        "vibe-coding",
+        "protocol-identity"
       ],
       "duplicate_of": null,
-      "summary": "动漫角色映射编程语言：kndrel(柯南外壳)、mlil/mlll(毛利兰)、gttix.y(工藤新一)"
+      "summary": "动漫角色映射编程语言：kndrel(柯南外壳)、mlil/mlll(毛利兰)、gttix.y(工藤新一)；工藤新一=时间/身体/骨骼/大脑管理"
     },
     "45": {
       "url": "https://chat.deepseek.com/share/9v3zumgt9rskysel6k",
+      "url_short": "9v3zumgt9rskysel6k",
       "topics": [
-        "system-arch",
-        "visual-encoding"
+        "unicode-inventory",
+        "system-arch"
       ],
       "duplicate_of": null,
       "summary": ""
     },
     "46": {
       "url": "https://chat.deepseek.com/share/1jlpmshj6fgwbut0pe",
+      "url_short": "1jlpmshj6fgwbut0pe",
       "topics": [
         "vibe-coding"
       ],
@@ -605,17 +677,20 @@
     },
     "47": {
       "url": "https://chat.deepseek.com/share/vnv24i15ke278pidk7",
+      "url_short": "vnv24i15ke278pidk7",
       "topics": [
-        "smrl-judge"
+        "perception-engine"
       ],
       "duplicate_of": null,
       "summary": ""
     },
     "48": {
       "url": "https://chat.deepseek.com/share/viruo92o7p7t3188ex",
+      "url_short": "viruo92o7p7t3188ex",
       "topics": [
         "local-AI",
-        "personal-survival",
+        "personal-emotions",
+        "server-buying",
         "accessibility-naming"
       ],
       "duplicate_of": null,
@@ -623,6 +698,7 @@
     },
     "49": {
       "url": "https://chat.deepseek.com/share/mqsavg6pa391eokbqw",
+      "url_short": "mqsavg6pa391eokbqw",
       "topics": [
         "android-policy"
       ],
@@ -631,24 +707,27 @@
     },
     "50": {
       "url": "https://chat.deepseek.com/share/tjkzqiyh9qdxts4o0f",
+      "url_short": "tjkzqiyh9qdxts4o0f",
       "topics": [
         "phonetic-encoding",
-        "visual-encoding"
+        "unicode-inventory"
       ],
       "duplicate_of": null,
       "summary": ""
     },
     "51": {
       "url": "https://chat.deepseek.com/share/iy9lglgq6wtn7swk2t",
+      "url_short": "iy9lglgq6wtn7swk2t",
       "topics": [
         "social-energy",
-        "personal-survival"
+        "personal-emotions"
       ],
       "duplicate_of": null,
       "summary": ""
     },
     "52": {
       "url": "https://chat.deepseek.com/share/i12hf0tw8ovfwfr9sx",
+      "url_short": "i12hf0tw8ovfwfr9sx",
       "topics": [
         "clustering"
       ],
@@ -657,14 +736,16 @@
     },
     "53": {
       "url": "https://chat.deepseek.com/share/ytfyz1pf6u6n42fhmq",
+      "url_short": "ytfyz1pf6u6n42fhmq",
       "topics": [
-        "gkhtml"
+        "perception-gkhtml"
       ],
       "duplicate_of": null,
       "summary": ""
     },
     "54": {
       "url": "https://chat.deepseek.com/share/658wh7vzjnvbtl9xd2",
+      "url_short": "658wh7vzjnvbtl9xd2",
       "topics": [
         "numeral-system",
         "vibe-coding"
@@ -674,6 +755,7 @@
     },
     "55": {
       "url": "https://chat.deepseek.com/share/c98gg4zcjvplseg38s",
+      "url_short": "c98gg4zcjvplseg38s",
       "topics": [
         "phonetic-encoding"
       ],
@@ -682,6 +764,7 @@
     },
     "56": {
       "url": "https://chat.deepseek.com/share/qbld05i59bsvvdrqxd",
+      "url_short": "qbld05i59bsvvdrqxd",
       "topics": [
         "system-arch"
       ],
@@ -690,6 +773,7 @@
     },
     "57": {
       "url": "https://chat.deepseek.com/share/8r6hu81h9u9qpzv3uy",
+      "url_short": "8r6hu81h9u9qpzv3uy",
       "topics": [
         "phonetic-encoding",
         "numeral-system",
@@ -700,14 +784,17 @@
     },
     "58": {
       "url": "https://chat.deepseek.com/share/2xw43s0ugc1zs5kgy8",
+      "url_short": "2xw43s0ugc1zs5kgy8",
       "topics": [
-        "programming-languages"
+        "anime-languages",
+        "vibe-coding"
       ],
       "duplicate_of": null,
       "summary": ""
     },
     "59": {
       "url": "https://chat.deepseek.com/share/sdtpab7t14em9iya6j",
+      "url_short": "sdtpab7t14em9iya6j",
       "topics": [
         "android-policy"
       ],
@@ -716,6 +803,7 @@
     },
     "60": {
       "url": "https://chat.deepseek.com/share/i2tzo36vx7cdgomvwt",
+      "url_short": "i2tzo36vx7cdgomvwt",
       "topics": [
         "social-energy"
       ],
@@ -724,6 +812,7 @@
     },
     "61": {
       "url": "https://chat.deepseek.com/share/f2p23x3kr0d5xt7q8m",
+      "url_short": "f2p23x3kr0d5xt7q8m",
       "topics": [
         "numeral-system"
       ],
@@ -732,14 +821,16 @@
     },
     "62": {
       "url": "https://chat.deepseek.com/share/q5f34hcsl6trevk05p",
+      "url_short": "q5f34hcsl6trevk05p",
       "topics": [
-        "visual-encoding"
+        "unicode-inventory"
       ],
       "duplicate_of": null,
       "summary": ""
     },
     "63": {
       "url": "https://chat.deepseek.com/share/e9uf7ur30v48vdrqjr",
+      "url_short": "e9uf7ur30v48vdrqjr",
       "topics": [
         "accessibility-naming"
       ],
@@ -748,6 +839,7 @@
     },
     "64": {
       "url": "https://chat.deepseek.com/share/mdnsagnu7cvswlm5w8",
+      "url_short": "mdnsagnu7cvswlm5w8",
       "topics": [
         "clustering"
       ],
@@ -756,6 +848,7 @@
     },
     "65": {
       "url": "https://chat.deepseek.com/share/zdanxdigh036bdiaxw",
+      "url_short": "zdanxdigh036bdiaxw",
       "topics": [
         "system-arch"
       ],
@@ -764,6 +857,7 @@
     },
     "66": {
       "url": "https://www.doubao.com/thread/xqNawwnbwypDYqr99",
+      "url_short": "ad/xqNawwnbwypDYqr99",
       "topics": [
         "multi-AI",
         "system-arch"
