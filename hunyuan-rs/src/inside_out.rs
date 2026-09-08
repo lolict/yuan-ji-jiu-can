@@ -642,7 +642,7 @@ mod tests {
 
     #[test]
     fn simple_sum_wrapping() {
-        let big = vec![256u8; 0];  // 只测加法不变性
+        let big = vec![0u8; 0];  // 只测加法不变性
         assert_eq!(simple_sum(&big), 0);
     }
 

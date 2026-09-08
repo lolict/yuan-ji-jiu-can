@@ -207,6 +207,7 @@ pub use l0_self_hosting::{compile_ir_v2, classify_output_to_ir};
 
 // ── ISA 编码层: RISC-V RV32I 编码器/解码器 ──
 pub mod isa;
+pub mod isa16;
 
 // ── 元输入法核心 v0.1: 冰箱模型: 编译期内嵌字典 · 零运行时解析 · C-ABI 接口 ──
 pub mod metaime;

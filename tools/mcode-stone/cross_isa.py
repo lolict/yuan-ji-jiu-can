@@ -342,7 +342,7 @@ def encode(isa, sem_id, ops):
             code = encode_rv32i(inst, ops)
             return code ^ (1 << 12)  # 切换 funct3 bit2 (000→001)
         # SRLI/I-type: funct3=101, shamt in imm[4:0]
-        if inst_id == "SRLI":
+        if sem_id.upper() == "SRLI":
             rd = reg_to_num(ops[0])
             rs1 = reg_to_num(ops[1])
             shamt = int(ops[2])
@@ -469,7 +469,7 @@ def cli():
             ("mips32", "NOR",     ["1","2","3"],     0x00430827),
             ("mips32", "SUBU",    ["1","2","3"],     0x00430823),
             ("mips32", "DIV",     ["1","2"],         0x0022001A),
-            ("mips32", "JALR",    ["1","2"],         0x00400009),
+            ("mips32", "JALR",    ["1","2"],         0x00400809),
             ("mips32", "SLTU",    ["1","2","3"],     0x0043082B),
         ]
         passed = 0
