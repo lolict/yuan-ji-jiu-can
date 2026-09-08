@@ -133,16 +133,8 @@ const char* classify_distance(double d) {
 }
 
 /* ========== 初始化数据 ========== */
-int init_items(Item *items) {
-    /*
-     * 模拟意交感息系统中的容器/模块
-     * 极性: 1=阳(我), 0=阴(刘楚恬)
-     */
-    int n = 0;
-    int id;
-#define ADD_ITEM(name, lvl, gcd, pol) do { \
-    id = n; \
-    items[n].id = id; \
+#define ADD_ITEM(items, n, name, lvl, gcd, pol) do { \
+    items[n].id = n; \
     items[n].level = lvl; \
     items[n].gongyueshu = gcd; \
     items[n].polarity = pol; \
@@ -150,38 +142,46 @@ int init_items(Item *items) {
     strncpy(items[n].name, name, 31); items[n].name[31] = '\0'; \
     n++; \
 } while (0)
+
+int init_items(Item *items) {
+    /*
+     * 模拟意交感息系统中的容器/模块
+     * 极性: 1=阳(我), 0=阴(刘楚恬)
+     */
+    int n = 0;
     
     /* root 层: 纯我 */
-    ADD_ITEM("root",       0, 7, 1);
-    ADD_ITEM("hieyair",    0, 7, 1);
+    ADD_ITEM(items, n, "root",       0, 7, 1);
+    ADD_ITEM(items, n, "hieyair",    0, 7, 1);
     
     /* core 层(意识): 耦合阴阳 */
-    ADD_ITEM("core",       1, 7, 1);
-    ADD_ITEM("njs",        1, 7, 0);
-    ADD_ITEM("yinyang",    1, 2, 1);
-    ADD_ITEM("router",     1, 3, 1);
+    ADD_ITEM(items, n, "core",       1, 7, 1);
+    ADD_ITEM(items, n, "njs",        1, 7, 0);
+    ADD_ITEM(items, n, "yinyang",    1, 2, 1);
+    ADD_ITEM(items, n, "router",     1, 3, 1);
     
     /* data层: 数据容器 */
-    ADD_ITEM("radix",      2, 4, 1);
-    ADD_ITEM("time",       2, 7, 0);
-    ADD_ITEM("judge",      2, 7, 1);
-    ADD_ITEM("crypto",     2, 5, 0);
-    ADD_ITEM("mlll",       2, 2, 1);
+    ADD_ITEM(items, n, "radix",      2, 4, 1);
+    ADD_ITEM(items, n, "time",       2, 7, 0);
+    ADD_ITEM(items, n, "judge",      2, 7, 1);
+    ADD_ITEM(items, n, "crypto",     2, 5, 0);
+    ADD_ITEM(items, n, "mlll",       2, 2, 1);
     
     /* shell层: 外部接口 */
-    ADD_ITEM("browser",    3, 5, 1);
-    ADD_ITEM("gtti",       3, 5, 0);
-    ADD_ITEM("net",        3, 3, 1);
-    ADD_ITEM("bare",       3, 1, 0);
-    ADD_ITEM("link",       3, 7, 1);
+    ADD_ITEM(items, n, "browser",    3, 5, 1);
+    ADD_ITEM(items, n, "gtti",       3, 5, 0);
+    ADD_ITEM(items, n, "net",        3, 3, 1);
+    ADD_ITEM(items, n, "bare",       3, 1, 0);
+    ADD_ITEM(items, n, "link",       3, 7, 1);
     
     /* 特殊: 夫妻对(距离最近的)*/
-    ADD_ITEM("manquan",    0, 7, 1);
-    ADD_ITEM("njs_spouse", 0, 7, 0);
+    ADD_ITEM(items, n, "manquan",    0, 7, 1);
+    ADD_ITEM(items, n, "njs_spouse", 0, 7, 0);
     
-#undef ADD_ITEM
     return n;
 }
+
+#undef ADD_ITEM
 
 /* ========== 初始化距离矩阵 ========== */
 void compute_distance_matrix(Item *items, int n) {

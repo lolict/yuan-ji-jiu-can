@@ -134,7 +134,8 @@ impl OpKind {
                 Ok(if cond == 0 { Some(*target) } else { None })
             }
             OpKind::Call(target) => {
-                invoker.return_stack.push(invoker.pc);
+                // 返回地址 = 当前入口的下一条 (pc + 1)
+                invoker.return_stack.push(invoker.pc.wrapping_add(1));
                 Ok(Some(*target))
             }
             OpKind::Return => {
@@ -253,7 +254,11 @@ impl Invoker {
 
     pub fn run(&mut self, table: &InvocationTable) -> InvokeResult {
         loop {
-            self.step(table)?;
+            match self.step(table) {
+                Ok(()) => {},
+                Err(InvokeError::Halted) => return Ok(()), // 正常终止
+                Err(e) => return Err(e),
+            }
             self.steps += 1;
             if self.steps > 1_000_000 { return Err(InvokeError::StepLimitExceeded); }
         }
@@ -345,7 +350,7 @@ mod tests {
     #[test]
     fn eval_push() {
         let mut table = InvocationTable::new();
-        table.register(InvocationEntry::new(1, vec![OpKind::PushI(42)]));
+        table.register(InvocationEntry::new(1, vec![OpKind::PushI(42), OpKind::Halt]));
         let mut invoker = Invoker::new();
         let result = invoker.eval(&table, 1).unwrap();
         assert_eq!(result, 42);
@@ -415,14 +420,17 @@ mod tests {
     #[test]
     fn call_and_return() {
         let mut table = InvocationTable::new();
-        // entry 1: call 5 then halt
-        table.register(InvocationEntry::new(1, vec![OpKind::Call(5), OpKind::Halt]));
+        // entry 1: call 5 (返回地址 = 2)
+        table.register(InvocationEntry::new(1, vec![OpKind::Call(5)]));
+        // entry 2: halt
+        table.register(InvocationEntry::new(2, vec![OpKind::Halt]));
         // entry 5: push 99, return
         table.register(InvocationEntry::new(5, vec![OpKind::PushI(99), OpKind::Return]));
 
         let mut invoker = Invoker::new();
+        // Halt is now treated as normal termination (Ok)
         let result = invoker.call_entry(&table, 1);
-        assert_eq!(result, Err(InvokeError::Halted));
+        assert!(result.is_ok());
         assert_eq!(invoker.ext_peek_top(), Some(99));
     }
 
@@ -585,11 +593,11 @@ mod tests {
         OpKind::Arithmetic(Arithmetic::And).execute(&mut invoker).unwrap();
         assert_eq!(invoker.ext_peek_top(), Some(0b1000));
 
-        // test OR
+        // test OR: 0b1100 | 0b0011 = 0b1111
         invoker.data_stack.push(0b1100);
         invoker.data_stack.push(0b0011);
         OpKind::Arithmetic(Arithmetic::Or).execute(&mut invoker).unwrap();
-        assert_eq!(invoker.ext_peek_top(), Some(0b1100));
+        assert_eq!(invoker.ext_peek_top(), Some(0b1111));
 
         // test XOR
         invoker.data_stack.push(0b1111);
