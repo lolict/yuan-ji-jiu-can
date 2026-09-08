@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>统计锥 · 归约库</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a0f;color:#d0d0e0;font-family:monospace;padding:20px;display:flex;flex-direction:column;gap:16px;align-items:center}
+h1{font-size:16px;opacity:.6;letter-spacing:2px}
+.demo{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;align-items:flex-start}
+.panel{padding:16px;border-radius:10px;background:#12121a;border:1px solid #2a2a3a;min-width:180px}
+.panel h2{font-size:11px;opacity:.5;margin-bottom:10px;text-transform:uppercase;letter-spacing:1px}
+.containers{display:flex;gap:8px;justify-content:center;margin:10px 0}
+.c{width:40px;height:40px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid transparent;transition:all .3s}
+.c:hover{transform:scale(1.1)}
+.c.s{border-color:#b090ff}
+.c0{background:#2a2a3a;color:#666}
+.c1{background:#3a2a3a;color:#d080a0}
+.c2{background:#2a2a4a;color:#7090e0}
+.c3{background:#3a2a5a;color:#c0a0ff}
+.arrow{font-size:24px;align-self:center;color:#444}
+.result{padding:14px;border-radius:8px;text-align:center;font-size:13px;min-width:120px}
+.ops{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.op{padding:6px 10px;border-radius:6px;border:1px solid #3a3a5a;background:transparent;color:#8080a0;font-size:11px;cursor:pointer;font-family:monospace}
+.op:hover{border-color:#b090ff;color:#d0d0e0}
+.op.am{background:#3a2a5a;color:#c0a0ff;border-color:#b090ff}
+label{display:block;font-size:11px;opacity:.5;margin-top:8px}
+input[type=range]{width:100%;margin-top:4px}
+.log{margin-top:12px;padding:8px;background:#0c0c14;border-radius:6px;font-size:10px;min-width:200px;max-width:280px;line-height:1.6;opacity:.7}
+</style>
+</head>
+<body>
+<h1>统计锥 · 归约操作库</h1>
+<div class="demo">
+<div class="panel">
+<h2>输入 · 4 个容器</h2>
+<div class="containers" id="inputs"></div>
+<label>容器 1 极性: <span id="l0">00</span></label><input type="range" min="0" max="3" value="0" oninput="update(0,this.value)">
+<label>容器 2 极性: <span id="l1">01</span></label><input type="range" min="0" max="3" value="1" oninput="update(1,this.value)">
+<label>容器 3 极性: <span id="l2">10</span></label><input type="range" min="0" max="3" value="2" oninput="update(2,this.value)">
+<label>容器 4 极性: <span id="l3">11</span></label><input type="range" min="0" max="3" value="3" oninput="update(3,this.value)">
+</div>
+<div class="arrow">→</div>
+<div class="panel">
+<h2>统计锥 · 归约操作</h2>
+<div class="ops">
+<button class="op am" data-op="count">计数(有多少个11)</button>
+<button class="op" data-op="vote">投票(多数极性)</button>
+<button class="op" data-op="and">全AND(全部激活?)</button>
+<button class="op" data-op="or">任OR(任一激活?)</button>
+<button class="op" data-op="sum">求和(总极性值)</button>
+<button class="op" data-op="max">最大值</button>
+</div>
+<div class="result" id="result">选择操作</div>
+</div>
+</div>
+<div class="log" id="log">归约规则演示 · 结合律: (a⊕b)⊕c = a⊕(b⊕c)</div>
+<script>
+const NAMES=['独立00','妻盈10','夫引01','夫妻11'];
+const COLORS=['#2a2a3a','#3a2a3a','#2a2a4a','#3a2a5a'];
+const FC=['#666','#d080a0','#7090e0','#c0a0ff'];
+let vals=[0,1,2,3];
+let op='count';
+const ops=document.querySelectorAll('.op');
+ops.forEach(b=>b.onclick=()=>{ops.forEach(x=>x.classList.remove('am'));b.classList.add('am');op=b.dataset.op;run();});
+function update(i,v){
+vals[i]=parseInt(v);
+document.getElementById('l'+i).textContent=vals[i].toString(2).padStart(2,'0');
+render();
+run();
+}
+function render(){
+const ic=document.getElementById('inputs');
+ic.innerHTML='';
+vals.forEach((v,i)=>{
+const d=document.createElement('div');
+d.className='c c'+v;
+d.textContent=NAMES[v][0];
+ic.appendChild(d);
+});
+}
+function run(){
+let r;
+const log=document.getElementById('log');
+switch(op){
+case'count':r=vals.filter(x=>x===3).length+' 个夫妻(11)';log.innerHTML='计数归约: 0+0+1+1 = 2 → 统计有多少个极性11';break;
+case'vote':const f=[0,0,0,0];vals.forEach(x=>f[x]++);let mx=0;for(let i=0;i<4;i++)if(f[i]>f[mx])mx=i;r='多数极性 = '+NAMES[mx]+' (出现 '+f[mx]+' 次)';log.innerHTML='投票归约: 每类别计数,取 Max → 多数表决';break;
+case'and':r=(vals.every(x=>x===3))?'✅ 全部夫妻(11)':'❌ 存在非夫妻';log.innerHTML='AND归约: 1∧1∧0∧1 = 0 → 全部满足才为真';break;
+case'or':r=(vals.some(x=>x===3))?'✅ 有夫妻(11)':'❌ 无夫妻';log.innerHTML='OR归约: 0∨0∨1∨1 = 1 → 任一满足即为真';break;
+case'sum':{const s=vals.reduce((a,b)=>a+b,0);r='极性值总和 = '+s+' → 平均极性 '+(s/vals.length).toFixed(2);log.innerHTML='加法和归约: 0+1+2+3 = 6 → 叠加总状态';break;}
+case'max':{const m=Math.max(...vals);r='最大值 = '+NAMES[m]+' ('+m+')';log.innerHTML='Max归约: max(0,1,2,3) = 3 → 取极端';break;}
+}
+document.getElementById('result').innerHTML=r;
+}
+render();run();
+</script>
+</body>
+</html>
