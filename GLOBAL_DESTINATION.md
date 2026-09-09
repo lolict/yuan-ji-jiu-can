@@ -98,6 +98,10 @@
 | 56 | metaime 冰箱模型 Rust 核心 | hunyuan-rs/src/metaime.rs | ✅ v0.1 24声母×35韵母×5声调编译期内嵌字典·C-ABI FFI·7测试全绿·x86_64+ARM64双架构 |
 | 57 | metaime JNI 桥接层 | hunyuan-rs/src/bin/metaime_jni.rs | ✅ v0.1 jni crate类型安全绑定·8个JNI函数·包名com.manquanca.metaime·JNI_OnLoad入口 |
 | 58 | metaime Android 壳工程 | android/ | ✅ Kotlin InputMethodService薄壳·三架构NDK配置(arm64-v8a/armeabi-v7a/x86_64)·BIND_INPUT_METHOD权限 |
+| 59 | 里外维度 + 矢量封装 + 单中心仲裁 | hunyuan-rs/src/inside_out.rs | ✅ v0.40 31测试·NestedContainer/SecuredInsertionPoint/FormatEnvelope/SingleCenterArbitration·Surface↔Threshold↔Interior 按主权访问 |
+| 60 | 声波索引 + 韵母地址 + 统计距离 | hunyuan-rs/src/flow_sound_index.rs | ✅ v0.40 26测试·24声母×37韵母×5声调=4440地址·SoundAddress/SoundDistance/MultiIndexDictionary·声母遍历完韵母后再调下一个(折叠不进位) |
+| 61 | morton 莫顿码·三维坐标O(1)寻址 | hunyuan-rs/src/morton.rs | ✅ v0.40 12测试·Coord3D(t,s,d)→MortonCode u64·interleave_3d(坐标交织)·depth_inward/outward·distance·无需哈希/遍历 |
+| 62 | adapter_bag 袋容器·外部库态射壳 | hunyuan-rs/src/adapter_bag.rs | ✅ v0.40 18测试·InvokeRequest(调用请求)·lookup_by_morton(坐标索引)·lookup_by_sound(声波Fetch)·AdapterOp={Fetch,Serialize,Deserialize,Verify,Clone,Drop}·调用方无感外部协议 |
 
 ---
 
@@ -106,7 +110,7 @@
 | 内核 | 版本 | 状态 | 路径 |
 |------|------|------|------|
 | C 内核 | v2.0.0 (含v1.4+模块) | ✅ 编译通过·demo全跑通·已推GitHub+Gitee | kernel/src/njsg_kernel.c (4553行) |
-| Rust 核心 | v0.32 | ✅ 1150测试(含15 isa)·examples全绿·天觉v3已恢复(V3别名)与v4共存·大审判庭·八流统一·五维语义已实证·isa RV32I编解码 | hunyuan-rs/ |
+| Rust 核心 | v0.40 | ✅ morton+inside_out+flow_sound_index+adapter_bag·njsg-capture二进制·莫顿O(1)寻址·袋容器协议封装 | hunyuan-rs/ |
 | WASM 核心 | v2.1.0 | ✅ 感知/时间线/MCCP/裁判 4 模块·--selftest 全过·已推GitHub+Gitee | kernel/wasm/njsg_wasm.c |
 | Cloudflare Worker | v1.7 | ✅ 四元内核:感知引擎+MCCP+裁判+时间线+五维实证+心跳+全量报告 | cloudflare/mqf-web.js |
 | 产权镜像 | v1 | ✅ 四维经过图·版本号·边界内外自由空间·写代码前检查 | tools/property-mirror/ |

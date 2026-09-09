@@ -98,7 +98,33 @@
 | metaime-jni | 元输入法 JNI 桥接（jni crate·8函数·com.manquanca.metaime·JNI_OnLoad） |
 | metaime-android | 元输入法 Android 壳（Kotlin InputMethodService·三架构NDK·BIND_INPUT_METHOD） |
 
-### 第 5 层：引擎内核
+### 第 5.5 层:内核 mqf (Rust v0.40)
+
+> Rust 内核 mqf 是 C 内核的代数层 — 纯 Rust 实现,所有 safety-critical 模块在此。
+
+| 容器 | 功能 | 测试 |
+|------|------|------|
+| **morton** | 莫顿码:三维坐标(t,s,d) → 单值索引 (时间×声波×里外深度) | 12 |
+| **inside_out** | 里外维度:Surface→Threshold→Interior + 嵌套容器 + 安全插入点 + 单中心仲裁 | 31 |
+| **flow_sound_index** | 声波路由:24声母×37韵母×5声调=4440地址空间 + 统计距离 | 26 |
+| **adapter_bag** | 袋容器:外部库的 NJSG 壳/态射入口 (调=op,接口=唯一,内部不暴露外部概念) | 18 |
+
+数据流:
+```
+声波路由 ──► 袋(调 op=Fetch) ──► 外部资源
+    │                             │
+    │                             ▼
+    │                      莫顿坐标 t=时间,s=声波,d=深度
+    │                             │
+    ▼                             ▼
+SecuredInsertionPoint ──► NestedContainer ──► SingleCenter仲裁
+```
+
+新增 v0.40 落座于 Rust 内核:mutual/into/adapter 三层架构。
+
+脚注: 原点=莫顿编码(空间填充曲线), 可 O(1) 调用外部功能, 无需哈希/遍历。
+
+### 第 5 层：引擎内核 (C)
 
 > C 内核 `kernel/src/njsg_kernel.c` 是底层运行时容器,所有工具层最终以系统调用或函数调用进入内核。
 

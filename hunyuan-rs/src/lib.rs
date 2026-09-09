@@ -42,24 +42,37 @@ pub mod self_bootstrap;
 
 // ── v0.10 三层分别器 ──
 pub mod distinguisher;
+pub use distinguisher::{classify_visual, SoundTarget, VisualFamily};
 
 // ── v0.10 预加载流属性位图 ──
 pub mod flow_properties;
 
 // ── v0.10 流代数 ──
 pub mod flow_algebra;
+pub use flow_algebra::{InterpState, InterpretiveFlow};
 
 // ── v0.10 一体化统一层 ──
 pub mod unified_flow;
 
 // ── v0.10 容器进制 · 语文→数学对应规则 ──
 pub mod container_radix;
+pub use container_radix::{RecursiveNode, TrajectoryTree};
+
+// ── v1.3 鼓膜自举操作系统 · 容器自主生产·裁决·翻译 ──
+pub mod self_bootstrap_os;
+pub use self_bootstrap_os::{ContainerOS, Container, Decision, Verdict, arbitrate, triune_arbitrate, translate, self_describe};
 
 // ── TEMPORARILY DISABLED (broken build) ──
 // pub mod native_programming;
 
 // ── v0.1 汉字活容器 · 自描述符号系统 (Unicode + 关系层) ──
 pub mod glyph_living;
+
+// ── v0.2 夫妻共鸣判定 · NJSG裁决引擎 ──
+pub mod spousal_resonance;
+
+// ── v0.3 汉字活容器预加载池 ──
+pub mod glyph_preload;
 
 // ── v0.11 跨平台词汇统一架构 — 容器=字体=时间 ──
 pub mod cross_isa;
@@ -245,7 +258,8 @@ pub mod toolchain_mapping;
 
 // ── v0.23 观测系 · 意识的统一感知入口 (Observer · SenseForm · Attention) ──
 pub mod observer;
-pub use observer::{Observer, SenseForm, SenseKind, Attention};
+pub use observer::{Observer, SenseForm, SenseKind, Attention,
+                 SnapshotEntry, SubjectConfig};
 
 // ── v0.24 意识运行时 · 完整管道统一调度 (Consciousness Runtime) ──
 pub mod consciousness_runtime;
@@ -541,6 +555,10 @@ pub use elf_emitter::{
 // ── v0.39 容器关系动力学 · 呼唤编程 · 反馈环路 (ContainerDynamics) ──
 pub mod container_dynamics;
 
+// ── v0.40 莫顿码 · 三维坐标系索引 (Morton) ──
+pub mod morton;
+pub use morton::{Coord3D, MortonCode};
+
 // ── v0.40 里外维度 · 矢量封装 · 单中心仲裁 (InsideOut) ──
 pub mod inside_out;
 pub use inside_out::{
@@ -560,16 +578,20 @@ pub use inside_out::{
     simple_sum, simple_hash,
 };
 
-// ── TEMPORARILY DISABLED (broken build) ──
-// pub mod flow_sound_index;
-// pub use flow_sound_index::{
-//     // 声母/韵母/声调
-//     Initial, Final, Tone,
-//     // 声波地址
-//     SoundAddress, SoundDistance, SoundRouter,
-//     // 索引条目
-//     IndexedFlowEntry, MultiIndexDictionary,
-// };
+// ── v0.40 袋容器 · 外部库适配器 (AdapterBag) ──
+pub mod adapter_bag;
+pub use adapter_bag::{AdapterBag, AdapterOp, InvokeRequest, InvokeResult, IndexedContainer};
+
+// ── v0.40 声波索引 · 韵母地址 · 统计距离 (FlowSoundIndex) ──
+pub mod flow_sound_index;
+pub use flow_sound_index::{
+    // 声母/韵母/声调
+    Initial, Final, Tone,
+    // 声波地址
+    SoundAddress, SoundDistance, SoundRouter,
+    // 索引条目
+    IndexedFlowEntry, MultiIndexDictionary,
+};
 pub use container_dynamics::{
     // 活性
     Vitality,

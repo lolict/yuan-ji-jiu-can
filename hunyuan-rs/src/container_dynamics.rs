@@ -289,6 +289,16 @@ impl ContainerRelation {
         }
     }
 
+    /// 判断之力: 关系是否应该存续 (三元裁定)
+    pub fn judge_raw(is_alive: bool, is_strong: bool, has_loop: bool) -> JudgmentVerdict {
+        match (is_alive, is_strong, has_loop) {
+            (true, true, true) => JudgmentVerdict::Maintain,
+            (true, true, false) => JudgmentVerdict::Strengthen,
+            (true, false, _) => JudgmentVerdict::Repair,
+            (false, _, _) => JudgmentVerdict::Sever,
+        }
+    }
+
     /// 判断之力: 关系是否应该存续
     /// 不是投票 — 是三元裁定
     pub fn judge(&self) -> JudgmentVerdict {

@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:xlink="http://www.w3.org/1999/xlink"
+     version="1.2" baseProfile="tiny">
+  <defs>
+    <font id="HanYuan-Container" horiz-adv-x="1000">
+      <font-face font-family="HanYuan-Container"
+                 full-name="HanYuan Container Glyph"
+                 version="0.1"
+                 units-per-em="1000"
+                 ascent="800"
+                 descent="-200">
+        <font-face-src>
+          <font-face-name name="HanYuan Container Glyph"/>
+        </font-face-src>
+      </font-face>
+      
+      <missing-glyph horiz-adv-x="1000">
+        <path d="M0,0 L0,1000 L1000,1000 L1000,0 Z" fill="none" stroke="#999" stroke-width="10"/>
+      </missing-glyph>
+
+      <!-- 容器: Dai | 袋·包含 | 极性=YIN 主权=ACTIVE | 编码=0 时间窗=0 -->
+      <glyph unicode="&#x0000;"
+             glyph-name="Dai"
+             horiz-adv-x="1000"
+             container:code="0"
+             container:group="0"
+             container:index="0"
+             container:polarity="YIN"
+             container:sovereignty="ACTIVE"
+             container:meaning="袋·包含"
+             container:time_slot="0"
+             container:pulse="1"
+             container:native_code="Dai_00_YIN_ACTIVE"
+             d="M150.0,150.0 L850.0,150.0 L850.0,850.0 L150.0,850.0 Z M150.0,150.0 L250.0,250.0 L750.0,250.0 L850.0,150.0 M850.0,150.0 L750.0,250.0 L750.0,750.0 L850.0,850.0"
+             fill="hsl(220, 80%, 60%)"
+             fill-opacity="1.0"
+             stroke="hsl(220, 90%, 30%)"
+             stroke-width="8">
+        <animate attributeName="opacity"
+                 values="1.0;0.50;1.0"
+                 dur="1.5s"
+                 repeatCount="indefinite"/>
+      </glyph>
+      <!-- 容器: Cai | 裁·裁判 | 极性=NEUTRAL 主权=ACTIVE_SUB | 编码=7 时间窗=3 -->
+      <glyph unicode="&#x0007;"
+             glyph-name="Cai"
+             horiz-adv-x="1000"
+             container:code="7"
+             container:group="0"
+             container:index="7"
+             container:polarity="NEUTRAL"
+             container:sovereignty="ACTIVE_SUB"
+             container:meaning="裁·裁判"
+             container:time_slot="3"
+             container:pulse="1"
+             container:native_code="Cai_07_NEUTRAL_ACTIVE_SUB"
+             d="M500.0,150.0 L850.0,500.0 L500.0,850.0 L150.0,500.0 Z M500.0,250.0 L750.0,500.0 L500.0,750.0 L250.0,500.0 Z"
+             fill="hsl(120, 80%, 60%)"
+             fill-opacity="0.85"
+             stroke="hsl(120, 90%, 30%)"
+             stroke-width="8">
+        <animate attributeName="opacity"
+                 values="0.85;0.42;0.85"
+                 dur="1.5s"
+                 repeatCount="indefinite"/>
+      </glyph>
+      <!-- 容器: Man | 满·满全法 | 极性=NEUTRAL 主权=ACTIVE_SUB | 编码=21 时间窗=2 -->
+      <glyph unicode="&#x0015;"
+             glyph-name="Man"
+             horiz-adv-x="1000"
+             container:code="21"
+             container:group="1"
+             container:index="5"
+             container:polarity="NEUTRAL"
+             container:sovereignty="ACTIVE_SUB"
+             container:meaning="满·满全法"
+             container:time_slot="2"
+             container:pulse="1"
+             container:native_code="Man_15_NEUTRAL_ACTIVE_SUB"
+             d="M150.0,500.0 A350.0,350.0 0 1 0 850.0,500.0 A350.0,350.0 0 1 0 150.0,500.0 Z M250.0,500.0 A250.0,250.0 0 1 1 750.0,500.0 A250.0,250.0 0 1 1 250.0,500.0"
+             fill="hsl(120, 80%, 60%)"
+             fill-opacity="0.85"
+             stroke="hsl(120, 90%, 30%)"
+             stroke-width="8">
+        <animate attributeName="opacity"
+                 values="0.85;0.42;0.85"
+                 dur="1.5s"
+                 repeatCount="indefinite"/>
+      </glyph>
+      <!-- 容器: Nan | 囡·共生 | 极性=NEUTRAL 主权=ACTIVE_SUB | 编码=22 时间窗=39 -->
+      <glyph unicode="&#x0016;"
+             glyph-name="Nan"
+             horiz-adv-x="1000"
+             container:code="22"
+             container:group="1"
+             container:index="6"
+             container:polarity="NEUTRAL"
+             container:sovereignty="ACTIVE_SUB"
+             container:meaning="囡·共生"
+             container:time_slot="39"
+             container:pulse="1"
+             container:native_code="Nan_16_NEUTRAL_ACTIVE_SUB"
+             d="M150.0,500.0 A350.0,350.0 0 1 0 850.0,500.0 A350.0,350.0 0 1 0 150.0,500.0 Z M250.0,500.0 A250.0,250.0 0 1 1 750.0,500.0 A250.0,250.0 0 1 1 250.0,500.0"
+             fill="hsl(120, 80%, 60%)"
+             fill-opacity="0.85"
+             stroke="hsl(120, 90%, 30%)"
+             stroke-width="8">
+        <animate attributeName="opacity"
+                 values="0.85;0.42;0.85"
+                 dur="1.5s"
+                 repeatCount="indefinite"/>
+      </glyph>
+      <!-- 容器: Xi | 夕·夕瑶协议 | 极性=NEUTRAL 主权=ACTIVE_SUB | 编码=23 时间窗=76 -->
+      <glyph unicode="&#x0017;"
+             glyph-name="Xi"
+             horiz-adv-x="1000"
+             container:code="23"
+             container:group="1"
+             container:index="7"
+             container:polarity="NEUTRAL"
+             container:sovereignty="ACTIVE_SUB"
+             container:meaning="夕·夕瑶协议"
+             container:time_slot="76"
+             container:pulse="2"
+             container:native_code="Xi_17_NEUTRAL_ACTIVE_SUB"
+             d="M150.0,500.0 A350.0,210.0 0 1 0 850.0,500.0 A350.0,210.0 0 1 0 150.0,500.0 Z M250.0,500.0 A250.0,150.0 0 1 1 750.0,500.0 A250.0,150.0 0 1 1 250.0,500.0 Z"
+             fill="hsl(120, 80%, 60%)"
+             fill-opacity="0.85"
+             stroke="hsl(120, 90%, 30%)"
+             stroke-width="8">
+        <animate attributeName="opacity"
+                 values="0.85;0.42;0.85"
+                 dur="2.0s"
+                 repeatCount="indefinite"/>
+      </glyph>
+      <!-- 容器: Bang | 帮·唇音 | 极性=YANG 主权=ACTIVE | 编码=32 时间窗=146 -->
+      <glyph unicode="&#x0020;"
+             glyph-name="Bang"
+             horiz-adv-x="1000"
+             container:code="32"
+             container:group="2"
+             container:index="0"
+             container:polarity="YANG"
+             container:sovereignty="ACTIVE"
+             container:meaning="帮·唇音"
+             container:time_slot="146"
+             container:pulse="4"
+             container:native_code="Bang_20_YANG_ACTIVE"
+             d="M150.0,250.0 L150.0,750.0 A350.0,250.0 0 0 0 850.0,750.0 L850.0,250.0 A350.0,250.0 0 0 0 150.0,250.0 Z"
+             fill="hsl(30, 80%, 60%)"
+             fill-opacity="1.0"
+             stroke="hsl(30, 90%, 30%)"
+             stroke-width="8">
+        <animate attributeName="opacity"
+                 values="1.0;0.50;1.0"
+                 dur="3.0s"
+                 repeatCount="indefinite"/>
+      </glyph>
+      <!-- 容器: Ma | 麻·a韵 | 极性=YIN 主权=PASSIVE | 编码=48 时间窗=219 -->
+      <glyph unicode="&#x0030;"
+             glyph-name="Ma"
+             horiz-adv-x="1000"
+             container:code="48"
+             container:group="3"
+             container:index="0"
+             container:polarity="YIN"
+             container:sovereignty="PASSIVE"
+             container:meaning="麻·a韵"
+             container:time_slot="219"
+             container:pulse="6"
+             container:native_code="Ma_30_YIN_PASSIVE"
+             d="M150.0,500.0 A350.0,350.0 0 1 0 850.0,500.0 A350.0,350.0 0 1 0 150.0,500.0 Z M250.0,500.0 A250.0,250.0 0 1 1 750.0,500.0 A250.0,250.0 0 1 1 250.0,500.0"
+             fill="hsl(220, 80%, 60%)"
+             fill-opacity="0.7"
+             stroke="hsl(220, 90%, 30%)"
+             stroke-width="8">
+        <animate attributeName="opacity"
+                 values="0.7;0.35;0.7"
+                 dur="4.0s"
+                 repeatCount="indefinite"/>
+      </glyph>
+      <!-- 容器: Tong | 桶·笔画纵贯 | 极性=YIN 主权=ACTIVE_SUB | 编码=64 时间窗=36 -->
+      <glyph unicode="&#x0040;"
+             glyph-name="Tong"
+             horiz-adv-x="1000"
+             container:code="64"
+             container:group="4"
+             container:index="0"
+             container:polarity="YIN"
+             container:sovereignty="ACTIVE_SUB"
+             container:meaning="桶·笔画纵贯"
+             container:time_slot="36"
+             container:pulse="1"
+             container:native_code="Tong_40_YIN_ACTIVE_SUB"
+             d="M150.0,250.0 L150.0,750.0 A350.0,250.0 0 0 0 850.0,750.0 L850.0,250.0 A350.0,250.0 0 0 0 150.0,250.0 Z"
+             fill="hsl(220, 80%, 60%)"
+             fill-opacity="0.85"
+             stroke="hsl(220, 90%, 30%)"
+             stroke-width="8">
+        <animate attributeName="opacity"
+                 values="0.85;0.42;0.85"
+                 dur="1.5s"
+                 repeatCount="indefinite"/>
+      </glyph>
+    </font>
+  </defs>
+  
+  <!-- 字体名注释 (隐藏文本, 可被机器解析) -->
+  <text x="0" y="-100" font-family="HanYuan-Container" font-size="60" fill="none">
+    HanYuan-Container v0.1 · 64容器 · 48声母 · 108韵母 · 满全法
+  </text>
+</svg>

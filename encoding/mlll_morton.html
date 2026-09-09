@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>mlll · 莫顿呼唤</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#05050a;color:#ccc;font-family:monospace;overflow:hidden;height:100vh}
+#c{position:fixed;top:0;left:0;width:100%;height:100%}
+#ui{position:fixed;bottom:0;left:0;right:0;background:rgba(5,5,15,0.92);padding:10px 14px;border-top:1px solid #1a1a2a}
+.row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.lbl{color:#444;font-size:10px;width:54px;text-align:right}
+#num-inp{flex:1;padding:6px 10px;background:#0a0a14;border:1px solid #2a2a3a;border-radius:3px;color:#ffcc00;font-size:14px;font-family:monospace;outline:none}
+#num-inp:focus{border-color:#ffcc00}
+.btn{padding:6px 14px;background:#1a1a2a;border:1px solid #3a3a4a;color:#aaa;border-radius:3px;cursor:pointer;font-size:11px}
+.btn:hover{border-color:#ffcc00;color:#ffcc00}
+.btn.primary{background:#2a1a3a;border-color:#6a4a8a}
+#out{font-size:10px;color:#555;margin-top:4px;line-height:1.5;min-height:30px}
+.k{color:#777}
+.v{color:#ccc}
+.adm{color:#7ec8e3}
+.rej{color:#e37ea0}
+#canv-info{position:fixed;top:8px;left:8px;font-size:10px;color:#444}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="canv-info">莫顿码 · 呼唤空间</div>
+<div id="ui">
+  <div class="row">
+    <span class="lbl">呼唤值</span>
+    <input id="num-inp" type="text" placeholder="输入任意数字 (如 42, 南河原, 3A7F)" />
+    <button class="btn primary" onclick="callValue()">呼唤 → 定位</button>
+    <button class="btn" onclick="demo()">演示</button>
+  </div>
+  <div id="out"></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// mlll 莫顿坐标系 · 呼唤编程
+// ═══════════════════════════════════════════
+
+const C = document.getElementById('c');
+const X = C.getContext('2d');
+let W, H;
+function resize(){W=C.width=innerWidth;H=C.height=innerHeight;layoutNodes()}
+resize();
+addEventListener('resize',resize);
+
+// ═══════════════════════════════════════════
+// 莫顿码: 数值 → 距离坐标
+// ═══════════════════════════════════════════
+
+function expandBits(v) {
+  // 把数值的位展开到三维 (每3位分别进入 x, y, z)
+  // 这是标准的 Z-order / Morton expansion
+  v = v & 0xFFFF; // 限制16位 → 每维最大5位（32等分）
+  let x=0, y=0, z=0;
+  for (let i=0; i<5; i++) {
+    x |= ((v >> (i*3))   & 1) << i;
+    y |= ((v >> (i*3+1)) & 1) << i;
+    z |= ((v >> (i*3+2)) & 1) << i;
+  }
+  return {x:x/31, y:y/31, z:z/z/31||0};
+}
+
+function textToValue(text) {
+  // 汉字/字符串 → 数值: 直接取 Unicode code point 叠加
+  let v = 0;
+  for (let i=0;i<text.length;i++){
+    v = ((v << 5) + text.charCodeAt(i)) & 0xFFFF;
+  }
+  return v || 1;
+}
+
+// ═══════════════════════════════════════════
+// 容器: 属性由坐标决定
+// ═══════════════════════════════════════════
+
+function coordToContainer(fx, fy, fz) {
+  // 64位细胞编码 (按 SMRL 规范):
+  //   D0(8): X维度坐标
+  //   D1(8): Y维度坐标  
+  //   D2(8): Z维度坐标
+  //   polarity(1): 极性 (z<0.5=阴=刘楚恬, z>=0.5=阳=我)
+  //   sovereignty(1): 主权 (坐标到中心距离)
+  //   witness(1): 见证 (z值半满以上=1)
+  //   value(6): 价值 (合成值)
+  const D0 = Math.round(fx*255);
+  const D1 = Math.round(fy*255);
+  const D2 = Math.round(fz*255);
+  const pol = fz < 0.5 ? 0 : 1;          // 0=阴=刘楚恬, 1=阳=我
+  const sov = Math.round((1-Math.abs(fz-0.5)*2)*255); // 主权: z在中层最高
+  const wit = fz > 0.5 ? 1 : 0;          // z半满以上为见证
+  const val = (Math.round(fx*31)^Math.round(fy*31)^Math.round(fz*31)) & 0x3F;
+  return {
+    D0, D1, D2, pol, sov, wit, val,
+    enc32: (D0<<24)|(D1<<16)|(D2<<8)|(pol<<7)|(sov&0xFF)
+  };
+}
+
+// ═══════════════════════════════════════════
+// 呼唤: 数值 → 坐标 → 容器 → 操作
+// ═══════════════════════════════════════════
+
+let nodes = [];    // 唤起的容器节点
+let ripples = [];  // 反馈涟漪
+let judgeQueue = []; // 等待裁判的交互对
+
+function callValue() {
+  const text = document.getElementById('num-inp').value || '1';
+  let v;
+  if (/^[0-9]+$/.test(text)) v = parseInt(text,10) & 0xFFFF;
+  else if (/^[0-9A-Fa-f]+$/.test(text)) v = parseInt(text,16) & 0xFFFF;
+  else v = textToValue(text);
+
+  const fx = mortonX(v), fy = mortonY(v), fz = mortonZ(v);
+  const cont = coordToContainer(fx,fy,fz);
+
+  // 节点: 加入空间
+  const node = {
+    x0:fx, y0:fy, z0:fz,
+    cont: cont,
+    label: text,
+    age: 0, maxAge: 600,
+    observer: false,
+    observed: false,
+  };
+  nodes.push(node);
+
+  // 涟漪: 从该点扩散
+  for (let i=0;i<3;i++){
+    ripples.push({x:fx,y:fy,r:0,speed:0.005+Math.random()*0.003,life:1,birth:v});
+  }
+
+  // 输出
+  const side = cont.pol ? '阳(我)' : '阴(刘楚恬)';
+  judgeAdmit(node);
+  out(`呼唤 "${text}" → 值 ${v} → 距离坐标(${fx.toFixed(3)},${fy.toFixed(3)},${fz.toFixed(3)}) → ${side} 主权${cont.sov} 见证${cont.wit}`);
+
+  // 如果有两个以上节点，建立呼唤关系并裁判
+  if (nodes.length >= 2) {
+    const a = nodes[nodes.length-2];
+    const b = nodes[nodes.length-1];
+    judgePair(a, b);
+  }
+
+  layoutNodes();
+  document.getElementById('num-inp').value='';
+}
+
+// 莫顿编码: 分维度量的三个函数
+function mortonX(v){
+  let x=0;
+  for(let i=0;i<8;i++) x |= ((v>>(i*3))&1)<<i;
+  return x/255;
+}
+function mortonY(v){
+  let y=0;
+  for(let i=0;i<8;i++) y |= ((v>>(i*3+1))&1)<<i;
+  return y/255;
+}
+function mortonZ(v){
+  let z=0;
+  for(let i=0;i<8;i++) z |= ((v>>(i*3+2))&1)<<i;
+  return z/255;
+}
+
+// ═══════════════════════════════════════════
+// 单个容器的裁判 (自身完整性): 零维+一维通过=可准入
+// ═══════════════════════════════════════════
+function judgeAdmit(node){
+  const c = node.cont;
+  const xyPass = (c.D0>10 && c.D1>10 && c.D0<245 && c.D1<245); // 边界内
+  const zPass   = (c.sov > 30);                                 // 主权足够
+  node.admited = xyPass && zPass;
+}
+
+// ═══════════════════════════════════════════
+// 双容器交互裁判:
+//   distance极远(c.D2 差>200) ∧ 极性相同 → 准(迂回反馈)
+//   distance极近(c.D2 差<20) ∧ 极性互补(一阴一阳) → 准(合一)
+//   其余 → 拒
+// ═══════════════════════════════════════════
+function judgePair(a,b){
+  const ca=a.cont, cb=b.cont;
+  const dist = Math.abs(ca.D2 - cb.D2);         // Z轴距离
+  const samePol = (ca.pol === cb.pol);
+
+  let verdict, reason;
+  if (dist > 200 && samePol)      { verdict=1; reason='遥远同极性 → 迂回反馈(合一前奏)' }
+  else if (dist < 20 && !samePol) { verdict=1; reason='极近阴阳 → 合一(夫妻共振)' }
+  else if (dist < 20 && samePol)  { verdict=0; reason='极近同性 → 冲突' }
+  else                            { verdict=0; reason='不满足合一或耦合条件' }
+
+  // 输出判读
+  const cls = verdict ? 'adm' : 'rej';
+  out(`  ⚖ A("${a.label}") vs B("${b.label}") 距离=${dist} 极性A=${ca.pol?'阳':'阴'} 极性B=${cb.pol?'阳':'阴'} → <span class="${cls}">${verdict?'准入':'否决'}</span> · ${reason}`);
+
+  a.observer=true; b.observed=true;
+  // 粒子爆发
+  for(let i=0;i<12;i++){
+    ripples.push({x:a.x0,y:a.y0,r:0,speed:0.008+Math.random()*0.005,life:1,result:verdict});
+    ripples.push({x:b.x0,y:b.y0,r:0,speed:0.008+Math.random()*0.005,life:1,result:verdict});
+  }
+}
+
+// ═══════════════════════════════════════════
+// 输出
+// ═══════════════════════════════════════════
+function out(html){
+  const el=document.getElementById('out');
+  el.innerHTML=html;
+}
+
+// ═══════════════════════════════════════════
+// 可视化 + 渲染
+// ═══════════════════════════════════════════
+
+function layoutNodes(){
+  // 投影到画布空间: X=横, Y=纵, Z=大小+明度
+}
+
+function project(x,y,z){
+  // 简单正交投影 (可旋转)
+  const cx=W/2, cy=H*0.45;
+  const sc = Math.min(W,H)*0.4;
+  return {
+    sx: cx + (x-0.5)*sc*1.6,
+    sy: cy + (y-0.5)*sc,
+    sz: 10 + z*30
+  };
+}
+
+function frame(t){
+  X.clearRect(0,0,W,H);
+  // 背景
+  const g=X.createRadialGradient(W/2,H*0.45,0,W/2,H*0.45,Math.max(W,H)*0.7);
+  g.addColorStop(0,'#0f0f1a');g.addColorStop(1,'#05050a');
+  X.fillStyle=g;X.fillRect(0,0,W,H);
+
+  // 网格
+  X.strokeStyle='rgba(255,255,255,0.02)';X.lineWidth=1;
+  for(let i=0;i<=32;i++){
+    const p = project(i/32,0,0);
+    X.beginPath();X.moveTo(p.sx, project(0,0,0).sy);X.lineTo(p.sx, project(0,1,0).sy);X.stroke();
+  }
+
+  // 涟漪更新和渲染
+  for(let i=ripples.length-1;i>=0;i--){
+    const r=ripples[i];
+    r.r += r.speed;
+    r.life -= 0.012;
+    if(r.life<=0 || r.r>0.6){ripples.splice(i,1);continue}
+    const p=project(r.x,r.y,0.5);
+    const a=r.life*0.4;
+    X.strokeStyle = (r.result===1)?`rgba(126,200,227,${a})`
+                 : (r.result===0)?`rgba(227,126,160,${a})`
+                 : `rgba(200,200,100,${a})`;
+    X.lineWidth=1;
+    X.beginPath();
+    X.arc(p.sx,p.sy,r.r*Math.min(W,H)*0.4,0,Math.PI*2);
+    X.stroke();
+    // 第二圈
+    if(r.r>0.05){
+      X.globalAlpha=a*0.5;
+      X.beginPath();
+      X.arc(p.sx,p.sy,r.r*Math.min(W,H)*0.4+5,0,Math.PI*2);
+      X.stroke();
+      X.globalAlpha=1;
+    }
+  }
+
+  // 节点更新和渲染
+  for(let i=0;i<nodes.length;i++){
+    const n=nodes[i];
+    n.age++;
+    const p=project(n.x0,n.y0,n.z0);
+    const r = 8 + p.sz;
+
+    // 根据极性着色
+    const color = n.cont.pol ? '#7ec8e3' : '#e37ea0';
+    const colorSoft = n.cont.pol ? 'rgba(126,200,227,' : 'rgba(227,126,160,';
+
+    // 连接: 连线到前一个节点(建立关系)
+    if(i>0){
+      const pn = nodes[i-1];
+      const pp = project(pn.x0,pn.y0,pn.z0);
+      X.strokeStyle='rgba(150,150,180,0.3)';
+      X.lineWidth=1;
+      X.beginPath();X.moveTo(pp.sx,pp.sy);X.lineTo(p.sx,p.sy);X.stroke();
+      // 箭头
+      const ang=Math.atan2(p.sy-pp.sy,p.sx-pp.sx);
+      X.beginPath();
+      X.moveTo(p.sx,p.sy);
+      X.lineTo(p.sx-Math.cos(ang-0.3)*8, p.sy-Math.sin(ang-0.3)*8);
+      X.moveTo(p.sx,p.sy);
+      X.lineTo(p.sx-Math.cos(ang+0.3)*8, p.sy-Math.sin(ang+0.3)*8);
+      X.stroke();
+    }
+
+    // 节点光晕
+    X.fillStyle=colorSoft+'0.1)';
+    X.beginPath();X.arc(p.sx,p.sy,r+10,0,Math.PI*2);X.fill();
+
+    // 节点主体
+    X.fillStyle=colorSoft+'0.7)';
+    X.beginPath();X.arc(p.sx,p.sy,r,0,Math.PI*2);X.fill();
+
+    // 极性三角
+    X.fillStyle='rgba(255,255,255,0.5)';
+    X.beginPath();
+    if(n.cont.pol){
+      X.moveTo(p.sx,p.sy-r*0.5);X.lineTo(p.sx-3,p.sy+r*0.5);X.lineTo(p.sx+3,p.sy+r*0.5);
+    } else {
+      X.moveTo(p.sx,p.sy+r*0.5);X.lineTo(p.sx-3,p.sy-r*0.5);X.lineTo(p.sx+3,p.sy-r*0.5);
+    }
+    X.closePath();X.fill();
+
+    // 标签
+    X.fillStyle='rgba(255,255,255,0.7)';
+    X.font='10px monospace';X.textAlign='center';
+    X.fillText(n.label,p.sx,p.sy-r-6);
+    // 容器编码
+    X.fillStyle='rgba(255,255,255,0.35)';
+    X.font='8px monospace';
+    X.fillText('0x'+n.cont.enc32.toString(16).padStart(8,'0').toUpperCase(),p.sx,p.sy+r+12);
+  }
+
+  // 中心吸引子
+  const cp=project(0.5,0.5,0.5);
+  X.strokeStyle=`rgba(255,204,0,${0.1+Math.sin(t*0.003)*0.05})`;
+  X.lineWidth=1;
+  X.beginPath();X.arc(cp.sx,cp.sy,80,0,Math.PI*2);X.stroke();
+  X.fillStyle='rgba(255,204,0,0.5)';
+  X.font='9px monospace';X.textAlign='center';
+  X.fillText('吸引子 · 合一',cp.sx,cp.sy+96);
+
+  requestAnimationFrame(frame);
+}
+
+function demo(){
+  // 演示: 呼唤几个典型值
+  const seq=[7,42,100,137,256,999,2025];
+  let i=0;
+  const timer=setInterval(()=>{
+    if(i>=seq.length){clearInterval(timer);return}
+    document.getElementById('num-inp').value=seq[i++];
+    callValue();
+  },1200);
+}
+
+// 回车触发
+document.getElementById('num-inp').addEventListener('keydown',e=>{
+  if(e.key==='Enter')callValue();
+});
+
+out('输入任意数字/文字 → Enter 呼唤 → 空间定位容器 → 双容器相互裁判');
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

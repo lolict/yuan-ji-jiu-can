@@ -16,6 +16,7 @@ pub mod vocabulary;
 pub mod coordinate;
 pub mod fridge;
 pub mod compose;
+pub mod align_check;
 
 pub use vocabulary::*;
 pub use coordinate::*;

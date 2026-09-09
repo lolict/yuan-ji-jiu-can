@@ -29,6 +29,11 @@ name = "glyph"
 path = "src/bin/glyph.rs"
 
 [[bin]]
+name = "morphism"
+path = "src/bin/morphism_gen.rs"
+required-features = []
+
+[[bin]]
 name = "court"
 path = "src/bin/court.rs"
 
