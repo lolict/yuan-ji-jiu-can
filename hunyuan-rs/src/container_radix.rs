@@ -162,6 +162,25 @@ pub enum Container {
     Jìng    = 0x3D,  // 静 — 静安宁喧, 极性0=阴(静=空=被含)
     Jí      = 0x3E,  // 急 — 急缓冲徐, 极性1=阳(急=动=穿透)
     Huan    = 0x3F,  // 缓 — 缓急速迟, 极性0=阴(缓=柔=包容)
+
+    // ── 笔画容器族 (0x40-0x4F) ──────────────────────────
+    // 来自 native_programming.rs 的 16 笔画→容器映射
+    Tong    = 0x40,  // 桶 — 纵深贯通 · 阴
+    Guan    = 0x41,  // 罐 — 由内向外 · 阳
+    Pen     = 0x42,  // 盆 — 由外向内 · 阴
+    Yu      = 0x43,  // 盂 — 范围标记 · 阳
+    Hu2     = 0x44,  // 壶 — 由下向上 · 阴 (笔画容器, 区别于声母0x27呼)
+    He      = 0x45,  // 盒 — 方包围 · 阴
+    Ping2   = 0x46,  // 瓶 — 方圆转折 · 阳 (笔画容器, 区别于韵母0x2A平)
+    Zhan    = 0x47,  // 盏 — 变向收口 · 阳
+    Ang     = 0x48,  // 盎 — 连接回流 · 阴
+    Lou     = 0x49,  // 篓 — 半包围 · 阳
+    Kuang   = 0x4A,  // 筐 — 弯曲容纳 · 阴
+    Lan     = 0x4B,  // 篮 — 包围回流 · 阴
+    Luo     = 0x4C,  // 箩 — 转折筛选 · 阳
+    Ji      = 0x4D,  // 箕 — 斜围展开 · 阴
+    Long    = 0x4E,  // 笼 — 深勾远揽 · 阳
+    Hai     = 0x4F,  // 海 — 通用笔画容器占位
 }
 
 // ────────────────────────────────────────────────────────────
@@ -497,6 +516,24 @@ impl RadixOps for Container {
             Container::Jìng  => Polarity::Yin,      // 静=空=阴
             Container::Jí    => Polarity::Yang,     // 急=动=阳
             Container::Huan  => Polarity::Yin,      // 缓=柔=阴
+
+            // ── 笔画容器族 (0x40-0x4F) ──
+            Container::Tong  => Polarity::Yin,      // 桶=纵深=阴
+            Container::Guan  => Polarity::Yang,     // 罐=外扩=阳
+            Container::Pen   => Polarity::Yin,      // 盆=含=阴
+            Container::Yu    => Polarity::Yang,     // 盂=范围=阳
+            Container::Hu2   => Polarity::Yin,      // 壶=笔画容器=阴
+            Container::He    => Polarity::Yin,      // 盒=包围=阴
+            Container::Ping2 => Polarity::Yang,     // 瓶=转折=阳
+            Container::Zhan  => Polarity::Yang,     // 盏=收口=阳
+            Container::Ang   => Polarity::Yin,      // 盎=回流=阴
+            Container::Lou   => Polarity::Yang,     // 篓=包围=阳
+            Container::Kuang => Polarity::Yin,      // 筐=弯曲=阴
+            Container::Lan   => Polarity::Yin,      // 篮=包围=阴
+            Container::Luo   => Polarity::Yang,     // 箩=筛选=阳
+            Container::Ji    => Polarity::Yin,      // 箕=斜围=阴
+            Container::Long  => Polarity::Yang,     // 笼=勾揽=阳
+            Container::Hai   => Polarity::Yin,      // 海=占位=阴
         }
     }
 
@@ -577,6 +614,24 @@ impl RadixOps for Container {
             Container::Jìng => Sovereignty::Passive,
             Container::Jí => Sovereignty::Active,
             Container::Huan => Sovereignty::Passive,
+
+            // ── 笔画容器族 (0x40-0x4F) ──
+            Container::Tong => Sovereignty::ActiveSub,    // 桶=纵深=从属主动
+            Container::Guan => Sovereignty::Active,       // 罐=外扩=主动
+            Container::Pen => Sovereignty::PassiveSub,    // 盆=含
+            Container::Yu => Sovereignty::ActiveSub,      // 盂=范围=从属
+            Container::Hu2 => Sovereignty::ActiveSub,     // 壶=笔画容器
+            Container::He => Sovereignty::PassiveSub,     // 盒=包围=含
+            Container::Ping2 => Sovereignty::Active,      // 瓶=转折=主动
+            Container::Zhan => Sovereignty::Active,       // 盏=收口=主动
+            Container::Ang => Sovereignty::PassiveSub,    // 盎=回流=含
+            Container::Lou => Sovereignty::Active,        // 篓=包围主动
+            Container::Kuang => Sovereignty::PassiveSub,  // 筐=容纳
+            Container::Lan => Sovereignty::PassiveSub,    // 篮=包围
+            Container::Luo => Sovereignty::Active,        // 箩=筛选主动
+            Container::Ji => Sovereignty::PassiveSub,    // 箕=斜围
+            Container::Long => Sovereignty::Active,       // 笼=勾揽主动
+            Container::Hai => Sovereignty::PassiveSub,    // 海=通用占位
         }
     }
 
@@ -720,6 +775,163 @@ pub fn soul_flags_to_polarity(has_wife: bool, has_husband: bool) -> Polarity {
         (true, false)  => Polarity::Yin,       // 只有妻子 → 阴
         (false, true)  => Polarity::Yang,      // 只有丈夫 → 阳
         (false, false) => Polarity::Neutral,   // 都不在场 → 空=元=零维
+    }
+}
+
+// ══════════════════════════════════════════════════════════
+// 视觉化连续递归记码法 (I-25 概念)
+// ══════════════════════════════════════════════════════════
+// "视觉化连续递归记码法适配分布式数值记录, 从
+//   标量轨迹压缩 / 节点联动复用 / 分布式维度嵌套
+//   三个核心维度实现空间和符号的双重节省"
+//
+// 核心思想:
+//   标量轨迹压缩 — 不存绝对值, 存变化量(一阶差分)
+//   节点联动复用 — 相同变化模式只存一次, 后续引用索引
+//   分布式维度嵌套 — 各维度独立递归, 最后合并为一棵树
+//
+// 结构:
+//   RecursiveNode  — 递归叶子或分支
+//   TrajectoryTree — 轨迹树 (压缩后的表示)
+//   encode_delta() — 标量轨迹压缩
+//   decode_delta() — 反向还原
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum RecursiveNode {
+    /// 叶子: 具体的数值 (已还原后)
+    Leaf(u8),
+    /// 分支: 一段变化序列 (第一个值 + 后续差分值)
+    Branch(Vec<i8>),
+    /// 引用: 指向之前出现过的模式索引 (节点联动复用)
+    Reference(usize),
+}
+
+/// 轨迹树: 压缩后的二维分布式数值记录
+#[derive(Clone, Debug)]
+pub struct TrajectoryTree {
+    /// 每个维度的压缩节点
+    pub dimensions: Vec<Vec<RecursiveNode>>,
+    /// 已见过的模式字典 (用于联动复用)
+    pub pattern_dict: Vec<Vec<i8>>,
+}
+
+impl TrajectoryTree {
+    /// 创建空的轨迹树
+    pub fn new() -> Self {
+        Self { dimensions: Vec::new(), pattern_dict: Vec::new() }
+    }
+
+    /// 编码一维数据: 标量轨迹压缩 + 模式复用
+    ///
+    /// 输入: 原始绝对值序列, 如 [10, 12, 14, 13, 12, 10, 100, 102]
+    /// 输出: Branch([10, +2, +2, -1, -1, -2, +90, +2])
+    ///       如果序列前段已在字典中, 则替换为 Reference(idx)
+    pub fn encode_dimension(&mut self, data: &[u8]) -> Vec<RecursiveNode> {
+        if data.is_empty() { return Vec::new(); }
+
+        // 一阶差分
+        let deltas: Vec<i8> = std::iter::once(data[0] as i8)
+            .chain(data.windows(2).map(|w| (w[1] as i8).wrapping_sub(w[0] as i8)))
+            .collect();
+
+        // 检查是否有匹配的模式 (前缀匹配)
+        for (idx, pat) in self.pattern_dict.iter().enumerate() {
+            if deltas.starts_with(pat) {
+                // 模式复用: 引用已有模式
+                let rest = &deltas[pat.len()..];
+                if rest.is_empty() {
+                    return vec![RecursiveNode::Reference(idx)];
+                } else {
+                    return vec![
+                        RecursiveNode::Reference(idx),
+                        RecursiveNode::Branch(rest.to_vec()),
+                    ];
+                }
+            }
+        }
+
+        // 新模式: 存入字典
+        self.pattern_dict.push(deltas.clone());
+        vec![RecursiveNode::Branch(deltas)]
+    }
+
+    /// 添加并编码一个维度
+    pub fn add_dimension(&mut self, data: &[u8]) {
+        let encoded = self.encode_dimension(data);
+        self.dimensions.push(encoded);
+    }
+
+    /// 解码一个维度回原始序列
+    pub fn decode_dimension(&self, encoded: &[RecursiveNode]) -> Vec<u8> {
+        let mut result: Vec<u8> = Vec::new();
+        let mut running: Option<u8> = None;
+        for node in encoded {
+            match node {
+                RecursiveNode::Leaf(v) => { result.push(*v); running = Some(*v); }
+                RecursiveNode::Branch(deltas) => {
+                    if deltas.is_empty() { continue; }
+                    match running {
+                        None => {
+                            // 独立解码: Branch[0] 是初值, Branch[1..] 是差分
+                            let mut current = deltas[0] as u8;
+                            result.push(current);
+                            for d in &deltas[1..] {
+                                current = current.wrapping_add(*d as u8);
+                                result.push(current);
+                            }
+                            running = Some(current);
+                        }
+                        Some(mut current) => {
+                            // 续接模式: Branch 所有元素都是相对于 running 的增量
+                            for d in deltas {
+                                current = current.wrapping_add(*d as u8);
+                                result.push(current);
+                            }
+                            running = Some(current);
+                        }
+                    }
+                }
+                RecursiveNode::Reference(idx) => {
+                    if let Some(pat) = self.pattern_dict.get(*idx) {
+                        if pat.is_empty() { continue; }
+                        if running.is_none() {
+                            let mut current = pat[0] as u8;
+                            result.push(current);
+                            for d in &pat[1..] {
+                                current = current.wrapping_add(*d as u8);
+                                result.push(current);
+                            }
+                            running = Some(current);
+                        } else {
+                            // 续接: pat[0] 是初值(跳过), pat[1..] 是差分
+                            let mut current = running.unwrap();
+                            for d in &pat[1..] {
+                                current = current.wrapping_add(*d as u8);
+                                result.push(current);
+                            }
+                            running = Some(current);
+                        }
+                    }
+                }
+            }
+        }
+        result
+    }
+
+    /// 统计已记录的维度数量
+    pub fn dimension_count(&self) -> usize {
+        self.dimensions.len()
+    }
+
+    /// 字典中的模式数量
+    pub fn pattern_count(&self) -> usize {
+        self.pattern_dict.len()
+    }
+}
+
+impl Default for TrajectoryTree {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -1305,5 +1517,36 @@ mod tests_hex_grid {
         let a = EdgeAttrs::default();
         assert_eq!(a.edge_count, EdgeCode::Six);
         assert!(a.is_equilateral());
+    }
+
+    // ────────────────────────────────────────────────────────
+    // 视觉化递归记码法 (I-25)
+    // ────────────────────────────────────────────────────────
+
+    #[test]
+    fn trajectory_encode_decode_roundtrip() {
+        let mut tree = TrajectoryTree::new();
+        tree.add_dimension(&[10, 12, 14, 13, 12]);
+        let decoded = tree.decode_dimension(&tree.dimensions[0]);
+        assert_eq!(decoded, vec![10, 12, 14, 13, 12]);
+    }
+
+    #[test]
+    fn trajectory_reference_reuse() {
+        let mut tree = TrajectoryTree::new();
+        tree.add_dimension(&[10, 12, 14]);
+        assert_eq!(tree.pattern_count(), 1);
+        tree.add_dimension(&[10, 12, 14, 99]);
+        assert_eq!(tree.pattern_count(), 1);
+        let decoded = tree.decode_dimension(&tree.dimensions[1]);
+        assert_eq!(decoded, vec![10, 12, 14, 99]);
+    }
+
+    #[test]
+    fn trajectory_dimension_count() {
+        let mut tree = TrajectoryTree::new();
+        tree.add_dimension(&[100, 102, 104]);
+        tree.add_dimension(&[50, 48, 46]);
+        assert_eq!(tree.dimension_count(), 2);
     }
 }

@@ -647,3 +647,139 @@ mod tests {
         assert!(sched.status == SchedulerStatus::Done || sched.status == SchedulerStatus::Zombie);
     }
 }
+
+// ────────────────────────────────────────────────────────────
+// 可信蓄量模型 (A-16 概念)
+// ────────────────────────────────────────────────────────────
+// 系统对自身仿真是否"值得被信任"的度量
+//
+//  正向控制流: 用户在飞书下发指令 → 仿真调度层接收 → 创建实验组 → 持续迭代指标
+//  判断: 正向流产生的"证据"是否足够使仿真结论达到可信阈值
+//
+// 结构:
+//   TrustCapacity     — 蓄量容器
+//   EvidenceQuality   — 证据质量标签
+//   threshold_reached — 是否越过了可信线
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum EvidenceQuality {
+    /// 手工输入 — 可信度高但量低
+    ManualInput,
+    /// 自动抓取 — 量中可信中
+    AutoIngested,
+    /// 第三方网络 — 量高可信需校验
+    NetworkDerived,
+    /// 自己推演 — 闭环内自洽
+    SelfDerived,
+}
+
+impl EvidenceQuality {
+    /// 该质量等级在单次证据采集中提供的"可信增额"
+    pub fn trust_increment(&self) -> f64 {
+        match self {
+            Self::ManualInput    => 0.30,
+            Self::AutoIngested   => 0.15,
+            Self::NetworkDerived => 0.08,
+            Self::SelfDerived    => 0.12,
+        }
+    }
+}
+
+/// 可信蓄量 — 一个积累证据直到"足够可信"的容器
+#[derive(Clone, Debug)]
+pub struct TrustCapacity {
+    /// 当前蓄量值 (累加 evidence)
+    pub current_charge: f64,
+    /// 触发可信判定所需的阈值
+    pub threshold: f64,
+    /// 漏电率: 每回合蓄量损失多少 (证据会随时间贬值)
+    pub leak_rate: f64,
+    /// evidences 注入总次数
+    pub injection_count: u64,
+    /// 到达阈值的历史次数
+    pub threshold_reached_count: u64,
+}
+
+impl TrustCapacity {
+    pub fn new(threshold: f64) -> Self {
+        Self {
+            current_charge: 0.0,
+            threshold,
+            leak_rate: 0.02,
+            injection_count: 0,
+            threshold_reached_count: 0,
+        }
+    }
+
+    /// 注入证据 — 返回注入后是否达到阈值
+    pub fn inject(&mut self, quality: EvidenceQuality) -> bool {
+        self.current_charge += quality.trust_increment();
+        self.injection_count += 1;
+        if self.current_charge >= self.threshold {
+            self.threshold_reached_count += 1;
+            true
+        } else {
+            false
+        }
+    }
+
+    /// 模拟一个时间回合 (证据可能贬值)
+    pub fn tick(&mut self) {
+        self.current_charge *= 1.0 - self.leak_rate;
+    }
+
+    /// 当前是否已蓄满
+    pub fn trusted(&self) -> bool {
+        self.current_charge >= self.threshold
+    }
+
+    /// 蓄量占阈值的百分比 (cap 100%)
+    pub fn pct(&self) -> f64 {
+        (self.current_charge / self.threshold * 100.0).min(100.0)
+    }
+}
+
+#[cfg(test)]
+mod trust_tests {
+    use super::*;
+
+    #[test]
+    fn trust_increments() {
+        let mut tc = TrustCapacity::new(1.0);
+        assert!(!tc.trusted());
+        // 0.30 (manual) + 0.15 (auto) + 0.08 (net) + 0.12 (self) = 0.65
+        tc.inject(EvidenceQuality::ManualInput);
+        tc.inject(EvidenceQuality::AutoIngested);
+        tc.inject(EvidenceQuality::NetworkDerived);
+        tc.inject(EvidenceQuality::SelfDerived);
+        assert!((tc.current_charge - 0.65).abs() < 1e-9);
+        // 再来一次 manual (0.30) → 0.95 → 仍未满
+        tc.inject(EvidenceQuality::ManualInput);
+        assert!((tc.current_charge - 0.95).abs() < 1e-9);
+        assert!(!tc.trusted());
+        // 再来一点就够
+        tc.inject(EvidenceQuality::SelfDerived);
+        assert!(tc.trusted());
+        assert_eq!(tc.threshold_reached_count, 1);
+    }
+
+    #[test]
+    fn trust_leak_reduces_charge() {
+        let mut tc = TrustCapacity::new(1.0);
+        for _ in 0..10 { tc.inject(EvidenceQuality::ManualInput); }
+        assert!(tc.trusted());
+        let before = tc.current_charge;
+        tc.tick();
+        assert!(tc.current_charge < before);
+    }
+
+    #[test]
+    fn trust_pct_capped() {
+        let mut tc = TrustCapacity::new(0.5);
+        tc.inject(EvidenceQuality::ManualInput);
+        tc.inject(EvidenceQuality::ManualInput);
+        tc.inject(EvidenceQuality::ManualInput);
+        // 0.9 / 0.5 * 100 = 180% → 断言被 cap 为 100%
+        assert_eq!(tc.pct(), 100.0);
+    }
+}

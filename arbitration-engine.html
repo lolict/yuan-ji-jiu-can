@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>相容裁决引擎</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#08080d;color:#d0d0e0;font-family:monospace;padding:16px;display:flex;flex-direction:column;gap:12px;align-items:center;min-height:100vh}
+h1{font-size:15px;opacity:.6;letter-spacing:2px;margin-top:8px}
+.layout{display:grid;grid-template-columns:280px 1fr;gap:16px;width:100%;max-width:900px}
+@media(max-width:700px){.layout{grid-template-columns:1fr}}
+.panel{padding:16px;border-radius:12px;background:#101018;border:1px solid #222236}
+.panel h2{font-size:11px;opacity:.5;margin-bottom:12px;text-transform:uppercase;letter-spacing:1px}
+.row{display:flex;justify-content:space-between;font-size:12px;padding:6px 0;border-bottom:1px solid #1a1a28}
+.row:last-child{border-bottom:none}
+.row span:first-child{opacity:.45}
+.sel{display:flex;gap:12px;align-items:center;margin-bottom:14px}
+.sel-box{width:64px;height:64px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:28px;border:2px solid #3a3a5a;cursor:pointer}
+.sel-box.s{border-color:#b090ff;box-shadow:0 0 12px rgba(176,144,255,.5)}
+.sym0{background:#2a2a3a;color:#666}
+.sym1{background:#3a2a3a;color:#d080a0}
+.sym2{background:#2a2a4a;color:#7090e0}
+.sym3{background:#3a2a5a;color:#c0a0ff}
+.matrix{display:grid;grid-template-columns:8px repeat(8,1fr);gap:2px;font-size:9px;margin-top:8px;align-items:center}
+.mc{width:100%;aspect-ratio:1/1;border-radius:2px;cursor:pointer;display:flex;align-items:center;justify-content:center;min-height:14px}
+.mc:hover{outline:2px solid #fff}
+.mc.a{outline:3px solid #b090ff}
+.legend{display:flex;gap:12px;font-size:10px;margin-top:8px;opacity:.7;flex-wrap:wrap;justify-content:center}
+.lbl{display:flex;align-items:center;gap:4px}
+.dot{width:10px;height:10px;border-radius:50%}
+.verdict{padding:16px;border-radius:10px;text-align:center;font-size:14px;margin-top:12px}
+.ok{background:#1a3a2a;border:1px solid #40c080;color:#60e0a0}
+.no{background:#3a1a2a;border:1px solid #c04060;color:#e06080}
+.maybe{background:#3a3a1a;border:1px solid #c0a040;color:#e0c060}
+</style>
+</head>
+<body>
+<h1>相容裁决引擎 · Containment Arbitration</h1>
+<div class="layout">
+<aside class="panel">
+<h2>选择两个容器</h2>
+<div class="sel">
+<div class="sel-box sym0" id="boxA" onclick="cycle('A')">杯<p style="font-size:9px;margin-top:2px">00</p></div>
+<div style="font-size:20px;opacity:300">⊕</div>
+<div class="sel-box sym3" id="boxB" onclick="cycle('B')">盉<p style="font-size:9px;margin-top:2px">11</p></div>
+</div>
+<div id="infoA" style="margin-bottom:8px"></div>
+<div id="infoB"></div>
+<div class="verdict maybe" id="verdict">点击容器循环切换极性</div>
+</aside>
+<main class="panel">
+<h2>相容裁决矩阵 · 4×4</h2>
+<div class="matrix" id="matrix"></div>
+<div class="legend">
+<div class="lbl"><span class="dot"style="background:#40c080"></span>相容传递</div>
+<div class="lbl"><span class="dot"style="background:#c0a040"></span>需裁决</div>
+<div class="lbl"><span class="dot"style="background:#c04060"></span>禁止传递</div>
+</div>
+<div id="rule-display" style="margin-top:14px;padding:10px;background:#0a0a12;border-radius:8px;font-size:11px;line-height:1.7"></div>
+</main>
+</div>
+<script>
+const NAMES=['独立(00)','妻盈(10)','夫引(01)','夫妻(11)'];
+const CHARS=['杯','盎','瓶','盉'];
+const COLORS=['#2a2a3a','#3a2a3a','#2a2a4a','#3a2a5a'];
+let A=1,B=3;
+const RULES=[
+[1,1,1,1],
+[1,1,0,0],
+[1,0,1,0],
+[1,0,0,2]
+];
+const RLABEL=[
+['自容:同极性总相容','独立↜独立:无需代价','独立可接入任何极性','独立可融入任何极性'],
+['独立可流入妻盈','妻盈自容:同质可融','妻盈禁引夫:因极性相斥','妻盈禁合夫妻:秩序冲突'],
+['独立可流入夫引','夫引禁引妻盈:因极性相斥','夫引自容:同质可融','夫引禁合夫妻:秩序冲突'],
+['独立可融入夫妻','夫妻禁纳妻盈:因秩序层级','夫妻禁纳夫引:因秩序层级','夫妻自容:同质完全相容']
+];
+const VLABEL=['相容传递','需要裁决','禁止传递'];
+const VCOLOR=['ok','maybe','no'];
+function cycle(x){
+if(x='A'){A=(A+1)%4;render();}
+else{B=(B+1)%4;render();}
+}
+function render(){
+const bA=document.getElementById('boxA'),bB=document.getElementById('boxB');
+bA.className='sel-box sym'+A;
+bA.innerHTML=CHARS[A]+'<p style="font-size:9px;margin-top:2px">'+(A<2?'0'+A:A.toString(2)).padStart(2,'0')+'</p>';
+bB.className='sel-box sym'+B;
+bB.innerHTML=CHARS[B]+'<p style="font-size:9px;margin-top:2px">'+(B>'';
+const r=RULES[A][B];
+document.getElementById('verdict').className='verdict '+VCOLOR[r];
+document.getElementById('verdict').innerHTML=VLABEL[r]+': '+RLABEL[A][B];
+document.getElementById('rule-display').innerHTML='裁决规则 #'+(A*4+B)+'<br>⊕:容器 '+NAMES[A]+' 与容器 '+NAMES[B]+'<br>裁决:⊕ = '+VLABEL[r]+'<br>'+RLABEL[A][B];
+// matrix
+const m=['独立','妻盈','夫引','夫妻'];
+const mat=document.getElementById('matrix');
+mat.innerHTML='';
+m.forEach(l=>{const e=document.createElement('div');e.textContent=l;mat.appendChild(e);});
+for(let i=0;i<4;i++){
+const e=document.createElement('div');e.textContent=m[i];mat.appendChild(e);
+for(let j=0;j<4;j++){
+const c=RULES[i][j];
+const d=document.createElement('div');
+d.className='mc'+(i===A&&j===B?' a':'');
+d.style.background=c===1?'#2a4a3a':c===2?'#4a2a3a':'#4a4a2a';
+d.textContent=c;c===1?'可':c===2?'禁':'审';
+d.title=m[i]+' ⊕ '+m[j]+' = ';
+mat.appendChild(d);
+}
+}
+}
+render();
+</script>
+</body>
+</html>

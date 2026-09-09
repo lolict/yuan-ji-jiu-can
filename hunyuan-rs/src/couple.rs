@@ -413,6 +413,115 @@ mod tests_couple_radix {
     }
 }
 
+// ────────────────────────────────────────────────────────────
+// 幸福模型 (D-7 概念)
+// ────────────────────────────────────────────────────────────
+// "谁掌握幸福的定义？"
+// 两条道路:
+//   本源态 (Innate)  — 幸福是先天禀赋, 被给予的, 不求自来
+//   建构态 (Constructed) — 幸福是精神创造, 改造世界后获得的
+//
+// 判断: 两种模型无法用同一把尺衡量, 必须经由夫妻共同体的
+//   共振灵印 (XiYao) 才能对齐
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum HappinessOrigin {
+    /// 本源态 — 基于先天条件 (外貌、童年、家庭)
+    Innate,
+    /// 建构态 — 基于精神意志创造 (新世界、科技、去痛苦)
+    Constructed,
+}
+
+impl HappinessOrigin {
+    /// 判断两种幸福模型是否可在度量层面比较
+    //  只有经由夕瑶协议融合后, 才能把两种幸福感映射到同一个量表
+    pub fn comparable(&self, other: &Self, protocol_valid: bool) -> bool {
+        if !protocol_valid { return *self == *other; }
+        // 融合后: 两种态可在同一量表做映射, 但数值含义不同
+        true
+    }
+
+    /// 判断哪种态更偏向"未来可持续性"
+    //  本源态可能随时间衰减, 建构态可自我强化
+    pub fn durability_score(&self) -> f64 {
+        match self {
+            Self::Innate     => 0.6,  // 有上限
+            Self::Constructed => 0.85, // 可迭代增强
+        }
+    }
+}
+
+/// 夫妻幸福对照表: 记录双方在两个维度上的位置
+#[derive(Clone, Debug)]
+pub struct CoupleHappinessTable {
+    pub husband_origin: HappinessOrigin,
+    pub wife_origin: HappinessOrigin,
+    pub husband_score: f64,
+    pub wife_score: f64,
+}
+
+impl CoupleHappinessTable {
+    pub fn new(
+        h_origin: HappinessOrigin,
+        w_origin: HappinessOrigin,
+        h_score: f64,
+        w_score: f64,
+    ) -> Self {
+        Self { husband_origin: h_origin, wife_origin: w_origin,
+               husband_score: h_score, wife_score: w_score }
+    }
+
+    /// 判断谁是定义者 (仅当双方模型相同时可比较)
+    pub fn dominant(&self, protocol_valid: bool) -> Option<&'static str> {
+        if !self.husband_origin.comparable(&self.wife_origin, protocol_valid) {
+            return None;
+        }
+        if self.husband_score > self.wife_score { Some("husband") }
+        else if self.wife_score > self.husband_score { Some("wife") }
+        else { Some("tied") }
+    }
+}
+
+// ── 测试 ─────────────────────────────────────────────────────
+
+#[cfg(test)]
+mod happiness_tests {
+    use super::*;
+
+    #[test]
+    fn inate_vs_constructed_not_comparable_without_protocol() {
+        let a = HappinessOrigin::Innate;
+        let b = HappinessOrigin::Constructed;
+        // 无协议: 两种态不可比较
+        assert!(!a.comparable(&b, false));
+        // 有协议: 可映射到同一量表
+        assert!(a.comparable(&b, true));
+    }
+
+    #[test]
+    fn durability_constructed_over_inate() {
+        assert!(HappinessOrigin::Constructed.durability_score()
+              > HappinessOrigin::Innate.durability_score());
+    }
+
+    #[test]
+    fn couple_dominant_tied() {
+        let tbl = CoupleHappinessTable::new(
+            HappinessOrigin::Innate, HappinessOrigin::Innate, 0.7, 0.7,
+        );
+        assert_eq!(tbl.dominant(true), Some("tied"));
+    }
+
+    #[test]
+    fn couple_dominant_none_when_incomparable() {
+        let tbl = CoupleHappinessTable::new(
+            HappinessOrigin::Innate, HappinessOrigin::Constructed, 0.9, 0.5,
+        );
+        // 无协议: 不可比较 → None
+        assert_eq!(tbl.dominant(false), None);
+    }
+}
+
 impl CoupleSoul {
     pub fn new(husband: Actor, wife: Actor) -> Self {
         assert_eq!(husband.identity, Identity::Husband);

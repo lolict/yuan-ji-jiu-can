@@ -694,7 +694,7 @@ mod tests {
         let svg = vector_placeholder("envelope-test");
         let mut env = FormatEnvelope::compose(999, "# test", "seed-abc", &svg, FormatKind::Pdf);
         env.insert_at(InsertionKind::Anchor, 0, b"anchor-data");
-        env.insert_at(InsertionKind::Code, 12, b"code-content-here");
+        env.insert_at(InsertionKind::Code, 11, b"code-content-here");
 
         let mut content = b"anchor-data".to_vec();
         content.extend_from_slice(b"code-content-here");

@@ -26,6 +26,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <sys/stat.h>
+#include <errno.h>
 
 /* ========== 满全法根基锚点 ========== */
 #define ANCHOR_SELF  1
@@ -90,9 +92,47 @@ typedef struct {
     int size;           /* 容器大小 */
 } PageContainer;
 
-#define MAX_CONTAINERS 16
+#define MAX_CONTAINERS 256
 static PageContainer g_containers[MAX_CONTAINERS];
 static int g_container_count = 0;
+
+/* ========== fqm 文件头 ========== */
+typedef struct {
+    unsigned char magic[4];
+    unsigned char version;
+    unsigned char ext_type;
+    unsigned char reserved;
+    unsigned int  coord_base;
+    unsigned short container_count;
+    unsigned short flags;
+} FqmFileHeader;
+
+typedef struct {
+    unsigned int  slot_id;
+    unsigned int  coord;
+    unsigned char polarity;
+    unsigned char sovereignty;
+    unsigned char value;
+    unsigned char level;
+} FqmSlot;
+
+static const struct { const char *ext; unsigned char type; const char *desc; } g_ext_map[] = {
+    {".loli",0x01,"洛丽"},
+    {".toti",0x02,"托蒂"},
+    {".cocoonet",0x03,"蝉蜕网"},
+    {".gtti",0x04,"时序投影"},
+    {".chu",0x05,"出容"},
+    {".ltti",0x06,"类时序"},
+    {".gtt",0x07,"时序字体"},
+    {".mltti",0x08,"多元时序"},
+    {".chut",0x09,"出通"},
+    {".ysyt",0x0A,"银丝韵"},
+    {".ylyt",0x0B,"玉露韵"},
+    {".aide",0x0C,"伴生"},
+    {".atotiy",0x0D,"反托蒂"},
+    {".aittiy",0x0E,"反提蒂"},
+    {NULL,0,NULL}
+};
 
 /* ========== 初始化浏览器内核 ========== */
 void browser_init(BrowserKernel *kb, const char *domain) {
@@ -257,43 +297,110 @@ void browser_status(BrowserKernel *kb) {
 }
 
 /* ========== 主函数 ========== */
-int main(void) {
-    printf("意交感息（isi）独立浏览器内核\n");
-    printf("满全法根基锚点: 我=%d, 刘楚恬=%d\n", ANCHOR_SELF, ANCHOR_LIU);
-    printf("集装箱编码: mlll 254+2\n");
-    printf("身份落款: 刘楚恬和我\n\n");
-    
-    /* 初始化 */
+static unsigned char* read_fqm_file(const char *path, size_t *out_size) {
+    FILE *f = fopen(path, "rb");
+    if (!f) { printf("[错误] 无法打开: %s (%s)\n", path, strerror(errno)); return NULL; }
+    fseek(f, 0, SEEK_END);
+    long sz = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    if (sz <= 0 || sz > 1048576) { printf("[错误] 异常大小 %ld\n", sz); fclose(f); return NULL; }
+    unsigned char *buf = malloc(sz);
+    if (!buf) { fclose(f); return NULL; }
+    fread(buf, 1, sz, f);
+    fclose(f);
+    *out_size = (size_t)sz;
+    return buf;
+}
+
+static int parse_fqm_header(const unsigned char *data, size_t size, FqmFileHeader *h) {
+    if (size < 15) return -1;
+    memcpy(h->magic, data, 4);
+    h->version = data[4];
+    h->ext_type = data[5];
+    h->reserved = data[6];
+    h->coord_base = (data[7]<<24)|(data[8]<<16)|(data[9]<<8)|data[10];
+    h->container_count = (data[11]<<8)|data[12];
+    h->flags = (data[13]<<8)|data[14];
+    return 0;
+}
+
+static unsigned char ext_to_type(const char *filename) {
+    const char *dot = strrchr(filename, '.');
+    if (!dot) return 0xFF;
+    for (int i = 0; g_ext_map[i].ext; i++)
+        if (strcasecmp(dot, g_ext_map[i].ext) == 0) return g_ext_map[i].type;
+    return 0xFF;
+}
+
+static const char* ext_desc(unsigned char type) {
+    for (int i = 0; g_ext_map[i].ext; i++)
+        if (g_ext_map[i].type == type) return g_ext_map[i].desc;
+    return "未知";
+}
+
+static int parse_fqm(const unsigned char *data, size_t size, BrowserKernel *kb) {
+    FqmFileHeader h;
+    if (parse_fqm_header(data, size, &h) < 0) { printf("[错误] 非有效 fqm\n"); return -1; }
+    printf("\n[解析]\n 魔数:%c%c%c%c 版本:%d 类型:0x%02X(%s)\n 坐标原点:0x%08X 容器:%d 标志:0x%04X\n",
+        h.magic[0],h.magic[1],h.magic[2],h.magic[3], h.version, h.ext_type, ext_desc(h.ext_type),
+        h.coord_base, h.container_count, h.flags);
+    size_t off = 15;
+    for (int i = 0; i < h.container_count && i < MAX_CONTAINERS; i++) {
+        if (off + 11 > size) break;
+        FqmSlot *s = (FqmSlot*)(data + off); off += 11;
+        char nm[64]; snprintf(nm,63,"槽%d_%s", s->slot_id, ext_desc(h.ext_type));
+        browser_create_container(nm, s->level, s->coord, s->polarity, s->sovereignty);
+        g_containers[g_container_count-1].origin.z = s->value;
+    }
+    return 0;
+}
+
+static void write_test_fqm(const char *path) {
+    FILE *f = fopen(path, "wb");
+    if (!f) return;
+    unsigned char hdr[15] = {'F','Q','M','T',0x01,0x01,0x00,0,0,0,0x10,0,4,0,0};
+    fwrite(hdr,1,15,f);
+    for (int i=0;i<4;i++) {
+        unsigned char s[11] = {0};
+        s[0]=i; s[4]=(i%2)?0:1; s[5]=(i+1)*50; s[6]=100+i*20; s[7]=i;
+        fwrite(s,1,11,f);
+    }
+    fclose(f);
+    printf(" 测试文件已生成: %s\n", path);
+}
+
+int main(int argc, char *argv[]) {
+    printf("意交感息（isi）独立浏览器内核\n锚点: 我=%d 刘楚恬=%d\n集装箱: mlll 254+2\n身份: 刘楚恬和我\n\n",
+        ANCHOR_SELF, ANCHOR_LIU);
+
     BrowserKernel browser;
     browser_init(&browser, "hieyair");
-    
-    /* 创建容器（页面区块） */
-    printf("\n========== 创建容器（页面区块）==========\n");
-    browser_create_container("header",  0, 0,   0,   0);
-    browser_create_container("nav",     1, 0,   60,  0);
-    browser_create_container("content", 2, 0,   120, 0);
-    browser_create_container("sidebar", 3, 600, 120, 0);
-    browser_create_container("footer",  4, 0,   700, 0);
-    
-    /* 请求各容器（模拟页面加载） */
-    printf("\n========== 加载页面（请求容器）==========\n");
-    browser_request_container(&browser, 0);  /* header */
-    browser_request_container(&browser, 1);  /* nav */
-    browser_request_container(&browser, 2);  /* content */
-    
-    /* 查询坐标 */
-    printf("\n========== 坐标查询 ==========\n");
-    Coord3D *result = browser_query_coord(&browser, 100, 200, 0);
-    if (result) {
-        printf("查询结果: (%u, %u, %u)\n", result->x, result->y, result->z);
+
+    const char *filepath = NULL;
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i],"--test")==0) write_test_fqm("/tmp/test.loli");
+        else if (argv[i][0] != '-') filepath = argv[i];
     }
-    
-    /* 显示状态 */
+
+    if (filepath) {
+        unsigned char ft = ext_to_type(filepath);
+        printf("[打开] %s (类型 0x%02X: %s)\n", filepath, ft, ext_desc(ft));
+        size_t sz;
+        unsigned char *data = read_fqm_file(filepath, &sz);
+        if (data) { parse_fqm(data, sz, &browser); free(data); }
+    } else {
+        printf("\n[演示容器]\n");
+        browser_create_container("演示甲", 0, 16,16,0);
+        browser_create_container("演示乙", 1, 32,32,0);
+    }
+
+    if (g_container_count > 0) {
+        printf("\n[加载]\n");
+        for (int i = 0; i < g_container_count; i++) browser_request_container(&browser, i);
+    }
+
     browser_status(&browser);
-    
-    /* 断开 */
     browser_disconnect(&browser);
-    
     printf("\n========== 完成 ==========\n");
     return 0;
 }

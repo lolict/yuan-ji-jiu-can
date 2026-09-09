@@ -127,6 +127,24 @@ impl VocabWord {
                     _ => return vec![],
                 }
             }
+            SemanticId::And if ops.len() >= 3 => {
+                match (ops[0].reg(), ops[1].reg(), ops[2].reg()) {
+                    (Some(rd), Some(r1), Some(r2)) => Insn::r(ROp::And, Reg(rd), Reg(r1), Reg(r2)),
+                    _ => return vec![],
+                }
+            }
+            SemanticId::Or if ops.len() >= 3 => {
+                match (ops[0].reg(), ops[1].reg(), ops[2].reg()) {
+                    (Some(rd), Some(r1), Some(r2)) => Insn::r(ROp::Or, Reg(rd), Reg(r1), Reg(r2)),
+                    _ => return vec![],
+                }
+            }
+            SemanticId::Xor if ops.len() >= 3 => {
+                match (ops[0].reg(), ops[1].reg(), ops[2].reg()) {
+                    (Some(rd), Some(r1), Some(r2)) => Insn::r(ROp::Xor, Reg(rd), Reg(r1), Reg(r2)),
+                    _ => return vec![],
+                }
+            }
             SemanticId::Addi if ops.len() >= 3 => {
                 match (ops[0].reg(), ops[1].reg(), ops[2].imm()) {
                     (Some(rd), Some(r1), Some(imm)) => Insn::i(IOp::Addi, Reg(rd), Reg(r1), imm as i32),
@@ -159,7 +177,19 @@ impl VocabWord {
                     None => return vec![],
                 }
             }
+            SemanticId::Call => {
+                match ops[0].imm() {
+                    Some(off) => Insn::jal(Reg(1), off as i32),
+                    None => return vec![],
+                }
+            }
             SemanticId::Ret => Insn(0x00008067),
+            SemanticId::Cmp if ops.len() >= 3 => {
+                match (ops[0].reg(), ops[1].reg(), ops[2].reg()) {
+                    (Some(rd), Some(r1), Some(r2)) => Insn::r(ROp::Slt, Reg(rd), Reg(r1), Reg(r2)),
+                    _ => return vec![],
+                }
+            }
             SemanticId::Mov if ops.len() >= 2 => {
                 match (ops[0].reg(), ops[1].imm()) {
                     (Some(rd), Some(imm)) => Insn::i(IOp::Addi, Reg(rd), Reg(0), imm as i32),
@@ -185,6 +215,24 @@ impl VocabWord {
                 let rm = match ops[2].reg() { Some(v) => v as u32, None => return vec![] };
                 (0b11001011 << 24) | (rm << 16) | (rn << 5) | rd
             }
+            SemanticId::And if ops.len() >= 3 => {
+                let rd = match ops[0].reg() { Some(v) => v as u32, None => return vec![] };
+                let rn = match ops[1].reg() { Some(v) => v as u32, None => return vec![] };
+                let rm = match ops[2].reg() { Some(v) => v as u32, None => return vec![] };
+                (0b10001010 << 24) | (rm << 16) | (rn << 5) | rd
+            }
+            SemanticId::Or if ops.len() >= 3 => {
+                let rd = match ops[0].reg() { Some(v) => v as u32, None => return vec![] };
+                let rn = match ops[1].reg() { Some(v) => v as u32, None => return vec![] };
+                let rm = match ops[2].reg() { Some(v) => v as u32, None => return vec![] };
+                (0b10101010 << 24) | (rm << 16) | (rn << 5) | rd
+            }
+            SemanticId::Xor if ops.len() >= 3 => {
+                let rd = match ops[0].reg() { Some(v) => v as u32, None => return vec![] };
+                let rn = match ops[1].reg() { Some(v) => v as u32, None => return vec![] };
+                let rm = match ops[2].reg() { Some(v) => v as u32, None => return vec![] };
+                (0b11001010 << 24) | (rm << 16) | (rn << 5) | rd
+            }
             SemanticId::Addi if ops.len() >= 3 => {
                 let rd = match ops[0].reg() { Some(v) => v as u32, None => return vec![] };
                 let rn = match ops[1].reg() { Some(v) => v as u32, None => return vec![] };
@@ -194,11 +242,9 @@ impl VocabWord {
             _ => match id {
                 SemanticId::Load  => 0xF9400020,
                 SemanticId::Store => 0xF9000020,
-                SemanticId::And   => 0x8A000040,
-                SemanticId::Or    => 0xAA000240,
-                SemanticId::Xor   => 0xCA000040,
                 SemanticId::Jmp   => 0xD61F0000,
                 SemanticId::Bne   => 0x54000001,
+                SemanticId::Beq   => 0x54000000,
                 SemanticId::Call  => 0xD63F0000,
                 SemanticId::Ret   => 0xD65F03C0,
                 SemanticId::Cmp   => 0xEB0302EB,
@@ -224,6 +270,24 @@ impl VocabWord {
                 let rm  = match ops[0].reg() { Some(v) => v, None => return vec![] };
                 out.push(0xC0 | (reg << 3) | rm);
             }
+            SemanticId::And => {
+                out.push(0x48); out.push(0x21);
+                let reg = match ops[2].reg() { Some(v) => v, None => return vec![] };
+                let rm  = match ops[0].reg() { Some(v) => v, None => return vec![] };
+                out.push(0xC0 | (reg << 3) | rm);
+            }
+            SemanticId::Or => {
+                out.push(0x48); out.push(0x09);
+                let reg = match ops[2].reg() { Some(v) => v, None => return vec![] };
+                let rm  = match ops[0].reg() { Some(v) => v, None => return vec![] };
+                out.push(0xC0 | (reg << 3) | rm);
+            }
+            SemanticId::Xor => {
+                out.push(0x48); out.push(0x31);
+                let reg = match ops[2].reg() { Some(v) => v, None => return vec![] };
+                let rm  = match ops[0].reg() { Some(v) => v, None => return vec![] };
+                out.push(0xC0 | (reg << 3) | rm);
+            }
             SemanticId::Addi => {
                 out.push(0x48); out.push(0x83);
                 let rm = match ops[0].reg() { Some(v) => v, None => return vec![] };
@@ -234,11 +298,9 @@ impl VocabWord {
             _ => match id {
                 SemanticId::Load  => out.extend_from_slice(&[0x48, 0x8B, 0x03]),
                 SemanticId::Store => out.extend_from_slice(&[0x48, 0x89, 0x18]),
-                SemanticId::And   => out.extend_from_slice(&[0x48, 0x21, 0xD8]),
-                SemanticId::Or    => out.extend_from_slice(&[0x48, 0x09, 0xD8]),
-                SemanticId::Xor   => out.extend_from_slice(&[0x48, 0x31, 0xD8]),
                 SemanticId::Jmp   => out.extend_from_slice(&[0xFF, 0xE0]),
                 SemanticId::Bne   => out.extend_from_slice(&[0x75, 0x0A]),
+                SemanticId::Beq   => out.extend_from_slice(&[0x74, 0x0A]),
                 SemanticId::Call  => out.extend_from_slice(&[0xFF, 0xD0]),
                 SemanticId::Ret   => out.push(0xC3),
                 SemanticId::Cmp   => out.extend_from_slice(&[0x48, 0x39, 0xD8]),
@@ -337,5 +399,225 @@ mod tests {
             Platform::MIPS32,
         );
         assert_eq!(w.native_encoding, vec![0x01, 0x2A, 0x40, 0x20]);
+    }
+
+    #[test]
+    fn sub_riscv() {
+        let w = VocabWord::new(
+            SemanticId::Sub,
+            vec![Operand::Reg(5), Operand::Reg(6), Operand::Reg(7)],
+            Platform::RiscV,
+        );
+        // SUB x5,x6,x7 → funct7=0100000, rs2=7, rs1=6, funct3=000, rd=5, op=0110011
+        assert_eq!(w.native_encoding.len(), 4);
+    }
+
+    #[test]
+    fn and_or_xor_riscv() {
+        for (sid, expected_funct7) in [
+            (SemanticId::And, 0b0000000u32),
+            (SemanticId::Or,  0b0000000u32),
+            (SemanticId::Xor, 0b0000000u32),
+        ] {
+            let w = VocabWord::new(
+                sid,
+                vec![Operand::Reg(5), Operand::Reg(6), Operand::Reg(7)],
+                Platform::RiscV,
+            );
+            assert_eq!(w.native_encoding.len(), 4, "{:?} must be 4 bytes", sid);
+            // funct7 is upper 7 bits of 32-bit instruction
+            let insn = u32::from_le_bytes([
+                w.native_encoding[0], w.native_encoding[1],
+                w.native_encoding[2], w.native_encoding[3],
+            ]);
+            let funct7 = insn >> 25;
+            assert_eq!(funct7, expected_funct7, "{:?} funct7 mismatch", sid);
+        }
+    }
+
+    #[test]
+    fn load_store_riscv() {
+        let load = VocabWord::new(
+            SemanticId::Load,
+            vec![Operand::Reg(3), Operand::Mem { base: 2, offset: 8 }],
+            Platform::RiscV,
+        );
+        assert_eq!(load.native_encoding.len(), 4);
+
+        let store = VocabWord::new(
+            SemanticId::Store,
+            vec![Operand::Reg(3), Operand::Mem { base: 2, offset: 8 }],
+            Platform::RiscV,
+        );
+        assert_eq!(store.native_encoding.len(), 4);
+    }
+
+    #[test]
+    fn ret_riscv() {
+        let w = VocabWord::new(
+            SemanticId::Ret,
+            vec![],
+            Platform::RiscV,
+        );
+        assert_eq!(w.native_encoding, vec![0x67, 0x80, 0x00, 0x00]);
+    }
+
+    #[test]
+    fn mov_riscv() {
+        let w = VocabWord::new(
+            SemanticId::Mov,
+            vec![Operand::Reg(10), Operand::Imm(0x42)],
+            Platform::RiscV,
+        );
+        assert_eq!(w.native_encoding.len(), 4);
+    }
+
+    #[test]
+    fn sub_arm64() {
+        let w = VocabWord::new(
+            SemanticId::Sub,
+            vec![Operand::Reg(0), Operand::Reg(1), Operand::Reg(2)],
+            Platform::ARM64,
+        );
+        assert_eq!(w.native_encoding.len(), 4);
+    }
+
+    #[test]
+    fn addi_arm64() {
+        let w = VocabWord::new(
+            SemanticId::Addi,
+            vec![Operand::Reg(0), Operand::Reg(0), Operand::Imm(100)],
+            Platform::ARM64,
+        );
+        assert_eq!(w.native_encoding.len(), 4);
+    }
+
+    #[test]
+    fn sub_x86() {
+        let w = VocabWord::new(
+            SemanticId::Sub,
+            vec![Operand::Reg(0), Operand::Reg(0), Operand::Reg(3)],
+            Platform::X86_64,
+        );
+        assert_eq!(w.native_encoding, vec![0x48, 0x29, 0xD8]);
+    }
+
+    #[test]
+    fn addi_x86() {
+        let w = VocabWord::new(
+            SemanticId::Addi,
+            vec![Operand::Reg(0), Operand::Imm(5)],
+            Platform::X86_64,
+        );
+        assert_eq!(w.native_encoding, vec![0x48, 0x83, 0xC0, 0x05]);
+    }
+
+    #[test]
+    fn sub_mips() {
+        let w = VocabWord::new(
+            SemanticId::Sub,
+            vec![Operand::Reg(8), Operand::Reg(9), Operand::Reg(10)],
+            Platform::MIPS32,
+        );
+        assert_eq!(w.native_encoding.len(), 4);
+    }
+
+    #[test]
+    fn all_riscv_alu_have_encoding() {
+        // R-type (rd, rs1, rs2): Add / Sub / And / Or / Xor
+        for sid in [SemanticId::Add, SemanticId::Sub, SemanticId::And, SemanticId::Or, SemanticId::Xor] {
+            let w = VocabWord::new(
+                sid,
+                vec![Operand::Reg(5), Operand::Reg(6), Operand::Reg(7)],
+                Platform::RiscV,
+            );
+            assert!(w.native_encoding.len() > 0, "{:?} RISC-V encoding empty", sid);
+        }
+
+        // I-type (rd, rs1, imm): Addi
+        let w = VocabWord::new(
+            SemanticId::Addi,
+            vec![Operand::Reg(5), Operand::Reg(6), Operand::Imm(100)],
+            Platform::RiscV,
+        );
+        assert!(w.native_encoding.len() > 0, "ADDI encoding empty");
+
+        // Jmp: label operand
+        let w_jmp = VocabWord::new(SemanticId::Jmp, vec![Operand::Label(0x100)], Platform::RiscV);
+        assert!(w_jmp.native_encoding.len() > 0, "JMP RISC-V encoding empty");
+
+        // Ret: no operands
+        let w_ret = VocabWord::new(SemanticId::Ret, vec![], Platform::RiscV);
+        assert!(w_ret.native_encoding.len() > 0, "RET RISC-V encoding empty");
+
+        // ADD 必须全平台覆盖
+        for plat in [Platform::X86_64, Platform::ARM64, Platform::RiscV, Platform::MIPS32] {
+            let w = VocabWord::new(
+                SemanticId::Add,
+                vec![Operand::Reg(1), Operand::Reg(2), Operand::Reg(3)],
+                plat,
+            );
+            assert!(w.native_encoding.len() > 0, "ADD on {:?} empty", plat);
+        }
+    }
+
+    #[test]
+    fn and_or_xor_arm64_operand_driven() {
+        for sid in [SemanticId::And, SemanticId::Or, SemanticId::Xor] {
+            let w = VocabWord::new(
+                sid,
+                vec![Operand::Reg(10), Operand::Reg(11), Operand::Reg(12)],
+                Platform::ARM64,
+            );
+            assert_eq!(w.native_encoding.len(), 4, "{:?} ARM64 must be 4 bytes", sid);
+            let insn = u32::from_be_bytes([
+                w.native_encoding[0], w.native_encoding[1],
+                w.native_encoding[2], w.native_encoding[3],
+            ]);
+            let rd = insn & 0x1F;
+            let rn = (insn >> 5) & 0x1F;
+            let rm = (insn >> 16) & 0x1F;
+            assert_eq!(rd, 10, "{:?} rd mismatch", sid);
+            assert_eq!(rn, 11, "{:?} rn mismatch", sid);
+            assert_eq!(rm, 12, "{:?} rm mismatch", sid);
+        }
+    }
+
+    #[test]
+    fn and_or_xor_x86_operand_driven() {
+        for (sid, expected_opcode) in [
+            (SemanticId::And, 0x21u8),
+            (SemanticId::Or,  0x09u8),
+            (SemanticId::Xor, 0x31u8),
+        ] {
+            let w = VocabWord::new(
+                sid,
+                vec![Operand::Reg(0), Operand::Reg(0), Operand::Reg(3)],
+                Platform::X86_64,
+            );
+            assert_eq!(w.native_encoding.len(), 3, "{:?} x86-64 must be 3 bytes", sid);
+            assert_eq!(w.native_encoding[0], 0x48, "{:?} REX prefix mismatch", sid);
+            assert_eq!(w.native_encoding[1], expected_opcode, "{:?} opcode mismatch", sid);
+        }
+    }
+
+    #[test]
+    fn beq_arm64() {
+        let w = VocabWord::new(
+            SemanticId::Beq,
+            vec![Operand::Reg(0), Operand::Reg(1), Operand::Label(4)],
+            Platform::ARM64,
+        );
+        assert_eq!(w.native_encoding.len(), 4);
+    }
+
+    #[test]
+    fn beq_x86() {
+        let w = VocabWord::new(
+            SemanticId::Beq,
+            vec![Operand::Reg(0), Operand::Reg(1), Operand::Label(4)],
+            Platform::X86_64,
+        );
+        assert_eq!(w.native_encoding, vec![0x74, 0x0A]);
     }
 }

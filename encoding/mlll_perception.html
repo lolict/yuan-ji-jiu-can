@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>mlll · 感知编程 · 呼唤面板</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#05050a;color:#ccc;font-family:'Courier New',monospace;font-size:12px;overflow:hidden;height:100vh;user-select:none}
+
+/* 主画布 */
+#canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0}
+
+/* 顶层 UI */
+.ui-layer{position:fixed;z-index:10;pointer-events:none}
+.ui-layer *{pointer-events:auto}
+
+/* 发音面板（底部） */
+#syll-panel{
+  bottom:0;left:0;right:0;
+  background:linear-gradient(to top,rgba(5,5,15,0.95),rgba(5,5,15,0.7) 70%,transparent);
+  padding:14px 20px 12px;
+}
+.syll-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.syll-label{color:#444;font-size:10px;width:44px;text-align:right;letter-spacing:1px}
+.syll-group{display:flex;flex-wrap:wrap;gap:3px;max-height:48px;overflow-y:auto}
+.syll-btn{
+  padding:3px 7px;border:1px solid #2a2a3a;background:rgba(20,20,30,0.8);
+  color:#888;border-radius:2px;cursor:pointer;font-size:10px;font-family:monospace;
+  transition:all 0.15s;
+}
+.syll-btn:hover{border-color:#ffcc00;color:#ffcc00}
+.syll-btn.active{border-color:#ffcc00;color:#ffcc00;background:rgba(40,35,10,0.9)}
+.syll-btn.used{border-color:#3a5a4a;color:#5a8a6a}
+
+#intent-preview{
+  display:inline-block;padding:3px 10px;background:rgba(20,20,10,0.8);
+  border:1px solid #3a3a2a;border-radius:2px;color:#ffcc00;font-size:12px;min-width:120px;margin-left:8px;
+}
+
+/* 操作面板（右上） */
+#op-panel{
+  top:12px;right:12px;
+  background:rgba(8,8,18,0.9);border:1px solid #1a1a2a;border-radius:4px;
+  padding:10px 12px;max-width:200px;
+}
+.op-title{font-size:10px;color:#555;margin-bottom:6px;letter-spacing:1px}
+.op-grid{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px}
+.op-btn{
+  padding:2px 7px;border:1px solid #2a2a3a;background:rgba(20,20,30,0.8);
+  color:#777;border-radius:2px;cursor:pointer;font-size:9px;
+}
+.op-btn:hover{border-color:#7ec8e3;color:#7ec8e3}
+.op-btn.active{border-color:#7ec8e3;color:#7ec8e3;background:rgba(10,20,30,0.9)}
+
+.call-btn{
+  padding:5px 14px;border:1px solid #3a2a4a;background:rgba(30,15,40,0.8);
+  color:#ccc;border-radius:2px;cursor:pointer;font-size:10px;letter-spacing:1px;display:block;width:100%;text-align:center;
+}
+.call-btn:hover{border-color:#ffcc00;color:#ffcc00}
+
+.self-ring{display:flex;gap:4px;margin-top:8px;font-size:9px;color:#555;flex-wrap:wrap}
+.self-cell{color:#666}
+
+/* 状态面板（左上） */
+#status-panel{
+  top:12px;left:12px;
+  background:rgba(8,8,18,0.85);border:1px solid #1a1a2a;border-radius:4px;
+  padding:10px 14px;font-size:10px;line-height:1.7;color:#777;
+}
+.st-key{color:#555}
+.st-val{color:#aaa}
+.st-admit{color:#7ec8e3}
+.st-reject{color:#e37ea0}
+
+/* log条（顶部居中） */
+#log-bar{
+  top:8px;left:50%;transform:translateX(-50%);
+  font-size:10px;color:#555;text-align:center;max-width:500px;
+  background:rgba(8,8,18,0.7);padding:4px 12px;border-radius:3px;
+}
+.log-flash{animation:flash 1s ease-out}
+@keyframes flash{0%{color:#ffcc00}100%{color:#555}}
+</style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+
+<!-- 状态面板 -->
+<div class="ui-layer" id="status-panel">
+  <div><span class="st-key">PC</span> <span class="st-val" id="sPc">0</span>　<span class="st-key">SP</span> <span class="st-val" id="sSp">0</span></div>
+  <div><span class="st-key">R0</span> <span class="st-val" id="sR0">0x00000000</span></div>
+  <div><span class="st-key">R1</span> <span class="st-val" id="sR1">0x00000000</span></div>
+  <div><span class="st-key">裁判</span> <span id="sJudge">—</span></div>
+  <div class="self-ring" id="selfRing"></div>
+</div>
+
+<!-- log -->
+<div class="ui-layer" id="log-bar">mlll · 感知场 · 呼唤面板 — 选择 声母+韵母+声调 → 编码注入 → 光标指向 → 呼唤操作</div>
+
+<!-- 操作面板 -->
+<div class="ui-layer" id="op-panel">
+  <div class="op-title">操作 · OP</div>
+  <div class="op-grid" id="opGrid"></div>
+  <button class="call-btn" id="callBtn" onclick="callOp()">⚡ 呼唤执行</button>
+  <button class="call-btn" style="margin-top:4px;" onclick="seedDemo()">● 注入演示</button>
+  <button class="call-btn" style="margin-top:4px;" onclick="softReset()">○ 软重置</button>
+</div>
+
+<!-- 发音面板 -->
+<div class="ui-layer" id="syll-panel">
+  <div class="syll-row">
+    <span class="syll-label">声母</span>
+    <div class="syll-group" id="sg"></div>
+  </div>
+  <div class="syll-row">
+    <span class="syll-label">韵母</span>
+    <div class="syll-group" id="yg"></div>
+  </div>
+  <div class="syll-row">
+    <span class="syll-label">声调</span>
+    <div class="syll-group" id="tg"></div>
+    <span id="intent-preview">— · — · —</span>
+    <button class="syll-btn" onclick="encodeAndInject()" style="border-color:#ffcc00;color:#ffcc00;margin-left:6px;">编码 → 注入感知场</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// mlll 感知场引擎
+// ═══════════════════════════════════════════════════
+
+const CV = document.getElementById('canvas');
+const CTX = CV.getContext('2d');
+let W, H;
+
+function resize(){W=CV.width=window.innerWidth;H=CV.height=window.innerHeight}
+resize();
+window.addEventListener('resize',resize);
+
+// 常量
+const SHENGMU = ['b','p','m','f','d','t','n','l','g','k','h','j','q','x','zh','ch','sh','r','z','c','s','y','w','∅'];
+const YUNMU = ['a','o','e','i','u','v','ai','ei','ui','ao','ou','iu','ie','ve','er','an','en','in','un','vn','ang','eng','ing','ong','ia','iao','ian','iang','iong','ua','uo','uai','uan','uang','uei','uen'];
+const TONE_NAMES = ['阴平','阳平','上声','去声'];
+const TONES = [1,2,3,4];
+
+const OPS = [
+  {op:'NOP',label:'静'},{op:'LOAD',label:'取'},{op:'STORE',label:'存'},
+  {op:'MOVE',label:'移'},{op:'JUMP',label:'跳'},{op:'CALL',label:'唤'},
+  {op:'RETURN',label:'归'},{op:'YIELD',label:'让'},
+  {op:'MIRROR',label:'观'},{op:'JUDGE',label:'裁'},
+  {op:'ENCODE',label:'编'},{op:'ADMIT',label:'准'},{op:'REJECT',label:'拒'},
+];
+
+// ── VM + 数据 ──
+let vm = {reg:new Array(16).fill(0),pc:0,sp:0,running:0,last_admit:-1,stack:new Array(64).fill(0)};
+let box = {cart:[],anchor:[
+  {slot:254,container:0x00000000},
+  {slot:255,container:0x00000001}
+]};
+for(let i=0;i<254;i++) box.cart.push({slot:i,container:0,occup:0});
+
+// 感知场节点（投射到画布上）
+let nodes = [];       // {id, slot, x, y, z(virtual), vx, vy, r, color, polarity, opacity}
+let flows = [];       // {from, to, progress, color}
+let particles = [];   // judge分叉时的粒子
+let judgeBifurcations = []; // {x,y,time,result}
+
+let selectedNode = null;
+let cursorNode = null;  // 跟随光标的节点（当前焦点）
+
+let syllState = {sm:-1, ym:-1, tn:-1};
+let selectedOp = 'NOP';
+
+// ── 音节→颜色/位置编码 ──
+function syllableToColor(toneIdx, polarity){
+  const hue = (toneIdx * 60 + (polarity?200:330)) % 360;
+  const sat = 60 + toneIdx * 8;
+  const lit = 45 + (polarity?10:0);
+  return `hsl(${hue},${sat}%,${lit}%)`;
+}
+
+function syllableToContainer(sm,ym,tn){
+  const coord = (sm*10 + ym) % 256;
+  const pol = tn<=1 ? 1 : 0;
+  const sov = ((ym+1)*7) % 256;
+  const val = ((sm+1)*13 + tn) % 256;
+  const lvl = tn % 8;
+  return (coord<<24)|(pol<<16)|(sov<<8)|lvl;
+}
+
+function decodeCont(c){
+  return {coord:(c>>>24)&0xFF,polarity:(c>>>16)&0xFF,sovereignty:(c>>>8)&0xFF,level:c&0xFF};
+}
+
+// ── 节点操作 ──
+function addNode(slot, x, y){
+  const c = box.cart[slot].container;
+  const d = decodeCont(c);
+  const smIdx = Math.floor(d.coord/10);
+  const ymIdx = d.coord%10;
+  const pol = d.polarity;
+
+  const n = {
+    id: slot, slot, x, y,
+    tx:x, ty:y,
+    vx:0, vy:0,
+    r: 18 + d.sovereignty*0.05,
+    color: syllableToColor(d.level%4, pol),
+    ringColor: pol ? `rgba(126,200,227,0.4)` : `rgba(227,126,160,0.4)`,
+    polarity: pol, opacity:0, targetOpacity:0.85,
+    label: SHENGMU[smIdx%SHENGMU.length]+YUNMU[ymIdx%YUNMU.length],
+    enc: c, level: d.level, sovereignty: d.sovereignty
+  };
+  nodes.push(n);
+  // 从中心飞到目标位置
+  n.x = W/2; n.y = H/2;
+  n.tx = x; n.ty = y;
+  return n;
+}
+
+function removeNode(slot){
+  nodes = nodes.filter(n=>n.slot!==slot);
+}
+
+// ── 粒子爆发（judge分叉时）──
+function spawnBurst(x,y,result){
+  const color = result ? 'rgba(126,200-227,' : 'rgba(227,126,160,';
+  for(let i=0;i<24;i++){
+    const a = Math.random()*Math.PI*2;
+    const speed = 1+Math.random()*3;
+    particles.push({
+      x,y, vx:Math.cos(a)*speed, vy:Math.sin(a)*speed,
+      life:1, decay:0.015+Math.random()*0.02,
+      color: color + '1)', r: 2+Math.random()*3
+    });
+  }
+  judgeBifurcations.push({x,y,t:0,result});
+}
+
+// ── 注入：找到空槽+音节编码 ──
+function encodeAndInject(){
+  if(syllState.sm<0||syllState.ym<0||syllState.tn<0){
+    flashLog('✗ 选择声母+韵母+声调');return;
+  }
+  let slot=-1;
+  for(let i=0;i<254;i++){if(!box.cart[i].occup){slot=i;break}}
+  if(slot<0){flashLog('✗ 字车已满');return}
+
+  const c = syllableToContainer(syllState.sm,syllState.ym,syllState.tn);
+  box.cart[slot]={slot,container:c,occup:1};
+
+  // 在中心区域随机位置加入
+  const cx = W*0.3 + Math.random()*W*0.4;
+  const cy = H*0.25 + Math.random()*H*0.4;
+  const n = addNode(slot, cx, cy);
+
+  const sm=SHENGMU[syllState.sm],ym=YUNMU[syllState.ym],tn=TONE_NAMES[TONES[syllState.tn]-1];
+  flashLog('● '+sm+'+'+ym+'+'+tn+' → 槽#'+slot);
+  n.opacity = 1;
+
+  updateSyllButtons();
+  updateStatus();
+}
+
+// ── 呼唤执行 ──
+function callOp(){
+  const op = selectedOp;
+  vm.pc++;
+
+  switch(op){
+    case 'NOP': break;
+    case 'LOAD':
+      if(selectedNode){
+        vm.reg[selectedNode.slot%16] = selectedNode.enc;
+        flashLog('✓ LOAD: 节点#'+selectedNode.slot+' → R'+(selectedNode.slot%16));
+        // 画一个飞往寄存器的流
+        flowToRegister(selectedNode);
+      } else if(cursorNode){
+        vm.reg[0] = cursorNode.enc;
+        flowToRegister(cursorNode);
+      } else {flashLog('✗ 无选中节点');}
+      break;
+    case 'STORE':
+      if(selectedNode){
+        box.cart[selectedNode.slot] = {slot:selectedNode.slot,container:vm.reg[0],occup:1};
+        selectedNode.enc = vm.reg[0];
+        flashLog('✓ STORE: R0 → 节点#'+selectedNode.slot);
+      }
+      break;
+    case 'MOVE':
+      vm.reg[1] = vm.reg[0];
+      flashLog('✓ MOVE: R0→R1');
+      break;
+    case 'JUMP':
+      if(selectedNode){vm.pc=selectedNode.slot;flashLog('✓ JUMP PC→#'+selectedNode.slot)}
+      break;
+    case 'CALL':
+      vm.stack[vm.sp++]=vm.pc;
+      if(cursorNode){vm.pc=cursorNode.slot}
+      flashLog('✓ CALL');
+      break;
+    case 'RETURN':
+      if(vm.sp>0){vm.pc=vm.stack[--vm.sp];flashLog('✓ RETURN')}
+      break;
+    case 'YIELD': flashLog('○ YIELD'); break;
+    case 'MIRROR':
+      if(cursorNode){
+        const d=decodeCont(cursorNode.enc);
+        flashLog('◎ MIRROR: 坐标'+d.coord+' 极性'+d.polarity+' 主权'+d.sovereignty+' 层级'+d.level);
+      } else if(selectedNode){
+        const d=decodeCont(selectedNode.enc);
+        flashLog('◎ MIRROR: 坐标'+d.coord+' 极性'+d.polarity+' 主权'+d.sovereignty+' 层级'+d.level);
+      } else {flashLog('✗ 无观测目标')}
+      break;
+    case 'JUDGE': {
+      const d1=decodeCont(vm.reg[0]);
+      const d2=decodeCont(vm.reg[1]);
+      const same=d1.polarity===d2.polarity;
+      const diff=Math.abs(d1.sovereignty-d2.sovereignty);
+      const admit = same && diff<64;
+      vm.last_admit = admit?1:0;
+      const jx=W/2, jy=H/2;
+      spawnBurst(jx,jy,admit);
+      flashLog('⚖ JUDGE: '+(admit?'准入 ✓':'否决 ✗')+' 差='+diff);
+      // 分叉：准入走蓝路径，否决走粉路径
+      if(nodes.length>=2){
+        const a=nodes[nodes.length-1], b=nodes[nodes.length-2];
+        if(admit){
+          // 两者相吸靠近
+          a.tx = (a.x+b.x)/2; a.ty=(a.y+b.y)/2;
+          b.tx = (a.x+b.x)/2+40; b.ty=(a.y+b.y)/2;
+        } else {
+          // 两者排斥分开
+          const dx = b.x-a.x, dy=b.y-a.y;
+          const len=Math.hypot(dx,dy)||1;
+          a.tx=a.x-dx/len*60; a.ty=a.y-dy/len*60;
+          b.tx=b.x+dx/len*60; b.ty=b.y+dy/len*60;
+        }
+      }
+      break;
+    }
+    case 'ENCODE':
+      vm.reg[2]=(((vm.reg[0]&0xFF)<<24)|((vm.reg[1]&0xFF)<<16)|(((vm.reg[0]>>>8)&0xFF)<<8)|((vm.reg[1]>>>8)&0xFF));
+      flashLog('✓ ENCODE R0+R1→R2');
+      break;
+    case 'ADMIT': vm.last_admit=1;flashLog('★ ADMIT 准入');break;
+    case 'REJECT': vm.last_admit=0;flashLog('✗ REJECT 否决');break;
+  }
+
+  updateStatus();
+}
+
+function flowToRegister(target){
+  // 创建从target到寄存器面板的流
+  flows.push({from:{x:target.x,y:target.y},to:{x:W*0.92,y:H*0.15},prog:0,color:'rgba(120,200,227,0.6)'});
+}
+
+// ── 演示 ──
+function seedDemo(){
+  // 注入 6 个节点在六角形位置
+  const cx=W/2, cy=H*Math.min(0.45,H/3);
+  const seeds=[{sm:0,ym:0,tn:0},{sm:2,ym:3,tn:1},{sm:5,ym:5,tn:2},{sm:8,ym:10,tn:3},{sm:14,ym:20,tn:0},{sm:18,ym:25,tn:1}];
+  let slot=10;
+  seeds.forEach((s,i)=>{
+    const c=syllableToContainer(s.sm,s.ym,s.tn);
+    box.cart[slot]={slot,container:c,occup:1};
+    const angle=(i/seeds.length)*Math.PI*2 - Math.PI/2;
+    const radius=Math.min(W,H)*0.22;
+    addNode(slot, cx+Math.cos(angle)*radius, cy+Math.sin(angle)*radius);
+    slot++;
+  });
+  // 设 R0 和 R1 使 JUDGE 有东西可判
+  if(nodes.length>=2){vm.reg[0]=nodes[0].enc;vm.reg[1]=nodes[1].enc}
+  updateSyllButtons();
+  flashLog('● 注入 6 个演示节点 · R0/R1 已赋');
+  updateStatus();
+}
+
+function softReset(){
+  vm={reg:new Array(16).fill(0),pc:0,sp:0,running:0,last_admit:-1,stack:new Array(64).fill(0)};
+  // keep nodes but reset occup
+  nodes.forEach(n=>{box.cart[n.slot].occup=0});
+  nodes=[];flows=[];particles=[];judgeBifurcations=[];
+  box.cart.forEach(s=>s.occup=0);
+  syllState={sm:-1,ym:-1,tn:-1};
+  selectedNode=null;cursorNode=null;
+  updateSyllButtons();updatePreview();updateStatus();
+  flashLog('○ 软重置完成');
+}
+
+// ── UI构建 ──
+function buildSyllButtons(){
+  const sg=document.getElementById('sg'), yg=document.getElementById('yg'), tg=document.getElementById('tg');
+  SHENGMU.forEach((s,i)=>{
+    const b=document.createElement('button');
+    b.className='syll-btn';b.textContent=s;
+    b.onclick=()=>{syllState.sm=i;sg.querySelectorAll('.syll-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');updatePreview();};
+    sg.appendChild(b);
+  });
+  YUNMU.forEach((s,i)=>{
+    const b=document.createElement('button');
+    b.className='syll-btn';b.textContent=s;
+    b.onclick=()=>{syllState.ym=i;yg.querySelectorAll('.syll-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');updatePreview();};
+    yg.appendChild(b);
+  });
+  TONES.forEach((t,i)=>{
+    const b=document.createElement('button');
+    b.className='syll-btn';b.textContent=TONE_NAMES[i];
+    b.onclick=()=>{syllState.tn=i;tg.querySelectorAll('.syll-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');updatePreview();};
+    tg.appendChild(b);
+  });
+}
+
+function buildOpButtons(){
+  const grid=document.getElementById('opGrid');
+  OPS.forEach(o=>{
+    const b=document.createElement('button');
+    b.className='op-btn'+(o.op==='NOP'?' active':'');
+    b.textContent=o.label;
+    b.onclick=()=>{
+      selectedOp=o.op;
+      grid.querySelectorAll('.op-btn').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+      flashLog('操作 → '+o.op,'info');
+    };
+    grid.appendChild(b);
+  });
+}
+
+function updateSyllButtons(){
+  // mark used slots
+  document.querySelectorAll('#sg .syll-btn,#yg .syll-btn,#tg .syll-btn').forEach(b=>{
+    b.classList.remove('used');
+  });
+}
+
+function updatePreview(){
+  const sm=syllState.sm>=0?SHENGMU[syllState.sm]:'—';
+  const ym=syllState.ym>=0?YUNMU[syllState.ym]:'—';
+  const tn=syllState.tn>=0?TONE_NAMES[TONES[syllState.tn]-1]:'—';
+  document.getElementById('intent-preview').textContent=sm+' · '+ym+' · '+tn;
+}
+
+function updateStatus(){
+  document.getElementById('sPc').textContent=vm.pc;
+  document.getElementById('sSp').textContent=vm.sp;
+  document.getElementById('sR0').textContent='0x'+vm.reg[0].toString(16).padStart(8,'0');
+  document.getElementById('sR1').textContent='0x'+vm.reg[1].toString(16).padStart(8,'0');
+  const j=vm.last_admit;
+  const jEl=document.getElementById('sJudge');
+  if(j===1){jEl.textContent='准入 ✓';jEl.className='st-admit'}
+  else if(j===0){jEl.textContent='否决 ✗';jEl.className='st-reject'}
+  else{jEl.textContent='—';jEl.className=''}
+
+  // 自指环：前4寄存器状态
+  const ring=document.getElementById('selfRing');
+  ring.innerHTML='';
+  for(let i=0;i<4;i++){
+    const c=document.createElement('span');
+    c.className='self-cell';
+    c.textContent='R'+i+':0x'+vm.reg[i].toString(16).slice(-4);
+    ring.appendChild(c);
+  }
+}
+
+let logTimer=null;
+function flashLog(msg,type){
+  const lb=document.getElementById('log-bar');
+  lb.textContent=msg;
+  lb.classList.remove('void 0');lb.classList.remove('log-flash');
+  void lb.offsetWidth;
+  lb.classList.add('log-flash');
+}
+
+// ── 画布交互 ──
+let mouse={x:W/2,y:H/2,down:false};
+
+CV.addEventListener('mousemove',e=>{
+  const rect=CV.getBoundingClientRect();
+  mouse.x=e.clientX-rect.left;mouse.y=e.clientY-rect.top;
+  // 检查悬停在哪个节点
+  cursorNode=null;
+  for(const n of nodes){
+    const dx=n.x-mouse.x, dy=n.y-mouse.y;
+    if(Math.hypot(dx,dy)<n.r){cursorNode=n}
+  }
+});
+
+CV.addEventListener('mousedown',e=>{
+  if(cursorNode){
+    selectedNode = cursorNode;
+    flashLog('选中槽#'+cursorNode.slot+' · 0x'+cursorNode.enc.toString(16).padStart(8,'0'));
+  }
+});
+
+// ── 渲染循环 ──
+function frame(t){
+  CTX.clearRect(0,0,W,H);
+
+  // 背景深空渐变
+  const grad=CTX.createRadialGradient(W/2,H/2,0,W/2,H/2,Math.max(W,H)*0.7);
+  grad.addColorStop(0,'rgba(15,15,25,1)');
+  grad.addColorStop(1,'rgba(3,3,8,1)');
+  CTX.fillStyle=grad;
+  CTX.fillRect(0,0,W,H);
+
+  // 网格线
+  CTX.strokeStyle='rgba(255,255,255,0.015)';
+  CTX.lineWidth=1;
+  for(let x=0;x<W;x+=60){CTX.beginPath();CTX.moveTo(x,0);CTX.lineTo(x,H);CTX.stroke()}
+  for(let y=0;y<H;y+=60){CTX.beginPath();CTX.moveTo(0,y);CTX.lineTo(W,y);CTX.stroke()}
+
+  // 粒子更新+绘制
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i];
+    p.x+=p.vx;p.y+=p.vy;p.life-=p.decay;
+    if(p.life<=0){particles.splice(i,1);continue}
+    CTX.globalAlpha=p.life;
+    CTX.fillStyle=p.color;
+    CTX.beginPath();
+    CTX.arc(p.x,p.y,p.r*p.life,0,Math.PI*2);
+    CTX.fill();
+  }
+  CTX.globalAlpha=1;
+
+  // judge分叉标记
+  for(let i=judgeBifurcations.length-1;i>=0;i--){
+    const j=judgeBifurcations[i];
+    j.t+=1;
+    if(j.t>90){judgeBifurcations.splice(i,1);continue}
+    const a = 1-j.t/90;
+    const r1 = 20+j.t*1.5;
+    CTX.strokeStyle=(j.result?'rgba(126,200,227,':'rgba(227,126,160,')+a+')';
+    CTX.lineWidth=1;
+    CTX.beginPath();
+    CTX.arc(j.x,j.y,r1,0,Math.PI*2);
+    CTX.stroke();
+    // 第二条圈偏移
+    const r2=r1+8;
+    CTX.strokeStyle=(j.result?'rgba(126,200,227,':'rgba(227,126,160,')+(a*0.5)+')';
+    CTX.beginPath();
+    CTX.arc(j.x,j.y,r2,0,Math.PI*2);
+    CTX.stroke();
+    // 分叉线
+    if(j.result){
+      CTX.strokeStyle=`rgba(126,200,227,${a*0.5})`;
+      CTX.setLineDash([4,4]);
+      CTX.beginPath();CTX.moveTo(j.x-r1,j.y);CTX.lineTo(j.x+r1,j.y);CTX.stroke();
+      CTX.setLineDash([]);
+    }
+  }
+
+  // 节点间连线（成对连接表示关系）
+  if(nodes.length>=2){
+    for(let i=0;i<nodes.length-1;i++){
+      const a=nodes[i],b=nodes[i+1];
+      CTX.strokeStyle=`rgba(100,100,130,0.15)`;
+      CTX.lineWidth=0.5;
+      CTX.beginPath();
+      CTX.moveTo(a.x,a.y);
+      // 使用贝塞尔曲线连线
+      const mx=(a.x+b.x)/2;
+      const my=(a.y+b.y)/2-20;
+      CTX.quadraticCurveTo(mx,my,b.x,b.y);
+      CTX.stroke();
+    }
+  }
+
+  // 流（数据从节点移动到寄存器）
+  for(let i=flows.length-1;i>=0;i--){
+    const f=flows[i];
+    f.prog+=0.04;
+    if(f.prog>=1){flows.splice(i,1);continue}
+    const x=f.from.x+(f.to.x-f.from.x)*f.prog;
+    const y=f.from.y+(f.to.y-f.from.y)*f.prog;
+    CTX.strokeStyle=f.color||'rgba(120,200,227,0.5)';
+    CTX.lineWidth=2;
+    CTX.beginPath();
+    CTX.moveTo(f.from.x,f.from.y);
+    CTX.lineTo(x,y);
+    CTX.stroke();
+    // 光点
+    CTX.fillStyle='rgba(200,240,255,0.9)';
+    CTX.beginPath();CTX.arc(x,y,3,0,Math.PI*2);CTX.fill();
+  }
+
+  // 节点更新（朝目标位置缓慢移动）
+  for(const n of nodes){
+    n.x+=(n.tx-n.x)*0.04;
+    n.y+=(n.ty-n.y)*0.04;
+    n.opacity += (n.targetOpacity-n.opacity)*0.05;
+  }
+
+  // 绘制节点
+  for(const n of nodes){
+    const isCursor = (cursorNode===n);
+    const isSel = (selectedNode===n);
+    const pulse = isCursor ? 1+Math.sin(t*0.005)*0.15 : 1;
+    const r = n.r*pulse;
+
+    // 外圈
+    CTX.globalAlpha = n.opacity*0.4;
+    CTX.strokeStyle = n.ringColor;
+    CTX.lineWidth = isCursor?2:1;
+    CTX.beginPath();
+    CTX.arc(n.x,n.y,r+4,0,Math.PI*2);
+    CTX.stroke();
+
+    // 主体
+    CTX.globalAlpha = n.opacity;
+    CTX.fillStyle = n.color;
+    CTX.beginPath();
+    CTX.arc(n.x,n.y,r,0,Math.PI*2);
+    CTX.fill();
+
+    // 中轴线（极性方向）
+    CTX.strokeStyle = 'rgba(255,255,255,0.3)';
+    CTX.lineWidth=0.5;
+    if(n.polarity){
+      // 阳：向上箭头
+      CTX.beginPath();
+      CTX.moveTo(n.x,n.y-r*0.6);CTX.lineTo(n.x,n.y+r*0.6);
+      CTX.moveTo(n.x-3,n.y-r*0.6+5);CTX.lineTo(n.x,n.y-r*0.6);CTX.lineTo(n.x+3,n.y-r*0.6+5);
+      CTX.stroke();
+    } else {
+      // 阴：向下箭头
+      CTX.beginPath();
+      CTX.moveTo(n.x,n.y-r*0.6);CTX.lineTo(n.x,n.y+r*0.6);
+      CTX.moveTo(n.x-3,n.y+r*0.6-5);CTX.lineTo(n.x,n.y+r*0.6);CTX.lineTo(n.x+3,n.y+r*0.6-5);
+      CTX.stroke();
+    }
+
+    // 标签（拼音）
+    CTX.globalAlpha = n.opacity*0.9;
+    CTX.fillStyle='rgba(255,255,255,0.7)';
+    CTX.font='9px monospace';
+    CTX.textAlign='center';
+    CTX.fillText(n.label,n.x,n.y-r-7);
+
+    // 选中环
+    if(isSel){
+      CTX.strokeStyle='rgba(255,204,0,0.6)';
+      CTX.lineWidth=2;
+      CTX.beginPath();CTX.arc(n.x,n.y,r+8,0,Math.PI*2);CTX.stroke();
+    }
+  }
+  CTX.globalAlpha=1;
+
+  // 光标粒子
+  CTX.fillStyle='rgba(255,204,0,0.3)';
+  CTX.beginPath();CTX.arc(mouse.x,mouse.y,4,0,Math.PI*2);CTX.fill();
+  CTX.strokeStyle='rgba(255,204,0,0.6)';
+  CTX.lineWidth=0.5;
+  CTX.beginPath();CTX.arc(mouse.x,mouse.y,8,0,Math.PI*2);CTX.stroke();
+
+  // 寄存器面板指示（右上）
+  CTX.globalAlpha=0.4;
+  CTX.fillStyle='rgba(126,200,227,0.15)';
+  CTX.beginPath();
+  CTX.roundRect(W*0.84,H*0.02,W*0.14,H*0.18,4);
+  CTX.fill();
+  CTX.globalAlpha=0.7;
+  CTX.fillStyle='#7ec8e3';
+  CTX.font='10px monospace';
+  CTX.fillText('寄存器组',W*0.85,H*0.05);
+  CTX.fillStyle='#aaa';
+  for(let i=0;i<4;i++){
+    CTX.fillText('R'+i+': 0x'+vm.reg[i].toString(16).padStart(8,'0'),W*0.005+W*0.006,H*0.05+(i+1)*14+6);
+  }
+  CTX.globalAlpha=1;
+
+  // 中央自指环
+  const cxm=W/2, cym=H*0.89;
+  CTX.strokeStyle=`rgba(255,204,0,0.15)`;
+  CTX.lineWidth=1;
+  CTX.setLineDash([2,6]);
+  CTX.beginPath();CTX.arc(cxm,cym,30+t*0.005 % 360,0,Math.PI*2);CTX.stroke();
+  CTX.setLineDash([]);
+  CTX.fillStyle='rgba(255,204,0,0.3)';
+  CTX.font='9px monospace';
+  CTX.textAlign='center';
+  CTX.fillText('自指 · 调度反馈',cxm,cym-36);
+
+  requestAnimationFrame(frame);
+}
+
+// ── 启动 ──
+buildSyllButtons();
+buildOpButtons();
+updatePreview();
+updateStatus();
+requestAnimationFrame(frame);
+
+// 窗口大小变化时重新放置节点
+window.addEventListener('resize',()=>{
+  // 保持节点相对位置
+});
+
+flashLog('═══ mlll 感知场启动 ═══');
+flashLog('选择音节→注入→光标指向→呼唤操作',200);
+</script>
+</body>
+</html>

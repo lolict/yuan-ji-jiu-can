@@ -5,6 +5,8 @@ const indexer = @import("indexer.zig");
 const fqm = @import("fqm.zig");
 const canjiang = @import("canjiang.zig");
 const visualizer = @import("visualizer.zig");
+const mind_organ = @import("mind_organ.zig");
+const baflow = @import("baflow.zig");
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -166,6 +168,82 @@ pub fn main() !void {
     const preview_len: usize = 40;
     try stdout.print("还原内容: {s}", .{shed[0..@min(preview_len, shed.len)]});
     try stdout.print("...\n", .{});
+
+    // ========== mind_organ 距离感知聚类 ==========
+    try stdout.print("\n=== mind_organ 距离感知聚类 ===\n", .{});
+    var organ = mind_organ.MindOrgan.init(allocator, mind_organ.Weights.anchorHeavy());
+    defer organ.deinit();
+
+    // 将容器和位置作为意识节点
+    const cstats = orch.getContainerStats();
+    var idx: u32 = 0;
+    for (cstats) |container| {
+        const net = container.netBenefit();
+        // 七维坐标从容器属性生成
+        const coords = [7]f64{
+            @as(f64, @floatFromInt(container.item_count)) / 10.0,  // presence
+            @as(f64, @floatFromInt(container.positive_count)) / 10.0, // witness
+            @as(f64, @floatFromInt(container.negative_count)) / 10.0, // char
+            if (idx == 0) 1.0 else 0.2,  // anchor (第一个容器是锚点)
+            if (net > 0) net else 0.0,   // relation
+            0.5,                          // timing
+            @as(f64, @floatFromInt(cstats.len - idx)) / 10.0,  // payload
+        };
+        try organ.addNode(mind_organ.CNode.initWithCoords(
+            idx + 1,
+            container.name,
+            coords,
+            if (idx == 0) 2.0 else 1.0,
+        ));
+        idx += 1;
+    }
+
+    // 添加定位器位置作为额外节点
+    for (orch.locator.positions.items, 0..) |pos, pi| {
+        const coords = [7]f64{
+            pos.coordinate.x / 10.0,
+            pos.coordinate.y / 10.0,
+            pos.coordinate.z / 10.0,
+            if (pi == 0) 1.0 else 0.1,
+            0.5,
+            @as(f64, @floatFromInt(pi)) * 0.5,
+            0.5,
+        };
+        try organ.addNode(mind_organ.CNode.initWithCoords(
+            100 + @as(u32, @intCast(pi)),
+            pos.name,
+            coords,
+            0.8,
+        ));
+    }
+
+    // 聚为 2 簇
+    try organ.cluster(2);
+
+    // 打印聚类报告
+    const mo_report = try organ.formatReport(allocator);
+    defer allocator.free(mo_report);
+    try stdout.print("{s}\n", .{mo_report});
+
+    // ========== 八流统一路由 ==========
+    try stdout.print("\n=== 八流统一 · 意识路由 ===\n", .{});
+    var router = baflow.BaFlow.init(allocator);
+    defer router.deinit();
+
+    // 夫妻对 (husband→wife) 走 preload→sovereign 全链路
+    try stdout.print("\n[夫妻对 意识注入]\n", .{});
+    var couple_packet = baflow.CPacket.init(1, 2, .preload, "husband_to_wife");
+    try router.route(&couple_packet);
+
+    // 聚类间路由
+    try stdout.print("\n[聚类簇 路由验证]\n", .{});
+    var clu_packet = baflow.CPacket.init(2, 1, .homophone, "cluster_to_cluster");
+    try router.route(&clu_packet);
+
+    // 八流报告
+    const bf_report = try router.formatReport(allocator);
+    defer allocator.free(bf_report);
+    try stdout.print("{s}\n", .{bf_report});
 
     // ========== 三维可视化生成 ==========
     try stdout.print("\n=== 三维几何可视化 ===\n", .{});

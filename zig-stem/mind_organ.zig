@@ -266,7 +266,7 @@ fn formatUnaryCount(writer: *std.ArrayList(u8), value: usize) !void {
     }
     var remaining = value;
     while (remaining > 0) : (remaining -= 1) {
-        try writer.append('★');
+        try writer.appendSlice("★");
     }
 }
 

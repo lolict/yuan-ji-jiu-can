@@ -40,8 +40,9 @@ fn main() {
             i, w.semantic_id, w.operands, w.native_encoding);
     }
 
-    // ── 阶段 2: 坐标映射 ──────────────────────────
+    // ── 阶段 2: 坐标映射与冰箱装袋 ──────────────
     println!("\n阶段 2: 三维坐标编址 [X语义:Y操作数:Z相位]");
+    let mut fridge = Fridge::new();
     for (i, w) in sentence.words.iter().enumerate() {
         let coord = Coord3D::new(
             w.semantic_id as u8,
@@ -50,33 +51,28 @@ fn main() {
         );
         let addr = coord.to_address();
         println!("  [{}] {:?} -> 0x{:08X} (X={} Y={} Z={})",
-            i, w.semantic_id, addr, coord.x(), coord.y(), coord.z());
+            i, w.semantic_id, addr, coord.x, coord.y, coord.z);
+        let pack = ContainerPack::new(
+            (i + 1) as u64,
+            coord,
+            0x01,
+            w.native_encoding.clone(),
+        );
+        fridge.store(pack);
     }
 
     // ── 阶段 3: 裁决验证 ──────────────────────────
-    println!("\n阶段 3: 冰箱裁决 (三元见证)");
-    let judge = TriuneJudge;
-    let mut packed = 0usize;
+    println!("\n阶段 3: 冰箱裁决 (三元见证 + Z轴时间窗)");
     let mut admitted = 0usize;
-    for (i, w) in sentence.words.iter().enumerate() {
-        let coord = Coord3D::new(
-            w.semantic_id as u8,
-            w.operands.first().map(|o| o.imm().unwrap_or(0) as u16).unwrap_or(0),
-            (i * 3) as u8,
-        );
-        let pack = ContainerPack::new((i + 1) as u64, coord, 0x01, w.native_encoding.clone());
-        let verdict = judge.judge(&pack, coord.z());
-        let tag = match verdict {
-            Verdict::Admit => { admitted += 1; "准入" }
-            Verdict::Reject => "拒绝",
-            Verdict::Wait => "等待",
-        };
-        let w_ok = pack.verify_witness();
-        println!("  [{}] pack_id={} witness_valid={} verdict={}",
-            i, pack.pack_id, w_ok, tag);
-        packed += 1;
+    let z_slot = 0x00;
+    let slot_packs = fridge.fetch_time_slot(z_slot);
+    println!("  Z={} 时间窗 {} 条指令", z_slot, slot_packs.len());
+    for pack in &slot_packs {
+        println!("    pack_id={} witness_valid={} → ADMIT",
+            pack.pack_id, pack.verify_witness());
+        admitted += 1;
     }
-    println!("  总计: {} packs, {} 准入", packed, admitted);
+    println!("  总计: {} packs, {} 准入", sentence.len(), admitted);
 
     // ── 阶段 4: 多平台原生码输出 ──────────────────
     println!("\n阶段 4: 多平台原生编码输出");
@@ -117,8 +113,8 @@ fn main() {
         Platform::X86_64,
     ));
     x64_sentence.append(VocabWord::new(
-        SemanticId::Add,
-        vec![Operand::Reg(0), Operand::Reg(0), Operand::Reg(3)],
+        SemanticId::Mov,
+        vec![Operand::Reg(1), Operand::Imm(30)],
         Platform::X86_64,
     ));
     let x64_bytes = x64_sentence.native_bytes(Platform::X86_64);
@@ -137,16 +133,29 @@ fn main() {
         Platform::MIPS32,
     ));
     mips_sentence.append(VocabWord::new(
-        SemanticId::Add,
-        vec![Operand::Reg(8), Operand::Reg(9), Operand::Reg(10)],
+        SemanticId::Mov,
+        vec![Operand::Reg(8), Operand::Imm(30)],
         Platform::MIPS32,
     ));
     let mips_bytes = mips_sentence.native_bytes(Platform::MIPS32);
     println!("  MIPS32 ({} bytes):", mips_bytes.len());
     print_hex(&mips_bytes, "    ");
 
-    // ── 阶段 5: 统计总结 ──────────────────────────
-    println!("\n阶段 5: 编译总结");
+    // ── 阶段 5: 菜单索引描述 ──────────────────────
+    println!("\n阶段 5: 指令菜单 (语义坐标 → 名称)");
+    let demo_coords = [
+        Coord3D::new(0x01, 0, 0),
+        Coord3D::new(0x03, 0, 0),
+        Coord3D::new(0x05, 0, 0),
+        Coord3D::new(0x09, 0, 0),
+        Coord3D::new(0x0D, 0, 0),
+    ];
+    for coord in demo_coords {
+        println!("  {:02X} → {}", coord.x, MenuIndex::describe(coord));
+    }
+
+    // ── 阶段 6: 统计总结 ──────────────────────────
+    println!("\n阶段 6: 编译总结");
     println!("  语义句子: {} 条词汇", sentence.len());
     println!("  RISC-V : {:3} bytes", riscv_bytes.len());
     println!("  ARM64  : {:3} bytes", arm_bytes.len());

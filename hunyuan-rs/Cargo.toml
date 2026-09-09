@@ -40,6 +40,10 @@ path = "src/bin/isa-encode.rs"
 name = "ttf-gen"
 path = "src/bin/ttf_gen.rs"
 
+[[bin]]
+name = "e2e-demo"
+path = "src/bin/e2e_demo.rs"
+
 [profile.release]
 opt-level = "z"      # 体积优先
 lto = true           # 链接期优化

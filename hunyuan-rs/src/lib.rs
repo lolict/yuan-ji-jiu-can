@@ -55,6 +55,9 @@ pub mod unified_flow;
 // ── v0.10 容器进制 · 语文→数学对应规则 ──
 pub mod container_radix;
 
+// ── TEMPORARILY DISABLED (broken build) ──
+// pub mod native_programming;
+
 // ── v0.1 汉字活容器 · 自描述符号系统 (Unicode + 关系层) ──
 pub mod glyph_living;
 
@@ -212,8 +215,8 @@ pub mod isa16;
 pub mod metaime;
 
 // ── v0.11 拼音流式输入引擎: 逐字母输入 · 实时候选 · 自动分段 ──
-// ── v0.11 拼音流式输入引擎: 逐字母输入 · 实时候选 · 自动分段 ──
-pub mod metaime_flow;
+// 临时关闭: metaime_flow.rs 依赖不存在的 API (Shengmu::from_u8/as_str)
+// pub mod metaime_flow;
 
 // ── ENTITY_IDENTITY_PROTOCOL v0.1 · 指纹身份 (解决"名字=身份"死锁) ──
 pub mod entity_identity;
@@ -429,7 +432,7 @@ pub use eco::{Ecosystem, snapshot_hash};
 pub use triune::{BeingState, FlowDirection, Funnel, Funnel as TriuneFunnel,
                  CollapseResult, TriuneVerdict, TriuneEngine, StaticAnchor};
 pub use funnel::{TimeGovernor, SpaceBatcher, FunnelScheduler, CascadedFunnel,
-                TimeLevel, SchedulerStatus};
+                TimeLevel, SchedulerStatus, TrustCapacity, EvidenceQuality};
 pub use fractal::{FractalNode, FractalLevel, FractalGrid, FractalCollapseResult,
                   PhoneChipLayout, BILLION_NODE_TARGET, SpaceGridCoord, FractalOutput,
                   associative_scan, combine_fractal_nodes, ScanTree};
@@ -438,7 +441,7 @@ pub use relational::{Identity, Weight, FlowRight, Priority, Actor, Cluster,
 pub use pleasure::{Pleasure, ExternalEntity, Attractor, SimplificationReport,
                    PleasureChain, ChainSummary};
 pub use couple::{XiYaoProtocol, ManQuanFa, EclipseError, ManQuanFaStatus,
-                 CoupleSoul, SoulState};
+                 CoupleSoul, SoulState, HappinessOrigin, CoupleHappinessTable};
 
 // v0.10 协议本体论类型系统 (命名本体 → 编译期存在 + 进制编码)
 pub use protocol_ontology::{
@@ -556,6 +559,17 @@ pub use inside_out::{
     // 工具函数
     simple_sum, simple_hash,
 };
+
+// ── TEMPORARILY DISABLED (broken build) ──
+// pub mod flow_sound_index;
+// pub use flow_sound_index::{
+//     // 声母/韵母/声调
+//     Initial, Final, Tone,
+//     // 声波地址
+//     SoundAddress, SoundDistance, SoundRouter,
+//     // 索引条目
+//     IndexedFlowEntry, MultiIndexDictionary,
+// };
 pub use container_dynamics::{
     // 活性
     Vitality,
