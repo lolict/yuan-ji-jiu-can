@@ -22,8 +22,8 @@ use crate::couple::SoulState;
 pub struct Container {
     pub code: u8,          // 容器码 = 距离码 · 6 位
     pub polarity: u8,      // 夫妻码 · 2 位: 00 独立 · 01 夫 · 10 妻 · 11 合
-    pub capacity: u8,      // 当前内容量 · 0-255
-    pub max_capacity: u8,  // 容器本身的最大容量 · 由极性决定
+    pub capacity: u16,     // 当前内容量 · 由极性决定
+    pub max_capacity: u16, // 容器本身的最大容量 · 由极性决定
 }
 
 impl Container {
@@ -35,7 +35,7 @@ impl Container {
     ///   夫妻容器: 妻+夫+杯的容量总和 = 2223
     pub fn birth(code: u8) -> Self {
         let polarity = ((code >> 5) << 1) | ((code >> 4) & 1);
-        let max_capacity = match polarity {
+        let max_capacity: u16 = match polarity {
             0b10 => 36 * 6,                   // 妻 · 六边形周长 36 · 层 6 · 36×6 = 216
             0b01 => 49 * 7,                   // 夫 · 七方格 49 · 层 7 · 49×7 = 343
             0b00 => 26 * 64,                  // 杯形 · 26 边 · 层 64 · 26×64 = 1664
@@ -64,7 +64,7 @@ impl Container {
     }
 
     /// 尝试注入内容 · 返回实际注入量
-    pub fn inject(&mut self, amount: u8) -> u8 {
+    pub fn inject(&mut self, amount: u16) -> u16 {
         let room = self.max_capacity - self.capacity;
         let accepted = if amount > room { room } else { amount };
         self.capacity += accepted;
@@ -76,7 +76,7 @@ impl Container {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Decision {
-    Allow(u8),  // 允许 · 并指定可传递量
+    Allow(u16),  // 允许 · 并指定可传递量
     Deny,       // 禁止传递
     NeedReview, // 需要三元裁决
 }
@@ -89,7 +89,7 @@ pub struct Verdict {
 }
 
 impl Verdict {
-    pub fn allow(amount: u8, reason: &str) -> Self {
+    pub fn allow(amount: u16, reason: &str) -> Self {
         Verdict { decision: Decision::Allow(amount), reason: reason.into(), verified: true }
     }
     pub fn deny(reason: &str) -> Self {
@@ -202,7 +202,7 @@ impl ContainerOS {
         ContainerOS { containers, cycle_count: 0, event_log: Vec::new() }
     }
 
-    pub fn inject_to(&mut self, code: u8, amount: u8) -> u8 {
+    pub fn inject_to(&mut self, code: u8, amount: u16) -> u16 {
         let n = code as usize;
         if n >= self.containers.len() { return 0; }
         let accepted = self.containers[n].inject(amount);
@@ -235,13 +235,14 @@ impl ContainerOS {
             let coord = HexCoord::from_container_code(i as u8);
             let nbrs = coord.neighbors();
             for &ncode in nbrs.iter() {
-                if ncode < 64 {
-                    let v = arbitrate(&self.containers[i], &self.containers[ncode as usize]);
+                let neighbor_code = ncode.to_container_code() as usize;
+                if neighbor_code < self.containers.len() {
+                    let v = arbitrate(&self.containers[i], &self.containers[neighbor_code]);
                     if let Decision::Allow(amount) = v.decision {
-                        let actual = self.containers[ncode as usize].inject(amount);
+                        let actual = self.containers[neighbor_code].inject(amount);
                         self.containers[i].capacity = self.containers[i].capacity.saturating_sub(actual);
                         results.push(format!("周期{}: 容器{}→容器{} 传递{}单位",
-                            self.cycle_count, i, ncode, actual));
+                            self.cycle_count, i, neighbor_code, actual));
                     }
                 }
             }
@@ -343,7 +344,8 @@ mod tests {
 
     #[test]
     fn arbitrate_neutral_to_any_compatible() {
-        let neutral = Container::birth(0b00_0000);
+        let mut neutral = Container::birth(0b00_0000);
+        neutral.capacity = 100;  // 给予初始内容才有传输量
         let wife = Container::birth(0b10_0000);
         let v = arbitrate(&neutral, &wife);
         assert!(matches!(v.decision, Decision::Allow(_)));
@@ -352,8 +354,10 @@ mod tests {
     #[test]
     fn triune_arbitrate_unanimous_pass() {
         let primary = Container::birth(0b11_0000);
-        let w1 = Container::birth(0b00_0001);
-        let w2 = Container::birth(0b00_0010);
+        let mut w1 = Container::birth(0b00_0001);
+        let mut w2 = Container::birth(0b00_0010);
+        w1.capacity = 50;  // 提供可传输内容
+        w2.capacity = 50;
         let v = triune_arbitrate(&primary, &w1, &w2);
         assert_eq!(v.decision, Decision::Allow(1));
     }
