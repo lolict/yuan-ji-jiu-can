@@ -157,9 +157,9 @@ mod tests {
         
         // 验证基本字段
         assert_eq!(pack.pack_id, 1);
-        assert_eq!(pack.coord.x, 0x03);
-        assert_eq!(pack.coord.y, 0x0001);
-        assert_eq!(pack.coord.z, 0x01);
+        assert_eq!(pack.func_code as u8, 0x03);
+        assert_eq!(pack.param_slot as u16, 0x0001);
+        assert_eq!(pack.time_stamp as u8, 0x01);
         assert_eq!(pack.align_flag, 0);
         assert!(pack.verify_witness());
     }
@@ -230,8 +230,8 @@ mod tests {
             
             // 取回的地址必须等于三维编码
             let fetched = fridge.fetch(addr).expect(&format!("应能取回 {} ({})", spec_name, spec_val));
-            assert_eq!(fetched.coord.to_address(), addr);
-            assert_eq!(fetched.coord.x, spec_val, "X坐标必须等于语义ID");
+            assert_eq!(fetched.coord().to_address(), addr);
+            assert_eq!(fetched.coord().x, spec_val, "X坐标必须等于语义ID");
         }
     }
 
@@ -258,7 +258,7 @@ mod tests {
             fridge.store(pack);
             let fetched = fridge.fetch(addr).unwrap();
             
-            assert_eq!(fetched.coord.x, spec_val, 
+            assert_eq!(fetched.coord().x, spec_val,
                 "语义ID 0x{:02X} 在三系统中必须一致", spec_val);
         }
     }

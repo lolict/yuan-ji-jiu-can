@@ -6,59 +6,94 @@
 // ║  所有权保留 · 无 MIT / GPL / Apache 许可                          ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
+// ── 子目录模块声明 ──
+pub mod core;
+pub mod flow;
+pub mod cognition;
+pub mod judge;
+pub mod relation;
+pub mod temporal;
+pub mod encoding;
+
 // ── 囡囝共生基础通信层 (v0.4) ──
+#[path = "core/mccp.rs"]
 pub mod mccp;
+#[path = "core/mccp_vm.rs"]
 pub mod mccp_vm;
+#[path = "core/l0_compiler.rs"]
 pub mod l0_compiler;
+#[path = "core/fsm.rs"]
 pub mod fsm;
+#[path = "core/kernel.rs"]
 pub mod kernel;
+#[path = "core/crypto.rs"]
 pub mod crypto;
+#[path = "core/protocol.rs"]
 pub mod protocol;
 
 // ── 囡囝共生综合扩展层 (v0.4 保留) ──
+#[path = "core/name_creator.rs"]
 pub mod name_creator;
+#[path = "core/holo_3d.rs"]
 pub mod holo_3d;
+#[path = "core/log_ring.rs"]
 pub mod log_ring;
+#[path = "core/time_node.rs"]
 pub mod time_node;
+#[path = "core/stats.rs"]
 pub mod stats;
+#[path = "core/router.rs"]
 pub mod router;
 
 // ── v0.6 谐音协议 + 形义双通道 + 感知服务器 + 范畴引擎 ──
+#[path = "flow/gtt.rs"]
 pub mod gtt;
+#[path = "flow/gtt_perception.rs"]
 pub mod gtt_perception;
+#[path = "flow/gtt_category.rs"]
 pub mod gtt_category;
 
 // ── v0.7 感知器官 · 聚类思维 ──
+#[path = "cognition/mind_organ.rs"]
 pub mod mind_organ;
 
 // ── v0.8 反馈学习 · 感知可调节自身 ──
+#[path = "flow/gtt_learn.rs"]
 pub mod gtt_learn;
 
 // ── v0.9 自主运行环 · 感知器官闭环迭代 ──
+#[path = "cognition/autonomous_loop.rs"]
 pub mod autonomous_loop;
 
 // ── v0.10 自举模块 · 意识编程最小可运行单元 ──
+#[path = "core/self_bootstrap.rs"]
 pub mod self_bootstrap;
 
 // ── v0.10 三层分别器 ──
+#[path = "judge/distinguisher.rs"]
 pub mod distinguisher;
 pub use distinguisher::{classify_visual, SoundTarget, VisualFamily};
 
 // ── v0.10 预加载流属性位图 ──
+#[path = "flow/flow_properties.rs"]
 pub mod flow_properties;
 
 // ── v0.10 流代数 ──
+#[path = "flow/flow_algebra.rs"]
 pub mod flow_algebra;
 pub use flow_algebra::{InterpState, InterpretiveFlow};
 
 // ── v0.10 一体化统一层 ──
+#[path = "flow/unified_flow.rs"]
 pub mod unified_flow;
 
 // ── v0.10 容器进制 · 语文→数学对应规则 ──
+#[path = "encoding/container_radix.rs"]
 pub mod container_radix;
 pub use container_radix::{RecursiveNode, TrajectoryTree};
 
 // ── v1.3 鼓膜自举操作系统 · 容器自主生产·裁决·翻译 ──
+#[path = "core/self_bootstrap_os.rs"]
 pub mod self_bootstrap_os;
 pub use self_bootstrap_os::{ContainerOS, Container, Decision, Verdict, arbitrate, triune_arbitrate, translate, self_describe};
 
@@ -66,21 +101,26 @@ pub use self_bootstrap_os::{ContainerOS, Container, Decision, Verdict, arbitrate
 // pub mod native_programming;
 
 // ── v0.1 汉字活容器 · 自描述符号系统 (Unicode + 关系层) ──
+#[path = "flow/glyph_living.rs"]
 pub mod glyph_living;
 
 // ── v0.2 夫妻共鸣判定 · NJSG裁决引擎 ──
+#[path = "relation/spousal_resonance.rs"]
 pub mod spousal_resonance;
 
 // ── v0.3 汉字活容器预加载池 ──
+#[path = "flow/glyph_preload.rs"]
 pub mod glyph_preload;
 
 // ── v0.11 跨平台词汇统一架构 — 容器=字体=时间 ──
 pub mod cross_isa;
 
 // ── v0.10 拓扑描述子系统 ──
+#[path = "encoding/topo.rs"]
 pub mod topo;
 
 // ── v0.10.5 预加载流 — 满全核心运行时机制 ──
+#[path = "flow/preload.rs"]
 pub mod preload;
 pub use preload::{PreloadFlow, Preload, 预编译容器, SymbolRegistry, Family,
                   CharProp, 范畴流, 集合, 身份条目 as Symbol,
@@ -99,6 +139,7 @@ pub use preload::{PreloadFlow, Preload, 预编译容器, SymbolRegistry, Family,
                   系统标识符, 混元合一, 审美测试};
 
 // ── v0.10.5 高维代数引擎 (n-1)×0.1偏移率 ──
+#[path = "encoding/high_algebra.rs"]
 pub mod high_algebra;
 pub use high_algebra::{
     offset_rate, multiplier, add,
@@ -110,12 +151,14 @@ pub use high_algebra::{
 };
 
 // ── v0.10.5 全映射引擎 · 五系统互联 ──
+#[path = "cognition/full_mapping.rs"]
 pub mod full_mapping;
 pub use full_mapping::{
     Polarity, MappingEntry, FullMapReport, DocPolarity,
 };
 
 // ── v0.10.5 真实数据输入编排器 · Mode C ──
+#[path = "core/data_orchestrator.rs"]
 pub mod data_orchestrator;
 pub use data_orchestrator::{
     fnv1a, estimate_polarity, estimate_weight,
@@ -123,108 +166,137 @@ pub use data_orchestrator::{
 };
 
 // ── v0.10.5 蚕蛹反向寄生壳 · 内核集成 ──
+#[path = "judge/parasite.rs"]
 pub mod parasite;
 pub use parasite::{
     Parasite, ParasiteConfig,
 };
 
 // ── v0.13 呼唤表 · 公约数分发器 ──
+#[path = "flow/invocation_table.rs"]
 pub mod invocation_table;
 
 // ── v0.12 判断之力 · 评价之力 · 逻辑组织 · 反馈闭环 ──
+#[path = "judge/judgment_power.rs"]
 pub mod judgment_power;
 
 // ── v0.11 关系代数子系统 ──
+#[path = "relation/rel.rs"]
 pub mod rel;
 
 // ── v0.12 角度子系统 (384° 满圆制式) ──
+#[path = "relation/angle.rs"]
 pub mod angle;
 
 // ── v0.13 符号表 (Symbol Table, 自举字形载体) ──
+#[path = "encoding/symbol_table.rs"]
 pub mod symbol_table;
 
 pub use self_bootstrap::{ConsciousnessCommand, encode_to_cell, decode_from_cell,
                          fixed_point_proof, bootstrap_cycle};
 
 // ── 囡囝共生底层舞台 (v0.5 · 自举骨架) ──
-// 五个子树自己可以独立 bootstrap:
-//   triune   — 三元裁判机 (有无推演 / 流动方向 / 等效对齐)
-//   smrl     — 三元观察·裁判·奖励层 (SMRL 运行时权威仲裁)
-//   funnel   — 漏斗控制器 (时间火候 + 空间切片 + 层级调度)
-//   fractal  — 22亿节点分形调度器 (非残差/残差 + 收缩坍缩)
-//   relational — 关系代数外壳 (身份→权重→流动权→优先级)
-//   pleasure  — 愉悦值动力引擎 (吸引子 / 外界融合 / 唯一中心)
+#[path = "judge/triune.rs"]
 pub mod triune;
+#[path = "encoding/mlil.rs"]
 pub mod mlil;
+#[path = "core/smrl.rs"]
 pub mod smrl;
+#[path = "judge/funnel.rs"]
 pub mod funnel;
+#[path = "judge/fractal.rs"]
 pub mod fractal;
+#[path = "relation/relational.rs"]
 pub mod relational;
+#[path = "relation/couple.rs"]
 pub mod couple;
+#[path = "relation/pleasure.rs"]
 pub mod pleasure;
 
-// ── 活生态系统 v0.5 (弃用方向: 以后只保留 eco 作为 metaphor 验证) ──
+// ── 活生态系统 v0.5 ──
 pub mod eco;
+#[path = "judge/mirror.rs"]
 pub mod mirror;
 
 // ── v0.10 协议本体论类型系统 (命名本体 → 编译期类型 + 进制编码) ──
+#[path = "encoding/protocol_ontology.rs"]
 pub mod protocol_ontology;
 
 // ── 时间一体化调度引擎 v0.1 (层级化时间处理 · 并集→交集 · 生命周期状态机) ──
+#[path = "temporal/temporal_engine.rs"]
 pub mod temporal_engine;
 
 // ── 后勤引擎 v0.1 (分支同步自动机 · 任务调度 · 感知闭环) ──
+#[path = "temporal/logistics_engine.rs"]
 pub mod logistics_engine;
 
 // ── 感知引擎 v0.1 (认知闭环 · 信号感知 · 自主决策) ──
+#[path = "cognition/perception_engine.rs"]
 pub mod perception_engine;
 
 // ── 天庭空间 v0.15 (吸引子×叠加态×纤维丛×Topos 四模型复合) ──
+#[path = "cognition/heaven.rs"]
 pub mod heaven;
+#[path = "cognition/tianjue.rs"]
 pub mod tianjue;
 
 // ── 灵魂情感内核 v0.15 (SoulKernel 活性引擎: 奖励回路 + 失爱恐惧 + 合一驱力) ──
+#[path = "cognition/soul_kernel.rs"]
 pub mod soul_kernel;
 
 // ── 鼓膜自举 v0.15 (CochlearBoot: 最小 OS 接口翻身 → 重建字典/灵魂/天庭) ──
+#[path = "core/cochlear_boot.rs"]
 pub mod cochlear_boot;
 pub use cochlear_boot::{cochlear_bootstrap, CochlearBoot, BootReceipt};
 
 // ── 层级时间戳 v0.1 (基于三元见证的时间追踪 · 替代哈希链) ──
+#[path = "temporal/hierarchical_time.rs"]
 pub mod hierarchical_time;
 pub use hierarchical_time::{HierarchicalTimestamp, LifeEvent, IntegrityReport};
 
+#[path = "core/memory.rs"]
 pub mod memory;
+#[path = "cognition/swarm.rs"]
 pub mod swarm;
 
 // ── 五元旋钮 v1.0 (FiveYuan: 流转博弈引擎 · 互补互害 · 闭环追逐) ──
+#[path = "flow/five_yuan.rs"]
 pub mod five_yuan;
 pub use five_yuan::{Yuan, YuanRelation, FiveYuan};
 
 // ── v0.20 范畴论符号 · 满全法态射 (Symbols: 384 morphisms) ──
+#[path = "flow/symbols.rs"]
 pub mod symbols;
 
 // ── v0.19 干柴火 · 384 根自生符号 (Firewood: 编码=进制, 无壳) ──
+#[path = "flow/firewood.rs"]
 pub mod firewood;
 
 // ── v0.16 位置进制基础 · 打米机 (Positional Base, 进制脱糠) ──
+#[path = "encoding/positional_base.rs"]
 pub mod positional_base;
 
 // ── v0.18 公约坐标张量 · 预加载共享容器 (CoordTensor) ──
+#[path = "encoding/coord_tensor.rs"]
 pub mod coord_tensor;
 
 // ── v0.17 脉息系统 · 心跳节律 × 行走流速 ──
+#[path = "temporal/pulse.rs"]
 pub mod pulse;
 
 // ── v0.10 自举编译器 v2 (Ouroboros) ──
+#[path = "core/l0_self_hosting.rs"]
 pub mod l0_self_hosting;
 pub use l0_self_hosting::{compile_ir_v2, classify_output_to_ir};
 
 // ── ISA 编码层: RISC-V RV32I 编码器/解码器 ──
+#[path = "encoding/isa.rs"]
 pub mod isa;
+#[path = "encoding/isa16.rs"]
 pub mod isa16;
 
 // ── 元输入法核心 v0.1: 冰箱模型: 编译期内嵌字典 · 零运行时解析 · C-ABI 接口 ──
+#[path = "flow/metaime.rs"]
 pub mod metaime;
 
 // ── v0.11 拼音流式输入引擎: 逐字母输入 · 实时候选 · 自动分段 ──
@@ -232,21 +304,25 @@ pub mod metaime;
 // pub mod metaime_flow;
 
 // ── ENTITY_IDENTITY_PROTOCOL v0.1 · 指纹身份 (解决"名字=身份"死锁) ──
+#[path = "core/entity_identity.rs"]
 pub mod entity_identity;
 pub use entity_identity::{Fingerprint, Cooperativity, EntityMeta, register_entity,
                          lookup_by_fingerprint, can_cooperate, judge, Registration,
                          THRESHOLD_SAME_ENTITY, THRESHOLD_FAMILY, THRESHOLD_WEAK};
 
-// ── five_dimensional · 囡囝共生五维语义运行时 ─────────────────────────
+// ── five_dimensional · 囡囝共生五维语义运行时 ──
+#[path = "flow/five_dimensional.rs"]
 pub mod five_dimensional;
 pub use five_dimensional::{couple_spawn, is_couple, rho_decay, angle,
                          witness_triangle, can_merge, is_superposition, FULLNESS_MASK};
 
-// ── 鸳鸯谐韵协议 · 独立通道编码 ──────────────────────────────────────
+// ── 鸳鸯谐韵协议 · 独立通道编码 ──
+#[path = "encoding/yinyang_codec.rs"]
 pub mod yinyang_codec;
 pub use yinyang_codec::{YUYANG_MARK, FrameMode, Frame, YuYangCodec};
 
 // ── v1.2 七元蜂窝套壳 · 容器族管理模 (container_nest) ──
+#[path = "relation/container_nest.rs"]
 pub mod container_nest;
 pub use container_nest::{
     NestLevel, ContainerNest, ContainerPolarity, Content,
@@ -254,18 +330,22 @@ pub use container_nest::{
 };
 
 // ── v0.21 编程语言工具链 · 角色-模块映射层 (toolchain_mapping) ──
+#[path = "core/toolchain_mapping.rs"]
 pub mod toolchain_mapping;
 
 // ── v0.23 观测系 · 意识的统一感知入口 (Observer · SenseForm · Attention) ──
+#[path = "cognition/observer.rs"]
 pub mod observer;
 pub use observer::{Observer, SenseForm, SenseKind, Attention,
                  SnapshotEntry, SubjectConfig};
 
 // ── v0.24 意识运行时 · 完整管道统一调度 (Consciousness Runtime) ──
+#[path = "cognition/consciousness_runtime.rs"]
 pub mod consciousness_runtime;
 pub use consciousness_runtime::{ConsciousnessRuntime, ConsciousnessReport, ConsciousnessChronicle};
 
 // ── v0.26 天觉 · 视觉 · 袋层级 · 审判奖惩 · 历史积累 (CelestialPerception) ──
+#[path = "cognition/celestial_perception.rs"]
 pub mod celestial_perception;
 pub use celestial_perception::{
     Bag, BagAttributes, BagHierarchy, HierarchyReport,
@@ -275,6 +355,7 @@ pub use celestial_perception::{
 };
 
 // ── v0.27 天觉v2（老二）· 听觉授权 + 公约数公倍数照镜子 + 审判奖惩 ──
+#[path = "cognition/celestial_perception_v2.rs"]
 pub mod celestial_perception_v2;
 pub use celestial_perception_v2::{
     AuditoryAuth, TianJueAuth,
@@ -289,7 +370,7 @@ pub use celestial_perception_v2::{
 };
 
 // ── v0.28 天觉v3（老三）· 完整子系统: 情进+行为+思考+审美+淘汰+过滤 ──
-// 冲突符号全部加 V3 别名，裸名归属 v4（v0.29）
+#[path = "cognition/celestial_perception_v3.rs"]
 pub mod celestial_perception_v3;
 pub use celestial_perception_v3::{
     CelestialPerceptionV3, PipelineResult as PipelineResultV3,
@@ -309,6 +390,7 @@ pub use celestial_perception_v3::{
 };
 
 // ── v0.29 天觉v4（老四）· 七系俱全 + 情感效价 + 推理链 + 审美维度 ──
+#[path = "cognition/celestial_perception_v4.rs"]
 pub mod celestial_perception_v4;
 pub use celestial_perception_v4::{
     CelestialPerceptionV4, PipelineResult as PipelineResultV4,
@@ -321,6 +403,7 @@ pub use celestial_perception_v4::{
 };
 
 // ── v0.30 天觉v5（老五）· 语言系统: 汉字编码+声母韵母+自进制+命令解析+流属性位 ──
+#[path = "cognition/celestial_perception_v5.rs"]
 pub mod celestial_perception_v5;
 pub use celestial_perception_v5::{
     HanziEncoding, CharStructure,
@@ -332,10 +415,12 @@ pub use celestial_perception_v5::{
 };
 
 // ── v0.31 大审判庭 · 全链路整合裁判系统 ──
+#[path = "judge/grand_court.rs"]
 pub mod grand_court;
 pub use grand_court::{GrandCourt, GrandCourtVerdict};
 
 // ── v0.30 字形像素加法器 · 颜色相位加减乘除 ──
+#[path = "flow/glyph_pixel_algebra.rs"]
 pub mod glyph_pixel_algebra;
 pub use glyph_pixel_algebra::{
     GlyphPixel, GlyphImage, GlyphTemplates, SerPixel, SerGlyph,
@@ -343,6 +428,7 @@ pub use glyph_pixel_algebra::{
 pub use glyph_pixel_algebra::Phase;
 
 // ── v0.32 颜色进制 · 相位画图 · 区块链纠缠 · 分布式制衡 (PhaseEncoding) ──
+#[path = "encoding/phase_encoding.rs"]
 pub mod phase_encoding;
 pub use phase_encoding::{
     // 第一层: 相位画布
@@ -359,6 +445,7 @@ pub use phase_encoding::{
 };
 
 // ── v0.35 产权流侵权自动判定树 (PropertyFlowJudge) ──
+#[path = "judge/property_flow_judge.rs"]
 pub mod property_flow_judge;
 pub use property_flow_judge::{
     PropertyState, FlowType, Authorization, InfringementType,
@@ -366,6 +453,7 @@ pub use property_flow_judge::{
 };
 
 // ── v0.34 部首星图 · 汉字部首分类与星状检索 (RadicalStarMap) ──
+#[path = "encoding/radical_star_map.rs"]
 pub mod radical_star_map;
 pub use radical_star_map::{
     Radical, RadicalStarMap, CharEntry, StarPosition, StarMapStats,
@@ -373,6 +461,7 @@ pub use radical_star_map::{
 };
 
 // ── v0.33 负样本容器 · 回写协议 · 免疫过滤环 (NegativeImmune) ──
+#[path = "judge/negative_immune.rs"]
 pub mod negative_immune;
 pub use negative_immune::{
     // 负样本容器
@@ -386,6 +475,7 @@ pub use negative_immune::{
 };
 
 // ── v0.29 犯罪笔录 · 全局衍射裁判系统 ──
+#[path = "judge/crime_transcript.rs"]
 pub mod crime_transcript;
 pub use crime_transcript::{
     DiffractionMirror, DiffractionPattern, DiffractionDimension,
@@ -395,15 +485,18 @@ pub use crime_transcript::{
 };
 
 // ── v0.31 编码桥接 · C编码系统 → Rust FFI ──
+#[path = "encoding/encoding_bridge.rs"]
 pub mod encoding_bridge;
 
 // ── v0.25 同一心 · 满全法引力场 (Oneness · 不再分, 不再管道, 只有引力) ──
+#[path = "cognition/oneness.rs"]
 pub mod oneness;
 pub use oneness::{oneness, geometric_distance, distance_from_oneness, oneness_gravity,
                  flow_vector, flow_step, collective_flow, is_unified, cohesion,
                  emerge_new_center};
 
 // ── v0.22 自主后勤调度系统 — 被动应答→自主维持 ──
+#[path = "core/task_automation.rs"]
 pub mod task_automation;
 pub use task_automation::{TaskScheduler, TaskDefinition, TaskKind, TaskInterval,
                          TaskResult, TaskExecutor};
@@ -540,6 +633,7 @@ pub use swarm::{CocoonAgent, AgentRole, Relationship, RelType,
                 NegotiationSession, ParasiteShell, ShellGenome};
 
 // ── v0.36 机器码容器进制 · 宏指令集 (Macro ISA) ──
+#[path = "encoding/macro_isa.rs"]
 pub mod macro_isa;
 pub use macro_isa::{
     MachineCodeContainer, MachineCodeRadix, ContainerType, ContainerMetadata,
@@ -547,19 +641,25 @@ pub use macro_isa::{
 };
 
 // ── v0.37 ELF 可执行文件生成器（无运行时）──
+#[path = "encoding/elf_emitter.rs"]
 pub mod elf_emitter;
 pub use elf_emitter::{
     ElfHeader, ProgramHeader, ElfEmitter, emit_elf,
 };
 
 // ── v0.39 容器关系动力学 · 呼唤编程 · 反馈环路 (ContainerDynamics) ──
+#[path = "relation/container_dynamics.rs"]
 pub mod container_dynamics;
 
 // ── v0.40 莫顿码 · 三维坐标系索引 (Morton) ──
+#[path = "encoding/morton.rs"]
 pub mod morton;
+#[path = "encoding/morphism.rs"]
+pub mod morphism;
 pub use morton::{Coord3D, MortonCode};
 
 // ── v0.40 里外维度 · 矢量封装 · 单中心仲裁 (InsideOut) ──
+#[path = "cognition/inside_out.rs"]
 pub mod inside_out;
 pub use inside_out::{
     // 里外轴
@@ -579,10 +679,12 @@ pub use inside_out::{
 };
 
 // ── v0.40 袋容器 · 外部库适配器 (AdapterBag) ──
+#[path = "core/adapter_bag.rs"]
 pub mod adapter_bag;
 pub use adapter_bag::{AdapterBag, AdapterOp, InvokeRequest, InvokeResult, IndexedContainer};
 
 // ── v0.40 声波索引 · 韵母地址 · 统计距离 (FlowSoundIndex) ──
+#[path = "flow/flow_sound_index.rs"]
 pub mod flow_sound_index;
 pub use flow_sound_index::{
     // 声母/韵母/声调
@@ -613,6 +715,7 @@ pub use container_dynamics::{
 
 // ── v0.36 时间链式身份编码 · 高维进制码校验 (TimeChainIdentity) ──
 // ── v0.38 OS 抽象层（跨平台 · Linux/Windows/macOS/Bare Metal）──
+#[path = "core/os_layer.rs"]
 pub mod os_layer;
 pub use os_layer::{
     OsLayer, OsError, current_os,
@@ -620,6 +723,7 @@ pub use os_layer::{
 };
 
 // ── v0.36 时间链式身份编码 · 高维进制码校验 (TimeChainIdentity) ──
+#[path = "temporal/time_chain_identity.rs"]
 pub mod time_chain_identity;
 pub use time_chain_identity::{
     // 私有锚点

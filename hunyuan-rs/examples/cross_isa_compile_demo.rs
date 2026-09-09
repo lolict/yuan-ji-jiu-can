@@ -141,8 +141,23 @@ fn main() {
     println!("  MIPS32 ({} bytes):", mips_bytes.len());
     print_hex(&mips_bytes, "    ");
 
-    // ── 阶段 5: 菜单索引描述 ──────────────────────
-    println!("\n阶段 5: 指令菜单 (语义坐标 → 名称)");
+    // ── 阶段 5: 三维字体轮廓投影 ──────────────────
+    println!("\n阶段 5: 三维字体轮廓投影 (容器包 → glyf 表)");
+    let demo_coords = [
+        Coord3D::new(0x01, 0x1000, 0x10),
+        Coord3D::new(0x03, 0x2000, 0x20),
+        Coord3D::new(0x09, 0x3000, 0x30),
+        Coord3D::new(0x0D, 0x4000, 0x40),
+    ];
+    for coord in demo_coords {
+        let contour = GlyphContour::from_coord(coord);
+        let topo = topology_name(coord.x);
+        println!("  {:02X} → {} | 顶点数={} flags={:02X?}",
+            coord.x, topo, contour.x_coords.len(), &contour.flags[..3]);
+    }
+
+    // ── 阶段 6: 菜单索引描述 ──────────────────────
+    println!("\n阶段 6: 指令菜单 (语义坐标 → 名称)");
     let demo_coords = [
         Coord3D::new(0x01, 0, 0),
         Coord3D::new(0x03, 0, 0),
@@ -154,8 +169,8 @@ fn main() {
         println!("  {:02X} → {}", coord.x, MenuIndex::describe(coord));
     }
 
-    // ── 阶段 6: 统计总结 ──────────────────────────
-    println!("\n阶段 6: 编译总结");
+    // ── 阶段 7: 统计总结 ──────────────────────────
+    println!("\n阶段 7: 编译总结");
     println!("  语义句子: {} 条词汇", sentence.len());
     println!("  RISC-V : {:3} bytes", riscv_bytes.len());
     println!("  ARM64  : {:3} bytes", arm_bytes.len());

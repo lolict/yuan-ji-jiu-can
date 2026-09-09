@@ -171,13 +171,13 @@ impl VocabWord {
                     _ => return vec![],
                 }
             }
-            SemanticId::Jmp => {
+            SemanticId::Jmp if ops.len() >= 1 => {
                 match ops[0].label() {
                     Some(off) => Insn::jal(Reg(0), off as i32),
                     None => return vec![],
                 }
             }
-            SemanticId::Call => {
+            SemanticId::Call if ops.len() >= 1 => {
                 match ops[0].imm() {
                     Some(off) => Insn::jal(Reg(1), off as i32),
                     None => return vec![],

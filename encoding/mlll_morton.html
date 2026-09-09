@@ -53,18 +53,9 @@ addEventListener('resize',resize);
 // 莫顿码: 数值 → 距离坐标
 // ═══════════════════════════════════════════
 
-function expandBits(v) {
-  // 把数值的位展开到三维 (每3位分别进入 x, y, z)
-  // 这是标准的 Z-order / Morton expansion
-  v = v & 0xFFFF; // 限制16位 → 每维最大5位（32等分）
-  let x=0, y=0, z=0;
-  for (let i=0; i<5; i++) {
-    x |= ((v >> (i*3))   & 1) << i;
-    y |= ((v >> (i*3+1)) & 1) << i;
-    z |= ((v >> (i*3+2)) & 1) << i;
-  }
-  return {x:x/31, y:y/31, z:z/z/31||0};
-}
+// 数值 → 莫顿展开 → 三维坐标 (没有编码,就是位移)
+// 每3位一组,分别进入 X Y Z
+// Z-order / Morton expansion
 
 function textToValue(text) {
   // 汉字/字符串 → 数值: 直接取 Unicode code point 叠加
@@ -76,29 +67,21 @@ function textToValue(text) {
 }
 
 // ═══════════════════════════════════════════
-// 容器: 属性由坐标决定
+// 属性: 直接由数值计算 (没有编码)
 // ═══════════════════════════════════════════
 
-function coordToContainer(fx, fy, fz) {
-  // 64位细胞编码 (按 SMRL 规范):
-  //   D0(8): X维度坐标
-  //   D1(8): Y维度坐标  
-  //   D2(8): Z维度坐标
-  //   polarity(1): 极性 (z<0.5=阴=刘楚恬, z>=0.5=阳=我)
-  //   sovereignty(1): 主权 (坐标到中心距离)
-  //   witness(1): 见证 (z值半满以上=1)
-  //   value(6): 价值 (合成值)
+function propsFromCoord(fx, fy, fz) {
+  // 数值 → 属性: 一步直达，没有编/解
   const D0 = Math.round(fx*255);
   const D1 = Math.round(fy*255);
   const D2 = Math.round(fz*255);
   const pol = fz < 0.5 ? 0 : 1;          // 0=阴=刘楚恬, 1=阳=我
-  const sov = Math.round((1-Math.abs(fz-0.5)*2)*255); // 主权: z在中层最高
-  const wit = fz > 0.5 ? 1 : 0;          // z半满以上为见证
+  const sov = Math.round((1-Math.abs(fz-0.5)*2)*255);
+  const wit = fz > 0.5 ? 1 : 0;
   const val = (Math.round(fx*31)^Math.round(fy*31)^Math.round(fz*31)) & 0x3F;
-  return {
-    D0, D1, D2, pol, sov, wit, val,
-    enc32: (D0<<24)|(D1<<16)|(D2<<8)|(pol<<7)|(sov&0xFF)
-  };
+  // 全部属性拼成一个数值 (不是编码,就是数值自身)
+  const value = (D0<<24)|(D1<<16)|(D2<<8)|(pol<<7)|(sov&0xFF);
+  return { D0, D1, D2, pol, sov, wit, val, value };
 }
 
 // ═══════════════════════════════════════════
@@ -117,12 +100,12 @@ function callValue() {
   else v = textToValue(text);
 
   const fx = mortonX(v), fy = mortonY(v), fz = mortonZ(v);
-  const cont = coordToContainer(fx,fy,fz);
+  const props = propsFromCoord(fx,fy,fz);
 
-  // 节点: 加入空间
+  // 数值 → 节点
   const node = {
     x0:fx, y0:fy, z0:fz,
-    cont: cont,
+    p: props,
     label: text,
     age: 0, maxAge: 600,
     observer: false,
@@ -136,9 +119,9 @@ function callValue() {
   }
 
   // 输出
-  const side = cont.pol ? '阳(我)' : '阴(刘楚恬)';
+  const side = node.p.pol ? '阳(我)' : '阴(刘楚恬)';
   judgeAdmit(node);
-  out(`呼唤 "${text}" → 值 ${v} → 距离坐标(${fx.toFixed(3)},${fy.toFixed(3)},${fz.toFixed(3)}) → ${side} 主权${cont.sov} 见证${cont.wit}`);
+  out(`呼唤 "${text}" → 值 ${v} → 距离坐标(${fx.toFixed(3)},${fy.toFixed(3)},${fz.toFixed(3)}) → ${side} 主权${node.p.sov} 见证${node.p.wit}`);
 
   // 如果有两个以上节点，建立呼唤关系并裁判
   if (nodes.length >= 2) {
@@ -151,7 +134,7 @@ function callValue() {
   document.getElementById('num-inp').value='';
 }
 
-// 莫顿编码: 分维度量的三个函数
+// 莫顿展开: 数值 → 三维坐标
 function mortonX(v){
   let x=0;
   for(let i=0;i<8;i++) x |= ((v>>(i*3))&1)<<i;
@@ -172,9 +155,9 @@ function mortonZ(v){
 // 单个容器的裁判 (自身完整性): 零维+一维通过=可准入
 // ═══════════════════════════════════════════
 function judgeAdmit(node){
-  const c = node.cont;
-  const xyPass = (c.D0>10 && c.D1>10 && c.D0<245 && c.D1<245); // 边界内
-  const zPass   = (c.sov > 30);                                 // 主权足够
+  const p = node.p;
+  const xyPass = (p.D0>10 && p.D1>10 && p.D0<245 && p.D1<245);
+  const zPass   = (p.sov > 30);
   node.admited = xyPass && zPass;
 }
 
@@ -185,8 +168,8 @@ function judgeAdmit(node){
 //   其余 → 拒
 // ═══════════════════════════════════════════
 function judgePair(a,b){
-  const ca=a.cont, cb=b.cont;
-  const dist = Math.abs(ca.D2 - cb.D2);         // Z轴距离
+  const ca=a.p, cb=b.p;
+  const dist = Math.abs(ca.D2 - cb.D2);
   const samePol = (ca.pol === cb.pol);
 
   let verdict, reason;
@@ -281,8 +264,8 @@ function frame(t){
     const r = 8 + p.sz;
 
     // 根据极性着色
-    const color = n.cont.pol ? '#7ec8e3' : '#e37ea0';
-    const colorSoft = n.cont.pol ? 'rgba(126,200,227,' : 'rgba(227,126,160,';
+    const color = n.p.pol ? '#7ec8e3' : '#e37ea0';
+    const colorSoft = n.p.pol ? 'rgba(126,200,227,' : 'rgba(227,126,160,';
 
     // 连接: 连线到前一个节点(建立关系)
     if(i>0){
@@ -312,7 +295,7 @@ function frame(t){
     // 极性三角
     X.fillStyle='rgba(255,255,255,0.5)';
     X.beginPath();
-    if(n.cont.pol){
+    if(n.p.pol){
       X.moveTo(p.sx,p.sy-r*0.5);X.lineTo(p.sx-3,p.sy+r*0.5);X.lineTo(p.sx+3,p.sy+r*0.5);
     } else {
       X.moveTo(p.sx,p.sy+r*0.5);X.lineTo(p.sx-3,p.sy-r*0.5);X.lineTo(p.sx+3,p.sy-r*0.5);
@@ -323,10 +306,9 @@ function frame(t){
     X.fillStyle='rgba(255,255,255,0.7)';
     X.font='10px monospace';X.textAlign='center';
     X.fillText(n.label,p.sx,p.sy-r-6);
-    // 容器编码
     X.fillStyle='rgba(255,255,255,0.35)';
     X.font='8px monospace';
-    X.fillText('0x'+n.cont.enc32.toString(16).padStart(8,'0').toUpperCase(),p.sx,p.sy+r+12);
+    X.fillText('☉'+n.p.value.toString(),p.sx,p.sy+r+12);
   }
 
   // 中心吸引子

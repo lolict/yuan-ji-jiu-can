@@ -1,48 +1,96 @@
 // 冰箱层 — 时间触发执行引擎
 // 消灭运行时，所有行为编译时预编排
 // 执行时只查表、裁决、取袋、输出
+//
+// 容器包布局（与约定对齐）：
+// pack_id:8B  func_code:2B  param_slot:8B  time_stamp:4B  align_flag:1B  payload:NB  witness:3B
+// payload 4B 对齐（不足补零）
 
 use crate::cross_isa::coordinate::Coord3D;
 use crate::cross_isa::vocabulary::*;
 use crate::cross_isa::compose::Sentence;
 
 /// 容器包：存放在冰箱格子里的预编码指令
+/// 二进制布局与约定一致
 #[derive(Debug, Clone)]
 pub struct ContainerPack {
-    pub pack_id: u64,
-    pub coord: Coord3D,
-    pub align_flag: u8,
-    pub payload: Vec<u8>,
-    pub witness: [u8; 3],
+    pub pack_id: u64,          // 8B 公约数
+    pub func_code: u16,        // 2B X坐标/功能ID
+    pub param_slot: u64,       // 8B Y坐标/参数
+    pub time_stamp: u32,       // 4B Z坐标/时间窗
+    pub align_flag: u8,        // 1B 相位对齐
+    pub payload: Vec<u8>,      // NB 预编码动作序列（4B对齐）
+    pub witness: [u8; 3],      // 3B 三元裁决签名
 }
 
 impl ContainerPack {
     /// 从Coord3D和原生机器码创建容器包
     pub fn new(pack_id: u64, coord: Coord3D, align_flag: u8, payload: Vec<u8>) -> Self {
-        let witness = Self::compute_witness(&payload);
-        Self { pack_id, coord, align_flag, payload, witness }
+        let aligned_payload = Self::align_payload(payload);
+        let witness = Self::compute_witness(pack_id, coord, align_flag, &aligned_payload);
+        Self {
+            pack_id,
+            func_code: coord.x as u16,
+            param_slot: coord.y as u64,
+            time_stamp: coord.z as u32,
+            align_flag,
+            payload: aligned_payload,
+            witness,
+        }
     }
 
-    /// 计算三元见证签名（简化版：payload的递增和取模）
-    fn compute_witness(payload: &[u8]) -> [u8; 3] {
-        if payload.is_empty() { return [0xFF, 0xFF, 0xFF]; }
+    /// payload 4B 对齐（不足补零）
+    fn align_payload(mut payload: Vec<u8>) -> Vec<u8> {
+        let rem = payload.len() % 4;
+        if rem != 0 {
+            let pad = 4 - rem;
+            payload.extend(std::iter::repeat(0).take(pad));
+        }
+        payload
+    }
+
+    /// 计算三元见证签名
+    /// 空袋: pack_id==0xFFFF → 全1标记
+    /// 全零: payload全零但pack_id有效 → [0xFF, 0xFE, 0xFD] 陷阱标记
+    /// 有效: [sum%251, xor, (sum>>8)%241]
+    fn compute_witness(pack_id: u64, coord: Coord3D, align_flag: u8, payload: &[u8]) -> [u8; 3] {
+        if pack_id == 0xFFFF {
+            return [0xFF, 0xFF, 0xFF]; // 空袋
+        }
+        if payload.iter().all(|&b| b == 0) {
+            return [0xFF, 0xFE, 0xFD]; // 全零陷阱
+        }
         let sum: u64 = payload.iter().map(|&b| b as u64).sum();
         let xor: u8 = payload.iter().fold(0u8, |a, &b| a ^ b);
+        let cksum = ((coord.x as u16) << 8 | coord.z as u16) as u8;
         [
             (sum % 251) as u8,
             xor,
-            ((sum >> 8) % 241) as u8,
+            ((sum >> 8) as u8).wrapping_add(cksum).wrapping_add(align_flag),
         ]
     }
 
     /// 验证见证签名
     pub fn verify_witness(&self) -> bool {
-        if self.pack_id == 0xFFFF { return false; } // 空袋拒绝
-        let expected = Self::compute_witness(&self.payload);
-        if self.payload.iter().all(|&b| b == 0) && self.pack_id != 0 {
-            return false; // 全零拒绝
+        // 1. 空袋拒绝
+        if self.pack_id == 0xFFFF { return false; }
+        // 2. 全零payload拒绝（陷阱状态）
+        if self.payload.iter().all(|&b| b == 0) && self.payload.len() >= 4 {
+            return false;
         }
+        let expected = Self::compute_witness(self.pack_id, self.coord(), self.align_flag, &self.payload);
         self.witness == expected
+    }
+
+    /// 解包恢复坐标
+    pub fn coord(&self) -> Coord3D {
+        Coord3D::new(self.func_code as u8, self.param_slot as u16, self.time_stamp as u8)
+    }
+
+    /// 获取未填充的 payload 长度（去除对齐补零）
+    pub fn payload_len(&self) -> usize {
+        // 找到最后一个非零字节的位置（简化实现）
+        self.payload.iter().rposition(|&b| b != 0).map(|p| p + 1).unwrap_or(0)
     }
 }
 
@@ -65,7 +113,7 @@ impl TriuneJudge {
             return Verdict::Reject;
         }
         // 2. Z轴未对齐
-        if pack.coord.z != current_z && pack.coord.z != 0xFF {
+        if pack.time_stamp != current_z as u32 && pack.time_stamp != 0xFF {
             return Verdict::Wait;
         }
         // 3. 见证验证
@@ -89,7 +137,7 @@ impl Fridge {
 
     /// 装袋：把容器包放入冰箱
     pub fn store(&mut self, pack: ContainerPack) {
-        let addr = pack.coord.to_address();
+        let addr = pack.coord().to_address();
         self.storage.insert(addr, pack);
     }
 
@@ -116,7 +164,7 @@ impl Fridge {
     /// 按Z轴时间窗口批量取出（同一时间段的所有包）
     pub fn fetch_time_slot(&self, z: u8) -> Vec<&ContainerPack> {
         self.storage.values()
-            .filter(|p| p.coord.z == z && TriuneJudge::judge(p, z) == Verdict::Admit)
+            .filter(|p| p.time_stamp == z as u32 && TriuneJudge::judge(p, z) == Verdict::Admit)
             .collect()
     }
 }
@@ -179,6 +227,28 @@ mod tests {
         let payload = vec![0x33, 0x10, 0x31, 0x00];
         let pack = ContainerPack::new(0xFFFF, coord, 0, payload);
         assert!(!pack.verify_witness());
+    }
+
+    #[test]
+    fn pack_alignment() {
+        // 5 字节 payload 应该填充到 8 字节
+        let coord = Coord3D::new(0x03, 0x0001, 0x01);
+        let payload = vec![0x33, 0x10, 0x31, 0x00, 0x55]; // 5 字节
+        let pack = ContainerPack::new(1, coord, 0, payload);
+        assert!(pack.payload.len() % 4 == 0);
+        assert_eq!(pack.payload.len(), 8);
+    }
+
+    #[test]
+    fn pack_fields_match_coord() {
+        let coord = Coord3D::new(0x03, 0x0A10, 0x5F);
+        let payload = vec![0x33, 0x10, 0x31, 0x00];
+        let pack = ContainerPack::new(42, coord, 7, payload);
+        assert_eq!(pack.func_code, 0x03);
+        assert_eq!(pack.param_slot, 0x0A10);
+        assert_eq!(pack.time_stamp, 0x5F);
+        assert_eq!(pack.align_flag, 7);
+        assert_eq!(pack.pack_id, 42);
     }
 
     #[test]
