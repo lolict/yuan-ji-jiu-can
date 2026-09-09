@@ -39,6 +39,11 @@ impl Shengmu {
             Self::Y => 21, Self::W => 22, Self::Zero => 23,
         }
     }
+    pub fn try_from_index(i: u8) -> Option<Self> {
+        use Shengmu::*;
+        const ALL: [Shengmu; 24] = [B, P, M, F, D, T, N, L, G, K, H, J, Q, X, Zh, Ch, Sh, R, Z, C, S, Y, W, Zero];
+        ALL.get(i as usize).copied()
+    }
 }
 
 // ────────────────────────────────────────────────────────────
@@ -68,6 +73,15 @@ impl Yunmu {
             Self::UeN => 30,
         }
     }
+    pub fn try_from_index(i: u8) -> Option<Self> {
+        use Yunmu::*;
+        const ALL: [Yunmu; 31] = [
+            A, O, E, I, U, Ue, Ai, Ei, Ao, Ou, An, En, Ang, Eng,
+            IA, IE, Iao, Iou, Ian, Iang, In, Ing,
+            Ua, Uo, Uai, Uei, Uan, Uen, Uang, Ueng, UeN,
+        ];
+        ALL.get(i as usize).copied()
+    }
 }
 
 // ────────────────────────────────────────────────────────────
@@ -84,6 +98,11 @@ impl Tone {
         match self {
             Self::T1 => 0, Self::T2 => 1, Self::T3 => 2, Self::T4 => 3, Self::Neutral => 4,
         }
+    }
+    pub fn try_from_index(i: u8) -> Option<Self> {
+        use Tone::*;
+        const ALL: [Tone; 5] = [T1, T2, T3, T4, Neutral];
+        ALL.get(i as usize).copied()
     }
 }
 

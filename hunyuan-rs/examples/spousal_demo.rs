@@ -1,14 +1,9 @@
 // ══════════════════════════════════════════════════════════════════════
-// spousal_demo.rs — 夫妻共鸣裁决演示 (从预加载池取样)
+// spousal_demo.rs — 夫妻共鸣裁决演示
 // ══════════════════════════════════════════════════════════════════════
-//
-// 运行: cargo run --example spousal_demo
-//
-// 演示: 从 GlyphPool 取出汉字, 对调 spousal_resonance 引擎裁决
-//       输出每对汉字的共鸣等级和见证结果
 
-use mqf::glyph_preload::GlyphPool;
-use mqf::spousal_resonance::SpousalResonanceEngine;
+use mqf::flow::glyph_preload::GlyphPool;
+use mqf::relation::spousal_resonance::SpousalResonanceEngine;
 
 fn main() {
     println!("═══════════════════════════════════════════════════");
@@ -20,18 +15,10 @@ fn main() {
 
     println!("预加载池大小: {} 个汉字\n", pool.len());
 
-    // ── 待测试的配对 ──
     let pairs: Vec<(char, char)> = vec![
-        ('囡', '囝'),   // 夫妻
-        ('阴', '阳'),   // 阴阳
-        ('阴', '囝'),   // 阴阳+夫妻
-        ('袋', '桶'),   // 容器+容器
-        ('照', '袋'),   // 操作+容器
-        ('我', '你'),   // 谐音
-        ('莫', '连'),   // 谐音桥
-        ('升', '降'),   // 极性
-        ('开', '关'),   // 操作反向
-        ('聚', '散'),   // 操作反向
+        ('囡', '囝'), ('阴', '阳'), ('阴', '囝'),
+        ('袋', '桶'), ('照', '袋'), ('我', '你'),
+        ('莫', '连'), ('升', '降'), ('开', '关'), ('聚', '散'),
     ];
 
     println!("┌──────┬──────┬────────────┬──────────┬──────────┐");
@@ -57,18 +44,11 @@ fn main() {
     }
     println!("└──────┴──────┴────────────┴──────────┴──────────┘\n");
 
-    // ── 详细裁决一对 ──
     if let (Some(nan), Some(jian)) = (pool.get('囡'), pool.get('囝')) {
         let r = engine.judge(nan, jian);
-        println!("【详细裁决示例: 囡 + 囝】");
-        println!("  极性和谐度: {}", r.polarity_harmony);
-        println!("  家族张力: {}", r.family_tension);
-        println!("  距离得分: {:.4}", r.distance_score);
-        println!("  综合分: {}", r.final_score);
-        println!("  共鸣等级: {:?} — {}", r.level, r.level.description());
-        println!("  容器裁决: {:?}", r.judgment);
+        println!("【详细裁决: 囡 + 囝】");
+        println!("  极性和谐度: {} | 家族张力: {}", r.polarity_harmony, r.family_tension);
+        println!("  综合分: {} | 裁决: {:?}", r.final_score, r.judgment);
         println!("  可三元见证: {}", r.can_witness);
     }
-
-    println!("\n═══════════════════════════════════════════════════");
 }

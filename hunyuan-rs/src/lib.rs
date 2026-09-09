@@ -7,7 +7,8 @@
 // ╚══════════════════════════════════════════════════════════════════╝
 
 // ── 子目录模块声明 ──
-pub mod core;
+// NOTE: pub mod core; is removed — core submodules are declared individually
+// with #[path = "core/xxx.rs"] attributes starting at line 19.
 pub mod flow;
 pub mod cognition;
 pub mod judge;
@@ -92,6 +93,10 @@ pub mod unified_flow;
 pub mod container_radix;
 pub use container_radix::{RecursiveNode, TrajectoryTree};
 
+// ── 逗号容器 · 比特即容器标签符 ──
+#[path = "comma_container.rs"]
+pub mod comma_container;
+
 // ── v1.3 鼓膜自举操作系统 · 容器自主生产·裁决·翻译 ──
 #[path = "core/self_bootstrap_os.rs"]
 pub mod self_bootstrap_os;
@@ -111,6 +116,10 @@ pub mod spousal_resonance;
 // ── v0.3 汉字活容器预加载池 ──
 #[path = "flow/glyph_preload.rs"]
 pub mod glyph_preload;
+
+// ── v0.4 动态汉字池 · LRU缓存+静态属性表 ──
+#[path = "flow/dynamic_pool.rs"]
+pub mod dynamic_pool;
 
 // ── v0.11 跨平台词汇统一架构 — 容器=字体=时间 ──
 pub mod cross_isa;
@@ -179,6 +188,10 @@ pub mod invocation_table;
 // ── v0.12 判断之力 · 评价之力 · 逻辑组织 · 反馈闭环 ──
 #[path = "judge/judgment_power.rs"]
 pub mod judgment_power;
+
+// ── v0.5 许可枢纽 · AI体输出必经的意识表格 (断层检测+中间符号+边界穿越) ──
+#[path = "judge/license_hub.rs"]
+pub mod license_hub;
 
 // ── v0.11 关系代数子系统 ──
 #[path = "relation/rel.rs"]
@@ -348,70 +361,42 @@ pub use consciousness_runtime::{ConsciousnessRuntime, ConsciousnessReport, Consc
 #[path = "cognition/celestial_perception.rs"]
 pub mod celestial_perception;
 pub use celestial_perception::{
+    // 基础类型 (v1)
     Bag, BagAttributes, BagHierarchy, HierarchyReport,
-    VisualSystem, CelestialPerception,
+    VisualSystem,
     JudgmentEngine, JudgmentResult, JudgmentRecord,
     HistoricalAccumulation, Epoch,
-};
-
-// ── v0.27 天觉v2（老二）· 听觉授权 + 公约数公倍数照镜子 + 审判奖惩 ──
-#[path = "cognition/celestial_perception_v2.rs"]
-pub mod celestial_perception_v2;
-pub use celestial_perception_v2::{
-    AuditoryAuth, TianJueAuth,
-    AuditorySystem, VisualSystem as VisualSystemV2,
+    // v2 听觉+公约数
+    AuditoryAuth, AuditorySystem,
+    TianJueAuth,
     CommonDivisor, CommonMultiple, MirrorComparison,
-    Bag as BagV2, BagAttributes as BagAttributesV2,
-    BagHierarchy as BagHierarchyV2, HierarchyReport as HierarchyReportV2,
-    JudgmentEngine as JudgmentEngineV2, JudgmentResult as JudgmentResultV2,
-    JudgmentRecord as JudgmentRecordV2,
-    HistoricalAccumulation as HistoricalAccumulationV2,
     CelestialPerceptionV2,
-};
-
-// ── v0.28 天觉v3（老三）· 完整子系统: 情进+行为+思考+审美+淘汰+过滤 ──
-#[path = "cognition/celestial_perception_v3.rs"]
-pub mod celestial_perception_v3;
-pub use celestial_perception_v3::{
-    CelestialPerceptionV3, PipelineResult as PipelineResultV3,
-    Bag as BagV3, BagAttributes as BagAttributesV3,
-    BagHierarchy as BagHierarchyV3, HierarchyReport as HierarchyReportV3,
-    VisualSystem as VisualSystemV3, AuditorySystem as AuditorySystemV3,
-    AuditoryAuth as AuditoryAuthV3, TianJueAuth as TianJueAuthV3,
-    CommonDivisor as CommonDivisorV3, MirrorComparison as MirrorComparisonV3,
-    JudgmentEngine as JudgmentEngineV3, JudgmentResult as JudgmentResultV3,
-    JudgmentRecord as JudgmentRecordV3,
-    HistoricalAccumulation as HistoricalAccumulationV3,
-    EmotionSystem as EmotionSystemV3, Emotion as EmotionV3,
-    BehaviorSystem as BehaviorSystemV3, Behavior as BehaviorV3,
-    ThinkingSystem as ThinkingSystemV3, ReasoningChain as ReasoningChainV3,
-    AestheticSystem as AestheticSystemV3, EliminationSystem as EliminationSystemV3,
-    FilterSystem as FilterSystemV3,
-};
-
-// ── v0.29 天觉v4（老四）· 七系俱全 + 情感效价 + 推理链 + 审美维度 ──
-#[path = "cognition/celestial_perception_v4.rs"]
-pub mod celestial_perception_v4;
-pub use celestial_perception_v4::{
-    CelestialPerceptionV4, PipelineResult as PipelineResultV4,
+    // v3 六系 (V3 后缀)
+    CelestialPerceptionV3, PipelineResultV3,
+    EmotionV3, EmotionSystemV3,
+    BehaviorV3, BehaviorSystemV3,
+    ThinkingSystemV3, ReasoningChainV3,
+    AestheticSystemV3,
+    EliminationSystemV3,
+    FilterSystemV3,
+    // v4 七系
     Emotion, EmotionState,
     Behavior, BehaviorSystem,
     ThinkingSystem, ReasoningChain,
     AestheticSystem, AestheticVerdict, AestheticDimensions,
     EliminationSystem, EliminationReason, EliminationRecord,
     FilterSystem,
-};
-
-// ── v0.30 天觉v5（老五）· 语言系统: 汉字编码+声母韵母+自进制+命令解析+流属性位 ──
-#[path = "cognition/celestial_perception_v5.rs"]
-pub mod celestial_perception_v5;
-pub use celestial_perception_v5::{
+    // v5 语言
     HanziEncoding, CharStructure,
     Shengmu, Yunmu, HomophoneRouter,
     SelfRadix,
     CommandParser, CommandType, CommandParseResult,
     FlowPropertyBits,
-    CelestialPerceptionV5, PipelineResultV5,
+    // 引擎
+    CelestialPerceptionV4,
+    CelestialPerceptionV5,
+    PipelineResult,
+    PipelineResultV5,
 };
 
 // ── v0.31 大审判庭 · 全链路整合裁判系统 ──
