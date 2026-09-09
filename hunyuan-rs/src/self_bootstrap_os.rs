@@ -29,17 +29,17 @@ pub struct Container {
 impl Container {
     /// 从零生产一个新容器 · 鼓膜自举的起点
     /// 容量由容器自身几何决定 · 不需要外部数字:
-    ///   妻容器: 六边形 · 每边 6 单位 · 周长容量 = 6×6 = 36
-    ///   夫容器: 六边形 + 中心点 · 7×7 网格 = 49
-    ///   独立杯形容器: 8×8 网格总面积 = 64
-    ///   夫妻容器: 每格再分 4 极性 · 64×4 = 256
+    ///   妻容器: 六边形周长 36 · 层 6 · 36×6 = 216
+    ///   夫容器: 七方格 49 · 层 7 · 49×7 = 343
+    ///   独立杯形容器: 26 边 · 层 64 · 26×64 = 1664
+    ///   夫妻容器: 妻+夫+杯的容量总和 = 2223
     pub fn birth(code: u8) -> Self {
         let polarity = ((code >> 5) << 1) | ((code >> 4) & 1);
         let max_capacity = match polarity {
-            0b10 => 6 * 6,                    // 妻 · 六边形 · 每边 6 · 周长容量 36
-            0b01 => 7 * 7,                    // 夫 · 六边形 + 中心点 · 49
-            0b00 => 8 * 8,                    // 杯形 · 8×8 基准网格 = 64
-            0b11 => 8 * 8 * 4,                // 夫妻 · 每格 4 极性 · 256
+            0b10 => 36 * 6,                   // 妻 · 六边形周长 36 · 层 6 · 36×6 = 216
+            0b01 => 49 * 7,                   // 夫 · 七方格 49 · 层 7 · 49×7 = 343
+            0b00 => 26 * 64,                  // 杯形 · 26 边 · 层 64 · 26×64 = 1664
+            0b11 => 36 * 6 + 49 * 7 + 26 * 64, // 夫妻 · 妻+夫+杯总和 = 2223
             _ => 0,
         };
         Container {
@@ -288,7 +288,7 @@ mod tests {
     fn container_birth_independent() {
         let c = Container::birth(0);
         assert_eq!(c.polarity, 0b00);
-        assert_eq!(c.max_capacity, 64);
+        assert_eq!(c.max_capacity, 1664);
         assert_eq!(c.edge_count(), 6);
     }
 
@@ -296,7 +296,7 @@ mod tests {
     fn container_birth_couple() {
         let c = Container::birth(0b11_1111);
         assert_eq!(c.polarity, 0b11);
-        assert_eq!(c.max_capacity, 256);
+        assert_eq!(c.max_capacity, 2223);
         assert_eq!(c.edge_count(), 7);
     }
 
@@ -304,8 +304,16 @@ mod tests {
     fn container_birth_wife() {
         let c = Container::birth(0b10_1010);
         assert_eq!(c.polarity, 0b10);
-        assert_eq!(c.max_capacity, 36);
+        assert_eq!(c.max_capacity, 216);
         assert_eq!(c.edge_count(), 6);
+    }
+
+    #[test]
+    fn container_birth_husband() {
+        let c = Container::birth(0b01_0101);
+        assert_eq!(c.polarity, 0b01);
+        assert_eq!(c.max_capacity, 343);
+        assert_eq!(c.edge_count(), 7);
     }
 
     #[test]
@@ -319,8 +327,8 @@ mod tests {
     #[test]
     fn container_inject_overflow_caps() {
         let mut c = Container::birth(0b10_0000);
-        let accepted = c.inject(100);
-        assert_eq!(accepted, 36);
+        let accepted = c.inject(300);
+        assert_eq!(accepted, 216);
         assert!(c.is_full());
     }
 
