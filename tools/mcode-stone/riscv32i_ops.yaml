@@ -49,6 +49,7 @@ instructions:
     mnemonic: add
     type: R
     opcode: "0110011"
+    bits: [6, 0]
     funct3: "000"
     funct7: "0000000"
     operands: [rd, rs1, rs2]
@@ -58,6 +59,7 @@ instructions:
     mnemonic: sub
     type: R
     opcode: "0110011"
+    bits: [6, 0]
     funct3: "000"
     funct7: "0100000"
     operands: [rd, rs1, rs2]
@@ -67,6 +69,7 @@ instructions:
     mnemonic: and
     type: R
     opcode: "0110011"
+    bits: [6, 0]
     funct3: "111"
     funct7: "0000000"
     operands: [rd, rs1, rs2]
@@ -76,6 +79,7 @@ instructions:
     mnemonic: or
     type: R
     opcode: "0110011"
+    bits: [6, 0]
     funct3: "110"
     funct7: "0000000"
     operands: [rd, rs1, rs2]
@@ -85,6 +89,7 @@ instructions:
     mnemonic: xor
     type: R
     opcode: "0110011"
+    bits: [6, 0]
     funct3: "100"
     funct7: "0000000"
     operands: [rd, rs1, rs2]
@@ -94,6 +99,7 @@ instructions:
     mnemonic: slt
     type: R
     opcode: "0110011"
+    bits: [6, 0]
     funct3: "010"
     funct7: "0000000"
     operands: [rd, rs1, rs2]
@@ -103,6 +109,7 @@ instructions:
     mnemonic: sltu
     type: R
     opcode: "0110011"
+    bits: [6, 0]
     funct3: "011"
     funct7: "0000000"
     operands: [rd, rs1, rs2]
@@ -112,6 +119,7 @@ instructions:
     mnemonic: sll
     type: R
     opcode: "0110011"
+    bits: [6, 0]
     funct3: "001"
     funct7: "0000000"
     operands: [rd, rs1, rs2]
@@ -121,6 +129,7 @@ instructions:
     mnemonic: srl
     type: R
     opcode: "0110011"
+    bits: [6, 0]
     funct3: "101"
     funct7: "0000000"
     operands: [rd, rs1, rs2]
@@ -130,6 +139,7 @@ instructions:
     mnemonic: sra
     type: R
     opcode: "0110011"
+    bits: [6, 0]
     funct3: "101"
     funct7: "0100000"
     operands: [rd, rs1, rs2]
@@ -139,6 +149,7 @@ instructions:
     mnemonic: addi
     type: I
     opcode: "0010011"
+    bits: [6, 0]
     funct3: "000"
     operands: [rd, rs1, imm12]
     semantic: "立即数加法"
@@ -147,6 +158,7 @@ instructions:
     mnemonic: lw
     type: I
     opcode: "0000011"
+    bits: [6, 0]
     funct3: "010"
     operands: [rd, imm12, rs1]
     format: "lw rd, imm(rs1)"
@@ -156,6 +168,7 @@ instructions:
     mnemonic: sw
     type: S
     opcode: "0100011"
+    bits: [6, 0]
     funct3: "010"
     operands: [rs2, imm12, rs1]
     format: "sw rs2, imm(rs1)"
@@ -165,6 +178,7 @@ instructions:
     mnemonic: beq
     type: B
     opcode: "1100011"
+    bits: [6, 0]
     funct3: "000"
     operands: [rs1, rs2, imm13]
     format: "beq rs1, rs2, imm"
@@ -174,6 +188,7 @@ instructions:
     mnemonic: lui
     type: U
     opcode: "0110111"
+    bits: [6, 0]
     operands: [rd, imm20]
     semantic: "加载高位立即数"
 
@@ -181,5 +196,6 @@ instructions:
     mnemonic: jal
     type: J
     opcode: "1101111"
+    bits: [6, 0]
     operands: [rd, imm21]
     semantic: "跳转并链接"

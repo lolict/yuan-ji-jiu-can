@@ -356,6 +356,8 @@ def encode(isa, sem_id, ops):
 def decode(isa, word):
     db = get_isa_db(isa)
     for inst in db["instructions"]:
+        if "bits" not in inst:
+            continue
         opcode_bits = int(inst["opcode"], 2)
         hi, lo = inst["bits"]
         width = hi - lo + 1
@@ -364,6 +366,15 @@ def decode(isa, word):
             funct_bits = int(inst["funct"], 2)
             ff = inst["fields"].get("funct")
             if ff and bit(word, ff[0], ff[1]) != funct_bits: continue
+        # RISC-V: funct3 @ bits[14:12], funct7 @ bits[31:25]
+        if "funct3" in inst:
+            f3_expected = int(inst["funct3"], 2)
+            f3_actual = (word >> 12) & 0x7
+            if f3_actual != f3_expected: continue
+        if "funct7" in inst:
+            f7_expected = int(inst["funct7"], 2)
+            f7_actual = (word >> 25) & 0x7F
+            if f7_actual != f7_expected: continue
         return {
             "id": inst["id"], "mnemonic": inst["mnemonic"],
             "isa": isa, "hex": to_hex32(word), "type": inst["type"]
