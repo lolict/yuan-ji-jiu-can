@@ -19,6 +19,7 @@ Python 只是壳，审判/衍射/注册全部由 C 执行。
   mhz bridge            启动 WASM 内核 HTTP 桥接服务器
   mhz cocoon            蚕蛹反向寄生壳
   mhz docs              统计文档聚合浏览器
+  mhz sync              全量空间同步替换 (跨文件批量词汇替换)
   mhz bootstrap         自举编译器 (registry/check/manifest)
   mhz interlock         全局互锁横轴
   mhz property          产权流
@@ -871,6 +872,9 @@ def main():
             result = subprocess.run([_sys.executable, verify_script] + args)
             return result.returncode
     
+    elif command == "sync":
+        cmd_sync(args)
+
     elif command == "history":
         import subprocess
         history_script = os.path.join(os.path.dirname(__file__), "register_history.py")
@@ -1158,6 +1162,30 @@ def cmd_court(court: CourtEngine, args: list):
 
     else:
         print(f"未知子命令: {subcmd}")
+
+
+# ── 全量空间同步替换 ──────────────────────────────────────
+
+def cmd_sync(args: list):
+    """全量空间同步替换: mhz sync [--rules file] [--apply] [--search word]"""
+    import subprocess, sys
+    sync_script = os.path.join(os.path.dirname(__file__), "sync_replace.py")
+    sync_script = os.path.normpath(sync_script)
+    if not os.path.exists(sync_script):
+        print(f"同步替换脚本不存在: {sync_script}")
+        return
+    
+    # 默认规则: 天觉 → 庭
+    default_rules = os.path.join(os.path.dirname(__file__), "rules_tianjue_to_tianting.json")
+    
+    cmd = [sys.executable, sync_script, "--workspace", os.path.dirname(os.path.dirname(os.path.dirname(__file__)))]
+    if not any(a.startswith("--rules") for a in args):
+        if os.path.exists(default_rules):
+            cmd.extend(["--rules", default_rules])
+    cmd.extend(args)
+    
+    result = subprocess.run(cmd)
+    sys.exit(result.returncode)
 
 
 # ── 文档聚合浏览器 ────────────────────────────────────────

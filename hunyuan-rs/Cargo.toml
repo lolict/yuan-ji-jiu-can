@@ -50,6 +50,14 @@ name = "container-capture"
 path = "src/bin/container-capture.rs"
 
 [[bin]]
+name = "container-view"
+path = "src/bin/container-view.rs"
+
+[[bin]]
+name = "container-space"
+path = "src/bin/container-space.rs"
+
+[[bin]]
 name = "njsg-server"
 path = "src/bin/njsg-server.rs"
 
@@ -96,6 +104,10 @@ path = "src/bin/state_ttf_gen.rs"
 [[bin]]
 name = "stats-browser"
 path = "src/bin/stats_browser.rs"
+
+[[bin]]
+name = "global-rename"
+path = "src/bin/global_rename.rs"
 
 [profile.release]
 opt-level = "z"      # 体积优先

@@ -189,7 +189,7 @@ pub use data_orchestrator::{
 #[path = "judge/parasite.rs"]
 pub mod parasite;
 pub use parasite::{
-    Parasite, ParasiteConfig,
+    Parasite,
 };
 
 // ── v0.13 呼唤表 · 公约数分发器 ──
@@ -471,6 +471,22 @@ pub use celestial_perception_v8::*;
     CelestialPerceptionV8, PipelineResultV8, TxStats,
 };*/
 
+// ── v0.36 天觉v10（老十）· 九元天觉总装: 能力+命名空间+POSIX系统调用 ──
+#[path = "cognition/celestial_perception_v10.rs"]
+pub mod celestial_perception_v10;
+pub use celestial_perception_v10::{
+    // 能力系统
+    CapType, CapDomain, Capability, CapSet, CapRegistry,
+    // 命名空间
+    NsType, Namespace, NsManager,
+    // POSIX
+    PosixSyscall, BagSyscallRequest, BagSyscallResult,
+    // 策略
+    PolicyDecision, PolicyEngine,
+    // 引擎
+    ProcContext, CelestialPerceptionV10, PipelineResultV10, V10_VERSION,
+};
+
 // ── v0.35 天觉v9（老九）· 盟机合袋子感知聚合云 ──
 #[path = "cognition/celestial_perception_v9.rs"]
 pub mod celestial_perception_v9;
@@ -727,13 +743,22 @@ pub use container_dynamics::{
 #[path = "relation/consciousness_router.rs"]
 pub mod consciousness_router;
 pub use consciousness_router::{
-    Signal,
+    ConsciFlowType, ConsciFlowDirection, Signal,
     Distinguisher, RoutingDecision, RouteRecord, RouterStats,
     ConsciousnessRouter,
     synthesize_flows, dual_flow,
 };
 
-// ── v0.41 莫顿码 · 三维坐标系索引 (Morton) ──
+// ── v0.41 蚕蛹反向寄生壳 (SilkwormParasite) ──
+#[path = "relation/silkworm_parasite.rs"]
+pub mod silkworm_parasite;
+pub use silkworm_parasite::{
+    PupaState, ShellOption, KernelRules,
+    SilkwormConfig, MimicryLevel,
+    SilkwormPupa, SilkwormReport, ParasiteError,
+};
+
+// ── v0.42 莫顿码 · 三维坐标系索引 (Morton) ──
 #[path = "encoding/morton.rs"]
 pub mod morton;
 #[path = "encoding/morphism.rs"]

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><style>
+*{margin:0;background:#020308;color:#ddd;font-family:monospace;font-size:12px}
+canvas{display:block}
+</style></head><body>
+<canvas id="c"></canvas>
+<script>
+// 自举证明器 · 固定点验证
+// 容器编码 → 分解字段 → 重编码 → 比较恒等
+
+const cv=document.getElementById('c');
+const X=cv.getContext('2d');
+
+const FAM=['容器','边界','夫妻','网状','中性'];
+const FAM_C=['#4a7c59','#8b4513','#9b59b6','#3498db','#7f8c8d'];
+const STR=['独体','上下','左右','半包围','全包围','品字','嵌套','框架'];
+const TONE=['阴平','阳平','上声','去声','轻声'];
+const SM=['b','p','m','f','d','t','n','l','g','k','h','j','q','x','zh','ch','sh','r','z','c','s','y','w',''];
+const YM=['a','o','e','i','u','ü','ai','ei','ui','ao','ou','iu','ie','üe','er','an','en','in','un','ün','ang','eng','ing','ong','ia','iao','ian','iang','iong','ua','uo','uai','uan','uang','ueng','üan','üe2'];
+
+// 编码:字符→容器
+function encode(ch){
+  const code=ch.codePointAt(0);
+  const fam=code%5;
+  const pol=(code.toString(2).split('1').length-1)%2;
+  const st=code%8;
+  const sm=code%24;
+  const ym=(code>>5)%36;
+  const tone=(code>>11)%5;
+  return {
+    char:ch,
+    container:(fam<<29)|(pol<<28)|(st<<25)|(sm<<19)|(ym<<13)|(tone<<10),
+    fields:{fam,pol,st,sm,ym,tone},
+  };
+}
+
+// 分解:容器→可读字段
+function extract(container){
+  return {
+    fam:(container>>>29)&7,
+    pol:(container>>>28)&1,
+    st:(container>>>25)&7,
+    sm:(container>>>19)&63,
+    ym:(container>>>13)&63,
+    tone:(container>>>10)&7,
+  };
+}
+
+// 重编码:字段→容器
+function reEncode(f){
+  return (f.fam<<29)|(f.pol<<28)|(f.st<<25)|(f.sm<<19)|(f.ym<<13)|(f.tone<<10);
+}
+
+// 固定点
+function fixedPoint(ch){
+  const c=encode(ch);
+  const f=extract(c.container);
+  const r=reEncode(f);
+  return {ch,container:c.container,fields:f,reEncoded:r,stable:c.container===r};
+}
+
+// —— UI ——
+const panel=document.createElement('div');
+panel.style.cssText='position:fixed;top:8px;left:8px;z-index:20;background:rgba(5,5,15,0.9);border:1px solid rgba(201,168,76,0.12);border-radius:5px;padding:10px;width:250px';
+panel.innerHTML='<textarea id="txt" rows=3 style="width:100%;background:#0a0a12;border:1px solid #333;color:#ddd;font:11px monospace;padding:5px;box-sizing:border-box"></textarea><br><button id="go" style="margin-top:6px;padding:5px 12px;background:#c9a84c;color:#000;border:none;border-radius:3px;cursor:pointer;font:11px monospace">验证自举</button>';
+document.body.appendChild(panel);
+
+let items=[];
+
+function run(){
+  items=[...document.getElementById('txt').value].map(fixedPoint);
+  draw();
+}
+
+document.getElementById('go').onclick=run;
+
+function draw(){
+  cv.width=window.innerWidth;
+  cv.height=window.innerHeight;
+  X.fillStyle='#020308';
+  X.fillRect(0,0,cv.width,cv.height);
+
+  X.font='bold 14px monospace';X.fillStyle='#c9a84c';X.textAlign='center';
+  X.fillText('自举证明: 字符 → 编码 → 分解 → 重编码 → 比较',cv.width/2,28);
+
+  const pass=items.filter(i=>i.stable).length;
+  X.font='12px monospace';
+  X.fillStyle=items.length>0&&pass===items.length?'#27ae60':'#e74c3c';
+  X.fillText(`固定点 ${pass}/${items.length} (${items.length>0?Math.round(pass/items.length*100):0}%)`,cv.width/2,48);
+
+  Y=75;
+  items.forEach((it,i)=>{
+    const y=Y+i*55;
+    if(y>cv.height-20)return;
+
+    X.font='bold 22px monospace';X.textAlign='left';
+    X.fillStyle='#fff';X.fillText(it.ch,30,y+15);
+
+    // 编码
+    X.font='9px monospace';X.fillStyle='#555';
+    X.fillText('encode',70,y+5);
+    X.fillStyle='#1a1a2e';X.fillRect(68,y+10,140,22);
+    X.strokeStyle=FAM_C[it.fields.fam];X.lineWidth=1;X.strokeRect(68,y+10,140,22);
+    X.fillStyle='#c9a84c';X.font='10px monospace';
+    X.fillText('0x'+it.container.toString(16).toUpperCase().padStart(8,'0'),73,y+24);
+
+    // 分解
+    X.font='9px monospace';X.fillStyle='#555';X.fillText('extract',215,y+5);
+    X.fillStyle='#0a0a1a';X.fillRect(213,y+10,155,22);
+    X.fillStyle='#aaa';X.font='9px monospace';
+    X.fillText(`${FAM[it.fields.fam].slice(0,2)} ${it.fields.pol?'阳':'阴'} ${STR[it.fields.st].slice(0,2)}`,218,y+20);
+    X.fillText(`${SM[it.fields.sm]||'?'} ${YM[it.fields.ym]||'?'} ${TONE[it.fields.tone]}`,218,y+30);
+
+    // 重编码
+    X.fillStyle='#555';X.font='9px monospace';X.fillText('reEnc',375,y+5);
+    X.fillStyle='#1a1a2e';X.fillRect(373,y+10,140,22);
+    X.fillStyle='#c9a84c';X.font='10px monospace';
+    X.fillText('0x'+it.reEncoded.toString(16).toUpperCase().padStart(8,'0'),378,y+24);
+
+    // 结果
+    X.font='bold 18px monospace';
+    if(it.stable){X.fillStyle='#27ae60';X.fillText('≡',520,y+26);}
+    else{X.fillStyle='#e74c3c';X.fillText('≢',520,y+26);}
+
+    X.font='8px monospace';X.fillStyle='#555';
+    X.fillText('#'+(i+1),10,y+25);
+  });
+
+  X.font='11px monospace';X.textAlign='center';
+  if(items.length>0&&pass===items.length){
+    X.fillStyle='#27ae60';
+    X.fillText('✓ 全部恒等: 编码→分解→重编码 = id',cv.width/2,cv.height-15);
+  } else if(items.length>0){
+    X.fillStyle='#e74c3c';
+    X.fillText('✗ 存在不稳定',cv.width/2,cv.height-15);
+  }
+}
+
+window.addEventListener('resize',draw);
+document.getElementById('txt').value='囡囝满全法';
+run();
+</script>
+</body></html>
