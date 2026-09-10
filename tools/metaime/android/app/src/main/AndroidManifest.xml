@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  MetaIME AndroidManifest
+  元输入法 · InputMethodService 注册
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.mqf.metaime">
+
+    <application
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="MetaIME"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.AppCompat.Light">
+
+        <!-- IME Service 入口 -->
+        <service
+            android:name=".MetaIME"
+            android:label="MetaIME · 元输入法"
+            android:permission="android.permission.BIND_INPUT_METHOD"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.view.InputMethod" />
+            </intent-filter>
+            <meta-data
+                android:name="android.view.im"
+                android:resource="@xml/method" />
+        </service>
+
+        <!-- 设置面板 Activity (选择输入法模式) -->
+        <activity
+            android:name=".SettingsActivity"
+            android:label="MetaIME 设置"
+            android:exported="true" />
+    </application>
+</manifest>

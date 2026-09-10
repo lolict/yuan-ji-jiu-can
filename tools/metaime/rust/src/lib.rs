@@ -19,6 +19,7 @@ pub mod radix3d;
 pub mod dimension;
 pub mod divisor;
 pub mod yuan;
+pub mod ffi;
 
 // 重新导出核心类型
 pub use constants::*;
