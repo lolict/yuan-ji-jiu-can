@@ -1,6 +1,7 @@
 [package]
 name = "mqf"
 version = "0.3.0"
+autobins = false
 edition = "2021"
 authors = ["lolict & 刘楚恬 <mqf@manquanca.info>"]
 description = "囡囝共生 · 囡囝共生元 OS — Rust 核心"
@@ -25,29 +26,48 @@ name = "mqf"
 path = "src/main.rs"
 
 [[bin]]
-name = "glyph"
-path = "src/bin/glyph.rs"
-
-[[bin]]
-name = "morphism"
-path = "src/bin/morphism_gen.rs"
-required-features = []
-
-[[bin]]
 name = "court"
 path = "src/bin/court.rs"
+
+[[bin]]
+name = "e2e-demo"
+path = "src/bin/e2e_demo.rs"
+
+[[bin]]
+name = "glyph"
+path = "src/bin/glyph.rs"
 
 [[bin]]
 name = "isa-encode"
 path = "src/bin/isa-encode.rs"
 
 [[bin]]
+name = "morphism"
+path = "src/bin/morphism_gen.rs"
+
+[[bin]]
+name = "njsg-capture"
+path = "src/bin/njsg-capture.rs"
+
+[[bin]]
+name = "njsg-server"
+path = "src/bin/njsg-server.rs"
+
+[[bin]]
+name = "ttf-exec"
+path = "src/bin/ttf_exec.rs"
+
+[[bin]]
 name = "ttf-gen"
 path = "src/bin/ttf_gen.rs"
 
 [[bin]]
-name = "e2e-demo"
-path = "src/bin/e2e_demo.rs"
+name = "ttf-view"
+path = "src/bin/ttf_view.rs"
+
+[[bin]]
+name = "state-enumerate"
+path = "src/bin/state_enumerate.rs"
 
 [profile.release]
 opt-level = "z"      # 体积优先

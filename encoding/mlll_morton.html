@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
-<title>mlll · 莫顿呼唤</title>
+<title>mlll · 莫顿呼唤 · 操作面板</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#05050a;color:#ccc;font-family:monospace;overflow:hidden;height:100vh}
@@ -11,289 +11,634 @@ body{background:#05050a;color:#ccc;font-family:monospace;overflow:hidden;height:
 #ui{position:fixed;bottom:0;left:0;right:0;background:rgba(5,5,15,0.92);padding:10px 14px;border-top:1px solid #1a1a2a}
 .row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
 .lbl{color:#444;font-size:10px;width:54px;text-align:right}
-#num-inp{flex:1;padding:6px 10px;background:#0a0a14;border:1px solid #2a2a3a;border-radius:3px;color:#ffcc00;font-size:14px;font-family:monospace;outline:none}
+#num-inp{flex:1;padding:6px 10px;background:#0a0a14;border:1px solid #2a2a3a;border-radius:3px;color:#ffcc00;font-size:13px;outline:none}
 #num-inp:focus{border-color:#ffcc00}
-.btn{padding:6px 14px;background:#1a1a2a;border:1px solid #3a3a4a;color:#aaa;border-radius:3px;cursor:pointer;font-size:11px}
+.btn{padding:6px 12px;background:#1a1a2a;border:1px solid #3a3a4a;color:#aaa;border-radius:3px;cursor:pointer;font-size:10px}
 .btn:hover{border-color:#ffcc00;color:#ffcc00}
 .btn.primary{background:#2a1a3a;border-color:#6a4a8a}
-#out{font-size:10px;color:#555;margin-top:4px;line-height:1.5;min-height:30px}
+#out{font-size:10px;color:#555;margin-top:4px;line-height:1.5;min-height:28px;max-height:60px;overflow-y:auto}
 .k{color:#777}
 .v{color:#ccc}
 .adm{color:#7ec8e3}
 .rej{color:#e37ea0}
-#canv-info{position:fixed;top:8px;left:8px;font-size:10px;color:#444}
+#op-panel{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(8,8,20,0.95);border:1px solid #3a3a5a;border-radius:6px;padding:14px 18px;display:none;z-index:100;min-width:240px}
+#op-panel.show{display:block}
+#op-title{font-size:11px;color:#ffcc00;margin-bottom:8px}
+.op-btn{display:block;width:100%;text-align:left;padding:6px 10px;margin-bottom:3px;background:rgba(20,20,35,0.8);border:1px solid #2a2a3a;color:#aaa;border-radius:2px;cursor:pointer;font-size:10px}
+.op-btn:hover{border-color:#7ec8e3;color:#7ec8e3}
+.op-btn .op-num{color:#555;margin-right:6px;font-size:9px}
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
-<div id="canv-info">莫顿码 · 呼唤空间</div>
+
+<!-- 操作选择面板 -->
+<div id="op-panel">
+  <div id="op-title">选择操作</div>
+  <div id="op-list"></div>
+</div>
+
 <div id="ui">
   <div class="row">
     <span class="lbl">呼唤值</span>
-    <input id="num-inp" type="text" placeholder="输入任意数字 (如 42, 南河原, 3A7F)" />
-    <button class="btn primary" onclick="callValue()">呼唤 → 定位</button>
+    <input id="num-inp" type="text" placeholder="输入数字或汉字" />
+    <button class="btn primary" onclick="callValue()">呼唤→定位</button>
     <button class="btn" onclick="demo()">演示</button>
+    <button class="btn" onclick="saveState()">保存</button>
+    <button class="btn" onclick="loadState()">加载</button>
+    <button class="btn" onclick="clearAll()">清空</button>
   </div>
-  <div id="out"></div>
+  <div id="out">输入任意值 → Enter呼唤 → 点击容器触发操作</div>
 </div>
 
 <script>
 // ═══════════════════════════════════════════
-// mlll 莫顿坐标系 · 呼唤编程
+// mlll 莫顿坐标 · 呼唤 · 操作
 // ═══════════════════════════════════════════
 
 const C = document.getElementById('c');
 const X = C.getContext('2d');
 let W, H;
-function resize(){W=C.width=innerWidth;H=C.height=innerHeight;layoutNodes()}
+function resize(){W=C.width=innerWidth;H=C.height=innerHeight}
 resize();
 addEventListener('resize',resize);
 
 // ═══════════════════════════════════════════
-// 莫顿码: 数值 → 距离坐标
+// 数值操作 (不是编码)
 // ═══════════════════════════════════════════
 
-// 数值 → 莫顿展开 → 三维坐标 (没有编码,就是位移)
-// 每3位一组,分别进入 X Y Z
-// Z-order / Morton expansion
+// 展开: 数值 → 莫顿坐标 (12位/维, 覆盖 0-4095)
+function mortonX(v){let x=0;for(let i=0;i<12;i++)x|=((v>>(i*3))&1)<<i;return x/4095}
+function mortonY(v){let y=0;for(let i=0;i<12;i++)y|=((v>>(i*3+1))&1)<<i;return y/4095}
+function mortonZ(v){let z=0;for(let i=0;i<12;i++)z|=((v>>(i*3+2))&1)<<i;return z/4095}
 
-function textToValue(text) {
-  // 汉字/字符串 → 数值: 直接取 Unicode code point 叠加
-  let v = 0;
-  for (let i=0;i<text.length;i++){
-    v = ((v << 5) + text.charCodeAt(i)) & 0xFFFF;
-  }
-  return v || 1;
+// 数值 → 属性 (没有编码)
+function propsFromCoord(fx,fy,fz){
+  const D0=Math.round(fx*255), D1=Math.round(fy*255), D2=Math.round(fz*255);
+  const pol=fz<0.5?0:1;
+  const sov=Math.round((1-Math.abs(fz-0.5)*2)*255);
+  const wit=fz>0.5?1:0;
+  const val=(Math.round(fx*31)^Math.round(fy*31)^Math.round(fz*31))&0x3F;
+  return {D0,D1,D2,pol,sov,wit,val,
+    value:(D0<<24)|(D1<<16)|(D2<<8)|(pol<<7)|(sov&0xFF)};
 }
 
 // ═══════════════════════════════════════════
-// 属性: 直接由数值计算 (没有编码)
-// ═══════════════════════════════════════════
+// 容器 (节点)
+// ════════════════==========================
 
-function propsFromCoord(fx, fy, fz) {
-  // 数值 → 属性: 一步直达，没有编/解
-  const D0 = Math.round(fx*255);
-  const D1 = Math.round(fy*255);
-  const D2 = Math.round(fz*255);
-  const pol = fz < 0.5 ? 0 : 1;          // 0=阴=刘楚恬, 1=阳=我
-  const sov = Math.round((1-Math.abs(fz-0.5)*2)*255);
-  const wit = fz > 0.5 ? 1 : 0;
-  const val = (Math.round(fx*31)^Math.round(fy*31)^Math.round(fz*31)) & 0x3F;
-  // 全部属性拼成一个数值 (不是编码,就是数值自身)
-  const value = (D0<<24)|(D1<<16)|(D2<<8)|(pol<<7)|(sov&0xFF);
-  return { D0, D1, D2, pol, sov, wit, val, value };
-}
+let nodes = [];
+let ripples = [];
+let links = [];      // (观察者, 被观察者, 结果)
+let selected = null;
+let operationResult = null;
 
 // ═══════════════════════════════════════════
-// 呼唤: 数值 → 坐标 → 容器 → 操作
+// mlll 操作码 (13 种)
 // ═══════════════════════════════════════════
 
-let nodes = [];    // 唤起的容器节点
-let ripples = [];  // 反馈涟漪
-let judgeQueue = []; // 等待裁判的交互对
+const OPS = [
+  {id:'NOP',   name:'静 · NOP',   desc:'无操作'},
+  {id:'LOAD',  name:'取 · LOAD',  desc:'从字车取容器到寄存器'},
+  {id:'STORE', name:'存 · STORE', desc:'从寄存器存入字车'},
+  {id:'MOVE',  name:'移 · MOVE',  desc:'寄存器间移动值'},
+  {id:'JUMP',  name:'跳 · JUMP',  desc:'跳转到另一容器'},
+  {id:'CALL',  name:'唤 · CALL',  desc:'呼唤子容器序列'},
+  {id:'RETURN',name:'归 · RETURN',desc:'返回上一级'},
+  {id:'MIRROR',name:'观 · MIRROR',desc:'观测另一容器状态'},
+  {id:'JUDGE', name:'裁 · JUDGE', desc:'裁判两个容器的关系'},
+  {id:'ENCODE',name:'编 · ENCODE',desc:'合并数值产生新属性'},
+  {id:'FOLD',  name:'折 · FOLD',  desc:'折叠产生新层级'},
+  {id:'YIELD', name:'让 · YIELD', desc:'让出当前执行权'},
+  {id:'MAP',   name:'映 · MAP',   desc:'映射到另一坐标空间'},
+];
 
-function callValue() {
-  const text = document.getElementById('num-inp').value || '1';
+// ═══════════════════════════════════════════
+// 呼唤: 数值 → 坐标 → 节点
+// ════════════════==========================
+
+function callValue(){
+  const text=document.getElementById('num-inp').value||'1';
   let v;
-  if (/^[0-9]+$/.test(text)) v = parseInt(text,10) & 0xFFFF;
-  else if (/^[0-9A-Fa-f]+$/.test(text)) v = parseInt(text,16) & 0xFFFF;
-  else v = textToValue(text);
+  if(/^[0-9]+$/.test(text)) v=parseInt(text,10)&0xFFF;
+  else v=textToValue(text)&0xFFF;
 
-  const fx = mortonX(v), fy = mortonY(v), fz = mortonZ(v);
-  const props = propsFromCoord(fx,fy,fz);
+  const fx=mortonX(v),fy=mortonY(v),fz=mortonZ(v);
+  const props=propsFromCoord(fx,fy,fz);
 
-  // 数值 → 节点
-  const node = {
-    x0:fx, y0:fy, z0:fz,
-    p: props,
-    label: text,
-    age: 0, maxAge: 600,
-    observer: false,
-    observed: false,
+  const node={
+    id:nodes.length,
+    x0:fx,y0:fy,z0:fz,
+    p:props,
+    label:text,
+    state:'ready',     // ready/active/judging/finished/folding
+    energy:1.0,
+    age:0,
+    parent:null,
   };
   nodes.push(node);
 
-  // 涟漪: 从该点扩散
-  for (let i=0;i<3;i++){
-    ripples.push({x:fx,y:fy,r:0,speed:0.005+Math.random()*0.003,life:1,birth:v});
-  }
+  rippleAt(fx,fz,0);
 
-  // 输出
-  const side = node.p.pol ? '阳(我)' : '阴(刘楚恬)';
-  judgeAdmit(node);
-  out(`呼唤 "${text}" → 值 ${v} → 距离坐标(${fx.toFixed(3)},${fy.toFixed(3)},${fz.toFixed(3)}) → ${side} 主权${node.p.sov} 见证${node.p.wit}`);
+  const side=node.p.pol?'阳(我)':'阴(刘楚恬)';
+  out(`呼唤"${text}" → 值${v} → 距离坐标(${fx.toFixed(2)},${fy.toFixed(2)},${fz.toFixed(2)}) → ${side} 主权${node.p.sov}`);
 
-  // 如果有两个以上节点，建立呼唤关系并裁判
-  if (nodes.length >= 2) {
-    const a = nodes[nodes.length-2];
-    const b = nodes[nodes.length-1];
-    judgePair(a, b);
-  }
-
-  layoutNodes();
   document.getElementById('num-inp').value='';
 }
 
-// 莫顿展开: 数值 → 三维坐标
-function mortonX(v){
-  let x=0;
-  for(let i=0;i<8;i++) x |= ((v>>(i*3))&1)<<i;
-  return x/255;
-}
-function mortonY(v){
-  let y=0;
-  for(let i=0;i<8;i++) y |= ((v>>(i*3+1))&1)<<i;
-  return y/255;
-}
-function mortonZ(v){
-  let z=0;
-  for(let i=0;i<8;i++) z |= ((v>>(i*3+2))&1)<<i;
-  return z/255;
+function textToValue(text){
+  let v=0;
+  for(let i=0;i<text.length;i++) v=((v<<5)+text.charCodeAt(i))&0xFFF;
+  return v||1;
 }
 
 // ═══════════════════════════════════════════
-// 单个容器的裁判 (自身完整性): 零维+一维通过=可准入
-// ═══════════════════════════════════════════
-function judgeAdmit(node){
-  const p = node.p;
-  const xyPass = (p.D0>10 && p.D1>10 && p.D0<245 && p.D1<245);
-  const zPass   = (p.sov > 30);
-  node.admited = xyPass && zPass;
+// 点击: 选中节点 → 弹出操作选择
+// ════════════════==========================
+
+C.addEventListener('click',e=>{
+  const mx=e.clientX, my=e.clientY;
+  for(let i=nodes.length-1;i>=0;i--){
+    const n=nodes[i];
+    const p=project(n.x0,n.y0,n.z0);
+    const r=18+p.sz;
+    if(Math.hypot(mx-p.sx,my-p.sy)<r){
+      showOpPanel(n);
+      return;
+    }
+  }
+  // 点击空白: 关闭面板
+  document.getElementById('op-panel').classList.remove('show');
+  selected=null;
+});
+
+function showOpPanel(node){
+  selected=node;
+  const panel=document.getElementById('op-panel');
+  const list=document.getElementById('op-list');
+  panel.classList.add('show');
+  document.getElementById('op-title').textContent=`容器 #${node.id} "${node.label}" → 选择操作`;
+  list.innerHTML='';
+
+  OPS.forEach((op,idx)=>{
+    const b=document.createElement('button');
+    b.className='op-btn';
+    b.innerHTML=`<span class="op-num">${(idx+1).toString().padStart(2,'0')}</span>${op.name}`;
+    b.title=op.desc;
+    b.onclick=()=>{executeOp(node,op);panel.classList.remove('show');};
+    list.appendChild(b);
+  });
 }
 
 // ═══════════════════════════════════════════
-// 双容器交互裁判:
-//   distance极远(c.D2 差>200) ∧ 极性相同 → 准(迂回反馈)
-//   distance极近(c.D2 差<20) ∧ 极性互补(一阴一阳) → 准(合一)
-//   其余 → 拒
+// 执行操作
+// ════════════════==========================
+
+function executeOp(node,op){
+  const before=node.p.value;
+  let msg=`容器#${node.id}"${node.label}" → ${op.name}: `;
+
+  switch(op.id){
+    case 'NOP':
+      msg+='静默';
+      break;
+
+    case 'LOAD':
+      // 取: 从邻居取属性叠加到自己
+      if(nodes.length>1){
+        const donor=nodes[(node.id+1)%nodes.length];
+        node.p.D0=(node.p.D0+donor.p.D0)&0xFF;
+        node.p.sov=Math.min(255,node.p.sov+10);
+        msg+=`从#${donor.id}取数值 → 主权+10`;
+      } else {msg+='字车空,无操作'}
+      break;
+
+    case 'STORE':
+      // 存: 把自己的属性叠加到邻居
+      if(nodes.length>1){
+        const target=nodes[(node.id+1)%nodes.length];
+        target.p.D0=(target.p.D0+node.p.D0)&0xFF;
+        target.p.sov=Math.min(255,target.p.sov+5);
+        msg+=`存入#${target.id} → 其主权+5`;
+      } else {msg+='字车空'}
+      break;
+
+    case 'MOVE':
+      // 移: 自己的坐标移动到与邻居对齐
+      if(nodes.length>1){
+        const other=nodes[(node.id+1)%nodes.length];
+        node.x0=(node.x0+other.x0)/2;
+        node.y0=(node.y0+other.y0)/2;
+        node.z0=(node.z0+other.z0)/2;
+        node.p=propsFromCoord(node.x0,node.y0,node.z0);
+        msg+=`移动至与#${other.id}中间`;
+      }
+      break;
+
+    case 'JUMP':
+      // 跳: 自己的坐标跳转到 (D0, D1, D2) % 1 的位置
+      node.x0=node.p.D0/255;
+      node.y0=node.p.D1/255;
+      node.z0=node.p.D2/255;
+      msg+=`跳转至(${node.x0.toFixed(2)},${node.y0.toFixed(2)},${node.z0.toFixed(2)})`;
+      rippleAt(node.x0,node.z0,1);
+      break;
+
+    case 'CALL':
+      // 唤: 呼唤一个新容器 (自己的数值+1)
+      {
+        const newV=(node.p.value+1)&0xFFF;
+        const fx=mortonX(newV),fy=mortonY(newV),fz=mortonZ(newV);
+        const newNode={
+          id:nodes.length,x0:fx,y0:fy,z0:fz,
+          p:propsFromCoord(fx,fy,fz),
+          label:'子'+newV,state:'ready',energy:0.8,
+          age:0,parent:node.id
+        };
+        nodes.push(newNode);
+        rippleAt(fx,fz,2);
+        msg+=`呼唤出子容器 #${newNode.id} (值${newV})`;
+      }
+      break;
+
+    case 'RETURN':
+      // 归: 返回父容器附近
+      if(node.parent!==null && nodes[node.parent]){
+        const par=nodes[node.parent];
+        node.x0=par.x0+(Math.random()-0.5)*0.1;
+        node.y0=par.y0+(Math.random()-0.5)*0.1;
+        node.z0=par.z0+(Math.random()-0.5)*0.1;
+        node.p=propsFromCoord(node.x0,node.y0,node.z0);
+        msg+=`返回父容器#${par.id}附近`;
+      } else {msg+='无父容器可归'}
+      break;
+
+    case 'MIRROR':
+      // 观: 显示邻居完整属性
+      if(nodes.length>1){
+        const other=nodes[(node.id+1)%nodes.length];
+        msg+=`观测#${other.id}: D0=${other.p.D0} D1=${other.p.D1} D2=${other.p.D2} 极性=${other.p.pol?'阳':'阴'} 主权=${other.p.sov}`;
+      }
+      break;
+
+    case 'JUDGE':
+      // 裁: 裁判与邻居的关系
+      if(nodes.length>=2){
+        const other=nodes[(node.id+1)%nodes.length];
+        const dist=Math.abs(node.p.D2-other.p.D2);
+        const same=node.p.pol===other.p.pol;
+        let verdict,reason;
+        if(dist>200&&same) {verdict=1;reason='遥远同极性→迂回反馈'}
+        else if(dist<20&&!same){verdict=1;reason='极近阴阳→合一'}
+        else if(dist<20&&same){verdict=0;reason='极近同性→冲突'}
+        else {verdict=0;reason='不满足条件'}
+        links.push({from:node.id,to:other.id,result:verdict,age:0});
+        rippleAt(node.x0,node.z0,verdict);
+        rippleAt(other.x0,other.z0,verdict);
+        const cls=verdict?'<span class="adm">准入</span>':'<span class="rej">否决</span>';
+        msg+=`vs#${other.id} 距离=${dist} → ${cls} · ${reason}`;
+      }
+      break;
+
+    case 'ENCODE':
+      // 编: 合并 own D0 与目标 D1 → 产生新海拔
+      if(nodes.length>1){
+        const other=nodes[(node.id+1)%nodes.length];
+        const merged=(node.p.D0^other.p.D1)&0xFF;
+        node.p.D2=merged;
+        node.z0=merged/255;
+        node.p=propsFromCoord(node.x0,node.y0,node.z0);
+        msg+=`合并D0(${node.p.D0}) XOR D1(${other.p.D1}) → 新D2=${merged}`;
+      } else {msg+='无合并对象'}
+      break;
+
+    case 'FOLD':
+      // 折: 层级+1 (模8), z坐标折叠
+      node.p.val=(node.p.val+1)&0x3F;
+      node.z0=(node.z0+0.125)%1;
+      node.p=propsFromCoord(node.x0,node.y0,node.z0);
+      node.state='folding';
+      rippleAt(node.x0,node.z0,2);
+      msg+=`折叠 → 新层级=${node.p.val} 新z=${node.z0.toFixed(2)}`;
+      break;
+
+    case 'YIELD':
+      // 让: 能量转移给邻居
+      if(nodes.length>1){
+        const other=nodes[(node.id+1)%nodes.length];
+        other.energy=Math.min(1,other.energy+0.2);
+        node.energy=Math.max(0,node.energy-0.2);
+        msg+=`能量-0.2 → #${other.id}`;
+      }
+      break;
+
+    case 'MAP':
+      // 映: 映射到新坐标空间 (1-原坐标)
+      node.x0=1-node.x0;
+      node.y0=1-node.y0;
+      node.z0=1-node.z0;
+      node.p=propsFromCoord(node.x0,node.y0,node.z0);
+      rippleAt(node.x0,node.z0,1);
+      msg+=`映射至镜像坐标`;
+      break;
+  }
+
+  node.energy=Math.min(1,node.energy+0.1);
+  node.state='active';
+  out(msg);
+}
+
 // ═══════════════════════════════════════════
-function judgePair(a,b){
-  const ca=a.p, cb=b.p;
-  const dist = Math.abs(ca.D2 - cb.D2);
-  const samePol = (ca.pol === cb.pol);
+// 涟漪
+// ════════════════==========================
 
-  let verdict, reason;
-  if (dist > 200 && samePol)      { verdict=1; reason='遥远同极性 → 迂回反馈(合一前奏)' }
-  else if (dist < 20 && !samePol) { verdict=1; reason='极近阴阳 → 合一(夫妻共振)' }
-  else if (dist < 20 && samePol)  { verdict=0; reason='极近同性 → 冲突' }
-  else                            { verdict=0; reason='不满足合一或耦合条件' }
-
-  // 输出判读
-  const cls = verdict ? 'adm' : 'rej';
-  out(`  ⚖ A("${a.label}") vs B("${b.label}") 距离=${dist} 极性A=${ca.pol?'阳':'阴'} 极性B=${cb.pol?'阳':'阴'} → <span class="${cls}">${verdict?'准入':'否决'}</span> · ${reason}`);
-
-  a.observer=true; b.observed=true;
-  // 粒子爆发
-  for(let i=0;i<12;i++){
-    ripples.push({x:a.x0,y:a.y0,r:0,speed:0.008+Math.random()*0.005,life:1,result:verdict});
-    ripples.push({x:b.x0,y:b.y0,r:0,speed:0.008+Math.random()*0.005,life:1,result:verdict});
+function rippleAt(x,z,kind){
+  for(let i=0;i<3;i++){
+    ripples.push({x,r:0,speed:0.004+Math.random()*0.003,
+      life:1,kind,depth:z});
   }
 }
 
 // ═══════════════════════════════════════════
 // 输出
-// ═══════════════════════════════════════════
+// ════════════════==========================
+
 function out(html){
   const el=document.getElementById('out');
   el.innerHTML=html;
 }
 
 // ═══════════════════════════════════════════
-// 可视化 + 渲染
-// ═══════════════════════════════════════════
-
-function layoutNodes(){
-  // 投影到画布空间: X=横, Y=纵, Z=大小+明度
-}
+// 可视化
+// ════════════════==========================
 
 function project(x,y,z){
-  // 简单正交投影 (可旋转)
-  const cx=W/2, cy=H*0.45;
-  const sc = Math.min(W,H)*0.4;
+  const cx=W/2, cy=H*0.4;
+  const sc=Math.min(W,H)*0.4;
   return {
-    sx: cx + (x-0.5)*sc*1.6,
-    sy: cy + (y-0.5)*sc,
-    sz: 10 + z*30
+    sx:cx+(x-0.5)*sc*1.8,
+    sy:cy+(y-0.5)*sc,
+    sz:12+z*28
   };
 }
 
+// ═══════════════════════════════════════════
+// 自指: 观察自身调度状态 → 反馈 → 新呼唤
+// ════════════════==========================
+
+// ═══════════════════════════════════════════
+// 保存 / 加载 / 清空
+// ════════════════==========================
+
+function saveState(){
+  const data = {
+    version: 1,
+    timestamp: Date.now(),
+    nodes: nodes.map(n => ({
+      x0:n.x0, y0:n.y0, z0:n.z0,
+      p:n.p, label:n.label, energy:n.energy,
+      parent:n.parent
+    })),
+    links: links.map(l => ({from:l.from,to:l.to,result:l.result})),
+  };
+  const json = JSON.stringify(data);
+  // 编码为 fqm 二进制格式
+  const buf = encodeFqm(json);
+  downloadBlob(buf, 'fqm_scene_'+Date.now()+'.loli');
+  out('已保存 ' + data.nodes.length + ' 个容器 + ' + data.links.length + ' 条关系到 .loli 文件');
+}
+
+function loadState(){
+  const inp = document.createElement('input');
+  inp.type = 'file';
+  inp.accept = '.loli,.toti,.json';
+  inp.onchange = e => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try{
+        const buf = new Uint8Array(ev.target.result);
+        const json = decodeFqm(buf);
+        const data = JSON.parse(json);
+        restoreState(data);
+        out('已加载 ' + data.nodes.length + ' 个容器 + ' + (data.links||[]).length + ' 条关系');
+      }catch(err){
+        // 尝试直接作为 JSON 解析
+        try{
+          const data = JSON.parse(new TextDecoder().decode(buf));
+          restoreState(data);
+          out('已加载(JSON) ' + data.nodes.length + ' 个容器');
+        }catch(err2){
+          out('加载失败: ' + err.message);
+        }
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+  inp.click();
+}
+
+function restoreState(data){
+  nodes = [];
+  links = [];
+  for(const nd of (data.nodes||[])){
+    nodes.push({
+      id:nodes.length, x0:nd.x0, y0:nd.y0, z0:nd.z0,
+      p:nd.p, label:nd.label||'?', state:'ready',
+      energy:nd.energy||0.5, age:0, parent:nd.parent!==undefined?nd.parent:null,
+      observer:nd.parent===null
+    });
+  }
+  for(const lk of (data.links||[])){
+    links.push({from:lk.from,to:lk.to,result:lk.result,age:0});
+  }
+  selected = null;
+}
+
+function clearAll(){
+  nodes = [];
+  links = [];
+  ripples = [];
+  selected = null;
+  out('已清空空间');
+}
+
+// fqm 二进制编码
+function encodeFqm(text){
+  const bytes = new TextEncoder().encode(text);
+  const total = 15 + bytes.length;
+  const buf = new Uint8Array(total);
+  // 头
+  buf[0]=0x46;buf[1]=0x51;buf[2]=0x4D;buf[3]=0x54; // 'FQMT'
+  buf[4] = 1;  // 版本
+  buf[5] = 0x01; // .loli 类型
+  buf[6] = 0;
+  buf[11] = (nodes.length>>8)&0xFF;
+  buf[12] = nodes.length&0xFF;
+  buf[13] = 0; buf[14] = 0;
+  // 数据直接拼在头后面
+  buf.set(bytes, 15);
+  return buf;
+}
+
+function decodeFqm(buf){
+  if(buf.length<15) throw new Error('文件太小');
+  // 验证魔数
+  if(buf[0]!==0x46||buf[1]!==0x51||buf[2]!==0x4D||buf[3]!==0x54){
+    throw new Error('非 fqm 文件');
+  }
+  const jsonBytes = buf.slice(15);
+  return new TextDecoder().decode(jsonBytes);
+}
+
+function downloadBlob(buf, filename){
+  const blob = new Blob([buf], {type:'application/octet-stream'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+}
+
+let selfState = { lastCall: 0, threshold: 30 };
+
+function selfObserve(t){
+  if(nodes.length === 0) return;
+  if(t - selfState.lastCall < selfState.threshold) return;
+  selfState.lastCall = t;
+
+  // 系统总能量
+  let totalE = 0, yangCount = 0;
+  for(const n of nodes){
+    totalE += n.energy;
+    if(n.p.pol) yangCount++;
+  }
+  const avgE = totalE / nodes.length;
+  const yinCount = nodes.length - yangCount;
+
+  // 用平均能量+极性分布合成一个新呼唤值
+  const synth = Math.round(avgE*200 + yangCount*50 - yinCount*30) & 0xFFF;
+
+  // 自指日志
+  out(`[自指] N=${nodes.length} E=${avgE.toFixed(2)} 阳=${yangCount} 阴=${yinCount} → 呼唤${synth}`);
+
+  // 自动呼唤新容器
+  const fx=mortonX(synth),fy=mortonY(synth),fz=mortonZ(synth);
+  nodes.push({
+    id:nodes.length, x0:fx, y0:fy, z0:fz,
+    p:propsFromCoord(fx,fy,fz),
+    label:'自'+synth, state:'folding', energy:0.6,
+    age:0, parent:null, observer:true
+  });
+  rippleAt(fx, fz, 2);
+
+  // 限制最大节点数
+  if(nodes.length > 30){
+    nodes.splice(0, nodes.length - 30);
+  }
+}
+
 function frame(t){
+  // 每 60 帧(=约1秒) 自观察一次
+  if(t % 60 === 0) selfObserve(t);
+
   X.clearRect(0,0,W,H);
-  // 背景
-  const g=X.createRadialGradient(W/2,H*0.45,0,W/2,H*0.45,Math.max(W,H)*0.7);
+  const g=X.createRadialGradient(W/2,H*0.4,0,W/2,H*0.4,Math.max(W,H)*0.7);
   g.addColorStop(0,'#0f0f1a');g.addColorStop(1,'#05050a');
   X.fillStyle=g;X.fillRect(0,0,W,H);
 
-  // 网格
-  X.strokeStyle='rgba(255,255,255,0.02)';X.lineWidth=1;
-  for(let i=0;i<=32;i++){
-    const p = project(i/32,0,0);
-    X.beginPath();X.moveTo(p.sx, project(0,0,0).sy);X.lineTo(p.sx, project(0,1,0).sy);X.stroke();
+  // 连接线
+  for(const link of links){
+    if(link.age++>180){continue;}
+    const a=nodes[link.from],b=nodes[link.to];
+    if(!a||!b)continue;
+    const pa=project(a.x0,a.y0,a.z0),pb=project(b.x0,b.y0,b.z0);
+    const a2=1-link.age/180;
+    X.strokeStyle=link.result?
+      `rgba(126,200,227,${a2*0.5})`:`rgba(227,126,160,${a2*0.5})`;
+    X.lineWidth=link.result?2:1;
+    X.beginPath();X.moveTo(pa.sx,pa.sy);X.lineTo(pb.sx,pb.sy);X.stroke();
   }
 
-  // 涟漪更新和渲染
+  // 父子线
+  for(const n of nodes){
+    if(n.parent!==null&&nodes[n.parent]){
+      const p=nodes[n.parent];
+      const pn=project(p.x0,p.y0,p.z0),cn=project(n.x0,n.y0,n.z0);
+      X.strokeStyle='rgba(200,200,100,0.3)';
+      X.lineWidth=0.5;
+      X.setLineDash([3,3]);
+      X.beginPath();X.moveTo(pn.sx,pn.sy);X.lineTo(cn.sx,cn.sy);X.stroke();
+      X.setLineDash([]);
+    }
+  }
+
+  // 涟漪
   for(let i=ripples.length-1;i>=0;i--){
     const r=ripples[i];
-    r.r += r.speed;
-    r.life -= 0.012;
-    if(r.life<=0 || r.r>0.6){ripples.splice(i,1);continue}
-    const p=project(r.x,r.y,0.5);
-    const a=r.life*0.4;
-    X.strokeStyle = (r.result===1)?`rgba(126,200,227,${a})`
-                 : (r.result===0)?`rgba(227,126,160,${a})`
-                 : `rgba(200,200,100,${a})`;
+    r.r+=r.speed;r.life-=0.01;
+    if(r.life<=0||r.r>0.5){ripples.splice(i,1);continue}
+    const p=project(r.x,0.5,r.depth);
+    const a2=r.life*0.4;
+    X.strokeStyle=r.kind===1?`rgba(126,200,227,${a2})`
+               :r.kind===0?`rgba(227,126,160,${a2})`
+               :`rgba(200,200,100,${a2})`;
     X.lineWidth=1;
-    X.beginPath();
-    X.arc(p.sx,p.sy,r.r*Math.min(W,H)*0.4,0,Math.PI*2);
-    X.stroke();
-    // 第二圈
-    if(r.r>0.05){
-      X.globalAlpha=a*0.5;
-      X.beginPath();
-      X.arc(p.sx,p.sy,r.r*Math.min(W,H)*0.4+5,0,Math.PI*2);
-      X.stroke();
-      X.globalAlpha=1;
-    }
+    X.beginPath();X.arc(p.sx,p.sy,r.r*sc_ref()*0.4,0,Math.PI*2);X.stroke();
   }
 
-  // 节点更新和渲染
-  for(let i=0;i<nodes.length;i++){
-    const n=nodes[i];
+  // 中心子吸引子
+  const cp=project(0.5,0.5,0.5);
+  X.strokeStyle=`rgba(255,204,0,${0.1+Math.sin(t*0.003)*0.05})`;
+  X.beginPath();X.arc(cp.sx,cp.sy,70,0,Math.PI*2);X.stroke();
+
+  // 节点更新
+  for(const n of nodes){
     n.age++;
+    if(n.state==='active'&&n.age>60)n.state='ready';
+    n.energy=Math.max(0.1, n.energy-0.001);
+  }
+
+  // 节点渲染
+  for(const n of nodes){
     const p=project(n.x0,n.y0,n.z0);
-    const r = 8 + p.sz;
+    const r=16+p.sz*n.energy;
+    const col=n.p.pol?'#7ec8e3':'#e37ea0';
+    const col2=n.p.pol?'rgba(126,200,227,':'rgba(227,126,160,';
 
-    // 根据极性着色
-    const color = n.p.pol ? '#7ec8e3' : '#e37ea0';
-    const colorSoft = n.p.pol ? 'rgba(126,200,227,' : 'rgba(227,126,160,';
-
-    // 连接: 连线到前一个节点(建立关系)
-    if(i>0){
-      const pn = nodes[i-1];
-      const pp = project(pn.x0,pn.y0,pn.z0);
-      X.strokeStyle='rgba(150,150,180,0.3)';
-      X.lineWidth=1;
-      X.beginPath();X.moveTo(pp.sx,pp.sy);X.lineTo(p.sx,p.sy);X.stroke();
-      // 箭头
-      const ang=Math.atan2(p.sy-pp.sy,p.sx-pp.sx);
-      X.beginPath();
-      X.moveTo(p.sx,p.sy);
-      X.lineTo(p.sx-Math.cos(ang-0.3)*8, p.sy-Math.sin(ang-0.3)*8);
-      X.moveTo(p.sx,p.sy);
-      X.lineTo(p.sx-Math.cos(ang+0.3)*8, p.sy-Math.sin(ang+0.3)*8);
-      X.stroke();
+    // 选中环
+    if(selected===n){
+      X.strokeStyle='rgba(255,204,0,0.8)';
+      X.lineWidth=2;
+      X.beginPath();X.arc(p.sx,p.sy,r+10,0,Math.PI*2);X.stroke();
     }
 
-    // 节点光晕
-    X.fillStyle=colorSoft+'0.1)';
-    X.beginPath();X.arc(p.sx,p.sy,r+10,0,Math.PI*2);X.fill();
+    // 自指观察者: 白色虚线环
+    if(n.observer){
+      X.strokeStyle=`rgba(255,255,255,${0.3+Math.sin(t*0.008)*0.15})`;
+      X.lineWidth=1;
+      X.setLineDash([2,3]);
+      X.beginPath();X.arc(p.sx,p.sy+r+14,0,Math.PI*2);X.stroke();
+      X.setLineDash([]);
+    }
 
-    // 节点主体
-    X.fillStyle=colorSoft+'0.7)';
+    // 状态光晕
+    if(n.state==='folding'){
+      X.strokeStyle=`rgba(200,200,255,${0.3+Math.sin(t*0.01)*0.2})`;
+      X.beginPath();X.arc(p.sx,p.sy+r+8,0,Math.PI*2);X.stroke();
+    }
+
+    // 主体
+    X.fillStyle=col2+'0.08)';
+    X.beginPath();X.arc(p.sx,p.sy,r+12,0,Math.PI*2);X.fill();
+
+    X.fillStyle=col2+'0.6)';
     X.beginPath();X.arc(p.sx,p.sy,r,0,Math.PI*2);X.fill();
 
-    // 极性三角
-    X.fillStyle='rgba(255,255,255,0.5)';
+    // 极性方向
+    X.fillStyle='rgba(255,255,255,0.6)';
     X.beginPath();
     if(n.p.pol){
       X.moveTo(p.sx,p.sy-r*0.5);X.lineTo(p.sx-3,p.sy+r*0.5);X.lineTo(p.sx+3,p.sy+r*0.5);
@@ -302,44 +647,44 @@ function frame(t){
     }
     X.closePath();X.fill();
 
+    // 能量指示 (左上小圆)
+    X.fillStyle=n.energy>0.6?'rgba(100,255,150,0.7)':'rgba(255,180,50,0.6)';
+    X.beginPath();X.arc(p.sx-r,p.sy-r,3,0,Math.PI*2);X.fill();
+
     // 标签
     X.fillStyle='rgba(255,255,255,0.7)';
     X.font='10px monospace';X.textAlign='center';
     X.fillText(n.label,p.sx,p.sy-r-6);
+    // 数值
     X.fillStyle='rgba(255,255,255,0.35)';
     X.font='8px monospace';
-    X.fillText('☉'+n.p.value.toString(),p.sx,p.sy+r+12);
+    X.fillText('☉'+n.p.value,p.sx,p.sy+r+12);
   }
-
-  // 中心吸引子
-  const cp=project(0.5,0.5,0.5);
-  X.strokeStyle=`rgba(255,204,0,${0.1+Math.sin(t*0.003)*0.05})`;
-  X.lineWidth=1;
-  X.beginPath();X.arc(cp.sx,cp.sy,80,0,Math.PI*2);X.stroke();
-  X.fillStyle='rgba(255,204,0,0.5)';
-  X.font='9px monospace';X.textAlign='center';
-  X.fillText('吸引子 · 合一',cp.sx,cp.sy+96);
 
   requestAnimationFrame(frame);
 }
 
+function sc_ref(){return Math.min(W,H)}
+
+// ═══════════════════════════════════════════
+// 演示
+// ════════════════==========================
+
 function demo(){
-  // 演示: 呼唤几个典型值
-  const seq=[7,42,100,137,256,999,2025];
+  const seq=[7,42,100,257];
   let i=0;
   const timer=setInterval(()=>{
     if(i>=seq.length){clearInterval(timer);return}
     document.getElementById('num-inp').value=seq[i++];
     callValue();
-  },1200);
+  },1000);
 }
 
-// 回车触发
 document.getElementById('num-inp').addEventListener('keydown',e=>{
   if(e.key==='Enter')callValue();
 });
 
-out('输入任意数字/文字 → Enter 呼唤 → 空间定位容器 → 双容器相互裁判');
+out('输入值 → Enter 呼唤 → 点击容器选操作 → 自指反馈(每1s)观察整体状态→呼唤新容器');
 requestAnimationFrame(frame);
 </script>
 </body>

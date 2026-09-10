@@ -483,9 +483,12 @@ impl StrokeOp {
 
 pub fn get_stroke_sequence(c: char) -> Option<Vec<StrokeOp>> {
     let strokes: &[(&str, &[&str])] = &[
+        // ══ 一画 ══
         ("一", &["横"]),
+        ("乙", &["横折弯钩"]),
+
+        // ══ 二画 ══
         ("二", &["横", "横"]),
-        ("三", &["横", "横", "横"]),
         ("十", &["横", "竖"]),
         ("人", &["撇", "捺"]),
         ("八", &["撇", "捺"]),
@@ -493,6 +496,12 @@ pub fn get_stroke_sequence(c: char) -> Option<Vec<StrokeOp>> {
         ("刀", &["横折钩", "撇"]),
         ("力", &["横折钩", "撇"]),
         ("又", &["横撇", "捺"]),
+        ("九", &["撇", "横折弯钩"]),
+        ("了", &["横撇", "竖钩"]),
+        ("乃", &["横折折折钩", "撇"]),
+
+        // ══ 三画 ══
+        ("三", &["横", "横", "横"]),
         ("上", &["竖", "横", "横"]),
         ("下", &["横", "竖", "点"]),
         ("土", &["横", "竖", "横"]),
@@ -511,6 +520,16 @@ pub fn get_stroke_sequence(c: char) -> Option<Vec<StrokeOp>> {
         ("火", &["点", "撇", "撇", "捺"]),
         ("木", &["横", "竖", "撇", "捺"]),
         ("本", &["横", "竖", "撇", "捺", "横"]),
+        ("川", &["撇", "竖", "竖"]),
+        ("个", &["撇", "捺", "竖"]),
+        ("丸", &["撇", "横折弯钩", "点"]),
+        ("久", &["撇", "横折弯钩", "捺"]),
+        ("之", &["点", "横撇", "捺"]),
+        ("也", &["横折钩", "竖", "竖弯钩"]),
+        ("及", &["撇", "横折折撇", "捺"]),
+        ("凡", &["撇", "横折弯钩", "点"]),
+
+        // ══ 四画 ══
         ("中", &["竖", "横折", "横", "竖"]),
         ("天", &["横", "横", "撇", "捺"]),
         ("夫", &["横", "横", "撇", "捺"]),
@@ -520,6 +539,30 @@ pub fn get_stroke_sequence(c: char) -> Option<Vec<StrokeOp>> {
         ("手", &["撇", "横", "横", "竖钩"]),
         ("文", &["点", "横", "撇", "捺"]),
         ("方", &["点", "横", "横折钩", "撇"]),
+        ("云", &["横", "横", "撇折", "点"]),
+        ("什", &["撇", "竖", "横", "竖"]),
+        ("仁", &["撇", "竖", "横", "横"]),
+        ("仅", &["撇", "竖", "撇", "捺"]),
+        ("仇", &["撇", "竖", "撇", "竖弯钩"]),
+        ("仍", &["撇", "竖", "横折折撇", "捺"]),
+        ("介", &["撇", "捺", "竖", "撇"]),
+        ("从", &["撇", "捺", "撇", "捺"]),
+        ("以", &["竖提", "撇", "点", "点"]),
+        ("允", &["撇折", "撇", "竖弯钩"]),
+        ("元", &["横", "横", "撇", "竖弯钩"]),
+        ("公", &["撇", "捺", "撇折", "点"]),
+        ("共", &["横", "竖", "竖", "横", "撇", "点"]),
+        ("关", &["撇", "捺", "横", "撇", "捺"]),
+        ("兴", &["点", "点", "撇", "横", "撇", "捺"]),
+        ("具", &["竖", "横折", "横", "横", "横", "点", "撇"]),
+        ("其", &["横", "竖", "竖", "横", "横", "横", "撇", "点"]),
+        ("典", &["竖", "横折", "横", "竖", "横", "撇", "点"]),
+        ("兼", &["点", "撇", "横", "横", "横", "竖", "竖", "撇", "捺"]),
+        ("再", &["横", "竖", "横折钩", "竖", "横", "横"]),
+        ("冒", &["竖", "横折", "横", "横", "竖", "横折", "横", "横"]),
+        ("冕", &["竖", "横折", "横", "横", "撇", "横撇", "竖", "横", "撇"]),
+
+        // ══ 五画 ══
         ("合", &["撇", "捺", "横", "竖", "横折", "横"]),
         ("同", &["竖", "横折钩", "横", "竖", "横折", "横"]),
         ("国", &["竖", "横折", "横", "横", "竖", "横", "点"]),
@@ -534,6 +577,151 @@ pub fn get_stroke_sequence(c: char) -> Option<Vec<StrokeOp>> {
         ("囡", &["竖", "横折", "横", "撇点", "撇", "横"]),
         ("囝", &["竖", "横折", "横", "竖钩", "横"]),
         ("命", &["撇", "捺", "横", "竖", "横折", "横", "横", "竖"]),
+        ("知", &["撇", "横", "横", "撇", "点", "竖", "横折", "横"]),
+        ("法", &["点", "点", "提", "横", "竖", "横", "撇折", "点"]),
+        ("如", &["撇点", "撇", "竖", "横折", "横"]),
+        ("它", &["点", "点", "横撇", "竖弯钩"]),
+        ("对", &["横撇", "点", "竖钩", "点"]),
+        ("加", &["横折钩", "撇", "竖", "横折", "横"]),
+        ("北", &["竖", "横", "提", "撇", "竖弯钩"]),
+        ("比", &["横", "竖提", "撇", "竖弯钩"]),
+        ("批", &["横", "竖钩", "提", "撇", "竖提", "撇", "竖弯钩"]),
+        ("抱", &["横", "竖钩", "提", "撇", "横折钩", "撇", "点"]),
+        ("拉", &["横", "竖钩", "提", "点", "横", "点", "撇", "捺"]),
+        ("拍", &["横", "竖钩", "提", "撇", "竖", "横折", "横", "横"]),
+        ("招", &["横", "竖钩", "提", "横折钩", "撇", "竖", "横折", "横"]),
+        ("波", &["点", "点", "提", "横撇", "撇", "竖", "横撇", "捺"]),
+        ("所", &["撇", "撇", "横折", "横", "横", "撇", "撇", "竖"]),
+        ("新", &["点", "横", "点", "撇", "横", "竖", "撇", "撇", "撇", "横", "竖"]),
+        ("方", &["点", "横", "横折钩", "撇"]),
+        ("房", &["点", "横折", "横", "撇", "横", "横折", "撇", "捺"]),
+        ("放", &["点", "横", "横折钩", "撇", "撇", "横", "撇", "捺"]),
+        ("主", &["点", "横", "横", "竖", "横"]),
+        ("住", &["撇", "竖", "点", "横", "横", "竖", "横"]),
+        ("信", &["撇", "竖", "点", "横", "横", "横", "竖", "横折", "横"]),
+        ("何", &["撇", "竖", "横", "竖", "横折", "横"]),
+        ("作", &["撇", "竖", "撇", "竖", "横", "横", "竖", "横"]),
+        ("但", &["撇", "竖", "竖", "横折", "横", "横", "横"]),
+        ("使", &["撇", "竖", "横", "竖", "横折", "横", "撇", "捺"]),
+        ("便", &["撇", "竖", "横", "竖", "横折", "横", "横", "撇", "捺"]),
+        ("种", &["撇", "横", "竖", "竖", "横折", "横", "竖"]),
+        ("科", &["撇", "横", "竖", "点", "点", "撇", "横", "竖"]),
+        ("重", &["撇", "横", "竖", "横折", "横", "横", "横", "竖"]),
+        ("倒", &["撇", "竖", "横", "撇", "竖", "竖", "横折", "横", "竖", "竖", "横"]),
+        ("很", &["撇", "撇", "竖", "横折", "横", "横", "竖提", "撇", "捺"]),
+        ("行", &["撇", "撇", "竖", "横", "横", "竖钩"]),
+        ("待", &["撇", "撇", "竖", "横", "竖", "横", "点", "点", "点", "横"]),
+        ("很", &["撇", "撇", "竖", "横折", "横", "横", "竖提", "撇", "捺"]),
+        ("思", &["竖", "横折", "横", "竖", "横", "点", "斜钩", "点", "点"]),
+        ("恩", &["竖", "横折", "横", "撇", "点", "斜钩", "点", "点"]),
+        ("志", &["横", "竖", "横", "点", "斜钩", "点", "点"]),
+        ("忠", &["竖", "横折", "横", "竖", "横", "点", "斜钩", "点", "点"]),
+        ("念", &["撇", "捺", "点", "横折", "横", "竖钩", "点", "斜钩", "点", "点"]),
+        // ══ 六画至十画（精选）══
+        ("回", &["竖", "横折", "竖", "横折", "横", "横"]),
+        ("因", &["竖", "横折", "横", "撇", "点", "横"]),
+        ("图", &["竖", "横折", "横", "撇", "点", "竖折", "撇", "捺"]),
+        ("园", &["竖", "横折", "横", "横", "撇", "竖弯钩", "横"]),
+        ("围", &["竖", "横折", "横", "横", "横折钩", "竖", "横"]),
+        ("团", &["竖", "横折", "横", "竖钩", "撇", "横"]),
+        ("年", &["撇", "横", "横", "竖", "竖", "横"]),
+        ("严", &["横", "竖", "竖", "点", "撇", "横", "撇"]),
+        ("并", &["点", "撇", "撇", "横", "撇", "竖"]),
+        ("成", &["横", "撇", "横折钩", "斜钩", "撇", "点"]),
+        ("或", &["横", "竖", "横折", "横", "提", "斜钩", "撇", "点"]),
+        ("咸", &["横", "撇", "横", "竖", "横折", "横", "斜钩", "撇", "点"]),
+        ("威", &["横", "撇", "横折", "撇", "斜钩", "撇", "点"]),
+        ("咸", &["横", "撇", "横折", "横", "横", "斜钩", "撇", "点"]),
+        ("北", &["竖", "横", "提", "撇", "竖弯钩"]),
+        ("此", &["竖", "横", "竖", "提", "撇", "竖弯钩"]),
+        ("比", &["横", "竖提", "撇", "竖弯钩"]),
+        ("后", &["撇", "撇", "横", "竖", "横折", "横"]),
+        ("向", &["撇", "竖", "横折钩", "竖", "横折", "横"]),
+        ("合", &["撇", "捺", "横", "竖", "横折", "含"]),
+        ("会", &["撇", "捺", "横", "横", "撇折", "点"]),
+        ("全", &["撇", "捺", "横", "横", "竖", "今"]),
+        ("今", &["撇", "捺", "点", "横折"]),
+        ("个", &["撇", "捺", "竖"]),
+        ("不", &["横", "撇", "竖", "点"]),
+        ("未", &["横", "横", "撇", "捺"]),
+        ("末", &["横", "横", "撇", "捺"]),
+        ("正", &["横", "竖", "横", "竖", "横"]),
+        ("止", &["竖", "横", "竖", "横"]),
+        ("步", &["竖", "横", "竖", "竖", "撇", "撇"]),
+        ("走", &["横", "竖", "横", "竖", "横", "撇", "捺"]),
+        ("起", &["横", "竖", "横", "竖", "横", "撇", "竖弯钩", "撇", "竖", "横折", "横"]),
+        ("超", &["横", "竖", "横", "竖", "横", "撇", "捺", "横折钩", "撇", "竖", "横折", "越"]),
+        ("去", &["横", "竖", "横", "撇折", "点"]),
+        ("走", &["横", "竖", "横", "竖", "横", "撇", "捺"]),
+        ("过", &["横", "竖钩", "点", "点", "横撇", "捺"]),
+        ("边", &["横折钩", "撇", "点", "横折折撇", "捺"]),
+        ("还", &["横", "撇", "竖", "点", "点", "横撇", "捺"]),
+        ("进", &["横", "横", "撇", "捺", "竖", "横折", "横", "横"]),
+        ("近", &["撇", "撇", "撇", "横", "撇", "捺", "竖折", "撇", "点"]),
+        ("远", &["横", "横", "撇", "点", "横折折撇", "捺"]),
+        ("高", &["点", "横", "竖", "横折", "横", "竖", "横折钩", "竖", "横折", "横"]),
+        ("亮", &["点", "横", "竖", "横折", "横", "撇", "横撇", "竖", "横折", "横"]),
+        ("家", &["点", "点", "横撇", "横", "撇", "撇", "捺", "撇", "撇", "撇"]),
+        ("室", &["点", "点", "横撇", "横", "竖", "横", "点", "横", "竖", "横"]),
+        ("定", &["点", "点", "横撇", "横", "竖", "横", "撇", "捺"]),
+        ("实", &["点", "点", "横撇", "横", "竖", "点", "撇", "捺"]),
+        ("安", &["点", "点", "横撇", "撇点", "撇", "横"]),
+        ("完", &["点", "点", "横撇", "横", "横", "撇", "竖弯钩"]),
+        ("宜", &["点", "点", "横撇", "竖", "横折", "横", "横", "横"]),
+        ("客", &["点", "点", "横撇", "撇", "捺", "竖", "横折", "横"]),
+        ("气", &["撇", "横", "横", "横斜钩"]),
+        ("水", &["竖钩", "横撇", "撇", "捺"]),
+        ("平", &["横", "点", "撇", "横", "竖"]),
+        ("半", &["点", "撇", "横", "横", "竖"]),
+        ("十", &["横", "竖"]),
+        ("百", &["横", "撇", "竖", "横折", "横", "横"]),
+        ("千", &["撇", "横", "竖"]),
+        ("万", &["横", "横折钩", "撇"]),
+        ("力", &["横折钩", "撇"]),
+        ("又", &["横撇", "捺"]),
+        ("左", &["横", "撇", "横", "竖", "横"]),
+        ("右", &["横", "撇", "竖", "横折", "口"]),
+        ("有", &["横", "撇", "竖", "横折钩", "横", "横"]),
+        ("友", &["横", "撇", "横撇", "捺"]),
+        ("没", &["点", "点", "提", "撇", "横撇", "撇", "捺"]),
+        ("法", &["点", "点", "提", "横", "竖", "横", "撇折", "点"]),
+        ("活", &["点", "点", "提", "撇", "横", "竖", "横折", "横"]),
+        ("满", &["点", "点", "提", "横", "竖", "竖", "撇点", "撇", "捺", "横", "撇", "竖"]),
+        ("空", &["点", "点", "撇点", "横折", "横", "横", "竖", "横"]),
+        ("容", &["点", "点", "撇点", "撇", "捺", "竖", "横折", "横"]),
+        ("易", &["竖", "横折", "横", "横", "撇", "横撇", "捺"]),
+        ("是", &["竖", "横折", "横", "横", "横", "竖", "横", "撇", "捺"]),
+        ("否", &["横", "撇", "竖", "点", "竖", "横折", "横", "横"]),
+        ("可", &["横", "竖", "横折", "横", "竖钩"]),
+        ("能", &["撇折", "点", "竖", "横折钩", "横", "横", "撇", "竖弯钩", "撇", "竖弯钩"]),
+        ("行", &["撇", "撇", "竖", "横", "横", "竖钩"]),
+        ("得", &["撇", "撇", "竖", "竖", "横折", "横", "横", "横", "横", "点", "点", "点", "横"]),
+        ("很", &["撇", "撇", "竖", "横折", "横", "横", "竖提", "撇", "捺"]),
+        ("待", &["撇", "撇", "竖", "横", "竖", "横", "点", "点", "点", "横"]),
+        ("须", &["撇", "撇", "撇", "横", "撇", "撇", "撇", "竖", "横", "撇"]),
+        ("需", &["横", "点", "横撇", "竖", "点", "点", "点", "点", "竖", "横折", "横", "横", "竖"]),
+        ("要", &["横", "竖", "横折", "横", "横", "撇点", "撇", "横"]),
+        ("重", &["撇", "横", "竖", "横折", "横", "横", "横", "竖"]),
+        ("根", &["横", "竖", "撇", "捺", "横折", "横", "横", "竖提", "撇", "捺"]),
+        ("本", &["横", "竖", "撇", "捺", "横"]),
+        ("体", &["撇", "竖", "横", "竖", "撇", "捺", "横"]),
+        ("正", &["横", "竖", "横", "竖", "横"]),
+        ("反", &["撇", "撇", "横撇", "捺"]),
+        ("应", &["点", "横", "撇", "点", "撇", "捺"]),
+        ("该", &["点", "横", "撇折", "撇", "撇", "点", "横折", "横", "撇", "捺"]),
+        ("曾", &["点", "撇", "竖", "横折", "竖", "竖", "横折", "横", "横"]),
+        ("曾", &["点", "撇", "竖", "横折", "竖", "竖", "横折", "横", "横"]),
+        ("会", &["撇", "捺", "横", "横", "撇折", "点"]),
+        ("能", &["撇折", "点", "竖", "横折钩", "横", "横", "撇", "竖弯钩", "撇", "竖弯钩"]),
+        ("可", &["横", "竖", "横折", "横", "竖钩"]),
+        ("然", &["撇", "横撇", "点", "点", "撇", "捺", "撇", "捺", "点", "点", "点", "点"]),
+        ("依", &["撇", "竖", "点", "横", "撇", "撇", "撇", "捺"]),
+        ("法", &["点", "点", "提", "横", "竖", "横", "撇折", "点"]),
+        ("理", &["横", "横", "竖", "横折", "横", "横", "竖", "横折", "横", "横"]),
+        ("经", &["撇折", "撇折", "提", "横撇", "点", "横", "竖", "横"]),
+        ("已", &["横折", "横", "竖弯钩"]),
+        ("己", &["横折", "横", "竖弯钩"]),
+        ("经", &["撇折", "撇折", "提", "横撇", "点", "横", "竖", "横"]),
     ];
     for &(ch, names) in strokes {
         if ch.chars().next()? == c {
@@ -631,6 +819,303 @@ pub struct ProgramResult {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// 词组程序 · 多字串联 = 容器数据库链
+// ─────────────────────────────────────────────────────────────────────────────
+
+pub struct CompoundProgram {
+    pub characters: Vec<char>,
+    pub programs: Vec<HanziProgram>,
+    pub chain: Vec<ContainerDatabase>,
+}
+
+impl CompoundProgram {
+    /// 从字符串构建词组程序
+    pub fn from_str(s: &str, tones: &[TonePhase]) -> Option<Self> {
+        if s.is_empty() {
+            return None;
+        }
+
+        let mut chars = Vec::new();
+        let mut programs = Vec::new();
+        let mut chain = Vec::new();
+
+        for (i, c) in s.chars().enumerate() {
+            let tone = tones.get(i).copied().unwrap_or(TonePhase::YinPing);
+            let program = HanziProgram::from_char(c, tone)?;
+            let mut databases = program.databases();
+
+            chars.push(c);
+            programs.push(program);
+            chain.append(&mut databases);
+        }
+
+        Some(Self {
+            characters: chars,
+            programs,
+            chain,
+        })
+    }
+
+    /// 获取链上所有容器数据库
+    pub fn databases(&self) -> &[ContainerDatabase] {
+        &self.chain
+    }
+
+    /// 按索引访问容器数据库
+    pub fn get(&self, idx: usize) -> Option<&ContainerDatabase> {
+        self.chain.get(idx)
+    }
+
+    /// 执行整个词组（串联执行）
+    pub fn execute(&self) -> CompoundResult {
+        let mut addr = ContainerAddress::default();
+        let mut polarity = Polarity::Yuan;
+        let mut all_databases = Vec::new();
+        let mut word_values = Vec::new();
+
+        for program in &self.programs {
+            let result = program.execute();
+            addr = addr.fold(result.final_address);
+            polarity = polarity.fold(result.final_polarity);
+            all_databases.extend(result.databases);
+            word_values.push(result.value);
+        }
+
+        let compound_value = ContainerValue::from_address(addr, polarity);
+
+        CompoundResult {
+            final_address: addr,
+            final_polarity: polarity,
+            value: compound_value,
+            word_values,
+            databases: all_databases,
+            characters: self.characters.clone(),
+        }
+    }
+
+    /// 词组名称（字符串）
+    pub fn name(&self) -> String {
+        self.characters.iter().collect()
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct CompoundResult {
+    pub final_address: ContainerAddress,
+    pub final_polarity: Polarity,
+    pub value: ContainerValue,
+    pub word_values: Vec<ContainerValue>,
+    pub databases: Vec<ContainerDatabase>,
+    pub characters: Vec<char>,
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 成语程序 · 四字结构 = 4 个容器数据库链的耦合
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// 成语 = 4字固定搭配 = 地址耦合的容器数据库块
+
+pub struct IdiomProgram {
+    pub word1: HanziProgram,
+    pub word2: HanziProgram,
+    pub word3: HanziProgram,
+    pub word4: HanziProgram,
+    pub coupling: [Polarity; 4],  // 字间极性耦合关系
+}
+
+impl IdiomProgram {
+    /// 从四个汉字构建成语程序
+    pub fn new(c1: char, c2: char, c3: char, c4: char, tone: TonePhase) -> Option<Self> {
+        let w1 = HanziProgram::from_char(c1, tone)?;
+        let w2 = HanziProgram::from_char(c2, tone)?;
+        let w3 = HanziProgram::from_char(c3, tone)?;
+        let w4 = HanziProgram::from_char(c4, tone)?;
+
+        // 字间极性耦合：第1-2字 配合、第3-4字 配合、整体对冲
+        let coupling = [
+            Polarity::Yin,    // 1-2字耦合：包容
+            Polarity::Yang,   // 2-3字耦合：主动
+            Polarity::Yuan,   // 3-4字耦合：见证
+            Polarity::Yin,    // 整体：包容收尾
+        ];
+
+        Some(Self {
+            word1: w1,
+            word2: w2,
+            word3: w3,
+            word4: w4,
+            coupling,
+        })
+    }
+
+    /// 执行成语（顺序 + 极性耦合）
+    pub fn execute(&self) -> IdiomResult {
+        let r1 = self.word1.execute();
+        let r2 = self.word2.execute();
+        let r3 = self.word3.execute();
+        let r4 = self.word4.execute();
+
+        let mut addr = ContainerAddress::default();
+        addr = addr.fold(r1.final_address);
+        addr = addr.fold(r2.final_address);
+        addr = addr.fold(r3.final_address);
+        addr = addr.fold(r4.final_address);
+
+        // 极性按耦合系数叠加
+        let mut polarity = Polarity::Yuan;
+        polarity = polarity.fold(
+            r1.final_polarity.fold(self.coupling[0].fold(r2.final_polarity))
+        );
+        polarity = polarity.fold(
+            r3.final_polarity.fold(self.coupling[2].fold(r4.final_polarity))
+        );
+
+        let databases: Vec<ContainerDatabase> = r1.databases.into_iter()
+            .chain(r2.databases)
+            .chain(r3.databases)
+            .chain(r4.databases)
+            .collect();
+
+        let idiomatic_value = ContainerValue::from_address(addr, polarity);
+
+        IdiomResult {
+            final_address: addr,
+            final_polarity: polarity,
+            value: idiomatic_value,
+            databases,
+            coupling: self.coupling,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct IdiomResult {
+    pub final_address: ContainerAddress,
+    pub final_polarity: Polarity,
+    pub value: ContainerValue,
+    pub databases: Vec<ContainerDatabase>,
+    pub coupling: [Polarity; 4],
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 三维可视化 · ASCII 几何打印
+// ─────────────────────────────────────────────────────────────────────────────
+
+pub struct ContainerVisualizer;
+
+impl ContainerVisualizer {
+    /// 将容器打印为 ASCII 三维表示
+    ///
+    /// 每个容器根据其顶点/边/面数生成 ASCII 形状：
+    ///   V=4,E=4,F=1 □  袋·方形
+    ///   V=0,E=2,F=3 ⬭  桶·圆柱
+    ///   V=1,E=0,F=1 ◉  罐·球
+    pub fn print_3d(db: &ContainerDatabase) -> String {
+        let mut result = String::new();
+        let name = format!("{:?}", db.name);
+        let addr = &db.address;
+
+        // 顶行：名称 + 地址
+        result.push_str(&format!(
+            "┌─ {} ({},{},{}) ─┐\n",
+            name, addr.x, addr.y, addr.z
+        ));
+
+        // 几何体 ASCII 形状 (基于顶点数 V)
+        let shape = match db.geometry.vertices {
+            0 => "  ╭─╮\n  │ │\n  ╰─╯",        // 0顶点 = 开放柱面
+            1 => "  ◉────",                    // 1顶点 = 球/点
+            3 => "  /\\\n /  \n \\/",           // 3顶点 = 三角（箕）
+            4 => "  ┌──┐\n  │  │\n  └──┘",     // 4顶点 = 方形（袋、盆）
+            5 => "  ╱╲╱╲\n  ╲╱╲╱",             // 5顶点 = 五角
+            6 => "  ╭──╮\n  │  │\n  │  │\n  ╰──╯", // 6顶点 = 六角柱
+            8 => "  ┌─┬─┐\n  ├─┼─┤\n  └─┴─┘", // 8顶点 = 立方（盒）
+            _ => "  ???",
+        };
+        for line in shape.lines() {
+            result.push_str(&format!("│{:^14}│\n", line));
+        }
+
+        // 参数行
+        result.push_str(&format!("│ V{} E{} F{} G{} │\n",
+            db.geometry.vertices,
+            db.geometry.edges,
+            db.geometry.faces,
+            db.geometry.genus
+        ));
+
+        // 极性指示
+        let pol_symbol = match db.name as u8 % 3 {
+            0 => "阴",
+            1 => "元",
+            _ => "阳",
+        };
+        result.push_str(&format!("│ 极性: {:^8} │\n", pol_symbol));
+
+        result.push_str("└──────────────────┘\n");
+        result
+    }
+
+    /// 打印容器链（词组/成语的三维布局）
+    pub fn print_chain(databases: &[ContainerDatabase]) -> String {
+        let mut result = String::from("═══ 容器数据库链 ═══\n");
+        for (i, db) in databases.iter().enumerate() {
+            if i > 0 && i % 6 == 0 {
+                result.push('\n');
+            }
+            let mini = format!("{:?}@({},{},{})",
+                db.name, db.address.x, db.address.y, db.address.z);
+            result.push_str(&format!(" [{}] ", mini));
+        }
+        result.push('\n');
+        result
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 索引存储层 · 地址 = 索引 = 可预加载数据库
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// 演示：用 ContainerAddress 作为数据库的索引键
+// 每个地址可存储和检索对应的容器数据库内容
+
+pub struct IndexedStorage {
+    buckets: Vec<Vec<ContainerDatabase>>,  // 256 个桶，按 x 坐标分片
+}
+
+impl IndexedStorage {
+    pub fn new() -> Self {
+        Self {
+            buckets: vec![Vec::new(); 256],
+        }
+    }
+
+    /// 用地址作为索引存入容器数据库
+    pub fn store(&mut self, db: ContainerDatabase) {
+        let bucket_idx = (db.address.x as u8) as usize;
+        self.buckets[bucket_idx].push(db);
+    }
+
+    /// 用地址查找容器数据库
+    pub fn find(&self, addr: &ContainerAddress) -> Option<&ContainerDatabase> {
+        let bucket_idx = (addr.x as u8) as usize;
+        self.buckets[bucket_idx]
+            .iter()
+            .find(|db| &db.address == addr)
+    }
+
+    /// 用指纹查找
+    pub fn find_by_fingerprint(&self, fp: u64) -> Option<&ContainerDatabase> {
+        let addr = ContainerAddress {
+            x: ((fp >> 56) & 0xFF) as i8,
+            y: ((fp >> 48) & 0xFF) as i8,
+            z: ((fp >> 40) & 0xFF) as i8,
+        };
+        self.find(&addr)
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 部首命名空间 · 214 部首 → 坐标段
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -721,6 +1206,15 @@ impl ContainerVM {
                 db.preload();
             }
         }
+    }
+
+    /// 执行词组程序（多字串联）
+    pub fn execute_compound(&mut self, program: &CompoundProgram) -> CompoundResult {
+        let mut result = program.execute();
+        self.address = self.address.fold(result.final_address);
+        self.polarity = self.polarity.fold(result.final_polarity);
+        self.databases.append(&mut result.databases);
+        result
     }
 }
 
@@ -830,6 +1324,35 @@ mod tests {
     }
 
     #[test]
+    fn test_compound_program_你好() {
+        let tones = vec![TonePhase::YangPing, TonePhase::Shang];
+        let cp = CompoundProgram::from_str("你好", &tones).unwrap();
+        assert_eq!(cp.characters.len(), 2);
+        assert_eq!(cp.name(), "你好");
+        let result = cp.execute();
+        assert_eq!(result.word_values.len(), 2);
+    }
+
+    #[test]
+    fn test_compound_program_囡囝() {
+        let tones = vec![TonePhase::YinPing, TonePhase::Qu];
+        let cp = CompoundProgram::from_str("囡囝", &tones).unwrap();
+        assert_eq!(cp.characters.len(), 2);
+        assert_eq!(cp.chain.len(), 11); // 囡6画 + 囝5画 = 11个容器数据库
+    }
+
+    #[test]
+    fn test_vm_compound_execution() {
+        let mut vm = ContainerVM::new();
+        let tones = vec![TonePhase::YinPing, TonePhase::Qu];
+        let cp = CompoundProgram::from_str("囡囝", &tones).unwrap();
+        let result = vm.execute_compound(&cp);
+        assert_eq!(result.characters.len(), 2);
+        // 囡(撇点+撇+横+竖+横折+横)+囝(竖+横折+横+竖钩+横)
+        assert!(result.databases.len() >= 11);
+    }
+
+    #[test]
     fn test_stroke_name_roundtrip() {
         for name in &["横", "竖", "撇", "捺", "点", "提", "横折"] {
             let op = StrokeOp::from_stroke_name(name).unwrap();
@@ -849,9 +1372,43 @@ mod tests {
     fn test_container_address_to_index() {
         let addr = ContainerAddress::new(3, 5, 0);
         let idx = addr.as_index();
-        // x=3 → 0b11 << 2 = 0b1100
-        // y=5 → 0b101 >> 2 = 0b01
-        // z=0
-        assert_eq!(idx & 0x0F, 0x0C | 0x01); // 0b1101 = 13
+        assert_eq!(idx & 0x0F, 0x0C | 0x01);
+    }
+
+    #[test]
+    fn test_idiom_一本正经() {
+        let idiom = IdiomProgram::new('一', '本', '正', '经', TonePhase::YinPing).unwrap();
+        let result = idiom.execute();
+        assert_eq!(result.databases.len(), 19); // 1+5+5+8
+        assert_eq!(result.coupling[0], Polarity::Yin);
+    }
+
+    #[test]
+    fn test_visualizer_print_3d() {
+        let db = ContainerDatabase::new(Container::Dai);
+        let output = ContainerVisualizer::print_3d(&db);
+        assert!(output.contains("Dai"));
+        assert!(output.contains("V4"));
+    }
+
+    #[test]
+    fn test_visualizer_print_chain() {
+        let tones = vec![TonePhase::YinPing, TonePhase::Qu];
+        let cp = CompoundProgram::from_str("囡囝", &tones).unwrap();
+        let output = ContainerVisualizer::print_chain(&cp.chain);
+        assert!(output.contains("容器数据库链"));
+    }
+
+    #[test]
+    fn test_indexed_storage() {
+        let mut store = IndexedStorage::new();
+        let db1 = ContainerDatabase::new(Container::Dai);
+        let db2 = ContainerDatabase::new(Container::He);
+        store.store(db1);
+        store.store(db2);
+
+        let addr = ContainerAddress::new(0, 0, 0);
+        let found = store.find(&addr);
+        assert!(found.is_some());
     }
 }

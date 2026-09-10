@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>容器字体报告 · hunyuan-rs/docs/fonts/mqf_container.ttf</title>
+<style>
+body{background:#0d1117;color:#c9d1d9;font-family:system-ui,sans-serif;margin:0;padding:20px}
+h1{color:#58a6ff;font-size:20px}
+h2{color:#7ee787;font-size:16px;border-bottom:1px solid #30363d;padding-bottom:8px;margin-top:28px}
+.stats{display:flex;gap:16px;margin:16px 0;flex-wrap:wrap}
+.stat{background:#161b22;padding:12px 20px;border-radius:8px;border:1px solid #30363d;min-width:100px}
+.num{font-size:24px;font-weight:bold}
+.lbl{font-size:11px;color:#8b949e;margin-top:4px}
+.matrix{overflow-x:auto;margin:16px 0}
+.timeline{margin:16px 0;overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:12px;margin:12px 0}
+th{background:#21262d;padding:8px 12px;text-align:left;font-size:11px;color:#8b949e}
+td{padding:6px 12px;border-bottom:1px solid #21262d;font-family:monospace}
+tr:hover{background:#161b22}
+.legend{display:flex;flex-wrap:wrap;gap:12px;margin:12px 0;font-size:12px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:2px;margin-right:4px;vertical-align:middle}
+</style>
+</head>
+<body>
+<h1>容器字体统一架构 · 可视化报告</h1>
+<p style="color:#8b949e">hunyuan-rs/docs/fonts/mqf_container.ttf · 6808 bytes TTF</p>
+<div class="stats">
+<div class="stat"><div class="num" style="color:#58a6ff">52</div><div class="lbl">总容器包</div></div>
+<div class="stat"><div class="num" style="color:#7ED321">52</div><div class="lbl">witness ✓</div></div>
+<div class="stat"><div class="num" style="color:#D0021B">0</div><div class="lbl">witness ✗</div></div>
+<div class="stat"><div class="num" style="color:#9013FE">15</div><div class="lbl">语义类别</div></div>
+<div class="stat"><div class="num" style="color:#F5A623">4</div><div class="lbl">时间窗口</div></div>
+</div>
+<h2>语义拓扑矩阵</h2>
+<div class="legend">
+<span><i style="background:#4A90D9"></i>存储 LOAD/STORE</span>
+<span><i style="background:#7ED321"></i>算术 ADD/ADDI/SUB</span>
+<span><i style="background:#F5A623"></i>逻辑 AND/OR/XOR</span>
+<span><i style="background:#D0021B"></i>分支 JMP/BNE/BEQ</span>
+<span><i style="background:#9013FE"></i>调用 CALL/RET</span>
+<span><i style="background:#50E3C2"></i>比较 CMP</span>
+<span><i style="background:#B8E986"></i>传送 MOV</span>
+</div>
+<div class="matrix"><svg viewBox="0 0 1128 80" xmlns="http://www.w3.org/2000/svg" width="100%">
+<rect width="100%" height="100%" fill="#1a1a2e"/>
+<text x="20" y="25" fill="#eee" font-size="14" font-family="monospace">语义拓扑矩阵（颜色=指令类别）</text>
+<g opacity="1"><rect x="108" y="40" width="60" height="60" fill="#4A90D9" opacity="1" rx="4"/><text x="138" y="74" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">LOAD</text></g>
+<g opacity="1"><rect x="108" y="74" width="60" height="60" fill="#4A90D9" opacity="1" rx="4"/><text x="138" y="108" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">LOAD</text></g>
+<g opacity="1"><rect x="108" y="108" width="60" height="60" fill="#4A90D9" opacity="1" rx="4"/><text x="138" y="142" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">LOAD</text></g>
+<g opacity="1"><rect x="176" y="142" width="60" height="60" fill="#4A90D9" opacity="1" rx="4"/><text x="206" y="176" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">STORE</text></g>
+<g opacity="1"><rect x="176" y="40" width="60" height="60" fill="#4A90D9" opacity="1" rx="4"/><text x="206" y="74" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">STORE</text></g>
+<g opacity="1"><rect x="176" y="74" width="60" height="60" fill="#4A90D9" opacity="1" rx="4"/><text x="206" y="108" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">STORE</text></g>
+<g opacity="1"><circle cx="274" cy="138" r="30" fill="#7ED321" opacity="1"/><text x="274" y="142" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">ADD</text></g>
+<g opacity="1"><circle cx="274" cy="172" r="30" fill="#7ED321" opacity="1"/><text x="274" y="176" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">ADD</text></g>
+<g opacity="1"><circle cx="274" cy="70" r="30" fill="#7ED321" opacity="1"/><text x="274" y="74" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">ADD</text></g>
+<g opacity="1"><circle cx="274" cy="104" r="30" fill="#7ED321" opacity="1"/><text x="274" y="108" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">ADD</text></g>
+<g opacity="1"><circle cx="342" cy="138" r="30" fill="#7ED321" opacity="1"/><text x="342" y="142" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">ADDI</text></g>
+<g opacity="1"><circle cx="342" cy="172" r="30" fill="#7ED321" opacity="1"/><text x="342" y="176" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">ADDI</text></g>
+<g opacity="1"><circle cx="342" cy="70" r="30" fill="#7ED321" opacity="1"/><text x="342" y="74" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">ADDI</text></g>
+<g opacity="1"><circle cx="410" cy="104" r="30" fill="#7ED321" opacity="1"/><text x="410" y="108" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">SUB</text></g>
+<g opacity="1"><circle cx="410" cy="138" r="30" fill="#7ED321" opacity="1"/><text x="410" y="142" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">SUB</text></g>
+<g opacity="1"><circle cx="410" cy="172" r="30" fill="#7ED321" opacity="1"/><text x="410" y="176" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">SUB</text></g>
+<g opacity="1"><circle cx="410" cy="70" r="30" fill="#7ED321" opacity="1"/><text x="410" y="74" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">SUB</text></g>
+<g opacity="1"><ellipse cx="478" cy="104" rx="30" ry="20" fill="#F5A623" opacity="1"/><text x="478" y="108" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">AND</text></g>
+<g opacity="1"><ellipse cx="478" cy="138" rx="30" ry="20" fill="#F5A623" opacity="1"/><text x="478" y="142" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">AND</text></g>
+<g opacity="1"><ellipse cx="478" cy="172" rx="30" ry="20" fill="#F5A623" opacity="1"/><text x="478" y="176" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">AND</text></g>
+<g opacity="1"><ellipse cx="478" cy="70" rx="30" ry="20" fill="#F5A623" opacity="1"/><text x="478" y="74" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">AND</text></g>
+<g opacity="1"><ellipse cx="546" cy="104" rx="30" ry="20" fill="#F5A623" opacity="1"/><text x="546" y="108" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">OR</text></g>
+<g opacity="1"><ellipse cx="546" cy="138" rx="30" ry="20" fill="#F5A623" opacity="1"/><text x="546" y="142" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">OR</text></g>
+<g opacity="1"><ellipse cx="546" cy="172" rx="30" ry="20" fill="#F5A623" opacity="1"/><text x="546" y="176" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">OR</text></g>
+<g opacity="1"><ellipse cx="546" cy="70" rx="30" ry="20" fill="#F5A623" opacity="1"/><text x="546" y="74" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">OR</text></g>
+<g opacity="1"><ellipse cx="614" cy="104" rx="30" ry="20" fill="#F5A623" opacity="1"/><text x="614" y="108" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">XOR</text></g>
+<g opacity="1"><ellipse cx="614" cy="138" rx="30" ry="20" fill="#F5A623" opacity="1"/><text x="614" y="142" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">XOR</text></g>
+<g opacity="1"><ellipse cx="614" cy="172" rx="30" ry="20" fill="#F5A623" opacity="1"/><text x="614" y="176" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">XOR</text></g>
+<g opacity="1"><ellipse cx="614" cy="70" rx="30" ry="20" fill="#F5A623" opacity="1"/><text x="614" y="74" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">XOR</text></g>
+<g opacity="1"><polygon points="682,74 712,104 682,134 652,104" fill="#D0021B" opacity="1"/><text x="682" y="108" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">JMP</text></g>
+<g opacity="1"><polygon points="682,108 712,138 682,168 652,138" fill="#D0021B" opacity="1"/><text x="682" y="142" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">JMP</text></g>
+<g opacity="1"><polygon points="682,142 712,172 682,202 652,172" fill="#D0021B" opacity="1"/><text x="682" y="176" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">JMP</text></g>
+<g opacity="1"><polygon points="750,40 780,70 750,100 720,70" fill="#D0021B" opacity="1"/><text x="750" y="74" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">BNE</text></g>
+<g opacity="1"><polygon points="750,74 780,104 750,134 720,104" fill="#D0021B" opacity="1"/><text x="750" y="108" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">BNE</text></g>
+<g opacity="1"><polygon points="750,108 780,138 750,168 720,138" fill="#D0021B" opacity="1"/><text x="750" y="142" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">BNE</text></g>
+<g opacity="1"><polygon points="818,142 848,172 818,202 788,172" fill="#D0021B" opacity="1"/><text x="818" y="176" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">BEQ</text></g>
+<g opacity="1"><polygon points="818,40 848,70 818,100 788,70" fill="#D0021B" opacity="1"/><text x="818" y="74" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">BEQ</text></g>
+<g opacity="1"><path d="M 856,104 Q 886,74 916,104 Q 886,134 856,104 Z" fill="#9013FE" opacity="1"/><text x="886" y="108" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">CALL</text></g>
+<g opacity="1"><path d="M 856,138 Q 886,108 916,138 Q 886,168 856,138 Z" fill="#9013FE" opacity="1"/><text x="886" y="142" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">CALL</text></g>
+<g opacity="1"><path d="M 856,172 Q 886,142 916,172 Q 886,202 856,172 Z" fill="#9013FE" opacity="1"/><text x="886" y="176" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">CALL</text></g>
+<g opacity="1"><path d="M 924,70 Q 954,40 984,70 Q 954,100 924,70 Z" fill="#9013FE" opacity="1"/><text x="954" y="74" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">RET</text></g>
+<g opacity="1"><path d="M 924,104 Q 954,74 984,104 Q 954,134 924,104 Z" fill="#9013FE" opacity="1"/><text x="954" y="108" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">RET</text></g>
+<g opacity="1"><path d="M 924,138 Q 954,108 984,138 Q 954,168 924,138 Z" fill="#9013FE" opacity="1"/><text x="954" y="142" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">RET</text></g>
+<g opacity="1"><path d="M 924,172 Q 954,142 984,172 Q 954,202 924,172 Z" fill="#9013FE" opacity="1"/><text x="954" y="176" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">RET</text></g>
+<g opacity="1"><path d="M 1022,40 L 1052,100 L 992,100 Z M 1022,100 L 1052,40 L 992,40 Z" fill="#50E3C2" opacity="1"/><text x="1022" y="74" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">CMP</text></g>
+<g opacity="1"><path d="M 1022,74 L 1052,134 L 992,134 Z M 1022,134 L 1052,74 L 992,74 Z" fill="#50E3C2" opacity="1"/><text x="1022" y="108" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">CMP</text></g>
+<g opacity="1"><path d="M 1022,108 L 1052,168 L 992,168 Z M 1022,168 L 1052,108 L 992,108 Z" fill="#50E3C2" opacity="1"/><text x="1022" y="142" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">CMP</text></g>
+<g opacity="1"><path d="M 1022,142 L 1052,202 L 992,202 Z M 1022,202 L 1052,142 L 992,142 Z" fill="#50E3C2" opacity="1"/><text x="1022" y="176" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">CMP</text></g>
+<g opacity="1"><line x1="1060" y1="70" x2="1120" y2="70" stroke="#B8E986" stroke-width="3" opacity="1"/><text x="1090" y="74" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">MOV</text></g>
+<g opacity="1"><line x1="1060" y1="104" x2="1120" y2="104" stroke="#B8E986" stroke-width="3" opacity="1"/><text x="1090" y="108" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">MOV</text></g>
+<g opacity="1"><line x1="1060" y1="138" x2="1120" y2="138" stroke="#B8E986" stroke-width="3" opacity="1"/><text x="1090" y="142" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">MOV</text></g>
+<g opacity="1"><line x1="1060" y1="172" x2="1120" y2="172" stroke="#B8E986" stroke-width="3" opacity="1"/><text x="1090" y="176" fill="#fff" font-size="9" text-anchor="middle" font-family="monospace">MOV</text></g>
+</svg>
+</div>
+<h2>执行时间轴 (Z 轴)</h2>
+<div class="timeline"><svg viewBox="0 0 800 170" xmlns="http://www.w3.org/2000/svg" width="100%">
+<rect width="100%" height="100%" fill="#1a1a2e"/>
+<text x="10" y="20" fill="#eee" font-size="12" font-family="monospace">执行时间轴 (Z-window →)</text><text x="5" y="45" fill="#aaa" font-size="10" font-family="monospace">Z=001</text><rect x="60" y="35" width="60" height="20" fill="#4A90D9" opacity="0.9" rx="3"/>
+<text x="90" y="49" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">LOAD:P344</text>
+<rect x="130" y="35" width="60" height="20" fill="#4A90D9" opacity="0.9" rx="3"/>
+<text x="160" y="49" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">LOAD:P345</text>
+<rect x="200" y="35" width="60" height="20" fill="#4A90D9" opacity="0.9" rx="3"/>
+<text x="230" y="49" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">LOAD:P346</text>
+<rect x="270" y="35" width="60" height="20" fill="#7ED321" opacity="0.9" rx="3"/>
+<text x="300" y="49" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">ADD:P350</text>
+<rect x="340" y="35" width="60" height="20" fill="#7ED321" opacity="0.9" rx="3"/>
+<text x="370" y="49" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">ADD:P351</text>
+<rect x="410" y="35" width="60" height="20" fill="#7ED321" opacity="0.9" rx="3"/>
+<text x="440" y="49" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">ADD:P352</text>
+<rect x="480" y="35" width="60" height="20" fill="#7ED321" opacity="0.9" rx="3"/>
+<text x="510" y="49" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">ADD:P353</text>
+<rect x="550" y="35" width="60" height="20" fill="#7ED321" opacity="0.9" rx="3"/>
+<text x="580" y="49" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">ADDI:P354</text>
+<rect x="620" y="35" width="60" height="20" fill="#7ED321" opacity="0.9" rx="3"/>
+<text x="650" y="49" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">ADDI:P355</text>
+<rect x="690" y="35" width="60" height="20" fill="#7ED321" opacity="0.9" rx="3"/>
+<text x="720" y="49" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">ADDI:P356</text>
+<rect x="760" y="35" width="60" height="20" fill="#7ED321" opacity="0.9" rx="3"/>
+<text x="790" y="49" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">SUB:P357</text>
+<rect x="830" y="35" width="60" height="20" fill="#7ED321" opacity="0.9" rx="3"/>
+<text x="860" y="49" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">SUB:P358</text>
+<rect x="900" y="35" width="60" height="20" fill="#7ED321" opacity="0.9" rx="3"/>
+<text x="930" y="49" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">SUB:P359</text>
+<rect x="970" y="35" width="60" height="20" fill="#7ED321" opacity="0.9" rx="3"/>
+<text x="1000" y="49" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">SUB:P360</text>
+<rect x="1040" y="35" width="60" height="20" fill="#F5A623" opacity="0.9" rx="3"/>
+<text x="1070" y="49" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">AND:P361</text>
+<rect x="1110" y="35" width="60" height="20" fill="#F5A623" opacity="0.9" rx="3"/>
+<text x="1140" y="49" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">AND:P362</text>
+<rect x="1180" y="35" width="60" height="20" fill="#F5A623" opacity="0.9" rx="3"/>
+<text x="1210" y="49" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">AND:P363</text>
+<rect x="1250" y="35" width="60" height="20" fill="#F5A623" opacity="0.9" rx="3"/>
+<text x="1280" y="49" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">AND:P364</text>
+<rect x="1320" y="35" width="60" height="20" fill="#F5A623" opacity="0.9" rx="3"/>
+<text x="1350" y="49" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">OR:P365</text>
+<rect x="1390" y="35" width="60" height="20" fill="#F5A623" opacity="0.9" rx="3"/>
+<text x="1420" y="49" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">OR:P366</text>
+<rect x="1460" y="35" width="60" height="20" fill="#F5A623" opacity="0.9" rx="3"/>
+<text x="1490" y="49" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">OR:P367</text>
+<rect x="1530" y="35" width="60" height="20" fill="#F5A623" opacity="0.9" rx="3"/>
+<text x="1560" y="49" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">OR:P368</text>
+<rect x="1600" y="35" width="60" height="20" fill="#F5A623" opacity="0.9" rx="3"/>
+<text x="1630" y="49" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">XOR:P369</text>
+<rect x="1670" y="35" width="60" height="20" fill="#F5A623" opacity="0.9" rx="3"/>
+<text x="1700" y="49" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">XOR:P370</text>
+<rect x="1740" y="35" width="60" height="20" fill="#F5A623" opacity="0.9" rx="3"/>
+<text x="1770" y="49" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">XOR:P371</text>
+<rect x="1810" y="35" width="60" height="20" fill="#F5A623" opacity="0.9" rx="3"/>
+<text x="1840" y="49" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">XOR:P372</text>
+<rect x="1880" y="35" width="60" height="20" fill="#9013FE" opacity="0.9" rx="3"/>
+<text x="1910" y="49" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">CALL:P381</text>
+<rect x="1950" y="35" width="60" height="20" fill="#9013FE" opacity="0.9" rx="3"/>
+<text x="1980" y="49" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">CALL:P382</text>
+<rect x="2020" y="35" width="60" height="20" fill="#9013FE" opacity="0.9" rx="3"/>
+<text x="2050" y="49" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">CALL:P383</text>
+<rect x="2090" y="35" width="60" height="20" fill="#50E3C2" opacity="0.9" rx="3"/>
+<text x="2120" y="49" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">CMP:P388</text>
+<rect x="2160" y="35" width="60" height="20" fill="#50E3C2" opacity="0.9" rx="3"/>
+<text x="2190" y="49" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">CMP:P389</text>
+<rect x="2230" y="35" width="60" height="20" fill="#50E3C2" opacity="0.9" rx="3"/>
+<text x="2260" y="49" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">CMP:P390</text>
+<rect x="2300" y="35" width="60" height="20" fill="#50E3C2" opacity="0.9" rx="3"/>
+<text x="2330" y="49" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">CMP:P391</text>
+<rect x="2370" y="35" width="60" height="20" fill="#B8E986" opacity="0.9" rx="3"/>
+<text x="2400" y="49" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">MOV:P392</text>
+<rect x="2440" y="35" width="60" height="20" fill="#B8E986" opacity="0.9" rx="3"/>
+<text x="2470" y="49" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">MOV:P393</text>
+<rect x="2510" y="35" width="60" height="20" fill="#B8E986" opacity="0.9" rx="3"/>
+<text x="2540" y="49" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">MOV:P394</text>
+<rect x="2580" y="35" width="60" height="20" fill="#B8E986" opacity="0.9" rx="3"/>
+<text x="2610" y="49" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">MOV:P395</text>
+<text x="5" y="73" fill="#aaa" font-size="10" font-family="monospace">Z=002</text><rect x="60" y="63" width="60" height="20" fill="#4A90D9" opacity="0.9" rx="3"/>
+<text x="90" y="77" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">STORE:P347</text>
+<rect x="130" y="63" width="60" height="20" fill="#4A90D9" opacity="0.9" rx="3"/>
+<text x="160" y="77" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">STORE:P348</text>
+<rect x="200" y="63" width="60" height="20" fill="#4A90D9" opacity="0.9" rx="3"/>
+<text x="230" y="77" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">STORE:P349</text>
+<rect x="270" y="63" width="60" height="20" fill="#D0021B" opacity="0.9" rx="3"/>
+<text x="300" y="77" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">JMP:P373</text>
+<rect x="340" y="63" width="60" height="20" fill="#D0021B" opacity="0.9" rx="3"/>
+<text x="370" y="77" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">JMP:P374</text>
+<rect x="410" y="63" width="60" height="20" fill="#D0021B" opacity="0.9" rx="3"/>
+<text x="440" y="77" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">JMP:P375</text>
+<rect x="480" y="63" width="60" height="20" fill="#D0021B" opacity="0.9" rx="3"/>
+<text x="510" y="77" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">BNE:P376</text>
+<rect x="550" y="63" width="60" height="20" fill="#D0021B" opacity="0.9" rx="3"/>
+<text x="580" y="77" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">BNE:P377</text>
+<rect x="620" y="63" width="60" height="20" fill="#D0021B" opacity="0.9" rx="3"/>
+<text x="650" y="77" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">BNE:P378</text>
+<text x="5" y="101" fill="#aaa" font-size="10" font-family="monospace">Z=003</text><rect x="60" y="91" width="60" height="20" fill="#D0021B" opacity="0.9" rx="3"/>
+<text x="90" y="105" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">BEQ:P379</text>
+<rect x="130" y="91" width="60" height="20" fill="#D0021B" opacity="0.9" rx="3"/>
+<text x="160" y="105" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">BEQ:P380</text>
+<text x="5" y="129" fill="#aaa" font-size="10" font-family="monospace">Z=255</text><rect x="60" y="119" width="60" height="20" fill="#9013FE" opacity="0.9" rx="3"/>
+<text x="90" y="133" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">RET:P384</text>
+<rect x="130" y="119" width="60" height="20" fill="#9013FE" opacity="0.9" rx="3"/>
+<text x="160" y="133" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">RET:P385</text>
+<rect x="200" y="119" width="60" height="20" fill="#9013FE" opacity="0.9" rx="3"/>
+<text x="230" y="133" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">RET:P386</text>
+<rect x="270" y="119" width="60" height="20" fill="#9013FE" opacity="0.9" rx="3"/>
+<text x="300" y="133" fill="#fff" font-size="8" text-anchor="middle" font-family="monospace">RET:P387</text>
+</svg>
+</div>
+<h2>容器详情</h2>
+<div style="overflow-x:auto">
+<table>
+<tr><th>Pack#</th><th></th><th>Sem</th><th>指令</th><th>地址</th><th>Payload</th><th>Witness</th></tr>
+<tr><td style="color:#aaa">57344</td><td style="color:#4A90D9">●</td><td>0x01</td><td>LOAD</td><td>0x01000001</td><td style="font-family:monospace;font-size:11px">48 8B 03</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57345</td><td style="color:#4A90D9">●</td><td>0x01</td><td>LOAD</td><td>0x01000001</td><td style="font-family:monospace;font-size:11px">F9 40 00 20</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57346</td><td style="color:#4A90D9">●</td><td>0x01</td><td>LOAD</td><td>0x01000001</td><td style="font-family:monospace;font-size:11px">8E 28 00 00</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57347</td><td style="color:#4A90D9">●</td><td>0x02</td><td>STORE</td><td>0x02000002</td><td style="font-family:monospace;font-size:11px">48 89 18</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57348</td><td style="color:#4A90D9">●</td><td>0x02</td><td>STORE</td><td>0x02000002</td><td style="font-family:monospace;font-size:11px">F9 00 00 20</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57349</td><td style="color:#4A90D9">●</td><td>0x02</td><td>STORE</td><td>0x02000002</td><td style="font-family:monospace;font-size:11px">AE 28 00 00</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57350</td><td style="color:#7ED321">●</td><td>0x03</td><td>ADD</td><td>0x03000101</td><td style="font-family:monospace;font-size:11px">48 01 D9</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57351</td><td style="color:#7ED321">●</td><td>0x03</td><td>ADD</td><td>0x03000101</td><td style="font-family:monospace;font-size:11px">8B 03 00 41</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57352</td><td style="color:#7ED321">●</td><td>0x03</td><td>ADD</td><td>0x03000101</td><td style="font-family:monospace;font-size:11px">B3 00 31 00</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57353</td><td style="color:#7ED321">●</td><td>0x03</td><td>ADD</td><td>0x03000101</td><td style="font-family:monospace;font-size:11px">00 43 08 20</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57354</td><td style="color:#7ED321">●</td><td>0x04</td><td>ADDI</td><td>0x04002A01</td><td style="font-family:monospace;font-size:11px">91 00 A8 21</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57355</td><td style="color:#7ED321">●</td><td>0x04</td><td>ADDI</td><td>0x04002A01</td><td style="font-family:monospace;font-size:11px">93 80 A0 02</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57356</td><td style="color:#7ED321">●</td><td>0x04</td><td>ADDI</td><td>0x04002A01</td><td style="font-family:monospace;font-size:11px">21 28 2A 00</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57357</td><td style="color:#7ED321">●</td><td>0x05</td><td>SUB</td><td>0x05000101</td><td style="font-family:monospace;font-size:11px">48 29 D9</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57358</td><td style="color:#7ED321">●</td><td>0x05</td><td>SUB</td><td>0x05000101</td><td style="font-family:monospace;font-size:11px">CB 03 00 41</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57359</td><td style="color:#7ED321">●</td><td>0x05</td><td>SUB</td><td>0x05000101</td><td style="font-family:monospace;font-size:11px">B3 00 31 40</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57360</td><td style="color:#7ED321">●</td><td>0x05</td><td>SUB</td><td>0x05000101</td><td style="font-family:monospace;font-size:11px">00 43 08 22</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57361</td><td style="color:#F5A623">●</td><td>0x06</td><td>AND</td><td>0x06000101</td><td style="font-family:monospace;font-size:11px">48 21 D9</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57362</td><td style="color:#F5A623">●</td><td>0x06</td><td>AND</td><td>0x06000101</td><td style="font-family:monospace;font-size:11px">8A 03 00 41</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57363</td><td style="color:#F5A623">●</td><td>0x06</td><td>AND</td><td>0x06000101</td><td style="font-family:monospace;font-size:11px">B3 70 31 00</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57364</td><td style="color:#F5A623">●</td><td>0x06</td><td>AND</td><td>0x06000101</td><td style="font-family:monospace;font-size:11px">01 2A 40 24</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57365</td><td style="color:#F5A623">●</td><td>0x07</td><td>OR</td><td>0x07000101</td><td style="font-family:monospace;font-size:11px">48 09 D9</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57366</td><td style="color:#F5A623">●</td><td>0x07</td><td>OR</td><td>0x07000101</td><td style="font-family:monospace;font-size:11px">AA 03 00 41</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57367</td><td style="color:#F5A623">●</td><td>0x07</td><td>OR</td><td>0x07000101</td><td style="font-family:monospace;font-size:11px">B3 60 31 00</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57368</td><td style="color:#F5A623">●</td><td>0x07</td><td>OR</td><td>0x07000101</td><td style="font-family:monospace;font-size:11px">01 2A 40 25</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57369</td><td style="color:#F5A623">●</td><td>0x08</td><td>XOR</td><td>0x08000101</td><td style="font-family:monospace;font-size:11px">48 31 D9</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57370</td><td style="color:#F5A623">●</td><td>0x08</td><td>XOR</td><td>0x08000101</td><td style="font-family:monospace;font-size:11px">CA 03 00 41</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57371</td><td style="color:#F5A623">●</td><td>0x08</td><td>XOR</td><td>0x08000101</td><td style="font-family:monospace;font-size:11px">B3 40 31 00</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57372</td><td style="color:#F5A623">●</td><td>0x08</td><td>XOR</td><td>0x08000101</td><td style="font-family:monospace;font-size:11px">01 2A 40 26</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57373</td><td style="color:#D0021B">●</td><td>0x09</td><td>JMP</td><td>0x09100002</td><td style="font-family:monospace;font-size:11px">FF E0</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57374</td><td style="color:#D0021B">●</td><td>0x09</td><td>JMP</td><td>0x09100002</td><td style="font-family:monospace;font-size:11px">D6 1F 00 00</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57375</td><td style="color:#D0021B">●</td><td>0x09</td><td>JMP</td><td>0x09100002</td><td style="font-family:monospace;font-size:11px">03 E0 00 08</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57376</td><td style="color:#D0021B">●</td><td>0x0A</td><td>BNE</td><td>0x0A001002</td><td style="font-family:monospace;font-size:11px">75 0A</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57377</td><td style="color:#D0021B">●</td><td>0x0A</td><td>BNE</td><td>0x0A001002</td><td style="font-family:monospace;font-size:11px">54 00 00 01</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57378</td><td style="color:#D0021B">●</td><td>0x0A</td><td>BNE</td><td>0x0A001002</td><td style="font-family:monospace;font-size:11px">15 62 00 00</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57379</td><td style="color:#D0021B">●</td><td>0x0B</td><td>BEQ</td><td>0x0B001003</td><td style="font-family:monospace;font-size:11px">74 0A</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57380</td><td style="color:#D0021B">●</td><td>0x0B</td><td>BEQ</td><td>0x0B001003</td><td style="font-family:monospace;font-size:11px">54 00 00 00</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57381</td><td style="color:#9013FE">●</td><td>0x0C</td><td>CALL</td><td>0x0C000001</td><td style="font-family:monospace;font-size:11px">FF D0</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57382</td><td style="color:#9013FE">●</td><td>0x0C</td><td>CALL</td><td>0x0C000001</td><td style="font-family:monospace;font-size:11px">D6 3F 00 00</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57383</td><td style="color:#9013FE">●</td><td>0x0C</td><td>CALL</td><td>0x0C000001</td><td style="font-family:monospace;font-size:11px">08 00 04 00</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57384</td><td style="color:#9013FE">●</td><td>0x0D</td><td>RET</td><td>0x0D0000FF</td><td style="font-family:monospace;font-size:11px">C3</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57385</td><td style="color:#9013FE">●</td><td>0x0D</td><td>RET</td><td>0x0D0000FF</td><td style="font-family:monospace;font-size:11px">D6 5F 03 C0</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57386</td><td style="color:#9013FE">●</td><td>0x0D</td><td>RET</td><td>0x0D0000FF</td><td style="font-family:monospace;font-size:11px">67 80 00 00</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57387</td><td style="color:#9013FE">●</td><td>0x0D</td><td>RET</td><td>0x0D0000FF</td><td style="font-family:monospace;font-size:11px">03 E0 00 08</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57388</td><td style="color:#50E3C2">●</td><td>0x0E</td><td>CMP</td><td>0x0E000101</td><td style="font-family:monospace;font-size:11px">48 39 D8</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57389</td><td style="color:#50E3C2">●</td><td>0x0E</td><td>CMP</td><td>0x0E000101</td><td style="font-family:monospace;font-size:11px">EB 03 02 EB</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57390</td><td style="color:#50E3C2">●</td><td>0x0E</td><td>CMP</td><td>0x0E000101</td><td style="font-family:monospace;font-size:11px">B3 20 31 00</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57391</td><td style="color:#50E3C2">●</td><td>0x0E</td><td>CMP</td><td>0x0E000101</td><td style="font-family:monospace;font-size:11px">01 2A 40 2A</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57392</td><td style="color:#B8E986">●</td><td>0x0F</td><td>MOV</td><td>0x0F00FF01</td><td style="font-family:monospace;font-size:11px">B8 78 56 34 12</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57393</td><td style="color:#B8E986">●</td><td>0x0F</td><td>MOV</td><td>0x0F00FF01</td><td style="font-family:monospace;font-size:11px">D2 80 00 80</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57394</td><td style="color:#B8E986">●</td><td>0x0F</td><td>MOV</td><td>0x0F00FF01</td><td style="font-family:monospace;font-size:11px">13 00 F0 0F</td><td style="color:#7ED321">✓</td></tr><tr><td style="color:#aaa">57395</td><td style="color:#B8E986">●</td><td>0x0F</td><td>MOV</td><td>0x0F00FF01</td><td style="font-family:monospace;font-size:11px">3C 08 12 34</td><td style="color:#7ED321">✓</td></tr></table>
+</div>
+<p style="color:#444;font-size:11px;margin-top:40px">容器字体统一架构 · 身份落款: 刘楚恬和我</p>
+</body>
+</html>

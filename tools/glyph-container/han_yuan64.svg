@@ -1,0 +1,652 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.2">
+  <defs>
+    <font id="HanYuan64" horiz-adv-x="1000">
+      <font-face font-family="HanYuan64" units-per-em="1000" ascent="800" descent="200">
+        <font-face-name name="HanYuan64"/>
+      </font-face>
+      <missing-glyph horiz-adv-x="1000"><path d="M0,200 L200,800 L400,800" fill="none" stroke="#ccc"/></missing-glyph>
+      <!-- 容器族[0] 袋 code=0 pol=YANG sov=ACTIVE_SUB z=0 depth=0 stroke=0 -->
+      <glyph unicode="&#x0000;" glyph-name="袋" horiz-adv-x="1000"
+             container:code="0" container:name="袋"
+             container:polarity="YANG" container:sovereignty="ACTIVE_SUB"
+             container:meaning="容器族"
+             container:time_slot="0" container:depth="0"
+             container:topology="box" container:stroke_type="0"
+             container:native_code="HFC_00_袋_YANG_ACTIVE_SUB"
+             d="M126.0,126.0 L574.0,126.0 L574.0,574.0 L126.0,574.0 Z"
+             fill="hsl(210,75%,55%)" stroke="hsl(210,90%,25%)" stroke-width="6"/>
+      <!-- 容器族[1] 照 code=1 pol=YANG sov=ACTIVE_SUB z=1 depth=0 stroke=1 -->
+      <glyph unicode="&#x0001;" glyph-name="照" horiz-adv-x="1000"
+             container:code="1" container:name="照"
+             container:polarity="YANG" container:sovereignty="ACTIVE_SUB"
+             container:meaning="容器族"
+             container:time_slot="1" container:depth="0"
+             container:topology="box" container:stroke_type="1"
+             container:native_code="HFC_01_照_YANG_ACTIVE_SUB"
+             d="M126.0,126.0 L574.0,126.0 L574.0,574.0 L126.0,574.0 Z"
+             fill="hsl(210,75%,55%)" stroke="hsl(210,90%,25%)" stroke-width="6"/>
+      <!-- 容器族[2] 见 code=2 pol=YANG sov=ACTIVE_SUB z=2 depth=0 stroke=2 -->
+      <glyph unicode="&#x0002;" glyph-name="见" horiz-adv-x="1000"
+             container:code="2" container:name="见"
+             container:polarity="YANG" container:sovereignty="ACTIVE_SUB"
+             container:meaning="容器族"
+             container:time_slot="2" container:depth="0"
+             container:topology="double_cone" container:stroke_type="2"
+             container:native_code="HFC_02_见_YANG_ACTIVE_SUB"
+             d="M350.0,126.0 L574.0,350.0 L350.0,574.0 L126.0,350.0 Z"
+             fill="hsl(0,75%,55%)" stroke="hsl(0,90%,25%)" stroke-width="6"/>
+      <!-- 容器族[3] 阴 code=3 pol=YANG sov=ACTIVE_SUB z=3 depth=0 stroke=3 -->
+      <glyph unicode="&#x0003;" glyph-name="阴" horiz-adv-x="1000"
+             container:code="3" container:name="阴"
+             container:polarity="YANG" container:sovereignty="ACTIVE_SUB"
+             container:meaning="容器族"
+             container:time_slot="3" container:depth="0"
+             container:topology="sphere" container:stroke_type="3"
+             container:native_code="HFC_03_阴_YANG_ACTIVE_SUB"
+             d="M126.0,350.0 A224.0,224.0 0 1 0 574.0,350.0 A224.0,224.0 0 1 0 126.0,350.0 Z"
+             fill="hsl(120,75%,55%)" stroke="hsl(120,90%,25%)" stroke-width="6"/>
+      <!-- 容器族[4] 加 code=4 pol=YANG sov=ACTIVE_SUB z=4 depth=0 stroke=4 -->
+      <glyph unicode="&#x0004;" glyph-name="加" horiz-adv-x="1000"
+             container:code="4" container:name="加"
+             container:polarity="YANG" container:sovereignty="ACTIVE_SUB"
+             container:meaning="容器族"
+             container:time_slot="4" container:depth="0"
+             container:topology="sphere" container:stroke_type="4"
+             container:native_code="HFC_04_加_YANG_ACTIVE_SUB"
+             d="M126.0,350.0 A224.0,224.0 0 1 0 574.0,350.0 A224.0,224.0 0 1 0 126.0,350.0 Z"
+             fill="hsl(120,75%,55%)" stroke="hsl(120,90%,25%)" stroke-width="6"/>
+      <!-- 容器族[5] 分 code=5 pol=YANG sov=ACTIVE_SUB z=5 depth=0 stroke=5 -->
+      <glyph unicode="&#x0005;" glyph-name="分" horiz-adv-x="1000"
+             container:code="5" container:name="分"
+             container:polarity="YANG" container:sovereignty="ACTIVE_SUB"
+             container:meaning="容器族"
+             container:time_slot="5" container:depth="0"
+             container:topology="torus" container:stroke_type="5"
+             container:native_code="HFC_05_分_YANG_ACTIVE_SUB"
+             d="M126.0,350.0 A224.0,134.4 0 1 0 574.0,350.0 A224.0,134.4 0 1 0 126.0,350.0 Z M210.0,350.0 A140.0,84.0 0 1 1 490.0,350.0 A140.0,84.0 0 1 1 210.0,350.0 Z"
+             fill="hsl(30,75%,55%)" stroke="hsl(30,90%,25%)" stroke-width="6"/>
+      <!-- 容器族[6] 元 code=6 pol=YANG sov=ACTIVE_SUB z=6 depth=0 stroke=6 -->
+      <glyph unicode="&#x0006;" glyph-name="元" horiz-adv-x="1000"
+             container:code="6" container:name="元"
+             container:polarity="YANG" container:sovereignty="ACTIVE_SUB"
+             container:meaning="容器族"
+             container:time_slot="6" container:depth="0"
+             container:topology="line" container:stroke_type="6"
+             container:native_code="HFC_06_元_YANG_ACTIVE_SUB"
+             d="M126.0,350.0 L574.0,350.0"
+             fill="hsl(60,75%,55%)" stroke="hsl(60,90%,25%)" stroke-width="6"/>
+      <!-- 容器族[7] 裁 code=7 pol=YANG sov=ACTIVE_SUB z=7 depth=0 stroke=7 -->
+      <glyph unicode="&#x0007;" glyph-name="裁" horiz-adv-x="1000"
+             container:code="7" container:name="裁"
+             container:polarity="YANG" container:sovereignty="ACTIVE_SUB"
+             container:meaning="容器族"
+             container:time_slot="7" container:depth="0"
+             container:topology="double_cone" container:stroke_type="7"
+             container:native_code="HFC_07_裁_YANG_ACTIVE_SUB"
+             d="M350.0,126.0 L574.0,350.0 L350.0,574.0 L126.0,350.0 Z"
+             fill="hsl(0,75%,55%)" stroke="hsl(0,90%,25%)" stroke-width="6"/>
+      <!-- 容器族[8] 产 code=8 pol=YANG sov=ACTIVE_SUB z=8 depth=0 stroke=8 -->
+      <glyph unicode="&#x0008;" glyph-name="产" horiz-adv-x="1000"
+             container:code="8" container:name="产"
+             container:polarity="YANG" container:sovereignty="ACTIVE_SUB"
+             container:meaning="容器族"
+             container:time_slot="8" container:depth="0"
+             container:topology="sphere" container:stroke_type="8"
+             container:native_code="HFC_08_产_YANG_ACTIVE_SUB"
+             d="M126.0,350.0 A224.0,224.0 0 1 0 574.0,350.0 A224.0,224.0 0 1 0 126.0,350.0 Z"
+             fill="hsl(120,75%,55%)" stroke="hsl(120,90%,25%)" stroke-width="6"/>
+      <!-- 容器族[9] 公 code=9 pol=YANG sov=ACTIVE_SUB z=9 depth=0 stroke=9 -->
+      <glyph unicode="&#x0009;" glyph-name="公" horiz-adv-x="1000"
+             container:code="9" container:name="公"
+             container:polarity="YANG" container:sovereignty="ACTIVE_SUB"
+             container:meaning="容器族"
+             container:time_slot="9" container:depth="0"
+             container:topology="sphere" container:stroke_type="9"
+             container:native_code="HFC_09_公_YANG_ACTIVE_SUB"
+             d="M126.0,350.0 A224.0,224.0 0 1 0 574.0,350.0 A224.0,224.0 0 1 0 126.0,350.0 Z"
+             fill="hsl(120,75%,55%)" stroke="hsl(120,90%,25%)" stroke-width="6"/>
+      <!-- 容器族[10] 声 code=10 pol=YANG sov=ACTIVE_SUB z=10 depth=0 stroke=10 -->
+      <glyph unicode="&#x000A;" glyph-name="声" horiz-adv-x="1000"
+             container:code="10" container:name="声"
+             container:polarity="YANG" container:sovereignty="ACTIVE_SUB"
+             container:meaning="容器族"
+             container:time_slot="10" container:depth="0"
+             container:topology="torus" container:stroke_type="10"
+             container:native_code="HFC_0A_声_YANG_ACTIVE_SUB"
+             d="M126.0,350.0 A224.0,134.4 0 1 0 574.0,350.0 A224.0,134.4 0 1 0 126.0,350.0 Z M210.0,350.0 A140.0,84.0 0 1 1 490.0,350.0 A140.0,84.0 0 1 1 210.0,350.0 Z"
+             fill="hsl(30,75%,55%)" stroke="hsl(30,90%,25%)" stroke-width="6"/>
+      <!-- 容器族[11] 折 code=11 pol=YANG sov=ACTIVE_SUB z=11 depth=0 stroke=11 -->
+      <glyph unicode="&#x000B;" glyph-name="折" horiz-adv-x="1000"
+             container:code="11" container:name="折"
+             container:polarity="YANG" container:sovereignty="ACTIVE_SUB"
+             container:meaning="容器族"
+             container:time_slot="11" container:depth="0"
+             container:topology="torus" container:stroke_type="11"
+             container:native_code="HFC_0B_折_YANG_ACTIVE_SUB"
+             d="M126.0,350.0 A224.0,134.4 0 1 0 574.0,350.0 A224.0,134.4 0 1 0 126.0,350.0 Z M210.0,350.0 A140.0,84.0 0 1 1 490.0,350.0 A140.0,84.0 0 1 1 210.0,350.0 Z"
+             fill="hsl(30,75%,55%)" stroke="hsl(30,90%,25%)" stroke-width="6"/>
+      <!-- 容器族[12] 负 code=12 pol=YANG sov=ACTIVE_SUB z=12 depth=0 stroke=12 -->
+      <glyph unicode="&#x000C;" glyph-name="负" horiz-adv-x="1000"
+             container:code="12" container:name="负"
+             container:polarity="YANG" container:sovereignty="ACTIVE_SUB"
+             container:meaning="容器族"
+             container:time_slot="12" container:depth="0"
+             container:topology="box" container:stroke_type="12"
+             container:native_code="HFC_0C_负_YANG_ACTIVE_SUB"
+             d="M126.0,126.0 L574.0,126.0 L574.0,574.0 L126.0,574.0 Z"
+             fill="hsl(210,75%,55%)" stroke="hsl(210,90%,25%)" stroke-width="6"/>
+      <!-- 容器族[13] 福 code=13 pol=YANG sov=ACTIVE_SUB z=13 depth=0 stroke=13 -->
+      <glyph unicode="&#x000D;" glyph-name="福" horiz-adv-x="1000"
+             container:code="13" container:name="福"
+             container:polarity="YANG" container:sovereignty="ACTIVE_SUB"
+             container:meaning="容器族"
+             container:time_slot="13" container:depth="0"
+             container:topology="sphere" container:stroke_type="13"
+             container:native_code="HFC_0D_福_YANG_ACTIVE_SUB"
+             d="M126.0,350.0 A224.0,224.0 0 1 0 574.0,350.0 A224.0,224.0 0 1 0 126.0,350.0 Z"
+             fill="hsl(120,75%,55%)" stroke="hsl(120,90%,25%)" stroke-width="6"/>
+      <!-- 容器族[14] 凤 code=14 pol=YANG sov=ACTIVE_SUB z=14 depth=0 stroke=14 -->
+      <glyph unicode="&#x000E;" glyph-name="凤" horiz-adv-x="1000"
+             container:code="14" container:name="凤"
+             container:polarity="YANG" container:sovereignty="ACTIVE_SUB"
+             container:meaning="容器族"
+             container:time_slot="14" container:depth="0"
+             container:topology="torus" container:stroke_type="14"
+             container:native_code="HFC_0E_凤_YANG_ACTIVE_SUB"
+             d="M126.0,350.0 A224.0,134.4 0 1 0 574.0,350.0 A224.0,134.4 0 1 0 126.0,350.0 Z M210.0,350.0 A140.0,84.0 0 1 1 490.0,350.0 A140.0,84.0 0 1 1 210.0,350.0 Z"
+             fill="hsl(30,75%,55%)" stroke="hsl(30,90%,25%)" stroke-width="6"/>
+      <!-- 容器族[15] 栖 code=15 pol=YANG sov=ACTIVE_SUB z=15 depth=0 stroke=15 -->
+      <glyph unicode="&#x000F;" glyph-name="栖" horiz-adv-x="1000"
+             container:code="15" container:name="栖"
+             container:polarity="YANG" container:sovereignty="ACTIVE_SUB"
+             container:meaning="容器族"
+             container:time_slot="15" container:depth="0"
+             container:topology="line" container:stroke_type="15"
+             container:native_code="HFC_0F_栖_YANG_ACTIVE_SUB"
+             d="M126.0,350.0 L574.0,350.0"
+             fill="hsl(60,75%,55%)" stroke="hsl(60,90%,25%)" stroke-width="6"/>
+      <!-- 操作族[0] 融 code=16 pol=NEUTRAL sov=ACTIVE_SUB z=16 depth=0 stroke=0 -->
+      <glyph unicode="&#x0010;" glyph-name="融" horiz-adv-x="1000"
+             container:code="16" container:name="融"
+             container:polarity="NEUTRAL" container:sovereignty="ACTIVE_SUB"
+             container:meaning="操作族"
+             container:time_slot="16" container:depth="0"
+             container:topology="torus" container:stroke_type="0"
+             container:native_code="HFC_10_融_NEUTRAL_ACTIVE_SUB"
+             d="M126.0,350.0 A224.0,134.4 0 1 0 574.0,350.0 A224.0,134.4 0 1 0 126.0,350.0 Z M210.0,350.0 A140.0,84.0 0 1 1 490.0,350.0 A140.0,84.0 0 1 1 210.0,350.0 Z"
+             fill="hsl(30,75%,55%)" stroke="hsl(30,90%,25%)" stroke-width="6"/>
+      <!-- 操作族[1] 鼓 code=17 pol=NEUTRAL sov=ACTIVE_SUB z=17 depth=0 stroke=1 -->
+      <glyph unicode="&#x0011;" glyph-name="鼓" horiz-adv-x="1000"
+             container:code="17" container:name="鼓"
+             container:polarity="NEUTRAL" container:sovereignty="ACTIVE_SUB"
+             container:meaning="操作族"
+             container:time_slot="17" container:depth="0"
+             container:topology="sphere" container:stroke_type="1"
+             container:native_code="HFC_11_鼓_NEUTRAL_ACTIVE_SUB"
+             d="M126.0,350.0 A224.0,224.0 0 1 0 574.0,350.0 A224.0,224.0 0 1 0 126.0,350.0 Z"
+             fill="hsl(120,75%,55%)" stroke="hsl(120,90%,25%)" stroke-width="6"/>
+      <!-- 操作族[2] 蚕 code=18 pol=NEUTRAL sov=ACTIVE_SUB z=18 depth=0 stroke=2 -->
+      <glyph unicode="&#x0012;" glyph-name="蚕" horiz-adv-x="1000"
+             container:code="18" container:name="蚕"
+             container:polarity="NEUTRAL" container:sovereignty="ACTIVE_SUB"
+             container:meaning="操作族"
+             container:time_slot="18" container:depth="0"
+             container:topology="torus" container:stroke_type="2"
+             container:native_code="HFC_12_蚕_NEUTRAL_ACTIVE_SUB"
+             d="M126.0,350.0 A224.0,134.4 0 1 0 574.0,350.0 A224.0,134.4 0 1 0 126.0,350.0 Z M210.0,350.0 A140.0,84.0 0 1 1 490.0,350.0 A140.0,84.0 0 1 1 210.0,350.0 Z"
+             fill="hsl(30,75%,55%)" stroke="hsl(30,90%,25%)" stroke-width="6"/>
+      <!-- 操作族[3] 民 code=19 pol=NEUTRAL sov=ACTIVE_SUB z=19 depth=0 stroke=3 -->
+      <glyph unicode="&#x0013;" glyph-name="民" horiz-adv-x="1000"
+             container:code="19" container:name="民"
+             container:polarity="NEUTRAL" container:sovereignty="ACTIVE_SUB"
+             container:meaning="操作族"
+             container:time_slot="19" container:depth="0"
+             container:topology="sphere" container:stroke_type="3"
+             container:native_code="HFC_13_民_NEUTRAL_ACTIVE_SUB"
+             d="M126.0,350.0 A224.0,224.0 0 1 0 574.0,350.0 A224.0,224.0 0 1 0 126.0,350.0 Z"
+             fill="hsl(120,75%,55%)" stroke="hsl(120,90%,25%)" stroke-width="6"/>
+      <!-- 操作族[4] 盟 code=20 pol=NEUTRAL sov=ACTIVE_SUB z=20 depth=0 stroke=4 -->
+      <glyph unicode="&#x0014;" glyph-name="盟" horiz-adv-x="1000"
+             container:code="20" container:name="盟"
+             container:polarity="NEUTRAL" container:sovereignty="ACTIVE_SUB"
+             container:meaning="操作族"
+             container:time_slot="20" container:depth="0"
+             container:topology="box" container:stroke_type="4"
+             container:native_code="HFC_14_盟_NEUTRAL_ACTIVE_SUB"
+             d="M126.0,126.0 L574.0,126.0 L574.0,574.0 L126.0,574.0 Z"
+             fill="hsl(210,75%,55%)" stroke="hsl(210,90%,25%)" stroke-width="6"/>
+      <!-- 操作族[5] 满 code=21 pol=NEUTRAL sov=ACTIVE_SUB z=21 depth=0 stroke=5 -->
+      <glyph unicode="&#x0015;" glyph-name="满" horiz-adv-x="1000"
+             container:code="21" container:name="满"
+             container:polarity="NEUTRAL" container:sovereignty="ACTIVE_SUB"
+             container:meaning="操作族"
+             container:time_slot="21" container:depth="0"
+             container:topology="sphere" container:stroke_type="5"
+             container:native_code="HFC_15_满_NEUTRAL_ACTIVE_SUB"
+             d="M126.0,350.0 A224.0,224.0 0 1 0 574.0,350.0 A224.0,224.0 0 1 0 126.0,350.0 Z"
+             fill="hsl(120,75%,55%)" stroke="hsl(120,90%,25%)" stroke-width="6"/>
+      <!-- 操作族[6] 囡 code=22 pol=NEUTRAL sov=ACTIVE_SUB z=22 depth=0 stroke=6 -->
+      <glyph unicode="&#x0016;" glyph-name="囡" horiz-adv-x="1000"
+             container:code="22" container:name="囡"
+             container:polarity="NEUTRAL" container:sovereignty="ACTIVE_SUB"
+             container:meaning="操作族"
+             container:time_slot="22" container:depth="0"
+             container:topology="torus" container:stroke_type="6"
+             container:native_code="HFC_16_囡_NEUTRAL_ACTIVE_SUB"
+             d="M126.0,350.0 A224.0,134.4 0 1 0 574.0,350.0 A224.0,134.4 0 1 0 126.0,350.0 Z M210.0,350.0 A140.0,84.0 0 1 1 490.0,350.0 A140.0,84.0 0 1 1 210.0,350.0 Z"
+             fill="hsl(30,75%,55%)" stroke="hsl(30,90%,25%)" stroke-width="6"/>
+      <!-- 操作族[7] 夕 code=23 pol=NEUTRAL sov=ACTIVE_SUB z=23 depth=0 stroke=7 -->
+      <glyph unicode="&#x0017;" glyph-name="夕" horiz-adv-x="1000"
+             container:code="23" container:name="夕"
+             container:polarity="NEUTRAL" container:sovereignty="ACTIVE_SUB"
+             container:meaning="操作族"
+             container:time_slot="23" container:depth="0"
+             container:topology="line" container:stroke_type="7"
+             container:native_code="HFC_17_夕_NEUTRAL_ACTIVE_SUB"
+             d="M126.0,350.0 L574.0,350.0"
+             fill="hsl(60,75%,55%)" stroke="hsl(60,90%,25%)" stroke-width="6"/>
+      <!-- 操作族[8] 三 code=24 pol=NEUTRAL sov=ACTIVE_SUB z=24 depth=0 stroke=8 -->
+      <glyph unicode="&#x0018;" glyph-name="三" horiz-adv-x="1000"
+             container:code="24" container:name="三"
+             container:polarity="NEUTRAL" container:sovereignty="ACTIVE_SUB"
+             container:meaning="操作族"
+             container:time_slot="24" container:depth="0"
+             container:topology="double_cone" container:stroke_type="8"
+             container:native_code="HFC_18_三_NEUTRAL_ACTIVE_SUB"
+             d="M350.0,126.0 L574.0,350.0 L350.0,574.0 L126.0,350.0 Z"
+             fill="hsl(0,75%,55%)" stroke="hsl(0,90%,25%)" stroke-width="6"/>
+      <!-- 操作族[9] 六 code=25 pol=NEUTRAL sov=ACTIVE_SUB z=25 depth=0 stroke=9 -->
+      <glyph unicode="&#x0019;" glyph-name="六" horiz-adv-x="1000"
+             container:code="25" container:name="六"
+             container:polarity="NEUTRAL" container:sovereignty="ACTIVE_SUB"
+             container:meaning="操作族"
+             container:time_slot="25" container:depth="0"
+             container:topology="sphere" container:stroke_type="9"
+             container:native_code="HFC_19_六_NEUTRAL_ACTIVE_SUB"
+             d="M126.0,350.0 A224.0,224.0 0 1 0 574.0,350.0 A224.0,224.0 0 1 0 126.0,350.0 Z"
+             fill="hsl(120,75%,55%)" stroke="hsl(120,90%,25%)" stroke-width="6"/>
+      <!-- 操作族[10] 八 code=26 pol=NEUTRAL sov=ACTIVE_SUB z=26 depth=0 stroke=10 -->
+      <glyph unicode="&#x001A;" glyph-name="八" horiz-adv-x="1000"
+             container:code="26" container:name="八"
+             container:polarity="NEUTRAL" container:sovereignty="ACTIVE_SUB"
+             container:meaning="操作族"
+             container:time_slot="26" container:depth="0"
+             container:topology="torus" container:stroke_type="10"
+             container:native_code="HFC_1A_八_NEUTRAL_ACTIVE_SUB"
+             d="M126.0,350.0 A224.0,134.4 0 1 0 574.0,350.0 A224.0,134.4 0 1 0 126.0,350.0 Z M210.0,350.0 A140.0,84.0 0 1 1 490.0,350.0 A140.0,84.0 0 1 1 210.0,350.0 Z"
+             fill="hsl(30,75%,55%)" stroke="hsl(30,90%,25%)" stroke-width="6"/>
+      <!-- 操作族[11] 九 code=27 pol=NEUTRAL sov=ACTIVE_SUB z=27 depth=0 stroke=11 -->
+      <glyph unicode="&#x001B;" glyph-name="九" horiz-adv-x="1000"
+             container:code="27" container:name="九"
+             container:polarity="NEUTRAL" container:sovereignty="ACTIVE_SUB"
+             container:meaning="操作族"
+             container:time_slot="27" container:depth="0"
+             container:topology="double_cone" container:stroke_type="11"
+             container:native_code="HFC_1B_九_NEUTRAL_ACTIVE_SUB"
+             d="M350.0,126.0 L574.0,350.0 L350.0,574.0 L126.0,350.0 Z"
+             fill="hsl(0,75%,55%)" stroke="hsl(0,90%,25%)" stroke-width="6"/>
+      <!-- 操作族[12] 零 code=28 pol=NEUTRAL sov=ACTIVE_SUB z=28 depth=0 stroke=12 -->
+      <glyph unicode="&#x001C;" glyph-name="零" horiz-adv-x="1000"
+             container:code="28" container:name="零"
+             container:polarity="NEUTRAL" container:sovereignty="ACTIVE_SUB"
+             container:meaning="操作族"
+             container:time_slot="28" container:depth="0"
+             container:topology="line" container:stroke_type="12"
+             container:native_code="HFC_1C_零_NEUTRAL_ACTIVE_SUB"
+             d="M126.0,350.0 L574.0,350.0"
+             fill="hsl(60,75%,55%)" stroke="hsl(60,90%,25%)" stroke-width="6"/>
+      <!-- 操作族[13] 一 code=29 pol=NEUTRAL sov=ACTIVE_SUB z=29 depth=0 stroke=13 -->
+      <glyph unicode="&#x001D;" glyph-name="一" horiz-adv-x="1000"
+             container:code="29" container:name="一"
+             container:polarity="NEUTRAL" container:sovereignty="ACTIVE_SUB"
+             container:meaning="操作族"
+             container:time_slot="29" container:depth="0"
+             container:topology="line" container:stroke_type="13"
+             container:native_code="HFC_1D_一_NEUTRAL_ACTIVE_SUB"
+             d="M126.0,350.0 L574.0,350.0"
+             fill="hsl(60,75%,55%)" stroke="hsl(60,90%,25%)" stroke-width="6"/>
+      <!-- 操作族[14] 二 code=30 pol=NEUTRAL sov=ACTIVE_SUB z=30 depth=0 stroke=14 -->
+      <glyph unicode="&#x001E;" glyph-name="二" horiz-adv-x="1000"
+             container:code="30" container:name="二"
+             container:polarity="NEUTRAL" container:sovereignty="ACTIVE_SUB"
+             container:meaning="操作族"
+             container:time_slot="30" container:depth="0"
+             container:topology="torus" container:stroke_type="14"
+             container:native_code="HFC_1E_二_NEUTRAL_ACTIVE_SUB"
+             d="M126.0,350.0 A224.0,134.4 0 1 0 574.0,350.0 A224.0,134.4 0 1 0 126.0,350.0 Z M210.0,350.0 A140.0,84.0 0 1 1 490.0,350.0 A140.0,84.0 0 1 1 210.0,350.0 Z"
+             fill="hsl(30,75%,55%)" stroke="hsl(30,90%,25%)" stroke-width="6"/>
+      <!-- 操作族[15] 四 code=31 pol=NEUTRAL sov=ACTIVE_SUB z=31 depth=0 stroke=15 -->
+      <glyph unicode="&#x001F;" glyph-name="四" horiz-adv-x="1000"
+             container:code="31" container:name="四"
+             container:polarity="NEUTRAL" container:sovereignty="ACTIVE_SUB"
+             container:meaning="操作族"
+             container:time_slot="31" container:depth="0"
+             container:topology="box" container:stroke_type="15"
+             container:native_code="HFC_1F_四_NEUTRAL_ACTIVE_SUB"
+             d="M126.0,126.0 L574.0,126.0 L574.0,574.0 L126.0,574.0 Z"
+             fill="hsl(210,75%,55%)" stroke="hsl(210,90%,25%)" stroke-width="6"/>
+      <!-- 声母容器[0] 帮 code=32 pol=YANG sov=ACTIVE z=32 depth=0 stroke=0 -->
+      <glyph unicode="&#x0020;" glyph-name="帮" horiz-adv-x="1000"
+             container:code="32" container:name="帮"
+             container:polarity="YANG" container:sovereignty="ACTIVE"
+             container:meaning="声母容器"
+             container:time_slot="32" container:depth="0"
+             container:topology="sphere" container:stroke_type="0"
+             container:native_code="HFC_20_帮_YANG_ACTIVE"
+             d="M126.0,350.0 A224.0,224.0 0 1 0 574.0,350.0 A224.0,224.0 0 1 0 126.0,350.0 Z"
+             fill="hsl(120,75%,55%)" stroke="hsl(120,90%,25%)" stroke-width="6"/>
+      <!-- 声母容器[1] 端 code=33 pol=YANG sov=ACTIVE z=33 depth=0 stroke=1 -->
+      <glyph unicode="&#x0021;" glyph-name="端" horiz-adv-x="1000"
+             container:code="33" container:name="端"
+             container:polarity="YANG" container:sovereignty="ACTIVE"
+             container:meaning="声母容器"
+             container:time_slot="33" container:depth="0"
+             container:topology="sphere" container:stroke_type="1"
+             container:native_code="HFC_21_端_YANG_ACTIVE"
+             d="M126.0,350.0 A224.0,224.0 0 1 0 574.0,350.0 A224.0,224.0 0 1 0 126.0,350.0 Z"
+             fill="hsl(120,75%,55%)" stroke="hsl(120,90%,25%)" stroke-width="6"/>
+      <!-- 声母容器[2] 精 code=34 pol=YANG sov=ACTIVE z=34 depth=0 stroke=2 -->
+      <glyph unicode="&#x0022;" glyph-name="精" horiz-adv-x="1000"
+             container:code="34" container:name="精"
+             container:polarity="YANG" container:sovereignty="ACTIVE"
+             container:meaning="声母容器"
+             container:time_slot="34" container:depth="0"
+             container:topology="sphere" container:stroke_type="2"
+             container:native_code="HFC_22_精_YANG_ACTIVE"
+             d="M126.0,350.0 A224.0,224.0 0 1 0 574.0,350.0 A224.0,224.0 0 1 0 126.0,350.0 Z"
+             fill="hsl(120,75%,55%)" stroke="hsl(120,90%,25%)" stroke-width="6"/>
+      <!-- 声母容器[3] 见 code=35 pol=YANG sov=ACTIVE z=35 depth=0 stroke=3 -->
+      <glyph unicode="&#x0023;" glyph-name="见" horiz-adv-x="1000"
+             container:code="35" container:name="见"
+             container:polarity="YANG" container:sovereignty="ACTIVE"
+             container:meaning="声母容器"
+             container:time_slot="35" container:depth="0"
+             container:topology="sphere" container:stroke_type="3"
+             container:native_code="HFC_23_见_YANG_ACTIVE"
+             d="M126.0,350.0 A224.0,224.0 0 1 0 574.0,350.0 A224.0,224.0 0 1 0 126.0,350.0 Z"
+             fill="hsl(120,75%,55%)" stroke="hsl(120,90%,25%)" stroke-width="6"/>
+      <!-- 声母容器[4] 来 code=36 pol=YANG sov=ACTIVE z=36 depth=0 stroke=4 -->
+      <glyph unicode="&#x0024;" glyph-name="来" horiz-adv-x="1000"
+             container:code="36" container:name="来"
+             container:polarity="YANG" container:sovereignty="ACTIVE"
+             container:meaning="声母容器"
+             container:time_slot="36" container:depth="0"
+             container:topology="sphere" container:stroke_type="4"
+             container:native_code="HFC_24_来_YANG_ACTIVE"
+             d="M126.0,350.0 A224.0,224.0 0 1 0 574.0,350.0 A224.0,224.0 0 1 0 126.0,350.0 Z"
+             fill="hsl(120,75%,55%)" stroke="hsl(120,90%,25%)" stroke-width="6"/>
+      <!-- 声母容器[5] 齿 code=37 pol=YANG sov=ACTIVE z=37 depth=0 stroke=5 -->
+      <glyph unicode="&#x0025;" glyph-name="齿" horiz-adv-x="1000"
+             container:code="37" container:name="齿"
+             container:polarity="YANG" container:sovereignty="ACTIVE"
+             container:meaning="声母容器"
+             container:time_slot="37" container:depth="0"
+             container:topology="sphere" container:stroke_type="5"
+             container:native_code="HFC_25_齿_YANG_ACTIVE"
+             d="M126.0,350.0 A224.0,224.0 0 1 0 574.0,350.0 A224.0,224.0 0 1 0 126.0,350.0 Z"
+             fill="hsl(120,75%,55%)" stroke="hsl(120,90%,25%)" stroke-width="6"/>
+      <!-- 声母容器[6] 喉 code=38 pol=YANG sov=ACTIVE z=38 depth=0 stroke=6 -->
+      <glyph unicode="&#x0026;" glyph-name="喉" horiz-adv-x="1000"
+             container:code="38" container:name="喉"
+             container:polarity="YANG" container:sovereignty="ACTIVE"
+             container:meaning="声母容器"
+             container:time_slot="38" container:depth="0"
+             container:topology="sphere" container:stroke_type="6"
+             container:native_code="HFC_26_喉_YANG_ACTIVE"
+             d="M126.0,350.0 A224.0,224.0 0 1 0 574.0,350.0 A224.0,224.0 0 1 0 126.0,350.0 Z"
+             fill="hsl(120,75%,55%)" stroke="hsl(120,90%,25%)" stroke-width="6"/>
+      <!-- 声母容器[7] 呼 code=39 pol=YANG sov=ACTIVE z=39 depth=0 stroke=7 -->
+      <glyph unicode="&#x0027;" glyph-name="呼" horiz-adv-x="1000"
+             container:code="39" container:name="呼"
+             container:polarity="YANG" container:sovereignty="ACTIVE"
+             container:meaning="声母容器"
+             container:time_slot="39" container:depth="0"
+             container:topology="sphere" container:stroke_type="7"
+             container:native_code="HFC_27_呼_YANG_ACTIVE"
+             d="M126.0,350.0 A224.0,224.0 0 1 0 574.0,350.0 A224.0,224.0 0 1 0 126.0,350.0 Z"
+             fill="hsl(120,75%,55%)" stroke="hsl(120,90%,25%)" stroke-width="6"/>
+      <!-- 声母容器[8] 开 code=40 pol=YANG sov=ACTIVE z=40 depth=0 stroke=8 -->
+      <glyph unicode="&#x0028;" glyph-name="开" horiz-adv-x="1000"
+             container:code="40" container:name="开"
+             container:polarity="YANG" container:sovereignty="ACTIVE"
+             container:meaning="声母容器"
+             container:time_slot="40" container:depth="0"
+             container:topology="sphere" container:stroke_type="8"
+             container:native_code="HFC_28_开_YANG_ACTIVE"
+             d="M126.0,350.0 A224.0,224.0 0 1 0 574.0,350.0 A224.0,224.0 0 1 0 126.0,350.0 Z"
+             fill="hsl(120,75%,55%)" stroke="hsl(120,90%,25%)" stroke-width="6"/>
+      <!-- 声母容器[9] 清 code=41 pol=YANG sov=ACTIVE z=41 depth=0 stroke=9 -->
+      <glyph unicode="&#x0029;" glyph-name="清" horiz-adv-x="1000"
+             container:code="41" container:name="清"
+             container:polarity="YANG" container:sovereignty="ACTIVE"
+             container:meaning="声母容器"
+             container:time_slot="41" container:depth="0"
+             container:topology="sphere" container:stroke_type="9"
+             container:native_code="HFC_29_清_YANG_ACTIVE"
+             d="M126.0,350.0 A224.0,224.0 0 1 0 574.0,350.0 A224.0,224.0 0 1 0 126.0,350.0 Z"
+             fill="hsl(120,75%,55%)" stroke="hsl(120,90%,25%)" stroke-width="6"/>
+      <!-- 声母容器[10] 平 code=42 pol=YANG sov=ACTIVE z=42 depth=0 stroke=10 -->
+      <glyph unicode="&#x002A;" glyph-name="平" horiz-adv-x="1000"
+             container:code="42" container:name="平"
+             container:polarity="YANG" container:sovereignty="ACTIVE"
+             container:meaning="声母容器"
+             container:time_slot="42" container:depth="0"
+             container:topology="line" container:stroke_type="10"
+             container:native_code="HFC_2A_平_YANG_ACTIVE"
+             d="M126.0,350.0 L574.0,350.0"
+             fill="hsl(60,75%,55%)" stroke="hsl(60,90%,25%)" stroke-width="6"/>
+      <!-- 声母容器[11] 上 code=43 pol=YANG sov=ACTIVE z=43 depth=0 stroke=11 -->
+      <glyph unicode="&#x002B;" glyph-name="上" horiz-adv-x="1000"
+             container:code="43" container:name="上"
+             container:polarity="YANG" container:sovereignty="ACTIVE"
+             container:meaning="声母容器"
+             container:time_slot="43" container:depth="0"
+             container:topology="box" container:stroke_type="11"
+             container:native_code="HFC_2B_上_YANG_ACTIVE"
+             d="M126.0,126.0 L574.0,126.0 L574.0,574.0 L126.0,574.0 Z"
+             fill="hsl(210,75%,55%)" stroke="hsl(210,90%,25%)" stroke-width="6"/>
+      <!-- 声母容器[12] 前 code=44 pol=YANG sov=ACTIVE z=44 depth=0 stroke=12 -->
+      <glyph unicode="&#x002C;" glyph-name="前" horiz-adv-x="1000"
+             container:code="44" container:name="前"
+             container:polarity="YANG" container:sovereignty="ACTIVE"
+             container:meaning="声母容器"
+             container:time_slot="44" container:depth="0"
+             container:topology="line" container:stroke_type="12"
+             container:native_code="HFC_2C_前_YANG_ACTIVE"
+             d="M126.0,350.0 L574.0,350.0"
+             fill="hsl(60,75%,55%)" stroke="hsl(60,90%,25%)" stroke-width="6"/>
+      <!-- 声母容器[13] 内 code=45 pol=YANG sov=ACTIVE z=45 depth=0 stroke=13 -->
+      <glyph unicode="&#x002D;" glyph-name="内" horiz-adv-x="1000"
+             container:code="45" container:name="内"
+             container:polarity="YANG" container:sovereignty="ACTIVE"
+             container:meaning="声母容器"
+             container:time_slot="45" container:depth="0"
+             container:topology="box" container:stroke_type="13"
+             container:native_code="HFC_2D_内_YANG_ACTIVE"
+             d="M126.0,126.0 L574.0,126.0 L574.0,574.0 L126.0,574.0 Z"
+             fill="hsl(210,75%,55%)" stroke="hsl(210,90%,25%)" stroke-width="6"/>
+      <!-- 声母容器[14] 单 code=46 pol=YANG sov=ACTIVE z=46 depth=0 stroke=14 -->
+      <glyph unicode="&#x002E;" glyph-name="单" horiz-adv-x="1000"
+             container:code="46" container:name="单"
+             container:polarity="YANG" container:sovereignty="ACTIVE"
+             container:meaning="声母容器"
+             container:time_slot="46" container:depth="0"
+             container:topology="sphere" container:stroke_type="14"
+             container:native_code="HFC_2E_单_YANG_ACTIVE"
+             d="M126.0,350.0 A224.0,224.0 0 1 0 574.0,350.0 A224.0,224.0 0 1 0 126.0,350.0 Z"
+             fill="hsl(120,75%,55%)" stroke="hsl(120,90%,25%)" stroke-width="6"/>
+      <!-- 声母容器[15] 长 code=47 pol=YANG sov=ACTIVE z=47 depth=0 stroke=15 -->
+      <glyph unicode="&#x002F;" glyph-name="长" horiz-adv-x="1000"
+             container:code="47" container:name="长"
+             container:polarity="YANG" container:sovereignty="ACTIVE"
+             container:meaning="声母容器"
+             container:time_slot="47" container:depth="0"
+             container:topology="line" container:stroke_type="15"
+             container:native_code="HFC_2F_长_YANG_ACTIVE"
+             d="M126.0,350.0 L574.0,350.0"
+             fill="hsl(60,75%,55%)" stroke="hsl(60,90%,25%)" stroke-width="6"/>
+      <!-- 韵母容器[0] 麻 code=48 pol=YIN sov=PASSIVE z=48 depth=0 stroke=0 -->
+      <glyph unicode="&#x0030;" glyph-name="麻" horiz-adv-x="1000"
+             container:code="48" container:name="麻"
+             container:polarity="YIN" container:sovereignty="PASSIVE"
+             container:meaning="韵母容器"
+             container:time_slot="48" container:depth="0"
+             container:topology="torus" container:stroke_type="0"
+             container:native_code="HFC_30_麻_YIN_PASSIVE"
+             d="M126.0,350.0 A224.0,134.4 0 1 0 574.0,350.0 A224.0,134.4 0 1 0 126.0,350.0 Z M210.0,350.0 A140.0,84.0 0 1 1 490.0,350.0 A140.0,84.0 0 1 1 210.0,350.0 Z"
+             fill="hsl(30,75%,55%)" stroke="hsl(30,90%,25%)" stroke-width="6"/>
+      <!-- 韵母容器[1] 支 code=49 pol=YIN sov=PASSIVE z=49 depth=0 stroke=1 -->
+      <glyph unicode="&#x0031;" glyph-name="支" horiz-adv-x="1000"
+             container:code="49" container:name="支"
+             container:polarity="YIN" container:sovereignty="PASSIVE"
+             container:meaning="韵母容器"
+             container:time_slot="49" container:depth="0"
+             container:topology="torus" container:stroke_type="1"
+             container:native_code="HFC_31_支_YIN_PASSIVE"
+             d="M126.0,350.0 A224.0,134.4 0 1 0 574.0,350.0 A224.0,134.4 0 1 0 126.0,350.0 Z M210.0,350.0 A140.0,84.0 0 1 1 490.0,350.0 A140.0,84.0 0 1 1 210.0,350.0 Z"
+             fill="hsl(30,75%,55%)" stroke="hsl(30,90%,25%)" stroke-width="6"/>
+      <!-- 韵母容器[2] 寒 code=50 pol=YIN sov=PASSIVE z=50 depth=0 stroke=2 -->
+      <glyph unicode="&#x0032;" glyph-name="寒" horiz-adv-x="1000"
+             container:code="50" container:name="寒"
+             container:polarity="YIN" container:sovereignty="PASSIVE"
+             container:meaning="韵母容器"
+             container:time_slot="50" container:depth="0"
+             container:topology="torus" container:stroke_type="2"
+             container:native_code="HFC_32_寒_YIN_PASSIVE"
+             d="M126.0,350.0 A224.0,134.4 0 1 0 574.0,350.0 A224.0,134.4 0 1 0 126.0,350.0 Z M210.0,350.0 A140.0,84.0 0 1 1 490.0,350.0 A140.0,84.0 0 1 1 210.0,350.0 Z"
+             fill="hsl(30,75%,55%)" stroke="hsl(30,90%,25%)" stroke-width="6"/>
+      <!-- 韵母容器[3] 歌 code=51 pol=YIN sov=PASSIVE z=51 depth=0 stroke=3 -->
+      <glyph unicode="&#x0033;" glyph-name="歌" horiz-adv-x="1000"
+             container:code="51" container:name="歌"
+             container:polarity="YIN" container:sovereignty="PASSIVE"
+             container:meaning="韵母容器"
+             container:time_slot="51" container:depth="0"
+             container:topology="torus" container:stroke_type="3"
+             container:native_code="HFC_33_歌_YIN_PASSIVE"
+             d="M126.0,350.0 A224.0,134.4 0 1 0 574.0,350.0 A224.0,134.4 0 1 0 126.0,350.0 Z M210.0,350.0 A140.0,84.0 0 1 1 490.0,350.0 A140.0,84.0 0 1 1 210.0,350.0 Z"
+             fill="hsl(30,75%,55%)" stroke="hsl(30,90%,25%)" stroke-width="6"/>
+      <!-- 韵母容器[4] 阳 code=52 pol=YIN sov=PASSIVE z=52 depth=0 stroke=4 -->
+      <glyph unicode="&#x0034;" glyph-name="阳" horiz-adv-x="1000"
+             container:code="52" container:name="阳"
+             container:polarity="YIN" container:sovereignty="PASSIVE"
+             container:meaning="韵母容器"
+             container:time_slot="52" container:depth="0"
+             container:topology="torus" container:stroke_type="4"
+             container:native_code="HFC_34_阳_YIN_PASSIVE"
+             d="M126.0,350.0 A224.0,134.4 0 1 0 574.0,350.0 A224.0,134.4 0 1 0 126.0,350.0 Z M210.0,350.0 A140.0,84.0 0 1 1 490.0,350.0 A140.0,84.0 0 1 1 210.0,350.0 Z"
+             fill="hsl(30,75%,55%)" stroke="hsl(30,90%,25%)" stroke-width="6"/>
+      <!-- 韵母容器[5] 尤 code=53 pol=YIN sov=PASSIVE z=53 depth=0 stroke=5 -->
+      <glyph unicode="&#x0035;" glyph-name="尤" horiz-adv-x="1000"
+             container:code="53" container:name="尤"
+             container:polarity="YIN" container:sovereignty="PASSIVE"
+             container:meaning="韵母容器"
+             container:time_slot="53" container:depth="0"
+             container:topology="torus" container:stroke_type="5"
+             container:native_code="HFC_35_尤_YIN_PASSIVE"
+             d="M126.0,350.0 A224.0,134.4 0 1 0 574.0,350.0 A224.0,134.4 0 1 0 126.0,350.0 Z M210.0,350.0 A140.0,84.0 0 1 1 490.0,350.0 A140.0,84.0 0 1 1 210.0,350.0 Z"
+             fill="hsl(30,75%,55%)" stroke="hsl(30,90%,25%)" stroke-width="6"/>
+      <!-- 韵母容器[6] 止 code=54 pol=YIN sov=PASSIVE z=54 depth=0 stroke=6 -->
+      <glyph unicode="&#x0036;" glyph-name="止" horiz-adv-x="1000"
+             container:code="54" container:name="止"
+             container:polarity="YIN" container:sovereignty="PASSIVE"
+             container:meaning="韵母容器"
+             container:time_slot="54" container:depth="0"
+             container:topology="sphere" container:stroke_type="6"
+             container:native_code="HFC_36_止_YIN_PASSIVE"
+             d="M126.0,350.0 A224.0,224.0 0 1 0 574.0,350.0 A224.0,224.0 0 1 0 126.0,350.0 Z"
+             fill="hsl(120,75%,55%)" stroke="hsl(120,90%,25%)" stroke-width="6"/>
+      <!-- 韵母容器[7] 转 code=55 pol=YIN sov=PASSIVE z=55 depth=0 stroke=7 -->
+      <glyph unicode="&#x0037;" glyph-name="转" horiz-adv-x="1000"
+             container:code="55" container:name="转"
+             container:polarity="YIN" container:sovereignty="PASSIVE"
+             container:meaning="韵母容器"
+             container:time_slot="55" container:depth="0"
+             container:topology="torus" container:stroke_type="7"
+             container:native_code="HFC_37_转_YIN_PASSIVE"
+             d="M126.0,350.0 A224.0,134.4 0 1 0 574.0,350.0 A224.0,134.4 0 1 0 126.0,350.0 Z M210.0,350.0 A140.0,84.0 0 1 1 490.0,350.0 A140.0,84.0 0 1 1 210.0,350.0 Z"
+             fill="hsl(30,75%,55%)" stroke="hsl(30,90%,25%)" stroke-width="6"/>
+      <!-- 韵母容器[8] 高 code=56 pol=YIN sov=PASSIVE z=56 depth=0 stroke=8 -->
+      <glyph unicode="&#x0038;" glyph-name="高" horiz-adv-x="1000"
+             container:code="56" container:name="高"
+             container:polarity="YIN" container:sovereignty="PASSIVE"
+             container:meaning="韵母容器"
+             container:time_slot="56" container:depth="0"
+             container:topology="line" container:stroke_type="8"
+             container:native_code="HFC_38_高_YIN_PASSIVE"
+             d="M126.0,350.0 L574.0,350.0"
+             fill="hsl(60,75%,55%)" stroke="hsl(60,90%,25%)" stroke-width="6"/>
+      <!-- 韵母容器[9] 低 code=57 pol=YIN sov=PASSIVE z=57 depth=0 stroke=9 -->
+      <glyph unicode="&#x0039;" glyph-name="低" horiz-adv-x="1000"
+             container:code="57" container:name="低"
+             container:polarity="YIN" container:sovereignty="PASSIVE"
+             container:meaning="韵母容器"
+             container:time_slot="57" container:depth="0"
+             container:topology="line" container:stroke_type="9"
+             container:native_code="HFC_39_低_YIN_PASSIVE"
+             d="M126.0,350.0 L574.0,350.0"
+             fill="hsl(60,75%,55%)" stroke="hsl(60,90%,25%)" stroke-width="6"/>
+      <!-- 韵母容器[10] 圆 code=58 pol=YIN sov=PASSIVE z=58 depth=0 stroke=10 -->
+      <glyph unicode="&#x003A;" glyph-name="圆" horiz-adv-x="1000"
+             container:code="58" container:name="圆"
+             container:polarity="YIN" container:sovereignty="PASSIVE"
+             container:meaning="韵母容器"
+             container:time_slot="58" container:depth="0"
+             container:topology="sphere" container:stroke_type="10"
+             container:native_code="HFC_3A_圆_YIN_PASSIVE"
+             d="M126.0,350.0 A224.0,224.0 0 1 0 574.0,350.0 A224.0,224.0 0 1 0 126.0,350.0 Z"
+             fill="hsl(120,75%,55%)" stroke="hsl(120,90%,25%)" stroke-width="6"/>
+      <!-- 韵母容器[11] 扁 code=59 pol=YIN sov=PASSIVE z=59 depth=0 stroke=11 -->
+      <glyph unicode="&#x003B;" glyph-name="扁" horiz-adv-x="1000"
+             container:code="59" container:name="扁"
+             container:polarity="YIN" container:sovereignty="PASSIVE"
+             container:meaning="韵母容器"
+             container:time_slot="59" container:depth="0"
+             container:topology="box" container:stroke_type="11"
+             container:native_code="HFC_3B_扁_YIN_PASSIVE"
+             d="M126.0,126.0 L574.0,126.0 L574.0,574.0 L126.0,574.0 Z"
+             fill="hsl(210,75%,55%)" stroke="hsl(210,90%,25%)" stroke-width="6"/>
+      <!-- 韵母容器[12] 响 code=60 pol=YIN sov=PASSIVE z=60 depth=0 stroke=12 -->
+      <glyph unicode="&#x003C;" glyph-name="响" horiz-adv-x="1000"
+             container:code="60" container:name="响"
+             container:polarity="YIN" container:sovereignty="PASSIVE"
+             container:meaning="韵母容器"
+             container:time_slot="60" container:depth="0"
+             container:topology="sphere" container:stroke_type="12"
+             container:native_code="HFC_3C_响_YIN_PASSIVE"
+             d="M126.0,350.0 A224.0,224.0 0 1 0 574.0,350.0 A224.0,224.0 0 1 0 126.0,350.0 Z"
+             fill="hsl(120,75%,55%)" stroke="hsl(120,90%,25%)" stroke-width="6"/>
+      <!-- 韵母容器[13] 静 code=61 pol=YIN sov=PASSIVE z=61 depth=0 stroke=13 -->
+      <glyph unicode="&#x003D;" glyph-name="静" horiz-adv-x="1000"
+             container:code="61" container:name="静"
+             container:polarity="YIN" container:sovereignty="PASSIVE"
+             container:meaning="韵母容器"
+             container:time_slot="61" container:depth="0"
+             container:topology="sphere" container:stroke_type="13"
+             container:native_code="HFC_3D_静_YIN_PASSIVE"
+             d="M126.0,350.0 A224.0,224.0 0 1 0 574.0,350.0 A224.0,224.0 0 1 0 126.0,350.0 Z"
+             fill="hsl(120,75%,55%)" stroke="hsl(120,90%,25%)" stroke-width="6"/>
+      <!-- 韵母容器[14] 急 code=62 pol=YIN sov=PASSIVE z=62 depth=0 stroke=14 -->
+      <glyph unicode="&#x003E;" glyph-name="急" horiz-adv-x="1000"
+             container:code="62" container:name="急"
+             container:polarity="YIN" container:sovereignty="PASSIVE"
+             container:meaning="韵母容器"
+             container:time_slot="62" container:depth="0"
+             container:topology="sphere" container:stroke_type="14"
+             container:native_code="HFC_3E_急_YIN_PASSIVE"
+             d="M126.0,350.0 A224.0,224.0 0 1 0 574.0,350.0 A224.0,224.0 0 1 0 126.0,350.0 Z"
+             fill="hsl(120,75%,55%)" stroke="hsl(120,90%,25%)" stroke-width="6"/>
+      <!-- 韵母容器[15] 缓 code=63 pol=YIN sov=PASSIVE z=63 depth=0 stroke=15 -->
+      <glyph unicode="&#x003F;" glyph-name="缓" horiz-adv-x="1000"
+             container:code="63" container:name="缓"
+             container:polarity="YIN" container:sovereignty="PASSIVE"
+             container:meaning="韵母容器"
+             container:time_slot="63" container:depth="0"
+             container:topology="line" container:stroke_type="15"
+             container:native_code="HFC_3F_缓_YIN_PASSIVE"
+             d="M126.0,350.0 L574.0,350.0"
+             fill="hsl(60,75%,55%)" stroke="hsl(60,90%,25%)" stroke-width="6"/>
+    </font>
+  </defs>
+  <text x="0" y="-50" font-family="HanYuan64" font-size="40" fill="#333">HanYuan-64 · 容器字体 · 满全法</text>
+</svg>

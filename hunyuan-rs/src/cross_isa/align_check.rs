@@ -304,4 +304,118 @@ mod tests {
             }
         }
     }
+
+    // ══════════════════════════════════════════════════════════════════
+    // 全息性验证：超出旧容器边界的内容已在相邻坐标内
+    // 
+    // 核心思想：容器不是隔离的盒子，而是三维空间中的一个切片。
+    // "超出边界"不是对象增殖，只是坐标变换。
+    // 新旧容器不需要指针链接——坐标轴本身就是连接。
+    // ══════════════════════════════════════════════════════════════════
+
+    /// 验证全息性：相邻容器在地址空间连续（位级）
+    ///
+    /// 数学基础: 地址编码 [X:8/Y:16/Z:8]
+    ///   - X+1 → 地址 +16777216 (不连续)
+    ///   - Y+1 → 地址 +256 (不连续)
+    ///   - Z+1 → 地址 +1 (真正的位级连续)
+    /// 全息性体现在 Z 轴：共享 X/Y 的容器，Z 差 1 即地址差 1
+    #[test]
+    fn holographic_neighboring_containers_are_contiguous() {
+        let c1 = Coord3D::new(0x03, 0x0001, 0x01);
+        let c2 = Coord3D::new(0x03, 0x0001, 0x02);
+
+        // Z 轴 +1 → 地址差 = 1（真正的位级全息）
+        assert_eq!(c2.to_address() - c1.to_address(), 1,
+            "Z轴 +1 应产生地址步进 1");
+
+        let mut fridge = Fridge::new();
+        fridge.store(ContainerPack::new(42, c1, 0, vec![0xDE, 0xAD, 0x00, 0x00]));
+        fridge.store(ContainerPack::new(43, c2, 0, vec![0xBE, 0xEF, 0x00, 0x00]));
+
+        // 同一张 HashMap 索引两个不同时刻的容器——坐标轴本身即连接
+        let p1 = fridge.fetch(c1.to_address()).unwrap();
+        let p2 = fridge.fetch(c2.to_address()).unwrap();
+        assert_ne!(p1.payload, p2.payload, "两个不同时刻的容器内容不同");
+        assert_eq!(p1.pack_id, 42);
+        assert_eq!(p2.pack_id, 43);
+
+        // coord() 从宽字段恢复出正确的 Coord3D
+        assert_eq!(p1.coord().x, 0x03);
+        assert_eq!(p2.coord().x, 0x03);  // X 不变
+        assert_eq!(p1.coord().y, p2.coord().y);  // Y 不变
+        assert_eq!(p1.coord().z, 0x01);
+        assert_eq!(p2.coord().z, 0x02);
+    }
+
+    /// 验证"超出旧容器边界的内容"自然流入相邻坐标
+    #[test]
+    fn container_overflow_no_link_structure_needed() {
+        let mut fridge = Fridge::new();
+
+        // 边界切片：Y 轴上溢 → X+1,Y=0x0000 就是"新容器"
+        // 全息性：新容器既不与旧容器分离，也不需要额外链接——坐标相邻即相邻
+        let edge_coords: Vec<Coord3D> = vec![
+            Coord3D::new(0x03, 0xFFFE, 0x01),  // 接近 X 上限的末尾
+            Coord3D::new(0x03, 0xFFFF, 0x01),  // Y 轴极限
+            Coord3D::new(0x04, 0x0000, 0x01),  // "溢出"自然落到下一语义ID起点
+            Coord3D::new(0x04, 0x0001, 0x01),  // 继续延伸
+        ];
+
+        for (i, coord) in edge_coords.iter().enumerate() {
+            let pack = ContainerPack::new(
+                (i + 1) as u64,
+                *coord,
+                0,
+                // pack_id 的高低位作为标记 byte，便于验证取回的是"那个"容器
+                vec![i as u8, 0xAA, 0x00, 0x00],  // 4B 对齐
+            );
+            fridge.store(pack);
+        }
+
+        // 按坐标顺序遍历取出
+        for (i, coord) in edge_coords.iter().enumerate() {
+            let addr = coord.to_address();
+            let pack = fridge.fetch(addr).unwrap();
+            
+            // 用 coord() 方法从宽字段恢复坐标
+            let recovered = pack.coord();
+            assert_eq!(recovered.x, coord.x, "X 坐标应完全匹配");
+            assert_eq!(recovered.y, coord.y, "Y 坐标应完全匹配");
+            assert_eq!(recovered.z, coord.z, "Z 坐标应完全匹配");
+            assert_eq!(pack.pack_id, (i + 1) as u64, "取回的是正确的容器");
+        }
+    }
+
+    /// 验证 Z 轴 = 时间维度（执行时序），不是空间溢出
+    #[test]
+    fn z_axis_is_time_window_not_space_overflow() {
+        // Z 轴唯一特殊之处：它编码时序而非空间位置
+        // X/Y 轴上的容器在同一时刻可以并行取出（fetch_time_slot 批量返回）
+        // 同一 X/Y 坐标、不同 Z 的容器是"同一空间的不同时间版本"
+        // 它们不是"一个变成另一个"，而是始终同时存在，只是执行时刻不同
+        
+        let mut fridge = Fridge::new();
+        // 同一 (X,Y) 坐标、不同 Z 的两个容器
+        let coord_t1 = Coord3D::new(0x03, 0x0001, 0x01);
+        let coord_t2 = Coord3D::new(0x03, 0x0001, 0x02);
+
+        fridge.store(ContainerPack::new(10, coord_t1, 0, vec![0xF1, 0x00, 0x00, 0x00]));
+        fridge.store(ContainerPack::new(11, coord_t2, 0, vec![0xF2, 0x00, 0x00, 0x00]));
+
+        // 时刻 t1：只有 Z=1 的容器可取
+        let batch_t1 = fridge.fetch_time_slot(0x01);
+        assert_eq!(batch_t1.len(), 1);
+        assert_eq!(batch_t1[0].pack_id, 10);
+
+        // 时刻 t2：Z=1 的容器退场（Wait），Z=2 的容器入场
+        let batch_t2 = fridge.fetch_time_slot(0x02);
+        assert_eq!(batch_t2.len(), 1);
+        assert_eq!(batch_t2[0].pack_id, 11);
+
+        // 两个容器共享 (X,Y)，故它们的空间坐标相同
+        // Z 是时间窗——不是溢出，而是"序"
+        assert_eq!(coord_t1.x, coord_t2.x);
+        assert_eq!(coord_t1.y, coord_t2.y);
+    }
 }

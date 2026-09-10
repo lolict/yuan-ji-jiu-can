@@ -1,9 +1,5 @@
 pub use crate::autonomous_loop;
 pub use crate::celestial_perception;
-pub use crate::celestial_perception_v2;
-pub use crate::celestial_perception_v3;
-pub use crate::celestial_perception_v4;
-pub use crate::celestial_perception_v5;
 pub use crate::consciousness_runtime;
 pub use crate::full_mapping;
 pub use crate::heaven;

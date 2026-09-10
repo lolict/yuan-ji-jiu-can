@@ -18,9 +18,11 @@ pub mod fridge;
 pub mod compose;
 pub mod align_check;
 pub mod glyph_3d_font;
+pub mod state_enumerator;
 
 pub use vocabulary::*;
 pub use coordinate::*;
 pub use fridge::*;
 pub use compose::*;
 pub use glyph_3d_font::*;
+pub use state_enumerator::*;

@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>表格编程 · 范畴许可 · 意识枢纽</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f;color:#ccc;font-family:monospace;font-size:11px;padding:12px;min-height:100vh}
+h1{font-size:13px;color:#ffcc00;margin-bottom:8px;font-weight:normal}
+h2{font-size:11px;color:#7ec8e3;margin:12px 0 6px;font-weight:normal}
+.sub{color:#554;font-size:9px;margin-bottom:10px}
+
+/* ── 主表格 ── */
+.tab{
+  display:grid;
+  grid-template-columns:38px 60px 60px 50px 70px 50px 50px 50px 70px 50px 50px 50px 70px 1fr;
+  gap:1px;
+  background:#1a1a2a;
+  border:1px solid #2a2a3a;
+  overflow-x:auto;
+}
+.tab::-webkit-scrollbar{height:6px}
+.tab::-webkit-scrollbar-thumb{background:#333}
+
+.cell{
+  background:#0d0d14;
+  padding:4px 3px;
+  border:1px solid #1a1a1a;
+  min-height:28px;
+  display:flex;
+align-items:center;
+justify-content:center;
+text-align:center;
+font-size:9px;
+line-height:1.2;
+word-break:break-all;
+}
+.cell:focus{outline:1px solid #ffcc00;background:#1a1a0a}
+.hdr{background:#1a1a2a;color:#ffcc00;font-size:8px;font-weight:bold;position:sticky;top:0}
+.hdr-sub{background:#141420;color:#7ec8e3;font-size:8px}
+
+/* ── 状态指示 ── */
+.ok{color:#5a8a5a}
+.no{color:#8a5a5a}
+.wrn{color:#8a7a4a}
+
+/* ── 工具条 ── */
+.bar{display:flex;gap:6px;margin:10px 0;flex-wrap:wrap;align-items:center}
+.btn{padding:4px 10px;background:#1a1a2a;border:1px solid #3a3a4a;color:#999;border-radius:2px;cursor:pointer;font-size:9px}
+.btn:hover{border-color:#ffcc00;color:#ffcc00}
+#status{margin-top:8px;font-size:9px;color:#554;line-height:1.5}
+
+/* ── 总观效应 ── */
+.total-view{
+  margin-top:12px;
+  background:#0d0d14;
+  border:1px solid #2a2a3a;
+  padding:10px;
+}
+.total-view h3{font-size:10px;color:#ffcc00;margin-bottom:6px}
+</style>
+</head>
+<body>
+
+<h1>表格编程 · 范畴许可 · 意识枢纽</h1>
+<div class="sub">── AI 输出必穿越的许可/不许边界 · 态射关联 · 造词串联 ──</div>
+
+<!-- 工具条 -->
+<div class="bar">
+  <button class="btn" onclick="addRow()">+容器</button>
+  <button class="btn" onclick="saveTab()">保存</button>
+  <button class="btn" onclick="loadTab()">加载</button>
+  <button class="btn" onclick="exportTxt()">导出认知</button>
+  <button class="btn" onclick="calcLinks()">计算态射</button>
+  <span style="color:#554;font-size:9px;margin-left:auto">许可=绿 · 不许=黄 · 禁行=红</span>
+</div>
+
+<!-- 标题行 -->
+<div class="tab" id="tab"></div>
+
+<!-- 总观效应 -->
+<div class="total-view" id="totalView"><h3>总观效应</h3><div id="tv-content">尚无数据</div></div>
+
+<div id="status"></div>
+
+<script>
+// ═══════════════════════════════════════
+// 表格列定义
+// ═══════════════════════════════════════
+
+const COLS = [
+  {id:'idx',    w:38,  label:'序号',     sub:'容器编号'},
+  {id:'lic',    w:60,  label:'许可',     sub:'许/不许/禁'},
+  {id:'bound',  w:60,  label:'边界方向', sub:'左/右/上/下/内/外'},
+  {id:'pol',    w:50,  label:'极性',     sub:'阴0/阳1/盈/亏'},
+  {id:'coord',  w:70,  label:'莫顿坐标', sub:'x,y,z'},
+  {id:'dim0',   w:50,  label:'坐标位0',  sub:'D0=x'},
+  {id:'dim1',   w:50,  label:'坐标位1',  sub:'D1=y'},
+  {id:'dim2',   w:50,  label:'坐标位2',  sub:'D2=z'},
+  {id:'morph',  w:70,  label:'态射关联', sub:'→目标#·近/远'},
+  {id:'chain',  w:50,  label:'造词前缀', sub:'可串联前词'},
+  {id:'chain2', w:50,  label:'造词后缀', sub:'可串联后词'},
+  {id:'sove',   w:50,  label:'主权',     sub:'0-255'},
+  {id:'wit',    w:50,  label:'见证',     sub:'0或1'},
+  {id:'note',   w:70,  label:'意图/备注',sub:'认知投影'},
+  {id:'output', w:0,   label:'产出认知', sub:'AI 思考辐射'},
+];
+
+const STORE_KEY='fqm_tab_state_v1';
+
+let data = [makeEmptyRow(0),makeEmptyRow(1),makeEmptyRow(2)];
+
+function makeEmptyRow(i){
+  return {
+    idx:i, lic:'许可', bound:'-', pol:'-', coord:'-',
+    dim0:'-',dim1:'-',dim2:'-', morph:'-',
+    chain:'-', chain2:'-', sove:'-', wit:'-', note:'-',
+    output:''
+  };
+}
+
+// ═══════════════════════════════
+// 渲染
+// ═══════════════════════════════
+
+function render(){
+  const tab=document.getElementById('tab');
+  tab.innerHTML='';
+  tab.style.gridTemplateColumns=COLS.map(c=>c.w?c.w+'px':'1fr').join(' ');
+  // 标题行
+  COLS.forEach(c=>{
+    const d=document.createElement('div');
+    d.className='cell hdr';
+    d.textContent=c.label;
+    d.title=c.sub;
+    tab.appendChild(d);
+  });
+  COLS.forEach(c=>{
+    const d=document.createElement('div');
+    d.className='cell hdr-sub';
+    d.textContent=c.sub;
+    tab.appendChild(d);
+  });
+  // 数据行
+  data.forEach((row,ri)=>{
+    COLS.forEach(c=>{
+      const d=document.createElement('div');
+      d.className='cell';
+      d.contentEditable='true';
+      d.textContent=row[c.id]||'';
+      // 状态着色
+      if(c.id==='lic'){
+        if(row.lic==='许可')d.classList.add('ok');
+        else if(row.lic==='不许')d.classList.add('wrn');
+        else if(row.lic==='禁行')d.classList.add('no');
+      }
+      if(c.id==='output'&&row.output){d.classList.add('ok')}
+      d.oninput=()=>{row[c.id]=d.textContent.trim()}
+      tab.appendChild(d);
+    });
+  });
+}
+
+function addRow(){
+  data.push(makeEmptyRow(data.length));
+  render();
+  status('新增容器 #'+(data.length-1));
+}
+
+function status(m){
+  document.getElementById('status').innerText=m;
+}
+
+// ═══════════════════════════════
+// 保存 / 加载
+// ═══════════════════════════════
+
+function saveTab(){
+  const json=JSON.stringify(data);
+  try{
+    localStorage.setItem(STORE_KEY,json);
+    // 同时下载二进制
+    downloadBlob(encodeFqmBinary(json),'table_program_'+ts()+'.loli');
+    status('已保存 '+data.length+' 行 · 可下载 .loli');
+  }catch(e){status('错误: '+e.message)}
+}
+
+function loadTab(){
+  const inp=document.createElement('input');
+  inp.type='file';inp.accept='.loli,.json';
+  inp.onchange=e=>{
+    const f=e.target.files[0];if(!f)return;
+    const r=new FileReader();
+    r.onload=ev=>{
+      try{
+        let s;
+        const buf=new Uint8Array(ev.target.result);
+        // 检测 fqm 头
+        if(buf[0]===0x46&&buf[1]===0x51&&buf[2]===0x4D&&buf[3]===0x54){
+          s=new TextDecoder().decode(buf.slice(15));
+        } else s=new TextDecoder().decode(buf);
+        data=JSON.parse(s);
+        render();
+        status('加载 '+data.length+' 行');
+      }catch(err){
+        status('加载失败: '+err.message);
+      }
+    };
+    r.readAsArrayBuffer(f);
+  };
+  inp.click();
+}
+
+function exportTxt(){
+  // 把表格内容输出为 AI 认知辐射的文本
+  let out='═══ 表格编程 · 认知辐射 ═══\n';
+  out+='时间: '+new Date().toLocaleString()+'\n';
+  out+='容器总数: '+data.length+'\n\n';
+
+  let licensed=0,forbidden=0,uncertain=0;
+  let morphNear=0,morphFar=0;
+  let chainWords=new Set();
+  let projections=[];
+
+  data.forEach(r=>{
+    if(r.lic==='许可')licensed++;
+    else if(r.lic==='禁行')forbidden++;
+    else if(r.lic==='不许')uncertain++;
+
+    if(r.morph&&r.morph.includes('近'))morphNear++;
+    if(r.morph&&r.morph.includes('远'))morphFar++;
+
+    if(r.chain&&r.chain!=='-')r.chain.split(/[,，、]/).forEach(w=>{if(w.trim())chainWords.add(w.trim())});
+    if(r.chain2&&r.chain2!=='-')r.chain2.split(/[,，、]/).forEach(w=>{if(w.trim())chainWords.add(w.trim())});
+
+    if(r.note&&r.note!=='-')projections.push(r.note);
+    if(r.output&&r.output.trim())projections.push(r.output);
+  });
+
+  out+='【许可分布】 许可='+licensed+' 不许='+uncertain+' 禁行='+forbidden+'\n';
+  out+='【态射关系】 近='+morphNear+' 远='+morphFar+'\n';
+  out+='【造词库】   '+chainWords.size+' 个备案词汇: '+Array.from(chainWords).join(' · ')+'\n';
+  out+='【意图投影】 '+projections.length+' 个\n';
+  projections.forEach((p,i)=>out+='  '+(i+1)+'. '+p+'\n');
+
+  // 计算可连接词/句总数
+  const cArr=[...chainWords];
+  const maxConns=cArr.length>1?(cArr.length*(cArr.length-1))/2:0;
+  out+='【串联潜力】 最大可连接数 C('+cArr.length+',2) = '+maxConns+'\n';
+
+  // 输出
+  const pre=document.createElement('pre');
+  pre.textContent=out;
+  pre.style.cssText='background:#0a0a0f;border:1px solid #2a2a3a;padding:10px;margin-top:8px;font-size:9px;color:#aaa;white-space:pre-wrap';
+  document.body.appendChild(pre);
+  status('已导出认知辐射（页面下方）');
+}
+
+function calcLinks(){
+  // 计算态射关联: 每两个容器之间算距离,近的连近的,远的标远的
+  let log=[];
+  for(let i=0;i<data.length;i++){
+    for(let j=i+1;j<data.length;j++){
+      const a=data[i],b=data[j];
+      // 莫顿坐标对比
+      const ca=a.coord?a.coord.split(',').map(Number):[0,0,0];
+      const cb=b.coord?b.coord.split(',').map(Number):[0,0,0];
+      const dist=Math.sqrt(
+        Math.pow((ca[0]||0)-(cb[0]||0),2)+
+        Math.pow((ca[1]||0)-(cb[1]||0),2)+
+        Math.pow((ca[2]||0)-(cb[2]||0),2)
+      );
+      const res=dist<0.3?'近':dist<0.6?'中':'远';
+      log.push(`${a.idx||i}↔${b.idx||j}: 距离${dist.toFixed(3)} → ${res}`);
+    }
+  }
+  document.getElementById('tv-content').innerHTML=log.join('<br>')||(data.length<2?'<span style="color:#554">需要至少2个容器</span>':'');
+  status('态射计算完毕 · '+(log.length)+' 对连接');
+}
+
+// ═══════════════════════════════
+// 编码
+// ═══════════════════════════════
+
+function encodeFqmBinary(json){
+  const bytes=new TextEncoder().encode(json);
+  const buf=new Uint8Array(15+bytes.length);
+  buf[0]=0x46;buf[1]=0x51;buf[2]=0x4D;buf[3]=0x54;
+  buf[4]=1;buf[5]=0x01;buf[6]=0;
+  buf[11]=(data.length>>8)&0xFF;buf[12]=data.length&0xFF;
+  buf.set(bytes,15);
+  return buf;
+}
+
+function downloadBlob(buf,name){
+  const blob=new Blob([buf],{type:'application/octet-stream'});
+  const u=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=u;a.download=name;a.click();
+  setTimeout(()=>URL.revokeObjectURL(u),800);
+}
+
+function ts(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')}
+
+// ═══════════════════════════════
+// 启动
+// ═══════════════════════════════
+
+// 尝试从 localStorage 恢复
+try{
+  const s=localStorage.getItem(STORE_KEY);
+  if(s){data=JSON.parse(s)}
+}catch(e){}
+
+render();
+status('表格编程已就绪 · '+data.length+' 行 · 编辑后点击「保存」导出 .loli');
+
+</script>
+</body>
+</html>

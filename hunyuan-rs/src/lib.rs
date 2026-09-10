@@ -123,6 +123,7 @@ pub mod dynamic_pool;
 
 // ── v0.11 跨平台词汇统一架构 — 容器=字体=时间 ──
 pub mod cross_isa;
+pub mod void_probe;
 
 // ── v0.10 拓扑描述子系统 ──
 #[path = "encoding/topo.rs"]
