@@ -44,6 +44,15 @@ int  gcb_nie_xiaoqian(uint32_t ghost_code, uint32_t *body_out);
 /* ── 决策树: 卡住时恢复 ── */
 int  gcb_recover(void);
 
+/* ── 感知器官: 距离感知聚类 (32 位容器编码) ── */
+void gcb_mind_organ_init(double threshold);
+int  gcb_mo_add_cell(int id, uint32_t container_code);
+double gcb_mo_distance(uint32_t code_a, uint32_t code_b);
+int  gcb_mo_clusterize(void);
+int  gcb_mo_find_body(uint32_t ghost_code, double *dist_out);
+int  gcb_mo_cluster_count(void);
+void gcb_mo_report(char *buf, int bufsize);
+
 /* ── 完整演示 ── */
 void global_control_bridge_test(void);
 

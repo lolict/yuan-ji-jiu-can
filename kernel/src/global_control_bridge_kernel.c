@@ -15,10 +15,14 @@
 #include <string.h>
 #include "global_control_bridge_kernel.h"
 #include "../../encoding/global_control.h"
+#include "../../encoding/mind_organ.h"
 
 /* ── 全局控制容器静态实例 ── */
 static global_control_t gc;
 static int initialized = 0;
+
+/* ── 感知器官静态实例 ── */
+static mo_engine_t mo_organ;
 
 /* ── 初始化(一次性) ── */
 void global_control_bridge_init(void) {
@@ -43,6 +47,9 @@ void global_control_bridge_init(void) {
 
     /* 判断规则: 发音位置匹配, 需要极性, 容差10 */
     gc_set_judgment(&gc, GC_MATCH_POSITION, 1, 0, 10);
+
+    /* 初始化感知器官 (阈值 5.0) */
+    mind_organ_init(&mo_organ, 5.0);
 }
 
 /* ── 包装器: 转发到底层全局控制容器 ── */
@@ -104,6 +111,39 @@ int gcb_recover(void) {
     return gc_recover(&gc);
 }
 
+/* ── 感知器官: 距离感知聚类包装器 ── */
+void gcb_mind_organ_init(double threshold) {
+    global_control_bridge_init();
+    mind_organ_init(&mo_organ, threshold);
+}
+
+int gcb_mo_add_cell(int id, uint32_t container_code) {
+    global_control_bridge_init();
+    return mind_organ_add_cell(&mo_organ, id, container_code);
+}
+
+double gcb_mo_distance(uint32_t code_a, uint32_t code_b) {
+    return mind_organ_distance(code_a, code_b);
+}
+
+int gcb_mo_clusterize(void) {
+    global_control_bridge_init();
+    return mind_organ_clusterize(&mo_organ);
+}
+
+int gcb_mo_find_body(uint32_t ghost_code, double *dist_out) {
+    global_control_bridge_init();
+    return mind_organ_find_body(&mo_organ, ghost_code, dist_out);
+}
+
+int gcb_mo_cluster_count(void) {
+    return mo_organ.cluster_count;
+}
+
+void gcb_mo_report(char *buf, int bufsize) {
+    mind_organ_report(&mo_organ, buf, bufsize);
+}
+
 /* ── 独立运行入口 ── */
 #ifdef BRIDGE_TEST
 int main(void) {
@@ -145,6 +185,26 @@ void global_control_bridge_test(void) {
         gcb_advance_traversal();
         printf("  推进完成\n\n");
     }
+
+    /* 感知器官: 距离感知聚类 */
+    printf("─── 感知器官: 距离感知聚类 ───\n");
+    /* 构造 32 位容器编码: [31:29]家族 [28]极性 [27:25]结构 [24:19]声母 [18:12]韵母 [11:8]声调 */
+    #define MKC(f,p,s,sh,y,t) ((((uint32_t)(f)&7)<<29)|(((uint32_t)(p)&1)<<28)|(((uint32_t)(s)&7)<<25)|(((uint32_t)(sh)&0x3F)<<19)|(((uint32_t)(y)&0x7F)<<12)|(((uint32_t)(t)&0xF)<<8))
+    gcb_mind_organ_init(5.0);
+    /* 三簇: 夫妻阳(100,101), 边界阴(200,201), 夫妻阴(300) */
+    gcb_mo_add_cell(100, MKC(2,1,3,10,20,4));  /* 夫妻·阳·声调4 */
+    gcb_mo_add_cell(101, MKC(2,1,3,10,20,5));  /* 夫妻·阳·声调5 */
+    gcb_mo_add_cell(200, MKC(1,0,5,30,50,8));  /* 边界·阴·声调8 */
+    gcb_mo_add_cell(201, MKC(1,0,5,30,50,9));  /* 边界·阴·声调9 */
+    gcb_mo_add_cell(300, MKC(2,0,3,10,20,4));  /* 夫妻·阴 (极性远) */
+    int nc = gcb_mo_clusterize();
+    printf("  聚类结果: %d 个簇\n", nc);
+    /* 聂小倩: 鬼魂(夫妻·阳·声调6)找躯壳 */
+    uint32_t ghost32 = MKC(2,1,3,10,20,6);
+    double dist32 = 0;
+    int body32 = gcb_mo_find_body(ghost32, &dist32);
+    printf("  鬼魂(夫妻·阳·声调6) → 最近躯壳 id=%d, 距离=%.2f\n", body32, dist32);
+    printf("  %s\n\n", (body32==100||body32==101) ? "✓ 正确: 匹配夫妻·阳侧" : "✗ 错误");
 
     /* 最终状态 */
     printf("─── 最终状态 ───\n");

@@ -26,9 +26,10 @@ mlll-profile: kernel/src/mlll_profile.c kernel/src/mlll_symbols.c kernel/src/mll
 	./kernel/src/mlll_profile.elf 囡囝共生
 
 # 内核 + mlll 库联合编译（-DMLLL_LIBRARY 排除 mlll 的 main）
-# 包含盟机合网络骨架 njsg_mengji.c
-kernel: kernel/src/njsg_kernel.c kernel/src/mlll_symbols.c kernel/src/mlll_kernel_bridge.c kernel/src/njsg_mengji.c
-	$(CC) $(CFLAGS) -DMLLL_LIBRARY $< kernel/src/mlll_symbols.c kernel/src/mlll_kernel_bridge.c kernel/src/njsg_mengji.c -o kernel/src/njsg_kernel.elf $(KERN_LIBS)
+# 包含盟机合网络骨架 njsg_mengji.c + 感知器官 mind_organ
+kernel: kernel/src/njsg_kernel.c kernel/src/mlll_symbols.c kernel/src/mlll_kernel_bridge.c kernel/src/njsg_mengji.c encoding/mind_organ.c
+	@echo "注意: 全内核有预存在的离线认证类型问题, 使用 make test-global-control-kernel 验证 mind_organ 内核集成"
+	$(CC) $(CFLAGS) -DMLLL_LIBRARY -Iencoding $< kernel/src/mlll_symbols.c kernel/src/mlll_kernel_bridge.c kernel/src/njsg_mengji.c encoding/mind_organ.c -o kernel/src/njsg_kernel.elf $(KERN_LIBS)
 
 # 容器本体论统一桥接端到端测试
 test-ontology-bridge: encoding/container_ontology_bridge.c \
@@ -142,15 +143,17 @@ test-radix-star: encoding/radix_star.c encoding/radix_star.h encoding/test_radix
 	@echo "═══ 部首星图 · 水/火/言三部端到端 ═══"
 	./encoding/test_radix_star.elf
 
-# 全局控制容器 → 内核桥接测试
+# 全局控制容器 → 内核桥接测试 (含感知器官 mind_organ)
 test-global-control-kernel: kernel/src/global_control_bridge_kernel.c \
                             kernel/include/global_control_bridge_kernel.h \
-                            encoding/global_control.c encoding/global_control.h
+                            encoding/global_control.c encoding/global_control.h \
+                            encoding/mind_organ.c encoding/mind_organ.h
 	$(CC) $(CFLAGS) -DMLLL_LIBRARY -DBRIDGE_TEST -Iencoding -Ikernel/include \
 	  kernel/src/global_control_bridge_kernel.c \
 	  encoding/global_control.c \
+	  encoding/mind_organ.c \
 	  -o kernel/src/global_control_bridge_kernel.elf -lm
-	@echo "═══ 全局控制容器 · 内核桥接 ═══"
+	@echo "═══ 全局控制容器 · 内核桥接 (含感知器官) ═══"
 	./kernel/src/global_control_bridge_kernel.elf
 
 # 全局控制容器测试 (声母遍历韵母 + 聂小倩借尸还魂 + 决策树)

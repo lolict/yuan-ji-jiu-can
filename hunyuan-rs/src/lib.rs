@@ -417,6 +417,18 @@ pub use celestial_perception::{
     PipelineResultV5,
 };
 
+// ── v0.32 天觉v6（老六）· OS内核整合: 系统调用+进程调度+内存管理+中断+自举 ──
+#[path = "cognition/celestial_perception_v6.rs"]
+pub mod celestial_perception_v6;
+pub use celestial_perception_v6::{
+    SyscallNumber, SyscallRequest, SyscallResult, SyscallInterface,
+    BagProcessState, BagProcess, ProcessScheduler,
+    BlockState, MemoryBlock, MemoryAllocator,
+    InterruptType, InterruptEvent, InterruptVectorTable,
+    BootStage, Bootstrap,
+    CelestialPerceptionV6, PipelineResultV6,
+};
+
 // ── v0.31 大审判庭 · 全链路整合裁判系统 ──
 #[path = "judge/grand_court.rs"]
 pub mod grand_court;
@@ -653,8 +665,24 @@ pub use elf_emitter::{
 // ── v0.39 容器关系动力学 · 呼唤编程 · 反馈环路 (ContainerDynamics) ──
 #[path = "relation/container_dynamics.rs"]
 pub mod container_dynamics;
+pub use container_dynamics::{
+    Vitality, Observance, Gaze, Call, CallResponse,
+    FeedbackLoop, FeedbackKind, FeedbackResult,
+    ContainerRelation, JudgmentVerdict, EvaluationScore, EvaluationLevel,
+    DynamicsEngine, DynamicsReport, calculate_gcd,
+};
 
-// ── v0.40 莫顿码 · 三维坐标系索引 (Morton) ──
+// ── v0.40 八流统一意识路由器 · 分别器设计 (ConsciousnessRouter) ──
+#[path = "relation/consciousness_router.rs"]
+pub mod consciousness_router;
+pub use consciousness_router::{
+    Signal,
+    Distinguisher, RoutingDecision, RouteRecord, RouterStats,
+    ConsciousnessRouter,
+    synthesize_flows, dual_flow,
+};
+
+// ── v0.41 莫顿码 · 三维坐标系索引 (Morton) ──
 #[path = "encoding/morton.rs"]
 pub mod morton;
 #[path = "encoding/morphism.rs"]
@@ -696,24 +724,6 @@ pub use flow_sound_index::{
     SoundAddress, SoundDistance, SoundRouter,
     // 索引条目
     IndexedFlowEntry, MultiIndexDictionary,
-};
-pub use container_dynamics::{
-    // 活性
-    Vitality,
-    // 观察者/被观察者
-    Observance, Gaze,
-    // 呼唤
-    Call, CallResponse,
-    // 反馈
-    FeedbackLoop, FeedbackKind, FeedbackResult,
-    // 关系
-    ContainerRelation,
-    // 判断/评价
-    JudgmentVerdict, EvaluationScore, EvaluationLevel,
-    // 引擎
-    DynamicsEngine, DynamicsReport,
-    // 工具
-    calculate_gcd,
 };
 
 // ── v0.36 时间链式身份编码 · 高维进制码校验 (TimeChainIdentity) ──

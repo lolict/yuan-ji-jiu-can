@@ -93,6 +93,10 @@ path = "src/bin/state_enumerate.rs"
 name = "state-ttf-gen"
 path = "src/bin/state_ttf_gen.rs"
 
+[[bin]]
+name = "stats-browser"
+path = "src/bin/stats_browser.rs"
+
 [profile.release]
 opt-level = "z"      # 体积优先
 lto = true           # 链接期优化
