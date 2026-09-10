@@ -12,9 +12,10 @@ pub const ColorOntology = @import("color_ontology.zig");
 pub const PreloadDict = @import("preload_dict.zig");
 pub const Hierarchy = @import("hierarchy.zig");
 pub const Brigade = @import("brigade.zig");
+pub const Perception = @import("perception.zig");
 
 // Engine version
-pub const VERSION: u32 = 0x51;
+pub const VERSION: u32 = 0x52;
 
 test "all modules" {
     _ = @import("color_quant.zig");
@@ -22,4 +23,5 @@ test "all modules" {
     _ = @import("preload_dict.zig");
     _ = @import("hierarchy.zig");
     _ = @import("brigade.zig");
+    _ = @import("perception.zig");
 }
