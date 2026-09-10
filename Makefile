@@ -165,6 +165,12 @@ test-global-control: encoding/global_control.c encoding/global_control.h encodin
 	@echo "═══ 全局控制容器 — 声母遍历韵母 端到端 ═══"
 	./encoding/test_global_control.elf
 
+# 时间线状态机 · 九维漂移测试
+test-ttl-state: kernel/src/ttl_state.c kernel/include/ttl_state.h kernel/src/ttl_test.c kernel/src/mlll_symbols.c
+	$(CC) $(CFLAGS) -DMLLL_LIBRARY kernel/src/ttl_test.c kernel/src/ttl_state.c kernel/src/mlll_symbols.c -o kernel/src/ttl_test.elf -lm
+	@echo "═══ 时间线状态机 · 九维漂移测试 ═══"
+	./kernel/src/ttl_test.elf
+
 # MLLL 汉字拼音知识库 demo + 夫妻对偶查询
 mlll-pinyin: kernel/src/mlll_pinyin_demo.c kernel/src/mlll_pinyin.c kernel/src/mlll_symbols.c
 	$(CC) $(CFLAGS) -DMLLL_LIBRARY $^ -o kernel/src/mlll_pinyin_demo.elf -lm
