@@ -443,6 +443,23 @@ pub use celestial_perception_v7::{
     CelestialPerceptionV7, PipelineResultV7, V7Extras,
 };
 
+// ── v0.34 天觉v8（老八）· 盟机合袋子网络协议栈 ──
+#[path = "cognition/celestial_perception_v8.rs"]
+pub mod celestial_perception_v8;
+pub use celestial_perception_v8::*;
+/*pub use celestial_perception_v8::{
+    // BagPacket
+    BagPacket, PacketKind, SovereignStamp,
+    // Connection
+    ConnState, Connection,
+    // NodeManager
+    NodeInfo, NodeManager,
+    // Router
+    RouteEntry, SovereignRouter, gcd,
+    // Engine
+    CelestialPerceptionV8, PipelineResultV8, TxStats,
+};*/
+
 // ── v0.31 大审判庭 · 全链路整合裁判系统 ──
 #[path = "judge/grand_court.rs"]
 pub mod grand_court;
