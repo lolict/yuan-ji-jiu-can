@@ -429,6 +429,20 @@ pub use celestial_perception_v6::{
     CelestialPerceptionV6, PipelineResultV6,
 };
 
+// ── v0.33 天觉v7（老七）· OS三合一张: 文件系统 + IPC + 设备驱动 ──
+#[path = "cognition/celestial_perception_v7.rs"]
+pub mod celestial_perception_v7;
+pub use celestial_perception_v7::{
+    // VFS
+    Vfs, Inode, FileType, DirEntry, Directory,
+    // IPC
+    IpcKind, IpcManager, Pipe, Message, MessageQueue, SharedMemory,
+    // 设备
+    DeviceKind, Device, DeviceManager, FileOperations,
+    // 引擎
+    CelestialPerceptionV7, PipelineResultV7, V7Extras,
+};
+
 // ── v0.31 大审判庭 · 全链路整合裁判系统 ──
 #[path = "judge/grand_court.rs"]
 pub mod grand_court;
