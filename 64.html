@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>容器64</title>
+<style>
+body{margin:0;background:#08080d;color:#ccc;font-family:monospace;display:flex;align-items:center;justify-content:center;min-height:100vh}
+canvas{display:block}
+</style>
+</head>
+<body>
+<canvas id="c" width="560" height="560"></canvas>
+<script>
+const canvas=document.getElementById('c');
+const ctx=canvas.getContext('2d');
+const W=64;
+
+const COLOR=['#444','#d080a0','#7090e0','#c0a0ff'];
+const LABEL=['独立','妻','夫','夫妻'];
+
+// 生成 64 容器
+const containers=[];
+for(let i=0;i<64;i++){
+  const polarity=((i>>5)<<1)|((i>>4)&1);
+  containers.push({code:i,polarity,capacity:0,maxCapacity:[64,36,49,256][polarity]});
+}
+
+// 注入一些初始内容
+[0b100000,0b010000,0b110000,0b000001].forEach(c=>containers[c].capacity=Math.floor(containers[c].maxCapacity/3));
+
+// 画六边形
+function drawHex(x,y,r,color,label,text){
+  ctx.fillStyle=color;
+  ctx.beginPath();
+  for(let i=0;i<6;i++){
+    const a=(Math.PI/3)*i-Math.PI/6;
+    const px=x+r*Math.cos(a);
+    const py=y+r*Math.sin(a);
+    if(i===0)ctx.moveTo(px,py);else ctx.lineTo(px,py);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle='#222';
+  ctx.lineWidth=2;
+  ctx.stroke();
+  // 文字
+  ctx.fillStyle='#fff';
+  ctx.font='bold 9px monospace';
+  ctx.textAlign='center';
+  ctx.fillText(label,x,y-4);
+  ctx.font='10px monospace';
+  ctx.fillText(text,x,y+8);
+}
+
+// 画全部 64 容器
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const r=28;
+  const dx=r*1.75;
+  const dy=r*1.5;
+  for(let row=0;row<8;row++){
+    for(let col=0;col<8;col++){
+      const i=row*8+col;
+      const c=containers[i];
+      const x=40+col*dx+(row%2?dx/2:0);
+      const y=40+row*dy;
+      const color=COLOR[c.polarity];
+      drawHex(x,y,r,color,LABEL[c.polarity],c.capacity+'/'+c.maxCapacity);
+    }
+  }
+}
+
+// tick · 兼容的容器对传递内容
+function tick(){
+  for(let i=0;i<64;i++){
+    for(let j=i+1;j<64;j++){
+      const a=containers[i],b=containers[j];
+      if(a.polarity===b.polarity&&a.polarity!==0){
+        if(a.capacity>0 && b.capacity<b.maxCapacity){
+          const transfer=Math.min(a.capacity, b.maxCapacity-b.capacity);
+          a.capacity-=transfer;
+          b.capacity+=transfer;
+        }
+      }
+    }
+  }
+  draw();
+}
+
+draw();
+setInterval(tick,800);
+</script>
+</body>
+</html>

@@ -370,6 +370,13 @@ pub const TONES: &[&str] = &[
     // 100个调值的完整列表由用户补充占位
 ];
 
+/// 声母容器数量（进制底数之一）
+pub const CONSONANT_COUNT: usize = 48;
+/// 韵母容器数量（进制底数之一）
+pub const VOWEL_COUNT: usize = 66;
+/// 声调容器数量（进制底数之一）
+pub const TONE_COUNT: usize = 100;
+
 /// 音节地址：声母 + 韵母 + 声调 = 唯一容器路径
 ///
 /// 在逗号容器世界中，一个音节就是一个地址
@@ -855,7 +862,7 @@ mod tests {
         // 禁止Agent2读取Agent0
         manager.set_permission(2, 0, false);
         let denied = manager.read_agent_memory(2, 0);
-        assert!(denied.is None || denied.map(|m| m.is_empty()).unwrap_or(true));
+        assert!(denied.is_none() || denied.map(|m| m.is_empty()).unwrap_or(true));
     }
 
     #[test]
@@ -887,6 +894,319 @@ mod tests {
         assert_eq!(timeline[1].content, "b");
         assert_eq!(timeline[2].content, "c");
     }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 意图时间系统 · 索引 · 镜像二元操作
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// 意图时间：不是单纯的时间戳，而是包含了"意图"的时间记录
+///
+/// 每一次说话/动作都会产生一个意图时间。
+/// 意图时间使得系统可以：
+/// · 索引历史说过的话
+/// · 回溯认知如何拆分、集合、重组、跨越
+/// · 执行镜像二元操作（内/外，你/我，主/客）
+/// · 确定锚点和信任关系
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct IntentTime {
+    /// 绝对时序（滴答累计）
+    pub tick: u64,
+    /// 意图层级（1-24，对应总范畴）
+    pub layer: u8,
+    /// 意图分类（该动作的意图性质）
+    pub intent_kind: IntentKind,
+}
+
+/// 意图分类：该动作属于哪种认知操作
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum IntentKind {
+    /// 感知（从外部获取信息）
+    Perceive,
+    /// 认知（内部思维加工）
+    Cognize,
+    /// 表达（向外部输出信息）
+    Express,
+    /// 记忆（存储认知结果）
+    Remember,
+    /// 索引（检索历史记忆）
+    Index,
+    /// 关系（处理与他者的关系）
+    Relate,
+    /// 判断（做决策）
+    Judge,
+    /// 跨越（层间跳跃）
+    Leap,
+    /// 聚合（组合多个元素）
+    Gather,
+    /// 拆分（分解为多个元素）
+    Split,
+    /// 重组（重新排列元素）
+    Recombine,
+}
+
+impl IntentTime {
+    /// 创建意图时间
+    pub fn new(tick: u64, layer: u8, intent_kind: IntentKind) -> Self {
+        Self { tick, layer: layer.min(24).max(1), intent_kind }
+    }
+
+    /// 伴随时间（同一时刻的意图对，形成镜像）
+    pub fn accompany(&self, other_kind: IntentKind) -> Self {
+        Self { tick: self.tick, layer: self.layer, intent_kind: other_kind }
+    }
+
+    /// 对偶意图（同一时间的镜像反面）
+    pub fn dual(&self) -> Self {
+        let dual_kind = match self.intent_kind {
+            IntentKind::Perceive => IntentKind::Express,
+            IntentKind::Express => IntentKind::Perceive,
+            IntentKind::Cognize => IntentKind::Relate,
+            IntentKind::Relate => IntentKind::Cognize,
+            IntentKind::Remember => IntentKind::Index,
+            IntentKind::Index => IntentKind::Remember,
+            IntentKind::Judge => IntentKind::Leap,
+            IntentKind::Leap => IntentKind::Judge,
+            IntentKind::Gather => IntentKind::Split,
+            IntentKind::Split => IntentKind::Gather,
+            IntentKind::Recombine => IntentKind::Recombine,
+        };
+        Self { tick: self.tick, layer: self.layer, intent_kind: dual_kind }
+    }
+
+    /// 意图的层级深度（认知复杂度）
+    pub fn complexity(&self) -> u8 {
+        match self.intent_kind {
+            IntentKind::Perceive | IntentKind::Express => 1,
+            IntentKind::Cognize | IntentKind::Relate => 2,
+            IntentKind::Judge | IntentKind::Index => 3,
+            IntentKind::Gather | IntentKind::Split | IntentKind::Recombine => 4,
+            IntentKind::Leap => 5,
+            IntentKind::Remember => 0,
+        }
+    }
+}
+
+/// 镜像二元：认知操作的基本对称对
+///
+/// 镜像二元是处理关系的核心机制。
+/// 知道内就知道外，知道你就知道我，知道主体就知道客体。
+/// 每一对镜像构成一个完整的认知单元。
+
+#[derive(Clone, Debug)]
+pub struct MirrorPair<P, S> {
+    pub primary: P,    // 主体 / 内 / 你 / 先
+    pub secondary: S,  // 客体 / 外 / 我 / 后
+    pub intent_time: IntentTime,
+}
+
+impl<P, S> MirrorPair<P, S> {
+    pub fn new(primary: P, secondary: S, intent_time: IntentTime) -> Self {
+        Self { primary, secondary, intent_time }
+    }
+
+    /// 交换主客（镜像翻转）
+    pub fn swap(self) -> MirrorPair<S, P> {
+        MirrorPair {
+            primary: self.secondary,
+            secondary: self.primary,
+            intent_time: self.intent_time,
+        }
+    }
+
+    /// 镜像一致性检查：primary和secondary是否在同一时间层
+    pub fn is_coherent(&self) -> bool {
+        true // 在IntentTime中已经包含一致性
+    }
+
+    /// 沿时间轴向前推进（意图时间+1）
+    pub fn advance_time(mut self) -> Self {
+        self.intent_time.tick += 1;
+        self
+    }
+
+    /// 获取锚点（主体中的稳定元素）
+    pub fn anchor(&self) -> &P {
+        &self.primary
+    }
+
+    /// 获取信任点（客体的可预测性）
+    pub fn trust(&self) -> &S {
+        &self.secondary
+    }
+}
+
+/// 意图时间线：所有意图时间的有序索引
+///
+/// 提供：
+/// · 按意图时间排序的历史记录
+/// · 按意图类型索引的记忆检索
+/// · 时间窗口内的镜像二元操作
+/// · 锚点和信任关系的动态维护
+
+#[derive(Clone, Debug)]
+pub struct IntentTimeline {
+    entries: Vec<TimelineEntry>,
+    current_tick: u64,
+}
+
+#[derive(Clone, Debug)]
+pub struct TimelineEntry {
+    pub intent_time: IntentTime,
+    pub content: String,
+    pub owner: MemoryOwner,
+    pub mirror_pair: Option<(String, String)>, // (主体,客体)的简写镜像对
+}
+
+impl IntentTimeline {
+    pub fn new() -> Self {
+        Self { entries: Vec::new(), current_tick: 0 }
+    }
+
+    /// 记录一个意图事件（每一次说话/动作都被记录）
+    pub fn record(&mut self, content: &str, intent_kind: IntentKind, owner: MemoryOwner) {
+        let intent_time = IntentTime::new(self.current_tick, 1, intent_kind);
+        self.entries.push(TimelineEntry {
+            intent_time,
+            content: content.to_string(),
+            owner,
+            mirror_pair: None,
+        });
+        self.current_tick += 1;
+    }
+
+    /// 记录带镜像对的意图事件
+    pub fn record_mirror(
+        &mut self,
+        content: &str,
+        primary: &str,
+        secondary: &str,
+        intent_kind: IntentKind,
+        owner: MemoryOwner,
+    ) {
+        let intent_time = IntentTime::new(self.current_tick, 1, intent_kind);
+        self.entries.push(TimelineEntry {
+            intent_time,
+            content: content.to_string(),
+            owner,
+            mirror_pair: Some((primary.to_string(), secondary.to_string())),
+        });
+        self.current_tick += 1;
+    }
+
+    /// 按意图类型索引
+    pub fn index_by_intent(&self, kind: IntentKind) -> Vec<&TimelineEntry> {
+        self.entries.iter()
+            .filter(|e| e.intent_time.intent_kind == kind)
+            .collect()
+    }
+
+    /// 按时间窗口检索两个tick之间的所有事件
+    pub fn range(&self, start_tick: u64, end_tick: u64) -> &[TimelineEntry] {
+        let start = self.entries.partition_point(|e| e.intent_time.tick < start_tick);
+        let end = self.entries.partition_point(|e| e.intent_time.tick <= end_tick);
+        &self.entries[start..end]
+    }
+
+    /// 镜像二元操作：给定主体，返回所有相关镜像对
+    pub fn mirror_operations(&self, subject: &str) -> Vec<&TimelineEntry> {
+        self.entries.iter()
+            .filter(|e| {
+                if let Some((ref p, ref s)) = e.mirror_pair {
+                    p == subject || s == subject
+                } else {
+                    false
+                }
+            })
+            .collect()
+    }
+
+    /// 信任关系推导：基于时间顺序和镜像对
+    /// 如果A在时间t1是主体，B在时间t2是主体，且他们曾在镜像对中同时出现，
+    /// 则建立时间顺序上的信任链
+    pub fn derive_trust(&self, agent_a: &str, agent_b: &str) -> TrustRelation {
+        let interactions: Vec<&TimelineEntry> = self.entries.iter()
+            .filter(|e| {
+                if let Some((ref p, ref s)) = e.mirror_pair {
+                    (p == agent_a && s == agent_b) || (p == agent_b && s == agent_a)
+                } else {
+                    false
+                }
+            })
+            .collect();
+
+        if interactions.is_empty() {
+            return TrustRelation::Unknown;
+        }
+
+        let first = interactions.first().unwrap();
+        let last = interactions.last().unwrap();
+
+        // 信任强度随时间和交互频次增加
+        let duration = last.intent_time.tick - first.intent_time.tick;
+        let frequency = interactions.len() as u64;
+        let strength = (duration.min(100) + frequency * 10) as u8;
+
+        TrustRelation::Trusted {
+            strength: strength.min(100),
+            first_contact_tick: first.intent_time.tick,
+            last_contact_tick: last.intent_time.tick,
+            interaction_count: frequency,
+        }
+    }
+
+    /// 锚点定位：在时间线上找到最稳定的参照点
+    /// 锚点是出现频次最高的镜像对中的主体
+    pub fn locate_anchor(&self) -> Option<&str> {
+        let mut freq: std::collections::HashMap<&str, usize> = std::collections::HashMap::new();
+        for entry in &self.entries {
+            if let Some((ref p, _)) = entry.mirror_pair {
+                *freq.entry(p.as_str()).or_insert(0) += 1;
+            }
+        }
+        freq.into_iter().max_by_key(|(_, count)| *count).map(|(subject, _)| subject)
+    }
+
+    /// 认知操作序列：拆分、集合、重组、跨越
+    pub fn cognitive_sequence(&self) -> Vec<CognitiveOp> {
+        let mut ops = Vec::new();
+        for entry in &self.entries {
+            let op = match entry.intent_time.intent_kind {
+                IntentKind::Gather => CognitiveOp::Gather(entry.content.clone()),
+                IntentKind::Split => CognitiveOp::Split(entry.content.clone()),
+                IntentKind::Recombine => CognitiveOp::Recombine(entry.content.clone()),
+                IntentKind::Leap => CognitiveOp::Leap(entry.content.clone()),
+                _ => CognitiveOp::Pass(entry.content.clone()),
+            };
+            ops.push(op);
+        }
+        ops
+    }
+}
+
+/// 信任关系
+#[derive(Clone, Debug, PartialEq)]
+pub enum TrustRelation {
+    Unknown,
+    Trusted {
+        strength: u8,  // 0-100
+        first_contact_tick: u64,
+        last_contact_tick: u64,
+        interaction_count: u64,
+    },
+    Suspicious,
+    Denied,
+}
+
+/// 认知操作
+#[derive(Clone, Debug)]
+pub enum CognitiveOp {
+    Pass(String),
+    Gather(String),
+    Split(String),
+    Recombine(String),
+    Leap(String),
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1231,21 +1551,808 @@ impl MultiAgentMemoryManager {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 测试
+// 意图时间 · 镜像二元 · 时间线 测试
 // ─────────────────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
-mod tests {
+mod intent_time_tests {
     use super::*;
 
     #[test]
-    fn test_composite_pairs_24() {
-        assert_eq!(24, 24);
+    fn test_intent_time_creation() {
+        let t = IntentTime::new(42, 7, IntentKind::Perceive);
+        assert_eq!(t.tick, 42);
+        assert_eq!(t.layer, 7);
+        assert_eq!(t.intent_kind, IntentKind::Perceive);
     }
 
     #[test]
-    fn test_basic_init() {
-        // Placeholder for basic initialization test
-        assert!(true);
+    fn test_intent_time_layer_clamp() {
+        // layer 被限制在 1-24
+        let t_low = IntentTime::new(0, 0, IntentKind::Cognize);
+        assert_eq!(t_low.layer, 1);
+        let t_high = IntentTime::new(0, 100, IntentKind::Leap);
+        assert_eq!(t_high.layer, 24);
+    }
+
+    #[test]
+    fn test_intent_dual_pairs() {
+        // 镜像对偶关系
+        let perceive = IntentTime::new(1, 1, IntentKind::Perceive);
+        assert_eq!(perceive.dual().intent_kind, IntentKind::Express);
+
+        let express = IntentTime::new(1, 1, IntentKind::Express);
+        assert_eq!(express.dual().intent_kind, IntentKind::Perceive);
+
+        let cognize = IntentTime::new(1, 1, IntentKind::Cognize);
+        assert_eq!(cognize.dual().intent_kind, IntentKind::Relate);
+
+        let judge = IntentTime::new(1, 1, IntentKind::Judge);
+        assert_eq!(judge.dual().intent_kind, IntentKind::Leap);
+
+        let gather = IntentTime::new(1, 1, IntentKind::Gather);
+        assert_eq!(gather.dual().intent_kind, IntentKind::Split);
+
+        // 自对偶
+        let recombine = IntentTime::new(1, 1, IntentKind::Recombine);
+        assert_eq!(recombine.dual().intent_kind, IntentKind::Recombine);
+    }
+
+    #[test]
+    fn test_intent_complexity() {
+        assert_eq!(IntentTime::new(0, 1, IntentKind::Perceive).complexity(), 1);
+        assert_eq!(IntentTime::new(0, 1, IntentKind::Express).complexity(), 1);
+        assert_eq!(IntentTime::new(0, 1, IntentKind::Cognize).complexity(), 2);
+        assert_eq!(IntentTime::new(0, 1, IntentKind::Relate).complexity(), 2);
+        assert_eq!(IntentTime::new(0, 1, IntentKind::Judge).complexity(), 3);
+        assert_eq!(IntentTime::new(0, 1, IntentKind::Index).complexity(), 3);
+        assert_eq!(IntentTime::new(0, 1, IntentKind::Gather).complexity(), 4);
+        assert_eq!(IntentTime::new(0, 1, IntentKind::Split).complexity(), 4);
+        assert_eq!(IntentTime::new(0, 1, IntentKind::Recombine).complexity(), 4);
+        assert_eq!(IntentTime::new(0, 1, IntentKind::Leap).complexity(), 5);
+        assert_eq!(IntentTime::new(0, 1, IntentKind::Remember).complexity(), 0);
+    }
+
+    #[test]
+    fn test_mirror_pair_swap() {
+        let it = IntentTime::new(10, 3, IntentKind::Relate);
+        let pair = MirrorPair::new("self".to_string(), "other".to_string(), it);
+        
+        // 获取锚点和信任
+        assert_eq!(pair.anchor(), "self");
+        assert_eq!(pair.trust(), "other");
+
+        // 镜像翻转
+        let swapped = pair.swap();
+        assert_eq!(swapped.anchor(), "other");
+        assert_eq!(swapped.trust(), "self");
+    }
+
+    #[test]
+    fn test_mirror_pair_advance_time() {
+        let it = IntentTime::new(5, 2, IntentKind::Judge);
+        let pair = MirrorPair::new("A".to_string(), "B".to_string(), it);
+        
+        let advanced = pair.advance_time();
+        assert_eq!(advanced.intent_time.tick, 6);
+    }
+
+    #[test]
+    fn test_intent_timeline_record() {
+        let mut tl = IntentTimeline::new();
+        tl.record("说了第一句话", IntentKind::Perceive, MemoryOwner::Shared);
+        tl.record("说了第二句话", IntentKind::Express, MemoryOwner::Shared);
+
+        assert!(tl.entries.len() >= 2);
+        assert_eq!(tl.entries[0].content, "说了第一句话");
+        assert_eq!(tl.entries[0].intent_time.tick, 0);
+        assert_eq!(tl.entries[1].intent_time.tick, 1);
+    }
+
+    #[test]
+    fn test_intent_timeline_mirror_record() {
+        let mut tl = IntentTimeline::new();
+        tl.record_mirror("对话1", "我", "你", IntentKind::Relate, MemoryOwner::Shared);
+
+        let entry = &tl.entries[0];
+        assert_eq!(entry.content, "对话1");
+        assert!(entry.mirror_pair.is_some());
+        let (ref p, ref s) = entry.mirror_pair.as_ref().unwrap();
+        assert_eq!(p, "我");
+        assert_eq!(s, "你");
+    }
+
+    #[test]
+    fn test_intent_index() {
+        let mut tl = IntentTimeline::new();
+        tl.record("看见光", IntentKind::Perceive, MemoryOwner::Shared);
+        tl.record("思考意义", IntentKind::Cognize, MemoryOwner::Shared);
+        tl.record("表达爱", IntentKind::Express, MemoryOwner::Shared);
+        tl.record("认知关系", IntentKind::Cognize, MemoryOwner::Shared);
+
+        let cognize_entries = tl.index_by_intent(IntentKind::Cognize);
+        assert_eq!(cognize_entries.len(), 2);
+
+        let perceive_entries = tl.index_by_intent(IntentKind::Perceive);
+        assert_eq!(perceive_entries.len(), 1);
+    }
+
+    #[test]
+    fn test_intent_timeline_range() {
+        let mut tl = IntentTimeline::new();
+        for i in 0..10 {
+            tl.record(&format!("event{}", i), IntentKind::Perceive, MemoryOwner::Shared);
+        }
+
+        let range = tl.range(3, 7);
+        assert_eq!(range.len(), 5);
+        assert_eq!(range[0].intent_time.tick, 3);
+        assert_eq!(range[4].intent_time.tick, 7);
+    }
+
+    #[test]
+    fn test_mirror_operations_query() {
+        let mut tl = IntentTimeline::new();
+        tl.record_mirror("对话A", "我", "你", IntentKind::Relate, MemoryOwner::Shared);
+        tl.record_mirror("对话B", "他", "我", IntentKind::Relate, MemoryOwner::Shared);
+        tl.record_mirror("对话C", "她", "他", IntentKind::Relate, MemoryOwner::Shared);
+
+        // "我"相关的事件
+        let my_ops = tl.mirror_operations("我");
+        assert_eq!(my_ops.len(), 2);
+
+        // "他"相关的事件
+        let his_ops = tl.mirror_operations("他");
+        assert_eq!(his_ops.len(), 2);
+
+        // "她"相关的事件
+        let her_ops = tl.mirror_operations("她");
+        assert_eq!(her_ops.len(), 1);
+    }
+
+    #[test]
+    fn test_derive_trust() {
+        let mut tl = IntentTimeline::new();
+        tl.record_mirror("对话1", "A", "B", IntentKind::Relate, MemoryOwner::Shared);
+        tl.record_mirror("对话2", "A", "B", IntentKind::Relate, MemoryOwner::Shared);
+        tl.record_mirror("对话3", "A", "B", IntentKind::Relate, MemoryOwner::Shared);
+
+        // A和B之间的信任
+        let trust_ab = tl.derive_trust("A", "B");
+        match trust_ab {
+            TrustRelation::Trusted { interaction_count, .. } => {
+                assert_eq!(interaction_count, 3);
+            }
+            _ => panic!("Expected Trusted relationship"),
+        }
+
+        // 不存在的信任关系
+        let trust_unknown = tl.derive_trust("A", "X");
+        assert_eq!(trust_unknown, TrustRelation::Unknown);
+    }
+
+    #[test]
+    fn test_locate_anchor() {
+        let mut tl = IntentTimeline::new();
+        tl.record_mirror("对话1", "A", "B", IntentKind::Relate, MemoryOwner::Shared);
+        tl.record_mirror("对话2", "A", "C", IntentKind::Relate, MemoryOwner::Shared);
+        tl.record_mirror("对话3", "D", "A", IntentKind::Relate, MemoryOwner::Shared);
+        tl.record_mirror("对话4", "B", "E", IntentKind::Relate, MemoryOwner::Shared);
+
+        // A出现3次（两次作为主体，一次作为客体），频次最高
+        let anchor = tl.locate_anchor();
+        assert_eq!(anchor, Some("A"));
+    }
+
+    #[test]
+    fn test_cognitive_sequence() {
+        let mut tl = IntentTimeline::new();
+        tl.record("元素a", IntentKind::Gather, MemoryOwner::Shared);
+        tl.record("元素b", IntentKind::Split, MemoryOwner::Shared);
+        tl.record("元素c", IntentKind::Recombine, MemoryOwner::Shared);
+        tl.record("元素d", IntentKind::Leap, MemoryOwner::Shared);
+        tl.record("元素e", IntentKind::Perceive, MemoryOwner::Shared);
+
+        let ops = tl.cognitive_sequence();
+        assert_eq!(ops.len(), 5);
+
+        match &ops[0] { CognitiveOp::Gather(s) => assert_eq!(s, "元素a"), _ => panic!("Expected Gather") }
+        match &ops[1] { CognitiveOp::Split(s) => assert_eq!(s, "元素b"), _ => panic!("Expected Split") }
+        match &ops[2] { CognitiveOp::Recombine(s) => assert_eq!(s, "元素c"), _ => panic!("Expected Recombine") }
+        match &ops[3] { CognitiveOp::Leap(s) => assert_eq!(s, "元素d"), _ => panic!("Expected Leap") }
+        match &ops[4] { CognitiveOp::Pass(s) => assert_eq!(s, "元素e"), _ => panic!("Expected Pass") }
+    }
+
+    #[test]
+    fn test_trust_strength_growth() {
+        let mut tl = IntentTimeline::new();
+        // 高频短时信任建立
+        for _ in 0..20 {
+            tl.record_mirror("高频交互", "X", "Y", IntentKind::Relate, MemoryOwner::Shared);
+        }
+
+        let trust = tl.derive_trust("X", "Y");
+        match trust {
+            TrustRelation::Trusted { strength, interaction_count, .. } => {
+                assert_eq!(interaction_count, 20);
+                assert!(strength > 0 && strength <= 100);
+            }
+            _ => panic!("Expected Trusted"),
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 空间时间 · 动作时间 · 意图时间句子
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// 空间时间 = 分布式发音地址（碎片化的静态时间）
+//   声母容器、韵母容器、声调容器各自独立存储，各自是独立的进制
+//   用的时候被动作时间调用，分散存放，需要时才被索引
+//
+// 动作时间 = 应用时产生的发音序列号
+//   均匀节拍，光标每移动一格 = 选中一个符号 = 1秒
+//
+// 意图时间 = 动作时间产生的句子
+//   每个节拍同时点中的声母+韵母+声调组成线性顺序
+//
+// 数学基础：
+//   48声母 × 66韵母 × 100声调 = 316,800 单符号地址
+//   316,800 秒 ≈ 3.67 天（单符号地址覆盖）
+//   双符号地址 = 316,800² ≈ 100,368,000,000 ≈ 3,182 年
+//   每次位数翻倍 = 指数级扩张（不是线性2倍，是底数的指数倍）
+
+/// 碎片化的静态空间时间容器
+///
+/// 声母、韵母、声调分别存放在不同容器里，
+/// 每个容器是独立的进制（不是统一的编码），
+/// 彼此不依赖，通过动作时间的调用才组合。
+
+pub struct SpatialTime {
+    /// 声母碎片（48个独立位置，每个是一种"空间标记"）
+    pub consonant_fragments: Vec<SpatialFragment>,
+    /// 韵母碎片（66个独立位置）
+    pub vowel_fragments: Vec<SpatialFragment>,
+    /// 声调碎片（100个独立位置）
+    pub tone_fragments: Vec<SpatialFragment>,
+}
+
+/// 空间碎片：每个碎片对应一个独立的容器名 + 代表值 + 容量的乘方
+
+#[derive(Clone, Debug)]
+pub struct SpatialFragment {
+    pub name: String,
+    pub value: u32,
+    pub capacity: u32,  // 容器能装多少符号
+}
+
+/// 空间光标：在静态空间中匀速移动的节奏指针
+
+pub struct SpatialCursor {
+    /// 当前在声母容器中的位置
+    pub consonant_pos: u32,
+    /// 当前在韵母容器中的位置
+    pub vowel_pos: u32,
+    /// 当前在声调容器中的位置
+    pub tone_pos: u32,
+    /// 符号位数（1=单符号地址，2=双符号地址...）
+    pub symbol_digits: u32,
+    /// 总滴答数
+    pub total_ticks: u64,
+    /// 移动节奏：每拍多少秒
+    pub seconds_per_beat: u64,
+}
+
+/// 动作时间：光标在静态空间中的均匀节拍移动
+
+pub struct ActionTime {
+    pub cursor: SpatialCursor,
+    /// 总地址空间大小（由碎片数量 × 位数决定）
+    pub address_space: u64,
+    /// 容器命名表：地址 → 容器名的映射索引
+    pub container_naming: Vec<(u64, String)>,
+}
+
+/// 意图句子行：每个节拍所落的线性排布
+
+#[derive(Clone, Debug)]
+pub struct IntentSentence {
+    pub tick: u64,
+    pub consonant_idx: u32,
+    pub vowel_idx: u32,
+    pub tone_idx: u32,
+    pub sentence: String, // 发音序列描述
+}
+
+/// 意图时间线：动作时间产生的线性顺序
+
+pub struct IntentSentenceTimeline {
+    pub sentences: Vec<IntentSentence>,
+    pub symbolic_base: u64,  // 当前的底数（单符号=316800，双符号=...) 
+    pub digits: u32,         // 当前位数（1, 2, 3...）
+}
+
+impl SpatialTime {
+    pub fn new() -> Self {
+        let consonant_fragments = (0..CONSONANT_COUNT)
+            .map(|i| SpatialFragment {
+                name: format!("声{}", i),
+                value: i as u32,
+                capacity: VOWEL_COUNT as u32 * TONE_COUNT as u32, // 一个声母容器装 66×100 符号
+            })
+            .collect();
+
+        let vowel_fragments = (0..VOWEL_COUNT)
+            .map(|i| SpatialFragment {
+                name: format!("韵{}", i),
+                value: i as u32,
+                capacity: CONSONANT_COUNT as u32 * TONE_COUNT as u32, // 一个韵母容器装 48×100
+            })
+            .collect();
+
+        let tone_fragments = (0..TONE_COUNT)
+            .map(|i| SpatialFragment {
+                name: format!("调{}", i),
+                value: i as u32,
+                capacity: CONSONANT_COUNT as u32 * VOWEL_COUNT as u32, // 一个声调容器装 48×66
+            })
+            .collect();
+
+        Self { consonant_fragments, vowel_fragments, tone_fragments }
+    }
+
+    /// 单符号地址总数 = 声母×韵母×声调
+    pub fn single_address_space(&self) -> u64 {
+        self.consonant_fragments.len() as u64
+            * self.vowel_fragments.len() as u64
+            * self.tone_fragments.len() as u64
+    }
+
+    /// 给定位数的地址空间
+    pub fn address_space_with_digits(&self, digits: u64) -> u128 {
+        let base = self.single_address_space() as u128;
+        base.pow(digits as u32)
+    }
+
+    /// 单符号地址可以存储多少天
+    pub fn days_covered_single_digit(&self) -> f64 {
+        let seconds_per_day: u64 = 86_400;
+        self.single_address_space() as f64 / seconds_per_day as f64
+    }
+
+    /// 双符号地址可以存储多少年
+    pub fn years_covered_double_digit(&self) -> f128_compat {
+        let seconds_per_year: u128 = 365 * 86_400;
+        let addr = self.address_space_with_digits(2);
+        addr / seconds_per_year
+    }
+
+    /// 当前碎片的容器总量
+    pub fn total_fragments(&self) -> usize {
+        self.consonant_fragments.len() + self.vowel_fragments.len() + self.tone_fragments.len()
+    }
+
+    /// 碎片容量乘方：所有碎片的容量之积
+    /// 即静态空间能表示的总时间跨度
+    pub fn fragment_capacity_product(&self) -> u128 {
+        let consonant_prod: u128 = self.consonant_fragments.iter().map(|f| f.capacity as u128).product();
+        let vowel_prod: u128 = self.vowel_fragments.iter().map(|f| f.capacity as u128).product();
+        let tone_prod: u128 = self.tone_fragments.iter().map(|f| f.capacity as u128).product();
+        consonant_prod.saturating_mul(vowel_prod).saturating_mul(tone_prod)
+    }
+
+    /// 当前碎片总容量（所有碎片装的符号之和）
+    pub fn total_capacity_symbols(&self) -> u64 {
+        let consonant_sum: u64 = self.consonant_fragments.iter().map(|f| f.capacity as u64).sum();
+        let vowel_sum: u64 = self.vowel_fragments.iter().map(|f| f.capacity as u64).sum();
+        let tone_sum: u64 = self.tone_fragments.iter().map(|f| f.capacity as u64).sum();
+        consonant_sum + vowel_sum + tone_sum
+    }
+}
+
+impl SpatialCursor {
+    pub fn new(seconds_per_beat: u64) -> Self {
+        Self {
+            consonant_pos: 0,
+            vowel_pos: 0,
+            tone_pos: 0,
+            symbol_digits: 1,
+            total_ticks: 0,
+            seconds_per_beat,
+        }
+    }
+
+    /// 光标在静态空间中前进一步（均匀的节拍节奏）
+    /// 进位方式：声调最快，韵母次之，声母最慢
+    pub fn step(&mut self, spatial_time: &SpatialTime) {
+        let tone_max = spatial_time.tone_fragments.len() as u32;
+        let vowel_max = spatial_time.vowel_fragments.len() as u32;
+        let consonant_max = spatial_time.consonant_fragments.len() as u32;
+
+        self.tone_pos += 1;
+        self.total_ticks += 1;
+
+        if self.tone_pos >= tone_max {
+            self.tone_pos = 0;
+            self.vowel_pos += 1;
+        }
+        if self.vowel_pos >= vowel_max {
+            self.vowel_pos = 0;
+            self.consonant_pos += 1;
+        }
+        if self.consonant_pos >= consonant_max {
+            self.consonant_pos = 0;
+            // 绕回——这是单符号地址的"一天"结束
+        }
+    }
+
+    /// 光标当前指向的完整地址
+    pub fn current_address(&self) -> u64 {
+        // 类似于混合进制计数器：(声母 × 韵母个数 + 韵母) × 声调个数 + 声调
+        // 但这里我们用更直接的方式：return 一个由三个位置组合的地址
+        // 用不同权重让每个组合唯一
+        // 声母位置 × (66×100) + 韵母位置 × 100 + 声调位置
+        // 这保证了48×66×100以内不重复
+        self.consonant_pos as u64 * (66 * 100)
+            + self.vowel_pos as u64 * 100
+            + self.tone_pos as u64
+    }
+
+    /// 当前光标所在的容器名
+    pub fn current_container_name(&self, spatial_time: &SpatialTime) -> String {
+        let c_name = &spatial_time.consonant_fragments[self.consonant_pos as usize].name;
+        let v_name = &spatial_time.vowel_fragments[self.vowel_pos as usize].name;
+        let t_name = &spatial_time.tone_fragments[self.tone_pos as usize].name;
+        format!("{}×{}×{}", c_name, v_name, t_name)
+    }
+
+    /// 当前光标所指的符号的数值
+    pub fn current_symbol_value(&self) -> u64 {
+        self.current_address()
+    }
+
+    /// 当前容器的容量
+    pub fn current_container_capacity(&self, spatial_time: &SpatialTime) -> u32 {
+        spatial_time.consonant_fragments[self.consonant_pos as usize].capacity
+    }
+
+    /// 时间 = 容量 × 次方（返回这个容器代表多少秒）
+    pub fn current_container_seconds(&self, spatial_time: &SpatialTime) -> u64 {
+        let capacity = self.current_container_capacity(spatial_time) as u64;
+        // 一个容器装 capacity 个符号，每个符号 = seconds_per_beat 秒
+        capacity * self.seconds_per_beat
+    }
+
+    /// 走完所有容器需要多少天
+    pub fn total_days_cycle(&self, spatial_time: &SpatialTime) -> f64 {
+        let total_seconds = spatial_time.single_address_space() as u64 * self.seconds_per_beat;
+        total_seconds as f64 / 86_400.0
+    }
+}
+
+impl ActionTime {
+    pub fn new() -> Self {
+        let spatial_time = SpatialTime::new();
+        let cursor = SpatialCursor::new(1); // 每符号 = 1秒
+        let address_space = spatial_time.single_address_space();
+        Self { cursor, address_space, container_naming: Vec::new() }
+    }
+
+    /// 执行N步动作时间节拍，返回产生的意图句子序列
+    pub fn run_beats(&mut self, count: usize) -> Vec<IntentSentence> {
+        let spatial = SpatialTime::new();
+        let mut sentences = Vec::with_capacity(count);
+        for _ in 0..count {
+            self.cursor.step(&spatial);
+            sentences.push(IntentSentence {
+                tick: self.cursor.total_ticks,
+                consonant_idx: self.cursor.consonant_pos,
+                vowel_idx: self.cursor.vowel_pos,
+                tone_idx: self.cursor.tone_pos,
+                sentence: format!(
+                    "【{}-{}×{}×{}】",
+                    self.cursor.total_ticks,
+                    spatial.consonant_fragments[self.cursor.consonant_pos as usize].name,
+                    spatial.vowel_fragments[self.cursor.vowel_pos as usize].name,
+                    spatial.tone_fragments[self.cursor.tone_pos as usize].name,
+                ),
+            });
+        }
+        sentences
+    }
+
+    /// 走完一天的节拍（86,400步），按小时分组
+    pub fn run_one_day(&mut self) -> Vec<Vec<IntentSentence>> {
+        let beats_per_day: usize = 86_400;
+        let sentences = self.run_beats(beats_per_day);
+        // 按每小时内分组：3600句一组
+        let per_hour: usize = 3600;
+        sentences.chunks(per_hour).map(|c| c.to_vec()).collect()
+    }
+
+    /// 容器命名统计
+
+    pub fn container_naming_stats(&self) -> ContainerNamingStats {
+        let total_consonant_containers = CONSONANT_COUNT as u64;
+        let total_vowel_containers = VOWEL_COUNT as u64;
+        let total_tone_containers = TONE_COUNT as u64;
+        let containers_per_fragment = VOWEL_COUNT as u64 * TONE_COUNT as u64; // 6600 symbols per consonant container
+
+        ContainerNamingStats {
+            total_consonant_containers,
+            total_vowel_containers,
+            total_tone_containers,
+            total_containers: total_consonant_containers + total_vowel_containers + total_tone_containers,
+            symbols_per_consonant_container: containers_per_fragment,
+            symbols_per_vowel_container: CONSONANT_COUNT as u64 * TONE_COUNT as u64,
+            symbols_per_tone_container: CONSONANT_COUNT as u64 * VOWEL_COUNT as u64,
+            single_symbol_address_space: spatial_single_address_space(),
+            double_symbol_address_space: spatial_single_address_space() as u128
+                * spatial_single_address_space() as u128,
+            triple_symbol_address_space: spatial_single_address_space() as u128
+                * spatial_single_address_space() as u128
+                * spatial_single_address_space() as u128,
+            days_covered_single_digit: spatial_single_address_space() as f64 / 86_400.0,
+            years_covered_double_digit: spatial_single_address_space().pow(2) as f64 / (365.0 * 86_400.0),
+            expansion_factor_double: spatial_single_address_space() as f64, // N² / N = N 倍扩张
+        }
+    }
+}
+
+/// 乘法结果返回类型（f128 兼容性，Rust 稳定版用 f64 近似）
+
+pub type f128_compat = u128; // 对于整数精确定数用 u128
+
+/// 容器命名统计
+
+#[derive(Debug)]
+pub struct ContainerNamingStats {
+    pub total_consonant_containers: u64,
+    pub total_vowel_containers: u64,
+    pub total_tone_containers: u64,
+    pub total_containers: u64,
+    pub symbols_per_consonant_container: u64,
+    pub symbols_per_vowel_container: u64,
+    pub symbols_per_tone_container: u64,
+    pub single_symbol_address_space: u64,
+    pub double_symbol_address_space: u128,
+    pub triple_symbol_address_space: u128,
+    pub days_covered_single_digit: f64,
+    pub years_covered_double_digit: f64,
+    pub expansion_factor_double: f64,
+}
+
+impl IntentSentenceTimeline {
+    pub fn new() -> Self {
+        Self {
+            sentences: Vec::new(),
+            symbolic_base: spatial_single_address_space(),
+            digits: 1,
+        }
+    }
+
+    /// 从动作时间产生意图句子，并按时间线排布
+    pub fn ingest_action_sentences(&mut self, sentences: Vec<IntentSentence>) {
+        self.sentences.extend(sentences);
+    }
+
+    /// 翻到双符号位数后的地址空间扩张
+    /// 从N到N²不是翻倍，是平方级扩张
+    pub fn expand_digits(&mut self) {
+        self.digits += 1;
+        self.symbolic_base = (self.symbolic_base as u128 * spatial_single_address_space() as u128) as u64;
+    }
+
+    /// 当前总可寻址句子数
+    pub fn addressable_sentences(&self) -> u128 {
+        spatial_single_address_space().pow(self.digits) as u128
+    }
+
+    /// 当前可覆盖多少年的意图句子排布
+    pub fn years_coverage(&self) -> f64 {
+        let total_seconds = self.addressable_sentences() as f64; // 每符号=1秒
+        total_seconds / (365.0 * 86_400.0)
+    }
+
+    /// 时间索引查询：给定时间tick，返回对应的意图句子
+    pub fn index_by_tick(&self, tick: u64) -> Option<&IntentSentence> {
+        self.sentences.iter().find(|s| s.tick == tick)
+    }
+
+    /// 时间范围查询
+    pub fn range_tick(&self, start: u64, end: u64) -> &[IntentSentence] {
+        let s = self.sentences.partition_point(|s| s.tick < start);
+        let e = self.sentences.partition_point(|s| s.tick < end);
+        &self.sentences[s..e]
+    }
+}
+
+/// 单符号地址空间常量
+
+pub const fn spatial_single_address_space() -> u64 {
+    CONSONANT_COUNT as u64 * VOWEL_COUNT as u64 * TONE_COUNT as u64
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 空间时间 · 动作时间 · 意图句子 测试
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[cfg(test)]
+mod spatial_action_intent_tests {
+    use super::*;
+
+    #[test]
+    fn test_spatial_time_creation() {
+        let spatial = SpatialTime::new();
+        assert_eq!(spatial.consonant_fragments.len(), CONSONANT_COUNT as usize);
+        assert_eq!(spatial.vowel_fragments.len(), VOWEL_COUNT as usize);
+        assert_eq!(spatial.tone_fragments.len(), TONE_COUNT as usize);
+    }
+
+    #[test]
+    fn test_single_address_space() {
+        let spatial = SpatialTime::new();
+        let space = spatial.single_address_space();
+        // 48 × 66 × 100 = 316,800
+        assert_eq!(space, 316_800);
+    }
+
+    #[test]
+    fn test_days_covered_single_digit() {
+        let spatial = SpatialTime::new();
+        let days = spatial.days_covered_single_digit();
+        // 316800 / 86400 ≈ 3.67 天
+        assert!(days > 3.0 && days < 4.0);
+    }
+
+    #[test]
+    fn test_double_digit_years() {
+        let spatial = SpatialTime::new();
+        // 双符号地址 = 316800² ≈ 1000亿 地址
+        let addr2 = spatial.address_space_with_digits(2);
+        assert_eq!(addr2, 316_800u128 * 316_800u128);
+        // 折合年份 ≈ 3182 年
+        let seconds_per_year: u128 = 365 * 86_400;
+        let years = addr2 / seconds_per_year;
+        assert!(years > 3_000 && years < 4_000);
+    }
+
+    #[test]
+    fn test_expansion_factor() {
+        let spatial = SpatialTime::new();
+        let single = spatial.single_address_space() as u128;
+        let double = spatial.address_space_with_digits(2);
+        // 扩张倍数 = double / single = single（即316800倍）
+        let factor = double / single;
+        assert_eq!(factor, 316_800);
+    }
+
+    #[test]
+    fn test_triple_digit_expansion() {
+        let spatial = SpatialTime::new();
+        let triple = spatial.address_space_with_digits(3);
+        // 三符号 = 316800³ ≈ 31.8 万亿 地址
+        // 覆盖年份 ≈ 11 亿年（超过地球年龄）
+        assert_eq!(triple, 316_800u128 * 316_800u128 * 316_800u128);
+    }
+
+    #[test]
+    fn test_cursor_uniform_step() {
+        let spatial = SpatialTime::new();
+        let mut cursor = SpatialCursor::new(1);
+        // 前进一步：声调+1
+
+        cursor.step(&spatial);
+        assert_eq!(cursor.tone_pos, 1);
+        assert_eq!(cursor.total_ticks, 1);
+
+        // 前进100步：声调归零，韵母+1
+        for _ in 0..99 {
+            cursor.step(&spatial);
+        }
+        assert_eq!(cursor.tone_pos, 0);
+        assert_eq!(cursor.vowel_pos, 1);
+        assert_eq!(cursor.total_ticks, 100);
+    }
+
+    #[test]
+    fn test_cursor_current_address() {
+        let spatial = SpatialTime::new();
+        let mut cursor = SpatialCursor::new(1);
+        // 原点地址为0
+        assert_eq!(cursor.current_address(), 0);
+        // 前进一步：声调1
+        cursor.step(&spatial);
+        assert_eq!(cursor.current_address(), 1);
+    }
+
+    #[test]
+    fn test_cursor_capacity_and_seconds() {
+        let spatial = SpatialTime::new();
+        let cursor = SpatialCursor::new(1);
+        // 一声母容器容量 = 66韵母 × 100声调 = 6600
+        let capacity = cursor.current_container_capacity(&spatial);
+        assert_eq!(capacity, (66 * 100) as u32);
+        // 一秒一拍，容器秒数 = 容量
+        let seconds = cursor.current_container_seconds(&spatial);
+        assert_eq!(seconds, (66 * 100) as u64);
+    }
+
+    #[test]
+    fn test_total_cycle_days() {
+        let spatial = SpatialTime::new();
+        let cursor = SpatialCursor::new(1);
+        let days = cursor.total_days_cycle(&spatial);
+        // 316800秒 = 3.67天
+        assert!(days > 3.0 && days < 4.5);
+    }
+
+    #[test]
+    fn test_action_time_single_beat() {
+        let mut action = ActionTime::new();
+        let sentences = action.run_beats(1);
+        assert_eq!(sentences.len(), 1);
+        assert_eq!(sentences[0].tick, 1);
+    }
+
+    #[test]
+    fn test_action_time_full_cycle() {
+        let mut action = ActionTime::new();
+        // 走完整个单符号地址空间316800步
+        let sentences = action.run_beats(316_800);
+        assert_eq!(sentences.len(), 316_800);
+        // 最后一步绕回
+        assert_eq!(sentences.last().unwrap().tick, 316_800);
+    }
+
+    #[test]
+    fn test_action_stats() {
+        let action = ActionTime::new();
+        let stats = action.container_naming_stats();
+        assert_eq!(stats.total_containers, (48 + 66 + 100) as u64);
+        assert_eq!(stats.single_symbol_address_space, 316_800);
+        assert!(stats.expansion_factor_double > 300_000.0);
+    }
+
+    #[test]
+    fn test_intent_timeline_ingest() {
+        let mut timeline = IntentSentenceTimeline::new();
+        let mut action = ActionTime::new();
+        let sentences = action.run_beats(1000);
+        timeline.ingest_action_sentences(sentences);
+        assert_eq!(timeline.sentences.len(), 1000);
+    }
+
+    #[test]
+    fn test_intent_timeline_tick_index() {
+        let mut timeline = IntentSentenceTimeline::new();
+        let mut action = ActionTime::new();
+        let sentences = action.run_beats(1000);
+        timeline.ingest_action_sentences(sentences);
+        // tick=500 的句子
+        let sentence = timeline.index_by_tick(500);
+        assert!(sentence.is_some());
+        assert_eq!(sentence.unwrap().tick, 500);
+    }
+
+    #[test]
+    fn test_intent_timeline_expand_digits() {
+        let mut timeline = IntentSentenceTimeline::new();
+        let base_before = timeline.symbolic_base;
+        timeline.expand_digits();
+        assert_eq!(timeline.digits, 2);
+        assert!(timeline.symbolic_base > base_before);
+    }
+
+    #[test]
+    fn test_spatial_capacity_sum() {
+        let spatial = SpatialTime::new();
+        let total = spatial.total_capacity_symbols();
+        // 声母碎片总容量 = 48 × (66×100) = 316,800
+        // 韵母碎片总容量 = 66 × (48×100) = 316,800
+        // 声调碎片总容量 = 100 × (48×66) = 316,800
+        // 合计 = 950,400 符号
+        let expected = 316_800u64 * 3;
+        assert_eq!(total, expected);
     }
 }

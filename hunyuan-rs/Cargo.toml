@@ -46,8 +46,8 @@ name = "morphism"
 path = "src/bin/morphism_gen.rs"
 
 [[bin]]
-name = "njsg-capture"
-path = "src/bin/njsg-capture.rs"
+name = "container-capture"
+path = "src/bin/container-capture.rs"
 
 [[bin]]
 name = "njsg-server"
@@ -64,6 +64,10 @@ path = "src/bin/ttf_gen.rs"
 [[bin]]
 name = "ttf-view"
 path = "src/bin/ttf_view.rs"
+
+[[bin]]
+name = "ttf-mirror"
+path = "src/bin/ttf_mirror.rs"
 
 [[bin]]
 name = "state-enumerate"

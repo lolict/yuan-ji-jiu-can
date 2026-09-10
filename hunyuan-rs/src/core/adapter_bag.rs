@@ -5,8 +5,8 @@
 // 「如果别人有库, 我们也可以借用别人的库, 做一个接口,
 //   把别人的库接到我们这里来, 同样也可以实现别人的功能」
 //
-// 袋 = 外部黑盒的 NJSG 外壳 — 外部调用者不知道里面是什么
-// 调 = 态射: NJSG地址 → 外部方法
+// 袋 = 外部黑盒的囡囝外壳 — 外部调用者不知道里面是什么
+// 调 = 态射: 声波地址 → 外部方法
 // 接口 = 唯一入口, 调用者不需知道内部实现
 //
 // 本模块是外部功能(HTTP获取/ZIP序列化)的袋容器 —
@@ -40,7 +40,7 @@ pub enum AdapterOp {
     Drop,
 }
 
-/// 调用请求 — 从 NJSG 外部进入袋的入口
+/// 调用请求 — 进入袋的入口
 #[derive(Clone, Debug)]
 pub struct InvokeRequest {
     /// 操作码
@@ -55,7 +55,7 @@ pub struct InvokeRequest {
     pub timestamp_ms: u64,
 }
 
-/// 调用结果 — 袋返回给 NJSG 的值
+/// 调用结果 — 袋返回的值
 #[derive(Clone, Debug)]
 pub struct InvokeResult {
     /// 操作码 (回显)
@@ -81,7 +81,7 @@ pub struct IndexedContainer {
     pub source: String,
 }
 
-/// 袋 — 外部库的 NJSG 接口壳
+/// 袋 — 外部库的囡囝接口壳
 pub struct AdapterBag {
     /// 袋的创世身份
     pub genesis: u64,
@@ -146,7 +146,6 @@ impl AdapterBag {
         let url = String::from_utf8_lossy(&req.payload).to_string();
 
         // 调用外部库 (实际 HTTP GET 由外部 crate 完成)
-        // 这里返回符合 NJSG 协议的结果
         let fetched_bytes = external_fetch(&url);
 
         match fetched_bytes {
@@ -167,7 +166,7 @@ impl AdapterBag {
                 );
 
                 // 将 fetched 字节编码为 SecuredInsertionPoint (内容不被破坏)
-                cont.add_secured_point(InsertionKind::Anchor, 0, b"NJSG-CAPTURE-V040");
+                cont.add_secured_point(InsertionKind::Anchor, 0, b"KNML-CAPTURE-V040");
                 cont.add_secured_point(InsertionKind::Image, 16, &bytes[..std::cmp::min(bytes.len(), 64)]);
 
                 InvokeResult {
@@ -213,7 +212,7 @@ impl AdapterBag {
     }
 }
 
-// ── 外部库调用 (编译时链接, 不暴露外部概念到 NJSG 上层) ────────
+// ── 外部库调用 (编译时链接, 不暴露外部概念到囡囝上层) ────────
 
 /// 外部 HTTP 获取 — 纯字节流, 不暴露 HTTP 头/DNS/IP
 fn external_fetch(url: &str) -> Option<Vec<u8>> {
@@ -326,12 +325,12 @@ mod tests {
             timestamp_ms: 1725600000,
         };
         let r = bag.invoke(req);
-        // 即使外部 curl 失败, 结果结构仍符合 NJSG 协议 (ok=false 且有错误信息)
+        // 即使外部 curl 失败, 结果结构仍符合囡囝协议 (ok=false 且有错误信息)
         // 不暴露 HTTP 403/404 等外部概念
         if r.ok {
             assert!(r.bytes.len() > 0);
         } else {
-            // 外部失败 → NJSG 协议返回有意义的错误
+            // 外部失败 → 囡囝协议返回有意义的错误
             assert!(r.error.is_some());
         }
     }

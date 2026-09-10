@@ -11,6 +11,8 @@
 //
 // ═══════════════════════════════════════════════════════════════════════════
 
+use std::collections::HashMap;
+
 use crate::cross_isa::coordinate::Coord3D;
 use crate::cross_isa::fridge::ContainerPack;
 
@@ -198,6 +200,79 @@ impl VoidProbe {
             self.match_rate = self.compute_match_rate(target);
         }
         result
+    }
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// 认知镜像 (CognitiveMirror)
+// ───────────────────────────────────────────────────────────────────────────
+// 哲学映射：
+//   "解释权调包" — 替换的不是容器做什么（payload），而是容器是什么（语义标签）。
+//   认知镜像维护一个语义映射表：旧语义ID → 新语义ID。
+//   当应用认知替代时，容器的坐标 X 维度被重新映射（func_code 改变），
+//   其余维度（Y/Z = 参数/时间）保持不变 — 功能位置不变，解释身份改变。
+//
+// 这实现了：对方看到一个"LOAD"指令时，实际看到的是被映射后的自定义语义，
+// 但它仍然以原本的节奏（Z轴时序）和参数空间（Y轴位置）运行 —
+// 观察者的解释被调包，但执行秩序不变。
+
+#[derive(Debug, Clone)]
+pub struct CognitiveMirror {
+    mappings: HashMap<u8, u8>, // old_x (semantic_id) → new_x
+}
+
+impl CognitiveMirror {
+    /// 创建恒等映射（无重映射，用于测试）
+    pub fn identity() -> Self {
+        Self { mappings: HashMap::new() }
+    }
+
+    /// 创建自定义映射
+    pub fn with_mappings(mappings: &[(u8, u8)]) -> Self {
+        Self { mappings: mappings.iter().copied().collect() }
+    }
+
+    /// 创建反转语义映射：把 x → REVERSE_x 做镜像翻转
+    /// 用于"以对方的身份替代对方"的情景
+    pub fn reversed(domain: &[u8]) -> Self {
+        let mut mappings = HashMap::new();
+        for &x in domain {
+            let flipped = !x; // 按位取反 = 180度镜像
+            mappings.insert(x, flipped);
+        }
+        Self { mappings }
+    }
+
+    /// 应用映射：返回映射后的 x（未命中返回原值）
+    pub fn remap(&self, x: u8) -> u8 {
+        *self.mappings.get(&x).unwrap_or(&x)
+    }
+
+    /// 认知替代：在 VoidProbe 的主权替换之上，额外重映射语义身份。
+    /// 步骤：
+    ///   1. 用 probe.substitute() 执行 payload 替换
+    ///   2. 用 self.remap() 替换 coord.x（语义标签）
+    ///
+    /// 返回的新 ContainerPack：
+    ///   - payload 已被混沌场内容替换（数据主权）
+    ///   - func_code/coord.x 已被 remap 替换（语义主权/解释权）
+    ///   - coord.y/z、pack_id、align_flag 原样保留
+    pub fn cognitive_substitute(&self, probe: &VoidProbe, target: &ContainerPack) -> Option<ContainerPack> {
+        let payload_bytes: Vec<u8> = probe.chaos_buffer.iter().flat_map(|m| m.to_bytes()).collect();
+        if payload_bytes.is_empty() || !probe.shell.payload.is_empty() {
+            return None;
+        }
+
+        let old_coord = target.coord();
+        let new_x = self.remap(old_coord.x);
+        let new_coord = Coord3D::new(new_x, old_coord.y, old_coord.z);
+
+        Some(ContainerPack::new(
+            target.pack_id,
+            new_coord,
+            target.align_flag,
+            payload_bytes,
+        ))
     }
 }
 
