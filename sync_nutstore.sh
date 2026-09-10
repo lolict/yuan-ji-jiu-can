@@ -1,64 +1,45 @@
 #!/bin/bash
-# 坚果云同步脚本 · 用于日常同步到私有云
-# 用法: bash sync_nutstore.sh
+# 坚果云同步脚本 · 目录级通用
+# 用法: bash sync_nutstore.sh [path]
 
 NUT_USER="vxworlk_zcmk@yeah.net"
 NUT_PASS="aaevwmwr7k3sw45a"
 NUT_BASE="https://dav.jianguoyun.com/dav/openclaw/hunyuan-os"
 LOCAL_BASE="$(cd "$(dirname "$0")" && pwd)"
 
-echo "═══ 坚果云同步 · hunyuan-os ═══"
-
-# 目录检查
-for dir in encoding sim docs tools; do
-  curl -s -o /dev/null -w "  [$dir] mkdir: %{http_code}\n" \
-    -X MKCOL -u "$NUT_USER:$NUT_PASS" "$NUT_BASE/$dir/"
-done
-
-# encoding
-echo "--- encoding ---"
-for f in encoding/seeds/fullquan_symbol_seeds.nim \
-         encoding/shengmu.h encoding/yunmu.h encoding/fullquan_code.h; do
-  [ -f "$LOCAL_BASE/$f" ] && \
-    curl -s -o /dev/null -w "  $f: %{http_code}\n" \
-      -X PUT -u "$NUT_USER:$NUT_PASS" -T "$LOCAL_BASE/$f" \
-      "$NUT_BASE/encoding/$(basename $f)"
-done
-
-# sim
-echo "--- sim ---"
-for f in sim/block_addressing.nim sim/clock_layer.nim sim/dual_keyboard.nim \
-         sim/life_society_fq.nim; do
-  [ -f "$LOCAL_BASE/$f" ] && \
-    curl -s -o /dev/null -w "  $f: %{http_code}\n" \
-      -X PUT -u "$NUT_USER:$NUT_PASS" -T "$LOCAL_BASE/$f" \
-      "$NUT_BASE/sim/$(basename $f)"
-done
-
-# tools/kungguan-container 核心
-echo "--- tools ---"
-for f in tools/kungguan-container/shengmu48.nim \
-         tools/kungguan-container/yunmu66.nim \
-         tools/kungguan-container/hunyuan_os.nim \
-         tools/kungguan-container/yunmu33.nim \
-         tools/kungguan-container/tone60.nim \
-         tools/kungguan-container/color42.nim \
-         tools/kungguan-container/space_phase.nim \
-         tools/kungguan-container/mirror_aligner.nim; do
-  [ -f "$LOCAL_BASE/$f" ] && \
-    curl -s -o /dev/null -w "  $(basename $f): %{http_code}\n" \
-      -X PUT -u "$NUT_USER:$NUT_PASS" -T "$LOCAL_BASE/$f" \
-      "$NUT_BASE/tools/$(basename $f)"
-done
-
-# daily log
-echo "--- daily log ---"
-LOG_FILE="/mnt/data/catpaw/home/.meituan-catpaw/9199532794/memory/daily/$(date +%Y-%m-%d)-encoding-sim.md"
-if [ -f "$LOG_FILE" ]; then
-  curl -s -o /dev/null -w "  log: %{http_code}\n" \
-    -X PUT -u "$NUT_USER:$NUT_PASS" -T "$LOG_FILE" \
-    "$NUT_BASE/docs/daily-encoding-sim.md"
+# 默认同步列表
+if [ -n "$1" ]; then
+  SYNC_PATHS=("$1")
+else
+  SYNC_PATHS=(encoding sim docs tools memory)
 fi
+
+echo "═══ 坚果云同步 · hunyuan-os ═══"
+for p in "${SYNC_PATHS[@]}"; do
+  echo "--- $p ---"
+done
+
+for dir in "${SYNC_PATHS[@]}"; do
+  [ ! -d "$LOCAL_BASE/$dir" ] && continue
+  # 确保目标目录存在
+  curl -s -o /dev/null -w "  [MKCOL $dir] %{http_code}\n" \
+    -X MKCOL -u "$NUT_USER:$NUT_PASS" "$NUT_BASE/$dir/"
+  # 上传所有文件
+  cd "$LOCAL_BASE"
+  find "$dir" -type f ! -name "*.o" ! -path "*/nimcache/*" ! -name ".DS_Store" | while read -r f; do
+    # 计算目标路径
+    dest="$NUT_BASE/$f"
+    # 确保子目录
+    subdir=$(dirname "$f")
+    curl -s -o /dev/null "$NUT_USER:$NUT_PASS" \
+      -X MKCOL -u "$NUT_USER:$NUT_PASS" "$NUT_BASE/$subdir/" 2>/dev/null
+    # 上传
+    code=$(curl -s -o /dev/null -w "%{http_code}" \
+      -X PUT -u "$NUT_USER:$NUT_PASS" -T "$LOCAL_BASE/$f" "$dest")
+    [ "$code" = "200" ] || [ "$code" = "201" ] || [ "$code" = "204" ] && \
+      echo "  [OK] $f" || echo "  [$code] $f"
+  done
+done
 
 echo ""
 echo "同步完成"
