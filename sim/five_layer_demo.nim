@@ -64,20 +64,20 @@ type
     name: string
 
 const COLOR42 = [
-  ColorEntry(sym:"ạ", name:"深红"), ColorEntry(sym:"a̋", name:"大红"), ColorEntry(sym:"å", name:"浅红"),
-  ColorEntry(sym:"ã", name:"粉红"), ColorEntry(sym:"â", name:"玫红"), ColorEntry(sym:"ă", name:"殷红"),
-  ColorEntry(sym:"ẹ", name:"深橙"), ColorEntry(sym:"e̋", name:"橙色"), ColorEntry(sym:"e̊", name:"浅橙"),
-  ColorEntry(sym:"ẽ", name:"杏色"), ColorEntry(sym:"ê", name:"琥珀"), ColorEntry(sym:"ĕ", name:"橘红"),
-  ColorEntry(sym:"ị", name:"深黄"), ColorEntry(sym:"i̋", name:"明黄"), ColorEntry(sym:"i̊", name:"浅黄"),
-  ColorEntry(sym:"ĩ", name:"鹅黄"), ColorEntry(sym:"î", name:"金黄"), ColorEntry(sym:"ĭ", name:"枯黄"),
-  ColorEntry(sym:"ọ", name:"深绿"), ColorEntry(sym:"ő", name:"翠绿"), ColorEntry(sym:"o̊", name:"浅绿"),
-  ColorEntry(sym:"õ", name:"草绿"), ColorEntry(sym:"ô", name:"墨绿"), ColorEntry(sym:"ŏ", name:"黄绿"),
-  ColorEntry(sym:"ụ", name:"深青"), ColorEntry(sym:"ű", name:"青色"), ColorEntry(sym:"ů", name:"浅青"),
-  ColorEntry(sym:"ũ", name:"天青"), ColorEntry(sym:"û", name:"藏青"), ColorEntry(sym:"ŭ", name:"青绿"),
-  ColorEntry(sym:"ȃ", name:"深蓝"), ColorEntry(sym:"ȇ", name:"蓝色"), ColorEntry(sym:"ȋ", name:"浅蓝"),
-  ColorEntry(sym:"ȏ", name:"蔚蓝"), ColorEntry(sym:"ȗ", name:"宝蓝"), ColorEntry(sym:"ȁ", name:"灰蓝"),
-  ColorEntry(sym:"ȅ", name:"深紫"), ColorEntry(sym:"ȉ", name:"紫色"), ColorEntry(sym:"ȍ", name:"浅紫"),
-  ColorEntry(sym:"ȕ", name:"薰衣草"), ColorEntry(sym:"ä", name:"紫罗兰"), ColorEntry(sym:"ö", name:"暗紫"),
+  ColorEntry(sym: "ạ", name: "深红"), ColorEntry(sym: "a̋", name: "大红"), ColorEntry(sym: "å", name: "浅红"),
+  ColorEntry(sym: "ã", name: "粉红"), ColorEntry(sym: "â", name: "玫红"), ColorEntry(sym: "ă", name: "殷红"),
+  ColorEntry(sym: "ẹ", name: "深橙"), ColorEntry(sym: "e̋", name: "橙色"), ColorEntry(sym: "e̊", name: "浅橙"),
+  ColorEntry(sym: "ẽ", name: "杏色"), ColorEntry(sym: "ê", name: "琥珀"), ColorEntry(sym: "ĕ", name: "橘红"),
+  ColorEntry(sym: "ị", name: "深黄"), ColorEntry(sym: "i̋", name: "明黄"), ColorEntry(sym: "i̊", name: "浅黄"),
+  ColorEntry(sym: "ĩ", name: "鹅黄"), ColorEntry(sym: "î", name: "金黄"), ColorEntry(sym: "ĭ", name: "枯黄"),
+  ColorEntry(sym: "ọ", name: "深绿"), ColorEntry(sym: "ő", name: "翠绿"), ColorEntry(sym: "o̊", name: "浅绿"),
+  ColorEntry(sym: "õ", name: "草绿"), ColorEntry(sym: "ô", name: "墨绿"), ColorEntry(sym: "ŏ", name: "黄绿"),
+  ColorEntry(sym: "ụ", name: "深青"), ColorEntry(sym: "ű", name: "青色"), ColorEntry(sym: "ů", name: "浅青"),
+  ColorEntry(sym: "ũ", name: "天青"), ColorEntry(sym: "û", name: "藏青"), ColorEntry(sym: "ŭ", name: "青绿"),
+  ColorEntry(sym: "ȃ", name: "深蓝"), ColorEntry(sym: "ȇ", name: "蓝色"), ColorEntry(sym: "ȋ", name: "浅蓝"),
+  ColorEntry(sym: "ȏ", name: "蔚蓝"), ColorEntry(sym: "ȗ", name: "宝蓝"), ColorEntry(sym: "ȁ", name: "灰蓝"),
+  ColorEntry(sym: "ȅ", name: "深紫"), ColorEntry(sym: "ȉ", name: "紫色"), ColorEntry(sym: "ȍ", name: "浅紫"),
+  ColorEntry(sym: "ȕ", name: "薰衣草"), ColorEntry(sym: "ä", name: "紫罗兰"), ColorEntry(sym: "ö", name: "暗紫"),
 ]
 proc color_pos*(s: string): int =
   for i, c in COLOR42:
