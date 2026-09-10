@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>HanYuan-64 Container System Demo</title>
+<style>
+/* 引用 hunyuan-os 满全法容器系统概念 */
+@import url('han_yuan64.svg') font;
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: "HanYuan64", "Courier New", monospace;
+    background: #0f0f1a;
+    color: #ddd;
+    padding: 20px;
+}
+
+h1 {
+    font-size: 18px;
+    color: #8af;
+    margin-bottom: 8px;
+    font-weight: normal;
+}
+
+.subtitle {
+    font-size: 12px;
+    color: #667;
+    margin-bottom: 24px;
+}
+
+/* ─── 字体引用 ─── */
+@font-face {
+    font-family: "HanYuan64-Local";
+    src: url("han_yuan64.svg#HanYuan64") format("svg");
+    font-weight: normal;
+    font-style: normal;
+    font-display: block;
+}
+
+.font-fallback { font-family: "Courier New", monospace; }
+.font-loaded  { font-family: "HanYuan64", "HanYuan64-Local", monospace; }
+
+/* ─── 图例 ─── */
+.legend {
+    display: flex;
+    gap: 20px;
+    font-size: 11px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #aab;
+}
+
+.legend-color {
+    width: 12px; height: 12px;
+    border-radius: 2px;
+    display: inline-block;
+}
+
+/* ─── 容器网格 ─── */
+.glyph-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 10px;
+    margin-bottom: 32px;
+}
+
+.glyph-cell {
+    background: #181825;
+    border: 1px solid #222;
+    border-radius: 6px;
+    padding: 10px 6px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    position: relative;
+}
+
+.glyph-cell:hover {
+    border-color: #556;
+    background: #1c1c2e;
+}
+
+.glyph-cell.selected {
+    border-color: #8af;
+    background: #1c2233;
+}
+
+.glyph-char {
+    font-size: 36px;
+    line-height: 1.2;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.glyph-name {
+    font-family: "Courier New", monospace;
+    font-size: 10px;
+    color: #889;
+    letter-spacing: 0.5px;
+}
+
+.glyph-code {
+    font-size: 9px;
+    color: #556;
+    margin-top: 2px;
+}
+
+/* ─── 详情面板 ─── */
+.detail-panel {
+    background: #181825;
+    border: 1px solid #222;
+    border-radius: 8px;
+    padding: 20px;
+    display: none;
+}
+
+.detail-panel.active { display: block; }
+
+.detail-row {
+    display: flex;
+    gap: 32px;
+    margin-bottom: 16px;
+    align-items: center;
+}
+
+.detail-big {
+    font-size: 80px;
+    line-height: 1;
+    text-align: center;
+}
+
+.detail-info { flex: 1; }
+
+.detail-info table {
+    font-size: 12px;
+    border-collapse: collapse;
+    width: 100%;
+}
+
+.detail-info td {
+    padding: 4px 8px;
+    border-bottom: 1px solid #1a1a28;
+    color: #aab;
+}
+
+.detail-info td:first-child {
+    color: #667;
+    width: 80px;
+}
+
+.tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+}
+
+.tag-YIN { background: #1a3a5a; color: #6af; }
+.tag-YANG { background: #3a2a0a; color: #fa6; }
+.tag-NEUTRAL { background: #1a3a1a; color: #6f6; }
+.tag-ACTIVE { background: #2a2a3a; color: #ccc; }
+.tag-ACTIVE_SUB { background: #2a2a3a; color: #aaa; }
+.tag-PASSIVE { background: #2a2a3a; color: #888; }
+
+.topo-icon {
+    display: inline-block;
+    width: 16px; height: 16px;
+    margin-right: 4px;
+    vertical-align: middle;
+}
+
+/* ─── 时间轴 ─── */
+.timeline {
+    margin-top: 24px;
+}
+
+.timeline-title {
+    font-size: 12px;
+    color: #667;
+    margin-bottom: 8px;
+}
+
+.timeline-track {
+    position: relative;
+    height: 36px;
+    background: #111118;
+    border-radius: 4px;
+    border: 1px solid #222;
+}
+
+.timeline-marker {
+    position: absolute;
+    top: 4px;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    border-radius: 3px;
+    border: 1px solid rgba(255,255,255,0.15);
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+
+.timeline-marker:hover {
+    transform: scale(1.1);
+    z-index: 10;
+}
+
+/* ─── 裁决指示器 ─── */
+.judgement-bar {
+    display: flex;
+    gap: 6px;
+    margin-top: 16px;
+    font-size: 10px;
+}
+
+.judgement-cell {
+    flex: 1;
+    padding: 8px 6px;
+    text-align: center;
+    border-radius: 4px;
+    border: 1px solid #222;
+}
+
+.judgement-pass { background: #1a3a1a; color: #6f6; border-color: #2a5a2a; }
+.judgement-fail { background: #3a1a1a; color: #f66; border-color: #5a2a2a; }
+</style>
+</head>
+<body>
+
+<h1>HanYuan-64 Container System · 容器字体统一架构</h1>
+<p class="subtitle">hunyuan-os/tools/glyph-container · 满全法编码体系 · v0.2</p>
+
+<!-- 图例 -->
+<div class="legend" id="legend"></div>
+
+<!-- 容器网格 (64 容器) -->
+<div class="glyph-grid" id="glyphGrid"></div>
+
+<!-- 详情面板 -->
+<div class="detail-panel" id="detailPanel"></div>
+
+<!-- 时间轴 -->
+<div class="timeline">
+    <div class="timeline-title">Z轴时间窗口 (256 槽位)</div>
+    <div class="timeline-track" id="timelineTrack"></div>
+    <div class="judgement-bar" id="judgementBar"></div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// 容器数据 — 与 protocol.py / generate_full_font.py 完全对齐
+// ══════════════════════════════════════════════════════════════
+
+const CONTAINER_GROUPS = [
+    { name: "容器族", base: 0,  polarity: "YANG", sovereignty: "ACTIVE_SUB", topo: "box" },
+    { name: "操作族", base: 16, polarity: "NEUTRAL",sovereignty: "ACTIVE_SUB", topo: "sphere" },
+    { name: "声母容器", base: 32, polarity: "YANG", sovereignty: "ACTIVE", topo: "sphere" },
+    { name: "韵母容器", base: 48, polarity: "YIN",  sovereignty: "PASSIVE", topo: "torus" },
+];
+
+const CONTAINER_NAMES = [
+    // 容器族 (0-15)
+    "袋","照","见","阴","加","分","元","裁","产","公","声","折","负","福","凤","栖",
+    // 操作族 (16-31)
+    "融","鼓","蚕","民","盟","满","囡","夕","三","六","八","九","零","一","二","四",
+    // 声母容器 (32-47)
+    "帮","端","精","见","来","齿","喉","呼","开","清","平","上","前","内","单","长",
+    // 韵母容器 (48-63)
+    "麻","支","寒","歌","阳","尤","止","转","高","低","圆","扁","响","静","急","缓",
+];
+
+const TOPOLOGY_BY_SEMANTIC = {
+    0:"box",1:"box",2:"double_cone",3:"sphere",4:"sphere",5:"torus",6:"line",7:"double_cone",
+    8:"sphere",9:"sphere",10:"torus",11:"torus",12:"box",13:"sphere",14:"torus",15:"line",
+    16:"torus",17:"sphere",18:"torus",19:"sphere",20:"box",21:"sphere",22:"torus",23:"line",
+    24:"double_cone",25:"sphere",26:"torus",27:"double_cone",28:"line",29:"line",30:"torus",31:"box",
+    32:"sphere",33:"sphere",34:"sphere",35:"sphere",36:"sphere",37:"sphere",38:"sphere",39:"sphere",
+    40:"sphere",41:"sphere",42:"line",43:"box",44:"line",45:"box",46:"sphere",47:"line",
+    48:"torus",49:"torus",50:"torus",51:"torus",52:"torus",53:"torus",54:"sphere",55:"torus",
+    56:"line",57:"line",58:"sphere",59:"box",60:"sphere",61:"sphere",62:"sphere",63:"line",
+};
+
+const TOPOLOGY_COLOR = {
+    box:          { h: 210, s: 75, l: 55, label: "立方体" },
+    sphere:       { h: 120, s: 75, l: 55, label: "球体" },
+    torus:        { h: 30,  s: 75, l: 55, label: "环面" },
+    double_cone:  { h: 0,   s: 75, l: 55, label: "双锥" },
+    line:         { h: 60,  s: 75, l: 55, label: "线型" },
+};
+
+const POLARITY_META = {
+    YIN:      { label: "阴", bit: "0", desc: "容器/包容/被动" },
+    YANG:     { label: "阳", bit: "1", desc: "被包含/穿透/主动" },
+    NEUTRAL:  { label: "元", bit: "0.5", desc: "见证/中介/裁判" },
+};
+
+const SOVEREIGNTY_META = {
+    ACTIVE:      { label: "主动包含",   desc: "可包含他人" },
+    PASSIVE:     { label: "被动",       desc: "被包含" },
+    ACTIVE_SUB:  { label: "主动从属",   desc: "主动但从属上级" },
+    PASSIVE_SUB: { label: "被动从属",   desc: "被动且受约束" },
+};
+
+// ─── 构造 64 容器数据 ───
+function buildContainerData() {
+    const data = [];
+    for (let code = 0; code < 64; code++) {
+        let groupIdx = 0;
+        let tmp = code;
+        for (let g = 0; g < 4; g++) {
+            if (tmp < 16) { groupIdx = g; break; }
+            tmp = tmp - 16;
+        }
+        const groupDef = CONTAINER_GROUPS[groupIdx];
+        const topo = TOPOLOGY_BY_SEMANTIC[code];
+        // Z轴: 时间窗 = code低6位, 层级 = code>>6
+        const timeSlot = code - ((code >> 6) << 6); // 按位 AND 加法替代
+        const depth = code >> 6;
+        // 笔画类型 = code低4位
+        const strokeType = code - ((code >> 4) << 4);
+        
+        data.push({
+            code: code,
+            name: CONTAINER_NAMES[code],
+            group: groupDef.name,
+            groupIdx: groupIdx,
+            polarity: groupDef.polarity,
+            sovereignty: groupDef.sovereignty,
+            topo: topo,
+            timeSlot: timeSlot,
+            depth: depth,
+            strokeType: strokeType,
+            nativeCode: "HFC_" + code.toString(16).padStart(2, '0').toUpperCase() + "_" + CONTAINER_NAMES[code],
+        });
+    }
+    return data;
+}
+
+const CONTAINERS = buildContainerData();
+
+// ─── 渲染图例 ───
+function renderLegend() {
+    const legend = document.getElementById('legend');
+    
+    // 9 种图例: 3极性 × 3? 不, 用 5拓扑 + 3极性
+    let html = '<div style="color:#667;margin-right:12px;">拓扑:</div>';
+    for (const [topo, meta] of Object.entries(TOPOLOGY_COLOR)) {
+        html += `<div class="legend-item">
+            <span class="legend-color" style="background:hsl(${meta.h},${meta.s}%,${meta.l}%)"></span>
+            ${meta.label}
+        </div>`;
+    }
+    
+    html += '<div style="width:1px;background:#333;margin:0 8px;"></div>';
+    html += '<div style="color:#667;margin-right:8px;">极性:</div>';
+    for (const [pol, meta] of Object.entries(POLARITY_META)) {
+        const c = pol === 'YIN' ? '#6af' : pol === 'YANG' ? '#fa6' : '#6f6';
+        html += `<div class="legend-item">
+            <span class="legend-color" style="background:${c}"></span>
+            ${meta.label}(${meta.bit})
+        </div>`;
+    }
+    
+    legend.innerHTML = html;
+}
+
+// ─── 渲染字形网格 ───
+function renderGlyphGrid() {
+    const grid = document.getElementById('glyphGrid');
+    grid.innerHTML = CONTAINERS.map(c => {
+        const topoCol = TOPOLOGY_COLOR[c.topo];
+        const polMeta = POLARITY_META[c.polarity];
+        return `<div class="glyph-cell" data-code="${c.code}" onclick="selectContainer(${c.code})">
+            <span class="glyph-char" style="color:hsl(${topoCol.h},${topoCol.s}%,${topoCol.l}%)">&#x${c.code.toString(16).padStart(4, '0')};</span>
+            <span class="glyph-name">${c.name}</span>
+            <span class="glyph-code">0x${c.code.toString(16).padStart(2,'0').toUpperCase()}</span>
+        </div>`;
+    }).join('');
+}
+
+// ─── 选择容器 → 详请面板 ───
+function selectContainer(code) {
+    // 选中状态
+    document.querySelectorAll('.glyph-cell').forEach(cell => {
+        cell.classList.toggle('selected', parseInt(cell.dataset.code) === code);
+    });
+    
+    const c = CONTAINERS[code];
+    const topo = TOPOLOGY_COLOR[c.topo];
+    const pol = POLARITY_META[c.polarity];
+    const sov = SOVEREIGNTY_META[c.sovereignty];
+    const panel = document.getElementById('detailPanel');
+    
+    panel.classList.add('active');
+    panel.innerHTML = `
+        <div class="detail-row">
+            <div class="detail-big" style="color:hsl(${topo.h},${topo.s}%,${topo.l}%)">&#x${c.code.toString(16).padStart(4,'0')};</div>
+            <div class="detail-info">
+                <table>
+                    <tr><td>容器名</td><td><strong>${c.name}</strong> (${c.group})</td></tr>
+                    <tr><td>编码</td><td><code>0x${c.code.toString(16).padStart(2,'0').toUpperCase()}</code> (进制加法循环: 群${c.groupIdx} × 16 + 索引${c.code & 0x0F})</td></tr>
+                    <tr><td>极性</td><td><span class="tag tag-${c.polarity}">${pol.label} (${pol.bit})</span> ${pol.desc}</td></tr>
+                    <tr><td>主权</td><td><span class="tag tag-${c.sovereignty}">${sov.label}</span> ${sov.desc}</td></tr>
+                    <tr><td>拓扑</td><td>TOPO: ${c.topo} — ${topo.label} (色相 ${topo.h}°)</td></tr>
+                    <tr><td>Z轴时间</td><td>时间槽 = ${c.timeSlot}, 层级 = ${c.depth}, 笔画类型 = ${c.strokeType}</td></tr>
+                    <tr><td>态势码</td><td><code>${c.nativeCode}</code></td></tr>
+                    <tr><td>动作</td><td>${getContainerAction(c.name)}</td></tr>
+                    <tr><td>Morton Z</td><td>0x${(code * 0x11 + code).toString(16).padStart(4,'0').toUpperCase()}</td></tr>
+                </table>
+            </div>
+        </div>
+    `;
+}
+
+function getContainerAction(name) {
+    const table = {
+        "袋":"contain — 包含母体","照":"illuminate — 照射/看清","见":"witness — 见证/看见","阴":"receive — 容纳/被动",
+        "加":"join — 叠加","分":"divide — 分离","元":"initiate — 起始","裁":"judge — 裁判/裁剪",
+        "产":"own — 归属","公":"base — 共同根基","声":"emit_sound — 发符号","折":"fold — 折叠/转折",
+        "负":"bear — 承载","福":"receive_gift — 接收","凤":"ascend — 上升","栖":"rest — 栖息",
+        "融":"fuse — 合一/见证","鼓":"actuate — 激励/鼓膜","蚕":"metamorphose — 蚕蛹蜕变",
+        "民":"unite — 民联聚合","盟":"ally — 盟机合","满":"saturate — 满溢","囡":"symbiose — 囝共生",
+        "夕":"twilight_protocol — 夕瑶协议","三":"ternary_witness — 三元见证","六":"completeness — 完全",
+        "八":"octal_unify — 八流统一","九":"nine_fold — 九元层级","零":"empty — 空/零维",
+        "一":"first_cause — 第一推动","二":"mirror_twin — 镜像","四":"quad_contain — 四元包含",
+    };
+    return table[name] || "execute — 基础执行";
+}
+
+// ─── 渲染 Z 轴时间轴 ───
+function renderTimeline() {
+    const track = document.getElementById('timelineTrack');
+    const bar = document.getElementById('judgementBar');
+    
+    // 按时间槽分布容器 (时间槽 = code % 64 = code 自身)
+    // 所有 64 容器分布在 256 槽位上，槽位 = code × 4
+    const markers = CONTAINERS.map(c => {
+        const leftPct = (c.code / 64) * 100;
+        const topo = TOPOLOGY_COLOR[c.topo];
+        return `<div class="timeline-marker"
+                     style="left:calc(${leftPct}% + 2px);background:hsl(${topo.h},${topo.s}%,${topo.l}%)"
+                     data-code="${c.code}"
+                     title="${c.name} (slot ${c.code})"
+                     onclick="selectContainer(${c.code})">&#x${c.code.toString(16).padStart(4,'0')};</div>`;
+    });
+    
+    track.innerHTML = markers.join('');
+    
+    // 裁决栏: 按时间顺序显示三元裁决结果
+    const judgements = CONTAINERS.map(c => {
+        const admitted = c.nativeCode.length > 0 && c.nativeCode !== "HFC_00_NULL";
+        const cls = admitted ? 'judgement-pass' : 'judgement-fail';
+        const label = admitted ? '准入' : '拒绝';
+        return `<div class="judgement-cell ${cls}">${c.name}: ${label}</div>`;
+    });
+    
+    bar.innerHTML = judgements.slice(0, 16).join(''); // 只显示前 16 个避免过宽
+}
+
+// ─── 启动 ───
+renderLegend();
+renderGlyphGrid();
+renderTimeline();
+
+// 默认选择 袋(0)
+selectContainer(0);
+</script>
+</body>
+</html>

@@ -315,8 +315,17 @@ impl CharacterVariant {
 ///
 /// 这是用户定义的48个声母，与韵母/声调组合构成完整地址系统
 /// 声母索引 0..47 对应 HalfContainer 层地址
+///
+/// 分类结构：
+/// · 核心声母 24个（标准现代汉语）
+/// · 方言声母 12个（方言中保留而普通话合并或消失的）
+/// · 送气对偶 6个（与核心声母形成送气/不送气镜像）
+/// · 浊音声母 6个（历史浊音与外来声）
 pub const CONSONANTS: &[&str] = &[
-    // 唇音
+    // ════════════════════════════════════════
+    // 第一区：核心声母（24个）
+    // ════════════════════════════════════════
+    // 唇音（不送气+送气+鼻+擦）
     "b", "p", "m", "f",
     // 舌尖中音
     "d", "t", "n", "l",
@@ -328,46 +337,324 @@ pub const CONSONANTS: &[&str] = &[
     "zh", "ch", "sh", "r",
     // 舌尖前音
     "z", "c", "s",
-    // 零声母
+    // 零声母（影母）
     "∅",
-    // 半元音
+    // 半元音声母
     "y", "w",
-    // 扩展声母（填补到48个位置）
-    // 用户可继续扩展这部分的定义
+
+    // ════════════════════════════════════════
+    // 第二区：方言声母（12个）
+    // 方言独立保留 → 独立容器地址
+    // ════════════════════════════════════════
+    // 粤语独立声母（普通话无）
+    "ng",       // 粤 : 牙/我/岸 — 疑母独立保留
+    "gw",       // 粤 : 瓜/光/怪 — 见母合口颚化前的独立态
+    "kw",       // 粤 : 夸/坤/群 — 溪母合口独立态
+    // 闽南/客家独立声母
+    "bh",       // 闽 : 无/马/目 — 双唇浊塞音
+    "gh",       // 郡 : 牛/蚁/月 — 舌根浊塞音
+    "dd",       // 闽 : 大/直/弟 — 舌尖浊塞音（NotNull）
+    // 吴语/湘语独立声母
+    "dz",       // 吴 : 茶/住/直 — 齿尖浊塞擦
+    "v",        // 吴 : 文/味/物 — 唇齿浊擦音
+    // 闽北/客家独立声母
+    "gn",       // 闽 : 日/肉/认 — 鼻面浊音
+    // 老湘语/少数粤语
+    "hl",       // 湘 : 好/海/汉 — 清晰边音
+    "hm",       // 湘 : 花/虎/欢  // 鼻唇清音
+    "hn",       // 湘 : 男/南/能  // 鼻舌清音
+
+    // ════════════════════════════════════════
+    // 第三区：送气对偶（6个）—— 镜像扩展
+    // ════════════════════════════════════════
+    "kh",       // 送气舌根 — k 的强调态
+    "th",       // 送气舌尖 — t 的强调态
+    "ph",       // 送气唇 — p 的强调态
+    "tsh",      // 送气舌尖前 — c 的精致态
+    "tch",      // 送气舌尖后 — ch 的精致态
+    "qh",       // 送气舌面 — q 的强调态
+
+    // ════════════════════════════════════════
+    // 第四区：浊音声母（6个）—— 历史/外来
+    // ════════════════════════════════════════
+    "ŋ",        // 国际音标ng — 舌根鼻音（粤语ŋ的标位）
+    "ɲ",        // 国际音标gn — 腭鼻音（老湘/日语）
+    "zʐ",       // 浊卷舌擦 — sh/zr 的浊对偶
+    "ʔ",        // 喉塞音 — 粤语入声标记/"饱"的喉化
+    "ɦ",        // 喉浊擦 — h 的浊版本
+    "ʔh",       // 喉塞送气 — 粤语阴入标记
 ];
 
 /// 韵母表（66个基础韵母）
 ///
 /// 韵母是地址的第二维，索引 0..65
+///
+/// 分类结构：
+/// · 单韵母 6个
+/// · 复韵母 9个（二合+三合）
+/// · 鼻韵母 8个（前鼻+后鼻）
+/// · 介音组合 14个（齐齿合口撮口）
+/// · 方言独立韵母 12个（普通话合并不了的）
+/// · 儿化特殊变体 8个（独立地址不合并）
+/// · 历史/外来韵母 9个（古音+日借+方言特有）
 pub const VOWELS: &[&str] = &[
-    // 单韵母
-    "a", "o", "e", "i", "u", "ü",
-    // 复韵母
-    "ai", "ei", "ui", "ao", "ou", "iu",
-    "ie", "üe", "er",
-    // 鼻韵母
-    "an", "en", "in", "un", "ün",
-    "ang", "eng", "ing", "ong",
-    // 介音+韵母
-    "ia", "iao", "ian", "iang", "iong",
-    "ua", "uo", "uai", "uan", "uang", "un",
-    // 特殊组合
-    "io", "uei", "uen", "ueng",
-    // 拓展到66个占位区域
-    // 用户继续扩展此区域
+    // ════════════════════════════════════════
+    // 第一区：单韵母（6个）
+    // ════════════════════════════════════════
+    "a",    // 啊 — 开口呼基准
+    "o",    // 喔 — 圆唇基础
+    "e",    // 鹅 — 不圆唇基础
+    "i",    // 衣 — 齐齿呼基准
+    "u",    // 乌 — 合口呼基准
+    "ü",    // 鱼 — 撮口呼基准
+
+    // ════════════════════════════════════════
+    // 第二区：复韵母（9个）
+    // ════════════════════════════════════════
+    // 二合复韵母
+    "ai",   // 爱 — a → i 滑行
+    "ei",   // 杯 — e → i 滑行
+    "ao",   // 好 — a → o 滑行
+    "ou",   // 口 — o → u 滑行
+    "ia",   // 压 — i → a 滑行
+    "ie",   // 叶 — i → e 滑行
+    "ua",   // 瓜 — u → a 滑行
+    "uo",   // 国 — u → o 滑行
+    "üe",   // 月 — ü → e 滑行
+    // 三合复韵母
+    "iao",  // 小 — i → a → o
+    "iou",  // 有 — i → o → u（=iu，独立地址）
+    "uai",  // 快 — u → a → i
+    "uei",  // 对 — u → e → i（=ui，独立地址）
+
+    // ════════════════════════════════════════
+    // 第三区：鼻韵母（8个前鼻 + 4个后鼻）
+    // ════════════════════════════════════════
+    // 前鼻音 -n
+    "an",   // 安
+    "en",   // 恩
+    "in",   // 音
+    "un",   // 温
+    "ün",   // 云
+    "ian",  // 烟
+    "uan",  // 弯
+    "üan",  // 元
+    // 后鼻音 -ng
+    "ang",  // 帮
+    "eng",  // 风
+    "ing",  // 星
+    "ong",  // 东
+    "iang", // 江
+    "uang", // 王
+    "iong", // 胸
+
+    // ════════════════════════════════════════
+    // 第四区：特殊单音位（4个）
+    // ════════════════════════════════════════
+    "er",   // 儿 — 卷舌韵母（独立地址）
+    "-i前",  // 思/支/吃/湿的前空元音（舌尖前）
+    "-i后",  // 丝/诗/是的后空元音（舌尖后）
+    "m",    // 呒/姆 — 鼻音独立成音节
+
+    // ════════════════════════════════════════
+    // 第五区：方言独立韵母（12个）
+    // ════════════════════════════════════════
+    // 粤语独立韵母（6个）
+    "eo",   // 粤语：靴/香 — 圆唇中后元音
+    "oe",   // 粤语：舌/香 — 圆唇前中元音
+    "ep",   // 粤语：帖/夹 — 闭口入声p尾
+    "et",   // 粤语：必/失 — 闭口入声t尾
+    "ek",   // 粤语：北/食 — 闭口入声k尾
+    "em",   // 粤语：钳/舔 — 闭口前鼻
+    // 闽南独立韵母（4个）
+    "ann",  // 闽南：鼻化独立态（饭/黄）
+    "enn",  // 闽南：饭/远
+    "onn",  // 闽南：软/卵
+    "uinn", // 闽南：黄/影（合口鼻化）
+    // 客家独立韵母（2个）
+    "aih",  // 客家：白/柏 — 喉塞尾的独立地址
+    "mm",   // 客家：姆/唔 — 双唇鼻音独立
+
+    // ════════════════════════════════════════
+    // 第六区：儿化独立变体（6个）
+    // ════════════════════════════════════════
+    "ar",   // 花儿
+    "air",  // 盖儿
+    "anr",  // 竿儿
+    "or",   // 朵儿
+    "our",  // 口儿
+    "ier",  // 叶儿
+
+    // ════════════════════════════════════════
+    // 第七区：历史/外来韵母（6个）
+    // ════════════════════════════════════════
+    "ueng", // 风/瓮
+    "aeng", // 粤语/闽南：硬/冷
+    "ieng", // 粤语：影/英
+    "io",   // 粤语/老借：yo/个
+    "uah",  // 闽南：辣/甲
+    "oh",   // 闽南/粤语：学/阁
+
+    // ════════════════════════════════════════
+    // 第八区：清鼻音独立变体（4个）
+    // ════════════════════════════════════════
+    "hm",   // 湘/客：花/虎
+    "hn",   // 湘/客：男/能
+    "hng",  // 闽/客：黄/远
+    "ngh",  // 入声韵尾鼻化（闽南）
 ];
 
 /// 声调表（100个基础调值）
 ///
 /// 声调是地址的相位维，索引 0..99
-/// 100个调值 ≈ 普通话四声 × 25个方言变体
+/// 100个调值 = 普通话5个 + 四大方言区调值 × 各地方言
+///
+/// 分类结构：
+/// · 普通话 5个（四声+轻声）
+/// · 北方官话 12个（北京/东北/中原/冀鲁）
+/// · 粤语 9个（广州/香港/台山/阳江）
+/// · 闽南语 14个（泉漳/潮汕/台湾/浙南）
+/// · 客家话 12个（梅县/惠阳/武平/长汀）
+/// · 吴语 14个（苏州/温州/上海/无锡/绍兴）
+/// · 湘语 14个（长沙/双峰/衡山/娄底）
+/// · 赣语 12个（南昌/宜春/吉安/峡江）
+/// · 入声独立标位 12个（喉塞尾/-p/-t/-k）
 pub const TONES: &[&str] = &[
-    // 普通话四声
-    "阴平", "阳平", "上声", "去声",
-    // 轻声
-    "轻声",
-    // 方言调值扩展（用户自定义）
-    // 100个调值的完整列表由用户补充占位
+    // ════════════════════════════════════════
+    // 第一区：普通话（5个）
+    // ════════════════════════════════════════
+    "1-阴平-55",      // 普通话第一声 — 高平
+    "2-阳平-35",      // 普通话第二声 — 中升
+    "3-上声-214",     // 普通话第三声 — 降升
+    "4-去声-51",      // 普通话第四声 — 全降
+    "5-轻声-00",      // 轻声
+
+    // ════════════════════════════════════════
+    // 第二区：北方官话（12个）
+    // ════════════════════════════════════════
+    "6-BJ阴-55",      // 北京 — 高平
+    "7-BJ阳-35",      // 北京 — 中升
+    "8-BJ上-214",     // 北京 — 低降升
+    "9-BJ去-51",      // 北京 — 全降
+    "10-ZH阴-55",     // 郑州 — 高平
+    "11-ZH阳-35",     // 郑州 — 高升
+    "12-ZH上-42",     // 郑州 — 中降
+    "13-ZH去-31",     // 郑州 — 低降
+    "14-JL阴-44",     // 济南 — 高平（官话次区）
+    "15-JL阳-24",     // 济南 — 中升
+    "16-JL上-55",     // 济南 — 高升
+    "17-JL去-21",     // 济南 — 低降
+
+    // ════════════════════════════════════════
+    // 第三区：粤语（9个）
+    // ════════════════════════════════════════
+    "18-GZ阴平-55",   // 广州 — 高平
+    "19-GZ阴上-35",   // 广州 — 高升
+    "20-GZ阴去-33",   // 广州 — 中平
+    "21-GZ阳平-21",   // 广州 — 低降
+    "22-GZ阳上-13",   // 广州 — 低升
+    "23-GZ阳去-22",   // 广州 — 低平
+    "24-GZ上阴入-55", // 广州 — 入声高平
+    "25-GZ下阴入-33", // 广州 — 入声中平
+    "26-GZ阳入-22",   // 广州 — 入声低平
+
+    // ════════════════════════════════════════
+    // 第四区：闽南语（14个）
+    // ════════════════════════════════════════
+    "27-QZ阴平-44",   // 泉州阴平 — 高平
+    "28-QZ阳平-24",   // 泉州阳平 — 升
+    "29-QZ阴上-53",   // 泉州阴上 — 高降
+    "30-QZ阳上-22",   // 泉州阳上 — 低平
+    "31-QZ阴去-21",   // 泉州阴去 — 低降
+    "32-QZ阳去-22",   // 泉州阳去 — 低平
+    "33-QZ阴入-32",   // 泉州阴入 — 喉塞尾
+    "34-QZ阳入-4",    // 泉州阳入 — 喉塞尾
+    "35-ZZ阴平-55",   // 漳州阴平 — 最高平
+    "36-ZZ阳平-25",   // 漳州阳平
+    "37-ZZ阴去-11",   // 漳州阴去 — 低平
+    "38-ZZ阳去-33",   // 漳州阳去
+    "39-ZZ阴入-5",    // 漳州阴入
+    "40-ZZ阳入-32",   // 漳州阳入
+
+    // ════════════════════════════════════════
+    // 第五区：客家话（12个）
+    // ════════════════════════════════════════
+    "41-MX阴平-44",   // 梅县阴平 — 高平
+    "42-MX阳平-21",   // 梅县阳平 — 低降
+    "43-MX上声-31",   // 梅县上声 — 中降
+    "44-MX去声-42",   // 梅县去声 — 全降
+    "45-MX阴入-2",    // 梅县阴入 — 喉塞尾
+    "46-MX阳入-4",    // 梅县阳入
+    "47-HY阴平-55",   // 惠阳（客粤混）阴平
+    "48-HY阳平-31",   // 惠阳 — 中降
+    "49-HY上声-24",   // 惠阳 — 升
+    "50-HY去声-52",   // 惠阳去声 — 全降
+    "51-HY阴入-55",   // 惠阳阴入
+    "52-HY阳入-21",   // 惠阳阳入
+
+    // ════════════════════════════════════════
+    // 第六区：吴语（14个）
+    // ════════════════════════════════════════
+    "53-SZ阴平-44",   // 苏州阴平 — 高平
+    "54-SZ阳平-24",   // 苏州阳平 — 升
+    "55-SZ阴上-41",   // 苏州阴上 — 高降
+    "56-SZ阳上-213",  // 苏州阳上 — 升降
+    "57-SZ阴去-413",  // 苏州阴去
+    "58-SZ阳去-213",  // 苏州阳去
+    "59-SZ阴入-5",    // 苏州阴入 — 喉塞尾
+    "60-SZ阳入-23",   // 苏州阳入
+    "61-WZ阴平-42",   // 温州 — 高降
+    "62-WZ阳平-31",   // 温州 — 中降
+    "63-WZ阴上-45",   // 温州 — 高升
+    "64-WZ阳上-24",   // 温州 — 升
+    "65-WZ阴去-44",   // 温州 去声高平
+    "66-WZ阳去-22",   // 温州 阳去低平
+
+    // ════════════════════════════════════════
+    // 第七区：湘语（14个）
+    // ════════════════════════════════════════
+    "67-CS阴平-33",   // 长沙阴平 — 中平
+    "68-CS阳平-21",   // 长沙阳平 — 低降
+    "69-CS上声-41",   // 长沙上声 — 高降
+    "70-CS阴去-45",   // 长沙阴去 — 高升
+    "71-CS阳去-21",   // 长沙阳去 — 低降
+    "72-CS入声-24",   // 长沙入声 — 升
+    "73-SF阴平-44",   // 双峰（老湘）阴平 — 高平
+    "74-SF阳平-23",   // 双峰 — 低升
+    "75-SF上声-53",   // 双峰 — 高降
+    "76-SF阴去-35",   // 双峰 — 高升
+    "77-SF阳去-213",  // 双峰 — 升降
+    "78-SF入声-55",   // 双峰入声
+    "79-HS阴平-55",   // 衡山 — 最高平
+    "80-HS阳平-324",  // 衡山 特殊调形
+
+    // ════════════════════════════════════════
+    // 第八区：赣语（12个）
+    // ════════════════════════════════════════
+    "81-NC阴平-42",   // 南昌阴平 — 高降
+    "82-NC阳平-24",   // 南昌阳平 — 升
+    "83-NC上声-213",  // 南昌上声 — 升降
+    "84-NC阴去-45",   // 南昌阴去 — 高升
+    "85-NC阳去-21",   // 南昌阳去 — 低降
+    "86-NC入声-5",    // 南昌入声 — 喉塞
+    "87-YC阴平-55",   // 宜春阴平
+    "88-YC阳平-24",   // 宜春阳平
+    "89-YC上声-31",   // 宜春上声
+    "90-YC去声-33",   // 宜春去声
+    "91-YC入声-4",    // 宜春入声
+    "92-JA阴平-45",   // 吉安 — 高升
+
+    // ════════════════════════════════════════
+    // 第九区：入声独立标位（8个）
+    // ════════════════════════════════════════
+    "93-入-p尾",      // -p 尾 — 粤语/闽南/客家
+    "94-入-t尾",      // -t 尾 — 粤语/闽南/客家
+    "95-入-k尾",      // -k 尾 — 粤语/闽南/客家
+    "96-入-喉塞尾",   // -ʔ 尾 — 吴语/闽/客
+    "97-入-阳平混入", // 北方官话入声派入阳平
+    "98-入-阴平混入", // 北方官话入声派入阴平
+    "99-入-上声混入", // 北方官话入声派入上声
+    "100-入-去声混入",// 北京入声派入去声
 ];
 
 /// 声母容器数量（进制底数之一）
@@ -2174,6 +2461,370 @@ pub const fn spatial_single_address_space() -> u64 {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// 三维几何字形映射（SVG 字体文件生成）
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// 根据 glyph-container 专家系统约定：
+//   字体文件 = 三维几何投影，每个字形对应一个空间地址
+//   X轴 = 声母容器索引（语义类别）
+//   Y轴 = 韵母容器索引（操作数细节）
+//   Z轴 = 声调容器索引（时间窗口/相位）
+//
+// 零维符号（地址本身）→ 携带足够信息 → 投影为完整几何实体
+
+/// 音节地址的三维几何拓扑参数
+
+#[derive(Clone, Copy, Debug)]
+pub struct GlyphTopology {
+    /// 语义ID（声母决定，字形选择）
+    pub semantic_id: u8,
+    /// 旋转角（韵母决定，0-359度）
+    pub rotation_deg: u16,
+    /// 缩放 X（容量比映射）
+    pub scale_x: f64,
+    /// 缩放 Y（容量比映射）
+    pub scale_y: f64,
+    /// 颜色相位（声调决定，0-15）
+    pub color_phase: u8,
+    /// 脉冲频率（声调决定，0-15）
+    pub pulse_freq: u8,
+}
+
+impl GlyphTopology {
+    /// 从音节地址生成拓扑参数
+    ///
+    /// 映射规则：
+    /// · 声母索引 → semantic_id（几何类型选择）
+    /// · 韵母索引 → rotation_deg（旋转角）
+    /// · 声调索引 → 颜色相位 + 脉冲频率 + 缩放比
+    pub fn from_syllable_address(addr: &SyllableAddress) -> Self {
+        let semantic_id = (addr.consonant_idx % 14 + 1) as u8; // 映射到1-14（对应glyph-3d-font的拓扑类型）
+        let rotation_deg = (addr.vowel_idx as u16 * 5) % 360; // 韵母→角度
+        let scale_x = 0.5 + (addr.vowel_idx as f64 / 66.0); // 韵母→X轴缩放
+        let scale_y = 0.5 + (addr.consonant_idx as f64 / 48.0); // 声母→Y轴缩放
+        let color_phase = (addr.tone_idx % 16) as u8; // 声调→颜色相位
+        let pulse_freq = (addr.tone_idx % 15 + 1) as u8; // 声调→脉冲
+
+        Self {
+            semantic_id,
+            rotation_deg,
+            scale_x,
+            scale_y,
+            color_phase,
+            pulse_freq,
+        }
+    }
+
+    /// 根据 semantic_id 选择几何拓扑类型
+    pub fn topology_type(&self) -> &'static str {
+        match self.semantic_id {
+            1 | 2 => "box",        // LOAD/STORE → 盒型（存储）
+            3 | 4 | 5 | 6 | 7 | 8 => "sphere",   // 算逻运算 → 球型（数据流）
+            9 | 10 => "torus",     // JMP/BNE → 环面（循环/分支）
+            11 | 12 | 13 => "tube", // CALL/RET → 管状（调用栈）
+            14 => "double_cone",   // CMP/MOV → 双锥（条件/移动）
+            _ => "box", // 默认
+        }
+    }
+}
+
+/// 颜色相位 → HSL 色相值（16等分色相环）
+fn phase_to_hsl(phase: u8) -> (u16, u8, u8) {
+    let hue = (phase as u16 * 22) % 360; // 0, 22, 44, ..., 330
+    (hue, 70, 50) // HSL: 饱合度70%, 亮度50%
+}
+
+/// SVG 空间编码器：将地址投影为字形轮廓路径
+
+pub struct SVGSpatialEncoder;
+
+impl SVGSpatialEncoder {
+    /// 编码一个音节地址为 SVG 路径数据
+    ///
+    /// 返回值：(path_data, (x_min, y_min, x_max, y_max))
+    pub fn encode_glyph(addr: &SyllableAddress) -> (String, (i16, i16, i16, i16)) {
+        let topo = GlyphTopology::from_syllable_address(addr);
+
+        // 计算包围盒
+        let base_size = 800i16;
+        let x_min = 100i16;
+        let y_min = 100i16;
+        let x_max = (100 + (base_size as f64 * topo.scale_x) as i16).min(900);
+        let y_max = (100 + (base_size as f64 * topo.scale_y) as i16).min(900);
+
+        // 坐标原点
+        let cx = (x_min + x_max) / 2;
+        let cy = (y_min + y_max) / 2;
+        let rx = (x_max - x_min) / 2;
+        let ry = (y_max - y_min) / 2;
+
+        let path = match topo.topology_type() {
+            "box" => Self::box_path(cx, cy, rx, ry, topo.rotation_deg),
+            "sphere" => Self::sphere_path(cx, cy, rx, ry),
+            "torus" => Self::torus_path(cx, cy, rx, ry),
+            "tube" => Self::tube_path(cx, cy, rx, ry),
+            "double_cone" => Self::double_cone_path(cx, cy, rx, ry),
+            _ => Self::box_path(cx, cy, rx, ry, topo.rotation_deg),
+        };
+
+        (path, (x_min, y_min, x_max, y_max))
+    }
+
+    /// 盒型轮廓：四个顶点的矩形（带旋转）
+    fn box_path(cx: i16, cy: i16, rx: i16, ry: i16, rotation: u16) -> String {
+        let rad = rotation as f64 * std::f64::consts::PI / 180.0;
+        let cos_r = rad.cos();
+        let sin_r = rad.sin();
+        // 四个角点（旋转后）
+        let corners = [
+            (-rx, -ry), (rx, -ry), (rx, ry), (-rx, ry),
+        ];
+        let transformed: Vec<(i16, i16)> = corners.iter()
+            .map(|&(x, y)| {
+                let tx = (x as f64 * cos_r - y as f64 * sin_r) as i16 + cx;
+                let ty = (x as f64 * sin_r + y as f64 * cos_r) as i16 + cy;
+                (tx, ty)
+            })
+            .collect();
+        format!(
+            "M {} {} L {} {} L {} {} L {} {} Z",
+            transformed[0].0, transformed[0].1,
+            transformed[1].0, transformed[1].1,
+            transformed[2].0, transformed[2].1,
+            transformed[3].0, transformed[3].1,
+        )
+    }
+
+    /// 球型轮廓：大圆 + 内部两个椭圆表示体积感
+    fn sphere_path(cx: i16, cy: i16, rx: i16, ry: i16) -> String {
+        let ry3 = ry / 3;
+        let rx3 = rx / 3;
+        let ry4 = ry / 4;
+        format!(
+            "M {cxm} {cy} A {rx} {ry} 0 1 0 {cxp} {cy} A {rx} {ry} 0 1 0 {cxm} {cy} Z M {cx} {cym} A {rx3} {ry4} 0 1 1 {cx} {cyp} A {rx3} {ry4} 0 1 1 {cx} {cym} Z",
+            cxm = cx - rx,
+            cxp = cx + rx,
+            cym = cy - ry3,
+            cyp = cy + ry3,
+        )
+    }
+
+    /// 环面轮廓：同心双圆
+    fn torus_path(cx: i16, cy: i16, rx: i16, ry: i16) -> String {
+        let rx2 = rx / 2;
+        let ry2 = ry / 2;
+        format!(
+            "M {cxm} {cy} A {rx} {ry} 0 1 0 {cxp} {cy} A {rx} {ry} 0 1 0 {cxm} {cy} Z M {innerm} {cy} A {rx2} {ry2} 0 1 1 {innerp} {cy} A {rx2} {ry2} 0 1 1 {innerm} {cy} Z",
+            cxm = cx - rx,
+            cxp = cx + rx,
+            innerm = cx - rx2,
+            innerp = cx + rx2,
+        )
+    }
+
+    /// 管状轮廓：圆柱侧视投影
+    fn tube_path(cx: i16, cy: i16, rx: i16, ry: i16) -> String {
+        let h = ry / 4; // 圆柱端盖的椭圆半高
+        let top = cy - h;
+        let bot = cy + h;
+        let left = cx - rx;
+        let right = cx + rx;
+        format!(
+            "M {left} {top} L {left} {bot} A {rx} {h} 0 0 0 {right} {bot} L {right} {top} A {rx} {h} 0 0 0 {left} {top} Z",
+        )
+    }
+
+    /// 双锥轮廓（条件判断）：上下两个三角对接
+    fn double_cone_path(cx: i16, cy: i16, rx: i16, ry: i16) -> String {
+        format!(
+            "M {} {} L {} {} L {} {} Z M {} {} L {} {} L {} {} Z",
+            cx, cy - ry,
+            cx - rx, cy,
+            cx + rx, cy,
+            cx, cy + ry,
+            cx - rx, cy,
+            cx + rx, cy,
+        )
+    }
+
+    /// 生成单个字形的完整 SVG 元素字符串
+    pub fn render_glyph_element(addr: &SyllableAddress, unicode_slot: u32) -> String {
+        let (path, (x_min, y_min, x_max, y_max)) = Self::encode_glyph(addr);
+        let topo = GlyphTopology::from_syllable_address(addr);
+        let (hue, sat, light) = phase_to_hsl(topo.color_phase);
+        let fill = format!("hsl({} {}% {}%)", hue, sat, light);
+        let glyph_name = format!("glyph_{}_{}_{}", addr.consonant_idx, addr.vowel_idx, addr.tone_idx);
+
+        // 避免在 format! 中使用 &#x... 和 # 字符（与原始字符串定界符冲突）
+        // 改用 + 拼接
+        let unicode_escape = format!("&#x{:04X};", unicode_slot);
+        format!(
+            r##"<glyph glyph-name="{}" unicode="{}" d="{}" horiz-adv-x="1000">
+  <!-- consonant={} vowel={} tone={} -->
+  <!-- semantic={:?} rotation={}° -->
+  <path d="{}" fill="{}" fill-opacity="0.15" stroke="{}" stroke-width="3"/>
+</glyph>"##,
+            glyph_name,
+            unicode_escape,
+            &path,
+            addr.consonant_idx,
+            addr.vowel_idx,
+            addr.tone_idx,
+            topo.topology_type(),
+            topo.rotation_deg,
+            &path,
+            &fill,
+            &fill,
+        )
+    }
+}
+
+/// SVG 空间字体构建器：生成完整可加载的 SVG 字体文件
+
+pub struct SVGSpatialFontBuilder {
+    glyphs: Vec<SyllableAddress>,
+    font_name: String,
+    em_size: u16,
+}
+
+impl SVGSpatialFontBuilder {
+    pub fn new() -> Self {
+        Self {
+            glyphs: Vec::new(),
+            font_name: "NJSG-SpatialFont".to_string(),
+            em_size: 1000,
+        }
+    }
+
+    pub fn with_font_name(mut self, name: &str) -> Self {
+        self.font_name = name.to_string();
+        self
+    }
+
+    /// 添加一个音节地址作为字形
+    pub fn add_glyph(&mut self, addr: SyllableAddress) {
+        self.glyphs.push(addr);
+    }
+
+    /// 按声母范围批量添加字形
+    pub fn add_consonant_range(&mut self, c_start: u8, c_end: u8) {
+        for c in c_start..=c_end {
+            for v in 0..66u8 {
+                for t in 0..5u8 { // 只取前5个声调（节省文件大小）
+                    if let Some(addr) = SyllableAddress::new(c, v, t) {
+                        self.glyphs.push(addr);
+                    }
+                }
+            }
+        }
+    }
+
+    /// 生成完整的 SVG 字体文件内容
+    pub fn build(&self) -> String {
+        let mut svg = String::new();
+        // SVG 字体头部
+        svg.push_str(&format!(
+            r##"<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<!--
+  NJSG 囡囝共生操作系统 — 空间发音字体
+  维度: 声母(X) × 韵母(Y) × 声调(Z) = 48×66×100 = 316,800 地址
+  生成时间: 意图时间动作输出
+  字形数: {}
+-->
+<defs>
+<font id="{}" horiz-adv-x="{}">
+<font-face font-family="{}"
+    units-per-em="{}"
+    ascent="800"
+    descent="-200"
+    bbox="0 0 1000 1000"/>
+<missing-glyph horiz-adv-x="1000"><path d="M0 0 L1000 0 L1000 1000 L0 1000 Z" fill="none" stroke="#ccc"/></missing-glyph>
+"##,
+            self.glyphs.len(),
+            self.font_name,
+            self.em_size,
+            self.font_name,
+            self.em_size,
+        ));
+
+        // 逐个生成字形
+        for (i, addr) in self.glyphs.iter().enumerate() {
+            let unicode_slot = 0xE000 + (i as u32 % 0x1FFF); // Unicode PUA区段
+            let glyph_svg = SVGSpatialEncoder::render_glyph_element(addr, unicode_slot);
+            svg.push_str(&glyph_svg);
+            svg.push('\n');
+        }
+
+        // 字体尾部
+        svg.push_str("</font>\n</defs>\n");
+
+        // 可视化：将所有字形按声母×韵母排列
+        svg.push_str(&self.render_glyph_matrix());
+
+        svg.push_str("</svg>\n");
+        svg
+    }
+
+    /// 生成字形矩阵视图（声母为行，韵母为列，声调为不同透明度）
+    fn render_glyph_matrix(&self) -> String {
+        let mut svg = String::from("\n<!-- 声母×韵母 字形矩阵预览 -->\n<g id=\"matrix_view\" transform=\"translate(50,900)\">\n");
+        // 选择前10个声母，前10个韵母，3个声调
+        for c in 0..10u8 {
+            for v in 0..10u8 {
+                for t in 0..3u8 {
+                    if let Some(addr) = SyllableAddress::new(c, v, t) {
+                        let (path, _) = SVGSpatialEncoder::encode_glyph(&addr);
+                        let topo = GlyphTopology::from_syllable_address(&addr);
+                        let (hue, sat, light) = phase_to_hsl(topo.color_phase);
+                        let x_offset = v as i16 * 55;
+                        let y_offset = c as i16 * 55;
+                        let opacity = if t == 0 { 1.0 } else if t == 1 { 0.6 } else { 0.3 };
+                        svg.push_str(&format!(
+                            r#"<g transform="translate({},{}),scale(0.05)">
+  <path d="{}" fill="hsl({} {}% {}%)" opacity="{}" stroke="none"/>
+</g>"#,
+                            x_offset, y_offset,
+                            path,
+                            hue, sat, light,
+                            opacity,
+                        ));
+                        svg.push('\n');
+                    }
+                }
+            }
+        }
+        svg.push_str("</g>\n");
+        svg
+    }
+
+    /// 生成单个地址的空间位置可视化（简化版）
+    pub fn render_spatial_view(addr: &SyllableAddress) -> String {
+        format!(
+            r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200">
+  <rect width="400" height="200" fill="#1a1a2e"/>
+  <text x="10" y="30" fill="white" font-size="14">音节地址: 声{} 韵{} 调{}</text>
+  <text x="10" y="55" fill="white" font-size="12">声母idx={} — 语义类别={}</text>
+  <text x="10" y="75" fill="white" font-size="12">韵母idx={} — 操作数角度={}°</text>
+  <text x="10" y="95" fill="white" font-size="12">声调idx={} — 颜色相位={}</text>
+  <text x="10" y="120" fill="white" font-size="10">容量: 声容器={}符号 韵容器={}符号 调容器={}符号</text>
+</svg>"##,
+            addr.consonant_idx,
+            addr.vowel_idx,
+            addr.tone_idx,
+            addr.consonant_idx,
+            (addr.consonant_idx % 14 + 1),
+            addr.vowel_idx,
+            (addr.vowel_idx as u16 * 5) % 360,
+            addr.tone_idx,
+            addr.tone_idx % 16,
+            66 * 100,
+            48 * 100,
+            48 * 66,
+        )
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 空间时间 · 动作时间 · 意图句子 测试
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -2354,5 +3005,116 @@ mod spatial_action_intent_tests {
         // 合计 = 950,400 符号
         let expected = 316_800u64 * 3;
         assert_eq!(total, expected);
+    }
+
+    // ── 声母/韵母/声调表长度验证 ──
+
+    #[test]
+    fn test_consonant_table_is_48() {
+        assert_eq!(CONSONANTS.len(), 48, "声母表必须有48个条目");
+    }
+
+    #[test]
+    fn test_vowel_table_is_66() {
+        assert_eq!(VOWELS.len(), 66, "韵母表必须有66个条目");
+    }
+
+    #[test]
+    fn test_tone_table_is_100() {
+        assert_eq!(TONES.len(), 100, "声调表必须有100个条目");
+    }
+
+    #[test]
+    fn test_total_syllable_address_space() {
+        // 48 × 66 × 100 = 316,800
+        let total = CONSONANTS.len() * VOWELS.len() * TONES.len();
+        assert_eq!(total, 316_800);
+    }
+
+    // ── 三维几何字形映射（SVG字体文件生成） ──
+
+    #[test]
+    fn test_glyph_topology_from_spatial_address() {
+        let addr = SyllableAddress::new(3, 10, 50).unwrap();
+        let topo = GlyphTopology::from_syllable_address(&addr);
+        // 声母3 → 语义ID应在1-14
+        assert!(topo.semantic_id >= 1 && topo.semantic_id <= 14);
+        // 韵母10 → 旋转角 = 10*5 = 50
+        assert_eq!(topo.rotation_deg, 50);
+        // 声调50 → 颜色相位在0-15
+        assert!(topo.color_phase <= 15);
+    }
+
+    #[test]
+    fn test_svg_glyph_encoder_produces_path() {
+        let addr = SyllableAddress::new(1, 2, 3).unwrap();
+        let (path, bbox) = SVGSpatialEncoder::encode_glyph(&addr);
+        assert!(!path.is_empty());
+        assert!(path.starts_with('M'));
+        assert!(path.ends_with('Z'));
+        assert!(bbox.2 > 0); // width > 0
+        assert!(bbox.3 > 0); // height > 0
+    }
+
+    #[test]
+    fn test_svg_spatial_font_builder() {
+        let mut builder = SVGSpatialFontBuilder::new();
+        // 添加一个地址
+        let addr = SyllableAddress::new(10, 30, 70).unwrap();
+        builder.add_glyph(addr);
+        // 生成完整字体文件
+        let svg = builder.build();
+        assert!(svg.contains("<svg"));
+        assert!(svg.contains("</svg>"));
+        assert!(svg.contains("glyph_"));
+        assert!(svg.contains("NJSG-SpatialFont"));
+    }
+
+    #[test]
+    fn test_svg_spatial_font_view() {
+        let addr = SyllableAddress::new(5, 15, 25).unwrap();
+        let view = SVGSpatialFontBuilder::render_spatial_view(&addr);
+        assert!(view.contains("声5"));
+        assert!(view.contains("韵15"));
+        assert!(view.contains("调25"));
+    }
+
+    #[test]
+    fn test_topology_type_mapping() {
+        // 测试不同声母映射到不同拓扑类型
+        let addr1 = SyllableAddress::new(0, 10, 50).unwrap(); // sem_id=1 → box
+        let topo1 = GlyphTopology::from_syllable_address(&addr1);
+        assert_eq!(topo1.topology_type(), "box");
+
+        let addr5 = SyllableAddress::new(4, 10, 50).unwrap(); // sem_id=5 → sphere
+        let topo5 = GlyphTopology::from_syllable_address(&addr5);
+        assert_eq!(topo5.topology_type(), "sphere");
+
+        let addr14 = SyllableAddress::new(13, 10, 50).unwrap(); // sem_id=14 → double_cone
+        let topo14 = GlyphTopology::from_syllable_address(&addr14);
+        assert_eq!(topo14.topology_type(), "double_cone");
+    }
+
+    #[test]
+    fn test_glyph_color_phase() {
+        let addr1 = SyllableAddress::new(10, 20, 0).unwrap();
+        let topo1 = GlyphTopology::from_syllable_address(&addr1);
+        let (h1, _, _) = phase_to_hsl(topo1.color_phase);
+
+        let addr2 = SyllableAddress::new(10, 20, 8).unwrap();
+        let topo2 = GlyphTopology::from_syllable_address(&addr2);
+        let (h2, _, _) = phase_to_hsl(topo2.color_phase);
+
+        // 不同声调 → 不同相位 → 不同色相
+        assert_ne!(h1, h2);
+    }
+
+    #[test]
+    fn test_font_builder_batch_add() {
+        let mut builder = SVGSpatialFontBuilder::new();
+        builder.add_consonant_range(0, 2); // 3个声母 × 66韵母 × 5声调 = 990 字形
+        let svg = builder.build();
+        assert!(svg.contains("glyph_0_0_0"));
+        assert!(svg.contains("svg"));
     }
 }

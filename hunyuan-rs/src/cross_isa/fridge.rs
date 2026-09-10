@@ -53,7 +53,7 @@ impl ContainerPack {
     /// 空袋: pack_id==0xFFFF → 全1标记
     /// 全零: payload全零但pack_id有效 → [0xFF, 0xFE, 0xFD] 陷阱标记
     /// 有效: [sum%251, xor, (sum>>8)%241]
-    fn compute_witness(pack_id: u64, coord: Coord3D, align_flag: u8, payload: &[u8]) -> [u8; 3] {
+    pub(crate) fn compute_witness(pack_id: u64, coord: Coord3D, align_flag: u8, payload: &[u8]) -> [u8; 3] {
         if pack_id == 0xFFFF {
             return [0xFF, 0xFF, 0xFF]; // 空袋
         }

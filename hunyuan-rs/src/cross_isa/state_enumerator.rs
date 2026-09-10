@@ -101,6 +101,16 @@ impl StateCategory {
             Self::ExtendedEntangled => "OPERATION", // 复杂运算
         }
     }
+
+    /// 分类的数字编码（用于 MCOD 表存储）
+    pub fn code(&self) -> u16 {
+        match self {
+            Self::AxialContainer => 1,
+            Self::ClosedLoop => 2,
+            Self::MirrorEntangled => 3,
+            Self::ExtendedEntangled => 4,
+        }
+    }
 }
 
 /// 单个状态的完整分类描述——系统自己解释自己的产物

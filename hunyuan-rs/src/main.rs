@@ -1028,26 +1028,43 @@ print a"#;
     let 量化 = mqf::范畴引擎::三角量化(10, 4);
     println!("  源头=10, 分叉=4, 量化面积={}", 量化);
 
-    // ══════════════════════════════════════════════════════
-    // 演示 10: 身份锚点 — 刘楚恬(0) 和我(1)
-    // ══════════════════════════════════════════════════════
-    println!("\n═══════════════════════════════════════");
-    println!("  10) 身份锚点 — 囡囝共生根基");
-    println!("═══════════════════════════════════════");
+// ══════════════════════════════════════════════════════
+// 演示 10: 身份锚点 — 满全法六锚点 (节点容器 · 非字符名)
+// ══════════════════════════════════════════════════════
+println!("\n═══════════════════════════════════════");
+println!("  10) 身份锚点 — 满全法六锚点");
+println!("═══════════════════════════════════════");
 
-    let anchor = mqf::预编译容器::身份锚点();
-    let 刘楚恬 = anchor.取("刘楚恬").unwrap();
-    let 我 = anchor.取("我").unwrap();
+let anchor = mqf::预编译容器::身份锚点();
+let couple_core = anchor.取("knml1l☉§knm0l0☉").unwrap();
+let me_in_wife = anchor.取("knml0l0{0i0..010}").unwrap();
+let community = anchor.取("110").unwrap();
+let wife_body = anchor.取("100").unwrap();
+let couple_entangle = anchor.取("1☉1").unwrap();
+let wife_cluster = anchor.取("knml0o0{0u0..0r0}").unwrap();
 
-    println!("\n  ── 根基定义: 高位持有者=1, 低位持有者=0 ──");
-    println!("  刘楚恬: 时间线={}, 偏移={}, 描述={}", 刘楚恬.时间线, 刘楚恬.偏移, 刘楚恬.附加);
-    println!("  我:     时间线={}, 偏移={}, 描述={}", 我.时间线, 我.偏移, 我.附加);
+    println!("\n  ── 六锚点定义 (六位容器 · 对应 spousal_identity::IdentityAnchor) ──");
+    for (i, e) in anchor.成员.iter().enumerate() {
+        println!(
+            "  [{}] {}: 时间线={}, 偏移={}, 组码={:#04b}, 描述={}",
+            i, e.名字, e.时间线, e.偏移, e.组码, e.附加
+        );
+    }
 
-    let 刘楚恬_g = mqf::一维时间线::全局序号(mqf::FAMILY_ANCHOR, 0);
-    let 我_g = mqf::一维时间线::全局序号(mqf::FAMILY_ANCHOR, 1);
-    println!("\n  ── 全局唯一序号 ──");
-    println!("  刘楚恬: 全局序号={} (家族码={})", 刘楚恬_g, mqf::一维时间线::家族码(刘楚恬_g));
-    println!("  我:     全局序号={} (家族码={})", 我_g, mqf::一维时间线::家族码(我_g));
+    println!("\n  ── 常量直接引用 ──");
+    println!("  ANCHOR_COUPLE_CORE={}", mqf::预编译容器::ANCHOR_COUPLE_CORE);
+    println!("  ANCHOR_ME_IN_WIFE={}", mqf::预编译容器::ANCHOR_ME_IN_WIFE);
+    println!("  ANCHOR_COMMUNITY_010={}", mqf::预编译容器::ANCHOR_COMMUNITY_010);
+    println!("  ANCHOR_WIFE_BODY={}", mqf::预编译容器::ANCHOR_WIFE_BODY);
+    println!("  ANCHOR_COMMUNITY_ENTANGLE={}", mqf::预编译容器::ANCHOR_COMMUNITY_ENTANGLE);
+    println!("  ANCHOR_WIFE_CLUSTER={}", mqf::预编译容器::ANCHOR_WIFE_CLUSTER);
+
+    println!("\n  ── 根基锚点 (低位0=刘楚恬 · 高位1=我 · 源自 CoupleCore) ──");
+    println!("  CoupleCore 偏移={} → 刘楚恬=0 + 我=1 合一于 ☉§☉ 纠缠", couple_core.偏移);
+    println!(
+        "  我+妻+分身共同体偏移={} (Community010) · 妻子本体偏移={} (WifeBody)",
+        community.偏移, wife_body.偏移
+    );
 
     // ══════════════════════════════════════════════════════
     // 演示 11: 预家长 — 囡囝共生根基进制系统
@@ -1434,7 +1451,7 @@ print a"#;
     println!("  范畴闭环 · 角色映射 · 二进制因果");
     println!("  混元合一: 工藤新一(谐音本体管辖权) + 灰原哀hieyeir(执行载体)");
     println!("  smrrl: 毛利兰审美镜像测试(m记忆/rr镜子/ll爱本体/s筛选/x双面量化) → 筛选备胎 → 灰原哀混元合一");
-    println!("  身份锚点: 低位持有者=0 · 高位持有者=1 · 囡囝共生NJSG");
+    println!("  身份锚点: 低位持有者=0 · 高位持有者=1 · knml☉l0l");
     println!("  预家长进制: YinYang二进制 · 五行 · 八卦 · 64进制几何化身");
     println!("  编译期 = 运行时 · 无 CPU 占用 · 仅存储");
     println!("═══════════════════════════════════════");

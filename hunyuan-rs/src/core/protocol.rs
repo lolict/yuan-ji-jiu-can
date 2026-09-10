@@ -46,20 +46,33 @@ pub enum ProtoError {
     MissingSession,
     MissingPeer,
     NoProcess,
+    /// 身份锚点无权发起呼唤 (can_represent()=false)
+    InvalidIdentity,
 }
 
 /// 协议控制器 (把 crypto_session + process 绑定)
+///
+/// 每次唤魂/答灵都需要携带身份锚点 (谁发起这次呼唤)。
+/// 这确保协议层知道通信双方的身份容器,而非仅仅是一串公钥。
 pub struct Protocol {
     pub crypto: Session,
     pub proto_state: ProtocolState,
     pub role: Role,
     pub os: CoupleOS,
     pub active_idx: Option<usize>,
+    /// 此端在通信中的身份 (六锚点之一 · 谁站在这端)
+    pub identity: crate::spousal_identity::IdentityAnchor,
 }
 
 impl Protocol {
     /// 发起唤魂 (caller 专用)
-    pub fn huanhun() -> Result<Self, ProtoError> {
+    ///
+    /// `caller` = 发起呼唤的身份容器 (六锚点之一)。
+    /// 只有 can_represent()=true 的锚点才能代表共同体发言。
+    pub fn huanhun(caller: crate::spousal_identity::IdentityAnchor) -> Result<Self, ProtoError> {
+        if !caller.can_represent() {
+            return Err(ProtoError::InvalidIdentity);
+        }
         let crypto = Session::huanhun().ok_or(ProtoError::CryptoFail)?;
         Ok(Self {
             crypto,
@@ -67,11 +80,17 @@ impl Protocol {
             role: Role::Caller,
             os: CoupleOS::new(0),
             active_idx: None,
+            identity: caller,
         })
     }
 
     /// 接收唤魂 (callee 专用): 生成己方密钥 + 立即答灵
-    pub fn wenling(peer_pub: &[u8; crypto::PUBKEY_LEN]) -> Result<Self, ProtoError> {
+    ///
+    /// `callee` = 应答方的身份容器 (六锚点之一)。
+    pub fn wenling(
+        peer_pub: &[u8; crypto::PUBKEY_LEN],
+        callee: crate::spousal_identity::IdentityAnchor,
+    ) -> Result<Self, ProtoError> {
         let mut crypto = Session::huanhun().ok_or(ProtoError::CryptoFail)?;
         let rc = crypto.zhaohun(peer_pub);
         if rc != CRYPTO_OK {
@@ -79,10 +98,11 @@ impl Protocol {
         }
         Ok(Self {
             crypto,
-            proto_state: ProtocolState::Connected,  // 答灵完毕即连通
+            proto_state: ProtocolState::Connected,
             role: Role::Callee,
             os: CoupleOS::new(0),
             active_idx: None,
+            identity: callee,
         })
     }
 
@@ -166,34 +186,36 @@ impl Protocol {
 }
 
 /// 模拟一个完整的 唤魂→答灵→加密通信→解体 测试流 (单机端到端)
+///
+/// `caller_anchor` 和 `callee_anchor` 分别代表呼唤双方的身份容器。
+pub fn simulate_handshake_and_message_with_identity(
+    msg: &[u32],
+    caller_anchor: crate::spousal_identity::IdentityAnchor,
+    callee_anchor: crate::spousal_identity::IdentityAnchor,
+) -> Result<(Vec<u8>, Vec<Mccp>), ProtoError> {
+    let mut caller = Protocol::huanhun(caller_anchor)?;
+    let caller_pub = caller.crypto.local_kp.pub_;
+    let mut callee = Protocol::wenling(&caller_pub, callee_anchor)?;
+    let callee_pub = callee.crypto.local_kp.pub_;
+    caller.da_ling(&callee_pub)?;
+    caller.enter_jing();
+    callee.enter_jing();
+    let frame = caller.send_mccp(msg)?;
+    let received = callee.recv_mccp(&frame)?;
+    caller.finish();
+    callee.finish();
+    Ok((frame, received))
+}
+
+/// 模拟一个完整的握手测试 (使用默认身份: CoupleCore ↔ WifeBody)
 pub fn simulate_handshake_and_message(
     msg: &[u32],
 ) -> Result<(Vec<u8>, Vec<Mccp>), ProtoError> {
-    // caller 唤魂
-    let mut caller = Protocol::huanhun()?;
-
-    // callee 收到 caller 的公钥 (caller 直接传)
-    let caller_pub = caller.crypto.local_kp.pub_;
-    let mut callee = Protocol::wenling(&caller_pub)?;
-
-    // caller 收到 callee 的公钥, 答灵握手
-    let callee_pub = callee.crypto.local_kp.pub_;
-    caller.da_ling(&callee_pub)?;
-
-    // 双方都进入连通
-    caller.enter_jing();
-    callee.enter_jing();
-
-    // caller 发消息
-    let frame = caller.send_mccp(msg)?;
-
-    // callee 接收
-    let received = callee.recv_mccp(&frame)?;
-
-    caller.finish();
-    callee.finish();
-
-    Ok((frame, received))
+    simulate_handshake_and_message_with_identity(
+        msg,
+        crate::spousal_identity::IdentityAnchor::CoupleCore,
+        crate::spousal_identity::IdentityAnchor::WifeBody,
+    )
 }
 
 #[cfg(test)]
@@ -202,18 +224,21 @@ mod tests {
 
     #[test]
     fn full_handshake_cycle() {
-        let mut caller = Protocol::huanhun().expect("caller huanhun");
+        let mut caller = Protocol::huanhun(crate::spousal_identity::IdentityAnchor::CoupleCore)
+            .expect("caller huanhun");
         assert_eq!(caller.proto_state, ProtocolState::Calling);
+        assert_eq!(caller.identity, crate::spousal_identity::IdentityAnchor::CoupleCore);
 
         let caller_pub = caller.crypto.local_kp.pub_;
-        let callee = Protocol::wenling(&caller_pub).expect("callee wenling");
+        let callee = Protocol::wenling(
+            &caller_pub,
+            crate::spousal_identity::IdentityAnchor::WifeBody,
+        ).expect("callee wenling");
+        assert_eq!(callee.identity, crate::spousal_identity::IdentityAnchor::WifeBody);
 
         let callee_pub = callee.crypto.local_kp.pub_;
         caller.da_ling(&callee_pub).expect("caller da ling");
-
         assert_eq!(caller.proto_state, ProtocolState::Connected);
-        // callee 在 wenling 后自动答灵, 状态还停在 Answering, 需要 da 一步
-        // 这里 caller 已经 Connected, 可以直接通信
     }
 
     #[test]
@@ -229,7 +254,6 @@ mod tests {
     fn encrypted_message_roundtrip() {
         let msg = vec![0x0ABC_1234, 0x7001_0001, 0, 0x0ABC_1234];
         let (frame, received) = simulate_handshake_and_message(&msg).expect("simulate");
-        // frame = nonce(12B) || ciphertext || tag(16B)
         assert!(frame.len() >= GCM_NONCE_LEN + GCM_TAG_LEN + msg.len() * 4);
         let decoded: Vec<u32> = received.iter().map(|m| m.0).collect();
         assert_eq!(decoded, msg);
@@ -237,17 +261,19 @@ mod tests {
 
     #[test]
     fn protocol_invalid_state_rejects_send() {
-        let mut caller = Protocol::huanhun().unwrap();
-        // Calling 状态不允许 send (必须 Connected 或 Jing)
+        let mut caller = Protocol::huanhun(crate::spousal_identity::IdentityAnchor::CoupleCore).unwrap();
         let r = caller.send_mccp(&[0]);
         assert_eq!(r, Err(ProtoError::InvalidState));
     }
 
     #[test]
     fn protocol_then_jing() {
-        let mut caller = Protocol::huanhun().unwrap();
+        let mut caller = Protocol::huanhun(crate::spousal_identity::IdentityAnchor::CoupleCore).unwrap();
         let caller_pub = caller.crypto.local_kp.pub_;
-        let callee = Protocol::wenling(&caller_pub).unwrap();
+        let callee = Protocol::wenling(
+            &caller_pub,
+            crate::spousal_identity::IdentityAnchor::WifeBody,
+        ).unwrap();
         let callee_pub = callee.crypto.local_kp.pub_;
         caller.da_ling(&callee_pub).unwrap();
         assert_eq!(caller.proto_state, ProtocolState::Connected);
@@ -255,5 +281,61 @@ mod tests {
         assert_eq!(caller.proto_state, ProtocolState::Jing);
         caller.finish();
         assert_eq!(caller.proto_state, ProtocolState::Finished);
+    }
+
+    // ── 身份感知协议测试 ──
+
+    #[test]
+    fn protocol_stores_identity_after_huanhun() {
+        let caller = Protocol::huanhun(crate::spousal_identity::IdentityAnchor::Community010).unwrap();
+        assert_eq!(caller.identity, crate::spousal_identity::IdentityAnchor::Community010);
+        assert!(caller.identity.can_represent());
+    }
+
+    #[test]
+    fn protocol_stores_identity_after_wenling() {
+        let caller = Protocol::huanhun(crate::spousal_identity::IdentityAnchor::CoupleCore).unwrap();
+        let caller_pub = caller.crypto.local_kp.pub_;
+        let callee = Protocol::wenling(
+            &caller_pub,
+            crate::spousal_identity::IdentityAnchor::CommunityEntangle,
+        ).unwrap();
+        assert_eq!(callee.identity, crate::spousal_identity::IdentityAnchor::CommunityEntangle);
+    }
+
+    #[test]
+    fn unauthorized_anchor_cannot_huanhun() {
+        // MeInWife / WifeCluster 没有代表权
+        let r = Protocol::huanhun(crate::spousal_identity::IdentityAnchor::MeInWife);
+        assert!(r.is_err(), "MeInWife 不应有权发起唤魂");
+
+        let r = Protocol::huanhun(crate::spousal_identity::IdentityAnchor::WifeCluster);
+        assert!(r.is_err(), "WifeCluster 不应有权发起唤魂");
+    }
+
+    #[test]
+    fn authorized_anchors_can_huanhun() {
+        // CoupleCore / Community010 / CommunityEntangle 有权代表
+        for anchor in [
+            crate::spousal_identity::IdentityAnchor::CoupleCore,
+            crate::spousal_identity::IdentityAnchor::Community010,
+            crate::spousal_identity::IdentityAnchor::CommunityEntangle,
+        ].iter() {
+            let r = Protocol::huanhun(*anchor);
+            assert!(r.is_ok(), "{:?} 应该有权发起唤魂", anchor);
+        }
+    }
+
+    #[test]
+    fn handshake_with_identity_roundtrip() {
+        let msg = vec![0xDEAD_BEEF, 0xCAFE_0001];
+        let (frame, received) = simulate_handshake_and_message_with_identity(
+            &msg,
+            crate::spousal_identity::IdentityAnchor::CoupleCore,
+            crate::spousal_identity::IdentityAnchor::CommunityEntangle,
+        ).expect("handshake with identity");
+        let decoded: Vec<u32> = received.iter().map(|m| m.0).collect();
+        assert_eq!(decoded, msg);
+        assert!(!frame.is_empty());
     }
 }

@@ -367,4 +367,34 @@ mod tests {
         // 匹配率应已被记录
         assert!(probe.match_rate >= 0.0 && probe.match_rate <= 1.0);
     }
+
+    #[test]
+    fn cognitive_mirror_identity_no_change() {
+        let mirror = CognitiveMirror::identity();
+        assert_eq!(mirror.remap(0x01), 0x01);
+        assert_eq!(mirror.remap(0x0F), 0x0F);
+    }
+
+    #[test]
+    fn cognitive_mirror_custom_mapping() {
+        let mirror = CognitiveMirror::with_mappings(&[(0x01, 0x81), (0x02, 0x82)]);
+        assert_eq!(mirror.remap(0x01), 0x81);
+        assert_eq!(mirror.remap(0x02), 0x82);
+        assert_eq!(mirror.remap(0x03), 0x03);
+    }
+
+    #[test]
+    fn cognitive_substitute_swaps_semantic_identity() {
+        let target = ContainerPack::new(42, crate::cross_isa::coordinate::Coord3D::new(0x01, 0x0001, 0x01), 0, vec![0xDE, 0xAD]);
+        let mut probe = VoidProbe::new(target.coord(), 0);
+        probe.observe(&target);
+        probe.inject(SimModal::Phoneme(0xBB));
+        let mirror = CognitiveMirror::with_mappings(&[(0x01, 0xF1)]);
+        let ok = mirror.cognitive_substitute(&probe, &target);
+        assert!(ok.is_some());
+        let new_pack = ok.unwrap();
+        assert_eq!(new_pack.coord().x, 0xF1);
+        assert_eq!(new_pack.coord().y, target.coord().y);
+        assert_eq!(new_pack.coord().z, target.coord().z);
+    }
 }

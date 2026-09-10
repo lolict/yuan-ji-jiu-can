@@ -70,8 +70,28 @@ name = "ttf-mirror"
 path = "src/bin/ttf_mirror.rs"
 
 [[bin]]
+name = "ttf-cognize"
+path = "src/bin/ttf_cognize.rs"
+
+[[bin]]
+name = "ttf-field"
+path = "src/bin/ttf_field.rs"
+
+[[bin]]
+name = "ttf-timeline"
+path = "src/bin/ttf_timeline.rs"
+
+[[bin]]
+name = "ttf-sky"
+path = "src/bin/ttf_sky.rs"
+
+[[bin]]
 name = "state-enumerate"
 path = "src/bin/state_enumerate.rs"
+
+[[bin]]
+name = "state-ttf-gen"
+path = "src/bin/state_ttf_gen.rs"
 
 [profile.release]
 opt-level = "z"      # 体积优先

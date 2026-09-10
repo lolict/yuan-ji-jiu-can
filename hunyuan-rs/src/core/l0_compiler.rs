@@ -1387,8 +1387,8 @@ jmp loop
 done:
 printc 33"#; // '!' = 33 结束标记
 
-        let (out, _) = run_l0_with_input(echo_src, "NJSG").unwrap();
-        assert_eq!(out, "NJSG!");
+    let (out, _) = run_l0_with_input(echo_src, "knml").unwrap();
+    assert_eq!(out, "knml!");
     }
 
     #[test]

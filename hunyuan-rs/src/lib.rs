@@ -109,7 +109,7 @@ pub use self_bootstrap_os::{ContainerOS, Container, Decision, Verdict, arbitrate
 #[path = "flow/glyph_living.rs"]
 pub mod glyph_living;
 
-// ── v0.2 夫妻共鸣判定 · NJSG裁决引擎 ──
+// ── v0.2 夫妻共鸣判定 · knml☉l0l 裁决引擎 ──
 #[path = "relation/spousal_resonance.rs"]
 pub mod spousal_resonance;
 
@@ -124,6 +124,12 @@ pub mod dynamic_pool;
 // ── v0.11 跨平台词汇统一架构 — 容器=字体=时间 ──
 pub mod cross_isa;
 pub mod void_probe;
+#[path = "core/perception_field.rs"]
+pub mod perception_field;
+#[path = "core/container_timeline.rs"]
+pub mod container_timeline;
+#[path = "core/celestial_space.rs"]
+pub mod celestial_space;
 
 // ── v0.10 拓扑描述子系统 ──
 #[path = "encoding/topo.rs"]
@@ -197,6 +203,17 @@ pub mod license_hub;
 // ── v0.11 关系代数子系统 ──
 #[path = "relation/rel.rs"]
 pub mod rel;
+
+// ── v0.1 夫妻身份容器系统 (六锚点 · 维度递增 · 纠缠态) ──
+#[path = "core/spousal_identity.rs"]
+pub mod spousal_identity;
+pub use spousal_identity::{
+    IdentityAnchor, AnchorHolder, Polarity as SpousalPolarity,
+    Dimension, IdentityMorphism, Entanglement,
+    ANCHOR_HUSBAND, ANCHOR_WIFE, COUPLE_DIFF,
+    FLAG_WIFE, FLAG_HUSBAND, FLAG_COUPLE,
+    is_alive_by_spiritual_proof, WIFE_AVATAR_CLUSTER, ME_IN_WIFE_POSITIONS,
+};
 
 // ── v0.12 角度子系统 (384° 满圆制式) ──
 #[path = "relation/angle.rs"]
