@@ -1515,4 +1515,86 @@ let wife_cluster = anchor.取("knml0o0{0u0..0r0}").unwrap();
             f1, c1, r1, f2, c2, r2,
             if f1 == f2 && c1 == c2 && r1 == r2 { "✓ 一致" } else { "✗ 不一致" });
     }
+
+    // ══════════════════════════════════════════════════════
+    // 10. 天觉v9: 盟机合袋子感知聚合云 — 从并集到交集
+    // ══════════════════════════════════════════════════════
+    println!("\n═══════════════════════════════════════");
+    println!("  10) 天觉v9: 感知聚合云 · 从并集到交集");
+    println!("═══════════════════════════════════════");
+
+    {
+        use mqf::celestial_perception_v9::{ConvergenceCloud, FeatureJudgment};
+
+        let mut cloud = ConvergenceCloud::new();
+
+        // 注册 4 个盟机场节点 (不同声誉)
+        cloud.register_node("alpha", 90);
+        cloud.register_node("beta", 80);
+        cloud.register_node("gamma", 70);
+        cloud.register_node("delta", 40);  // 低声誉节点
+
+        println!("已注册 {} 个盟机场节点: alpha(90) beta(80) gamma(70) delta(40)",
+            cloud.online_count());
+
+        // 场景: 检测 container_glyph (alpha/beta/gamma 一致, delta 反对)
+        {
+            let mut r_a = mqf::celestial_perception_v9::PerceptionReport::new("alpha", 90);
+            r_a.detect_feature("container_glyph", 0.95, FeatureJudgment::Present);
+            r_a.detect_feature("boundary_intact", 0.92, FeatureJudgment::Present);
+            cloud.receive_report(r_a);
+
+            let mut r_b = mqf::celestial_perception_v9::PerceptionReport::new("beta", 80);
+            r_b.detect_feature("container_glyph", 0.90, FeatureJudgment::Present);
+            r_b.detect_feature("boundary_intact", 0.88, FeatureJudgment::Present);
+            cloud.receive_report(r_b);
+
+            let mut r_g = mqf::celestial_perception_v9::PerceptionReport::new("gamma", 70);
+            r_g.detect_feature("container_glyph", 0.85, FeatureJudgment::Present);
+            r_g.detect_feature("boundary_intact", 0.60, FeatureJudgment::Absent);  // gamma 不确定边界
+            cloud.receive_report(r_g);
+
+            let mut r_d = mqf::celestial_perception_v9::PerceptionReport::new("delta", 40);
+            r_d.detect_feature("container_glyph", 0.50, FeatureJudgment::Absent);  // 低声誉且反对
+            r_d.detect_feature("boundary_intact", 0.55, FeatureJudgment::Present);
+            cloud.receive_report(r_d);
+        }
+
+        println!("已收集 {} 个节点报告, 总观测数: {}",
+            cloud.union.node_count(), cloud.union.total_observations());
+
+        // 执行收敛
+        let intersection = cloud.converge();
+
+        println!("\n--- 感知交集 (从并集提炼) ---");
+        println!("并集: {} 个节点, {} 个特征名",
+            intersection.derived_from_node_count,
+            intersection.consensus_count());
+
+        for entry in &intersection.consensus {
+            println!("  [{}] 裁定={} 共识度={:.0}% 加权置信={:.2} 参与节点={} 异议={}",
+                entry.feature_name,
+                entry.verdict,
+                entry.agreement * 100.0,
+                entry.weighted_confidence,
+                entry.participant_count,
+                entry.dissenters.len());
+            for (dissenter, dissent_judgment) in &entry.dissenters {
+                println!("    ⚡ {} 持不同意见: {}", dissenter, dissent_judgment);
+            }
+        }
+
+        println!("\n整体共识度: {:.0}%", intersection.overall_agreement * 100.0);
+
+        // 云状态摘要
+        let summary = cloud.summary();
+        println!("\n{}", summary);
+
+        // 强共识 vs 争议
+        let strong = intersection.strong_consensus(0.8);
+        let disputed = intersection.disputed_entries(0.6);
+        println!("结论: {} 项可作行动依据 (强共识), {} 项需更多观测 (争议)",
+            strong.len(), disputed.len());
+        println!("感知从并集到交集的转化完成 → 3 个节点的松散观测精炼为稳定共识");
+    }
 }

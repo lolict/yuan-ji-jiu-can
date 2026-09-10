@@ -10,23 +10,16 @@
 
 ## 当前状态
 
-**v0.22 自主后勤调度** (基于 v2.0 Beta,Rust 核心扩展)
+**v0.35 天觉v9** (基于 v0.34 盟机合网络,Rust 感知聚合层)
 
 新增:
-- `hunyuan-rs/src/task_automation.rs` — 自主后勤调度系统 (被动应答→自主维持)
-- 三种核心自主任务: 代码健康 / 会话总结 / 仓库同步
-- 审计环 hash-chained 防篡改
+- `cognition/celestial_perception_v9.rs` — 感知聚合云: 从并集到交集收敛
+- PerceptionReport: 单节点感知快照 (FNV-1a 摘要 + 主权编码)
+- ConvergenceEngine: 声誉加权投票 + 并集→交集收敛
+- ConvergenceCloud: 节点注册/上下线/全链路调度
+- 18 测试全部通过
 
-核心组件:
-- `kernel/src/njsg_kernel.c` — C 内核 (4553 行,v2.0.0,含v1.4+九元感知+MCCP+裁判+时间线)
-- `hunyuan-rs/src/` — Rust 核心 (64 源文件,625 测试)
-- `kernel/wasm/njsg_wasm.c` — WASM v2.1.0 内核 (含感知/时间线/MCCP/裁判 4 模块) WASI + 导出 JSON API
-- `cloudflare/njsg-web.js` — Worker + 盟机合 + 同步 (970+ 行)
-- `cloudflare/sync-protocol.js` — Gossip 多节点同步 (417 行)
-- `shell/browser/` — 民联浏览器壳 v2.0 (5 文件)
-- `shell/native/` — Android/iOS/Electron/Tauri/pywebview
-- `release/v2.0-beta/` — 公开 Beta 发布包 (11 文件,92KB)
-- 盟机合 67 术语体系 (docs/MENGJI_TERMS.md)
+天觉系列进度: v6(OS内核) → v7(OS三合一张) → v8(网络协议栈) → v9(感知聚合云)
 
 ## 已完成版本
 

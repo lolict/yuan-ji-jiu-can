@@ -130,6 +130,10 @@ pub mod perception_field;
 pub mod container_timeline;
 #[path = "core/celestial_space.rs"]
 pub mod celestial_space;
+#[path = "core/fiber_bundle_topo.rs"]
+pub mod fiber_bundle_topo;
+#[path = "core/cosmos_view.rs"]
+pub mod cosmos_view;
 
 // ── v0.10 拓扑描述子系统 ──
 #[path = "encoding/topo.rs"]
@@ -284,6 +288,13 @@ pub use cochlear_boot::{cochlear_bootstrap, CochlearBoot, BootReceipt};
 #[path = "temporal/hierarchical_time.rs"]
 pub mod hierarchical_time;
 pub use hierarchical_time::{HierarchicalTimestamp, LifeEvent, IntegrityReport};
+
+#[path = "temporal/consciousness_timeline.rs"]
+pub mod consciousness_timeline;
+pub use consciousness_timeline::{
+    ConsciousnessTimeline, TimelineReport, CallStrategy,
+    DifferenceMarker, DiffKind, RelationAnchor, Evaluation, EvalLevel,
+};
 
 #[path = "core/memory.rs"]
 pub mod memory;
@@ -459,6 +470,15 @@ pub use celestial_perception_v8::*;
     // Engine
     CelestialPerceptionV8, PipelineResultV8, TxStats,
 };*/
+
+// ── v0.35 天觉v9（老九）· 盟机合袋子感知聚合云 ──
+#[path = "cognition/celestial_perception_v9.rs"]
+pub mod celestial_perception_v9;
+pub use celestial_perception_v9::{
+    ConvergenceCloud, ConvergenceEngine, ConvergenceConfig,
+    PerceptionUnion, PerceptionIntersection,
+    ConsensusEntry, CloudSummary, FeatureJudgment,
+};
 
 // ── v0.31 大审判庭 · 全链路整合裁判系统 ──
 #[path = "judge/grand_court.rs"]
@@ -652,7 +672,7 @@ pub use gtt_perception::{PerceptionServer, PerceptionEvent, PerceptionSeverity, 
 pub use gtt_category::{CategoryRegistry, CategoryCorrector, SensoryChannel, IsomorphismCheck, CorrectionAdvice, IsomorphismSuggestion};
 
 // v0.7 感知器官
-pub use mind_organ::{MindOrgan, DistanceCalculator, DistanceVector, ClusterEngine, EntityCluster, Punctuation, ThinkingMode, ThinkingState, PerceptionReport};
+pub use mind_organ::{MindOrgan, DistanceCalculator, DistanceVector, ClusterEngine, EntityCluster, Punctuation, ThinkingMode, ThinkingState};
 
 // v0.8 反馈学习
 pub use gtt_learn::{LearningEngine, LearningMode, LearnableWeights, Feedback, LearningReport};
