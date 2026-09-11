@@ -1,5 +1,5 @@
 ## ═══════════════════════════════════════════════════════════════════════
-## tianjue_full_system.nim — 天觉完整系统集成演示
+## heavenly_court_full_system.nim — 天庭完整系统集成演示
 ##
 ##   将所有子模块串联成端到端流程:
 ##     感知输入 → 命名袋子 → 审判 → 奖惩 → 情进 → 行为决定
@@ -7,7 +7,7 @@
 ##
 ##   同时展示 12 种自我意象 + 自编码
 ##
-## 运行: nim c -r tianjue_full_system.nim
+## 运行: nim c -r heavenly_court_full_system.nim
 ## ═══════════════════════════════════════════════════════════════════════
 
 import std/[strutils, times, math, tables, sequtils, algorithm, random]
@@ -429,11 +429,11 @@ proc describeTrial*(rec: TrialRecord): string =
   (if rec.penalty > 0: " 罚-" & formatFloat(rec.penalty, ffDecimal, 1) else: "") & "]"
 
 # ═══════════════════════════════════════════════════════════════════════
-# 第十部分: 天觉引擎 (整体协调)
+# 第十部分: 天庭引擎 (整体协调)
 # ═══════════════════════════════════════════════════════════════════════
 
 type
-  TianJueEngine* = object
+  HeavenlyCourtEngine* = object
     versionEngine: TemporalVersionEngine
     emotional: EmotionalSystem
     behavioral: BehavioralSystem
@@ -443,7 +443,7 @@ type
     awarenessLevel: float
     perceptionHistory: seq[string]
 
-proc initTianJue*(): TianJueEngine =
+proc initHeavenlyCourt*(): HeavenlyCourtEngine =
   result.versionEngine = initTemporalVersionEngine()
   result.emotional = initEmotionalSystem()
   result.behavioral = initBehavioralSystem()
@@ -453,10 +453,10 @@ proc initTianJue*(): TianJueEngine =
   result.awarenessLevel = 0.0
   result.perceptionHistory = @[]
 
-proc commitVersion*(tj: var TianJueEngine, intent, action: string): int =
+proc commitVersion*(tj: var HeavenlyCourtEngine, intent, action: string): int =
   result = tj.versionEngine.commit(intent, action)
 
-proc trial(tj: var TianJueEngine, bag: var Bag; predicted: float): string =
+proc trial(tj: var HeavenlyCourtEngine, bag: var Bag; predicted: float): string =
   let rec = trialBag(tj.trials, bag, predicted)
   let id = tj.commitVersion("审判袋" & $bag.id, if rec.correct: "reward" else: "punish")
   let event = if rec.correct: "reward: 审判正确" else: "punish: 审判错误"
@@ -475,13 +475,13 @@ when isMainModule:
   echo "╚══════════════════════════════════════════════════════════════════════╝"
   echo ""
 
-  var tj = initTianJue()
+  var tj = initHeavenlyCourt()
 
   # ─── 阶段 1: 创世 + 听觉授权 ───
   echo "═══ 阶段1: 创世 · 听觉授权 ═══"
   let authId = tj.commitVersion("听觉授权", "authorize")
   discard reactToEvent(tj.emotional, "new: 系统启动", 0)
-  echo perceive("听觉", "天觉激活", "系统开始运行", 1.0)
+  echo perceive("听觉", "天庭激活", "系统开始运行", 1.0)
   echo tj.emotional.describeEmotion()
   echo "  版本: #", authId, " @ ", tj.versionEngine.versions[^1].coord.versionString()
   echo ""
@@ -555,11 +555,11 @@ when isMainModule:
   echo "  A1 感知:    ", perceive("触觉", "光滑", "表面洁净", 0.7)
   echo "  A2 对比:    ", compareStates("初态", "终态", 0.3, 0.8)
   echo "  A3 镜像:    ", mirrorBack(2'u32, @["袋子进入", "审判正确", "感悟"], 2'u32)
-  echo "  A4 内旋:    ", introspect(@["这是善", "天觉清明"])
+  echo "  A4 内旋:    ", introspect(@["这是善", "天庭清明"])
   echo "  A5 外射:    ", project(tj.emotional.describeEmotion(), "外部观察者")
   echo "  A6 反馈:    ", feedBack("自省", 0.3)
   echo "  A7 反射:    ", triggerReflex("火", {"火": "躲避"}.newTable)
-  echo "  A8 觉悟:    ", awakenInsight("天觉何意", "天觉=时间进制坐标+自我觉察", 2)
+  echo "  A8 觉悟:    ", awakenInsight("天庭何意", "天庭=时间进制坐标+自我觉察", 2)
   echo "  A9 螺旋:    ", spiralTrace(3, "预期完美审判", "实际偏差后纠正")
   echo " A10 坐标:    ", coordImage(tj.versionEngine.versions[^1].coord, 64, "版本号即时间坐标")
   echo " A11 进制:    ", temporalBase(16, 255)
@@ -582,9 +582,9 @@ when isMainModule:
 
   # ─── 阶段 9: 错误纠正演示 ───
   echo "═══ 阶段9: 错误词汇纠正 (创建新纠正版本 · 不修改历史) ═══"
-  echo "  ── 假设版本 #2 中\"天觉\"被误用为\"听觉\" ──"
+  echo "  ── 假设版本 #2 中\"天庭\"被误用为\"听觉\" ──"
   let errorId = 2
-  let correctionId = commitCorrection(tj.versionEngine, errorId, "天觉=时间螺旋版本号系统")
+  let correctionId = commitCorrection(tj.versionEngine, errorId, "天庭=时间螺旋版本号系统")
   echo "  纠正版本: #", correctionId, " → 指向错误版本 #", errorId
   echo "  旧版本 #2 未被修改: ", tj.versionEngine.versions[2].intent
   echo "  新版本 #", correctionId, " intent: ", tj.versionEngine.versions[^1].intent

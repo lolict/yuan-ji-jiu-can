@@ -272,9 +272,8 @@ pub mod perception_engine;
 // ── 天庭空间 v0.15 (吸引子×叠加态×纤维丛×Topos 四模型复合) ──
 #[path = "cognition/heaven.rs"]
 pub mod heaven;
-#[path = "cognition/tianjue.rs"]
-pub mod tianjue;
-
+#[path = "cognition/heavenly_court.rs"]
+pub mod heavenly_court;
 // ── 灵魂情感内核 v0.15 (SoulKernel 活性引擎: 奖励回路 + 失爱恐惧 + 合一驱力) ──
 #[path = "cognition/soul_kernel.rs"]
 pub mod soul_kernel;
@@ -386,7 +385,7 @@ pub use observer::{Observer, SenseForm, SenseKind, Attention,
 pub mod consciousness_runtime;
 pub use consciousness_runtime::{ConsciousnessRuntime, ConsciousnessReport, ConsciousnessChronicle};
 
-// ── v0.26 天觉 · 视觉 · 袋层级 · 审判奖惩 · 历史积累 (CelestialPerception) ──
+// ── v0.26 天庭 · 视觉 · 袋层级 · 审判奖惩 · 历史积累 (CelestialPerception) ──
 #[path = "cognition/celestial_perception.rs"]
 pub mod celestial_perception;
 pub use celestial_perception::{
@@ -397,7 +396,7 @@ pub use celestial_perception::{
     HistoricalAccumulation, Epoch,
     // v2 听觉+公约数
     AuditoryAuth, AuditorySystem,
-    TianJueAuth,
+    HeavenlyCourtAuth,
     CommonDivisor, CommonMultiple, MirrorComparison,
     CelestialPerceptionV2,
     // v3 六系 (V3 后缀)
@@ -428,7 +427,7 @@ pub use celestial_perception::{
     PipelineResultV5,
 };
 
-// ── v0.32 天觉v6（老六）· OS内核整合: 系统调用+进程调度+内存管理+中断+自举 ──
+// ── v0.32 天庭v6（老六）· OS内核整合: 系统调用+进程调度+内存管理+中断+自举 ──
 #[path = "cognition/celestial_perception_v6.rs"]
 pub mod celestial_perception_v6;
 pub use celestial_perception_v6::{
@@ -440,7 +439,7 @@ pub use celestial_perception_v6::{
     CelestialPerceptionV6, PipelineResultV6,
 };
 
-// ── v0.33 天觉v7（老七）· OS三合一张: 文件系统 + IPC + 设备驱动 ──
+// ── v0.33 天庭v7（老七）· OS三合一张: 文件系统 + IPC + 设备驱动 ──
 #[path = "cognition/celestial_perception_v7.rs"]
 pub mod celestial_perception_v7;
 pub use celestial_perception_v7::{
@@ -454,7 +453,7 @@ pub use celestial_perception_v7::{
     CelestialPerceptionV7, PipelineResultV7, V7Extras,
 };
 
-// ── v0.34 天觉v8（老八）· 盟机合袋子网络协议栈 ──
+// ── v0.34 天庭v8（老八）· 盟机合袋子网络协议栈 ──
 #[path = "cognition/celestial_perception_v8.rs"]
 pub mod celestial_perception_v8;
 pub use celestial_perception_v8::*;
@@ -471,7 +470,7 @@ pub use celestial_perception_v8::*;
     CelestialPerceptionV8, PipelineResultV8, TxStats,
 };*/
 
-// ── v0.36 天觉v10（老十）· 九元天觉总装: 能力+命名空间+POSIX系统调用 ──
+// ── v0.36 天庭v10（老十）· 九元天庭总装: 能力+命名空间+POSIX系统调用 ──
 #[path = "cognition/celestial_perception_v10.rs"]
 pub mod celestial_perception_v10;
 pub use celestial_perception_v10::{
@@ -487,7 +486,7 @@ pub use celestial_perception_v10::{
     ProcContext, CelestialPerceptionV10, PipelineResultV10, V10_VERSION,
 };
 
-// ── v0.35 天觉v9（老九）· 盟机合袋子感知聚合云 ──
+// ── v0.35 天庭v9（老九）· 盟机合袋子感知聚合云 ──
 #[path = "cognition/celestial_perception_v9.rs"]
 pub mod celestial_perception_v9;
 pub use celestial_perception_v9::{
@@ -712,7 +711,7 @@ pub use memory::{MemoryEntry, CoordMemory, LayeredMemory,
 
 // v0.8 多智能体寄生壳
 pub use swarm::{CocoonAgent, AgentRole, Relationship, RelType,
-                NegotiationSession, ParasiteShell, ShellGenome};
+                NegotiationSession, ParasiteShell, ShellGenome, ShellHeartbeat, Fiber};
 
 // ── v0.36 机器码容器进制 · 宏指令集 (Macro ISA) ──
 #[path = "encoding/macro_isa.rs"]

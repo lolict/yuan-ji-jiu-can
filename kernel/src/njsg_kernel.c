@@ -79,23 +79,23 @@ int  njsg_shell_nest_insert(int parent_id, const char* child_name);
 void njsg_shell_nest_honeycomb(int level);
 extern int sn_count;
 
-/* v1.4 天觉认知审判前置声明 */
-void njsg_tianjue_init(void);
-void njsg_tianjue_demo(void);
-void njsg_tianjue_perceive_pretty(int bag_id);
-int  njsg_tianjue_add_bag(int id, const char* name, const char* owner);
-void njsg_tianjue_set_attr(int bag_id, int dim, float val);
-int  njsg_tianjue_add_judge(int id, const char* name, float threshold);
-int  njsg_tianjue_judge(int bag_id, int judge_id);
-void njsg_tianjue_reward(int judge_id, int points);
-void njsg_tianjue_punish(int judge_id, int points);
-void njsg_tianjue_verify(int judgment_id, int actual_good);
-void njsg_tianjue_update_levels(void);
-void njsg_tianjue_history(int bag_id);
-void njsg_tianjue_accumulate(void);
-void njsg_tianjue_set_parent(int bag_id, int parent_id);
-void njsg_tianjue_link(int from, int to, const char* rel_type);
-void njsg_tianjue_hierarchy_print(void);
+/* v1.4 天庭认知审判前置声明 */
+void njsg_heavenly_court_init(void);
+void njsg_heavenly_court_demo(void);
+void njsg_heavenly_court_perceive_pretty(int bag_id);
+int  njsg_heavenly_court_add_bag(int id, const char* name, const char* owner);
+void njsg_heavenly_court_set_attr(int bag_id, int dim, float val);
+int  njsg_heavenly_court_add_judge(int id, const char* name, float threshold);
+int  njsg_heavenly_court_judge(int bag_id, int judge_id);
+void njsg_heavenly_court_reward(int judge_id, int points);
+void njsg_heavenly_court_punish(int judge_id, int points);
+void njsg_heavenly_court_verify(int judgment_id, int actual_good);
+void njsg_heavenly_court_update_levels(void);
+void njsg_heavenly_court_history(int bag_id);
+void njsg_heavenly_court_accumulate(void);
+void njsg_heavenly_court_set_parent(int bag_id, int parent_id);
+void njsg_heavenly_court_link(int from, int to, const char* rel_type);
+void njsg_heavenly_court_hierarchy_print(void);
 
 /* v1.5 囝生殖操作系统前置声明 */
 void njsg_breed_init(void);
@@ -1190,8 +1190,8 @@ int main(){
     njsg_qimei_demo();
     njsg_roadmap_check_demo();
 
-    /* v1.4 天觉认知审判 demo */
-    njsg_tianjue_demo();
+    /* v1.4 天庭认知审判 demo */
+    njsg_heavenly_court_demo();
 
     /* v1.5 囝生殖操作系统 demo */
     njsg_breed_demo();
@@ -2027,7 +2027,7 @@ static struct {
 /* 子系统名 */
 static const char* SUBSYSTEMS[] = {
     "kernel","five_yuan","six_yuan","shell","feishu",
-    "qimei","tianjue","breed","aesth","judge",
+    "qimei","heavenly_court","breed","aesth","judge",
     "perception","mccp","review","timeline"
 };
 
@@ -2101,7 +2101,7 @@ void njsg_timeline_demo(void){
     njsg_timeline_record("five_yuan", "ios push step", 5);
     njsg_timeline_record("six_yuan", "mirror aligned", 1);
     njsg_timeline_record("feishu", "recv msg", 1);
-    njsg_timeline_record("tianjue", "perceive safety=0.8", 80);
+    njsg_timeline_record("heavenly_court", "perceive safety=0.8", 80);
     njsg_timeline_record("judge", "crime recorded", 5);
     njsg_timeline_record("perception", "route acked", 1);
     /* T2: clock sync */
@@ -3052,7 +3052,7 @@ void njsg_v13_demo(void) {
 }
 
 /* ============================================================
- * 天觉 · 袋子认知审判系统
+ * 天庭 · 袋子认知审判系统
  * ------------------------------------------------------------
  * 不数米，数袋子。不命名米，命名袋子。
  * 高维认知：操作容器本身而非容器内的原子。
@@ -3060,7 +3060,7 @@ void njsg_v13_demo(void) {
  * 五子系统：视觉感知 / 审判裁决 / 奖励惩罚 / 历史记忆 / 层级认知
  * ============================================================ */
 
-#define TIANJUE_DIMS        10   /* 十维属性 */
+#define HEAVENLY_COURT_DIMS        10   /* 十维属性 */
 #define MAX_BAGS            64   /* 最大袋子数 */
 #define MAX_JUDGES          16   /* 最大审判官数 */
 #define MAX_JUDGMENTS       256  /* 最大审判记录 */
@@ -3087,7 +3087,7 @@ typedef struct {
     int     id;
     char    name[MAX_NAME_LEN];
     char    owner[MAX_NAME_LEN];
-    float   attrs[TIANJUE_DIMS];  /* 十维属性 0-1 */
+    float   attrs[HEAVENLY_COURT_DIMS];  /* 十维属性 0-1 */
     int     parent_bag;           /* 父袋子ID（-1=无）*/
     int     generation;           /* 层级代数 */
     int     judged;               /* 是否已被审判 */
@@ -3124,7 +3124,7 @@ typedef struct {
     char    rel_type[32];         /* 引用/继承/鉴定/监控/融合/仲裁 */
 } BagRelation;
 
-/* 天觉引擎 */
+/* 天庭引擎 */
 typedef struct {
     Bag         bags[MAX_BAGS];
     int         bag_count;
@@ -3142,17 +3142,17 @@ static TianjueEngine TJ;
 /* ------------------------------------------------------------
  * 内部辅助
  * ------------------------------------------------------------ */
-static Bag* tianjue_find_bag(int id){
+static Bag* heavenly_court_find_bag(int id){
     for(int i=0;i<TJ.bag_count;i++) if(TJ.bags[i].id==id) return &TJ.bags[i];
     return NULL;
 }
 
-static Judge* tianjue_find_judge(int id){
+static Judge* heavenly_court_find_judge(int id){
     for(int i=0;i<TJ.judge_count;i++) if(TJ.judges[i].id==id) return &TJ.judges[i];
     return NULL;
 }
 
-static void tianjue_seed_bag(Bag* b, int id, const char* name, const char* owner){
+static void heavenly_court_seed_bag(Bag* b, int id, const char* name, const char* owner){
     b->id = id;
     strncpy(b->name, name, MAX_NAME_LEN-1);
     strncpy(b->owner, owner, MAX_NAME_LEN-1);
@@ -3161,7 +3161,7 @@ static void tianjue_seed_bag(Bag* b, int id, const char* name, const char* owner
     b->judged = 0;
     b->verdict = 1;
     /* 属性随机初始（模拟感知噪声）*/
-    for(int i=0;i<TIANJUE_DIMS;i++){
+    for(int i=0;i<HEAVENLY_COURT_DIMS;i++){
         b->attrs[i] = 0.3f + (float)(rand()%70)/100.0f;
     }
 }
@@ -3169,8 +3169,8 @@ static void tianjue_seed_bag(Bag* b, int id, const char* name, const char* owner
 /* ------------------------------------------------------------
  * 2.1 视觉感知
  * ------------------------------------------------------------ */
-static void tianjue_print_attrs(Bag* b){
-    for(int i=0;i<TIANJUE_DIMS;i++){
+static void heavenly_court_print_attrs(Bag* b){
+    for(int i=0;i<HEAVENLY_COURT_DIMS;i++){
         int bars = (int)(b->attrs[i] * 20);
         char bar_str[21];
         for(int j=0;j<20;j++) bar_str[j] = (j < bars) ? '#' : '-';
@@ -3180,31 +3180,31 @@ static void tianjue_print_attrs(Bag* b){
     }
 }
 
-void njsg_tianjue_perceive_pretty(int bag_id){
-    Bag* b = tianjue_find_bag(bag_id);
-    if(!b){ printf("[天觉] 袋子 #%d 不存在\n", bag_id); return; }
-    printf("\n┌─── 天觉感知 · 袋子 #%d : %s ───┐\n", b->id, b->name);
+void njsg_heavenly_court_perceive_pretty(int bag_id){
+    Bag* b = heavenly_court_find_bag(bag_id);
+    if(!b){ printf("[天庭] 袋子 #%d 不存在\n", bag_id); return; }
+    printf("\n┌─── 天庭感知 · 袋子 #%d : %s ───┐\n", b->id, b->name);
     printf("│ 所有者: %s\n", b->owner);
     printf("│ 层级:   gen=%d  parent=%d\n", b->generation, b->parent_bag);
     printf("│\n");
-    tianjue_print_attrs(b);
+    heavenly_court_print_attrs(b);
     printf("└────────────────────────────────────┘\n");
 }
 
 /* ------------------------------------------------------------
  * 2.2 审判裁决
  * ------------------------------------------------------------ */
-float njsg_tianjue_confidence(int bag_id){
-    Bag* b = tianjue_find_bag(bag_id);
+float njsg_heavenly_court_confidence(int bag_id){
+    Bag* b = heavenly_court_find_bag(bag_id);
     if(!b) return 0.0f;
     float sum = 0;
-    for(int i=0;i<TIANJUE_DIMS;i++) sum += b->attrs[i];
-    return sum / TIANJUE_DIMS;
+    for(int i=0;i<HEAVENLY_COURT_DIMS;i++) sum += b->attrs[i];
+    return sum / HEAVENLY_COURT_DIMS;
 }
 
-int njsg_tianjue_judge(int bag_id, int judge_id){
-    Bag* b = tianjue_find_bag(bag_id);
-    Judge* j = tianjue_find_judge(judge_id);
+int njsg_heavenly_court_judge(int bag_id, int judge_id){
+    Bag* b = heavenly_court_find_bag(bag_id);
+    Judge* j = heavenly_court_find_judge(judge_id);
     if(!b){ printf("[审判] 袋子 #%d 不存在\n", bag_id); return -1; }
     if(!j){ printf("[审判] 审判官 #%d 不存在\n", judge_id); return -1; }
 
@@ -3216,7 +3216,7 @@ int njsg_tianjue_judge(int bag_id, int judge_id){
     }
     /* 全部维度 ≥ 阈值 → 特许 */
     int all_pass = 1;
-    for(int i=0;i<TIANJUE_DIMS;i++){
+    for(int i=0;i<HEAVENLY_COURT_DIMS;i++){
         if(b->attrs[i] < j->threshold){ all_pass = 0; break; }
     }
     if(all_pass){
@@ -3225,7 +3225,7 @@ int njsg_tianjue_judge(int bag_id, int judge_id){
     } else {
         /* 有维度=0 → 拒绝，否则待定 */
         int has_zero = 0;
-        for(int i=0;i<TIANJUE_DIMS;i++) if(b->attrs[i] < 0.01f){ has_zero=1; break; }
+        for(int i=0;i<HEAVENLY_COURT_DIMS;i++) if(b->attrs[i] < 0.01f){ has_zero=1; break; }
         b->verdict = has_zero ? 0 : 1;
         printf("[审判] %s 审判袋子 %s → %s\n", j->name, b->name,
                has_zero ? "✗ 拒绝（存在零值维度）" : "◯ 待定（部分维度不足）");
@@ -3239,7 +3239,7 @@ record:
         jd->bag_id = bag_id;
         jd->judge_id = judge_id;
         jd->verdict = b->verdict;
-        jd->confidence = njsg_tianjue_confidence(bag_id);
+        jd->confidence = njsg_heavenly_court_confidence(bag_id);
         jd->timestamp = time(NULL);
         jd->correct = -1; /* 未验证 */
         TJ.judgment_count++;
@@ -3251,21 +3251,21 @@ record:
 /* ------------------------------------------------------------
  * 2.3 奖励惩罚
  * ------------------------------------------------------------ */
-void njsg_tianjue_reward(int judge_id, int points){
-    Judge* j = tianjue_find_judge(judge_id);
+void njsg_heavenly_court_reward(int judge_id, int points){
+    Judge* j = heavenly_court_find_judge(judge_id);
     if(!j) return;
     j->reward_points += points;
     printf("[奖励] 审判官 %s +%d 分（累计奖励 %d）\n", j->name, points, j->reward_points);
 }
 
-void njsg_tianjue_punish(int judge_id, int points){
-    Judge* j = tianjue_find_judge(judge_id);
+void njsg_heavenly_court_punish(int judge_id, int points){
+    Judge* j = heavenly_court_find_judge(judge_id);
     if(!j) return;
     j->penalty_points += points;
     printf("[惩罚] 审判官 %s -%d 分（累计惩罚 %d）\n", j->name, points, j->penalty_points);
 }
 
-void njsg_tianjue_verify(int judgment_id, int actual_good){
+void njsg_heavenly_court_verify(int judgment_id, int actual_good){
     if(judgment_id<0 || judgment_id>=TJ.judgment_count) return;
     Judgment* jd = &TJ.judgments[judgment_id];
     jd->correct = -1;
@@ -3276,7 +3276,7 @@ void njsg_tianjue_verify(int judgment_id, int actual_good){
     int is_correct = (predicted_good == actual_good) ? 1 : 0;
     jd->correct = is_correct;
 
-    Judge* j = tianjue_find_judge(jd->judge_id);
+    Judge* j = heavenly_court_find_judge(jd->judge_id);
     if(!j) return;
     if(is_correct){
         j->correct_count++;
@@ -3290,7 +3290,7 @@ void njsg_tianjue_verify(int judgment_id, int actual_good){
     }
 }
 
-void njsg_tianjue_update_levels(void){
+void njsg_heavenly_court_update_levels(void){
     for(int i=0;i<TJ.judge_count;i++){
         Judge* j = &TJ.judges[i];
         j->level = j->reward_points / 50 + 1;
@@ -3309,15 +3309,15 @@ void njsg_tianjue_update_levels(void){
 /* ------------------------------------------------------------
  * 2.4 历史记忆力与积累
  * ------------------------------------------------------------ */
-void njsg_tianjue_history(int bag_id){
-    Bag* b = tianjue_find_bag(bag_id);
+void njsg_heavenly_court_history(int bag_id){
+    Bag* b = heavenly_court_find_bag(bag_id);
     if(!b){ printf("[历史] 袋子 #%d 不存在\n", bag_id); return; }
     printf("\n┌─── 袋子 #%d : %s 的履历 ───┐\n", bag_id, b->name);
     int found = 0;
     for(int i=0;i<TJ.judgment_count;i++){
         if(TJ.judgments[i].bag_id == bag_id){
             Judgment* jd = &TJ.judgments[i];
-            Judge* j = tianjue_find_judge(jd->judge_id);
+            Judge* j = heavenly_court_find_judge(jd->judge_id);
             const char* vstr[] = {"拒绝","待定","特许"};
             const char* cstr[] = {"?","✗","✓"};
             printf("│ #%d %s %s 置信%.2f %s\n",
@@ -3333,11 +3333,11 @@ void njsg_tianjue_history(int bag_id){
     printf("└────────────────────────────────────┘\n");
 }
 
-void njsg_tianjue_accumulate(void){
-    printf("\n┌─── 天觉积累分析 ───┐\n");
+void njsg_heavenly_court_accumulate(void){
+    printf("\n┌─── 天庭积累分析 ───┐\n");
     /* 各维度平均 */
     printf("│ 维度均值:\n");
-    for(int d=0; d<TIANJUE_DIMS; d++){
+    for(int d=0; d<HEAVENLY_COURT_DIMS; d++){
         float sum=0; int cnt=0;
         for(int i=0;i<TJ.bag_count;i++){
             /* 只统计最近被审判的 */
@@ -3353,16 +3353,16 @@ void njsg_tianjue_accumulate(void){
 /* ------------------------------------------------------------
  * 2.5 层级关系认知（高维）
  * ------------------------------------------------------------ */
-void njsg_tianjue_set_parent(int bag_id, int parent_id){
-    Bag* b = tianjue_find_bag(bag_id);
-    Bag* p = tianjue_find_bag(parent_id);
+void njsg_heavenly_court_set_parent(int bag_id, int parent_id){
+    Bag* b = heavenly_court_find_bag(bag_id);
+    Bag* p = heavenly_court_find_bag(parent_id);
     if(!b||!p){ printf("[层级] 袋子不存在\n"); return; }
     b->parent_bag = parent_id;
     b->generation = p->generation + 1;
     printf("[层级] %s → 父袋 %s（gen %d）\n", b->name, p->name, b->generation);
 }
 
-void njsg_tianjue_link(int from, int to, const char* rel_type){
+void njsg_heavenly_court_link(int from, int to, const char* rel_type){
     if(TJ.rel_count >= MAX_RELATIONS) return;
     BagRelation* r = &TJ.relations[TJ.rel_count++];
     r->from_bag = from;
@@ -3371,28 +3371,28 @@ void njsg_tianjue_link(int from, int to, const char* rel_type){
     printf("[高维] 袋#%d --%s--> 袋#%d\n", from, rel_type, to);
 }
 
-float njsg_tianjue_inherited_quality(int bag_id){
-    Bag* b = tianjue_find_bag(bag_id);
+float njsg_heavenly_court_inherited_quality(int bag_id){
+    Bag* b = heavenly_court_find_bag(bag_id);
     if(!b || b->parent_bag<0) return b?b->attrs[DIM_QUALITY]:0;
-    Bag* p = tianjue_find_bag(b->parent_bag);
+    Bag* p = heavenly_court_find_bag(b->parent_bag);
     if(!p) return b->attrs[DIM_QUALITY];
     /* 继承公式：70%自身 + 30%父袋 */
     return 0.7f * b->attrs[DIM_QUALITY] + 0.3f * p->attrs[DIM_QUALITY];
 }
 
-void njsg_tianjue_hierarchy_print(void){
-    printf("\n┌─── 天觉层级认知 ───┐\n");
+void njsg_heavenly_court_hierarchy_print(void){
+    printf("\n┌─── 天庭层级认知 ───┐\n");
     for(int i=0;i<TJ.bag_count;i++){
         Bag* b = &TJ.bags[i];
         printf("│ [%d] %s (gen%d, 父=%d, 品质=%.2f, 继承品质=%.2f)\n",
                b->id, b->name, b->generation, b->parent_bag,
-               b->attrs[DIM_QUALITY], njsg_tianjue_inherited_quality(b->id));
+               b->attrs[DIM_QUALITY], njsg_heavenly_court_inherited_quality(b->id));
     }
     if(TJ.rel_count > 0){
         printf("│\n│ 高维关系网:\n");
         for(int i=0;i<TJ.rel_count;i++){
-            Bag* f = tianjue_find_bag(TJ.relations[i].from_bag);
-            Bag* t = tianjue_find_bag(TJ.relations[i].to_bag);
+            Bag* f = heavenly_court_find_bag(TJ.relations[i].from_bag);
+            Bag* t = heavenly_court_find_bag(TJ.relations[i].to_bag);
             printf("│   %s --%s--> %s\n",
                    f?f->name:"?",
                    TJ.relations[i].rel_type,
@@ -4514,9 +4514,9 @@ void njsg_judge_demo(void){
 }
 
 /* ------------------------------------------------------------
- * 天觉初始化（创建演示用袋子和审判官）
+ * 天庭初始化（创建演示用袋子和审判官）
  * ------------------------------------------------------------ */
-void njsg_tianjue_init(void){
+void njsg_heavenly_court_init(void){
     memset(&TJ, 0, sizeof(TJ));
     TJ.bag_count = 0;
     TJ.judge_count = 0;
@@ -4524,23 +4524,23 @@ void njsg_tianjue_init(void){
     TJ.rel_count = 0;
     TJ.default_threshold = 0.5f;
     srand((unsigned int)time(NULL));
-    printf("[天觉] 天觉认知系统已初始化（阈值=%.1f）\n", TJ.default_threshold);
+    printf("[天庭] 天庭认知系统已初始化（阈值=%.1f）\n", TJ.default_threshold);
 }
 
-int njsg_tianjue_add_bag(int id, const char* name, const char* owner){
+int njsg_heavenly_court_add_bag(int id, const char* name, const char* owner){
     if(TJ.bag_count >= MAX_BAGS) return -1;
     Bag* b = &TJ.bags[TJ.bag_count++];
-    tianjue_seed_bag(b, id, name, owner);
+    heavenly_court_seed_bag(b, id, name, owner);
     return 0;
 }
 
-void njsg_tianjue_set_attr(int bag_id, int dim, float val){
-    Bag* b = tianjue_find_bag(bag_id);
-    if(!b || dim<0 || dim>=TIANJUE_DIMS) return;
+void njsg_heavenly_court_set_attr(int bag_id, int dim, float val){
+    Bag* b = heavenly_court_find_bag(bag_id);
+    if(!b || dim<0 || dim>=HEAVENLY_COURT_DIMS) return;
     b->attrs[dim] = val;
 }
 
-int njsg_tianjue_add_judge(int id, const char* name, float threshold){
+int njsg_heavenly_court_add_judge(int id, const char* name, float threshold){
     if(TJ.judge_count >= MAX_JUDGES) return -1;
     Judge* j = &TJ.judges[TJ.judge_count++];
     j->id = id;
@@ -4555,92 +4555,92 @@ int njsg_tianjue_add_judge(int id, const char* name, float threshold){
 }
 
 /* ------------------------------------------------------------
- * 天觉完整演示
+ * 天庭完整演示
  * ------------------------------------------------------------ */
-void njsg_tianjue_demo(void){
+void njsg_heavenly_court_demo(void){
     printf("\n");
     printf("╔══════════════════════════════════════════╗\n");
     printf("║     天 觉 · 袋 子 认 知 审 判 系 统     ║\n");
     printf("║     不数米 · 数袋子 · 高维认知          ║\n");
     printf("╚══════════════════════════════════════════╝\n");
 
-    njsg_tianjue_init();
+    njsg_heavenly_court_init();
 
     /* 创建袋子（对应编码容器）*/
-    njsg_tianjue_add_bag(1, "阿大·声母", "lolict");
-    njsg_tianjue_add_bag(2, "阿猫·韵母", "刘楚恬");
-    njsg_tianjue_add_bag(3, "阿狗·声调", "共生体");
-    njsg_tianjue_add_bag(4, "叠音·特殊", "共生体");
+    njsg_heavenly_court_add_bag(1, "阿大·声母", "lolict");
+    njsg_heavenly_court_add_bag(2, "阿猫·韵母", "刘楚恬");
+    njsg_heavenly_court_add_bag(3, "阿狗·声调", "共生体");
+    njsg_heavenly_court_add_bag(4, "叠音·特殊", "共生体");
 
     /* 设置袋子属性（模拟审判输入）*/
-    njsg_tianjue_set_attr(1, DIM_SAFETY, 0.0f);   /* 阿大：安全=0 → 应被拒绝 */
-    njsg_tianjue_set_attr(1, DIM_QUALITY, 0.9f);
+    njsg_heavenly_court_set_attr(1, DIM_SAFETY, 0.0f);   /* 阿大：安全=0 → 应被拒绝 */
+    njsg_heavenly_court_set_attr(1, DIM_QUALITY, 0.9f);
 
-    njsg_tianjue_set_attr(2, DIM_SAFETY, 0.8f);   /* 阿猫：安全 */
-    njsg_tianjue_set_attr(2, DIM_QUALITY, 0.7f);
-    njsg_tianjue_set_attr(2, DIM_DRYNESS, 0.9f);  /* 干燥 */
-    njsg_tianjue_set_attr(2, DIM_PEST, 0.95f);    /* 无害虫 */
-    njsg_tianjue_set_attr(2, DIM_PURITY, 0.85f);  /* 高纯度 */
+    njsg_heavenly_court_set_attr(2, DIM_SAFETY, 0.8f);   /* 阿猫：安全 */
+    njsg_heavenly_court_set_attr(2, DIM_QUALITY, 0.7f);
+    njsg_heavenly_court_set_attr(2, DIM_DRYNESS, 0.9f);  /* 干燥 */
+    njsg_heavenly_court_set_attr(2, DIM_PEST, 0.95f);    /* 无害虫 */
+    njsg_heavenly_court_set_attr(2, DIM_PURITY, 0.85f);  /* 高纯度 */
 
-    njsg_tianjue_set_attr(3, DIM_SAFETY, 0.5f);   /* 阿狗：中等 */
-    njsg_tianjue_set_attr(3, DIM_QUALITY, 0.4f);  /* 品质略低 → 待定 */
+    njsg_heavenly_court_set_attr(3, DIM_SAFETY, 0.5f);   /* 阿狗：中等 */
+    njsg_heavenly_court_set_attr(3, DIM_QUALITY, 0.4f);  /* 品质略低 → 待定 */
 
     /* 创建审判官 */
-    njsg_tianjue_add_judge(1, "三元审判官", 0.5f);
-    njsg_tianjue_add_judge(2, "七元蜂窝审判官", 0.7f);
+    njsg_heavenly_court_add_judge(1, "三元审判官", 0.5f);
+    njsg_heavenly_court_add_judge(2, "七元蜂窝审判官", 0.7f);
 
     /* 场景 T1：感知 */
     printf("\n━━━ 场景 T1：视觉感知 ━━━\n");
-    njsg_tianjue_perceive_pretty(1);
-    njsg_tianjue_perceive_pretty(2);
-    njsg_tianjue_perceive_pretty(3);
+    njsg_heavenly_court_perceive_pretty(1);
+    njsg_heavenly_court_perceive_pretty(2);
+    njsg_heavenly_court_perceive_pretty(3);
 
     /* 场景 T2：审判 */
     printf("\n━━━ 场景 T2：审判裁决 ━━━\n");
     printf("\n[阈值=0.5 的三元审判官]\n");
-    njsg_tianjue_judge(1, 1);  /* 安全=0 → 拒绝 */
-    njsg_tianjue_judge(2, 1);  /* 全部>0.5 → 特许 */
-    njsg_tianjue_judge(3, 1);  /* 品质=0.4 < 0.5 → 待定 */
+    njsg_heavenly_court_judge(1, 1);  /* 安全=0 → 拒绝 */
+    njsg_heavenly_court_judge(2, 1);  /* 全部>0.5 → 特许 */
+    njsg_heavenly_court_judge(3, 1);  /* 品质=0.4 < 0.5 → 待定 */
 
     printf("\n[阈值=0.7 的七元蜂窝审判官]\n");
-    njsg_tianjue_judge(2, 2);  /* 品质=0.7 ≥ 0.7 但其他维度? */
+    njsg_heavenly_court_judge(2, 2);  /* 品质=0.7 ≥ 0.7 但其他维度? */
 
     /* 场景 T3：验证与奖励惩罚 */
     printf("\n━━━ 场景 T3：奖励惩罚 ━━━\n");
     /* 验证：袋子1实际是坏的（安全=0确实坏）→ 审判正确 */
-    njsg_tianjue_verify(0, 0); /* 袋#1 审判正确（拒绝了一个坏袋子）*/
-    njsg_tianjue_reward(1, 10);
+    njsg_heavenly_court_verify(0, 0); /* 袋#1 审判正确（拒绝了一个坏袋子）*/
+    njsg_heavenly_court_reward(1, 10);
     /* 验证：袋子2实际是好的（安全=0.8）→ 审判正确 */
-    njsg_tianjue_verify(1, 1); /* 袋#2 审判正确（放进了一个好袋子）*/
-    njsg_tianjue_reward(1, 5);
+    njsg_heavenly_court_verify(1, 1); /* 袋#2 审判正确（放进了一个好袋子）*/
+    njsg_heavenly_court_reward(1, 5);
     /* 故意验证错误：袋子3审判为待定，假设实际为好 → 待定不算错
        但假设袋子3实际为坏 → 应该拒绝但给了待定 = 错 */
-    njsg_tianjue_verify(2, 0); /* 袋#3 审判错误 */
-    njsg_tianjue_punish(1, 15);
+    njsg_heavenly_court_verify(2, 0); /* 袋#3 审判错误 */
+    njsg_heavenly_court_punish(1, 15);
 
     /* 场景 T4：等级更新 */
     printf("\n━━━ 场景 T4：审判官等级 ━━━\n");
-    njsg_tianjue_update_levels();
+    njsg_heavenly_court_update_levels();
 
     /* 场景 T5：层级认知 */
     printf("\n━━━ 场景 T5：层级认知 ━━━\n");
-    njsg_tianjue_set_parent(2, 1); /* 阿猫继承阿大（但阿大被拒绝！）*/
-    njsg_tianjue_set_parent(3, 2); /* 阿狗继承阿猫 */
-    njsg_tianjue_link(3, 1, "鉴定");  /* 阿狗鉴定阿大 */
-    njsg_tianjue_link(4, 2, "监控");  /* 叠音监控阿猫 */
-    njsg_tianjue_hierarchy_print();
+    njsg_heavenly_court_set_parent(2, 1); /* 阿猫继承阿大（但阿大被拒绝！）*/
+    njsg_heavenly_court_set_parent(3, 2); /* 阿狗继承阿猫 */
+    njsg_heavenly_court_link(3, 1, "鉴定");  /* 阿狗鉴定阿大 */
+    njsg_heavenly_court_link(4, 2, "监控");  /* 叠音监控阿猫 */
+    njsg_heavenly_court_hierarchy_print();
 
     printf("\n[关键认知] 阿大被拒绝（安全=0），但阿猫继承阿大 → 继承品质被父袋拖累\n");
     printf("[关键认知] 这体现了高维认知：袋子之间的引用/继承/鉴定/监控关系\n\n");
 
     /* 场景 T6：历史记忆 */
     printf("━━━ 场景 T6：历史记忆与积累 ━━━\n");
-    njsg_tianjue_history(1);
-    njsg_tianjue_history(2);
-    njsg_tianjue_accumulate();
+    njsg_heavenly_court_history(1);
+    njsg_heavenly_court_history(2);
+    njsg_heavenly_court_accumulate();
 
-    printf("\n[天觉] 演示完毕。记住：不数米，数袋子。\n");
-    printf("[天觉] 审判对就奖，审判错就罚。袋子有记忆，层级有认知。\n\n");
+    printf("\n[天庭] 演示完毕。记住：不数米，数袋子。\n");
+    printf("[天庭] 审判对就奖，审判错就罚。袋子有记忆，层级有认知。\n\n");
 }
 
 void njsg_audit_summary(){
@@ -4648,7 +4648,7 @@ void njsg_audit_summary(){
     printf("已记录事件: %d\n槽位: alive=%d frozen=%d zombie=%d\n规则: 总%d 降服%d\n",
            AUDIT.count, K.alive, K.frozen, K.zombie, RE.rule_count, RE.total_enslaved);
     printf("===============\n\n");
-    printf("天觉系统: %d袋 %d审判官 %d审判记录 %d高维关系\n",
+    printf("天庭系统: %d袋 %d审判官 %d审判记录 %d高维关系\n",
            TJ.bag_count, TJ.judge_count, TJ.judgment_count, TJ.rel_count);
     printf("生殖系统: %d版本 %d代 %d选中 %d淘汰（锚点G=%d）\n",
            BE.count, BE.current_gen, BE.total_selected, BE.total_eliminated, BE.anchor_gcd);

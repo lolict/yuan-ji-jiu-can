@@ -1,4 +1,4 @@
-# 天觉 · 袋子认知审判系统
+# 天庭 · 袋子认知审判系统
 
 > 不数米，数袋子。不命名米，命名袋子。
 > 高维认知：操作容器本身而非容器内的原子。
@@ -9,7 +9,7 @@
 
 **米** = 编码原子（符号、码位）
 **袋子** = 容器（阿大、阿猫、阿狗、叠音）
-**天觉** = 对袋子的感知、审判、记忆、层级认知
+**天庭** = 对袋子的感知、审判、记忆、层级认知
 
 一个袋子，不问里面有多少颗米，只问：
 
@@ -28,9 +28,9 @@
 
 ---
 
-## 二、天觉五子系统
+## 二、天庭五子系统
 
-### 2.1 视觉（天觉感知层）
+### 2.1 视觉（天庭感知层）
 
 每个袋子被"看见"——不是看见里面的米，而是看见袋子的**属性状态**。
 
@@ -131,7 +131,7 @@ typedef struct {
 ```c
 typedef struct {
     int     bag_id;
-    float   attrs[TIANJUE_DIMS]; // 十维属性向量
+    float   attrs[HEAVENLY_COURT_DIMS]; // 十维属性向量
     int64_t timestamp;
     int     perceiver_id;        // 感知者
 } Perception;
@@ -172,32 +172,32 @@ typedef struct {
 
 ```c
 // === 视觉感知 ===
-void njsg_tianjue_perceive(int bag_id);                    // 感知一个袋子
-void njsg_tianjue_perceive_all(void);                      // 感知所有袋子
-void njsg_tianjue_print_perception(int bag_id);            // 打印感知报告
+void njsg_heavenly_court_perceive(int bag_id);                    // 感知一个袋子
+void njsg_heavenly_court_perceive_all(void);                      // 感知所有袋子
+void njsg_heavenly_court_print_perception(int bag_id);            // 打印感知报告
 
 // === 审判裁决 ===
-int  njsg_tianjue_judge(int bag_id, int judge_id);         // 审判一个袋子
-void njsg_tianjue_judge_all(void);                         // 审判所有待审袋子
-float njsg_tianjue_confidence(int bag_id);                 // 计算置信度
+int  njsg_heavenly_court_judge(int bag_id, int judge_id);         // 审判一个袋子
+void njsg_heavenly_court_judge_all(void);                         // 审判所有待审袋子
+float njsg_heavenly_court_confidence(int bag_id);                 // 计算置信度
 
 // === 奖励惩罚 ===
-void njsg_tianjue_reward(int judge_id, int points);        // 奖励审判官
-void njsg_tianjue_punish(int judge_id, int points);        // 惩罚审判官
-void njsg_tianjue_verify(int judgment_id, int actual);     // 验证审判正确性
-void njsg_tianjue_update_levels(void);                     // 更新审判官等级
+void njsg_heavenly_court_reward(int judge_id, int points);        // 奖励审判官
+void njsg_heavenly_court_punish(int judge_id, int points);        // 惩罚审判官
+void njsg_heavenly_court_verify(int judgment_id, int actual);     // 验证审判正确性
+void njsg_heavenly_court_update_levels(void);                     // 更新审判官等级
 
 // === 历史记忆 ===
-void njsg_tianjue_record(int bag_id, int verdict);         // 记录一次审判
-void njsg_tianjue_history(int bag_id);                    // 查看袋子履历
-void njsg_tianjue_accumulate(void);                       // 积累分析
-void njsg_tianjue_pattern_detect(void);                    // 模式识别
+void njsg_heavenly_court_record(int bag_id, int verdict);         // 记录一次审判
+void njsg_heavenly_court_history(int bag_id);                    // 查看袋子履历
+void njsg_heavenly_court_accumulate(void);                       // 积累分析
+void njsg_heavenly_court_pattern_detect(void);                    // 模式识别
 
 // === 层级认知 ===
-void njsg_tianjue_set_parent(int bag_id, int parent);      // 设置父子关系
-void njsg_tianjue_link(int from, int to, const char* rel_type); // 建立高维关系
-void njsg_tianjue_hierarchy_print(void);                   // 打印层级
-float njsg_tianjue_inherited_quality(int bag_id);          // 继承品质基线
+void njsg_heavenly_court_set_parent(int bag_id, int parent);      // 设置父子关系
+void njsg_heavenly_court_link(int from, int to, const char* rel_type); // 建立高维关系
+void njsg_heavenly_court_hierarchy_print(void);                   // 打印层级
+float njsg_heavenly_court_inherited_quality(int bag_id);          // 继承品质基线
 ```
 
 ---
@@ -207,7 +207,7 @@ float njsg_tianjue_inherited_quality(int bag_id);          // 继承品质基线
 ```
 场景 T1: 感知袋子
   → 创建袋子 "阿大"，随机生成十维属性
-  → 调用 tianjue_perceive，输出感知报告
+  → 调用 heavenly_court_perceive，输出感知报告
 
 场景 T2: 审判袋子
   → 创建审判官 "三元"
@@ -238,15 +238,15 @@ float njsg_tianjue_inherited_quality(int bag_id);          // 继承品质基线
 
 ## 六、对接现有编码体系
 
-天觉不是替代四容器系统，而是**站在四容器之上**的审判层：
+天庭不是替代四容器系统，而是**站在四容器之上**的审判层：
 
 ```
 容器一·阿大（声母）──┐
 容器二·阿猫（韵母）──┤
-容器三·阿狗（声调）──┼── 被天觉审判的对象
+容器三·阿狗（声调）──┼── 被天庭审判的对象
 容器四·叠音 ────────┘
 
-天觉层：
+天庭层：
   · 视觉：感知每个容器的品质状态
   · 审判：裁定容器是否合格可用
   · 记忆：记录容器历史表现
@@ -255,7 +255,7 @@ float njsg_tianjue_inherited_quality(int bag_id);          // 继承品质基线
 
 ---
 
-文件：docs/TIANJUE_DESIGN.md
+文件：docs/HEAVENLY_COURT_DESIGN.md
 版本：v1.1（已实现并通过 demo 验证）
 状态：✅ 已实现
 设计师：lolict

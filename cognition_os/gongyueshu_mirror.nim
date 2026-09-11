@@ -36,7 +36,7 @@ const ANCHORS* = {
   "视觉": 12,     # 12色 · 3原色×4阶
   "听觉": 24,     # 24音 · 12平均律×2
   "审判": 36,     # 36判 · 6面×6级
-  "天觉": 60,     # 60甲子 · 时间层级
+  "天庭": 60,     # 60甲子 · 时间层级
   "审美": 48,     # 48 · 对称美学
   "思考": 72,     # 72 · 逻辑密度
   "行为": 96,     # 96动作
@@ -138,16 +138,16 @@ proc run_all*() =
   echo "  公倍数=360 → 匹配度=", formatFloat(j2.match_rate, ffDecimal, 2),
        " ", j2.verdict
 
-  # 天觉: 公约数=60
+  # 天庭: 公约数=60
   echo ""
-  echo "── 天觉(公约数=", $ANCHORS["天觉"], ") ──"
-  var t1 = shenpan("天觉", 120)
+  echo "── 天庭(公约数=", $ANCHORS["天庭"], ") ──"
+  var t1 = shenpan("天庭", 120)
   echo "  公倍数=120 → 匹配度=", formatFloat(t1.match_rate, ffDecimal, 2),
        " ", t1.verdict
-  var t2 = shenpan("天觉", 180)
+  var t2 = shenpan("天庭", 180)
   echo "  公倍数=180 → 匹配度=", formatFloat(t2.match_rate, ffDecimal, 2),
        " ", t2.verdict
-  var t3 = shenpan("天觉", 300)
+  var t3 = shenpan("天庭", 300)
   echo "  公倍数=300 → 匹配度=", formatFloat(t3.match_rate, ffDecimal, 2),
        " ", t3.verdict
 

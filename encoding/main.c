@@ -26,6 +26,8 @@
 #include "version_graph.h"
 #include "observer_v2.h"
 #include "lifecycle_engine.h"
+#include "smrl_engine.h"
+#include "sync_engine.h"
 
 /* 版本标记 */
 #define HUNYUAN_OS_VERSION  "hunyuan-os-v0.3.0"
@@ -237,6 +239,87 @@ int main(int argc, char* argv[]) {
      * ══════════════════════════════════════════════════ */
     phase3_observe(chains, 9, &mem);
     
+    /* ══════════════════════════════════════════════════
+     * 阶段3.5: SMRL 引擎编码
+     * ══════════════════════════════════════════════════ */
+    printf("\n┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n");
+    printf("┃  阶段3.5 SMRL 引擎                   ┃\n");
+    printf("┃  Cell Encoding & Judgment             ┃\n");
+    printf("┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n\n");
+
+    smrl_engine_report();
+
+    /* 将符号链编码为 SMRL 单元格 */
+    uint64_t smrl_codes[64];
+    int total_cells = 0;
+    for (int i = 0; i < 9 && total_cells < 50; i++) {
+        int n = smrl_encode_chain(&chains[i], smrl_codes + total_cells,
+                                   64 - total_cells);
+        if (n > 0) {
+            printf("  链[%s] → %d SMRL 码\n", chains[i].name, n);
+            total_cells += n;
+        }
+    }
+
+    /* 执行一次几何裁判演示 */
+    if (total_cells >= 2) {
+        cell_t cand = smrl_decode(smrl_codes[0]);
+        cell_t exist = smrl_decode(smrl_codes[1]);
+        int verdict = smrl_judge(cand, exist);
+        printf("\n  几何裁判演示:\n");
+        printf("    候选: "); smrl_report(smrl_codes[0]);
+        printf("    现有: "); smrl_report(smrl_codes[1]);
+        printf("    裁定: %s\n", verdict ? "准入 ✅" : "拒绝 ❌");
+    }
+
+    printf("\n  ✅ SMRL 引擎编码完成: %d 单元格\n", total_cells);
+
+    /* ══════════════════════════════════════════════════
+     * 阶段3.6: 全局符号同步引擎
+     * ══════════════════════════════════════════════════ */
+    printf("\n┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n");
+    printf("┃  阶段3.6 全局符号同步引擎             ┃\n");
+    printf("┃  Sync Engine · 全量空间同步替换       ┃\n");
+    printf("┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n\n");
+
+    sync_engine_t sync;
+    sync_engine_init(&sync);
+
+    /* 从所有链收集符号 */
+    int collected = sync_collect_from_chains(&sync, chains, 9);
+    printf("  收集符号: %d\n", collected);
+
+    /* 演示替换: 将 "天庭" 替换为 "容器" (如果存在) */
+    /* 先手动注册天庭以演示 */
+    sync_register(&sync, "天庭", 3, 4, 0x400);
+    sync_register_ref(&sync, "天庭", 0, 1, "声母");
+    sync_register_ref(&sync, "天庭", 0, 2, "声母");
+    sync_register_ref(&sync, "天庭", 8, 5, "产权链");
+
+    printf("\n  同步替换前:\n");
+    sync_engine_report(&sync);
+
+    int affected = sync_replace(&sync, "天庭", "容器");
+    if (affected >= 0) {
+        printf("\n  全量同步替换: 天庭 → 容器 (%d 引用被更新)\n", affected);
+
+        /* 跨链全量替换演示 */
+        /* 先在一条链中插入 "天庭" 再替换 */
+        链_追加(&chains[0], 3, "天庭", "sync_demo", "演示");
+        链_追加(&chains[1], 3, "天庭", "sync_demo", "演示");
+        int cross = sync_replace_all_chains(chains, 9, "天庭", "容器");
+        if (cross > 0) {
+            printf("  跨链全量替换: %d 处天庭→容器\n", cross);
+        }
+    } else {
+        printf("  (天庭不在注册表中，跳过演示)\n");
+    }
+
+    printf("\n  同步替换后:\n");
+    sync_engine_report(&sync);
+
+    printf("\n  ✅ 同步引擎就绪: %u 符号已注册\n", sync.symbol_count);
+
     /* ══════════════════════════════════════════════════
      * 阶段4: 生命周期集成
      * ══════════════════════════════════════════════════ */

@@ -3,7 +3,7 @@
  * njsg_os.c — 满全法颜色进制操作系统 (单文件完整版)
  * ═══════════════════════════════════════════════════════════════════════════
  *
- *   一个文件 = 编码 + 审判 + 衍射 + 编织 + 像素运算 + 部件拆解 + 天觉
+ *   一个文件 = 编码 + 审判 + 衍射 + 编织 + 像素运算 + 部件拆解 + 天庭
  *
  * ─────────────────────────────────────────────────────────────────────────
  * 编码空间: 0x00(空) | 0x01(我) | 0x02..0xFE(254字符) | 0xFF(溢)
@@ -456,7 +456,7 @@ static void print_report(reg_t *r, graph_t *g, const char *a, const char *b) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
- * 天觉积分 (奖励/惩罚历史)
+ * 天庭积分 (奖励/惩罚历史)
  * ═══════════════════════════════════════════════════════════════════════════ */
 
 #define MAX_HISTORY 64
@@ -543,8 +543,8 @@ static int run_tests(void) {
     sig = find_sig("á");
     tot++; if (sig && sig->nparts == 2 && sig->parts[0] == PART_a && sig->parts[1] == PART_TONE_2) printf("  [PASS] á = a + ˊ\n"); else { printf("  [FAIL] á\n"); err++; }
 
-    /* 天觉 */
-    printf("\n[天觉] 通过=%d 拒绝=%d 宽恕度=%.2f\n", hj.pass_count, hj.reject_count, hj_mercy(&hj));
+    /* 天庭 */
+    printf("\n[天庭] 通过=%d 拒绝=%d 宽恕度=%.2f\n", hj.pass_count, hj.reject_count, hj_mercy(&hj));
 
     printf("\n═══ 结果: %d/%d 通过, %d 失败 ═══\n", tot - err, tot, err);
     return err;

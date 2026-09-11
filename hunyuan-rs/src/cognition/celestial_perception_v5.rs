@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════════════════════
-// celestial_perception_v5.rs — 天觉v5（老五）· 语言系统
+// celestial_perception_v5.rs — 天庭v5（老五）· 语言系统
 // 八系扩展: v4七系 + 语言系统(汉字编码+声母韵母+自进制+命令解析+流属性位)
 // ══════════════════════════════════════════════════════════════════
 //
@@ -25,7 +25,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 // 基础类型从v2导入 (源头)
 pub use crate::celestial_perception_v2::{
     AuditoryAuth, AuditorySystem,
-    TianJueAuth,
+    HeavenlyCourtAuth,
     VisualSystem,
     CommonDivisor, CommonMultiple, MirrorComparison,
     Bag as BagV4, BagAttributes as BagAttributesV4,
@@ -651,7 +651,7 @@ impl Default for FlowPropertyBits {
 }
 
 // ======================================================================
-// 第六部分: 天觉v5引擎 — 八系整合
+// 第六部分: 天庭v5引擎 — 八系整合
 // ======================================================================
 
 /// v5管道结果 — 增加语言系统字段
@@ -673,7 +673,7 @@ impl PipelineResultV5 {
     }
 }
 
-/// 天觉v5引擎 — 八系整合 = v4七系 + 语言系统
+/// 天庭v5引擎 — 八系整合 = v4七系 + 语言系统
 pub struct CelestialPerceptionV5<'a> {
     pub v4: CelestialPerceptionV4<'a>,
 
@@ -751,7 +751,7 @@ impl<'a> CelestialPerceptionV5<'a> {
 
     pub fn report(&self) -> String {
         let mut s = String::new();
-        s.push_str("═══ 天觉v5报告（老五）八系整合+语言系统 ═══\n");
+        s.push_str("═══ 天庭v5报告（老五）八系整合+语言系统 ═══\n");
         s.push_str(&format!("  {}\n", self.v4.report()));
         s.push_str(&format!("  命令解析数: {}\n", self.commands_parsed));
         s.push_str(&format!("  汉字编码数: {}\n", self.hanzi_encoded));

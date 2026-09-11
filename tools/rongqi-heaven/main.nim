@@ -2,11 +2,11 @@
 # 满全法 · 袋子系统 · 总入口
 # ============================================================
 # 不数米粒，只看袋子。
-# 天觉看袋子，审判审袋子，历史记袋子，层级排袋子。
+# 天庭看袋子，审判审袋子，历史记袋子，层级排袋子。
 # ============================================================
 
 import ./rongqi
-import ./tianjue
+import ./heavenly_court
 import ./shenpan
 import ./lishi
 import ./cengji
@@ -21,7 +21,7 @@ import tables
 type
   RongQiTianTi* = object
     registry*: RongQiRegistry   # 袋子注册
-    tianjue*: TianJue           # 天觉
+    heavenly_court*: HeavenlyCourt           # 天庭
     shenpan*: ShenPanEngine     # 审判
     lishi*: LiShiJiYi           # 历史
     hierarchy*: CengJiTree      # 层级
@@ -30,7 +30,7 @@ type
 
 func new_system*(name: string): RongQiTianTi =
   result.registry = new_registry(name)
-  result.tianjue = new_tianjue("囡囝之眼")
+  result.heavenly_court = new_heavenly_court("囡囝之眼")
   result.shenpan = new_shenpan("满全法审判", "囡囝之眼")
   result.lishi = new_lishi("满全法记忆")
   result.hierarchy = new_cengji_tree(name & "·袋阵")
@@ -49,9 +49,9 @@ proc register_bag*(sys: var RongQiTianTi; bag: RongQi; level: CengJiLevel; paren
 # 核心循环：感知 → 审判 → 记忆
 # ============================================================
 func process_one*(sys: var RongQiTianTi; bag: RongQi; tick: int): string =
-  # 1. 天觉感知（不看米粒，只看袋）
-  let percepts = sys.tianjue.perceive_bag(bag)
-  let verdict = sys.tianjue.verdict(bag)
+  # 1. 天庭感知（不看米粒，只看袋）
+  let percepts = sys.heavenly_court.perceive_bag(bag)
+  let verdict = sys.heavenly_court.verdict(bag)
 
   # 2. 审判（对照真实命运，给奖惩）
   let pan = sys.shenpan.shenpan(bag, verdict, tick)
@@ -84,8 +84,8 @@ proc system_report*(sys: RongQiTianTi): string =
   var s = "═══ " & sys.system_name & " · 系统报告 ═══\n"
   s &= "\n【袋子注册】共 " & $sys.registry.bags.len & " 袋\n"
 
-  s &= "\n【天觉感知】境界: " & sys.tianjue.wisdom_level &
-       " 智慧: " & formatFloat(sys.tianjue.wisdom, ffDecimal, 1) & "\n"
+  s &= "\n【天庭感知】境界: " & sys.heavenly_court.wisdom_level &
+       " 智慧: " & formatFloat(sys.heavenly_court.wisdom, ffDecimal, 1) & "\n"
 
   s &= "\n【审判】准确率: " & formatFloat(sys.shenpan.accuracy * 100, ffDecimal, 1) &
        "% 等级: " & sys.shenpan.judge_level & "\n"
@@ -178,7 +178,7 @@ when is_main_module:
   echo ""
 
   # --- 第一轮审判 ---
-  echo "【第一轮审判 · 天觉 · 审判 · 奖惩】"
+  echo "【第一轮审判 · 天庭 · 审判 · 奖惩】"
   sys.process_batch(bags, tick = 0)
 
   echo ""

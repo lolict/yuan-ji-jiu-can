@@ -7,6 +7,9 @@ const canjiang = @import("canjiang.zig");
 const visualizer = @import("visualizer.zig");
 const mind_organ = @import("mind_organ.zig");
 const baflow = @import("baflow.zig");
+const ontology = @import("ontology.zig");
+const browser = @import("browser.zig");
+const wasm_bridge = @import("wasm_bridge.zig");
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -169,6 +172,35 @@ pub fn main() !void {
     try stdout.print("还原内容: {s}", .{shed[0..@min(preview_len, shed.len)]});
     try stdout.print("...\n", .{});
 
+    // ========== 容器本体论 · 聶小聶匹配 ==========
+    try stdout.print("\n=== 容器本体论 · 聶小聶匹配 ===\n", .{});
+    var ont_engine = ontology.OntologyEngine.init(allocator);
+    defer ont_engine.deinit();
+
+    // 对所有容器做两两聶小聶匹配
+    const ont_stats = orch.getContainerStats();
+    var ont_contribs: usize = 0;
+    for (ont_stats, 0..) |a, i| {
+        for (ont_stats, 0..) |b, j| {
+            if (j <= i) continue;
+            try ont_engine.match(
+                @as(u32, @intCast(i)) + 1,
+                @as(u32, @intCast(j)) + 1,
+                a.name,
+                b.name,
+            );
+            ont_contribs += 1;
+        }
+    }
+
+    const ont_report = try ont_engine.formatReport(allocator);
+    defer allocator.free(ont_report);
+    try stdout.print("{s}\n", .{ont_report});
+
+    try stdout.print("聶小聶匹配数: ", .{});
+    try fqm.formatUnaryInt(stdout, ont_contribs);
+    try stdout.print("\n", .{});
+
     // ========== mind_organ 距离感知聚类 ==========
     try stdout.print("\n=== mind_organ 距离感知聚类 ===\n", .{});
     var organ = mind_organ.MindOrgan.init(allocator, mind_organ.Weights.anchorHeavy());
@@ -262,6 +294,131 @@ pub fn main() !void {
     try stdout.print(" 线数: ", .{});
     try fqm.formatUnaryInt(stdout, scene.lines.items.len);
     try stdout.print("\n", .{});
+
+    // ========== 统计文档聚合浏览器 ==========
+    try stdout.print("\n=== 统计文档聚合浏览器 ===\n", .{});
+    var agg = browser.AggBrowser.init(allocator);
+    defer agg.deinit();
+
+    // 添加统计 section
+    var sec_buf = std.ArrayList(u8).init(allocator);
+    defer sec_buf.deinit();
+
+    // 夫妻共同体摘要
+    try sec_buf.appendSlice("<p>鸳鸯: ★|☆ TICK:");
+    try fqm.formatUnaryInt(sec_buf.writer(), orch.stepper.getCurrentStep());
+    try sec_buf.appendSlice("</p>");
+    try sec_buf.appendSlice("<p>容器: ");
+    try fqm.formatUnaryInt(sec_buf.writer(), orch.indexer.containers.items.len);
+    try sec_buf.appendSlice(" 聚类: ");
+    try fqm.formatUnaryInt(sec_buf.writer(), organ.clusters.items.len);
+    try sec_buf.appendSlice(" 八流路由: ");
+    try fqm.formatUnaryInt(sec_buf.writer(), router.log_entries.items.len);
+    try sec_buf.appendSlice("</p>");
+
+    try agg.addSection("共同体状态", sec_buf.items, 1);
+
+    // 容器统计表格
+    var table_buf = std.ArrayList(u8).init(allocator);
+    defer table_buf.deinit();
+    try table_buf.appendSlice("<table><tr><th>名称</th><th>ID</th><th>项数</th><th>净收益</th></tr>");
+    {
+        const bstats = orch.getContainerStats();
+        for (bstats) |c| {
+            try table_buf.appendSlice("<tr><td>");
+            try table_buf.appendSlice(c.name);
+            try table_buf.appendSlice("</td><td>");
+            try fqm.formatUnaryInt(table_buf.writer(), c.id);
+            try table_buf.appendSlice("</td><td>");
+            try fqm.formatUnaryInt(table_buf.writer(), c.item_count);
+            try table_buf.appendSlice("</td><td>");
+            const net_val = c.netBenefit();
+            if (net_val == 0) {
+                try table_buf.appendSlice("☆");
+            } else if (net_val > 0) {
+                try fqm.formatUnaryFloat2(table_buf.writer(), net_val);
+            } else {
+                try table_buf.appendSlice("-");
+                try fqm.formatUnaryFloat2(table_buf.writer(), -net_val);
+            }
+            try table_buf.appendSlice("</td></tr>");
+        }
+    }
+    try table_buf.appendSlice("</table>");
+    try agg.addSection("容器统计", table_buf.items, 1);
+
+    // 八流热度
+    var flow_buf = std.ArrayList(u8).init(allocator);
+    defer flow_buf.deinit();
+    try flow_buf.appendSlice("<p>八流统一意识路由 ★→★★★★★★★★ 全链路</p>");
+    try flow_buf.appendSlice("<p>总 Merit: ");
+    try fqm.formatUnaryInt(flow_buf.writer(), @as(u64, @intCast(@max(0, router.total_merit))));
+    try flow_buf.appendSlice("</p>");
+    try flow_buf.appendSlice("<pre>");
+    try flow_buf.appendSlice(bf_report);
+    try flow_buf.appendSlice("</pre>");
+    try agg.addSection("八流热度", flow_buf.items, 1);
+
+    // 裁决汇总
+    var arb_buf = std.ArrayList(u8).init(allocator);
+    defer arb_buf.deinit();
+    try arb_buf.appendSlice("<p>满全法三元裁决</p><pre>");
+    // 从已写入的 knmll 文件读取裁决部分
+    const knmll_content2 = try std.fs.cwd().readFileAlloc(allocator, knml_path, 1024 * 1024);
+    defer allocator.free(knmll_content2);
+    // 找到裁决报告起始处
+    if (std.mem.indexOf(u8, knmll_content2, "# 满全法裁决报告")) |start| {
+        try arb_buf.appendSlice(knmll_content2[start..]);
+    } else {
+        try arb_buf.appendSlice("裁决已嵌入 knmll");
+    }
+    try arb_buf.appendSlice("</pre>");
+    try agg.addSection("裁决汇总", arb_buf.items, 1);
+
+    // 匹配矩阵
+    var match_buf = std.ArrayList(u8).init(allocator);
+    defer match_buf.deinit();
+    try match_buf.appendSlice("<p>聶小聶本质匹配矩阵</p><pre>");
+    try match_buf.appendSlice(ont_report);
+    try match_buf.appendSlice("</pre>");
+    try agg.addSection("匹配矩阵", match_buf.items, 1);
+
+    // 生成 HTML
+    const agg_html = try agg.generateHTML();
+    defer allocator.free(agg_html);
+    const agg_path = "zig-stem/output/browser.html";
+    const agg_file = try std.fs.cwd().createFile(agg_path, .{});
+    defer agg_file.close();
+    try agg_file.writeAll(agg_html);
+    try stdout.print("聚合浏览器已生成: {s}\n", .{agg_path});
+
+    // ========== WASM 阶梯制 · 双向公约 ==========
+    try stdout.print("\n=== WASM 阶梯制 · 双向公约 ===\n", .{});
+    var engine = wasm_bridge.LadderEngine.init(allocator);
+    defer engine.deinit();
+
+    // 创建跨架构容器
+    try engine.addCell(wasm_bridge.XCell.init(.yang, .consciousness, 0xF001_0000_0000_0001));
+    try engine.addCell(wasm_bridge.XCell.init(.yin, .perception, 0xF002_0000_0000_0002));
+    try engine.addCell(wasm_bridge.XCell.init(.balanced, .relation, 0xF003_0000_0000_0003));
+
+    // 跨架构传输演示
+    const transfer = try engine.transferTo(.wasm64, 0);
+    defer allocator.free(transfer);
+    const received = try engine.receiveFrom(transfer);
+
+    // 阶梯变换演示
+    const addr64 = wasm_bridge.Ladder.ptrUpcast(0x12345678);
+    const addr32_back = wasm_bridge.Ladder.ptrDowncast(addr64) catch unreachable;
+
+    // 状态报告
+    const wasm_report = try engine.formatStatus(allocator);
+    defer allocator.free(wasm_report);
+    try stdout.print("{s}\n", .{wasm_report});
+
+    try stdout.print("跨架构传输: {s} → {s}\n", .{ @tagName(wasm_bridge.CURRENT_ARCH), "wasm64" });
+    try stdout.print("阶梯变换: 0x12345678 → 0x{X:0>16} → 0x{X:0>8} ✓\n", .{ addr64, addr32_back });
+    try stdout.print("接收容器: type={s} data=0x{X:0>16}\n", .{ @tagName(received.cell_type), received.data });
 
     try stdout.print("\n=== 演示结束 ===\n\n", .{});
 }

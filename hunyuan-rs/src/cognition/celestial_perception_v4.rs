@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════════════════════
-// celestial_perception_v4.rs — 天觉v4（老四）
+// celestial_perception_v4.rs — 天庭v4（老四）
 // 七系俱全: 视觉 + 听觉 + 审判 + 情进 + 行为 + 思考 + 审美 + 淘汰 + 过滤
 // ══════════════════════════════════════════════════════════════════
 //
@@ -31,7 +31,7 @@ use crate::os_layer::bare_metal::BareMetalOs;
 // 从v2导入基础类型 (复用不重复)
 pub use crate::celestial_perception_v2::{
     AuditoryAuth, AuditorySystem,
-    TianJueAuth,
+    HeavenlyCourtAuth,
     VisualSystem,
     CommonDivisor, CommonMultiple, MirrorComparison,
     Bag as BagV2, BagAttributes as BagAttributesV2,
@@ -689,10 +689,10 @@ impl PipelineResult {
     }
 }
 
-/// 天觉v4引擎 — 七系俱全
+/// 天庭v4引擎 — 七系俱全
 pub struct CelestialPerceptionV4<'a> {
     // === 核心感知 ===
-    pub auth_tianjue: TianJueAuth,
+    pub auth_heavenly_court: HeavenlyCourtAuth,
     pub auth_auditory: AuditoryAuth,
     pub visual: VisualSystem,
     pub auditory: AuditorySystem,
@@ -722,11 +722,11 @@ pub struct CelestialPerceptionV4<'a> {
 impl<'a> CelestialPerceptionV4<'a> {
     pub fn new(os: &'a dyn OsLayer) -> Self {
         Self {
-            auth_tianjue: TianJueAuth::Dormant,
+            auth_heavenly_court: HeavenlyCourtAuth::Dormant,
             auth_auditory: AuditoryAuth::Silent,
             visual: VisualSystem::default_vision(),
             auditory: AuditorySystem::default_hearing(),
-            observer: Observer::new(1, "天觉v4", 64, os),
+            observer: Observer::new(1, "天庭v4", 64, os),
             judgment: JudgmentEngineV2::new(),
             mirror_comparisons: Vec::new(),
             emotion: EmotionState::new(),
@@ -743,7 +743,7 @@ impl<'a> CelestialPerceptionV4<'a> {
     }
 
     pub fn authorize_all(&mut self) {
-        self.auth_tianjue.authorize();
+        self.auth_heavenly_court.authorize();
         self.auth_auditory.authorize();
         self.auditory.auth.authorize();
     }
@@ -753,7 +753,7 @@ impl<'a> CelestialPerceptionV4<'a> {
         self.bags_processed += 1;
 
         // === Step 1: 过滤 (预筛选) ===
-        if self.auth_tianjue.can_perceive() && !self.filter.filter(bag) {
+        if self.auth_heavenly_court.can_perceive() && !self.filter.filter(bag) {
             // 直接淘汰
             let reason = if bag.attrs.content_quality < 0.1 { EliminationReason::Rotten }
                         else if bag.attrs.pest_level > 0.8 { EliminationReason::PestInfested }
@@ -777,7 +777,7 @@ impl<'a> CelestialPerceptionV4<'a> {
 
         // === Step 2: 感知 (视觉+听觉) ===
         let mut forms = Vec::new();
-        if self.auth_tianjue.can_perceive() {
+        if self.auth_heavenly_court.can_perceive() {
             forms.extend(self.visual.perceive(bag));
         }
         if self.auth_auditory.can_hear() {
@@ -856,8 +856,8 @@ impl<'a> CelestialPerceptionV4<'a> {
 
     pub fn report(&self) -> String {
         let mut s = String::new();
-        s.push_str("═══ 天觉v4报告（老四）七系俱全 ═══\n");
-        s.push_str(&format!("  天觉授权: {}\n", if self.auth_tianjue.can_perceive() { "✓" } else { "✗" }));
+        s.push_str("═══ 天庭v4报告（老四）七系俱全 ═══\n");
+        s.push_str(&format!("  天庭授权: {}\n", if self.auth_heavenly_court.can_perceive() { "✓" } else { "✗" }));
         s.push_str(&format!("  听觉授权: {}\n", if self.auth_auditory.can_hear() { "✓" } else { "✗" }));
         s.push_str(&format!("  已处理袋数: {}\n", self.bags_processed));
         s.push_str(&format!("  管道结果数: {}\n", self.pipeline_results.len()));

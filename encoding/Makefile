@@ -45,7 +45,7 @@ PHONO_SRC = phono_codec.c
 ALL = $(TEST_COLOR) $(TEST_LEVEL) $(TEST_TYPE) $(TEST_DIFF) $(TEST_WOV) \
       $(TEST_FULL_V1) $(TEST_FULL_V2) $(TEST_LIFECYCLE) $(MAIN) $(TEST_SWARM) \
       $(TEST_SELFBOOT) $(TEST_CHRYSALIS) $(TEST_MLIL3D) $(TEST_HOLO) \
-      $(TEST_MIND_ORGAN) $(TEST_ONT_BRIDGE) $(TEST_SMRL) $(PHONO)
+      $(TEST_MIND_ORGAN) $(TEST_ONT_BRIDGE) $(TEST_SMRL) $(TEST_SYNC) $(PHONO)
 
 .PHONY: all clean test lib
 
@@ -90,8 +90,11 @@ $(TEST_FULL_V2): test_full_system_v2.o $(CHAIN_OBJS) $(MEMORY_OBJS)
 $(TEST_LIFECYCLE): test_lifecycle.o $(CHAIN_OBJS) $(MEMORY_OBJS) lifecycle_engine.o
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
-$(MAIN): main.o $(CHAIN_OBJS) $(MEMORY_OBJS) lifecycle_engine.o smrl_engine.o
+$(MAIN): main.o $(CHAIN_OBJS) $(MEMORY_OBJS) lifecycle_engine.o smrl_engine.o sync_engine.o
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+
+main.o: main.c chain_block.h bootstrap_chain.h cloud_observer.h chain_persist.h memory_chain.h growth_ring.h version_graph.h observer_v2.h lifecycle_engine.h smrl_engine.h sync_engine.h
+	$(CC) $(CFLAGS) -c $< -o $@
 
 $(TEST_SWARM): test_swarm.o njsg_swarm.o swarm_agents.o chain_block.o
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
@@ -115,6 +118,14 @@ $(TEST_SMRL): test_smrl.o smrl_engine.o chain_block.o
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
 smrl_engine.o: smrl_engine.c smrl_engine.h chain_block.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
+# Sync engine (override test_ pattern to avoid builtin rule conflict)
+TEST_SYNC_OBJS = test_sync.o sync_engine.o smrl_engine.o chain_block.o
+test_sync: $(TEST_SYNC_OBJS)
+	$(CC) $(CFLAGS) $(TEST_SYNC_OBJS) -o $@ $(LDFLAGS)
+
+sync_engine.o: sync_engine.c sync_engine.h smrl_engine.h chain_block.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # Container ontology bridge (all 6 sub-containers integrated)

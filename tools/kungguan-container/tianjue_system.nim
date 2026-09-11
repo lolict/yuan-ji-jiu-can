@@ -1,5 +1,5 @@
 ## ═══════════════════════════════════════════════════════════════
-## 天觉系统 · 高维认知 · 袋级审判
+## 天庭系统 · 高维认知 · 袋级审判
 ## ═══════════════════════════════════════════════════════════════
 ## 低维认知: 数米粒 · 命名每颗米 · 微观枚举
 ## 高维认知: 认袋子 · 评袋子 · 判袋子 · 宏观审判
@@ -68,7 +68,7 @@ type
   ShenPan* = object
     dai_id*: string        # 审判的袋子
     time*: string          # 审判时刻
-    judge*: string         # 审判者(天觉/人工)
+    judge*: string         # 审判者(天庭/人工)
     verdict*: string       # 判断结论
     correct*: bool         # 审判对不对
     reward*: float         # 对了+多少
@@ -76,9 +76,9 @@ type
     note*: string          # 备注
 
   # ═══════════════════════════════════════════════════════════
-  # 天觉 · 层级逻辑认知系统
+  # 天庭 · 层级逻辑认知系统
   # ═══════════════════════════════════════════════════════════
-  TianJue* = object
+  HeavenlyCourt* = object
     name*: string
     dai_pool*: seq[DaiZi]           # 袋子池(所有容器)
     history*: seq[ShenPan]          # 历史记录
@@ -101,9 +101,9 @@ func new_dai*(id, owner: string; value: float): DaiZi =
   result.last_check = "未审判"
 
 # ═══════════════════════════════════════════════════════════════
-# 天觉系统创建
+# 天庭系统创建
 # ═══════════════════════════════════════════════════════════════
-func new_tianjue*(name: string): TianJue =
+func new_heavenly_court*(name: string): HeavenlyCourt =
   result.name = name
   result.total_reward = 0
   result.total_penalty = 0
@@ -112,13 +112,13 @@ func new_tianjue*(name: string): TianJue =
 # ═══════════════════════════════════════════════════════════════
 # 袋子入池(注册)
 # ═══════════════════════════════════════════════════════════════
-func add_dai*(t: var TianJue; d: DaiZi) =
+func add_dai*(t: var HeavenlyCourt; d: DaiZi) =
   t.dai_pool.add(d)
 
 # ═══════════════════════════════════════════════════════════════
-# 审判 · 天觉对袋子的判断
+# 审判 · 天庭对袋子的判断
 # ═══════════════════════════════════════════════════════════════
-func shenpan*(t: var TianJue; dai_id: string; expected: PinJi): ShenPan =
+func shenpan*(t: var HeavenlyCourt; dai_id: string; expected: PinJi): ShenPan =
   result.dai_id = dai_id
   result.judge = t.name
 
@@ -156,8 +156,8 @@ func shenpan*(t: var TianJue; dai_id: string; expected: PinJi): ShenPan =
 # ═══════════════════════════════════════════════════════════════
 # 高维报告 · 层级逻辑认知
 # ═══════════════════════════════════════════════════════════════
-proc report*(t: TianJue) =
-  echo "═══ 天觉报告 · ", t.name, " ═══"
+proc report*(t: HeavenlyCourt) =
+  echo "═══ 天庭报告 · ", t.name, " ═══"
   echo ""
 
   # 按品级分组统计
@@ -204,10 +204,10 @@ proc report*(t: TianJue) =
     echo "  ", k.alignLeft(8), " → ", v
 
 # ═══════════════════════════════════════════════════════════════
-# 演示: 袋子入池 + 天觉审判
+# 演示: 袋子入池 + 天庭审判
 # ═══════════════════════════════════════════════════════════════
 when is_main_module:
-  var tj = new_tianjue("天觉·袋级认知")
+  var tj = new_heavenly_court("天庭·袋级认知")
 
   # 创建袋子(不数米 · 只建袋)
   var d1 = new_dai("袋-甲", "张家庄", 100.0)
@@ -232,7 +232,7 @@ when is_main_module:
   tj.add_dai(d2)
   tj.add_dai(d3)
 
-  # 天觉审判
+  # 天庭审判
   discard tj.shenpan("袋-甲", pJianLing)    # 对 → 奖励
   discard tj.shenpan("袋-乙", pLiangCha)    # 错 → 惩罚(实际中等)
   discard tj.shenpan("袋-丙", pLiangCha)    # 对 → 奖励

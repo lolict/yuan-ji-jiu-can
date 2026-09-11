@@ -1175,8 +1175,8 @@ def cmd_sync(args: list):
         print(f"同步替换脚本不存在: {sync_script}")
         return
     
-    # 默认规则: 天觉 → 庭
-    default_rules = os.path.join(os.path.dirname(__file__), "rules_tianjue_to_tianting.json")
+    # 默认规则: 天庭 → 庭
+    default_rules = os.path.join(os.path.dirname(__file__), "rules_heavenly_court_to_tianting.json")
     
     cmd = [sys.executable, sync_script, "--workspace", os.path.dirname(os.path.dirname(os.path.dirname(__file__)))]
     if not any(a.startswith("--rules") for a in args):

@@ -58,6 +58,10 @@ name = "container-space"
 path = "src/bin/container-space.rs"
 
 [[bin]]
+name = "fq-radix"
+path = "src/bin/fq-radix.rs"
+
+[[bin]]
 name = "njsg-server"
 path = "src/bin/njsg-server.rs"
 

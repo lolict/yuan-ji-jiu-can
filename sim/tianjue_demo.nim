@@ -1,5 +1,5 @@
 ## ═══════════════════════════════════════════════════════════════
-## tianjue_demo.nim — 天觉系统完整演示
+## heavenly_court_demo.nim — 天庭系统完整演示
 ##   视觉感知 · 听觉授权 · 审判奖惩 · 历史积累 · 高维层级
 ## ═══════════════════════════════════════════════════════════════
 ##
@@ -9,7 +9,7 @@
 ##   照镜子 = 公倍数映射回公约数进行对比
 ##   偏差 = 审判对了 → 奖励 / 审判错了 → 惩罚
 ##
-## 运行: nim c -r tianjue_demo.nim
+## 运行: nim c -r heavenly_court_demo.nim
 ## ═══════════════════════════════════════════════════════════════
 
 import std/[strutils, times, math, tables, sequtils, algorithm]
@@ -57,17 +57,17 @@ type
     bag_state_snapshot*: BagInstance  # 审判时刻的袋子状态快照
 
 # ═══════════════════════════════════════════════════════════════
-# 第二部分: 听觉授权 — 天觉系统的激活
+# 第二部分: 听觉授权 — 天庭系统的激活
 # ═══════════════════════════════════════════════════════════════
 
 type
-  TianJueAuthState* = enum
+  HeavenlyCourtAuthState* = enum
     tsDormant,      # 休眠 — 未授权
     tsAuthorized,   # 已授权 — 视觉&审判激活
     tsRevoked       # 撤销 — 授权收回
 
-  TianJueState* = object
-    auth*: TianJueAuthState
+  HeavenlyCourtState* = object
+    auth*: HeavenlyCourtAuthState
     bag_standards*: Table[string, BagStandard]   # 公约数表
     bags*: Table[int, BagInstance]               # 袋子实例表
     visible_bags*: seq[int]                      # 视觉感知到的袋子
@@ -76,7 +76,7 @@ type
     reward_pool*: float                          # 奖励池
     penalty_pool*: float                         # 惩罚池
 
-proc initTianJue*(): TianJueState =
+proc initHeavenlyCourt*(): HeavenlyCourtState =
   result.auth = tsDormant
   result.visible_bags = @[]
   result.trial_counter = 0
@@ -84,22 +84,22 @@ proc initTianJue*(): TianJueState =
   result.reward_pool = 0.0
   result.penalty_pool = 0.0
 
-proc authorize*(tj: var TianJueState) =
+proc authorize*(tj: var HeavenlyCourtState) =
   tj.auth = tsAuthorized
-  echo "[天觉] 听觉已授权 — 视觉系统激活 · 审判系统就绪"
+  echo "[天庭] 听觉已授权 — 视觉系统激活 · 审判系统就绪"
 
-proc revoke*(tj: var TianJueState) =
+proc revoke*(tj: var HeavenlyCourtState) =
   tj.auth = tsRevoked
-  echo "[天觉] 授权已撤销 — 进入静默模式"
+  echo "[天庭] 授权已撤销 — 进入静默模式"
 
-proc canPerceive*(tj: TianJueState): bool = tj.auth == tsAuthorized
-proc canJudge*(tj: TianJueState): bool = tj.auth == tsAuthorized
+proc canPerceive*(tj: HeavenlyCourtState): bool = tj.auth == tsAuthorized
+proc canJudge*(tj: HeavenlyCourtState): bool = tj.auth == tsAuthorized
 
 # ═══════════════════════════════════════════════════════════════
 # 第三部分: 视觉感知 — 只识别袋子，不分析米粒
 # ═══════════════════════════════════════════════════════════════
 
-proc perceive_bag*(tj: var TianJueState, bag_id: int): bool =
+proc perceive_bag*(tj: var HeavenlyCourtState, bag_id: int): bool =
   if not tj.canPerceive():
     echo "[视觉] 未授权 — 无法感知"
     return false
@@ -141,7 +141,7 @@ proc mirror_compare*(standard: BagStandard, bag: BagInstance, predicted: float):
 # 第五部分: 审判 + 奖惩 — 对了奖，错了罚
 # ═══════════════════════════════════════════════════════════════
 
-proc trial_bag*(tj: var TianJueState, bag_id: int, predicted_health: float): int =
+proc trial_bag*(tj: var HeavenlyCourtState, bag_id: int, predicted_health: float): int =
   ## 审判一个袋子
   ## 返回: 审判编号 (-1 表示失败)
   if not tj.canJudge():
@@ -231,7 +231,7 @@ proc trial_bag*(tj: var TianJueState, bag_id: int, predicted_health: float): int
 # 第六部分: 高维层级认知 — 袋子属性命名与描述
 # ═══════════════════════════════════════════════════════════════
 
-proc describe_bag*(tj: TianJueState, bag_id: int): string =
+proc describe_bag*(tj: HeavenlyCourtState, bag_id: int): string =
   if bag_id notin tj.bags:
     return "袋子不存在"
   let bag = tj.bags[bag_id]
@@ -266,11 +266,11 @@ proc describe_bag*(tj: TianJueState, bag_id: int): string =
 # 第七部分: 历史积累报告
 # ═══════════════════════════════════════════════════════════════
 
-proc report_history*(tj: TianJueState): string =
+proc report_history*(tj: HeavenlyCourtState): string =
   var lines: seq[string] = @[]
   lines.add("")
   lines.add("╔═══════════════════════════════════════════════════════════╗")
-  lines.add("║              天觉系统 — 历史积累报告                      ║")
+  lines.add("║              天庭系统 — 历史积累报告                      ║")
   lines.add("╠═══════════════════════════════════════════════════════════╣")
   let auth_str = case tj.auth:
     of tsDormant: "休眠"
@@ -299,7 +299,7 @@ proc report_history*(tj: TianJueState): string =
 # 第八部分: 袋子管理
 # ═══════════════════════════════════════════════════════════════
 
-proc register_standard*(tj: var TianJueState, owner: string, base_value: float) =
+proc register_standard*(tj: var HeavenlyCourtState, owner: string, base_value: float) =
   tj.bag_standards[owner] = BagStandard(
     owner: owner,
     min_usability: 0.5,
@@ -312,7 +312,7 @@ proc register_standard*(tj: var TianJueState, owner: string, base_value: float) 
   )
   echo "[注册] 公约数锚点已设定 — " & owner & "家的袋子标准"
 
-proc create_bag*(tj: var TianJueState, id: int, owner: string,
+proc create_bag*(tj: var HeavenlyCourtState, id: int, owner: string,
                  usability, content_quality, cleanliness, dryness,
                  pest_level, purity: float): int =
   let standard = tj.bag_standards.getOrDefault(owner)
@@ -340,15 +340,15 @@ proc create_bag*(tj: var TianJueState, id: int, owner: string,
 when isMainModule:
   echo ""
   echo "╔═══════════════════════════════════════════════════════════╗"
-  echo "║              天觉系统 · 完整工作流演示                    ║"
+  echo "║              天庭系统 · 完整工作流演示                    ║"
   echo "║     视觉感知 · 听觉授权 · 审判奖惩 · 历史积累            ║"
   echo "║            公约数锚定 · 公倍数旋转 · 照镜子               ║"
   echo "╚═══════════════════════════════════════════════════════════╝"
   echo ""
 
-  # ── 步骤1: 初始化天觉系统 ──
-  echo "═══ 步骤1: 初始化天觉系统 ═══"
-  var tj = initTianJue()
+  # ── 步骤1: 初始化天庭系统 ──
+  echo "═══ 步骤1: 初始化天庭系统 ═══"
+  var tj = initHeavenlyCourt()
   echo ""
 
   # ── 步骤2: 听觉授权 ──
@@ -493,7 +493,7 @@ when isMainModule:
   echo "── 核心对应关系 ──"
   echo "视觉系统     = perceive_bag()     — 只识别袋子，不分析内容"
   echo "听觉授权     = authorize()        — 授权后视觉+审判激活"
-  echo "天觉系统     = TianJueState        — 整体状态容器"
+  echo "天庭系统     = HeavenlyCourtState        — 整体状态容器"
   echo "公约数锚定   = BagStandard         — 不可变的袋子定义基准"
   echo "公倍数旋转   = BagInstance         — 围绕公约数的具体实例"
   echo "照镜子对比   = mirror_compare()    — 公倍数映射回公约数判定对错"

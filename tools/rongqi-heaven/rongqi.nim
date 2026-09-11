@@ -57,7 +57,7 @@ type
   # --- 袋子注册表（掌柜能看到的所有袋子）---
   RongQiRegistry* = object
     bags*: Table[string, RongQi]
-    master*: string        # 谁是天觉的主人
+    master*: string        # 谁是天庭的主人
 
 
 # ============================================================

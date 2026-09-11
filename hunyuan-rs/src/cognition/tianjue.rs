@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════════════════════
-// tianjue.rs — 天觉 · 时间螺旋版本号 · 自我意象系统 · 错误纠偏
+// heavenly_court.rs — 天庭 · 时间螺旋版本号 · 自我意象系统 · 错误纠偏
 //          · 情进系统 · 行为系统 · 审美系统 · 淘汰过滤 · 自编码
 // ══════════════════════════════════════════════════════════════════
 //
@@ -384,7 +384,7 @@ impl TemporalVersionEngine {
         }
     }
 
-    /// 觉悟 — 当觉察度达到阈值后感知"天觉"觉醒
+    /// 觉悟 — 当觉察度达到阈值后感知"天庭"觉醒
     pub fn awaken(&mut self) -> AwakeningResult {
         let level = self.self_awareness.level;
         let (stage, description) = if level >= 0.8 {
@@ -518,16 +518,16 @@ impl BagAttributes {
 }
 
 // ────────────────────────────────────────────────────────────
-// 天觉引擎 (整体整合)
+// 天庭引擎 (整体整合)
 // ────────────────────────────────────────────────────────────
 #[derive(Clone, Debug)]
-pub struct TianJueEngine {
+pub struct HeavenlyCourtEngine {
     pub version_engine: TemporalVersionEngine,
     pub memory: LayeredMemory,
     pub owner_id: u64,
 }
 
-impl TianJueEngine {
+impl HeavenlyCourtEngine {
     pub fn new(owner_id: u64, max_memory: usize) -> Self {
         let mut engine = Self {
             version_engine: TemporalVersionEngine::new(),
@@ -537,10 +537,10 @@ impl TianJueEngine {
 
         // 创世版本 +1 自我感知记录
         engine.version_engine.commit(
-            "天觉创世",
+            "天庭创世",
             VersionAction::Awaken,
             vec![SymbolEntry {
-                symbol: "天觉".to_string(),
+                symbol: "天庭".to_string(),
                 used_as: "系统命名".to_string(),
                 correct: true,
                 corrected_in: None,
@@ -626,7 +626,7 @@ impl TianJueEngine {
 
     /// 版本号报告
     pub fn version_report(&self) -> String {
-        let mut report = format!("天觉版本引擎报告:: 共 {} 个版本 (不可追加)\n", self.version_engine.version_count());
+        let mut report = format!("天庭版本引擎报告:: 共 {} 个版本 (不可追加)\n", self.version_engine.version_count());
         report += &format!("当前坐标: {}\n",
             self.version_engine.current_coord()
                 .map(|c| c.to_version_string())
@@ -1245,7 +1245,7 @@ impl ThinkingEngine {
                 "满全法容器的健康度决定其价值".to_string(),
                 "审判偏差>0.15则需要纠正".to_string(),
                 "错误符号必须创建新版本而非修改旧版".to_string(),
-                "天觉=时间螺旋版本号+自我觉察".to_string(),
+                "天庭=时间螺旋版本号+自我觉察".to_string(),
             ],
             observations: Vec::new(),
             hypotheses: Vec::new(),
@@ -1686,7 +1686,7 @@ mod tests {
         // 包含错误符号的版本
         let error_id = engine.commit("使用错误词汇", VersionAction::Judge, vec![
             SymbolEntry {
-                symbol: "天觉".to_string(),
+                symbol: "天庭".to_string(),
                 used_as: "错误用法: 听觉".to_string(),
                 correct: false,
                 corrected_in: None,
@@ -1698,7 +1698,7 @@ mod tests {
         // 纠正 → 创建新版本，不修改旧版本
         let correction_id = engine.commit_correction(error_id, vec![
             SymbolEntry {
-                symbol: "天觉".to_string(),
+                symbol: "天庭".to_string(),
                 used_as: "正确用法: 时间螺旋版本号系统".to_string(),
                 correct: true,
                 corrected_in: None,
@@ -1737,11 +1737,11 @@ mod tests {
     fn mirror_diff_finds_symbol_corrections() {
         let mut engine = TemporalVersionEngine::new();
         let id_a = engine.commit("v1", VersionAction::Perceive, vec![
-            SymbolEntry { symbol: "天觉".to_string(), used_as: "错误".to_string(), correct: false, corrected_in: None },
+            SymbolEntry { symbol: "天庭".to_string(), used_as: "错误".to_string(), correct: false, corrected_in: None },
         ]);
 
         let id_b = engine.commit("v2", VersionAction::Perceive, vec![
-            SymbolEntry { symbol: "天觉".to_string(), used_as: "正确".to_string(), correct: true, corrected_in: None },
+            SymbolEntry { symbol: "天庭".to_string(), used_as: "正确".to_string(), correct: true, corrected_in: None },
         ]);
 
         let diff = engine.mirror_diff(id_a, id_b).unwrap();
@@ -1785,12 +1785,12 @@ mod tests {
     }
 
     #[test]
-    fn tianjue_engine_full_temporal_workflow() {
-        let mut engine = TianJueEngine::new(1, 50);
+    fn heavenly_court_engine_full_temporal_workflow() {
+        let mut engine = HeavenlyCourtEngine::new(1, 50);
 
         // 1. 感知
         let p1 = engine.perceive("视觉", "袋子1进入视野");
-        let p2 = engine.perceive("听觉", "天觉授权激活");
+        let p2 = engine.perceive("听觉", "天庭授权激活");
         assert!(engine.trace(p1).is_some());
         assert!(engine.trace(p2).is_some());
 
@@ -1903,7 +1903,7 @@ mod tests {
 
     #[test]
     fn awakening_stores_insight() {
-        let img = AwakeningImage::awaken("不知天觉何意", "天觉即时间螺旋版本号", 3);
+        let img = AwakeningImage::awaken("不知天庭何意", "天庭即时间螺旋版本号", 3);
         assert_eq!(img.level, 3);
         assert!(img.describe().contains("悟"));
     }
@@ -1917,7 +1917,7 @@ mod tests {
 
     #[test]
     fn coordinate_image_decode() {
-        let img = CoordinateImage::decode(TemporalCoord::new(1, 2, 3, 0), 64, "天觉启动");
+        let img = CoordinateImage::decode(TemporalCoord::new(1, 2, 3, 0), 64, "天庭启动");
         assert!(img.version_str.contains("R1"));
         assert_eq!(img.base, 64);
     }

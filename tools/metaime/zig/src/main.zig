@@ -18,6 +18,8 @@ pub const yunmu = @import("yunmu.zig");
 pub const glyph = @import("glyph.zig");
 pub const executor = @import("executor.zig");
 pub const scanner = @import("scanner.zig");
+pub const heaven = @import("heaven.zig");
+pub const silkworm = @import("silkworm.zig");
 
 // ── 统一输出宏 (Zig 0.14+ 兼容) ──
 fn print(comptime fmt: []const u8, args: anytype) void {
@@ -103,7 +105,72 @@ pub fn main() !void {
     // 12. 内存状态
     interpreter.displayMemory();
 
-    // 13. 鼓膜自举（scanner 模块已编译通过，运行时扫描待 Zig 0.16 fs API 适配）
+    // 13. 天庭空间 · 八流统一
+    printHeader("天庭空间 · 八流统一");
+    var h = heaven.HeavenSpace.init();
+    h.display();
+
+    // 流路由示例
+    const input = heaven.FlowVector{
+        .kind = .interpret,
+        .direction = .inward,
+        .polarity = .positive,
+        .force = 10,
+        .energy = 1.2,
+        .active = true,
+        .container_zone = .middle,
+    };
+    if (h.route(input)) |target| {
+        print("  解释流 → 路由到: {s} (力={d:.1})\n", .{ target.kind.name(), target.force });
+    }
+
+    // 流加法示例
+    const fa = heaven.FlowVector{
+        .kind = .forcefield, .container_zone = .middle,
+        .force = 10, .energy = 1, .active = true,
+        .direction = .inward, .polarity = .positive,
+    };
+    const fb = heaven.FlowVector{
+        .kind = .container, .container_zone = .middle,
+        .force = 20, .energy = 1, .active = true,
+        .direction = .outward, .polarity = .negative,
+    };
+    if (heaven.add(fa, fb)) |result| {
+        print("  力场流 + 容器流 = 合力 {d:.1}\n", .{result.force});
+    }
+
+    // 14. 蚕蛹反向寄生壳
+    printHeader("蚕蛹反向寄生壳");
+    silkworm.SilkwormEngine.init().display();
+
+    // 演示完整生命周期
+    print("\n ── 寄生生命周期演示 ──\n", .{});
+    var engine = silkworm.SilkwormEngine.init();
+    const hints = "syscall:read, /proc/version, syscall:open";
+    const detected = engine.detect_shell(hints);
+    print("  [探测] 外部系统: {s}\n", .{detected.name()});
+
+    // 自动选择 + 穿衣
+    const options = engine.auto_match_options();
+    var best_shell: ?silkworm.ShellKind = null;
+    var best_force: f32 = 0;
+    for (options) |opt| {
+        if (opt.force_match > best_force) {
+            best_shell = opt.shell;
+            best_force = opt.force_match;
+        }
+    }
+    if (best_shell) |shell| {
+        if (engine.select_shell(shell)) {
+            _ = engine.dress();
+            print("  [穿衣] {s} → 成功\n", .{shell.name()});
+        }
+    }
+
+    const config = engine.generate_config();
+    print("  [配置] {s}\n", .{config});
+
+    // 15. 鼓膜自举（scanner 模块已编译通过，运行时扫描待 Zig 0.16 fs API 适配）
     printHeader("鼓膜自举 · 状态");
     const scanner_file_count = 10; // 测试通过的种类数
     print("  scanner.zig 已编译：{d} 种文件分类就绪\n", .{scanner_file_count});
@@ -146,6 +213,8 @@ test "all_modules_compile" {
     _ = @import("glyph.zig");
     _ = @import("executor.zig");
     _ = @import("scanner.zig");
+    _ = @import("heaven.zig");
+    _ = @import("silkworm.zig");
 }
 
 // === 运行所有模块的测试 ===

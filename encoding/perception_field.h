@@ -249,4 +249,16 @@ int chopstick_grip(chopstick_grip_t *grip);
  */
 int pipeline_enqueue(uint32_t container_code, uint32_t timestamp);
 
+/**
+ * 辅助: 获取管线计数/查看/清空
+ */
+uint16_t pipeline_count(void);
+uint32_t  pipeline_peek(uint16_t index);
+void      pipeline_clear(void);
+
+/**
+ * 感知场综合报告
+ */
+void perception_field_report(triple_judge_engine_t *engine);
+
 #endif /* NJSG_PERCEPTION_FIELD_H */

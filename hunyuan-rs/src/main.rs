@@ -1517,10 +1517,10 @@ let wife_cluster = anchor.取("knml0o0{0u0..0r0}").unwrap();
     }
 
     // ══════════════════════════════════════════════════════
-    // 10. 天觉v9: 盟机合袋子感知聚合云 — 从并集到交集
+    // 10. 天庭v9: 盟机合袋子感知聚合云 — 从并集到交集
     // ══════════════════════════════════════════════════════
     println!("\n═══════════════════════════════════════");
-    println!("  10) 天觉v9: 感知聚合云 · 从并集到交集");
+    println!("  10) 天庭v9: 感知聚合云 · 从并集到交集");
     println!("═══════════════════════════════════════");
 
     {
@@ -1596,5 +1596,57 @@ let wife_cluster = anchor.取("knml0o0{0u0..0r0}").unwrap();
         println!("结论: {} 项可作行动依据 (强共识), {} 项需更多观测 (争议)",
             strong.len(), disputed.len());
         println!("感知从并集到交集的转化完成 → 3 个节点的松散观测精炼为稳定共识");
+    }
+
+    // ══════════════════════════════════════════════════════
+    // 纤维束: 跨分身因果连接
+    // ══════════════════════════════════════════════════════
+    println!("\n═══════════════════════════════════════");
+    println!("  纤维束: 跨分身因果连接网");
+    println!("═══════════════════════════════════════");
+
+    {
+        use mqf::swarm::{ParasiteShell, AgentRole};
+        use mqf::swarm::Fiber;
+
+        let os = current_os();
+        let mut shell = ParasiteShell::new(30);
+
+        // 构建分身网络
+        let root = shell.spawn(&*os, "Root", AgentRole::Root, 30);
+        let scout = shell.spawn(&*os, "Scout", AgentRole::Observer, 20);
+        let worker = shell.spawn(&*os, "Worker", AgentRole::Leaf, 20);
+        let archive = shell.spawn(&*os, "Archive", AgentRole::Flower, 15);
+
+        // Root 辐射使命
+        shell.get_agent(root).unwrap().record_radiation("探索环境", "Scout");
+        shell.get_agent(root).unwrap().record_radiation("处理数据", "Worker");
+        shell.get_agent(root).unwrap().record_radiation("存储记录", "Archive");
+
+        // Scout 坍缩回 Root (完整纤维)
+        shell.get_agent(scout).unwrap().record_collapse("Root", "地图数据");
+        // Worker 坍缩回 Root (完整纤维)
+        shell.get_agent(worker).unwrap().record_collapse("Root", "处理完成");
+        // Archive 尚未坍缩 (不完整纤维 - 异步存储)
+
+        // 编织纤维束
+        let fibers = shell.weave_fibers();
+
+        println!("分身网络: 4 个分身, 3 条辐射");
+        println!("纤维束视图:");
+        for (i, fiber) in fibers.iter().enumerate() {
+            let status = if fiber.complete { "●" } else { "○" };
+            println!("  {} fiber#{}: {} --[{}]--> {}  [{}]",
+                status, i,
+                fiber.from_name, fiber.mission, fiber.to_name,
+                if fiber.complete { "完整: 辐射+坍缩" } else { "等待: 仅辐射" }
+            );
+        }
+
+        let (complete, incomplete) = shell.fiber_statistics();
+        println!("  统计: {} 完整纤维 / {} 待完成 / {} 总计",
+            complete, incomplete, fibers.len());
+        println!("  ● = 闭环 (分身完成使命并坍缩回本体)");
+        println!("  ○ = 开环 (使命已发出, 等待分身回报)");
     }
 }

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-层级治理系统 —— 视觉 · 天觉 · 审判 · 记忆
+层级治理系统 —— 视觉 · 天庭 · 审判 · 记忆
 
 层级关系（高维）：
   不数米的颗粒，不命名每颗米。
@@ -8,7 +8,7 @@
   米脏不脏、有没有虫、晒干了没、能不能吃。
 
 协作流程：
-  天觉感知 → 视觉呈现 → 审判判定 → 记忆积累 → 反馈天觉
+  天庭感知 → 视觉呈现 → 审判判定 → 记忆积累 → 反馈天庭
 """
 
 from dataclasses import dataclass, field
@@ -150,12 +150,12 @@ class Memory:
 
 
 # ============================================================
-# 天觉层 —— 感知 + 授权
+# 天庭层 —— 感知 + 授权
 # ============================================================
 
-class TianJue:
+class HeavenlyCourt:
     """
-    天觉 —— 感知袋子的状态，判定准入授权
+    天庭 —— 感知袋子的状态，判定准入授权
     不是感知米的颗粒，而是感知袋子级别的状态
     """
 
@@ -185,13 +185,13 @@ class TianJue:
         """
         # 历史声誉太差 → 自动拒绝
         if self.memory.reputation(bag.owner) < -10:
-            return False, "历史声誉过低，天觉拒绝授权"
+            return False, "历史声誉过低，天庭拒绝授权"
 
         # 变质 → 拒绝
         if not bag.edible:
-            return False, "内容物已变质，天觉拒绝授权"
+            return False, "内容物已变质，天庭拒绝授权"
 
-        return True, "天觉授权通过"
+        return True, "天庭授权通过"
 
 
 # ============================================================
@@ -200,7 +200,7 @@ class TianJue:
 
 class Judgment:
     """
-    审判 —— 基于天觉感知的结果，执行判定
+    审判 —— 基于天庭感知的结果，执行判定
     审判对了给奖励，审判错了给惩罚
     奖惩对象是袋子（不是米）
     """
@@ -352,7 +352,7 @@ class Vision:
         print(f"   惩罚：-{record.penalty:.1f}")
 
     @classmethod
-    def show_all_bags(cls, bags: List[Bag], tianjue: TianJue):
+    def show_all_bags(cls, bags: List[Bag], heavenly_court: HeavenlyCourt):
         """展示所有袋子的视觉总览"""
         print(f"\n{'='*60}")
         print(f"  【视觉总览】所有袋子状态")
@@ -360,7 +360,7 @@ class Vision:
         print(f"  {'袋子':<12} {'状态':<10} {'声誉':>6} {'趋势':<8}")
         print(f"  {'─'*44}")
         for bag in bags:
-            p = tianjue.perceive(bag)
+            p = heavenly_court.perceive(bag)
             icon = cls.STATUS_ICON.get(bag.status, "?")
             rep = p["reputation"]
             trend = p["trend"]
@@ -388,7 +388,7 @@ class Vision:
 def main():
     # 初始化四层
     memory = Memory()
-    tianjue = TianJue(memory)
+    heavenly_court = HeavenlyCourt(memory)
     judgment = Judgment(memory)
     vision = Vision()
 
@@ -407,21 +407,21 @@ def main():
     ]
 
     # 视觉总览
-    vision.show_all_bags(bags, tianjue)
+    vision.show_all_bags(bags, heavenly_court)
 
-    # 逐个走流程：天觉感知 → 天觉授权 → 审判 → 视觉呈现
+    # 逐个走流程：天庭感知 → 天庭授权 → 审判 → 视觉呈现
     print(f"\n{'='*60}")
-    print(f"  【流程演示】天觉 → 审判 → 视觉")
+    print(f"  【流程演示】天庭 → 审判 → 视觉")
     print(f"{'='*60}")
 
     for bag in bags:
-        # 天觉感知
-        perception = tianjue.perceive(bag)
+        # 天庭感知
+        perception = heavenly_court.perceive(bag)
 
-        # 天觉授权
-        authorized, auth_reason = tianjue.authorize(bag)
+        # 天庭授权
+        authorized, auth_reason = heavenly_court.authorize(bag)
         auth_icon = "✓" if authorized else "✗"
-        print(f"\n{auth_icon} 天觉授权：{bag.owner}家 → {auth_reason}")
+        print(f"\n{auth_icon} 天庭授权：{bag.owner}家 → {auth_reason}")
 
         if not authorized:
             # 未授权也要记录
@@ -429,7 +429,7 @@ def main():
                 bag_owner=bag.owner,
                 timestamp=time.time(),
                 verdict="不通过",
-                reason=f"天觉未授权：{auth_reason}",
+                reason=f"天庭未授权：{auth_reason}",
                 reward=0.0,
                 penalty=1.0,
             )
@@ -444,7 +444,7 @@ def main():
         vision.show_judgment(record)
 
     # 最终视觉总览 + 历史记忆
-    vision.show_all_bags(bags, tianjue)
+    vision.show_all_bags(bags, heavenly_court)
 
     # 展示历史记忆
     print(f"\n{'='*60}")
@@ -459,7 +459,7 @@ def main():
     print(f"{'='*60}")
     print(f"  层级关系：袋子级别（高维），不数米（低维）")
     print(f"  视觉：看到袋子的状态（脏/湿/虫/沙/变质）")
-    print(f"  天觉：感知袋子状态 + 授权准入")
+    print(f"  天庭：感知袋子状态 + 授权准入")
     print(f"  审判：基于感知和历史，判定袋子是否合格")
     print(f"  记忆：积累每次审判，形成声誉和趋势")
     print(f"{'='*60}")

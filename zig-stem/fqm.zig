@@ -59,6 +59,21 @@ pub fn formatUnaryDecimal(stream_writer: anytype, value: f64) !void {
     try formatUnaryInt(stream_writer, frac_val);
 }
 
+// 格式化浮点数（保留1位小数，用于表格显示）
+pub fn formatUnaryFloat2(stream_writer: anytype, value: f64) !void {
+    if (value == 0) {
+        try stream_writer.writeAll("☆::☆");
+        return;
+    }
+    const scaled = @as(i64, @intFromFloat(@round(value * 10)));
+    const abs_scaled = if (scaled < 0) -scaled else scaled;
+    const major: usize = @intCast(@divTrunc(abs_scaled, 10));
+    const minor: usize = @intCast(@rem(abs_scaled, 10));
+    try formatUnaryInt(stream_writer, major);
+    try stream_writer.writeAll("::");
+    try formatUnaryInt(stream_writer, minor);
+}
+
 // ============================================================
 // 64 位集装箱
 // ============================================================

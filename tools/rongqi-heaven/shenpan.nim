@@ -10,7 +10,7 @@
 import math
 import strutils
 import ./rongqi
-import ./tianjue
+import ./heavenly_court
 
 type
   # --- 判决动作 ---
@@ -40,7 +40,7 @@ type
     total_demerit*: float          # 总业报（惩罚累计）
     correct_count*: int            # 审对次数
     wrong_count*: int              # 审错次数
-    judge_name*: string            # 谁是审判者（天觉之名）
+    judge_name*: string            # 谁是审判者（天庭之名）
     strictness*: float             # 严格度（1.0=标准，越高越严）
     learning_rate*: float          # 学习速率（每次审判学多少）
 
@@ -70,7 +70,7 @@ func new_shenpan*(name, judge: string): ShenPanEngine =
 # 核心：判断一袋子的真实命运（该怎么做）
 # ============================================================
 func truth_action*(bag: RongQi): PanAction =
-  ## 袋子的真实需要（不是天觉的判断，是事实）
+  ## 袋子的真实需要（不是天庭的判断，是事实）
   if bag.should_discard:
     return paDiscard
   if bag.needs_washing:
@@ -95,15 +95,15 @@ func truth_desc*(a: PanAction): string =
 
 
 # ============================================================
-# 审判：天觉的判决 + 对错对照 + 奖惩
+# 审判：天庭的判决 + 对错对照 + 奖惩
 # ============================================================
-func shenpan*(engine: var ShenPanEngine; bag: RongQi; tianjue_verdict: TianJueVerdict; tick: int): PanResult =
-  ## 把天觉的判断 和 真实命运 对照，给奖惩
+func shenpan*(engine: var ShenPanEngine; bag: RongQi; heavenly_court_verdict: HeavenlyCourtVerdict; tick: int): PanResult =
+  ## 把天庭的判断 和 真实命运 对照，给奖惩
   let truth = bag.truth_action()
   var action = paKeep
 
-  # 把天觉的动作为 PanAction
-  case tianjue_verdict.action
+  # 把天庭的动作为 PanAction
+  case heavenly_court_verdict.action
   of "保留": action = paKeep
   of "清洗": action = paWash
   of "晾晒": action = paDry
@@ -134,7 +134,7 @@ func shenpan*(engine: var ShenPanEngine; bag: RongQi; tianjue_verdict: TianJueVe
     action: action,
     correct: correct,
     merit: merit,
-    reason: tianjue_verdict.reason,
+    reason: heavenly_court_verdict.reason,
     truth: truth
   )
   engine.records.add(rec)
@@ -196,7 +196,7 @@ when is_main_module:
   wash.quality.has_sand = true
 
   var bags = @[good, bad, wash]
-  var tj = new_tianjue("囡囝之眼")
+  var tj = new_heavenly_court("囡囝之眼")
 
   echo "【逐袋审判】"
   for i, bag in bags:

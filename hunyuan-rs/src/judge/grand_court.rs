@@ -6,7 +6,7 @@
 //   1. encoding_bridge   — C编码系统 (1257字 · 五家族 · 48声母 · 66韵母)
 //   2. crime_transcript  — 全局衍射裁判 (类型拓扑 · 编织图 · 全局水质)
 //   3. glyph_pixel_algebra — 字形像素运算 (加减拆解 · 相位编码)
-//   4. celestial_perception_v3 — 天觉v3 (感知 · 历史 · 淘汰)
+//   4. celestial_perception_v3 — 天庭v3 (感知 · 历史 · 淘汰)
 //
 // 管道: 字符输入 → 感知路由 → 衍射分析 → 类型审判 → 像素编码 → 判决输出
 //

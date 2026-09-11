@@ -61,8 +61,8 @@ test: kernel
 	./kernel/src/njsg_kernel.elf
 
 # 独立 fqm 工具链（纯 C，无外部协议）
-fqm-tools: fqm_browser.c fqm_gtti.c fqm_call.c fqm_bare.c fqm_cpu.c fqm_net.c fqm_radix.c fqm_time.c fqm_yy.c fqm_judge.c fqm_link.c fqm_cluster.c fqm_flow.c
-	$(CC) -O2 -o fqm_browser fqm_browser.c
+fqm-tools: fqm_browser.c fqm_gtti.c fqm_call.c fqm_bare.c fqm_cpu.c fqm_net.c fqm_radix.c fqm_time.c fqm_yy.c fqm_judge.c fqm_link.c fqm_cluster.c fqm_flow.c fqm_crypto.c fqm_debug.c fqm_engine.c fqm_fact.c fqm_fib_levels.c fqm_fs.c fqm_gui.c fqm_kern.c fqm_loader.c fqm_prime.c fqm_rule_levels.c fqm_shell.c fqm_string.c fqm_web.c fqm_asm.c fqm_smrl.c
+	$(CC) -O2 -Iencoding -o fqm_browser fqm_browser.c encoding/mlll_vm.c encoding/mlll_cart.c encoding/mlll_transcomp.c -lm
 	$(CC) -O2 -o fqm_gtti fqm_gtti.c
 	$(CC) -O2 -o fqm_call fqm_call.c
 	$(CC) -O2 -o fqm_bare fqm_bare.c
@@ -75,7 +75,23 @@ fqm-tools: fqm_browser.c fqm_gtti.c fqm_call.c fqm_bare.c fqm_cpu.c fqm_net.c fq
 	$(CC) -O2 -o fqm_link fqm_link.c
 	$(CC) -O2 -o fqm_cluster fqm_cluster.c -lm
 	$(CC) -O2 -o fqm_flow fqm_flow.c
-	@echo "═══ fqm 独立工具链构建完成 ═══"
+	$(CC) -O2 -o fqm_crypto fqm_crypto.c
+	$(CC) -O2 -o fqm_debug fqm_debug.c
+	$(CC) -O2 -o fqm_engine fqm_engine.c -lm
+	$(CC) -O2 -o fqm_fact fqm_fact.c
+	$(CC) -O2 -o fqm_fib_levels fqm_fib_levels.c -lm
+	$(CC) -O2 -o fqm_fs fqm_fs.c
+	$(CC) -O2 -o fqm_gui fqm_gui.c
+	$(CC) -O2 -o fqm_kern fqm_kern.c
+	$(CC) -O2 -o fqm_loader fqm_loader.c
+	$(CC) -O2 -o fqm_prime fqm_prime.c -lm
+	$(CC) -O2 -o fqm_rule_levels fqm_rule_levels.c -lm
+	$(CC) -O2 -o fqm_shell fqm_shell.c
+	$(CC) -O2 -o fqm_string fqm_string.c
+	$(CC) -O2 -o fqm_web fqm_web.c
+	$(CC) -O2 -o fqm_asm fqm_asm.c
+	$(CC) -O2 -o fqm_smrl fqm_smrl.c -lm
+	@echo "═══ fqm 独立工具链构建完成（29 tools）═══"
 
 fqm-test: fqm-tools
 	./fqm_browser
@@ -91,10 +107,26 @@ fqm-test: fqm-tools
 	./fqm_link
 	./fqm_cluster
 	./fqm_flow
+	./fqm_crypto
+	./fqm_debug fqm_program.txt
+	./fqm_engine fqm_program.txt
+	./fqm_fact
+	./fqm_fib_levels
+	./fqm_fs
+	./fqm_gui
+	./fqm_kern
+	./fqm_loader fqm_program.txt
+	./fqm_prime
+	./fqm_rule_levels
+	echo "quit" | ./fqm_shell
+	./fqm_string
+	./fqm_web
+	./fqm_asm show fqm_program.bin
+	./fqm_smrl
 
 clean:
 	rm -f kernel/src/njsg_kernel.elf kernel/src/mlll_symbols.elf
-	rm -f fqm_browser fqm_gtti fqm_call fqm_bare fqm_cpu fqm_net fqm_radix fqm_time fqm_yy fqm_judge fqm_link fqm_cluster fqm_flow
+	rm -f fqm_browser fqm_gtti fqm_call fqm_bare fqm_cpu fqm_net fqm_radix fqm_time fqm_yy fqm_judge fqm_link fqm_cluster fqm_flow fqm_crypto fqm_debug fqm_engine fqm_fact fqm_fib_levels fqm_fs fqm_gui fqm_kern fqm_loader fqm_prime fqm_rule_levels fqm_shell fqm_string fqm_web fqm_asm fqm_smrl
 
 docs:
 	@echo "═══ 囡囝共生 v2.0 文档入口 ═══"

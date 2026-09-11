@@ -185,7 +185,7 @@ git push gitee-hunyuan main
 - 冰箱状态机·预烘焙动作序列 ✅ 已完成 — tools/fridge/ · 17态11事件全焖煮 · O(1)运行时取用 · 极性轨迹追踪 · 加法空间封印保护 · 通过 clang 编译验证
 - mltt 命名密码表 ✅ 已完成 — tools/mltt-cipher/ · Nim 单源 158 条（静态注册 · 等自有编译器验证）
 - 统计文档聚合浏览器的真实数据输入 ✅ 已完成 — tools/minlian/dataml/ · Mode C JSON数据管道 · 200文档 |
-- 天觉v3/v4 符号冲突清偿 ✅ 已完成 — v3 恢复(V3别名) · 7个example API漂移修复 · lib 1019测试全绿
+- 天庭v3/v4 符号冲突清偿 ✅ 已完成 — v3 恢复(V3别名) · 7个example API漂移修复 · lib 1019测试全绿
 - TASKS P1 全量Nim验编 ✅ 已完成 — tools/ 189/189 PASS · metaime 8文件API漂移修复 · 顶层barrel when false化
 - TASKS P2 蚕蛹真实平台适配 ✅ 已完成 — canjiang_demo.nim · 6外壳e2e · 真实Linux cli/fs外壳 · 隐藏根基验证
 - TASKS P3 民联大数据量验证 ✅ 已完成 — benchmark.nim · 100~100K文档合成JSON源 · KMeans+包裹树 · 100K/237ms/近线性

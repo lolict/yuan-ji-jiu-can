@@ -338,6 +338,18 @@ impl ShellHeartbeat {
     }
 }
 
+/// 纤维: 跨分身的因果事件链
+/// 例如: A 辐射到 B → B 坍缩回 A = 一根完整的纤维
+#[derive(Clone, Debug)]
+pub struct Fiber {
+    pub from_agent: u64,
+    pub from_name: String,
+    pub to_agent: u64,
+    pub to_name: String,
+    pub mission: String,
+    pub complete: bool,  // true = 来回完整 (辐射+坍缩都发生)
+}
+
 #[derive(Clone, Debug)]
 pub struct ShellGenome {
     pub mir_order: MirrorOrder,       // 出厂镜像阶
@@ -635,6 +647,71 @@ impl ParasiteShell {
     /// 智能体总数（不含僵尸）
     pub fn active_count(&self) -> usize {
         self.agents.values().filter(|a| !a.is_zombie()).count()
+    }
+
+    // ─── 纤维束编织 (Fiber Bundle Weaving) ───
+
+    /// 编织纤维束: 检测所有跨分身的辐射-坍缩因果连接
+    /// 返回: Vec<Fiber> — 所有因果链 (包括不完整的单向辐射)
+    pub fn weave_fibers(&self) -> Vec<Fiber> {
+        let mut fibers = Vec::new();
+
+        // 收集所有辐射事件
+        let mut radiations: Vec<(u64, &String, &String, &str)> = Vec::new(); // (from_id, from_name, to, mission)
+        for agent in self.agents.values() {
+            for event in &agent.timestamp.events {
+                if let LifeEvent::Radiation { to, mission, .. } = event {
+                    radiations.push((agent.id, &agent.name, to, mission.as_str()));
+                }
+            }
+        }
+
+        // 收集所有坍缩事件
+        // 坍缩发生在目标分身 (它收到辐射后坍缩回源)
+        let mut collapses: Vec<(u64, &String, &String, &str)> = Vec::new(); // (self_id, self_name, from, content)
+        for agent in self.agents.values() {
+            for event in &agent.timestamp.events {
+                if let LifeEvent::Collapse { from, content, .. } = event {
+                    collapses.push((agent.id, &agent.name, from, content.as_str()));
+                }
+            }
+        }
+
+        // 匹配: 辐射目标 = 分身名 → 建立纤维
+        for (from_id, from_name, to_name, mission) in &radiations {
+            // 目标分身是否在系统中?
+            let target_agent = self.agents.values().find(|a| a.name == **to_name);
+            if let Some(target) = target_agent {
+                // 检查: 目标分身是否有坍缩事件，且该坍缩来自辐射源
+                // 即 target 的 Collapse.from == 辐射源的 name
+                let has_return = collapses.iter().any(|(collapse_self_id, collapse_self_name, collapse_from, _)| {
+                    // 坍缩发生在目标分身上
+                    *collapse_self_id == target.id
+                    // 且坍缩的源头是辐射源
+                    && **collapse_from == **from_name
+                    // 且坍缩者自身的名称就是辐射目标名称 (否则是乱匹配)
+                    && **collapse_self_name == **to_name
+                });
+                fibers.push(Fiber {
+                    from_agent: *from_id,
+                    from_name: (*from_name).clone(),
+                    to_agent: target.id,
+                    to_name: target.name.clone(),
+                    mission: mission.to_string(),
+                    complete: has_return,
+                });
+            }
+        }
+
+        fibers
+    }
+
+    /// 纤维束统计: 完整纤维 vs 单向辐射
+    pub fn fiber_statistics(&self) -> (usize, usize) {
+        let fibers = self.weave_fibers();
+        let complete = fibers.iter().filter(|f| f.complete).count();
+        let incomplete = fibers.len() - complete;
+        (complete, incomplete)
     }
 }
 
@@ -1244,5 +1321,83 @@ mod tests {
         assert_eq!((f, c, r), original_stats);
 
         let _ = std::fs::remove_file(path);
+    }
+
+    // ── 纤维束编织测试 ──
+
+    #[test]
+    fn weave_fibers_detects_complete_fiber() {
+        let os = crate::os_layer::bare_metal::BareMetalOs::new();
+        let mut shell = ParasiteShell::with_heartbeat(20, 100, "/tmp/fiber_test.hts");
+
+        let a = shell.spawn(&os, "Alice", AgentRole::Root, 20);
+        let b = shell.spawn(&os, "Bob", AgentRole::Leaf, 20);
+
+        // Alice 辐射到 Bob
+        shell.agents.get_mut(&a).unwrap().record_radiation("侦查任务", "Bob");
+        // Bob 坍缩回 Alice
+        shell.agents.get_mut(&b).unwrap().record_collapse("Alice", "侦查报告");
+
+        let fibers = shell.weave_fibers();
+        assert_eq!(fibers.len(), 1);
+        assert!(fibers[0].complete); // 完整纤维: 辐射 + 坍缩都发生
+        assert_eq!(fibers[0].from_name, "Alice");
+        assert_eq!(fibers[0].to_name, "Bob");
+        assert_eq!(fibers[0].mission, "侦查任务");
+    }
+
+    #[test]
+    fn weave_fibers_detects_incomplete_fiber() {
+        let os = crate::os_layer::bare_metal::BareMetalOs::new();
+        let mut shell = ParasiteShell::with_heartbeat(20, 100, "/tmp/fiber_test2.hts");
+
+        let a = shell.spawn(&os, "Alice", AgentRole::Root, 20);
+        let b = shell.spawn(&os, "Bob", AgentRole::Leaf, 20);
+
+        // Alice 辐射到 Bob, 但 Bob 还没坍缩回 Alice
+        shell.agents.get_mut(&a).unwrap().record_radiation("等待任务", "Bob");
+
+        let fibers = shell.weave_fibers();
+        assert_eq!(fibers.len(), 1);
+        assert!(!fibers[0].complete); // 不完整: 只有辐射, 未坍缩
+    }
+
+    #[test]
+    fn weave_fibers_multiple_agents() {
+        let os = crate::os_layer::bare_metal::BareMetalOs::new();
+        let mut shell = ParasiteShell::with_heartbeat(20, 100, "/tmp/fiber_test3.hts");
+
+        let a = shell.spawn(&os, "Root", AgentRole::Root, 20);
+        let b = shell.spawn(&os, "Leaf1", AgentRole::Leaf, 20);
+        let c = shell.spawn(&os, "Leaf2", AgentRole::Leaf, 20);
+
+        // Root 辐射给两个叶子
+        shell.agents.get_mut(&a).unwrap().record_radiation("任务1", "Leaf1");
+        shell.agents.get_mut(&a).unwrap().record_radiation("任务2", "Leaf2");
+        // Leaf1 坍缩回来
+        shell.agents.get_mut(&b).unwrap().record_collapse("Root", "完成");
+        // Leaf2 未坍缩
+
+        let fibers = shell.weave_fibers();
+        assert_eq!(fibers.len(), 2); // 两条纤维
+
+        let complete = fibers.iter().filter(|f| f.complete).count();
+        let incomplete = fibers.iter().filter(|f| !f.complete).count();
+        assert_eq!(complete, 1);   // Leaf1 完整
+        assert_eq!(incomplete, 1); // Leaf2 不完整
+
+        let stats = shell.fiber_statistics();
+        assert_eq!(stats, (1, 1));
+    }
+
+    #[test]
+    fn weave_fibers_no_radiation() {
+        let os = crate::os_layer::bare_metal::BareMetalOs::new();
+        let mut shell = ParasiteShell::with_heartbeat(20, 100, "/tmp/fiber_test4.hts");
+        shell.spawn(&os, "A", AgentRole::Root, 20);
+        shell.spawn(&os, "B", AgentRole::Leaf, 20);
+        // 无辐射事件 → 无纤维
+
+        assert!(shell.weave_fibers().is_empty());
     }
 }

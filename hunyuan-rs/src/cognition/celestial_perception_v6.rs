@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════════════════════
-// celestial_perception_v6.rs — 天觉v6（老六）· 自举操作系统内核
+// celestial_perception_v6.rs — 天庭v6（老六）· 自举操作系统内核
 // 九系扩展: v1-v5全系统 + OS内核(系统调用+进程调度+内存管理+中断+自举)
 // ══════════════════════════════════════════════════════════════════
 //
@@ -25,7 +25,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 // 从合并的 v1 导入全部基础类型 (源头)
 use crate::celestial_perception::{
     // 授权体系
-    TianJueAuth, AuditoryAuth,
+    HeavenlyCourtAuth, AuditoryAuth,
     // 感知基础
     BagAttributes, Bag, BagHierarchy, HierarchyReport,
     VisualSystem, AuditorySystem,
@@ -655,7 +655,7 @@ impl Default for Bootstrap {
 }
 
 // ======================================================================
-// 第六部分: 天觉v6引擎 — OS内核整合
+// 第六部分: 天庭v6引擎 — OS内核整合
 // ======================================================================
 
 /// v6管道结果 — 增加内核字段
@@ -668,7 +668,7 @@ pub struct PipelineResultV6 {
     pub stage: BootStage,
 }
 
-/// 天觉v6引擎 — OS内核整合
+/// 天庭v6引擎 — OS内核整合
 pub struct CelestialPerceptionV6<'a> {
     pub syscall_iface: SyscallInterface,
     pub scheduler: ProcessScheduler,
@@ -806,7 +806,7 @@ impl<'a> CelestialPerceptionV6<'a> {
 
     pub fn report(&self) -> String {
         let mut s = String::new();
-        s.push_str("═══ 天觉v6报告（老六）· OS内核整合 ═══\n");
+        s.push_str("═══ 天庭v6报告（老六）· OS内核整合 ═══\n");
         s.push_str(&format!("  {}\n", self.bootstrap.stats()));
         s.push_str(&format!("  {}\n", self.syscall_iface.stats()));
         s.push_str(&format!("  {}\n", self.scheduler.stats()));

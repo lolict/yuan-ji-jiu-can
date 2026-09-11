@@ -1,14 +1,14 @@
 // ======================================================================
-// celestial_perception_v10.rs — 天觉系统 v10（老十）· 九元天觉总装: 能力+命名空间+POSIX系统调用
+// celestial_perception_v10.rs — 天庭系统 v10（老十）· 九元天庭总装: 能力+命名空间+POSIX系统调用
 //
-// 本文件在天觉v6/v7/v8内核+存储+网络基础上, 新增OS安全+系统调用层:
+// 本文件在天庭v6/v7/v8内核+存储+网络基础上, 新增OS安全+系统调用层:
 //
 //   1. 能力系统 (Capability)         — 袋子操作权限令牌 · 最小特权 · 移交/派生
 //   2. 命名空间 (Namespace)          — mount/pid/net/user ns · 隔离视图 · unshare
 //   3. POSIX系统调用接口             — open/close/read/write/clone/exec/exit/fork
 //   4. 安全策略引擎 (PolicyEngine)   — 默认拒绝 + 公约数最小特权裁决
 //
-// 天觉公理: 权力即袋子携带的能力, 身份即命名空间划定的边界;
+// 天庭公理: 权力即袋子携带的能力, 身份即命名空间划定的边界;
 //           每一个系统调用都是一次袋子的权力宣告;
 //           公约数裁定"什么是可共享的", 差集裁定"什么是不可侵犯的".
 // ======================================================================
@@ -363,7 +363,7 @@ pub fn gcd(mut a: u64, mut b: u64) -> u64 {
 }
 
 // ======================================================================
-// 第五部分: 天觉V10引擎
+// 第五部分: 天庭V10引擎
 // ======================================================================
 
 #[derive(Clone, Debug)]
@@ -505,7 +505,7 @@ impl CelestialPerceptionV10 {
 
     pub fn report(&self) -> String {
         let mut s = String::new();
-        s.push_str("═══ 天觉v10报告（老十）· 九元天觉总装 ═══\n");
+        s.push_str("═══ 天庭v10报告（老十）· 九元天庭总装 ═══\n");
         s.push_str(&format!("  进程数: {}\n", self.processes.len()));
         s.push_str(&format!("  能力总数: {} (已颁发 {})\n", self.caps.capabilities.len(), self.pipeline.capabilities_issued));
         s.push_str(&format!("  命名空间数: {}\n", self.namespaces.total_ns()));
@@ -758,7 +758,7 @@ mod tests {
     fn v10_report_format() {
         let engine = CelestialPerceptionV10::new();
         let report = engine.report();
-        assert!(report.contains("天觉v10"));
+        assert!(report.contains("天庭v10"));
         assert!(report.contains("进程"));
     }
 

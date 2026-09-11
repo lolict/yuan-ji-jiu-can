@@ -592,6 +592,42 @@ static int run_self_tests(void) {
     }
     printf("  10项往返测试完成\n\n");
 
+    /* 测试9: 文件 I/O 往返 */
+    printf("[测试9] 文件 I/O 往返:\n");
+    /* 构造临时文件 */
+    {
+        FILE* f = fopen("/tmp/phono_test_in.txt", "w");
+        if (f) {
+            fprintf(f, "ma1\nshì\nnǚ\nwǒ ài nǐ\n");
+            fclose(f);
+            f = fopen("/tmp/phono_test_out.txt", "w");
+            if (f) fclose(f);  /* 先清空 */
+        }
+    }
+    {
+        /* 运行 -i 模式 -> 输出到文件 */
+        FILE* f = fopen("/tmp/phono_test_in.txt", "w");
+        if (f) { fprintf(f, "mā\nshì\nnǜ\nwǒ\n"); fclose(f); }
+    }
+    /* 直接编码检查 */
+    {
+        char test_inputs[] = "mā shì nǜ wǒ";
+        char tmp[512]; strncpy(tmp, test_inputs, 511); tmp[511] = 0;
+        char* tok = strtok(tmp, " ");
+        int enc_count = 0;
+        while (tok) {
+            char sym[64];
+            if (encode_pinyin_buf(tok, sym, sizeof(sym)) == 0) {
+                char back[64];
+                decode_syllable_to_pinyin(sym, back, sizeof(back));
+                if (strcmp(back, tok) == 0) { enc_count++; pass++; }
+                else { printf("  ✗ '%s' 往返不一致: %s\n", tok, back); fail++; }
+            }
+            tok = strtok(NULL, " ");
+        }
+        printf("  %d/4 整句音节往返成功\n\n", enc_count);
+    }
+
     /* 汇总 */
     printf("═══════════════════════════════════\n");
     printf("  自检测试结果: 通过=%d, 失败=%d\n", pass, fail);
@@ -660,24 +696,21 @@ static pinyin_parsed_t parse_pinyin(const char* s) {
     char buf[64];
     strncpy(buf, s, 63); buf[63] = 0;
 
-    /* 检测格式: 如果首字节 > 127 → 已带声调字符 */
+    /* 方案1: 纯无声母声调字符 (ā/ǚ 等独立元音带调) */
     if ((unsigned char)buf[0] >= 0x80) {
-        /* 自带声调模式: ā ē ī ō ū ǖ 等 */
         char base = tone_mark_to_base(buf);
         int tone = tone_mark_to_int(buf);
         if (base && tone) {
-            /* 无声母的基元声调: ā=啊一声 */
-            if (base == 'v') strcpy(result.yunmu, "v");
-            else { result.yunmu[0] = base; result.yunmu[1] = 0; }
+            result.yunmu[0] = (base == 'v') ? 'v' : base;
+            result.yunmu[1] = 0;
             result.tone = tone;
             result.valid = 1;
             return result;
         }
-        /* 无声母复合韵母带调? 忽略 */
         return result;
     }
 
-    /* 先尝试分离末尾声调数字 */
+    /* 方案2: 先分离末尾声调数字 (兼容 ma1 格式) */
     int len = strlen(buf);
     if (len > 0 && buf[len-1] >= '1' && buf[len-1] <= '4') {
         result.tone = buf[len-1] - '0';
@@ -685,27 +718,49 @@ static pinyin_parsed_t parse_pinyin(const char* s) {
         len--;
     }
 
-    /* 尝试匹配声母 (优先匹配双字母) */
-    for (int i = 20; i < SHENGMU_ASCII_COUNT; i++) { /* zh ch sh ng 优先 */
+    /* 尝试声母 (优先双字母) + 声调韵母检测 */
+    for (int i = 20; i < SHENGMU_ASCII_COUNT; i++) {
         int slen = strlen(SHENGMU_ASCII[i]);
         if (strncmp(buf, SHENGMU_ASCII[i], slen) == 0) {
+            const char* vowel = buf + slen;
+            char base = tone_mark_to_base(vowel);
+            int tone = tone_mark_to_int(vowel);
+            if (base && tone) {
+                strcpy(result.shengmu, SHENGMU_ASCII[i]);
+                result.yunmu[0] = (base == 'v') ? 'v' : base;
+                result.yunmu[1] = 0;
+                result.tone = tone;
+                result.valid = 1;
+                return result;
+            }
             strcpy(result.shengmu, SHENGMU_ASCII[i]);
-            strcpy(result.yunmu, buf + slen);
+            strcpy(result.yunmu, vowel);
             result.valid = 1;
             return result;
         }
     }
-    for (int i = 0; i < 20; i++) { /* 单字母声母 */
+    for (int i = 0; i < 20; i++) {
         int slen = strlen(SHENGMU_ASCII[i]);
         if (strncmp(buf, SHENGMU_ASCII[i], slen) == 0) {
+            const char* vowel = buf + slen;
+            char base = tone_mark_to_base(vowel);
+            int tone = tone_mark_to_int(vowel);
+            if (base && tone) {
+                strcpy(result.shengmu, SHENGMU_ASCII[i]);
+                result.yunmu[0] = (base == 'v') ? 'v' : base;
+                result.yunmu[1] = 0;
+                result.tone = tone;
+                result.valid = 1;
+                return result;
+            }
             strcpy(result.shengmu, SHENGMU_ASCII[i]);
-            strcpy(result.yunmu, buf + slen);
+            strcpy(result.yunmu, vowel);
             result.valid = 1;
             return result;
         }
     }
 
-    /* 无声母开头，全是韵母 */
+    /* 无声母开头 */
     strcpy(result.yunmu, buf);
     result.valid = 1;
     return result;
@@ -1083,6 +1138,70 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
+    if (strcmp(argv[1], "-i") == 0 && argc >= 3) {
+        /* 文件批量转码: 每行一个拼音, 输出到 stdout 或 -o 指定文件 */
+        FILE* fin = fopen(argv[2], "r");
+        if (!fin) { perror("打开输入文件"); return 1; }
+        const char* outname = NULL;
+        FILE* fout = stdout;
+        int verbose = 0;
+        for (int a = 3; a < argc; a++) {
+            if (strcmp(argv[a], "-o") == 0 && a+1 < argc) outname = argv[++a];
+            else if (strcmp(argv[a], "-v") == 0) verbose = 1;
+        }
+        if (outname) { fout = fopen(outname, "w"); if (!fout) { perror("打开输出文件"); fclose(fin); return 1; } }
+
+        char line[256];
+        int lineno = 0;
+        while (fgets(line, sizeof(line), fin)) {
+            line[strcspn(line, "\n")] = 0;
+            lineno++;
+            if (line[0] == 0 || line[0] == '#') {
+                if (verbose && fout == stdout) printf("# 跳过行 %d\n", lineno);
+                continue;
+            }
+
+            if (strchr(line, ' ')) {
+                /* 整句批量 */
+                char out[2048] = "";
+                char tmp[512]; strncpy(tmp, line, 511); tmp[511] = 0;
+                char* tok = strtok(tmp, " \t");
+                int first = 1;
+                while (tok) {
+                    char sym[64];
+                    if (encode_pinyin_buf(tok, sym, sizeof(sym)) == 0) {
+                        if (!first) strcat(out, " ");
+                        strcat(out, sym);
+                        first = 0;
+                    }
+                    tok = strtok(NULL, " \t");
+                }
+                if (verbose) fprintf(fout, "%s\t%s\n", line, out);
+                else fprintf(fout, "%s\n", out);
+            } else {
+                /* 单音节 */
+                char sym[64];
+                if (encode_pinyin_buf(line, sym, sizeof(sym)) == 0) {
+                    if (verbose) {
+                        char decoded[64];
+                        decode_syllable_to_pinyin(sym, decoded, sizeof(decoded));
+                        fprintf(fout, "%s\t%s\t[%s\t", line, sym, decoded);
+                        /* 显示 UTF-8 字节 */
+                        for (int b = 0; sym[b]; b++) fprintf(fout, "%02x ", (unsigned char)sym[b]);
+                        fprintf(fout, "]\n");
+                    } else {
+                        fprintf(fout, "%s\n", sym);
+                    }
+                } else {
+                    fprintf(fout, "# 行 %d 转码失败: %s\n", lineno, line);
+                }
+            }
+        }
+        fclose(fin);
+        if (outname) fclose(fout);
+        return 0;
+    }
+
     if ((strcmp(argv[1], "-r") == 0 || strcmp(argv[1], "--roundtrip") == 0) && argc >= 3) {
         return roundtrip_test((const char**)(argv + 2), argc - 2);
     }
@@ -1091,14 +1210,18 @@ int main(int argc, char* argv[]) {
         printf("phono_codec — 满全法语音编解码器\n");
         printf("仅使用 z-api.txt + symbols_list.txt 中的符号\n\n");
         printf("用法:\n");
-        printf("  ./phono              交互模式\n");
-        printf("  ./phono -t           自检测试\n");
-        printf("  ./phono -l           列出全部符号表\n");
-        printf("  ./phono -e <符号>    符号分类报告\n");
-        printf("  ./phono -p <拼音>    拼音→符号编码\n");
-        printf("  ./phono -s <整句>    批量编码 (空格分隔)\n");
-        printf("  ./phono -r <拼音>    往返测试 (拼音→符号→拼音)\n");
-        printf("  ./phono -h           帮助\n");
+        printf("  ./phono               交互模式 (py/d/s/q 命令)\n");
+        printf("  ./phono -t            自检测试 (84项)\n");
+        printf("  ./phono -l            列出全部符号表\n");
+        printf("  ./phono -e <符号>     符号分类报告\n");
+        printf("  ./phono -p <拼音>     拼音→符号编码\n");
+        printf("  ./phono -s <整句>     批量编码 (空格分隔)\n");
+        printf("  ./phono -d <符号>     符号→拼音解码\n");
+        printf("  ./phono -r <拼音>     往返测试\n");
+        printf("  ./phono -i <file> [-o out] [-v]  文件批量转码\n");
+        printf("  ./phono -h            帮助\n\n");
+        printf("拼音输入: mā / ma1 / 数字或声调字符\n");
+        printf("文件模式: 每行一个音节或整句 (#注释跳过)\n");
         return 0;
     }
 

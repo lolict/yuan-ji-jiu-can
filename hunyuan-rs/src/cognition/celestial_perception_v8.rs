@@ -1,14 +1,14 @@
 // ======================================================================
-// celestial_perception_v8.rs — 天觉系统 v8（老八）· 盟机合袋子网络协议栈
+// celestial_perception_v8.rs — 天庭系统 v8（老八）· 盟机合袋子网络协议栈
 //
-// 本文件在天觉v7 OS三合一张基础上, 新增分布式网络层:
+// 本文件在天庭v7 OS三合一张基础上, 新增分布式网络层:
 //
 //   1. 袋子数据包 (BagPacket)    — 主权标记 · 袋子ID · 序列号 · 校验和
 //   2. 盟机合协议状态机          — 三次握手建立 · 袋子流转传输 · 确认重传
 //   3. 盟机场节点管理            — 节点注册/发现/心跳/主权链
 //   4. 主权路由表                — 目的地 盟机场 → 下一跳 · 公约数优先路由
 //
-// 天觉公理: 网络是袋子流动的管道, 主权是路由的身份证;
+// 天庭公理: 网络是袋子流动的管道, 主权是路由的身份证;
 //           盟机场是袋子进出的关卡, 盟机合掌是资源的开关.
 // ======================================================================
 
@@ -574,7 +574,7 @@ pub fn gcd(mut a: u64, mut b: u64) -> u64 {
 }
 
 // ======================================================================
-// 第五部分: 天觉V8引擎 — 盟机合协议栈总集成
+// 第五部分: 天庭V8引擎 — 盟机合协议栈总集成
 // ======================================================================
 
 /// V8 引擎输出
@@ -598,7 +598,7 @@ pub struct TxStats {
     pub errors: u64,
 }
 
-/// 天觉V8引擎 — 盟机合袋子网络协议栈
+/// 天庭V8引擎 — 盟机合袋子网络协议栈
 pub struct CelestialPerceptionV8 {
     pub node_mgr: NodeManager,
     pub router: SovereignRouter,
@@ -720,7 +720,7 @@ impl CelestialPerceptionV8 {
     /// 汇报
     pub fn report(&self) -> String {
         let mut s = String::new();
-        s.push_str("═══ 天觉v8报告（老八）· 盟机合袋子网络 ═══\n");
+        s.push_str("═══ 天庭v8报告（老八）· 盟机合袋子网络 ═══\n");
         s.push_str(&format!("  协议版本: {}\n", self.protocol_version));
         s.push_str(&format!("  节点数: {} (存活: {})\n",
             self.node_mgr.node_count(), self.node_mgr.alive_count()));
@@ -1088,7 +1088,7 @@ mod tests {
         let mut engine = CelestialPerceptionV8::new("me");
         engine.start_network("my_addr", "holder");
         let report = engine.report();
-        assert!(report.contains("天觉v8"));
+        assert!(report.contains("天庭v8"));
         assert!(report.contains("节点"));
         assert!(report.contains("路由"));
     }

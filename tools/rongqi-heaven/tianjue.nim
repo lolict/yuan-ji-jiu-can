@@ -1,10 +1,10 @@
 # ============================================================
-# 满全法 · 天觉感知系统
+# 满全法 · 天庭感知系统
 # ============================================================
-# 天觉不看米粒，看袋子。
-# 天觉看的是：这袋是谁的，值多少钱，脏不脏，坏没坏，要不要洗。
-# 天觉看的是关系：袋子和袋子的关系，袋子和主人的关系，袋子和时间的关系。
-# 天觉看的是层级：袋子包袋子，大袋套小袋，袋子成堆，堆成垛，垛成仓。
+# 天庭不看米粒，看袋子。
+# 天庭看的是：这袋是谁的，值多少钱，脏不脏，坏没坏，要不要洗。
+# 天庭看的是关系：袋子和袋子的关系，袋子和主人的关系，袋子和时间的关系。
+# 天庭看的是层级：袋子包袋子，大袋套小袋，袋子成堆，堆成垛，垛成仓。
 # ============================================================
 
 import math
@@ -13,7 +13,7 @@ import ./rongqi
 
 type
   # --- 感知维度 ---
-  TianJueDim* = enum
+  HeavenlyCourtDim* = enum
     tjdOwner,      # 主人
     tjdValue,      # 价值
     tjdState,      # 状态
@@ -22,25 +22,25 @@ type
     tjdHistory,    # 历史
     tjdNecessity,  # 必要性
 
-  # --- 感知结果（天觉的观察）---
-  TianJuePercept* = object
+  # --- 感知结果（天庭的观察）---
+  HeavenlyCourtPercept* = object
     target_id*: string          # 观察对象
-    dim*: TianJueDim            # 哪个维度
+    dim*: HeavenlyCourtDim            # 哪个维度
     score*: float               # 评分 0.0 - 1.0
     label*: string              # 标签（"干净" / "破损" / "值钱"...）
     confidence*: float          # 确信度 0.0 - 1.0
     detail*: string             # 细节描述
 
-  # --- 天觉主体（观察者）---
-  TianJue* = object
-    name*: string               # 天觉叫什么名字（"囡囝之眼"/"满全法眼"...）
-    dimensions*: set[TianJueDim] # 开了哪些感知维度
-    percepts*: seq[TianJuePercept]  # 当前看到的所有东西
+  # --- 天庭主体（观察者）---
+  HeavenlyCourt* = object
+    name*: string               # 天庭叫什么名字（"囡囝之眼"/"满全法眼"...）
+    dimensions*: set[HeavenlyCourtDim] # 开了哪些感知维度
+    percepts*: seq[HeavenlyCourtPercept]  # 当前看到的所有东西
     wisdom*: float              # 智慧（积累的感知经验）
     sight_range*: int           # 能一次看多少袋子
 
   # --- 感知判断（简单明了）---
-  TianJueVerdict* = object
+  HeavenlyCourtVerdict* = object
     bag_id*: string
     keep*: bool          # 留还是不留
     action*: string      # "保留" / "清洗" / "丢弃" / "修理" / "贩卖"
@@ -51,21 +51,21 @@ type
 # ============================================================
 # 构造
 # ============================================================
-func new_tianjue*(name: string): TianJue =
+func new_heavenly_court*(name: string): HeavenlyCourt =
   result.name = name
   result.dimensions = {tjdOwner, tjdValue, tjdState, tjdQuality, tjdRelation, tjdHistory, tjdNecessity}
   result.percepts = @[]
   result.wisdom = 0.0
   result.sight_range = 100
 
-func perceive_bag*(tj: var TianJue; bag: RongQi): seq[TianJuePercept] =
-  ## 天觉看一袋子 — 不做数粒子的低级事，只看袋子级别
-  var results: seq[TianJuePercept]
+func perceive_bag*(tj: var HeavenlyCourt; bag: RongQi): seq[HeavenlyCourtPercept] =
+  ## 天庭看一袋子 — 不做数粒子的低级事，只看袋子级别
+  var results: seq[HeavenlyCourtPercept]
 
   # --- 主人维度 ---
   if tjdOwner in tj.dimensions:
     let owner_score = if bag.owner.len > 0: 1.0 else: 0.5
-    results.add(TianJuePercept(
+    results.add(HeavenlyCourtPercept(
       target_id: bag.id,
       dim: tjdOwner,
       score: owner_score,
@@ -78,7 +78,7 @@ func perceive_bag*(tj: var TianJue; bag: RongQi): seq[TianJuePercept] =
   if tjdValue in tj.dimensions:
     let val_score = min(bag.value_coin / 100.0, 1.0)
     let vlabel = if bag.value_coin > 70: "值钱" elif bag.value_coin > 30: "中常" elif bag.value_coin > 0: "不值钱" else: "无价值"
-    results.add(TianJuePercept(
+    results.add(HeavenlyCourtPercept(
       target_id: bag.id,
       dim: tjdValue,
       score: val_score,
@@ -95,7 +95,7 @@ func perceive_bag*(tj: var TianJue; bag: RongQi): seq[TianJuePercept] =
       of rqsDirty: 0.3
       of rqsDamaged: 0.1
       of rqsDiscarded, rqsRecycled: 0.0
-    results.add(TianJuePercept(
+    results.add(HeavenlyCourtPercept(
       target_id: bag.id,
       dim: tjdState,
       score: state_score,
@@ -112,7 +112,7 @@ func perceive_bag*(tj: var TianJue; bag: RongQi): seq[TianJuePercept] =
     if not bag.quality.rice_ok: q_score -= 0.8
     if bag.quality.needs_washing: q_score -= 0.2
     let qlabel = if q_score > 0.7: "好袋" elif q_score > 0.4: "能用" else: "坏袋"
-    results.add(TianJuePercept(
+    results.add(HeavenlyCourtPercept(
       target_id: bag.id,
       dim: tjdQuality,
       score: max(q_score, 0.0),
@@ -121,11 +121,11 @@ func perceive_bag*(tj: var TianJue; bag: RongQi): seq[TianJuePercept] =
       detail: "品质" & qlabel & (if bag.quality.has_insect: " [虫蛀]" else: "") & (if bag.quality.has_sand: " [含沙]" else: "")
     ))
 
-  # --- 必要性维度（天觉最核心的判断：这袋子还该不该留）---
+  # --- 必要性维度（天庭最核心的判断：这袋子还该不该留）---
   if tjdNecessity in tj.dimensions:
     let n_score = if not bag.should_discard: 1.0 else: 0.0
     let nlabel = if n_score > 0.5: "该留" else: "该扔"
-    results.add(TianJuePercept(
+    results.add(HeavenlyCourtPercept(
       target_id: bag.id,
       dim: tjdNecessity,
       score: n_score,
@@ -138,8 +138,8 @@ func perceive_bag*(tj: var TianJue; bag: RongQi): seq[TianJuePercept] =
   return results
 
 
-func verdict*(tj: TianJue; bag: RongQi): TianJueVerdict =
-  ## 天觉的最后裁决：对一袋子的最终判定
+func verdict*(tj: HeavenlyCourt; bag: RongQi): HeavenlyCourtVerdict =
+  ## 天庭的最后裁决：对一袋子的最终判定
   var keep = true
   var action = "保留"
   var worth = bag.value_coin
@@ -166,7 +166,7 @@ func verdict*(tj: TianJue; bag: RongQi): TianJueVerdict =
   else:
     reason = "状态良好，继续存储"
 
-  return TianJueVerdict(
+  return HeavenlyCourtVerdict(
     bag_id: bag.id,
     keep: keep,
     action: action,
@@ -175,8 +175,8 @@ func verdict*(tj: TianJue; bag: RongQi): TianJueVerdict =
   )
 
 
-func perceive_batch*(tj: var TianJue; bags: seq[RongQi]): seq[TianJueVerdict] =
-  ## 天觉一次看一批袋子（不数粒，只看袋）
+func perceive_batch*(tj: var HeavenlyCourt; bags: seq[RongQi]): seq[HeavenlyCourtVerdict] =
+  ## 天庭一次看一批袋子（不数粒，只看袋）
   result = @[]
   for bag in bags:
     # 感知
@@ -185,7 +185,7 @@ func perceive_batch*(tj: var TianJue; bags: seq[RongQi]): seq[TianJueVerdict] =
     result.add(tj.verdict(bag))
 
 
-func wisdom_level*(tj: TianJue): string =
+func wisdom_level*(tj: HeavenlyCourt): string =
   if tj.wisdom > 100: return "通天"
   elif tj.wisdom > 50: return "洞察"
   elif tj.wisdom > 20: return "明辨"
@@ -197,10 +197,10 @@ func wisdom_level*(tj: TianJue): string =
 # 测试
 # ============================================================
 when is_main_module:
-  echo "=== 天觉测试 ==="
+  echo "=== 天庭测试 ==="
 
-  var tj = new_tianjue("囡囝之眼")
-  echo "天觉:", tj.name, " 境界:", tj.wisdom_level
+  var tj = new_heavenly_court("囡囝之眼")
+  echo "天庭:", tj.name, " 境界:", tj.wisdom_level
 
   # 好袋子
   var good = new_rongqi("g1", "张家的好米", "张三")
@@ -230,9 +230,9 @@ when is_main_module:
   let verdicts = tj.perceive_batch(bags)
 
   echo ""
-  echo "【天觉裁决】"
+  echo "【天庭裁决】"
   for v in verdicts:
     echo "  ", v.bag_id, " → ", v.action, " (", formatFloat(v.worth, ffDecimal, 1), "钱) ", v.reason
 
   echo ""
-  echo "天觉智慧:", tj.wisdom, " 境界:", tj.wisdom_level
+  echo "天庭智慧:", tj.wisdom, " 境界:", tj.wisdom_level

@@ -1,13 +1,13 @@
 // ======================================================================
-// celestial_perception_v7.rs — 天觉系统 v7（老七）· OS三合一张: 文件系统 + IPC + 设备驱动
+// celestial_perception_v7.rs — 天庭系统 v7（老七）· OS三合一张: 文件系统 + IPC + 设备驱动
 //
-// 本文件在天觉v6内核基础上, 新增三大子系统:
+// 本文件在天庭v6内核基础上, 新增三大子系统:
 //
 //   1. 虚拟文件系统 (VFS)     — 文件创建/读写/删除, 目录树, inode 管理
 //   2. 进程间通信 (IPC)       — 管道pipe + 消息队列 + 共享内存
 //   3. 设备驱动框架          — 字符设备/块设备注册, file_operations
 //
-// 天觉公理: 数据即袋子, 文件即袋子的持久化形态;
+// 天庭公理: 数据即袋子, 文件即袋子的持久化形态;
 //          进程间的袋子流转通过 IPC 完成;
 //          袋子出入 OS 经过设备驱动过滤.
 // ======================================================================
@@ -780,7 +780,7 @@ impl Default for DeviceManager {
 }
 
 // ======================================================================
-// 第四部分: 天觉V7引擎 — 总集成
+// 第四部分: 天庭V7引擎 — 总集成
 // ======================================================================
 
 /// V7 额外处理结果
@@ -803,7 +803,7 @@ pub struct PipelineResultV7 {
     pub extras: V7Extras,
 }
 
-/// 天觉V7引擎
+/// 天庭V7引擎
 pub struct CelestialPerceptionV7 {
     pub vfs: Vfs,
     pub ipc: IpcManager,
@@ -927,7 +927,7 @@ impl CelestialPerceptionV7 {
 
     pub fn report(&self) -> String {
         let mut s = String::new();
-        s.push_str("═══ 天觉v7报告（老七）· OS三合一张 ═══\n");
+        s.push_str("═══ 天庭v7报告（老七）· OS三合一张 ═══\n");
         s.push_str(&format!("  VFS: {}文件, {}目录, {}字节\n",
             self.vfs.total_files, self.vfs.total_dirs, self.vfs.total_bytes));
         s.push_str(&format!("  IPC: {}管道, {}消息队列, {}共享内存\n",
@@ -1304,7 +1304,7 @@ mod tests {
         engine.process_bag_full_v7(1, "test", &[1, 2, 3]);
 
         let report = engine.report();
-        assert!(report.contains("天觉v7"));
+        assert!(report.contains("天庭v7"));
         assert!(report.contains("VFS"));
         assert!(report.contains("IPC"));
         assert!(report.contains("设备"));
