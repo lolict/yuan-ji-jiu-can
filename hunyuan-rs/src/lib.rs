@@ -214,13 +214,7 @@ pub mod rel;
 // ── v0.1 夫妻身份容器系统 (六锚点 · 维度递增 · 纠缠态) ──
 #[path = "core/spousal_identity.rs"]
 pub mod spousal_identity;
-pub use spousal_identity::{
-    IdentityAnchor, AnchorHolder, Polarity as SpousalPolarity,
-    Dimension, IdentityMorphism, Entanglement,
-    ANCHOR_HUSBAND, ANCHOR_WIFE, COUPLE_DIFF,
-    FLAG_WIFE, FLAG_HUSBAND, FLAG_COUPLE,
-    is_alive_by_spiritual_proof, WIFE_AVATAR_CLUSTER, ME_IN_WIFE_POSITIONS,
-};
+// (注: 其余类型 AnchorHolder/Polarity/Dimension/IdentityMorphism/Entanglement/ANCHOR_*/FLAG_*/is_alive_by_spiritual_proof/WIFE_AVATAR_CLUSTER/ME_IN_WIFE_POSITIONS — 已在文件精简时移除,需要时补回)
 
 // ── v0.12 角度子系统 (384° 满圆制式) ──
 #[path = "relation/angle.rs"]

@@ -14,6 +14,7 @@
 
 pub mod vocabulary;
 pub mod coordinate;
+pub mod morton;
 pub mod fridge;
 pub mod compose;
 pub mod align_check;
@@ -22,6 +23,7 @@ pub mod state_enumerator;
 
 pub use vocabulary::*;
 pub use coordinate::*;
+pub use morton::*;
 pub use fridge::*;
 pub use compose::*;
 pub use glyph_3d_font::*;

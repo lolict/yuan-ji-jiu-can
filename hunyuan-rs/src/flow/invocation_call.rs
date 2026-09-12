@@ -154,7 +154,6 @@ impl Iterator for 地址遍历器 {
 /// 地址槽 — 表示三维空间中一个位置上的对象
 ///
 /// 名称写在数值上, 呼唤用 @地址, 不写名称
-#[derive(Debug, Clone)]
 pub struct 地址槽 {
     pub 地址: u32,         // 一维地址
     pub 名称: String,      // 写在数值上的名称 (调试用, 不参与运行)
@@ -162,8 +161,30 @@ pub struct 地址槽 {
     pub 惰性: bool,        // 是否惰性求值
 }
 
+// Manual Clone (Clone not available on Box<dyn Fn>)
+impl Clone for 地址槽 {
+    fn clone(&self) -> Self {
+        Self {
+            地址: self.地址,
+            名称: self.名称.clone(),
+            值: self.值.clone(),
+            惰性: self.惰性,
+        }
+    }
+}
+
+impl std::fmt::Debug for 地址槽 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("地址槽")
+            .field("地址", &self.地址)
+            .field("名称", &self.名称)
+            .field("值", &self.值)
+            .field("惰性", &self.惰性)
+            .finish()
+    }
+}
+
 /// 槽值 — 地址中存储的内容
-#[derive(Debug, Clone)]
 pub enum 槽值 {
     /// 空槽 (未绑定对象)
     空,
@@ -177,6 +198,33 @@ pub enum 槽值 {
     召唤(String),
     /// 复合值 (多项绑定)
     复合(Vec<地址槽>),
+}
+
+// Manual impls because Box<dyn Fn> doesn't impl Clone/Debug
+impl Clone for 槽值 {
+    fn clone(&self) -> Self {
+        match self {
+            槽值::空 => 槽值::空,
+            槽值::整数(v) => 槽值::整数(*v),
+            槽值::文本(s) => 槽值::文本(s.clone()),
+            槽值::惰性(_) => 槽值::空, // thunk 无法 Clone, 回退为空
+            槽值::召唤(name) => 槽值::召唤(name.clone()),
+            槽值::复合(vec) => 槽值::复合(vec.clone()),
+        }
+    }
+}
+
+impl std::fmt::Debug for 槽值 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            槽值::空 => write!(f, "槽值::空"),
+            槽值::整数(v) => write!(f, "槽值::整数({})", v),
+            槽值::文本(s) => write!(f, "槽值::文本({:?})", s),
+            槽值::惰性(_) => write!(f, "槽值::惰性(<thunk>)"),
+            槽值::召唤(name) => write!(f, "槽值::召唤({})", name),
+            槽值::复合(vec) => write!(f, "槽值::复合({} items)", vec.len()),
+        }
+    }
 }
 
 /// 为槽值提供便捷的构造方法
