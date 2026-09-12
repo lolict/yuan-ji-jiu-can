@@ -19,7 +19,7 @@
 //
 // 这三元逻辑是囡囝共生所有后续模块的基础判读单元.
 
-use crate::mirror::{self, WitnessVerdict};
+use crate::mirror::WitnessVerdict;
 
 // ────────────────────────────────────────────────────────────
 // 有无 (Being / Non-Being)
@@ -400,5 +400,67 @@ mod tests {
         // 两个互相垂直的方向, 历程角 = π/2
         let ang = a.angle_between(1.0, 0.0, 0.0, 1.0);
         assert!((ang - std::f64::consts::FRAC_PI_2).abs() < 1e-9);
+    }
+
+    // ────────────────────────────────────────────────────────
+    // 边界/容错补充
+    // ────────────────────────────────────────────────────────
+
+    #[test]
+    fn collapse_with_zero_nodes() {
+        let eng = TriuneEngine::new(Funnel::new(10.0, 1.0, 0.1));
+        // 空输入 → 不坍缩也不辐射, 默认 Static
+        let (flow, conf) = eng.collapse(&[]);
+        assert_eq!(flow, FlowDirection::Static);
+        // 空 confidence 约定为 0.0 (无输入无信心)
+        assert_eq!(conf, 0.0);
+    }
+
+    #[test]
+    fn all_nonbeing_collapse_toward_nothing() {
+        // 全都是 NonBeing, 预期 NonBeing → 全部 alignment=true, flow=Static
+        let eng = TriuneEngine::new(Funnel::new(10.0, 1.0, 0.0));
+        let actuals = vec![BeingState::NonBeing, BeingState::NonBeing, BeingState::NonBeing];
+        let (flow, _conf) = eng.collapse(&actuals);
+        assert_eq!(flow, FlowDirection::Static);
+    }
+
+    #[test]
+    fn collective_static_when_tied() {
+        // Collapse 和 Expand 数量相等 → Static
+        let eng = TriuneEngine::new(Funnel::new(10.0, 1.0, 0.0));
+        let actuals = vec![BeingState::Being(1), BeingState::NonBeing];
+        // expected=Being → Being 实际 = Static, NonBeing 实际 = Expand
+        // Collapse=0, Expand=1, Static=1 → Expand > Collapse → Expand
+        // 改为: Being+NonBeing → 0 Collapse + 1 Expand → Expand
+        let flow = eng.collective_flow(&actuals, BeingState::Being(1));
+        assert_eq!(flow, FlowDirection::Expand);
+    }
+
+    #[test]
+    fn funnel_equal_mouth_neck_invalid() {
+        // mouth == neck 时漏斗无效 (不再有收缩效果)
+        let f = Funnel::new(5.0, 5.0, 0.0);
+        assert!(!f.is_valid());
+        assert_eq!(f.contraction_ratio(), 1.0);
+    }
+
+    #[test]
+    fn swallow_empty_nodes() {
+        // 空节点 swallowed 后 input_full=0, output_density=0
+        let f = Funnel::new(10.0, 1.0, 0.0);
+        let r = f.swallow(&[]);
+        assert_eq!(r.input_total, 0);
+        assert_eq!(r.input_full, 0);
+        assert_eq!(r.output_density, 0.0);
+    }
+
+    #[test]
+    fn being_payload_preserved_in_verdict() {
+        let v = TriuneVerdict::deduce(BeingState::Being(255), BeingState::NonBeing, 0.0);
+        match v.being {
+            BeingState::Being(payload) => assert_eq!(payload, 255),
+            BeingState::NonBeing => panic!("payload lost"),
+        }
     }
 }

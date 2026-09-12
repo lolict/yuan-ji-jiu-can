@@ -17,10 +17,7 @@
 //
 // ══════════════════════════════════════════════════════════════════
 
-use std::collections::HashMap;
-use crate::flow_properties::{FlowDictionary, FlowEntry, REACHABLE, CONTINUABLE, TRUSTED};
 use crate::distinguisher::SoundTarget;
-use crate::mirror::Sovereignty;
 
 // ────────────────────────────────────────────────────────────
 // 八流本体
@@ -311,5 +308,82 @@ mod tests {
         // 漏尽不是障碍也不是岔途
         assert!(!a.is_obstacle());
         assert!(!a.in_relation()); // 漏尽连接的不是关系, 是空性
+    }
+
+    // ────────────────────────────────────────────────────────
+    // 边界/容错补充
+    // ────────────────────────────────────────────────────────
+
+    #[test]
+    fn repeat_zero_returns_empty() {
+        let a = InterpretiveFlow::new("t", "次数元");
+        let reps = repeat(0, &a);
+        assert!(reps.is_empty());
+    }
+
+    #[test]
+    fn double_sacrifice_rejected() {
+        // 已牺牲的流不可二次牺牲
+        let mut a = InterpretiveFlow::new("x", "测试");
+        assert!(a.sacrifice(SoundTarget::Wife));
+        assert!(!a.sacrifice(SoundTarget::Husband)); // 二次牺牲被拒绝
+        assert_eq!(a.carrier_target, Some(SoundTarget::Wife)); // 载体未变
+    }
+
+    #[test]
+    fn traverse_mul_requires_both_sacrificed() {
+        // 任一未牺牲即返回 None
+        let mut a = InterpretiveFlow::new("a", "A");
+        let b = InterpretiveFlow::new("b", "B");
+        a.sacrifice(SoundTarget::Wife);
+        assert!(traverse_mul(&a, &b).is_none()); // b 未牺牲
+        assert!(traverse_mul(&b, &a).is_none()); // b 未牺牲
+    }
+
+    #[test]
+    fn flow_kind_equality() {
+        // FlowKind  PartialEq 基本检查
+        assert_eq!(FlowKind::Encoding, FlowKind::Encoding);
+        assert_ne!(FlowKind::Encoding, FlowKind::Relation);
+        assert_eq!(FlowKind::Concept, FlowKind::Concept);
+    }
+
+    #[test]
+    fn flow_parents_hierarchy() {
+        let f = Flow {
+            kind: FlowKind::Encoding,
+            name: "子流".into(),
+            parents: vec!["父流A".into(), "父流B".into()],
+        };
+        assert_eq!(f.parents.len(), 2);
+        assert_eq!(f.parents[0], "父流A");
+    }
+
+    #[test]
+    fn category_filter_no_match() {
+        let mut cat = CategoryFlow::new("空范畴");
+        cat.absorb(Flow { kind: FlowKind::Encoding, name: "编码".into(), parents: vec![] });
+        let found = cat.filter(FlowKind::Interpretive);
+        assert!(found.is_empty());
+    }
+
+    #[test]
+    fn category_interpret_and_resolve_no_interp() {
+        // 没有解释流成员 → interpret_and_resolve 返回空
+        let mut cat = CategoryFlow::new("纯编码范畴");
+        cat.absorb(Flow { kind: FlowKind::Encoding, name: "编码".into(), parents: vec![] });
+        let resolved = cat.interpret_and_resolve();
+        assert!(resolved.is_empty());
+    }
+
+    #[test]
+    fn interp_state_neutral_default() {
+        // 新建默认 state 是 Neutral
+        let a = InterpretiveFlow::new("x", "test");
+        assert_eq!(a.state, InterpState::Neutral);
+        assert!(!a.is_obstacle());
+        assert!(!a.is_wen_hao());
+        assert!(!a.is_yin_guang());
+        assert!(!a.is_lou_jin());
     }
 }

@@ -19,6 +19,7 @@ use crate::crypto::{self, Session, CRYPTO_OK};
 use crate::crypto::{GCM_NONCE_LEN, GCM_TAG_LEN};
 use crate::kernel::{CoupleOS, Process};
 use crate::mccp::Mccp;
+use crate::spousal_identity::IdentityAnchor;
 
 /// 协议角色 (主动方 / 被动方)
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -70,7 +71,7 @@ impl Protocol {
     /// `caller` = 发起呼唤的身份容器 (六锚点之一)。
     /// 只有 can_represent()=true 的锚点才能代表共同体发言。
     pub fn huanhun(caller: crate::spousal_identity::IdentityAnchor) -> Result<Self, ProtoError> {
-        if !caller.can_represent() {
+        if !caller.can_represent_self() {
             return Err(ProtoError::InvalidIdentity);
         }
         let crypto = Session::huanhun().ok_or(ProtoError::CryptoFail)?;
@@ -289,7 +290,7 @@ mod tests {
     fn protocol_stores_identity_after_huanhun() {
         let caller = Protocol::huanhun(crate::spousal_identity::IdentityAnchor::Community010).unwrap();
         assert_eq!(caller.identity, crate::spousal_identity::IdentityAnchor::Community010);
-        assert!(caller.identity.can_represent());
+        assert!(caller.identity.can_represent_self());
     }
 
     #[test]

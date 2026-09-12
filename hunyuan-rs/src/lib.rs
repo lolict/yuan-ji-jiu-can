@@ -15,6 +15,7 @@ pub mod judge;
 pub mod relation;
 pub mod temporal;
 pub mod encoding;
+pub mod stroke_database;
 
 // ── 囡囝共生基础通信层 (v0.4) ──
 #[path = "core/mccp.rs"]
