@@ -90,7 +90,7 @@
 | 48 | cbsy 范畴编程管辖索引制 | tools/cbsy/ | ✅ v7·cbsy_bridge桥接层·索引命令先入分别器三层路由(cbsy声母韵母地址→cbsyAddr靶点→active)→按主权分流进八流时间线性链(active走完整八流+解释流产权裁决+概念流ack；passive截断在分类流；sleeping仅预加载冻结；system走属性+解释流跳过裁决)·免疫记忆优先比对·不违反开发红线1(不允许独立存在)·容器本体论校准·五条防撞墙·地址=发音位置·进制=发音空间划分·运算仅加减·公约数→公倍数→折叠·满全法5项状态 |
 | 49 | silkworm-shell 蚕蛹反向寄生壳 | tools/silkworm-shell/ | ✅ Nim·6壳寄生·脱壳穿衣·内核挂载·外部系统适应满全法·根基隐藏·6目标全部成功 |
 | 50 | property-mirror 产权镜像·四维经过图 | tools/property-mirror/ | ✅ 镜像版本号·D0-D3四维·边界内外自由空间·归属空间开始/经过/结束闭环·写代码前强制核对时间链·5演示全通过 |
-| 51 | isa-ref 五架构机器码对齐参考 | tools/isa-ref/ | ✅ ARM·x86-64·RISC-V·MIPS32·MTK 按功能交叉对齐·位域+汇编标注·位号编码·系统调用·原子操作 |
+| 51 | isa-ref 五架构机器码对齐参考 | tools/isa-ref/ | ✅ RISC-V 47指令·纯容器符号编码表(无Python/YAML/CSV)·容器族码袋缸盆·操作族加减进出·审判族裁判断·相位层·加法串联公路砖块·语义ID=层-容器-韵母·加袋袋袋=ADD·不进位·不进幂 |
 | 52 | hunyuan-orchestrator NJSG 四层栈编排器 | tools/cbsy/ | ✅ v0.15 鼓膜自举(扫描→恢复29工具+完整性通过)→天庭空间(夫妻双吸引子+囡囝平衡+满全法规则·引力对称0.645:0.645·Topos AND)→灵魂内核(奖励/恐惧/驱力回路·初始电平=0.3+工具数×0.01·仅加减)→八流dispatch(ack反馈reward+0.05/囝囝attractor+0.02·nack反馈fear+0.02·休眠反馈drive+0.03)·开发红线1(不允许独立存在)·下层为上层存在前提 |
 | 53 | riscv-encoding RV32I 指令编码+字体 | tools/riscv-encoding/ | ✅ 全4种格式(R/I/S/B/U/J)编码器(仅加减·禁用乘除)·decode round-trip 16/16 PASS·BASIC16 16指令表(TrueBox 600×700)·nameID 256+ 嵌入 指令名:机器码 往返PASS·.ttf 2896字节·name table 私有区即指令集编码表·为五架构对齐清单提供RISC-V高精度位字段 |
 | 54 | mcode-stone MCODE Stone · 全41条RV32I精确编解码+MCOD字体容器 | tools/mcode-stone/ | ✅ 全41条RV32I指令·R/I/S/B/U/J六格式精确编解码·encode→decode→re-encode往返恒等57/57全通过·ms_font纯Nim OpenType TTF写入器(11表+自定义MCOD表)·ms_mcod_demo端到端读盘校验(codepoint↔semId↔machineCode三元组往返恒等10/10)·hunyuan_rv32i_mcod.ttf 1532字节·仅加减·禁用乘除·身份落款:刘楚恬和我 |
@@ -102,6 +102,7 @@
 | 60 | 声波索引 + 韵母地址 + 统计距离 | hunyuan-rs/src/flow_sound_index.rs | ✅ v0.40 26测试·24声母×37韵母×5声调=4440地址·SoundAddress/SoundDistance/MultiIndexDictionary·声母遍历完韵母后再调下一个(折叠不进位) |
 | 61 | morton 莫顿码·三维坐标O(1)寻址 | hunyuan-rs/src/morton.rs | ✅ v0.40 12测试·Coord3D(t,s,d)→MortonCode u64·interleave_3d(坐标交织)·depth_inward/outward·distance·无需哈希/遍历 |
 | 62 | adapter_bag 袋容器·外部库态射壳 | hunyuan-rs/src/adapter_bag.rs | ✅ v0.40 18测试·InvokeRequest(调用请求)·lookup_by_morton(坐标索引)·lookup_by_sound(声波Fetch)·AdapterOp={Fetch,Serialize,Deserialize,Verify,Clone,Drop}·调用方无感外部协议 |
+| 63 | lazyform 懒人编程语法·填表即程序 | tools/lazyform/ | ✅ 表=容器=砖块=@即远程呼唤=声明即调用·加法串联公路砖块=表为对象·字为态射·单元为内积·选址计算=投影子空间·文档注册=公路门牌号+三态+三时三思·锁死符号检测·乘法口诀只做统计·不进位·不进幂·纯容器符号·没有非定义符号 |
 
 ---
 
