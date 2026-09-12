@@ -36,8 +36,8 @@ SRL,0110011,101,0000000,R,srl {rd},{rs1},{rs2},"rd,rs1,rs2",逻辑右移(寄存�
 SRA,0110011,101,0100000,R,sra {rd},{rs1},{rs2},"rd,rs1,rs2",算术右移(寄存器),shift,4
 OR,0110011,110,,R,or {rd},{rs1},{rs2},"rd,rs1,rs2",或,logic,4
 AND,0110011,111,,R,and {rd},{rs1},{rs2},"rd,rs1,rs2",与,logic,4
-ECALL,1110011,000,,I,ecall,,环境调用(系统调用),sys,4
-EBREAK,1110011,000,,I,ebreak,,环境断点(调试),sys,4
+ECALL,1110011,000,,SYS,ecall,,环境调用(系统调用),sys,4
+EBREAK,1110011,000,,SYS,ebreak,,环境断点(调试),sys,4
 FENCE,0001111,000,,I,fence,,内存屏障,fence,4
 MRET,1110011,000,,I,mret,,机器模式异常,mode,4
 WFI,1110011,000,,I,wfi,,等待中断,mode,4

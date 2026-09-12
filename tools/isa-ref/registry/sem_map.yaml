@@ -1,0 +1,138 @@
+# isa-ref · 跨架构语义ID映射
+# 同一个语义ID（SEM_xxx）在不同的ISA中有不同的机器码
+# 这是"公路修到哪个砖块"的注册表 — 一个地址对应5个容器
+
+# 格式：
+# SEM_ID:
+#   desc: 中文 + 英文注释
+#   riscv32: { hex: "XXXXXXXX", asm: "..." }
+#   arm64:   { hex: "XXXXXXXX", asm: "..." }
+#   x86_64:  { hex: "XX XX", asm: "..." }
+#   mips32:  { hex: "XXXXXXXX", asm: "..." }
+#   mtk:     { hex: "XXXXXXXX", asm: "..." }
+
+SEM_NOP:
+  desc: 空操作 / No Operation
+  riscv32: { hex: "00000013", asm: "addi x0, x0, 0" }
+  arm64:   { hex: "1F2003D5", asm: "nop" }
+  x86_64:  { hex: "90", asm: "nop" }
+  mips32:  { hex: "00000000", asm: "nop (sll $zero,$zero,0)" }
+
+SEM_ADD_RRR:
+  desc: 寄存器-寄存器相加 / ADD Rd = Rn + Rm
+  riscv32: { hex: "00208033", asm: "add x1, x1, x2" }
+  arm64:   { hex: "8B020020", asm: "add x0, x1, x2" }
+  x86_64:  { hex: "4801D8", asm: "add rax, rbx" }
+  mips32:  { hex: "00221021", asm: "addu $v0, $v1, $zero" }
+
+SEM_SUB_RRR:
+  desc: 寄存器-寄存器相减 / SUB Rd = Rn - Rm
+  riscv32: { hex: "40208033", asm: "sub x1, x1, x2" }
+  arm64:   { hex: "CB020020", asm: "sub x0, x1, x2" }
+  x86_64:  { hex: "4829D8", asm: "sub rax, rbx" }
+  mips32:  { hex: "00221023", asm: "subu $v0, $v1, $zero" }
+
+SEM_ADDI_RRI:
+  desc: 寄存器-立即数相加 / ADDI Rd = Rn + imm12
+  riscv32: { hex: "0FF08013", asm: "addi x1, x1, 255" }
+  arm64:   { hex: "9103FFC0", asm: "add x0, x1, #255" }
+  x86_64:  { hex: "4883C0FF", asm: "add rax, 0xFF" }
+  mips32:  { hex: "204200FF", asm: "addi $v0, $v1, 255" }
+
+SEM_AND_RRR:
+  desc: 寄存器-寄存器与 / AND Rd = Rn & Rm
+  riscv32: { hex: "0020F033", asm: "and x1, x1, x2" }
+  arm64:   { hex: "8A020020", asm: "and x0, x1, x2" }
+  x86_64:  { hex: "4821D8", asm: "and rax, rbx" }
+  mips32:  { hex: "00221024", asm: "and $v0, $v1, $zero" }
+
+SEM_OR_RRR:
+  desc: 寄存器-寄存器或 / OR Rd = Rn | Rm
+  riscv32: { hex: "0020E033", asm: "or x1, x1, x2" }
+  arm64:   { hex: "AA020020", asm: "orr x0, x1, x2" }
+  x86_64:  { hex: "4809D8", asm: "or rax, rbx" }
+  mips32:  { hex: "00221025", asm: "or $v0, $v1, $zero" }
+
+SEM_XOR_RRR:
+  desc: 寄存器-寄存器异或 / XOR Rd = Rn ^ Rm
+  riscv32: { hex: "0020C033", asm: "xor x1, x1, x2" }
+  arm64:   { hex: "CA020020", asm: "eor x0, x1, x2" }
+  x86_64:  { hex: "4831D8", asm: "xor rax, rbx" }
+  mips32:  { hex: "00221026", asm: "xor $v0, $v1, $zero" }
+
+SEM_SLL_RRI:
+  desc: 逻辑左移 / SLL Rd = Rs1 << shamt
+  riscv32: { hex: "00209033", asm: "sll x1, x1, x2" }
+  arm64:   { hex: "AA0200AA", asm: "lsl x0, x1, x2" }
+  x86_64:  { hex: "48D3E0", asm: "shl rax, cl" }
+  mips32:  { hex: "00221000", asm: "sll $v0, $v1, 0" }
+
+SEM_LW_RoR:
+  desc: 加载字(4字节)从内存 / LW Rd = *(Rn + offset)
+  riscv32: { hex: "0080A003", asm: "lw x1, 8(x2)" }
+  arm64:   { hex: "F9400820", asm: "ldr x0, [x1, #8]" }
+  x86_64:  { hex: "488B4308", asm: "mov rax, [rbx+8]" }
+  mips32:  { hex: "8C420008", asm: "lw $v0, 8($v1)" }
+
+SEM_SW_RoR:
+  desc: 存储字(4字节)到内存 / SW *(Rn + offset) = Rs2
+  riscv32: { hex: "0020A423", asm: "sw x1, 8(x2)" }
+  arm64:   { hex: "F9000820", asm: "str x0, [x1, #8]" }
+  x86_64:  { hex: "48894308", asm: "mov [rbx+8], rax" }
+  mips32:  { hex: "AC420008", asm: "sw $v0, 8($v1)" }
+
+SEM_BEQ_RRI:
+  desc: 等于则分支 / BEQ if(Rs1==Rs2) PC+=imm
+  riscv32: { hex: "00100063", asm: "beq x0, x1, 0" }
+  arm64:   { hex: "54000400", asm: "b.eq +0x100" }
+  x86_64:  { hex: "0F84xxxxxxxx", asm: "je rel32" }
+  mips32:  { hex: "1041xxxx", asm: "beq $v0, $v1, target" }
+
+SEM_BNE_RRI:
+  desc: 不等则分支 / BNE if(Rs1!=Rs2) PC+=imm
+  riscv32: { hex: "00101063", asm: "bne x0, x1, 0" }
+  arm64:   { hex: "54000401", asm: "b.ne +0x100" }
+  x86_64:  { hex: "0F85xxxxxxxx", asm: "jne rel32" }
+  mips32:  { hex: "1041xxxx", asm: "bne $v0, $v1, target" }
+
+SEM_JAL_RI:
+  desc: 跳转并链接(函数调用) / JAL Rd=PC+4, PC+=imm
+  riscv32: { hex: "000000EF", asm: "jal x1, 0" }
+  arm64:   { hex: "94000001", asm: "bl +0x100" }
+  x86_64:  { hex: "E8xxxxxxxx", asm: "call rel32" }
+  mips32:  { hex: "0C00xxxx", asm: "jal target" }
+
+SEM_RET:
+  desc: 函数返回 / RET = JALR x0, 0(x1)
+  riscv32: { hex: "00008067", asm: "jalr x0, 0(x1)" }
+  arm64:   { hex: "D65F03C0", asm: "ret" }
+  x86_64:  { hex: "C3", asm: "ret" }
+  mips32:  { hex: "03E00008", asm: "jr $ra" }
+
+SEM_SYSCALL:
+  desc: 系统调用 / SYSCALL
+  riscv32: { hex: "00000073", asm: "ecall" }
+  arm64:   { hex: "D4000001", asm: "svc #0" }
+  x86_64:  { hex: "0F05", asm: "syscall" }
+  mips32:  { hex: "0000000C", asm: "syscall" }
+
+SEM_LUI_RI:
+  desc: 加载高位立即数 / LUI Rd = imm << 12
+  riscv32: { hex: "123450B7", asm: "lui x1, 0x12345" }
+  arm64:   { hex: "D2800000", asm: "movz x0, #val" }
+  x86_64:  { hex: "48B8", asm: "mov rax, imm64" }
+  mips32:  { hex: "3C01", asm: "lui $at, imm16" }
+
+SEM_MV_RR:
+  desc: 寄存器-寄存器传送 / MV Rd = Rs (伪指令)
+  riscv32: { hex: "00008013", asm: "addi x1, x0, 0" }
+  arm64:   { hex: "AA0003E0", asm: "orr x0, xzr, x1" }
+  x86_64:  { hex: "4889D8", asm: "mov rax, rbx" }
+  mips32:  { hex: "00221021", asm: "or $v0, $v1, $zero" }
+
+SEM_CMP_RR:
+  desc: 寄存器比较 / CMP Rs1 - Rs2 -> 设置标志位
+  riscv32: { hex: "401005B3", asm: "sub x0, x1, x2 (无伪指令)" }
+  arm64:   { hex: "EB02007F", asm: "cmp x1, x2" }
+  x86_64:  { hex: "4839C3", asm: "cmp rax, rbx" }
+  mips32:  { hex: "0022102A", asm: "slt $at, $v0, $v1" }
