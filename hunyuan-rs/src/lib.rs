@@ -196,6 +196,8 @@ pub use parasite::{
 // ── v0.13 呼唤表 · 公约数分发器 ──
 #[path = "flow/invocation_table.rs"]
 pub mod invocation_table;
+#[path = "flow/invocation_call.rs"]
+pub mod invocation_call;
 
 // ── v0.12 判断之力 · 评价之力 · 逻辑组织 · 反馈闭环 ──
 #[path = "judge/judgment_power.rs"]
@@ -428,73 +430,11 @@ pub use celestial_perception::{
     PipelineResultV5,
 };
 
-// ── v0.32 天庭v6（老六）· OS内核整合: 系统调用+进程调度+内存管理+中断+自举 ──
-#[path = "cognition/celestial_perception_v6.rs"]
-pub mod celestial_perception_v6;
-pub use celestial_perception_v6::{
-    SyscallNumber, SyscallRequest, SyscallResult, SyscallInterface,
-    BagProcessState, BagProcess, ProcessScheduler,
-    BlockState, MemoryBlock, MemoryAllocator,
-    InterruptType, InterruptEvent, InterruptVectorTable,
-    BootStage, Bootstrap,
-    CelestialPerceptionV6, PipelineResultV6,
-};
+// ── v0.32~v0.36 天庭v6-v10 已合并入 celestial_perception.rs ──
 
-// ── v0.33 天庭v7（老七）· OS三合一张: 文件系统 + IPC + 设备驱动 ──
-#[path = "cognition/celestial_perception_v7.rs"]
-pub mod celestial_perception_v7;
-pub use celestial_perception_v7::{
-    // VFS
-    Vfs, Inode, FileType, DirEntry, Directory,
-    // IPC
-    IpcKind, IpcManager, Pipe, Message, MessageQueue, SharedMemory,
-    // 设备
-    DeviceKind, Device, DeviceManager, FileOperations,
-    // 引擎
-    CelestialPerceptionV7, PipelineResultV7, V7Extras,
-};
 
-// ── v0.34 天庭v8（老八）· 盟机合袋子网络协议栈 ──
-#[path = "cognition/celestial_perception_v8.rs"]
-pub mod celestial_perception_v8;
-pub use celestial_perception_v8::*;
-/*pub use celestial_perception_v8::{
-    // BagPacket
-    BagPacket, PacketKind, SovereignStamp,
-    // Connection
-    ConnState, Connection,
-    // NodeManager
-    NodeInfo, NodeManager,
-    // Router
-    RouteEntry, SovereignRouter, gcd,
-    // Engine
-    CelestialPerceptionV8, PipelineResultV8, TxStats,
-};*/
 
-// ── v0.36 天庭v10（老十）· 九元天庭总装: 能力+命名空间+POSIX系统调用 ──
-#[path = "cognition/celestial_perception_v10.rs"]
-pub mod celestial_perception_v10;
-pub use celestial_perception_v10::{
-    // 能力系统
-    CapType, CapDomain, Capability, CapSet, CapRegistry,
-    // 命名空间
-    NsType, Namespace, NsManager,
-    // POSIX
-    PosixSyscall, BagSyscallRequest, BagSyscallResult,
-    // 策略
-    PolicyDecision, PolicyEngine,
-    // 引擎
-    ProcContext, CelestialPerceptionV10, PipelineResultV10, V10_VERSION,
-};
 
-// ── v0.35 天庭v9（老九）· 盟机合袋子感知聚合云 ──
-#[path = "cognition/celestial_perception_v9.rs"]
-pub mod celestial_perception_v9;
-pub use celestial_perception_v9::{
-    ConvergenceCloud, ConvergenceEngine, ConvergenceConfig,
-    PerceptionUnion, PerceptionIntersection,
-    ConsensusEntry, CloudSummary, FeatureJudgment,
-};
 
 // ── v0.31 大审判庭 · 全链路整合裁判系统 ──
 #[path = "judge/grand_court.rs"]

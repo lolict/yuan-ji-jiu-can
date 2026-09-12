@@ -12,6 +12,7 @@ pub use crate::gtt_category;
 pub use crate::gtt_learn;
 pub use crate::gtt_perception;
 pub use crate::invocation_table;
+pub use crate::invocation_call;
 pub use crate::metaime;
 // metaime_flow is temporarily disabled
 pub use crate::preload;
