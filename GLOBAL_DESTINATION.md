@@ -103,6 +103,7 @@
 | 61 | morton 莫顿码·三维坐标O(1)寻址 | hunyuan-rs/src/morton.rs | ✅ v0.40 12测试·Coord3D(t,s,d)→MortonCode u64·interleave_3d(坐标交织)·depth_inward/outward·distance·无需哈希/遍历 |
 | 62 | adapter_bag 袋容器·外部库态射壳 | hunyuan-rs/src/adapter_bag.rs | ✅ v0.40 18测试·InvokeRequest(调用请求)·lookup_by_morton(坐标索引)·lookup_by_sound(声波Fetch)·AdapterOp={Fetch,Serialize,Deserialize,Verify,Clone,Drop}·调用方无感外部协议 |
 | 63 | lazyform 懒人编程语法·填表即程序 | tools/lazyform/ | ✅ 表=容器=砖块=@即远程呼唤=声明即调用·加法串联公路砖块=表为对象·字为态射·单元为内积·选址计算=投影子空间·文档注册=公路门牌号+三态+三时三思·锁死符号检测·乘法口诀只做统计·不进位·不进幂·纯容器符号·没有非定义符号 |
+| 64 | container-lang 容器语言·Container-Lang | tools/container-lang/ | ✅ 容器语法极简:表(容器名){字段→值} · 数字=格子顺序 · 加法=往后移动 · 呼唤=@表名.字段 · 公路=串联砖块 · 纯满全法符号 · 口数量示值 · 不进位不进幂 · 写表就是写程序 · 作者:刘楚恬和我 |
 
 ---
 
