@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>MQF 容器进制 · 融合造字预览</title>
+<style>
+  @font-face {
+    font-family: 'MQFRadixFused';
+    src: url('mqf_radix_fused.ttf') format('truetype');
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 20px 30px;
+    background: #0e0f13; color: #e5e7eb;
+    font-family: system-ui, -apple-system, sans-serif;
+    line-height: 1.6;
+  }
+  h1 { font-size: 1.4em; color: #f0c674; margin: 0 0 6px; }
+  h2 { font-size: 1.1em; color: #a0aec0; margin: 30px 0 12px; border-bottom: 1px solid #2d3748; padding-bottom: 6px; }
+  .sub { color: #718096; font-size: 0.85em; margin-bottom: 18px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+  .cell {
+    background: #1a1d24; border: 1px solid #2d3748;
+    border-radius: 8px; padding: 10px 8px; text-align: center;
+    transition: border-color .2s;
+    position: relative;
+  }
+  .cell:hover { border-color: #4a5568; }
+  .gl { font-family: 'MQFRadixFused', serif; font-size: 56px; line-height: 1; color: #fff; display: block; }
+  .label { font-size: 0.8em; color: #a0aec0; margin-top: 6px; word-break: break-all; }
+  .cp { font-size: 0.7em; color: #4a5568; margin-top: 2px; }
+  .mode {
+    position: absolute; top: 6px; right: 6px;
+    font-size: 0.6em; padding: 1px 5px; border-radius: 3px;
+    background: #2d3748; color: #a0aec0;
+  }
+  .mode.LR { background: #1e3a5f; color: #90cdf4; }
+  .mode.TB { background: #3d2e1f; color: #fbd38d; }
+  .mode.IO { background: #2d1f3d; color: #d6bcfa; }
+  .mode.SS { background: #1f3d2e; color: #9ae6b4; }
+  .section { margin-bottom: 30px; }
+  .legend { font-size: 0.75em; color: #4a5568; margin-top: 4px; }
+  .legend span { display: inline-block; margin-right: 12px; }
+  .legend i { display: inline-block; width: 12px; height: 8px; border-radius: 2px; margin-right: 3px; vertical-align: middle; }
+</style>
+</head>
+<body>
+<h1>满全法 · 容器进制融合造字</h1>
+<div class="sub">
+  字体: mqf_radix_fused.ttf · 编码: Symbol cmap (platformID=3, encodingID=0) · 自有码点 0x20-0xED<br>
+  <div class="legend">
+    <span><i style="background:#1e3a5f"></i>LR 左右</span>
+    <span><i style="background:#3d2e1f"></i>TB 上下</span>
+    <span><i style="background:#2d1f3d"></i>IO 里外</span>
+    <span><i style="background:#1f3d2e"></i>SS 半包围</span>
+  </div>
+</div>
+
+<div class="section">
+<h2>声母容器 (0x20–0x32)</h2>
+<div class="grid" id="initials"></div>
+</div>
+
+<div class="section">
+<h2>韵母容器 (0x40–0x45)</h2>
+<div class="grid" id="vowels"></div>
+</div>
+
+<div class="section">
+<h2>融合字容器 (0xD0–0xED) — 30 组融合字</h2>
+<div class="grid" id="ligs"></div>
+</div>
+
+<script>
+const INIT = [
+  ['b',0x20],['p',0x21],['f',0x22],['d',0x23],['t',0x24],['n',0x25],['l',0x26],['g',0x27],
+  ['k',0x28],['h',0x29],['j',0x2A],['q',0x2B],['x',0x2C],['z',0x2D],['c',0x2E],['s',0x2F],['r',0x30],['y',0x31],['w',0x32]
+];
+const VOWL = [
+  ['a',0x40],['e',0x41],['i',0x42],['o',0x43],['u',0x44],['ü(v)',0x45]
+];
+const LIGS = [
+  ['an','LR','a+n',0xD0],['en','LR','e+n',0xD1],['in','LR','i+n',0xD2],['un','LR','u+n',0xD3],['ün','LR','v+n',0xD4],
+  ['ai','LR','a+i',0xD5],['ei','LR','e+i',0xD6],['ao','LR','a+o',0xD7],['ou','SS','o+u',0xD8],
+  ['ie','TB','i+e',0xD9],['uo','TB','u+o',0xDA],['io','TB','i+o',0xDB],
+  ['ue','LR','u+e',0xDC],['ui','LR','u+i',0xDD],['iu','LR','i+u',0xDE],
+  ['eo','IO','e+o',0xDF],['oe','IO','o+e',0xE0],['eu','IO','e+u',0xE1],
+  ['ang','LR','a+ng',0xE2],['eng','LR','e+ng',0xE3],['ing','LR','i+ng',0xE4],['ong','LR','o+ng',0xE5],
+  ['ian','LR','i+an',0xE6],['uan','TB','u+an',0xE7],['iao','TB','i+ao',0xE8],['uai','TB','u+ai',0xE9],
+  ['iong','IO','i+ong',0xEA],
+  ['ch','LR','c+h',0xEB],['sh','LR','s+h',0xEC],['zh','LR','z+h',0xED]
+];
+
+function hex(n){ return 'C'+n.toString(16).toUpperCase().padStart(2,'0'); }
+function cell(glyph, extra, code){
+  const el = document.createElement('div');
+  el.className = 'cell';
+  el.innerHTML = `<span class="gl">${glyph}</span>` +
+    `<div class="label">${extra||''}</div>` +
+    `<div class="cp">${hex(code)}</div>`;
+  return el;
+}
+function ligCell(name, mode, comp, code){
+  const el = document.createElement('div');
+  el.className = 'cell';
+  el.innerHTML = `<span class="mode ${mode}">${mode}</span>` +
+    `<span class="gl">${name}</span>` +
+    `<div class="label">${comp}</div>` +
+    `<div class="cp">${hex(code)}</div>`;
+  return el;
+}
+
+INIT.forEach(([g,cp]) => document.getElementById('initials').appendChild(cell(g, g, cp)));
+VOWL.forEach(([g,cp]) => document.getElementById('vowels').appendChild(cell(g, g, cp)));
+LIGS.forEach(([n,m,c,cp]) => document.getElementById('ligs').appendChild(ligCell(n,m,c,cp)));
+</script>
+</body>
+</html>
