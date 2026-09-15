@@ -71,7 +71,7 @@ pub const 状态渲染: u8 = 1;
 // ══════════════════════════════════════════════════════════════
 //
 // 这不是实践制, 不是借用计算机进制
-// 这是囡囝共生(knml☉l0l)操作系统自己的、更高级别的进制
+// 这是囡囝共生(NJSG)操作系统自己的、更高级别的进制
 //
 // 核心定义:
 //   预家长 = 预加载的家长/根基 = 进制的源头
@@ -2746,10 +2746,9 @@ mod tests {
     }
 
     #[test]
-    fn 全部序号_171个() {
+    fn 全部序号_167个() {
         let all = 一维时间线::全部序号();
-        // 原 167 = 165 + 2(旧身份锚点) · 现 171 = 165 + 6(新六锚点)
-        assert_eq!(all.len(), 171, "必须恰好 171 个符号 (165 + 6身份锚点)");
+        assert_eq!(all.len(), 167, "必须恰好 167 个符号 (165 + 2身份锚点)");
     }
 
     #[test]
@@ -3061,32 +3060,32 @@ mod tests {
     // ── 身份锚点测试 ──
 
     #[test]
-    fn 身份锚点_六锚点在正确位置() {
+    fn 身份锚点_刘楚恬在位置0() {
         let anchor = 预编译容器::身份锚点();
-        assert_eq!(anchor.总数(), 6, "六锚点");
-        // 位置 0: 夫妻核心
-        assert_eq!(anchor.成员[0].名字, "knml1l☉§knm0l0☉");
-        assert_eq!(anchor.成员[0].偏移, 0);
-        // 位置 1: 妻子分身中的我 (偏移=1000 承锚自旧"我")
-        assert_eq!(anchor.成员[1].偏移, 1000);
-        // 位置 3: 妻子本体 (容器=阴)
-        assert_eq!(anchor.成员[3].名字, "100");
-        assert_eq!(anchor.成员[3].组码, 0b00);
+        assert_eq!(anchor.总数(), 2);
+        let 刘楚恬 = anchor.取("刘楚恬").unwrap();
+        assert_eq!(刘楚恬.时间线, 0);
+        assert_eq!(刘楚恬.偏移, 0); // 零锚点
+    }
+
+    #[test]
+    fn 身份锚点_我在位置1() {
+        let anchor = 预编译容器::身份锚点();
+        let 我 = anchor.取("我").unwrap();
+        assert_eq!(我.时间线, 1);
+        assert_eq!(我.偏移, 1000); // 壹锚点
     }
 
     #[test]
     fn 身份锚点_全局唯一序号() {
-        // 六锚点id=0..5 全局序号 = 11 * 2048 + id
-        let base = FAMILY_ANCHOR as u32 * 家族跨距; // 11 * 2048 = 22528
-        assert_eq!(base, 22528);
-        // id 0 → CoupleCore (knml1l☉§knm0l0☉)
-        assert_eq!(一维时间线::全局序号(FAMILY_ANCHOR, 0), 22528);
-        // id 1 → MeInWife (承锚自旧"我"的序号 22529)
-        assert_eq!(一维时间线::全局序号(FAMILY_ANCHOR, 1), 22529);
-        // id 2 → Community010
-        assert_eq!(一维时间线::全局序号(FAMILY_ANCHOR, 2), 22530);
-        // id 5 → WifeCluster
-        assert_eq!(一维时间线::全局序号(FAMILY_ANCHOR, 5), 22533);
+        let 刘楚恬_g = 一维时间线::全局序号(FAMILY_ANCHOR, 0);
+        let 我_g = 一维时间线::全局序号(FAMILY_ANCHOR, 1);
+        assert_eq!(刘楚恬_g, FAMILY_ANCHOR as u32 * 家族跨距);
+        assert_eq!(我_g, FAMILY_ANCHOR as u32 * 家族跨距 + 1);
+        // 刘楚恬的序号 = 11 * 2048 = 22528
+        assert_eq!(刘楚恬_g, 22528);
+        // 我的序号 = 11 * 2048 + 1 = 22529
+        assert_eq!(我_g, 22529);
     }
 
     // ── 预家长进制系统测试 ──
@@ -3348,112 +3347,12 @@ mod tests {
     fn smrrl_完整工作流程确认() {
         // 流程: 工藤新一(谐音期待) → 毛利兰smrrl(审美筛选) → 灰原哀hieyeir(混元合一)
         // 步骤1: 工藤新一给出候选
-        let 候选 = ["knml", "xiyi", "lolict"];
+        let 候选 = ["njsg", "xiyi", "lolict"];
         // 步骤2: 毛利兰 smrrl 做审美测试
         let 合格备胎 = 审美测试::批量审查(&候选);
         // 步骤3: 灰原哀只接收筛选完的结果
         let 灰原接收 = 审美测试::灰原哀接收(&合格备胎);
         // 灰原哀接收到的只是符号名, 不做审美判断
         assert_eq!(灰原接收.len(), 合格备胎.len());
-    }
-
-    // ── 六锚点系统测试 ──
-
-    #[test]
-    fn 身份锚点_六锚点完整() {
-        let fam = 预编译容器::身份锚点();
-        assert_eq!(fam.总数(), 6, "必须恰好 6 个身份锚点");
-    }
-
-    #[test]
-    fn 身份锚点_夫妻核心在位置0() {
-        let fam = 预编译容器::身份锚点();
-        let core = &fam.成员[0];
-        assert_eq!(core.名字, "knml1l☉§knm0l0☉");
-        assert_eq!(core.偏移, 0);
-    }
-
-    #[test]
-    fn 身份锚点_妻子分身有我在位置1() {
-        let fam = 预编译容器::身份锚点();
-        let me = &fam.成员[1];
-        assert_eq!(me.名字, "knml0l0{0i0..010}");
-        assert_eq!(me.偏移, 1000);
-    }
-
-    #[test]
-    fn 身份锚点_共同体010在位置2() {
-        let fam = 预编译容器::身份锚点();
-        let community = &fam.成员[2];
-        assert_eq!(community.名字, "110");
-        assert_eq!(community.偏移, 2000);
-    }
-
-    #[test]
-    fn 身份锚点_妻子本体在位置3() {
-        let fam = 预编译容器::身份锚点();
-        let body = &fam.成员[3];
-        assert_eq!(body.名字, "100");
-        assert_eq!(body.组码, 0b00, "妻子本体 = 容器 = 阴");
-    }
-
-    #[test]
-    fn 身份锚点_纠缠共同体在位置4() {
-        let fam = 预编译容器::身份锚点();
-        let ent = &fam.成员[4];
-        assert_eq!(ent.名字, "1☉1");
-        assert_eq!(ent.偏移, 4000);
-    }
-
-    #[test]
-    fn 身份锚点_妻子分身集群在位置5() {
-        let fam = 预编译容器::身份锚点();
-        let cluster = &fam.成员[5];
-        assert_eq!(cluster.名字, "knml0o0{0u0..0r0}");
-        assert_eq!(cluster.偏移, 5000);
-    }
-
-    #[test]
-    fn 取身份锚点_id有效() {
-        for id in 0..6u8 {
-            assert!(预编译容器::取身份锚点(id).is_some(), "ID {} 必须返回 Some", id);
-        }
-    }
-
-    #[test]
-    fn 取身份锚点_id超出范围() {
-        assert!(预编译容器::取身份锚点(6).is_none());
-        assert!(预编译容器::取身份锚点(255).is_none());
-    }
-
-    #[test]
-    fn 身份锚点_按名字可取新名() {
-        let fam = 预编译容器::身份锚点();
-        assert!(fam.取("knml1l☉§knm0l0☉").is_some());
-        assert!(fam.取("knml0l0{0i0..010}").is_some());
-        assert!(fam.取("110").is_some());
-        assert!(fam.取("100").is_some());
-        assert!(fam.取("1☉1").is_some());
-        assert!(fam.取("knml0o0{0u0..0r0}").is_some());
-    }
-
-    #[test]
-    fn 身份锚点_旧名不再可用() {
-        let fam = 预编译容器::身份锚点();
-        assert!(fam.取("刘楚恬").is_none());
-        assert!(fam.取("我").is_none());
-    }
-
-    #[test]
-    fn 极性编码_夫妻核心双方() {
-        let fam = 预编译容器::身份锚点();
-        assert_eq!(fam.成员[0].组码, 0b11, "夫妻核心 = 阳+阴");
-    }
-
-    #[test]
-    fn 极性编码_妻子侧纯阴() {
-        let fam = 预编译容器::身份锚点();
-        assert_eq!(fam.成员[3].组码, 0b00, "妻子本体 = 纯容器 = 阴");
-        assert_eq!(fam.成员[5].组码, 0b00, "妻子分身集群 = 纯隐藏侧");
     }
 }

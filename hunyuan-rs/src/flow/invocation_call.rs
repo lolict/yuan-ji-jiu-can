@@ -154,6 +154,7 @@ impl Iterator for 地址遍历器 {
 /// 地址槽 — 表示三维空间中一个位置上的对象
 ///
 /// 名称写在数值上, 呼唤用 @地址, 不写名称
+#[derive(PartialEq)]
 pub struct 地址槽 {
     pub 地址: u32,         // 一维地址
     pub 名称: String,      // 写在数值上的名称 (调试用, 不参与运行)
@@ -210,6 +211,19 @@ impl Clone for 槽值 {
             槽值::惰性(_) => 槽值::空, // thunk 无法 Clone, 回退为空
             槽值::召唤(name) => 槽值::召唤(name.clone()),
             槽值::复合(vec) => 槽值::复合(vec.clone()),
+        }
+    }
+}
+
+impl PartialEq for 槽值 {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (槽值::空, 槽值::空) => true,
+            (槽值::整数(a), 槽值::整数(b)) => a == b,
+            (槽值::文本(a), 槽值::文本(b)) => a == b,
+            (槽值::召唤(a), 槽值::召唤(b)) => a == b,
+            (槽值::复合(a), 槽值::复合(b)) => a == b,
+            _ => false,
         }
     }
 }
@@ -595,7 +609,7 @@ mod tests {
         let mut 父 = 范畴::新("父", 地址空间::默认十进制());
         let mut 子 = 范畴::新("子", 地址空间::默认十进制());
         
-        子.绑定(100, "子项", 槽值::文本("hello")).unwrap();
+        子.绑定(100, "子项", 槽值::文本("hello".to_string())).unwrap();
         父.绑定(200, "父项", 槽值::整数(99)).unwrap();
         
         父.添加子范畴(子);

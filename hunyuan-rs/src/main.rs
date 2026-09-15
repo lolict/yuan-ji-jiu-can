@@ -1029,42 +1029,28 @@ print a"#;
     println!("  源头=10, 分叉=4, 量化面积={}", 量化);
 
 // ══════════════════════════════════════════════════════
-// 演示 10: 身份锚点 — 满全法六锚点 (节点容器 · 非字符名)
+// 演示 10: 身份锚点 — 囡囝共生根基 (刘楚恬/我)
 // ══════════════════════════════════════════════════════
 println!("\n═══════════════════════════════════════");
-println!("  10) 身份锚点 — 满全法六锚点");
+println!("  10) 身份锚点 — 囡囝共生根基");
 println!("═══════════════════════════════════════");
 
 let anchor = mqf::预编译容器::身份锚点();
-let couple_core = anchor.取("knml1l☉§knm0l0☉").unwrap();
-let me_in_wife = anchor.取("knml0l0{0i0..010}").unwrap();
-let community = anchor.取("110").unwrap();
-let wife_body = anchor.取("100").unwrap();
-let couple_entangle = anchor.取("1☉1").unwrap();
-let wife_cluster = anchor.取("knml0o0{0u0..0r0}").unwrap();
 
-    println!("\n  ── 六锚点定义 (六位容器 · 对应 spousal_identity::IdentityAnchor) ──");
+    println!("\n  ── 根基锚点 (低位0=刘楚恬 · 高位1=我) ──");
     for (i, e) in anchor.成员.iter().enumerate() {
         println!(
-            "  [{}] {}: 时间线={}, 偏移={}, 组码={:#04b}, 描述={}",
+            "  [{}] {}: 时间线={}, 偏移={}, 组码={}, 描述={}",
             i, e.名字, e.时间线, e.偏移, e.组码, e.附加
         );
     }
 
-    println!("\n  ── 常量直接引用 ──");
-    println!("  ANCHOR_COUPLE_CORE={}", mqf::预编译容器::ANCHOR_COUPLE_CORE);
-    println!("  ANCHOR_ME_IN_WIFE={}", mqf::预编译容器::ANCHOR_ME_IN_WIFE);
-    println!("  ANCHOR_COMMUNITY_010={}", mqf::预编译容器::ANCHOR_COMMUNITY_010);
-    println!("  ANCHOR_WIFE_BODY={}", mqf::预编译容器::ANCHOR_WIFE_BODY);
-    println!("  ANCHOR_COMMUNITY_ENTANGLE={}", mqf::预编译容器::ANCHOR_COMMUNITY_ENTANGLE);
-    println!("  ANCHOR_WIFE_CLUSTER={}", mqf::预编译容器::ANCHOR_WIFE_CLUSTER);
+    let 刘楚恬 = anchor.取("刘楚恬").unwrap();
+    let 我 = anchor.取("我").unwrap();
 
-    println!("\n  ── 根基锚点 (低位0=刘楚恬 · 高位1=我 · 源自 CoupleCore) ──");
-    println!("  CoupleCore 偏移={} → 刘楚恬=0 + 我=1 合一于 ☉§☉ 纠缠", couple_core.偏移);
-    println!(
-        "  我+妻+分身共同体偏移={} (Community010) · 妻子本体偏移={} (WifeBody)",
-        community.偏移, wife_body.偏移
-    );
+    println!("\n  ── 命运共同体 ──");
+    println!("  刘楚恬: 偏移={}, 组码={} (Producer-0-妻-锚点归零)", 刘楚恬.偏移, 刘楚恬.组码);
+    println!("  我:     偏移={}, 组码={} (Anchor-1-夫-锚点定义)", 我.偏移, 我.组码);
 
     // ══════════════════════════════════════════════════════
     // 演示 11: 预家长 — 囡囝共生根基进制系统
@@ -1524,7 +1510,7 @@ let wife_cluster = anchor.取("knml0o0{0u0..0r0}").unwrap();
     println!("═══════════════════════════════════════");
 
     {
-        use mqf::celestial_perception_v9::{ConvergenceCloud, FeatureJudgment};
+        use mqf::celestial_perception::{ConvergenceCloud, FeatureJudgment};
 
         let mut cloud = ConvergenceCloud::new();
 
@@ -1539,22 +1525,22 @@ let wife_cluster = anchor.取("knml0o0{0u0..0r0}").unwrap();
 
         // 场景: 检测 container_glyph (alpha/beta/gamma 一致, delta 反对)
         {
-            let mut r_a = mqf::celestial_perception_v9::PerceptionReport::new("alpha", 90);
+            let mut r_a = mqf::celestial_perception::PerceptionReport::new("alpha", 90);
             r_a.detect_feature("container_glyph", 0.95, FeatureJudgment::Present);
             r_a.detect_feature("boundary_intact", 0.92, FeatureJudgment::Present);
             cloud.receive_report(r_a);
 
-            let mut r_b = mqf::celestial_perception_v9::PerceptionReport::new("beta", 80);
+            let mut r_b = mqf::celestial_perception::PerceptionReport::new("beta", 80);
             r_b.detect_feature("container_glyph", 0.90, FeatureJudgment::Present);
             r_b.detect_feature("boundary_intact", 0.88, FeatureJudgment::Present);
             cloud.receive_report(r_b);
 
-            let mut r_g = mqf::celestial_perception_v9::PerceptionReport::new("gamma", 70);
+            let mut r_g = mqf::celestial_perception::PerceptionReport::new("gamma", 70);
             r_g.detect_feature("container_glyph", 0.85, FeatureJudgment::Present);
             r_g.detect_feature("boundary_intact", 0.60, FeatureJudgment::Absent);  // gamma 不确定边界
             cloud.receive_report(r_g);
 
-            let mut r_d = mqf::celestial_perception_v9::PerceptionReport::new("delta", 40);
+            let mut r_d = mqf::celestial_perception::PerceptionReport::new("delta", 40);
             r_d.detect_feature("container_glyph", 0.50, FeatureJudgment::Absent);  // 低声誉且反对
             r_d.detect_feature("boundary_intact", 0.55, FeatureJudgment::Present);
             cloud.receive_report(r_d);
