@@ -35,6 +35,9 @@ tools/phonetic-encoding/output/
 tools/phonetic-encoding/*.nim.bak
 zig.tar.xz
 kernel/src/*.elf
+# 编译产物 (无扩展名二进制 —— cc -o <name> 生成的 ELF)
+kernel/src/[a-z_]*_demo
+kernel/src/[a-z_]*-demo
 zig-stem/*.elf
 tools/**/phonetic_encoding_demo
 cognition_os/emotion_system
