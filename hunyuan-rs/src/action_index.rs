@@ -14,7 +14,8 @@
 use crate::flow::unified_flow::TimeStage;
 
 /// 偏移率 δ = level × 0.1（与 full-mapping 的 mapper.nim 一致）
-pub const DELTA_PER_LEVEL: f64 = 0.1;
+/// 注意: crate 根已存在 high_algebra::DELTA_PER_LEVEL，此处为模块内私有别名
+const ACTION_DELTA_PER_LEVEL: f64 = 0.1;
 
 /// 九元层级 × 8 时间节点 的全动作glyph表（声母·韵母·操作族）
 ///
@@ -139,7 +140,7 @@ pub struct ActionIndexEntry {
 
 impl ActionIndexEntry {
     pub fn new(level: u8, stage: TimeStage, action: ActionGlyph) -> Self {
-        let delta = level as f64 * DELTA_PER_LEVEL;
+        let delta = level as f64 * ACTION_DELTA_PER_LEVEL;
         let mult = 1.0 + delta;
         let addr = format!("{} @ L{} : {:?} δ={:.1}",
             action.glyph(), level, stage, delta);
@@ -256,8 +257,8 @@ mod tests {
         assert!(found.is_some());
         let e = found.unwrap();
         assert_eq!(e.level, 3);
-        assert_eq!(e.offset_rate, 0.3);
-        assert_eq!(e.multiplier, 1.3);
+        assert!((e.offset_rate - 0.3).abs() < 1e-9);
+        assert!((e.multiplier - 1.3).abs() < 1e-9);
         assert!(e.address.contains("分"));
         assert!(e.address.contains("L3"));
     }

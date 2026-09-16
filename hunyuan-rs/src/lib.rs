@@ -638,7 +638,7 @@ pub use perception_engine::{
 
 // v0.43 动作·时间·容器 三维索引集
 pub use action_index::{
-    ActionGlyph, ActionFamily, ActionIndexEntry, ActionIndex, DELTA_PER_LEVEL,
+    ActionGlyph, ActionFamily, ActionIndexEntry, ActionIndex,
 };
 
 // v0.6 谐音协议

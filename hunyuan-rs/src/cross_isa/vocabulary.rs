@@ -70,6 +70,7 @@ impl SemanticId {
             0x18 => Some(Self::Mulw),
             0x19 => Some(Self::Divw),
             0x1A => Some(Self::Remw),
+            // 0x18-0x1A: Mulw/Divw/Remw (已启用)
             0x1B => Some(Self::Lrw),
             0x1C => Some(Self::Scw),
             0x1D => Some(Self::AmoSwapw),
@@ -230,6 +231,64 @@ impl VocabWord {
                     (Some(rd), Some(imm)) => Insn::i(IOp::Addi, Reg(rd), Reg(0), imm as i32),
                     _ => return vec![],
                 }
+            }
+            // ── M 扩展 · R-type funct7=1 ──
+            SemanticId::Mul | SemanticId::Mulh | SemanticId::Div | SemanticId::Divu |
+            SemanticId::Rem | SemanticId::Remu if ops.len() >= 3 => {
+                let (rd, r1, r2) = match (ops[0].reg(), ops[1].reg(), ops[2].reg()) {
+                    (Some(a), Some(b), Some(c)) => (Reg(a), Reg(b), Reg(c)),
+                    _ => return vec![],
+                };
+                let mop = match id {
+                    SemanticId::Mul => MOp::Mul,
+                    SemanticId::Mulh => MOp::Mulh,
+                    SemanticId::Div => MOp::Div,
+                    SemanticId::Divu => MOp::Divu,
+                    SemanticId::Rem => MOp::Rem,
+                    SemanticId::Remu => MOp::Remu,
+                    _ => return vec![],
+                };
+                Insn::m_op(mop, rd, r1, r2)
+            }
+            // ── RV64I 字宽 · OP-32 / OP-IMM-32 ──
+            SemanticId::Addw if ops.len() >= 3 => {
+                match (ops[0].reg(), ops[1].reg(), ops[2].reg()) {
+                    (Some(rd), Some(r1), Some(r2)) => Insn::r32(ROp32::Addw, Reg(rd), Reg(r1), Reg(r2)),
+                    _ => return vec![],
+                }
+            }
+            SemanticId::Addiw if ops.len() >= 3 => {
+                match (ops[0].reg(), ops[1].reg(), ops[2].imm()) {
+                    (Some(rd), Some(r1), Some(imm)) => Insn::i32(IOp32::Addiw, Reg(rd), Reg(r1), imm as i32),
+                    _ => return vec![],
+                }
+            }
+            // ── A 扩展原子 · LR/SC ──
+            SemanticId::Lrw if ops.len() >= 2 => {
+                // lr.w rd, (rs1)  →  rd=ops[0], rs1=ops[1]
+                match (ops[0].reg(), ops[1].reg()) {
+                    (Some(rd), Some(r1)) => Insn::amo(AOp::LrW, Reg(rd), Reg(r1), Reg(0)),
+                    _ => return vec![],
+                }
+            }
+            SemanticId::Scw if ops.len() >= 3 => {
+                // sc.w rd, rs2, (rs1)  →  rd=ops[0], rs2=ops[1], rs1=ops[2]
+                match (ops[0].reg(), ops[1].reg(), ops[2].reg()) {
+                    (Some(rd), Some(rs2), Some(r1)) => Insn::amo(AOp::ScW, Reg(rd), Reg(r1), Reg(rs2)),
+                    _ => return vec![],
+                }
+            }
+            SemanticId::AmoSwapw | SemanticId::AmoAddw if ops.len() >= 3 => {
+                let (rd, rs2, r1) = match (ops[0].reg(), ops[1].reg(), ops[2].reg()) {
+                    (Some(a), Some(b), Some(c)) => (Reg(a), Reg(b), Reg(c)),
+                    _ => return vec![],
+                };
+                let aop = match id {
+                    SemanticId::AmoSwapw => AOp::AmoSwapW,
+                    SemanticId::AmoAddw => AOp::AmoAddW,
+                    _ => return vec![],
+                };
+                Insn::amo(aop, rd, r1, rs2)
             }
             _ => return vec![],
         };
@@ -654,6 +713,109 @@ mod tests {
             Platform::X86_64,
         );
         assert_eq!(w.native_encoding, vec![0x74, 0x0A]);
+    }
+
+    // ── RV64I/M/A 新指令编码验证 ──
+
+    #[test]
+    fn m_ext_riscv_funct7_is_1() {
+        for sid in [SemanticId::Mul, SemanticId::Divu, SemanticId::Remu] {
+            let w = VocabWord::new(
+                sid,
+                vec![Operand::Reg(5), Operand::Reg(6), Operand::Reg(7)],
+                Platform::RiscV,
+            );
+            assert_eq!(w.native_encoding.len(), 4, "{:?} RISC-V must be 4 bytes", sid);
+            let insn = u32::from_le_bytes([
+                w.native_encoding[0], w.native_encoding[1],
+                w.native_encoding[2], w.native_encoding[3],
+            ]);
+            let funct7 = insn >> 25;
+            assert_eq!(funct7, 1, "{:?} funct7 must be 1 for M ext, got {}", sid, funct7);
+        }
+    }
+
+    #[test]
+    fn rv64i_addw_uses_op32_opcode() {
+        let w = VocabWord::new(
+            SemanticId::Addw,
+            vec![Operand::Reg(1), Operand::Reg(2), Operand::Reg(3)],
+            Platform::RiscV,
+        );
+        assert_eq!(w.native_encoding.len(), 4);
+        let insn = u32::from_le_bytes([
+            w.native_encoding[0], w.native_encoding[1],
+            w.native_encoding[2], w.native_encoding[3],
+        ]);
+        let opcode = insn & 0x7F;
+        assert_eq!(opcode, 0b0111011, "addw must use OP-32 opcode 0111011, got {:#09b}", opcode);
+    }
+
+    #[test]
+    fn rv64i_addiw_uses_opimm32_opcode() {
+        let w = VocabWord::new(
+            SemanticId::Addiw,
+            vec![Operand::Reg(1), Operand::Reg(2), Operand::Imm(42)],
+            Platform::RiscV,
+        );
+        assert_eq!(w.native_encoding.len(), 4);
+        let insn = u32::from_le_bytes([
+            w.native_encoding[0], w.native_encoding[1],
+            w.native_encoding[2], w.native_encoding[3],
+        ]);
+        let opcode = insn & 0x7F;
+        assert_eq!(opcode, 0b0011011, "addiw must use OP-IMM-32 opcode 0011011, got {:#09b}", opcode);
+    }
+
+    #[test]
+    fn a_ext_amo_uses_amo_opcode() {
+        for sid in [SemanticId::Lrw, SemanticId::Scw, SemanticId::AmoSwapw, SemanticId::AmoAddw] {
+            let ops = match sid {
+                SemanticId::Lrw => vec![Operand::Reg(0), Operand::Reg(1)],
+                _ => vec![Operand::Reg(0), Operand::Reg(3), Operand::Reg(1)],
+            };
+            let w = VocabWord::new(sid, ops, Platform::RiscV);
+            assert_eq!(w.native_encoding.len(), 4, "{:?} A-ext must be 4 bytes", sid);
+            let insn = u32::from_le_bytes([
+                w.native_encoding[0], w.native_encoding[1],
+                w.native_encoding[2], w.native_encoding[3],
+            ]);
+            let opcode = insn & 0x7F;
+            assert_eq!(opcode, 0b0101111, "{:?} must use AMO opcode 0101111, got {:#09b}", sid, opcode);
+        }
+    }
+
+    #[test]
+    fn m_ext_mul_encoding_matches_isa_crate() {
+        // VocabWord mul encoding must agree with direct isa::Insn::m_op
+        use crate::isa::{Insn, Reg, MOp};
+        let direct = Insn::m_op(MOp::Mul, Reg(5), Reg(6), Reg(7)).0;
+        let via_vocab = VocabWord::new(
+            SemanticId::Mul,
+            vec![Operand::Reg(5), Operand::Reg(6), Operand::Reg(7)],
+            Platform::RiscV,
+        );
+        let v = u32::from_le_bytes([
+            via_vocab.native_encoding[0], via_vocab.native_encoding[1],
+            via_vocab.native_encoding[2], via_vocab.native_encoding[3],
+        ]);
+        assert_eq!(direct, v, "VocabWord(Mul) must equal Insn::m_op(Mul)");
+    }
+
+    #[test]
+    fn a_ext_lrw_encoding_matches_isa_crate() {
+        use crate::isa::{Insn, Reg, AOp};
+        let direct = Insn::amo(AOp::LrW, Reg(0), Reg(1), Reg(0)).0;
+        let via_vocab = VocabWord::new(
+            SemanticId::Lrw,
+            vec![Operand::Reg(0), Operand::Reg(1)],
+            Platform::RiscV,
+        );
+        let v = u32::from_le_bytes([
+            via_vocab.native_encoding[0], via_vocab.native_encoding[1],
+            via_vocab.native_encoding[2], via_vocab.native_encoding[3],
+        ]);
+        assert_eq!(direct, v, "VocabWord(Lrw) must equal Insn::amo(LrW)");
     }
 }
 
