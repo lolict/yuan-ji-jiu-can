@@ -41,12 +41,30 @@ use crate::os_layer::OsLayer;
 use crate::os_layer::bare_metal::BareMetalOs;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-// ── v8 盟机合袋子网络 / v9 感知聚合云 (子模块内联) ──
+// ── v8 盟机合袋子网络 / v9 感知聚合云 / v10 安全 / v11 天庭协调 (子模块内联) ──
 #[path = "celestial_perception_v8.rs"]
 pub mod celestial_perception_v8;
 #[path = "celestial_perception_v9.rs"]
 pub mod celestial_perception_v9;
 pub use celestial_perception_v9::{ConvergenceCloud, FeatureJudgment, PerceptionReport};
+#[path = "celestial_perception_v10.rs"]
+pub mod celestial_perception_v10;
+pub use celestial_perception_v10::{
+    CapType, CapDomain, Capability, CapSet, CapRegistry,
+    NsType, Namespace, NsManager,
+    PosixSyscall, BagSyscallRequest, BagSyscallResult,
+    PolicyDecision, PolicyEngine, ProcContext,
+    CelestialPerceptionV10, PipelineResultV10,
+};
+#[path = "celestial_perception_v11.rs"]
+pub mod celestial_perception_v11;
+pub use celestial_perception_v11::{
+    TimelineEventKind, TimelineEvent, Timeline,
+    BusMessage, CelestialBus,
+    BootStage, BootStepRecord, UnifiedBootstrap,
+    SystemHealth, CelestialObserver,
+    SubSystem, CelestialPerceptionV11, V11_VERSION,
+};
 
 // ======================================================================
 // 辅助函数

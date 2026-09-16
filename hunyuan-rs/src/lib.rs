@@ -140,6 +140,13 @@ pub mod fiber_bundle_topo;
 #[path = "core/cosmos_view.rs"]
 pub mod cosmos_view;
 
+// ── 征用层 · 动态编号 · 跨编码身份不灭 ──
+#[path = "encoding/expropriation.rs"]
+pub mod expropriation;
+pub use expropriation::{DynamicNumbering, ExpropriationContainer, SpousalExpropriation,
+                        YinYang, ViewerKind, RadiationConvergenceRing, RadiationReport,
+                        BeingNonBeing, demonstrate as demonstrate_expropriation};
+
 // ── 韵母系统 ──
 pub mod rhyme;
 
@@ -216,6 +223,11 @@ pub mod parasite;
 pub use parasite::{
     Parasite,
 };
+
+// ── v0.14 征用层 · 剥壳编程 · 编码不可换性 ──
+#[path = "encoding/expropriation.rs"]
+pub mod expropriation_layer;
+pub use expropriation_layer::;
 
 // ── v0.13 呼唤表 · 公约数分发器 ──
 #[path = "flow/invocation_table.rs"]
@@ -540,6 +552,16 @@ pub use oneness::{oneness, geometric_distance, distance_from_oneness, oneness_gr
 pub mod task_automation;
 pub use task_automation::{TaskScheduler, TaskDefinition, TaskKind, TaskInterval,
                          TaskResult, TaskExecutor};
+
+// ── v0.45 分布式等效任务积累引擎 — 聚类统计·非重叠积累·产权配置·递归消耗·未来连接 ──
+#[path = "core/task_accumulate.rs"]
+pub mod task_accumulate;
+pub use task_accumulate::{
+    AccumulationEngine, TaskUnit, TaskState, Modality, Polarity, Ownership,
+    TemporalConfig, PropertyConfig, PinyinAddress, Stroke, StrokeTemplateSpace,
+    ShengMu, YunMu, ShengDiao, TaskCluster, ClusteringEngine,
+    IngestResult, MatchResult,
+};
 
 // ── 对外 re-export ──
 

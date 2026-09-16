@@ -1,25 +1,9 @@
-## 满全法 OS · 统一参数化全编码系统
+## 满全法 OS · 统一全编码系统(14层完整版)
 ## ═══════════════════════════════════════════════════════════════
-## 编译开关 ( -d:N_LAYERS=N ):
-##   -d:N_LAYERS=3    声母+韵母+时钟(基础)
-##   -d:N_LAYERS=5    +颜色+空间
-##   -d:N_LAYERS=7    +镜像+音乐(七层全景 · 190码元 · 基准)
-##   -d:N_LAYERS=8    +意识流8(198)
-##   -d:N_LAYERS=10   +流属性12+身份2(212)
-##   -d:N_LAYERS=12   +见证3+分形1(216)
-##   -d:N_LAYERS=13   +文本显示18×10=180(396)
-##   -d:N_LAYERS=14   +行为建制16(412)
+## 包含全部14个编码层: 412总码元 · 96容器
 ## ═══════════════════════════════════════════════════════════════
 
-import strutils, macros
-
-macro get_layers(): untyped =
-  when defined(N_LAYERS):
-    result = newLit(parseInt($N_LAYERS))
-  else:
-    result = newLit(7)
-
-const LAYERS* = get_layers()
+import strutils
 
 # ═══════════════════════════════════════════════════════════════
 # 层一: 声母50 (FQ-SM50)
@@ -214,7 +198,7 @@ proc witness_pos*(g: string): int =
 const FRACTAL1 = ["∞"]
 
 # ═══════════════════════════════════════════════════════════════
-# 层十三: 文本显示18×10 (TEXT_DISPLAY)
+# 层十三: 文本显示18×10 (TEXT180)
 # ═══════════════════════════════════════════════════════════════
 
 const TEXT_ROWS* = 10
@@ -247,99 +231,94 @@ proc behavior_pos*(c: string): int =
   return 0
 
 # ═══════════════════════════════════════════════════════════════
-# 总码元 · 容器数
+# 14层全谱摘要
 # ═══════════════════════════════════════════════════════════════
 
-proc total_symbols*(): int =
-  result = SM50.len + YM66.len + CLOCK60.len
-  if LAYERS >= 5: result += COLOR42.len + SPACE18.len
-  if LAYERS >= 7: result += MIRROR10.len + MUSIC3.len
-  if LAYERS >= 8: result += CONSCIOUS8.len
-  if LAYERS >= 10: result += FLOW12.len + IDENTITY2.len
-  if LAYERS >= 12: result += WITNESS3.len + 1
-  if LAYERS >= 13: result += TEXT_ROWS * TEXT_COLS
-  if LAYERS >= 14: result += BEHAVIOR16.len
-
-proc container_count*(): int =
-  case LAYERS
-  of 3:  12
-  of 5:  21
-  of 7:  42
-  of 8:  48
-  of 10: 56
-  of 12: 64
-  of 13: 72
-  of 14: 96
-  else:  42
+const
+  LAYERS* = 14
+  TOTAL_SYMBOLS* = SM50.len + YM66.len + CLOCK60.len + COLOR42.len + SPACE18.len +
+                   MIRROR10.len + MUSIC3.len + CONSCIOUS8.len + FLOW12.len +
+                   IDENTITY2.len + WITNESS3.len + 1 + TEXT_ROWS * TEXT_COLS + BEHAVIOR16.len
+  CONTAINER_COUNT* = 96
 
 # ═══════════════════════════════════════════════════════════════
-# 积木选址核心
+# 积木选址统一公式
 # ═══════════════════════════════════════════════════════════════
 
-proc fq_addressN*(sm, ym, tn: string, extra: seq[int], n: int): int =
-  let a = sm_pos(sm)
-  let b = ym_pos(ym)
-  let c = tn_pos(tn)
-  var extra_sum = 0
-  for e in extra: extra_sum += e
-  if n == 0: return -1
-  result = (a * b * 5 + c + b + extra_sum) mod n
+proc fq_address*(sm, ym, tn, col, sp, mir, mus, cog, flw, idt, wit, txt, bhv: string): int =
+  result = sm_pos(sm) * ym_pos(ym) * 5 + tn_pos(tn) + ym_pos(ym) +
+           color_pos(col) + space_pos(sp) + mirror_pos(mir) + music_pos(mus) +
+           conscious_pos(cog) + flow_pos(flw) + identity_pos(idt) + witness_pos(wit) +
+           text_pos(txt) + behavior_pos(bhv)
 
 when is_main_module:
-  echo "═══ 满全法 OS · 参数化全编码 ═══"
-  echo "  LAYERS      : ", LAYERS
+  echo "═══ 满全法 OS · 14层全谱 ═══"
+  echo "  LAYERS       : 14"
   echo "  ──────────────────────────────"
-  echo "  FQ-SM50     : ", SM50.len
-  echo "  FQ-YM66     : ", YM66.len
-  echo "  CLOCK60     : ", CLOCK60.len
-  if LAYERS >= 5:
-    echo "  COLOR42     : ", COLOR42.len
-    echo "  SPACE18     : ", SPACE18.len
-  if LAYERS >= 7:
-    echo "  MIRROR10    : ", MIRROR10.len
-    echo "  MUSIC3      : ", MUSIC3.len
-  if LAYERS >= 8:
-    echo "  CONSCIOUS8  : ", CONSCIOUS8.len
-  if LAYERS >= 10:
-    echo "  FLOW12      : ", FLOW12.len
-    echo "  IDENTITY2   : ", IDENTITY2.len
-  if LAYERS >= 12:
-    echo "  WITNESS3    : ", WITNESS3.len
-    echo "  FRACTAL1    : 1"
-  if LAYERS >= 13:
-    echo "  TEXT18×10   : ", TEXT_ROWS * TEXT_COLS
-  if LAYERS >= 14:
-    echo "  BEHAVIOR16  : ", BEHAVIOR16.len
+  echo "  FQ-SM50      : ", SM50.len
+  echo "  FQ-YM66      : ", YM66.len
+  echo "  CLOCK60      : ", CLOCK60.len
+  echo "  COLOR42      : ", COLOR42.len
+  echo "  SPACE18      : ", SPACE18.len
+  echo "  MIRROR10     : ", MIRROR10.len
+  echo "  MUSIC3       : ", MUSIC3.len
+  echo "  CONSCIOUS8   : ", CONSCIOUS8.len
+  echo "  FLOW12       : ", FLOW12.len
+  echo "  IDENTITY2    : ", IDENTITY2.len
+  echo "  WITNESS3     : ", WITNESS3.len
+  echo "  FRACTAL1     : 1"
+  echo "  TEXT18×10    : ", TEXT_ROWS * TEXT_COLS
+  echo "  BEHAVIOR16   : ", BEHAVIOR16.len
   echo "  ──────────────────────────────"
-  echo "  总码元       : ", total_symbols()
-  echo "  容器数       : ", container_count()
+  echo "  总码元        : ", TOTAL_SYMBOLS
+  echo "  容器数        : ", CONTAINER_COUNT
 
-  # 积木选址演示
+  # 14维积木选址
   echo ""
-  echo "── 积木选址 ──"
-  let a = sm_pos("g")
-  let b_val = ym_pos("ӗ")
-  let c = tn_pos("Í")
-  var extra: seq[int]
-  if LAYERS >= 5:
-    extra.add(color_pos("ụ"))
-    extra.add(space_pos("胸"))
-  if LAYERS >= 7:
-    extra.add(mirror_pos("含"))
-    extra.add(music_pos("动机"))
-  if LAYERS >= 8:
-    extra.add(conscious_pos("y"))
-  if LAYERS >= 10:
-    extra.add(flow_pos("盈"))
-    extra.add(identity_pos("1"))
-  if LAYERS >= 12:
-    extra.add(witness_pos("裁"))
+  echo "── 14维积木选址 ──"
+  let
+    sm_v = sm_pos("g")
+    ym_v = ym_pos("ӗ")
+    tn_v = tn_pos("Í")
+    col_v = color_pos("ụ")
+    sp_v = space_pos("胸")
+    mir_v = mirror_pos("含")
+    mus_v = music_pos("动机")
+    cog_v = conscious_pos("y")
+    flw_v = flow_pos("盈")
+    id_v = identity_pos("1")
+    wit_v = witness_pos("裁")
+    txt_v = text_pos("5,2")
+    bhv_v = behavior_pos("相遇")
 
-  let n = container_count()
-  var extra_sum = 0
-  for e in extra: extra_sum += e
-  let target = (a * b_val * 5 + c + b_val + extra_sum) mod n
-  echo "extra_sum = ", extra_sum
-  echo "num = (", a, "×", b_val, "×5 + ", c, " + ", b_val, " + ", extra_sum, ") = ", a * b_val * 5 + c + b_val + extra_sum
-  echo "mod ", n, " → #", target
-  echo "选址命中: #", target
+    num = sm_v * ym_v * 5 + tn_v + ym_v + col_v + sp_v + mir_v + mus_v + cog_v + flw_v + id_v + wit_v + txt_v + bhv_v
+
+  echo "num = ", num
+  echo "mod ", CONTAINER_COUNT, " = ", num mod CONTAINER_COUNT
+
+  # 创建社会示例
+  echo ""
+  echo "── 14层容器 ──"
+  var idx: array[14, int]
+  let space_names = ["东","南","西","北","天","地","头","胸","腰","脚","里","外","中","侧","手","正","背","肩"]
+  let mir_dims = ["声","相","廓","尺","粗","含","色","高","宽","斜"]
+  let mus_layers = ["音符","动机","乐章"]
+  let cog_glyphs = ["x","h","j","f","s","y","g","n"]
+  let flw_attrs = ["速","向","密","温","压","清","锐","曲","深","宽","盈","生"]
+  let idt_glyphs = ["0","1"]
+  let wit_glyphs = ["观","被","裁"]
+  let txt_cells = ["0,0","1,0","2,0","3,0"]
+
+  for j in 0..11:
+    echo "  ", SM50[idx[0] mod SM50.len], YM66[idx[1] mod YM66.len], CLOCK60[idx[2] mod CLOCK60.len],
+         " +", COLOR42[idx[3] mod COLOR42.len].sym,
+         " @", space_names[idx[4] mod space_names.len],
+         " ⟨", mir_dims[idx[5] mod mir_dims.len],
+         mus_layers[idx[6] mod mus_layers.len],
+         cog_glyphs[idx[7] mod cog_glyphs.len], "·",
+         flw_attrs[idx[8] mod flw_attrs.len],
+         idt_glyphs[idx[9] mod idt_glyphs.len],
+         wit_glyphs[idx[10] mod wit_glyphs.len],
+         txt_cells[idx[11] mod txt_cells.len], "⟩"
+    for k in 0..13: idx[k] += 1
+    if idx[0] >= 3: break

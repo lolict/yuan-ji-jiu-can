@@ -707,20 +707,9 @@ mod tests {
     }
 
     #[test]
-    fn timeline_max_len_rotates() {
-        let mut t = Timeline::new();
-        assert_eq!(t.max_len, 4096);
-        // 小max_len
-        let mut t2 = Timeline { max_len, events: VecDeque::new(), next_seq: 1, snapshot_count: 0 };
-        // 但 struct 实例化需要正确 - 直接测试 snapshot
-        let mut t3 = Timeline::new();
-        let (start, _) = t3.snapshot();
-        assert_eq!(start, 0); // 空时间线
-    }
-
-    #[test]
     fn timeline_snapshot() {
         let mut t = Timeline::new();
+        assert_eq!(t.max_len, 4096);
         let _ = t.record(TimelineEventKind::BagCreated, 1, "a", None);
         let _ = t.record(TimelineEventKind::BagJudged, 1, "b", None);
         let (s, e) = t.snapshot();
