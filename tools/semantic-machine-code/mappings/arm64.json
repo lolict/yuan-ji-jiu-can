@@ -1,0 +1,148 @@
+{
+  "metadata": {
+    "architecture": "ARM",
+    "variant": "AArch64 / ARMv8-A",
+    "description": "ARM 64位架构，固定32位指令编码，多格式位域划分",
+    "source": "ARM Architecture Reference Manual ARMv8, for ARMv8-A architecture profile",
+    "endianness": "little (typically)",
+    "instruction_width": 32,
+    "register_count": 31,
+    "gpr_range": "x0..x30, sp, xzr",
+    "stored": "2026-09-16",
+    "verifier": "unverified"
+  },
+  "formats": {
+    "DS": {
+      "description": "数据处理·移位寄存器（ADD/SUB/AND/ORR 移位形式）",
+      "fields": [
+        {"name": "sf",     "msb": 31, "lsb": 31, "type": "const"},
+        {"name": "op",     "msb": 30, "lsb": 30, "type": "const"},
+        {"name": "S",      "msb": 29, "lsb": 29, "type": "const"},
+        {"name": "fixed1", "msb": 28, "lsb": 24, "type": "const"},
+        {"name": "Rm",     "msb": 20, "lsb": 16, "type": "reg"},
+        {"name": "imm6",   "msb": 15, "lsb": 10, "type": "const"},
+        {"name": "Rn",     "msb": 9,  "lsb": 5,  "type": "reg"},
+        {"name": "Rd",     "msb": 4,  "lsb": 0,  "type": "reg"}
+      ]
+    },
+    "DI": {
+      "description": "数据处理·立即数（ADD/SUB 立即数形式）",
+      "fields": [
+        {"name": "sf",     "msb": 31, "lsb": 31, "type": "const"},
+        {"name": "op",     "msb": 30, "lsb": 30, "type": "const"},
+        {"name": "S",      "msb": 29, "lsb": 29, "type": "const"},
+        {"name": "fixed1", "msb": 28, "lsb": 24, "type": "const"},
+        {"name": "shift",  "msb": 23, "lsb": 22, "type": "const"},
+        {"name": "imm12",  "msb": 21, "lsb": 10, "type": "imm"},
+        {"name": "Rn",     "msb": 9,  "lsb": 5,  "type": "reg"},
+        {"name": "Rd",     "msb": 4,  "lsb": 0,  "type": "reg"}
+      ]
+    },
+    "LSU": {
+      "description": "加载/存储·无符号偏移（LDR/STR 立即数偏移形式）",
+      "fields": [
+        {"name": "size",   "msb": 31, "lsb": 30, "type": "const"},
+        {"name": "v",      "msb": 29, "lsb": 26, "type": "const"},
+        {"name": "fixed1", "msb": 25, "lsb": 25, "type": "const"},
+        {"name": "L",      "msb": 21, "lsb": 21, "type": "const"},
+        {"name": "imm12",  "msb": 21, "lsb": 10, "type": "imm"},
+        {"name": "Rn",     "msb": 9,  "lsb": 5,  "type": "reg"},
+        {"name": "Rt",     "msb": 4,  "lsb": 0,  "type": "reg"}
+      ]
+    },
+    "B": {
+      "description": "无条件分支（立即数偏移）",
+      "fields": [
+        {"name": "op0",    "msb": 31, "lsb": 26, "type": "const"},
+        {"name": "imm26",  "msb": 25, "lsb": 0,  "type": "imm_signed"}
+      ]
+    },
+    "BC": {
+      "description": "条件分支",
+      "fields": [
+        {"name": "op0",    "msb": 31, "lsb": 24, "type": "const"},
+        {"name": "imm19",  "msb": 23, "lsb": 5,  "type": "imm_signed"},
+        {"name": "cond",   "msb": 3,  "lsb": 0,  "type": "const"},
+        {"name": "op1",    "msb": 4,  "lsb": 4,  "type": "const"}
+      ]
+    },
+    "MOV_IMM": {
+      "description": "MOV（立即数形式，ORR XZR, XZR, #imm 别名）",
+      "fields": [
+        {"name": "sf",     "msb": 31, "lsb": 31, "type": "const"},
+        {"name": "op",     "msb": 30, "lsb": 29, "type": "const"},
+        {"name": "fixed1", "msb": 28, "lsb": 23, "type": "const"},
+        {"name": "hw",     "msb": 22, "lsb": 21, "type": "const"},
+        {"name": "imm16",  "msb": 20, "lsb": 5,  "type": "imm"},
+        {"name": "Rd",     "msb": 4,  "lsb": 0,  "type": "reg"}
+      ]
+    }
+  },
+  "opcodes": {
+    "ADD_REG_SHIFT": "10001011000",
+    "SUB_REG_SHIFT": "10101011000",
+    "ADD_IMM":       "10010001",
+    "SUB_IMM":       "11010001",
+    "ORR_REG_SHIFT": "01101010000",
+    "AND_REG_SHIFT": "00001010000",
+    "LDR_IMM_UOFFSET":"11100101",
+    "STR_IMM_UOFFSET":"11100100",
+    "B_UNCOND":      "000101",
+    "B_COND":        "01010100",
+    "MOV_IMM":       "110100101"
+  },
+  "instructions": {
+    "ADD":  {"format": "DS", "encoding": "0x8B000000 | (Rm<<16) | (Rn<<5) | Rd", "description": "加法（移位寄存器形式），Rd = Rn + Rm"},
+    "SUB":  {"format": "DS", "encoding": "0xCB000000 | (Rm<<16) | (Rn<<5) | Rd", "description": "减法（移位寄存器形式），Rd = Rn - Rm"},
+    "AND":  {"format": "DS", "encoding": "0x0A000000 | (Rm<<16) | (Rn<<5) | Rd", "description": "按位与（移位寄存器形式）"},
+    "OR":   {"format": "DS", "encoding": "0x6A000000 | (Rm<<16) | (Rn<<5) | Rd", "description": "按位或（移位寄存器形式）"},
+    "XOR":  {"format": "DS", "encoding": "0x4A000000 | (Rm<<16) | (Rn<<5) | Rd", "description": "按位异或（移位寄存器形式）"},
+    "ADDI": {"format": "DI", "encoding": "0x91000000 | (shift<<22) | (imm12<<10) | (Rn<<5) | Rd", "description": "加立即数：Rd = Rn + imm12 (shift=00)"},
+    "SUBI": {"format": "DI", "encoding": "0xD1000000 | (shift<<22) | (imm12<<10) | (Rn<<5) | Rd", "description": "减立即数：Rd = Rn - imm12"},
+    "SLL":  {"format": "DS", "encoding": "UBFM/移位别名，Rd = Rn << shamt", "description": "逻辑左移，移位量0-63"},
+    "SRL":  {"format": "DS", "encoding": "UBFM别名，Rd = Rn >> shamt", "description": "逻辑右移"},
+    "SRA":  {"format": "DS", "encoding": "SBFM别名，Rd = Rn >> shamt（算术）", "description": "算术右移"},
+    "LW":   {"format": "LSU", "encoding": "0xB9400000 | (imm12<<10) | (Rn<<5) | Rt", "description": "加载32位字：Rt = *(Rn + imm12*4)"},
+    "SW":   {"format": "LSU", "encoding": "0xB9000000 | (imm12<<10) | (Rn<<5) | Rt", "description": "存储32位字：*(Rn + imm12*4) = Rt"},
+    "MOV":  {"format": "MOV_IMM", "encoding": "0xD2800000 | (hw<<21) | (imm16<<5) | Rd", "description": "MOV 立即数加载（MOVZ 别名）"},
+    "LUI":  {"format": "MOV_IMM", "encoding": "0xD2800000 | (1<<21) | (imm16<<5) | Rd", "description": "加载高位立即数（MOVZ xRd, #imm16, LSL #16）"},
+    "JMP":  {"format": "B", "encoding": "0x14000000 | (imm26 & 0x3FFFFFF)", "description": "无条件跳转（PC相对）"},
+    "BEQ":  {"format": "BC", "encoding": "0x54000000 | (imm19<<5) | 0b0000", "description": "相等跳转：cond=EQ (0000)"},
+    "BNE":  {"format": "BC", "encoding": "0x54000000 | (imm19<<5) | 0b0001", "description": "不等跳转：cond=NE (0001)"}
+  },
+  "registers": {
+    "x0":  {"alias": "x0",  "role": "参数/返回值"},
+    "x1":  {"alias": "x1",  "role": "参数/返回值"},
+    "x2":  {"alias": "x2",  "role": "参数"},
+    "x3":  {"alias": "x3",  "role": "参数"},
+    "x4":  {"alias": "x4",  "role": "参数"},
+    "x5":  {"alias": "x5",  "role": "参数"},
+    "x6":  {"alias": "x6",  "role": "参数"},
+    "x7":  {"alias": "x7",  "role": "参数"},
+    "x8":  {"alias": "x8",  "role": "间接结果"},
+    "x9":  {"alias": "x9",  "role": "临时"},
+    "x10": {"alias": "x10", "role": "临时"},
+    "x11": {"alias": "x11", "role": "临时"},
+    "x12": {"alias": "x12", "role": "临时"},
+    "x13": {"alias": "x13", "role": "临时"},
+    "x14": {"alias": "x14", "role": "临时"},
+    "x15": {"alias": "x15", "role": "临时"},
+    "x16": {"alias": "x16", "role": "IP0/临时"},
+    "x17": {"alias": "x17", "role": "IP1/临时"},
+    "x18": {"alias": "x18", "role": "平台保留"},
+    "x19": {"alias": "x19", "role": "被调用者保存"},
+    "x20": {"alias": "x20", "role": "被调用者保存"},
+    "x21": {"alias": "x21", "role": "被调用者保存"},
+    "x22": {"alias": "x22", "role": "被调用者保存"},
+    "x23": {"alias": "x23", "role": "被调用者保存"},
+    "x24": {"alias": "x24", "role": "被调用者保存"},
+    "x25": {"alias": "x25", "role": "被调用者保存"},
+    "x26": {"alias": "x26", "role": "被调用者保存"},
+    "x27": {"alias": "x27", "role": "被调用者保存"},
+    "x28": {"alias": "x28", "role": "被调用者保存"},
+    "x29": {"alias": "fp",  "role": "帧指针"},
+    "x30": {"alias": "lr",  "role": "链接寄存器"},
+    "sp":  {"alias": "sp",  "role": "栈指针"},
+    "xzr": {"alias": "xzr", "role": "零寄存器"}
+  }
+}

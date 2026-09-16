@@ -1,0 +1,106 @@
+{
+  "metadata": {
+    "architecture": "MIPS32",
+    "variant": "MIPS32r2",
+    "description": "MIPS32 定点整数指令集，三格式固定32位编码",
+    "source": "MIPS Architecture For Programmers Vol II-A: The MIPS32 Instruction Set",
+    "endianness": "big",
+    "instruction_width": 32,
+    "register_count": 32,
+    "stored": "2026-09-16",
+    "verifier": "unverified"
+  },
+  "formats": {
+    "R": {
+      "description": "寄存器-寄存器",
+      "fields": [
+        {"name": "opcode","msb": 31, "lsb": 26, "type": "const"},
+        {"name": "rs",    "msb": 25, "lsb": 21, "type": "reg"},
+        {"name": "rt",    "msb": 20, "lsb": 16, "type": "reg"},
+        {"name": "rd",    "msb": 15, "lsb": 11, "type": "reg"},
+        {"name": "shamt", "msb": 10, "lsb": 6,  "type": "const"},
+        {"name": "funct", "msb": 5,  "lsb": 0,  "type": "const"}
+      ]
+    },
+    "I": {
+      "description": "寄存器-立即数/访存/分支",
+      "fields": [
+        {"name": "opcode","msb": 31, "lsb": 26, "type": "const"},
+        {"name": "rs",    "msb": 25, "lsb": 21, "type": "reg"},
+        {"name": "rt",    "msb": 20, "lsb": 16, "type": "reg"},
+        {"name": "imm16", "msb": 15, "lsb": 0,  "type": "imm"}
+      ]
+    },
+    "J": {
+      "description": "跳转",
+      "fields": [
+        {"name": "opcode","msb": 31, "lsb": 26, "type": "const"},
+        {"name": "target","msb": 25, "lsb": 0,  "type": "imm"}
+      ]
+    }
+  },
+  "opcodes": {
+    "SPECIAL": "000000",
+    "ADDI":    "001000",
+    "ANDI":    "001100",
+    "ORI":     "001101",
+    "LUI":     "001111",
+    "BEQ":     "000100",
+    "BNE":     "000101",
+    "LW":      "100011",
+    "SW":      "101011",
+    "J":       "000010"
+  },
+  "instructions": {
+    "ADD":  {"format": "R", "opcode": "000000", "rs": "rs", "rt": "rt", "rd": "rd", "shamt": "00000", "funct": "100000"},
+    "SUB":  {"format": "R", "opcode": "000000", "rs": "rs", "rt": "rt", "rd": "rd", "shamt": "00000", "funct": "100010"},
+    "AND":  {"format": "R", "opcode": "000000", "rs": "rs", "rt": "rt", "rd": "rd", "shamt": "00000", "funct": "100100"},
+    "OR":   {"format": "R", "opcode": "000000", "rs": "rs", "rt": "rt", "rd": "rd", "shamt": "00000", "funct": "100101"},
+    "SLL":  {"format": "R", "opcode": "000000", "rs": "00000", "rt": "rt", "rd": "rd", "shamt": "shamt", "funct": "000000"},
+    "SRL":  {"format": "R", "opcode": "000000", "rs": "00000", "rt": "rt", "rd": "rd", "shamt": "shamt", "funct": "000010"},
+    "SRA":  {"format": "R", "opcode": "000000", "rs": "00000", "rt": "rt", "rd": "rd", "shamt": "shamt", "funct": "000011"},
+    "ADDI": {"format": "I", "opcode": "001000", "rs": "rs", "rt": "rt", "imm16": "imm"},
+    "ANDI": {"format": "I", "opcode": "001100", "rs": "rs", "rt": "rt", "imm16": "imm"},
+    "ORI":  {"format": "I", "opcode": "001101", "rs": "rs", "rt": "rt", "imm16": "imm"},
+    "BEQ":  {"format": "I", "opcode": "000100", "rs": "rs", "rt": "rt", "imm16": "offset"},
+    "BNE":  {"format": "I", "opcode": "000101", "rs": "rs", "rt": "rt", "imm16": "offset"},
+    "LW":   {"format": "I", "opcode": "100011", "rs": "base", "rt": "rt", "imm16": "offset"},
+    "SW":   {"format": "I", "opcode": "101011", "rs": "base", "rt": "rt", "imm16": "offset"},
+    "LUI":  {"format": "I", "opcode": "001111", "rs": "00000", "rt": "rt", "imm16": "imm20"},
+    "JMP":  {"format": "J", "opcode": "000010", "target": "target"}
+  },
+  "registers": {
+    "$0":  {"alias": "zero", "role": "恒零"},
+    "$1":  {"alias": "at",    "role": "汇编器暂存"},
+    "$2":  {"alias": "v0",    "role": "返回值"},
+    "$3":  {"alias": "v1",    "role": "返回值"},
+    "$4":  {"alias": "a0",    "role": "参数"},
+    "$5":  {"alias": "a1",    "role": "参数"},
+    "$6":  {"alias": "a2",    "role": "参数"},
+    "$7":  {"alias": "a3",    "role": "参数"},
+    "$8":  {"alias": "t0",    "role": "临时"},
+    "$9":  {"alias": "t1",    "role": "临时"},
+    "$10": {"alias": "t2",    "role": "临时"},
+    "$11": {"alias": "t3",    "role": "临时"},
+    "$12": {"alias": "t4",    "role": "临时"},
+    "$13": {"alias": "t5",    "role": "临时"},
+    "$14": {"alias": "t6",    "role": "临时"},
+    "$15": {"alias": "t7",    "role": "临时"},
+    "$16": {"alias": "s0",    "role": "保存"},
+    "$17": {"alias": "s1",    "role": "保存"},
+    "$18": {"alias": "s2",    "role": "保存"},
+    "$19": {"alias": "s3",    "role": "保存"},
+    "$20": {"alias": "s4",    "role": "保存"},
+    "$21": {"alias": "s5",    "role": "保存"},
+    "$22": {"alias": "s6",    "role": "保存"},
+    "$23": {"alias": "s7",    "role": "保存"},
+    "$24": {"alias": "t8",    "role": "临时"},
+    "$25": {"alias": "t9",    "role": "临时"},
+    "$26": {"alias": "k0",    "role": "内核"},
+    "$27": {"alias": "k1",    "role": "内核"},
+    "$28": {"alias": "gp",    "role": "全局指针"},
+    "$29": {"alias": "sp",    "role": "栈指针"},
+    "$30": {"alias": "fp",    "role": "帧指针"},
+    "$31": {"alias": "ra",    "role": "返回地址"}
+  }
+}
