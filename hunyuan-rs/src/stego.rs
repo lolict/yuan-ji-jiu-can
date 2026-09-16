@@ -60,7 +60,7 @@ pub fn unicode_encode(carrier: &str, payload: &str) -> String {
     for byte in &header {
         for bit_pos in (0..8).rev() {
             let bit = (byte >> bit_pos) & 1;
-            result.push(if bit == 0 { ZWSP } else { ZWNI });
+            result.push(if bit == 0 { ZWSP } else { ZWNJ });
             result.push(ZWJ);
         }
     }
@@ -68,7 +68,7 @@ pub fn unicode_encode(carrier: &str, payload: &str) -> String {
     for &byte in payload_bytes {
         for bit_pos in (0..8).rev() {
             let bit = (byte >> bit_pos) & 1;
-            result.push(if bit == 0 { ZWSP } else { ZWNI });
+            result.push(if bit == 0 { ZWSP } else { ZWNJ });
             result.push(ZWJ);
         }
     }
@@ -84,7 +84,7 @@ pub fn unicode_decode(text: &str) -> StegoResult<String> {
         if ch == BOM {
             break;
         }
-        if ch == ZWSP || ch == ZWNI || ch == ZWJ {
+        if ch == ZWSP || ch == ZWNJ || ch == ZWJ {
             zw_chars.push(ch);
         }
     }
@@ -101,12 +101,12 @@ pub fn unicode_decode(text: &str) -> StegoResult<String> {
     
     while i < zw_chars.len() {
         let ch = zw_chars[i];
-        if ch != ZWSP && ch != ZWNI {
+        if ch != ZWSP && ch != ZWNJ {
             i += 1;
             continue;
         }
         
-        let bit = if ch == ZWSP { 0 } else { 1 };
+        let bit = if ch == ZWSP { 0u8 } else { 1u8 };
         byte_acc = (byte_acc << 1) | bit;
         bit_count += 1;
         
@@ -130,8 +130,12 @@ pub fn unicode_decode(text: &str) -> StegoResult<String> {
     
     let plen = u32::from_be_bytes([extracted[0], extracted[1], extracted[2], extracted[3]]) as usize;
     
-    if plen == 0 || plen > 1_000_000 || extracted.len() < 4 + plen {
+    if plen > 1_000_000 || extracted.len() < 4 + plen {
         return Err(StegoError::DecodeFailed);
+    }
+    
+    if plen == 0 {
+        return Ok(String::new());
     }
     
     String::from_utf8(extracted[4..4 + plen].to_vec())
@@ -145,7 +149,7 @@ use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
 /// 在HTML中嵌入（隐藏span + 注释）
 pub fn html_encode(html_content: &str, payload: &str) -> String {
     let encoded = BASE64.encode(payload.as_bytes());
-    let comment = format!("<!-- csl3:{} -->", encoded);
+    let comment = format!("<!-- csl3:{}-->", encoded);
     let hidden_span = format!(
         r#"<span style="display:none;font-size:0;opacity:0;position:absolute;left:-9999px"><!--csl3-->{}<!--/csl3--></span>"#,
         encoded
@@ -280,8 +284,7 @@ mod tests {
         let carrier = "这是一段看起来正常的公开博客文本。天气不错。";
         let payload = "高位持有者=1, 低位持有者=0";
         let encoded = unicode_encode(carrier, payload);
-        let (ok, decoded) = unicode_decode(&encoded).unwrap();
-        assert!(ok);
+        let decoded = unicode_decode(&encoded).unwrap();
         assert_eq!(decoded, payload);
     }
     
@@ -305,9 +308,8 @@ mod tests {
     
     #[test]
     fn test_crc32() {
-        let data = b"五彩石";
-        let c = crc32(data);
-        // CRC32(b"五彩石") 应该是一个确定的值
+        let c = crc32("五彩石".as_bytes());
+        // CRC32("五彩石") should be a deterministic non-zero value
         assert_ne!(c, 0);
     }
     
@@ -315,6 +317,9 @@ mod tests {
     fn test_empty_payload() {
         let carrier = "test";
         let encoded = unicode_encode(carrier, "");
-        assert(!encoded.is_empty());
+        assert!(encoded.starts_with(carrier));
+        // 空payload编码后仍可解码
+        let decoded = unicode_decode(&encoded).unwrap();
+        assert_eq!(decoded, "");
     }
 }

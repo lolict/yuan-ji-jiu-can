@@ -721,7 +721,25 @@ pub use silkworm_parasite::{
     SilkwormPupa, SilkwormReport, ParasiteError,
 };
 
-// ── v0.42 莫顿码 · 三维坐标系索引 (Morton) ──
+// ── v0.42 SMRL 四轴坐标衔接 · 64 位单元格 (SmrlCell) ──
+#[path = "core/smrl_cell.rs"]
+pub mod smrl_cell;
+pub use smrl_cell::{
+    SmrlCell, CellOwner, CellTable,
+    coord_to_cell, coord_to_cell_with_owner,
+    polarity,
+};
+
+// ── v0.43 自举编译器 · YinYang→SmrlCellOp (BootstrapCompiler) ──
+#[path = "core/bootstrap_compiler.rs"]
+pub mod bootstrap_compiler;
+pub use bootstrap_compiler::{
+    Expr, SmrlCellOp,
+    compile, execute, grow,
+    container_dynamics_rule, consciousness_router_rule, silkworm_parasite_rule,
+};
+
+// ── v0.44 莫顿码 · 三维坐标系索引 (Morton) ──
 #[path = "encoding/morton.rs"]
 pub mod morton;
 #[path = "encoding/morphism.rs"]
@@ -795,3 +813,7 @@ pub use time_chain_identity::{
     // 兼容层
     hash_to_coordinate,
 };
+
+// ── 五彩石隐写工具 v1.0 (Steganography: Unicode / HTML / WASM) ──
+#[path = "stego.rs"]
+pub mod stego;
