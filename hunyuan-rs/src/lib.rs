@@ -224,10 +224,6 @@ pub use parasite::{
     Parasite,
 };
 
-// ── v0.14 征用层 · 剥壳编程 · 编码不可换性 ──
-#[path = "encoding/expropriation.rs"]
-pub mod expropriation_layer;
-pub use expropriation_layer::;
 
 // ── v0.13 呼唤表 · 公约数分发器 ──
 #[path = "flow/invocation_table.rs"]
