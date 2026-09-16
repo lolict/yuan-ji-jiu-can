@@ -246,7 +246,7 @@ def parse_mcod_table(mcod_data: bytes) -> dict:
         raise ValueError(f"不支持 MCOD 版本: {version}（只支持 v2）")
 
     arch_mappings = {}
-    offset = 6
+    offset = 8
     for _ in range(arch_count):
         name_len = mcod_data[offset]; offset += 1
         arch_name = mcod_data[offset:offset + name_len].decode("utf-8"); offset += name_len

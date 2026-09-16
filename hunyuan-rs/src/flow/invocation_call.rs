@@ -137,13 +137,14 @@ impl Iterator for 地址遍历器 {
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.当前 >= self.空间.容量() {
-            None
-        } else {
-            let 地址 = self.当前;
-            let 点 = self.空间.展开(地址);
-            self.当前 = self.空间.推进(self.当前)?;
-            Some((地址, 点))
+            return None;
         }
+        let 地址 = self.当前;
+        let 点 = self.空间.展开(地址);
+        // 推进溢出时直接把当前跳到容量外, 下一条 next() 自然返回 None
+        // (不可用 ? 短路, 否则会把刚取到的最后一个 item 丢掉)
+        self.当前 = self.空间.推进(self.当前).unwrap_or(self.空间.容量());
+        Some((地址, 点))
     }
 }
 
