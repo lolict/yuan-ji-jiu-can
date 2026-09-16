@@ -211,8 +211,8 @@ mod tests {
 
     #[test]
     fn family_round_trip_analyze() {
-        // 0x23000000: top3=1(Boundary), bit28=1(Yang)
-        let code = 0x23000000;
+        // 0x30000000: bit29=1(top3=1→Boundary), bit28=1(polarity=1/Yang)
+        let code = 0x30000000;
         let fam = Family::from_container_code(code);
         assert_eq!(fam, Family::Boundary);
         assert_eq!(polarity_from_code(code), 1);
