@@ -36,15 +36,23 @@ def _parse_operand(op, arch_registers: dict):
         return ("imm", int(name, 0))
     except ValueError:
         pass
-    # 寄存器编号 xN
+    # 寄存器编号 xN (RISC-V/MIPS-style)
     low = name.lower()
     if low.startswith("x") and low[1:].isdigit():
         return ("reg", int(low[1:]))
-    # 寄存器别名
+    # 寄存器编号 $N (MIPS-style)
+    if low.startswith("$") and low[1:].isdigit():
+        return ("reg", int(low[1:]))
+    # 寄存器别名（遍历各架构）
     for num_str, info in arch_registers.items():
         alias = info.get("alias", "").lower()
         if alias == low:
-            return ("reg", int(num_str[1:]))
+            # 从 key (xN 或 $N) 提取编号
+            key_low = num_str.lower()
+            if key_low.startswith("x") and key_low[1:].isdigit():
+                return ("reg", int(key_low[1:]))
+            if key_low.startswith("$") and key_low[1:].isdigit():
+                return ("reg", int(key_low[1:]))
     raise ValueError(f"操作数'{op}'无法解析为寄存器或立即数")
 
 
@@ -71,8 +79,8 @@ def encode(semantic_id: str, operands: list, arch: str = "rv32i", registers: dic
 
     if arch == "rv32i":
         return _encode_rv32i(semantic_id, operands, mappings, registers)
-    elif arch == "x86_64":
-        return _encode_x86_64(semantic_id, operands, mappings, registers)
+    elif arch == "mips32":
+        return _encode_mips32(semantic_id, operands, mappings, registers)
     else:
         raise ValueError(f"暂不支持架构: {arch}")
 
@@ -136,6 +144,77 @@ def _encode_x86_64(semantic_id, operands, mappings, registers):
         rel8 = int(operands[0])
         return 0xEB | ((rel8 & 0xFF) << 8)
     raise NotImplementedError(f"x86-64 {semantic_id} 的编码尚未在预加载中实现")
+
+
+def _encode_mips32(semantic_id, operands, mappings, registers):
+    """MIPS32 编码：按 R/I/J 格式拼装。"""
+    inst = mappings["instructions"][semantic_id]
+    fmt = inst["format"]
+    opcode_val = int(inst["opcode"], 2)
+    funct_val = int(inst.get("funct", "0"), 2) if "funct" in inst else 0
+    shamt_val = int(inst.get("shamt", "00000"), 2)
+
+    code = 0
+    code |= (opcode_val & 0x3F) << 26
+
+    if fmt == "R":  # opcode[31:26] | rs[25:21] | rt[20:16] | rd[15:11] | shamt[10:6] | funct[5:0]
+        if semantic_id in ("SLL", "SRL", "SRA"):
+            # 移位指令: rd=operands[0], rt=operands[1], shamt=operands[2]
+            rd = _parse_operand(operands[0], registers)[1]
+            rt = _parse_operand(operands[1], registers)[1]
+            shamt = _parse_operand(operands[2], registers)[1]
+            rs = 0  # 未使用
+            code |= (rs & 0x1F) << 21
+            code |= (rt & 0x1F) << 16
+            code |= (rd & 0x1F) << 11
+            code |= (shamt & 0x1F) << 6
+            code |= (funct_val & 0x3F)
+        else:
+            rd = _parse_operand(operands[0], registers)[1]
+            rs = _parse_operand(operands[1], registers)[1]
+            rt = _parse_operand(operands[2], registers)[1]
+            code |= (rs & 0x1F) << 21
+            code |= (rt & 0x1F) << 16
+            code |= (rd & 0x1F) << 11
+            code |= (shamt_val & 0x1F) << 6
+            code |= (funct_val & 0x3F)
+    elif fmt == "I":  # opcode[31:26] | rs[25:21] | rt[20:16] | imm16[15:0]
+        if semantic_id in ("LW", "SW"):
+            # LW rt, offset(base) → operands = [rt, offset, base]
+            rt = _parse_operand(operands[0], registers)[1]
+            imm = _parse_operand(operands[1], registers)[1]
+            rs = _parse_operand(operands[2], registers)[1]
+            code |= (rs & 0x1F) << 21
+            code |= (rt & 0x1F) << 16
+            code |= (imm & 0xFFFF)
+        elif semantic_id in ("BEQ", "BNE"):
+            # BEQ rs, rt, offset
+            rs = _parse_operand(operands[0], registers)[1]
+            rt = _parse_operand(operands[1], registers)[1]
+            imm = _parse_operand(operands[2], registers)[1]
+            code |= (rs & 0x1F) << 21
+            code |= (rt & 0x1F) << 16
+            code |= (imm & 0xFFFF)
+        elif semantic_id == "LUI":
+            # LUI rt, imm; rs = 0
+            rt = _parse_operand(operands[0], registers)[1]
+            imm = _parse_operand(operands[1], registers)[1]
+            code |= (0 & 0x1F) << 21
+            code |= (rt & 0x1F) << 16
+            code |= (imm & 0xFFFF)
+        else:
+            # ADDI/ANDI/ORI: rt, rs, imm
+            rt = _parse_operand(operands[0], registers)[1]
+            rs = _parse_operand(operands[1], registers)[1]
+            imm = _parse_operand(operands[2], registers)[1]
+            code |= (rs & 0x1F) << 21
+            code |= (rt & 0x1F) << 16
+            code |= (imm & 0xFFFF)
+    elif fmt == "J":  # opcode[31:26] | target[25:0]
+        target = _parse_operand(operands[0], registers)[1]
+        code |= (target & 0x3FFFFFF)
+
+    return code
 
 
 # —— CLI 入口（兼容直接运行） ——

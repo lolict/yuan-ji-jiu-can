@@ -56,9 +56,9 @@
     "SUB":  {"format": "R", "opcode": "000000", "rs": "rs", "rt": "rt", "rd": "rd", "shamt": "00000", "funct": "100010"},
     "AND":  {"format": "R", "opcode": "000000", "rs": "rs", "rt": "rt", "rd": "rd", "shamt": "00000", "funct": "100100"},
     "OR":   {"format": "R", "opcode": "000000", "rs": "rs", "rt": "rt", "rd": "rd", "shamt": "00000", "funct": "100101"},
-    "SLL":  {"format": "R", "opcode": "000000", "rs": "00000", "rt": "rt", "rd": "rd", "shamt": "shamt", "funct": "000000"},
-    "SRL":  {"format": "R", "opcode": "000000", "rs": "00000", "rt": "rt", "rd": "rd", "shamt": "shamt", "funct": "000010"},
-    "SRA":  {"format": "R", "opcode": "000000", "rs": "00000", "rt": "rt", "rd": "rd", "shamt": "shamt", "funct": "000011"},
+    "SLL":  {"format": "R", "opcode": "000000", "rs": "00000", "rt": "rt", "rd": "rd", "shamt": "00000", "funct": "000000"},
+    "SRL":  {"format": "R", "opcode": "000000", "rs": "00000", "rt": "rt", "rd": "rd", "shamt": "00000", "funct": "000010"},
+    "SRA":  {"format": "R", "opcode": "000000", "rs": "00000", "rt": "rt", "rd": "rd", "shamt": "00000", "funct": "000011"},
     "ADDI": {"format": "I", "opcode": "001000", "rs": "rs", "rt": "rt", "imm16": "imm"},
     "ANDI": {"format": "I", "opcode": "001100", "rs": "rs", "rt": "rt", "imm16": "imm"},
     "ORI":  {"format": "I", "opcode": "001101", "rs": "rs", "rt": "rt", "imm16": "imm"},
@@ -66,7 +66,7 @@
     "BNE":  {"format": "I", "opcode": "000101", "rs": "rs", "rt": "rt", "imm16": "offset"},
     "LW":   {"format": "I", "opcode": "100011", "rs": "base", "rt": "rt", "imm16": "offset"},
     "SW":   {"format": "I", "opcode": "101011", "rs": "base", "rt": "rt", "imm16": "offset"},
-    "LUI":  {"format": "I", "opcode": "001111", "rs": "00000", "rt": "rt", "imm16": "imm20"},
+    "LUI":  {"format": "I", "opcode": "001111", "rs": "00000", "rt": "rt", "imm16": "imm16"},
     "JMP":  {"format": "J", "opcode": "000010", "target": "target"}
   },
   "registers": {

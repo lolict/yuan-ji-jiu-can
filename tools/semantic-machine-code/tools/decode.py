@@ -32,6 +32,8 @@ def decode(machine_code: int, arch: str = "rv32i", mappings: dict = None) -> dic
 
     if arch == "rv32i":
         return _decode_rv32i(machine_code, mappings)
+    elif arch == "mips32":
+        return _decode_mips32(machine_code, mappings)
     raise ValueError(f"暂不支持架构: {arch}")
 
 
@@ -58,6 +60,88 @@ def _decode_rv32i(code: int, mappings: dict) -> dict:
         return _rv32i_operands(sid, fmt, code, rd, rs1, rs2, funct7, regs)
 
     raise ValueError(f"机器码 0x{code:08X} 在 RV32I 映射中未找到")
+
+
+def _decode_mips32(code: int, mappings: dict) -> dict:
+    """MIPS32 解码：按 R/I/J 格式提取操作数。"""
+    opcode = (code >> 26) & 0x3F
+    rs     = (code >> 21) & 0x1F
+    rt     = (code >> 16) & 0x1F
+    rd     = (code >> 11) & 0x1F
+    shamt  = (code >> 6) & 0x1F
+    funct  = code & 0x3F
+    regs   = mappings.get("registers", {})
+
+    for sid, inst in mappings["instructions"].items():
+        if inst["opcode"] != f"{opcode:06b}":
+            continue
+        if inst["format"] == "R" and "funct" in inst:
+            if inst["funct"] != f"{funct:06b}":
+                continue
+        return _mips32_operands(sid, inst["format"], code, rs, rt, rd, shamt, funct, regs)
+
+    raise ValueError(f"机器码 0x{code:08X} 在 MIPS32 映射中未找到")
+
+
+def _mips32_operands(sid, fmt, code, rs, rt, rd, shamt, funct, regs) -> dict:
+    """根据格式还原为 MIPS32 操作数（"$N" 形式）。"""
+    reg_name = lambda n: f"${n}"
+    imm16 = code & 0xFFFF
+    if imm16 & 0x8000:
+        imm16 -= 0x10000
+    machine_hex = f"0x{code:08X}"
+
+    if fmt == "R":
+        if sid in ("SLL", "SRL", "SRA"):
+            return {
+                "semantic": sid, "format": "R",
+                "operands": [reg_name(rd), reg_name(rt), shamt],
+                "fields": {"rd": rd, "rt": rt, "shamt": shamt, "funct": funct},
+                "machine_code": machine_hex
+            }
+        return {
+            "semantic": sid, "format": "R",
+            "operands": [reg_name(rd), reg_name(rs), reg_name(rt)],
+            "fields": {"rd": rd, "rs": rs, "rt": rt, "funct": funct},
+            "machine_code": machine_hex
+        }
+    elif fmt == "I":
+        if sid in ("LW", "SW"):
+            return {
+                "semantic": sid, "format": "I-LOAD",
+                "operands": [reg_name(rt), str(imm16), reg_name(rs)],
+                "fields": {"rt": rt, "rs": rs, "imm16": imm16},
+                "machine_code": machine_hex
+            }
+        elif sid in ("BEQ", "BNE"):
+            return {
+                "semantic": sid, "format": "I",
+                "operands": [reg_name(rs), reg_name(rt), str(imm16)],
+                "fields": {"rs": rs, "rt": rt, "imm16": imm16},
+                "machine_code": machine_hex
+            }
+        elif sid == "LUI":
+            return {
+                "semantic": sid, "format": "I",
+                "operands": [reg_name(rt), imm16 & 0xFFFF],
+                "fields": {"rt": rt, "imm16": imm16 & 0xFFFF},
+                "machine_code": machine_hex
+            }
+        return {
+            "semantic": sid, "format": "I",
+            "operands": [reg_name(rt), reg_name(rs), str(imm16)],
+            "fields": {"rt": rt, "rs": rs, "imm16": imm16},
+            "machine_code": machine_hex
+        }
+    elif fmt == "J":
+        target = code & 0x3FFFFFF
+        return {
+            "semantic": sid, "format": "J",
+            "operands": [target],
+            "fields": {"target": target},
+            "machine_code": machine_hex
+        }
+    return {"semantic": sid, "format": fmt, "operands": [], "machine_code": machine_hex}
 
 
 def _rv32i_operands(sid, fmt, code, rd, rs1, rs2, funct7, regs) -> dict:

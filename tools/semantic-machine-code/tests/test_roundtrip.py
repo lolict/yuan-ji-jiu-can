@@ -64,6 +64,30 @@ check("rv32i", "LW", ["x10", 4, "x2"])
 # U 型
 check("rv32i", "LUI", ["x1", 0x12345])
 
+# ── MIPS32 ──
+print("\n═══ MIPS32 往返测试 ═══")
+
+# R 型（rd, rs, rt — 除 SLL/SRL/SRA 特殊）
+check("mips32", "ADD", ["$1", "$2", "$3"])
+check("mips32", "SUB", ["$10", "$11", "$12"])
+check("mips32", "AND", ["$7", "$8", "$9"])
+check("mips32", "OR",  ["$4", "$5", "$6"])
+check("mips32", "SLL", ["$8", "$9", 4])
+check("mips32", "SRL", ["$10", "$11", 2])
+
+# I 型（rt, rs, imm — 载荷/分支/立即数）
+check("mips32", "ADDI", ["$8", "$9", 42])
+check("mips32", "ADDI", ["$5", "$0", 0])
+check("mips32", "ANDI", ["$6", "$7", 0xFF])
+check("mips32", "LW",   ["$8", 0, "$9"])
+check("mips32", "LW",   ["$10", 4, "$2"])
+check("mips32", "BEQ",  ["$1", "$2", 8])
+check("mips32", "BNE",  ["$3", "$4", 16])
+check("mips32", "LUI",  ["$1", 0x1234])
+
+# J 型
+check("mips32", "JMP",  [0x1000])
+
 # ── 结果 ──
 print(f"\n结果: {PASS} 通过, {FAIL} 失败")
 sys.exit(0 if FAIL == 0 else 1)
