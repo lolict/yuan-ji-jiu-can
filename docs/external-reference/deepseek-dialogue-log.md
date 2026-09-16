@@ -48,7 +48,16 @@ DeepSeek 提出的「协议嗅探 → 动态边界对齐 → 关系渲染」三�
 - 动态边界对齐 = 密度边缘检测
 - 关系渲染 = Canvas/OpenGL 直接画几何
 
-## 5. 落地评估（2026-08-29）
+## 5. 缩写决策（2026-08-29 补充）
+
+**满全法 = MQF**
+
+- MQF 已在 `hunyuan-rs/src/cognition/heavenly_court.rs` 使用（ATTRACTOR_MQF 吸引子常量）
+- 缩写顺序：满-全-法 → M-Q-F（与汉字顺序一致）
+- FQM 是文件格式（fqm_engine / fqm_loader），大小写区分：协议层用 MQF / 文件格式用 FQM
+- 已更新 SYMBOL_DICTIONARY.md
+
+## 6. 落地评估（2026-08-29）
 
 DeepSeek 的建议 vs 已实现的：
 

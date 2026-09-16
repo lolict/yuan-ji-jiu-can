@@ -171,10 +171,11 @@
 
 ---
 
-## 满全法（manquanfa）
+## 满全法（MQF / manquanfa）
 
 | 符号 | 含义 | 定义处 |
 |------|------|--------|
+| MQF | 满全法缩写（满-全-法 → M-Q-F，与汉字顺序一致） | hunyuan-rs/src/cognition/heavenly_court.rs (ATTRACTOR_MQF) |
 | 满全法 | 核心裁判法则：袋子级操作、照镜子、三元见证 | governance/META_PROMPT.md |
 | Verdict | 裁判结果枚举：vrAccept/vrReject/vrPending/vrAppeal | manquanfa/mq/judge.nim |
 | 三元见证 | 裁定三要件：非空 + 已见证 + 锚点一致 | 同上 |
