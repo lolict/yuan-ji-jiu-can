@@ -729,6 +729,7 @@ static void combine_witness_hash(const char* ha, const char* hb, char* out) {
 /* ---- 加法合并 ---- */
 int njsg_mengji_bag_merge(int bag_a, int bag_b, const char* merge_note) {
     pthread_mutex_lock(&MJ.lock);
+    (void)merge_note;  /* 标记入口,日志已在外层打印 */
 
     int ia = find_bag_idx(bag_a);
     int ib = find_bag_idx(bag_b);
@@ -765,11 +766,14 @@ int njsg_mengji_bag_merge(int bag_a, int bag_b, const char* merge_note) {
     c->created_at  = time(NULL);
     c->anchor      = MJ.primary_anchor;
 
-    MJ.bag_total_weight += new_weight;
+    /* 加法合并: 源袋子权值归入新袋子(源袋权值归零=消耗) */
+    MJ.bags[ia].weight = 0;
+    MJ.bags[ib].weight = 0;
+    /* 总权值守恒: 新袋权值 = 原两袋之和, 不新增 */
+    /* bag_total_weight 不变(权值从源袋转移到了新袋) */
 
-    printf("[袋子合并] ★ 袋#%d(w=%d) + 袋#%d(w=%d) → 袋#%d(w=%d,见证=%s) 总权值=%d\n",
-           bag_a, MJ.bags[ia].weight, bag_b, MJ.bags[ib].weight,
-           c->bag_id, new_weight, c->witness_hash, MJ.bag_total_weight);
+    printf("[袋子合并] ★ 袋#%d + 袋#%d → 袋#%d(w=%d,见证=%s) 总权值=%d(守恒)\n",
+           bag_a, bag_b, c->bag_id, new_weight, c->witness_hash, MJ.bag_total_weight);
 
     /* 产出增量日志 */
     njsg_mengji_bag_incremental_log(MJ_BAG_MERGE, bag_a, bag_b, c->bag_id,
@@ -783,6 +787,7 @@ int njsg_mengji_bag_merge(int bag_a, int bag_b, const char* merge_note) {
 /* ---- 减法拆分 ---- */
 int njsg_mengji_bag_split(int parent_bag, int sub_weight, const char* split_note) {
     pthread_mutex_lock(&MJ.lock);
+    (void)split_note;  /* 标记入口,日志已在外层打印 */
 
     int ip = find_bag_idx(parent_bag);
     if (ip < 0) {
@@ -840,20 +845,21 @@ int njsg_mengji_bag_split(int parent_bag, int sub_weight, const char* split_note
     return c->bag_id;
 }
 
-/* ---- 增量日志条目 ---- */
+/* ---- 增量日志条目 ----
+ *  注意: 此函数假设调用者已持有 MJ.lock(从 merge/split 调用),
+ *        内部不再重复加锁, 避免非递归 mutex 死锁.
+ * ============================================================ */
 int njsg_mengji_bag_incremental_log(mengji_bag_op_t op,
                                       int source, int auxiliary, int result,
                                       int weight_delta, const char* result_hash,
                                       int witness_node) {
-    pthread_mutex_lock(&MJ.lock);
-
-    if (MJ.bag_log_count >= MENGJI_MAX_BAG_LOGS) {
-        pthread_mutex_unlock(&MJ.lock);
-        return -1;
-    }
-
     static const char* op_names[] = {"合并","拆分","日志","验证"};
     const char* op_str = (op <= MJ_BAG_VALIDATE) ? op_names[op] : "?";
+
+    if (MJ.bag_log_count >= MENGJI_MAX_BAG_LOGS) {
+        fprintf(stderr, "[增量日志] 日志已满 %d\n", MENGJI_MAX_BAG_LOGS);
+        return -1;
+    }
 
     int il = MJ.bag_log_count++;
     mengji_bag_log_entry_t* l = &MJ.bag_logs[il];
@@ -872,8 +878,6 @@ int njsg_mengji_bag_incremental_log(mengji_bag_op_t op,
     printf("[增量日志#%d] 操作=%s 源袋#%d 辅助袋#%d 结果袋#%d 权值变化=%+d 见证=%s\n",
            il, op_str, source, auxiliary, result, weight_delta, l->result_hash);
 
-    pthread_mutex_unlock(&MJ.lock);
-    fflush(stdout);
     return il;
 }
 
@@ -1120,6 +1124,183 @@ void njsg_mengji_print(void) {
 }
 
 /* ============================================================
+ * 里程碑一 · 种子场握手自动发现邻居
+ * ------------------------------------------------------------
+ *  新节点(node_idx)向种子场(seed_idx)发起握手,
+ *  种子应答其邻居列表 → 新节点自动绑定到未知邻居.
+ *
+ *  返回: 新发现的邻居数(0=无新发现 -1=参数错误)
+ * ============================================================ */
+int njsg_mengji_discover_from_seed(int node_idx, int seed_idx) {
+    pthread_mutex_lock(&MJ.lock);
+
+    if (node_idx < 0 || node_idx >= MJ.node_count) { pthread_mutex_unlock(&MJ.lock); return -1; }
+    if (seed_idx < 0 || seed_idx >= MJ.node_count) { pthread_mutex_unlock(&MJ.lock); return -1; }
+    if (node_idx == seed_idx) { pthread_mutex_unlock(&MJ.lock); return -1; }
+
+    mengji_node_t* self = &MJ.nodes[node_idx];
+    mengji_node_t* seed = &MJ.nodes[seed_idx];
+    int discovered = 0;
+
+    printf("\n[种子发现] 节点#%d 向种子场#%d 发起 handshake\n", node_idx, seed_idx);
+    printf("           种子场应答邻居: [");
+    for (int i = 0; i < seed->neighbor_count; i++) {
+        if (i > 0) printf(",");
+        printf("#%d", seed->neighbor_ids[i]);
+    }
+    printf("]\n");
+
+    /* Seed 应答其邻居列表 → 新节点绑定到未知邻居(双向) */
+    for (int i = 0; i < seed->neighbor_count; i++) {
+        int peer = seed->neighbor_ids[i];
+        if (peer == node_idx || peer < 0 || peer >= MJ.node_count) continue;
+
+        /* 已经是邻居? */
+        int already = 0;
+        for (int k = 0; k < self->neighbor_count; k++) {
+            if (self->neighbor_ids[k] == peer) { already = 1; break; }
+        }
+
+        if (!already && self->neighbor_count < MENGJI_MAX_NEIGHBORS) {
+            self->neighbor_ids[self->neighbor_count++] = peer;
+            mengji_node_t* peer_node = &MJ.nodes[peer];
+            /* 反向绑定 */
+            int peer_has = 0;
+            for (int k = 0; k < peer_node->neighbor_count; k++) {
+                if (peer_node->neighbor_ids[k] == node_idx) { peer_has = 1; break; }
+            }
+            if (!peer_has && peer_node->neighbor_count < MENGJI_MAX_NEIGHBORS) {
+                peer_node->neighbor_ids[peer_node->neighbor_count++] = node_idx;
+            }
+            discovered++;
+            printf("           发现邻居#%d,双向绑定完成\n", peer);
+        }
+    }
+
+    printf("[种子发现] 共发现 %d 个新邻居\n", discovered);
+    pthread_mutex_unlock(&MJ.lock);
+    fflush(stdout);
+    return discovered;
+}
+
+/* ============================================================
+ * 里程碑一 · 离线恢复完整测试 (场景 M15)
+ * ------------------------------------------------------------
+ *  独立验证标准 (设计文档):
+ *  部署至少三处节点,模拟一处离线后重启,
+ *  确认其能通过 Pull 阶段补全离线期间错失的全部裁决袋,
+ *  且无重复存储、无漏项.
+ * ============================================================ */
+void njsg_mengji_scenario_M15_offline_recovery(void) {
+    printf("\n");
+    printf("╔══════════════════════════════════════════════════╗\n");
+    printf("║  里程碑一 · 邻居发现 + 离线 Pull 恢复测试       ║\n");
+    printf("║  独立验证: 三节点 / 一处离线 / Pull 补全无遗漏  ║\n");
+    printf("╚══════════════════════════════════════════════════╝\n");
+
+    /* ── 阶段 1: 注册三节点 ── */
+    printf("\n━━━ [阶段 1] 注册三节点 ━━━\n");
+    int a = njsg_mengji_register_node("M15_node_A_PHONG", NODE_PHONG, ANCHOR_LOLICT);
+    int b = njsg_mengji_register_node("M15_node_B_FARM",  NODE_FARM, ANCHOR_LIUTIANTIAN);
+    int c = njsg_mengji_register_node("M15_node_C_FARM",  NODE_FARM, ANCHOR_LOLICT);
+
+    /* 拓扑: A <-> B <-> C 链式(A 为种子场) */
+    njsg_mengji_bind_neighbor(a, b);
+    njsg_mengji_bind_neighbor(b, c);
+    /* C 只知 B,未知 A — 需要通过种子场发现 A */
+
+    /* ── 阶段 2: 种子场发现 — C 通过 B 发现 A ── */
+    printf("\n━━━ [阶段 2] C 通过种子场 B 发现邻居 A ━━━\n");
+    int discovered = njsg_mengji_discover_from_seed(c, b);
+    /* 验证: C 应该发现 A */
+    int c_knows_a = 0;
+    pthread_mutex_lock(&MJ.lock);
+    for (int i = 0; i < MJ.nodes[c].neighbor_count; i++) {
+        if (MJ.nodes[c].neighbor_ids[i] == a) { c_knows_a = 1; break; }
+    }
+    pthread_mutex_unlock(&MJ.lock);
+    printf("[阶段 2] C 已知 A: %s\n", c_knows_a ? "是" : "否");
+
+    /* ── 阶段 3: A 和 B 产出裁定(C 尚未参与) ── */
+    printf("\n━━━ [阶段 3] A 和 B 产出裁定(C 尚未参与) ━━━\n");
+    pthread_mutex_lock(&MJ.lock);
+    /* A 产出裁定 0(许可) 和 1(拒绝) */
+    MJ.nodes[a].verdict_count = 2;
+    MJ.nodes[a].verdict_state[0] = VERDICT_PASS;
+    MJ.nodes[a].verdict_state[1] = VERDICT_REJECT;
+    /* B 同步 A 的裁定(PushPull) */
+    MJ.nodes[b].verdict_count = 2;
+    MJ.nodes[b].verdict_state[0] = VERDICT_PASS;
+    MJ.nodes[b].verdict_state[1] = VERDICT_REJECT;
+    /* C 有 0 裁定(尚未参与) */
+    MJ.nodes[c].verdict_count = 0;
+    pthread_mutex_unlock(&MJ.lock);
+    printf("[阶段 3] A 裁定态: [0]许可 [1]拒绝\n");
+    printf("[阶段 3] B 裁定态: [0]许可 [1]拒绝 (已同步)\n");
+    printf("[阶段 3] C 裁定态: (空,未参与)\n");
+
+    /* ── 阶段 4: 模拟 C 离线 ── */
+    printf("\n━━━ [阶段 4] C 进入离线 30 秒(心跳超时) ━━━\n");
+    pthread_mutex_lock(&MJ.lock);
+    MJ.nodes[c].alive = 0;
+    MJ.nodes[c].last_heartbeat = time(NULL) - MENGJI_HEARTBEAT_TIMEOUT - 1;
+    pthread_mutex_unlock(&MJ.lock);
+    njsg_mengji_probe_alive();
+    printf("[阶段 4] C 离线期间,A 继续产出新裁定...\n");
+    /* A 产出新裁定 #2(许可) */
+    pthread_mutex_lock(&MJ.lock);
+    MJ.nodes[a].verdict_count = 3;
+    MJ.nodes[a].verdict_state[2] = VERDICT_PASS;
+    /* B 同步新裁定 */
+    MJ.nodes[b].verdict_count = 3;
+    MJ.nodes[b].verdict_state[2] = VERDICT_PASS;
+    /* C 仍只有 0 裁定(错失裁定 #2) */
+    pthread_mutex_unlock(&MJ.lock);
+
+    /* ── 阶段 5: C 恢复上线 → Pull 补全 ── */
+    printf("\n━━━ [阶段 5] C 恢复上线 — Pull 补全离线期间错失的裁定 ━━━\n");
+    pthread_mutex_lock(&MJ.lock);
+    MJ.nodes[c].alive = 1;
+    MJ.nodes[c].last_heartbeat = time(NULL);
+    pthread_mutex_unlock(&MJ.lock);
+    njsg_mengji_gossip_pull(c);  /* C 向邻居拉取 */
+
+    /* ── 阶段 6: 验证 ── */
+    printf("\n━━━ [阶段 6] 验证: C 是否通过 Pull 补全全部裁定 ━━━\n");
+    int pass = 1;
+    pthread_mutex_lock(&MJ.lock);
+    printf("[验证] C 裁定数: %d (期望 3)\n", MJ.nodes[c].verdict_count);
+    if (MJ.nodes[c].verdict_count != 3) {
+        pass = 0;
+        printf("[验证] ★ 裁定数不匹配! ★\n");
+    } else {
+        /* 逐项比对 */
+        int v0_ok = (MJ.nodes[c].verdict_state[0] == VERDICT_PASS);
+        int v1_ok = (MJ.nodes[c].verdict_state[1] == VERDICT_REJECT);
+        int v2_ok = (MJ.nodes[c].verdict_state[2] == VERDICT_PASS);
+        printf("[验证] C 裁定态: [0]%s(%s)  [1]%s(%s)  [2]%s(%s)\n",
+               verdict_name(MJ.nodes[c].verdict_state[0]), v0_ok ? "OK" : "FAIL",
+               verdict_name(MJ.nodes[c].verdict_state[1]), v1_ok ? "OK" : "FAIL",
+               verdict_name(MJ.nodes[c].verdict_state[2]), v2_ok ? "OK" : "FAIL");
+        if (!v0_ok || !v1_ok || !v2_ok) pass = 0;
+    }
+    /* 无重复存储: 只检查 verdict_count==3,无多余 */
+    if (MJ.nodes[c].verdict_count > 3) pass = 0;
+    /* 无漏项: verdict_count==3 保证了无遗漏 */
+    pthread_mutex_unlock(&MJ.lock);
+
+    printf("\n");
+    printf("╔══════════════════════════════════════════════════╗\n");
+    printf("║  里程碑一 验证结果: %s                ║\n",
+           pass ? "★ ★ ★ PASS ★ ★ ★" : "✗ ✗ ✗ FAIL ✗ ✗ ✗");
+    printf("╚══════════════════════════════════════════════════╝\n");
+    fflush(stdout);
+
+    /* 打印恢复后的 C 节点 */
+    njsg_mengji_print_node(c);
+}
+
+/* ============================================================
  * Demo: 三节点盟机合网络
  * ============================================================ */
 void njsg_mengji_demo(void) {
@@ -1268,6 +1449,18 @@ void njsg_mengji_demo(void) {
     printf("\n━━━ 场景 M14: 里程碑三全局概览 ━━━\n");
     njsg_mengji_print();
 
+    /* ── 里程碑一 · 独立离线恢复测试 ──
+     * M15 需要独立的引擎上下文(从零开始注册节点),
+     * 但 M15 内部通过 njsg_mengji_register_node 使用 node_count 编号,
+     * 因此直接将其安排在 demo 最末尾,承接已有编号,不影响已有场景.
+     * 上下文数据隔离:
+     *   - M15 的三节点排在已有节点之后(编号独立)
+     *   - M15 内部的裁定/袋子为增量追加(与 M1-M14 的 slot 编号独立)
+     */
+    njsg_mengji_scenario_M15_offline_recovery();
+
     printf("\n[盟机合] 演示完毕。\n");
+    printf("[盟机合] 里程碑一: 邻居发现 + 离线恢复(M15)\n");
+    printf("[盟机合] 里程碑二: 分布式三元见证 + 冲突裁决\n");
     printf("[盟机合] 里程碑三: 跨袋子合并拆分 + 增量日志 + 验证协议 = 合伙人协议 v1.4-v1.6 完整落地\n\n");
 }

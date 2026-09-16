@@ -104,12 +104,12 @@
       "id": "mengji-network",
       "version": "v1.4-v1.6",
       "name": "盟机合网络+多节点同步",
-      "status": "in_progress",
+      "status": "milestone_1_2_3_pass",
       "priority": 3,
       "entry_file": "kernel/src/njsg_kernel.c",
-      "description": "里程碑二(分布式三元见证+冲突裁决)+里程碑三(跨袋子合并拆分+增量日志+验证协议)已完成。新增njsg_mengji_triune_register/verify+njsg_mengji_bag_merge/split/incremental_log/validate/validate_all+MJ_BAG_操作枚举+袋子数组+增量日志+MJ_BAG_WEIGHT_约束+三场景M12-M14演示+mengji_tool.nim bag-merge/bag-split/bag-validate子命令+BAG_MERGE_SPLIT.md文档。仅加减无乘除;袋子级整袋跃迁;子袋继承父袋见证链;全集权值守恒Σ==bag_total_weight。进度50%。待:持久化/跨网络/实际传输层/横向多场接入",
+      "description": "全部三个里程碑验证通过(M1-M15 PASS)。里程碑一:种子场握手自动邻居发现(njsg_mengji_discover_from_seed)+离线Pull恢复测试(M15 PASS)。里程碑二:分布式三元见证+冲突裁决(M9-M11三元见证状态机EMPTY→SINGLE→DOUBLE→WITNESSED/REJECTED)。里程碑三:跨袋子合并拆分+增量日志+验证协议(M12-M14权值守恒Σ==bag_total_weight)。仅加减无乘除;袋子级整袋跃迁;源头袋消耗(weight→0)。进度75%。待:持久化/跨网络/实际传输层/横向多场接入",
       "assignee": null,
-      "progress": 50,
+      "progress": 75,
       "dependencies": ["v1.3-full-stack"]
     },
     {

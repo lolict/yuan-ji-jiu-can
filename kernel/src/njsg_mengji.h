@@ -208,6 +208,12 @@ int  njsg_mengji_triune_verify(int subject_slot);
 /* 存活探活 */
 void njsg_mengji_probe_alive(void);
 
+/* 里程碑一 · 种子场握手: 通过种子节点自动发现邻居 */
+int  njsg_mengji_discover_from_seed(int node_idx, int seed_idx);
+
+/* 里程碑一 · 离线恢复完整测试场景 */
+void njsg_mengji_scenario_M15_offline_recovery(void);
+
 /* 打印 */
 void njsg_mengji_print(void);
 void njsg_mengji_print_node(int idx);
