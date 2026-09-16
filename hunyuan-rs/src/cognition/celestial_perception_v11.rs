@@ -24,7 +24,7 @@ pub const V11_VERSION: u32 = 11;
 // ======================================================================
 
 /// 事件类型 — OS中所有可观测动作
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum TimelineEventKind {
     // 内核层
     SyscallEnter,
@@ -111,6 +111,7 @@ pub struct TimelineEvent {
 }
 
 /// 时间线 — 全局因果事件流
+#[derive(Clone, Debug)]
 pub struct Timeline {
     pub events: VecDeque<TimelineEvent>,
     pub next_seq: u64,
@@ -503,6 +504,18 @@ pub enum SubSystem {
     Storage,    // v7 存储
     Network,    // v8 网络
     Security,   // v10 安全
+}
+
+impl SubSystem {
+    /// 创建子系统实例(默认 Kernel)
+    pub fn new(_name: &str) -> Self {
+        Self::Kernel
+    }
+
+    /// 激活子系统
+    pub fn register(&mut self) {
+        // 标记为已注册(占位)
+    }
 }
 
 /// 天觉V11引擎 — 九元归一

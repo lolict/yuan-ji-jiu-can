@@ -65,6 +65,13 @@ pub use celestial_perception_v11::{
     SystemHealth, CelestialObserver,
     SubSystem, CelestialPerceptionV11, V11_VERSION,
 };
+#[path = "celestial_perception_v12.rs"]
+pub mod celestial_perception_v12;
+pub use celestial_perception_v12::{
+    OpCode, ExecDomain, InstructionBag, LivingCodeCompiler,
+    JitExecutionEngine, FrameRecord, BagStatus, BagContainer,
+    BagIntrospection, BagPool, CelestialPerceptionV12, V12_VERSION,
+};
 
 // ======================================================================
 // 辅助函数
