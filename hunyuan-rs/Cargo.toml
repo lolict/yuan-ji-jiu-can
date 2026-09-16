@@ -42,10 +42,6 @@ name = "isa-encode"
 path = "src/bin/isa-encode.rs"
 
 [[bin]]
-name = "morphism"
-path = "src/bin/morphism_gen.rs"
-
-[[bin]]
 name = "container-capture"
 path = "src/bin/container-capture.rs"
 
@@ -119,3 +115,15 @@ lto = true           # 链接期优化
 strip = true         # 去除符号
 codegen-units = 1    # 单 CGU 利于 LTO
 panic = "abort"
+
+[[bin]]
+name = "pipeline"
+path = "src/bin/pipeline.rs"
+
+[[bin]]
+name = "char-create"
+path = "src/bin/char_create.rs"
+
+[[bin]]
+name = "visual-glyph"
+path = "src/bin/visual_glyph.rs"

@@ -125,6 +125,10 @@ pub mod dynamic_pool;
 // ── v0.11 跨平台词汇统一架构 — 容器=字体=时间 ──
 pub mod cross_isa;
 pub mod void_probe;
+
+// ── v0.43 动作·时间·容器 三维索引集 (Action·Stage·Container) ──
+#[path = "action_index.rs"]
+pub mod action_index;
 #[path = "core/perception_field.rs"]
 pub mod perception_field;
 #[path = "core/container_timeline.rs"]
@@ -630,6 +634,11 @@ pub use logistics_engine::{
 // v0.10 感知引擎 (信号 · 快照 · 决策)
 pub use perception_engine::{
     SignalKind, PerceptionSnapshot, PerceptionEngine, Trend,
+};
+
+// v0.43 动作·时间·容器 三维索引集
+pub use action_index::{
+    ActionGlyph, ActionFamily, ActionIndexEntry, ActionIndex, DELTA_PER_LEVEL,
 };
 
 // v0.6 谐音协议

@@ -1,0 +1,27 @@
+{
+  "family": "算术族",
+  "description": "二元运算：对两个容器值做一维加法或减法",
+  "semantics": {
+    "ADD": {
+      "display": "加",
+      "arity": 2,
+      "description": "两容器值相加，输出至目标容器",
+      "polarity": "阳/盈/升",
+      "glyph_additive": true
+    },
+    "SUB": {
+      "display": "减",
+      "arity": 2,
+      "description": "容器甲减容器乙，差至目标容器",
+      "polarity": "阴/亏/降",
+      "glyph_additive": true
+    },
+    "ADDI": {
+      "display": "加常",
+      "arity": "2=1容器+1常量",
+      "description": "容器值加一维常量，输出至目标容器",
+      "polarity": "阳/盈/升",
+      "glyph_additive": true
+    }
+  }
+}

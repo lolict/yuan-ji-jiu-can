@@ -5,6 +5,7 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(u8)]
 pub enum SemanticId {
+    // ══ 基础 RV32I ══
     Load  = 0x01,
     Store = 0x02,
     Add   = 0x03,
@@ -20,6 +21,24 @@ pub enum SemanticId {
     Ret   = 0x0D,
     Cmp   = 0x0E,
     Mov   = 0x0F,
+    // ══ M 扩展 · 乘除 (funct7=00000001) ══
+    Mul   = 0x10,
+    Mulh  = 0x11,
+    Div   = 0x12,
+    Divu  = 0x13,
+    Rem   = 0x14,
+    Remu  = 0x15,
+    // ══ RV64I · 字宽 (OP-32 / OP-IMM-32) ══
+    Addw  = 0x16,
+    Addiw = 0x17,
+    Mulw  = 0x18,
+    Divw  = 0x19,
+    Remw  = 0x1A,
+    // ══ A 扩展 · 原子 (opcode=0101111) ══
+    Lrw      = 0x1B,
+    Scw      = 0x1C,
+    AmoSwapw = 0x1D,
+    AmoAddw  = 0x1E,
 }
 
 impl SemanticId {
@@ -40,16 +59,32 @@ impl SemanticId {
             0x0D => Some(Self::Ret),
             0x0E => Some(Self::Cmp),
             0x0F => Some(Self::Mov),
+            0x10 => Some(Self::Mul),
+            0x11 => Some(Self::Mulh),
+            0x12 => Some(Self::Div),
+            0x13 => Some(Self::Divu),
+            0x14 => Some(Self::Rem),
+            0x15 => Some(Self::Remu),
+            0x16 => Some(Self::Addw),
+            0x17 => Some(Self::Addiw),
+            0x18 => Some(Self::Mulw),
+            0x19 => Some(Self::Divw),
+            0x1A => Some(Self::Remw),
+            0x1B => Some(Self::Lrw),
+            0x1C => Some(Self::Scw),
+            0x1D => Some(Self::AmoSwapw),
+            0x1E => Some(Self::AmoAddw),
             _ => None,
         }
     }
 
     pub fn initial(&self) -> &'static str {
         match self {
-            Self::Add | Self::Addi => "加",
+            Self::Add | Self::Addi | Self::Addw | Self::Addiw => "加",
             Self::Sub => "减",
+            Self::Mul | Self::Mulh | Self::Mulw | Self::Div | Self::Divu | Self::Divw | Self::Rem | Self::Remu | Self::Remw => "乘",
             Self::And | Self::Or | Self::Xor => "合",
-            Self::Load | Self::Store => "传",
+            Self::Load | Self::Store | Self::Lrw | Self::Scw | Self::AmoSwapw | Self::AmoAddw => "传",
             Self::Jmp | Self::Bne | Self::Beq | Self::Call | Self::Ret => "移",
             Self::Cmp => "较",
             Self::Mov => "载",
@@ -113,7 +148,7 @@ impl VocabWord {
     }
 
     fn enc_riscv(id: SemanticId, ops: &[Operand]) -> Vec<u8> {
-        use crate::isa::{Insn, Reg, ROp, IOp, LoadOp, StoreOp, BranchOp};
+        use crate::isa::{Insn, Reg, ROp, ROp32, IOp, IOp32, LoadOp, StoreOp, BranchOp, MOp, AOp};
         let insn = match id {
             SemanticId::Add if ops.len() >= 3 => {
                 match (ops[0].reg(), ops[1].reg(), ops[2].reg()) {

@@ -41,6 +41,13 @@ use crate::os_layer::OsLayer;
 use crate::os_layer::bare_metal::BareMetalOs;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+// ── v8 盟机合袋子网络 / v9 感知聚合云 (子模块内联) ──
+#[path = "celestial_perception_v8.rs"]
+pub mod celestial_perception_v8;
+#[path = "celestial_perception_v9.rs"]
+pub mod celestial_perception_v9;
+pub use celestial_perception_v9::{ConvergenceCloud, FeatureJudgment, PerceptionReport};
+
 // ======================================================================
 // 辅助函数
 // ======================================================================

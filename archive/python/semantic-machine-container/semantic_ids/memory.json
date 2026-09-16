@@ -1,0 +1,27 @@
+{
+  "family": "访存族",
+  "description": "容器与存储之间的数据流动",
+  "semantics": {
+    "LW": {
+      "display": "取字",
+      "arity": "1基址+1偏移→1目标",
+      "description": "从内存基址加偏移处取一字至目标容器",
+      "polarity": "入/进/收",
+      "glyph_additive": false
+    },
+    "SW": {
+      "display": "存字",
+      "arity": "1基址+1偏移←1源",
+      "description": "将源容器值存入内存基址加偏移处",
+      "polarity": "出/退/放",
+      "glyph_additive": false
+    },
+    "MOV": {
+      "display": "移",
+      "arity": 1,
+      "description": "将一容器值原样转入另一容器",
+      "polarity": "静/平/等",
+      "glyph_additive": false
+    }
+  }
+}

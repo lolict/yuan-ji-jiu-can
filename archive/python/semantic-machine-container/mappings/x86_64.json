@@ -1,0 +1,81 @@
+{
+  "metadata": {
+    "architecture": "x86-64",
+    "variant": "AMD64/Intel 64",
+    "description": "x86-64架构，复杂指令集，变长指令编码",
+    "source": "Intel 64 and IA-32 Architectures Software Developer's Manual Vol. 2",
+    "endianness": "little",
+    "instruction_width": "可变（1-15字节）",
+    "register_count": 16,
+    "gpr64": ["rax","rcx","rdx","rbx","rsp","rbp","rsi","rdi","r8","r9","r10","r11","r12","r13","r14","r15"],
+    "stored": "2026-09-03",
+    "verifier": "unverified"
+  },
+  "instructions": {
+    "ADD": {
+      "description": "寄存器加寄存器 / 寄存器加立即数 / 寄存器加内存",
+      "forms": [
+        {"op": "01 /r",   "type": "r32, r/m32",     "encoding": "01 /r"},
+        {"op": "83 /0",   "type": "r/m32, imm8",    "encoding": "83 /0 ib"},
+        {"op": "03 /r",   "type": "r32, r/m32",     "encoding": "03 /r"},
+        {"op": "05",      "type": "eax, imm32",     "encoding": "05 id"},
+        {"op": "81 /0",   "type": "r/m32, imm32",   "encoding": "81 /0 id"}
+      ],
+      "semantic_aligns": "ADD",
+      "notes": "x86 ADD opcode 01是最基本形式，操作码低3位配合ModRM区分"
+    },
+    "SUB": {
+      "description": "寄存器减寄存器 / 寄存器减立即数",
+      "forms": [
+        {"op": "29 /r",   "type": "r/m32, r32",     "encoding": "29 /r"},
+        {"op": "2B /r",   "type": "r32, r/m32",     "encoding": "2B /r"},
+        {"op": "83 /5",   "type": "r/m32, imm8",    "encoding": "83 /5 ib"},
+        {"op": "2D",      "type": "eax, imm32",     "encoding": "2D id"},
+        {"op": "81 /5",   "type": "r/m32, imm32",   "encoding": "81 /5 id"}
+      ],
+      "semantic_aligns": "SUB"
+    },
+    "AND": {
+      "description": "按位与",
+      "forms": [
+        {"op": "21 /r",   "type": "r/m32, r32", "encoding": "21 /r"},
+        {"op": "23 /r",   "type": "r32, r/m32", "encoding": "23 /r"},
+        {"op": "83 /4",   "type": "r/m32, imm8","encoding": "83 /4 ib"},
+        {"op": "25",      "type": "eax, imm32", "encoding": "25 id"},
+        {"op": "81 /4",   "type": "r/m32, imm32","encoding": "81 /4 id"}
+      ],
+      "semantic_aligns": "AND"
+    },
+    "OR": {
+      "description": "按位或",
+      "forms": [
+        {"op": "09 /r",   "type": "r/m32, r32", "encoding": "09 /r"},
+        {"op": "0B /r",   "type": "r32, r/m32", "encoding": "0B /r"},
+        {"op": "83 /1",   "type": "r/m32, imm8","encoding": "83 /1 ib"},
+        {"op": "0D",      "type": "eax, imm32", "encoding": "0D id"},
+        {"op": "81 /1",   "type": "r/m32, imm32","encoding": "81 /1 id"}
+      ],
+      "semantic_aligns": "OR"
+    },
+    "XOR": {
+      "description": "按位异或",
+      "forms": [
+        {"op": "31 /r",   "type": "r/m32, r32", "encoding": "31 /r"},
+        {"op": "33 /r",   "type": "r32, r/m32", "encoding": "33 /r"},
+        {"op": "83 /6",   "type": "r/m32, imm8","encoding": "83 /6 ib"},
+        {"op": "35",      "type": "eax, imm32", "encoding": "35 id"},
+        {"op": "81 /6",   "type": "r/m32, imm32","encoding": "81 /6 id"}
+      ],
+      "semantic_aligns": "XOR"
+    },
+    "JMP": {
+      "description": "无条件跳转",
+      "forms": [
+        {"op": "EB",      "type": "rel8",       "encoding": "EB cb", "near": true},
+        {"op": "E9",      "type": "rel32",      "encoding": "E9 cd", "near": true},
+        {"op": "FF /4",   "type": "r/m32",      "encoding": "FF /4"}
+      ],
+      "semantic_aligns": "JMP"
+    }
+  }
+}
