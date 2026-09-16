@@ -1,0 +1,20 @@
+[package]
+name = "mqf-isa"
+description = "囡囝共生 · 跨平台指令集语义统一层 — 容器=字体=时间"
+repository.workspace = true
+license.workspace = true
+edition.workspace = true
+version.workspace = true
+authors.workspace = true
+
+[lib]
+name = "mqf_isa"
+path = "src/lib.rs"
+
+[[bin]]
+name = "morphism"
+path = "src/bin/morphism_gen.rs"
+
+[[bin]]
+name = "isa-encode"
+path = "src/bin/isa-encode.rs"

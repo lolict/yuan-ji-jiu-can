@@ -136,6 +136,26 @@ pub mod fiber_bundle_topo;
 #[path = "core/cosmos_view.rs"]
 pub mod cosmos_view;
 
+// ── 韵母系统 ──
+pub mod rhyme;
+
+// ── 韵母镜像解释器 · 四阶感知引擎 ──
+#[path = "flow/rhyme_mirror.rs"]
+pub mod rhyme_mirror;
+
+// ── 造字系统 · 笔画容器编码 × 韵母拼音 × 活容器三合一 ──
+#[path = "encoding/character_creator.rs"]
+pub mod character_creator;
+pub use character_creator::{CharacterCreator, GlyphEncoding, GlyphPolarity, GlyphSide,
+                            StrokeDatabase, ContainerEnc,
+                            STROKE_TABLE, STROKE_NAMES, CONTAINER_NAMES};
+
+// ── 笔画容器 → SVG 可视字形渲染 ──
+#[path = "encoding/svg_renderer.rs"]
+pub mod svg_renderer;
+pub use svg_renderer::{render_glyph_svg, render_cell_bitmap, render_character_sheet,
+                       stroke_path, stroke_color, GRID_SIZE};
+
 // ── v0.10 拓扑描述子系统 ──
 #[path = "encoding/topo.rs"]
 pub mod topo;
@@ -175,7 +195,7 @@ pub use high_algebra::{
 #[path = "cognition/full_mapping.rs"]
 pub mod full_mapping;
 pub use full_mapping::{
-    Polarity, MappingEntry, FullMapReport, DocPolarity,
+    MappingEntry, FullMapReport, DocPolarity,
 };
 
 // ── v0.10.5 真实数据输入编排器 · Mode C ──
@@ -212,9 +232,9 @@ pub mod license_hub;
 pub mod rel;
 
 // ── v0.1 夫妻身份容器系统 (六锚点 · 维度递增 · 纠缠态) ──
-#[path = "core/spousal_identity.rs"]
-pub mod spousal_identity;
-// (注: 其余类型 AnchorHolder/Polarity/Dimension/IdentityMorphism/Entanglement/ANCHOR_*/FLAG_*/is_alive_by_spiritual_proof/WIFE_AVATAR_CLUSTER/ME_IN_WIFE_POSITIONS — 已在文件精简时移除,需要时补回)
+// 文件暂缺,需要时从 git 历史恢复
+// #[path = "core/spousal_identity.rs"]
+// pub mod spousal_identity;
 
 // ── v0.12 角度子系统 (384° 满圆制式) ──
 #[path = "relation/angle.rs"]

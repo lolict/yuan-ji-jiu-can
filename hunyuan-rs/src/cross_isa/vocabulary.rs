@@ -621,3 +621,58 @@ mod tests {
         assert_eq!(w.native_encoding, vec![0x74, 0x0A]);
     }
 }
+
+/// 容器ID — 64进制容器编码的直接表示
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ContainerId(pub u8);
+
+impl ContainerId {
+    pub fn from_u8(v: u8) -> Option<Self> {
+        if v <= 0x3F { Some(Self(v)) } else { None }
+    }
+
+    pub fn name(&self) -> &'static str {
+        match self.0 {
+            0x00 => "元",
+            0x01 => "加",
+            0x02 => "减",
+            0x03 => "与",
+            0x04 => "或",
+            0x05 => "非",
+            0x06 => "异或",
+            0x07 => "传送",
+            0x08 => "跳转",
+            0x09 => "调用",
+            0x0A => "返回",
+            0x0B => "比较",
+            0x0C => "加载",
+            0x0D => "存储",
+            0x0E => "移位",
+            0x0F => "置位",
+            _ => "容",
+        }
+    }
+
+    pub fn code(self) -> u8 { self.0 }
+}
+
+/// 容器族 — 按语义功能分组的容器集合
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ContainerFamily(pub u8);
+
+impl ContainerFamily {
+    pub fn from_u8(v: u8) -> Option<Self> {
+        if v < 16 { Some(Self(v)) } else { None }
+    }
+
+    pub fn name(&self) -> &'static str {
+        match self.0 {
+            0 => "运算族",
+            1 => "逻辑族",
+            2 => "控制族",
+            3 => "数据族",
+            4 => "通信族",
+            _ => "扩展族",
+        }
+    }
+}

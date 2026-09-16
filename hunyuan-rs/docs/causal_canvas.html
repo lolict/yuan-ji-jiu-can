@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>因果思维验证树 · 拓扑画布</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0d1117; color: #c9d1d9; font-family: 'JetBrains Mono', monospace; overflow: hidden; }
+
+  #toolbar {
+    position: fixed; top: 0; left: 0; right: 0; height: 48px;
+    background: #161b22; border-bottom: 1px solid #30363d;
+    display: flex; align-items: center; gap: 12px; padding: 0 16px; z-index: 100;
+  }
+  #toolbar .title { color: #58a6ff; font-size: 14px; margin-right: auto; }
+  #toolbar button {
+    background: #21262d; color: #c9d1d9; border: 1px solid #30363d;
+    padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 12px;
+  }
+  #toolbar button:hover { background: #30363d; }
+  #toolbar button.active { background: #1f6feb; border-color: #1f6feb; color: white; }
+  #toolbar .stage-indicator { color: #8b949e; font-size: 11px; }
+
+  #canvas-wrapper { position: fixed; top: 48px; left: 0; right: 0; bottom: 0; overflow: hidden; }
+  #canvas { width: 100%; height: 100%; transform-origin: 0 0; }
+
+  /* SVG nodes */
+  .node { cursor: pointer; transition: opacity .2s; }
+  .node:hover { opacity: 0.85; }
+  .node-bg { rx: 12; stroke-width: 2; }
+  .node-label { font-size: 11px; pointer-events: none; }
+  .node-glyph { font-size: 18px; pointer-events: none; text-anchor: middle; }
+
+  /* Edges */
+  .edge { fill: none; stroke-width: 2; opacity: 0.6; transition: opacity .2s; }
+  .edge.highlighted { opacity: 1; stroke-width: 3; }
+  .edge.dimmed { opacity: 0.1; }
+
+  .edge-add { stroke: #4ecdc4; }
+  .edge-mul { stroke: #45b7d1; }
+  .edge-mem { stroke: #96ceb4; }
+  .edge-bridge { stroke: #f9a825; stroke-dasharray: 6 3; }
+
+  /* Labels on edges */
+  .edge-label { font-size: 9px; fill: #8b949e; pointer-events: none; }
+
+  /* Tooltip */
+  #tooltip {
+    position: fixed; background: #1c2128; border: 1px solid #30363d;
+    border-radius: 8px; padding: 12px 16px; max-width: 320px;
+    pointer-events: none; display: none; z-index: 200;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  #tooltip .tt-title { color: #58a6ff; font-weight: bold; margin-bottom: 4px; font-size: 13px; }
+  #tooltip .tt-body { color: #8b949e; font-size: 11px; line-height: 1.6; }
+
+  /* Side panel */
+  #sidepanel {
+    position: fixed; right: 0; top: 48px; bottom: 0; width: 360px;
+    background: #161b22; border-left: 1px solid #30363d;
+    padding: 16px; overflow-y: auto; display: none; z-index: 50;
+  }
+  #sidepanel.visible { display: block; }
+  #sidepanel h3 { color: #58a6ff; margin-bottom: 8px; font-size: 14px; }
+  #sidepanel .formula { background: #0d1117; padding: 8px 12px; border-radius: 6px; font-size: 12px; margin: 8px 0; color: #c9d1d9; border: 1px solid #21262d; }
+  .close-panel { position: absolute; top: 12px; right: 12px; cursor: pointer; color: #8b949e; font-size: 18px; }
+</style>
+</head>
+<body>
+
+<div id="toolbar">
+  <span class="title">因果思维验证树 · 拓扑画布</span>
+  <button onclick="showStage(0)">⊕加法</button>
+  <button onclick="showStage(1)">⊗乘法</button>
+  <button onclick="showStage(2)">⇄桥接</button>
+  <button onclick="showStage(3)">🧠记忆场</button>
+  <button onclick="showStage(-1)">全部</button>
+  <span class="stage-indicator" id="stage-ind">阶段: 全部</span>
+  <button onclick="togglePanel()">验证面板</button>
+</div>
+
+<div id="canvas-wrapper">
+  <svg id="canvas" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <filter id="glow"><feGaussianBlur stdDeviation="3" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    </defs>
+    <g id="edges-layer"></g>
+    <g id="nodes-layer"></g>
+  </svg>
+</div>
+
+<div id="tooltip">
+  <div class="tt-title"></div>
+  <div class="tt-body"></div>
+</div>
+
+<div id="sidepanel">
+  <span class="close-panel" onclick="togglePanel()">✕</span>
+  <h3>验证定理</h3>
+  <div id="panel-content"></div>
+</div>
+
+<script>
+// ── Node definitions ──
+const nodes = [
+  // Root
+  { id: 'root', label: '变化本质', type: 'root', x: 500, y: 80, glyph: '◇', color: '#ff6b6b', stage: -1 },
+
+  // Stage 0: Addition
+  { id: 'add', label: '加法群 (R,+)', type: 'domain', x: 280, y: 200, glyph: '⊕', color: '#4ecdc4', stage: 0 },
+  { id: 'p1', label: '加法变化\nΔx=x′-x', type: 'node', x: 140, y: 320, glyph: '→', color: '#4ecdc4', stage: 0 },
+  { id: 'p2', label: '减法变化\n逆运算', type: 'node', x: 380, y: 320, glyph: '⊖', color: '#4ecdc4', stage: 0 },
+  { id: 'diff', label: '首尾差\nΔ=x终-x起', type: 'result', x: 140, y: 440, glyph: '↔', color: '#4ecdc4', stage: 0 },
+  { id: 'move0', label: '起点可变\n0→b', type: 'result', x: 380, y: 440, glyph: '★', color: '#4ecdc4', stage: 0 },
+
+  // Stage 1: Multiplication
+  { id: 'mul', label: '乘法群 (R+,×)', type: 'domain', x: 720, y: 200, glyph: '⊗', color: '#45b7d1', stage: 1 },
+  { id: 'p3', label: '乘法变化\nx′=kx', type: 'node', x: 620, y: 320, glyph: '↗', color: '#45b7d1', stage: 1 },
+  { id: 'p4', label: '除法变化\nx/a', type: 'node', x: 820, y: 320, glyph: '⊘', color: '#45b7d1', stage: 1 },
+  { id: 'ratio', label: '首尾比\nr=x终/x起', type: 'result', x: 720, y: 440, glyph: '∝', color: '#45b7d1', stage: 1 },
+  { id: 'lock0', label: '0被锁定\nk·0=0', type: 'result', x: 940, y: 320, glyph: '⊘', color: '#45b7d1', stage: 1 },
+
+  // Stage 2: Bridge
+  { id: 'exp', label: '指数映射\nexp:a→eᵃ', type: 'bridge', x: 500, y: 200, glyph: '↑', color: '#f9a825', stage: 2 },
+  { id: 'log', label: '对数映射\nln:a→log a', type: 'bridge', x: 500, y: 520, glyph: '↓', color: '#f9a825', stage: 2 },
+  { id: 'center', label: '加法中心0\n=乘法单位1', type: 'result', x: 380, y: 620, glyph: '⊙', color: '#f9a825', stage: 2 },
+  { id: 'origin', label: '乘法中心1\n=加法起点0', type: 'result', x: 620, y: 620, glyph: '◉', color: '#f9a825', stage: 2 },
+
+  // Stage 3: Memory field
+  { id: 'mem', label: '记忆场', type: 'domain', x: 500, y: 720, glyph: '🧠', color: '#96ceb4', stage: 3 },
+  { id: 'p8', label: '色差触发\n‖ΔC‖>θ', type: 'node', x: 280, y: 820, glyph: '◈', color: '#96ceb4', stage: 3 },
+  { id: 'p9', label: '版本衰减\nt·γ', type: 'node', x: 500, y: 850, glyph: '↘', color: '#96ceb4', stage: 3 },
+  { id: 'p10', label: '频率ω\n2πf(t+φ)', type: 'node', x: 720, y: 820, glyph: '∿', color: '#96ceb4', stage: 3 },
+  { id: 'affine', label: '统一更新\nSt+1=Mt⊙St+At', type: 'result', x: 500, y: 960, glyph: 'Σ', color: '#96ceb4', stage: 3 },
+
+  // Cross-links
+  { id: 'p5', label: '线性变换\nMx', type: 'node', x: 880, y: 440, glyph: '◆', color: '#45b7d1', stage: 1 },
+  { id: 'p11', label: '奇偶\nmod2', type: 'node', x: 140, y: 560, glyph: '±', color: '#4ecdc4', stage: 0 },
+  { id: 'p12', label: '存在性\n0/1', type: 'node', x: 380, y: 560, glyph: '◐', color: '#96ceb4', stage: 3 },
+];
+
+// ── Edge definitions ──
+const edges = [
+  // Root branches
+  { from: 'root', to: 'add', type: 'add' },
+  { from: 'root', to: 'mul', type: 'mul' },
+
+  // Addition chain
+  { from: 'add', to: 'p1', type: 'add' },
+  { from: 'add', to: 'p2', type: 'add' },
+  { from: 'p1', to: 'diff', type: 'add' },
+  { from: 'p1', to: 'move0', type: 'add' },
+
+  // Multiplication chain
+  { from: 'mul', to: 'p3', type: 'mul' },
+  { from: 'mul', to: 'p4', type: 'mul' },
+  { from: 'p3', to: 'ratio', type: 'mul' },
+  { from: 'mul', to: 'lock0', type: 'mul' },
+
+  // Bridge
+  { from: 'add', to: 'exp', type: 'bridge' },
+  { from: 'mul', to: 'log', type: 'bridge' },
+  { from: 'exp', to: 'center', type: 'bridge' },
+  { from: 'log', to: 'origin', type: 'bridge' },
+
+  // Memory field
+  { from: 'mem', to: 'p8', type: 'mem' },
+  { from: 'mem', to: 'p9', type: 'mem' },
+  { from: 'mem', to: 'p10', type: 'mem' },
+  { from: 'mem', to: 'affine', type: 'mem' },
+
+  // Cross-domain links
+  { from: 'p1', to: 'ratio', type: 'mem', label: 'x起≠0' },
+  { from: 'p8', to: 'diff', type: 'mem', label: '色差=ΔC' },
+  { from: 'p9', to: 'p3', type: 'mem', label: '衰减=乘法' },
+  { from: 'p3', to: 'p5', type: 'mul' },
+  { from: 'add', to: 'p11', type: 'add' },
+  { from: 'mem', to: 'p8', type: 'mem' },
+
+  // From ratio to memory (via no-zero-start)
+  { from: 'ratio', to: 'affine', type: 'mem', label: '首尾比→更新' },
+];
+
+// ── Render ──
+const svg = document.getElementById('canvas');
+const edgesLayer = document.getElementById('edges-layer');
+const nodesLayer = document.getElementById('nodes-layer');
+
+function getNode(id) { return nodes.find(n => n.id === id); }
+
+function drawNodes() {
+  nodesLayer.innerHTML = '';
+  nodes.forEach(n => {
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.setAttribute('transform', `translate(${n.x}, ${n.y})`);
+    g.setAttribute('class', 'node');
+    g.setAttribute('data-id', n.id);
+    g.setAttribute('data-stage', n.stage);
+
+    const isLarge = n.type === 'root' || n.type === 'domain';
+    const w = isLarge ? 148 : 120;
+    const h = isLarge ? 48 : 40;
+
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    rect.setAttribute('x', -w/2);
+    rect.setAttribute('y', -h/2);
+    rect.setAttribute('width', w);
+    rect.setAttribute('height', h);
+    rect.setAttribute('class', 'node-bg');
+    rect.setAttribute('fill', n.color + '22');
+    rect.setAttribute('stroke', n.color);
+    if (n.type === 'root') rect.setAttribute('filter', 'url(#glow)');
+    g.appendChild(rect);
+
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('dy', '0.35em');
+    text.setAttribute('class', 'node-label');
+    text.setAttribute('fill', '#c9d1d9');
+
+    if (n.label.includes('\n')) {
+      const lines = n.label.split('\n');
+      lines.forEach((line, i) => {
+        const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+        tspan.textContent = line;
+        tspan.setAttribute('x', 0);
+        tspan.setAttribute('dy', i === 0 ? `-${(lines.length - 1) * 6}` : '12');
+        text.appendChild(tspan);
+      });
+    } else {
+      text.textContent = n.label;
+    }
+    g.appendChild(text);
+
+    // Glyph
+    const glyph = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    glyph.textContent = n.glyph;
+    glyph.setAttribute('class', 'node-glyph');
+    glyph.setAttribute('y', -h/2 - 8);
+    glyph.setAttribute('fill', n.color);
+    g.appendChild(glyph);
+
+    // Events
+    g.addEventListener('click', () => handleClick(n.id));
+    g.addEventListener('mouseenter', (e) => showTooltip(e, n.id));
+    g.addEventListener('mouseleave', hideTooltip);
+
+    nodesLayer.appendChild(g);
+  });
+}
+
+function drawEdges() {
+  edgesLayer.innerHTML = '';
+  edges.forEach(e => {
+    const from = getNode(e.from);
+    const to = getNode(e.to);
+    if (!from || !to) return;
+
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+
+    // Simple bezier
+    const mx = (from.x + to.x) / 2;
+    const my = (from.y + to.y) / 2;
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    const cx1 = from.x + dx * 0.3;
+    const cy1 = from.y;
+    const cx2 = to.x - dx * 0.3;
+    const cy2 = to.y;
+
+    path.setAttribute('d', `M ${from.x} ${from.y} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${to.x} ${to.y}`);
+    path.setAttribute('class', `edge edge-${e.type}`);
+    path.setAttribute('data-from', e.from);
+    path.setAttribute('data-to', e.to);
+    edgesLayer.appendChild(path);
+
+    // Edge label
+    if (e.label) {
+      const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      label.setAttribute('x', mx);
+      label.setAttribute('y', my - 6);
+      label.setAttribute('class', 'edge-label');
+      label.setAttribute('text-anchor', 'middle');
+      label.textContent = e.label;
+      edgesLayer.appendChild(label);
+    }
+  });
+}
+
+// ── Interaction ──
+function handleClick(id) {
+  const n = getNode(id);
+  if (!n) return;
+
+  // Highlight path
+  document.querySelectorAll('.edge').forEach(e => e.classList.add('dimmed'));
+  document.querySelectorAll('.edge').forEach(e => {
+    if (e.dataset.from === id || e.dataset.to === id) {
+      e.classList.remove('dimmed');
+      e.classList.add('highlighted');
+    }
+  });
+
+  // Show panel
+  showPanel(id);
+}
+
+function showTooltip(e, id) {
+  const n = getNode(id);
+  const tt = document.getElementById('tooltip');
+  tt.querySelector('.tt-title').textContent = n.glyph + ' ' + n.label.split('\n')[0];
+  tt.querySelector('.tt-body').innerHTML = `
+    <b>类型:</b> ${n.type}<br>
+    <b>阶段:</b> ${n.stage}<br>
+    <b>颜色:</b> ${n.color}<br>
+    <b>坐标:</b> (${n.x},${n.y})
+  `;
+  tt.style.left = e.clientX + 12 + 'px';
+  tt.style.top = e.clientY + 12 + 'px';
+  tt.style.display = 'block';
+}
+
+function hideTooltip() { document.getElementById('tooltip').style.display = 'none'; }
+
+// Stage filtering
+function showStage(stage) {
+  document.getElementById('stage-ind').textContent = 
+    stage === -1 ? '阶段: 全部' : `阶段: ${['加法', '乘法', '桥接', '记忆场'][stage]}`;
+
+  document.querySelectorAll('.node[data-stage]').forEach(n => {
+    const s = parseInt(n.dataset.dataset || n.getAttribute('data-stage'));
+    n.style.display = (stage === -1 || s === stage) ? 'block' : 'none';
+  });
+
+  // Also hide edges connected to hidden nodes
+  document.querySelectorAll('.edge').forEach(e => {
+    const fromNode = getNode(e.dataset.from);
+    const toNode = getNode(e.dataset.to);
+    const fromStage = fromNode ? fromNode.stage : -1;
+    const toStage = toNode ? toNode.stage : -1;
+    const visible = (stage === -1 || fromStage === stage || fromStage === -1) &&
+                    (stage === -1 || toStage === stage || toStage === -1);
+    e.style.display = visible ? 'block' : 'none';
+  });
+}
+
+// Side panel with verification theorems
+const theorems = {
+  'affine': {
+    title: '定理：统一更新式',
+    body: `<div class="formula">S<sub>t+1</sub> = M<sub>t</sub> ⊙ S<sub>t</sub> + A<sub>t</sub></div>
+           <b>Mt</b> = 乘法核（缩放·旋转·频率·衰减）<br>
+           <b>At</b> = 加法项（位移·色差·事件·相位）<br>
+           <br>若仅有M：起点锁死，无新事件写入。<br>
+           <若仅有A：结构散乱，无缩放对称。`
+  },
+  'lock0': {
+    title: '定理：乘法锁',
+    body: `<div class="formula">∀k: k·0 = 0</div>
+           乘法群中0被锁死，起点不可变。<br>
+           要让起点动，必须加法。`
+  },
+  'root': {
+    title: '变化本质',
+    body: `加法/减法：管位移、事件、奇偶、起点。<br>
+           乘法/除法：管缩放、面积、旋转、对称、中心、终点。<br>
+           指数/对数：桥接加法群与乘法群。`
+  }
+};
+
+function showPanel(id) {
+  const t = theorems[id] || theorems['root'];
+  const panel = document.getElementById('sidepanel');
+  document.getElementById('panel-content').innerHTML = `<h3>${t.title}</h3>${t.body}`;
+  panel.classList.add('visible');
+}
+
+function togglePanel() {
+  document.getElementById('sidepanel').classList.toggle('visible');
+}
+
+// ── Pan & Zoom ──
+let scale = 1;
+let tx = 0, ty = 0;
+let dragging = false;
+let startX, startY;
+
+svg.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const delta = e.deltaY > 0 ? 0.9 : 1.1;
+  scale *= delta;
+  scale = Math.max(0.3, Math.min(3, scale));
+  updateTransform();
+});
+
+svg.addEventListener('mousedown', (e) => {
+  if (e.button === 1 || (e.button === 0 && e.shiftKey)) {
+    dragging = true;
+    startX = e.clientX - tx;
+    startY = e.clientY - ty;
+  }
+});
+
+svg.addEventListener('mousemove', (e) => {
+  if (dragging) {
+    tx = e.clientX - startX;
+    ty = e.clientY - startY;
+    updateTransform();
+  }
+});
+
+svg.addEventListener('mouseup', () => dragging = false);
+
+function updateTransform() {
+  document.getElementById('canvas').style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+}
+
+// Init
+drawEdges();
+drawNodes();
+</script>
+</body>
+</html>

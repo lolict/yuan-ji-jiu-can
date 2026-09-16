@@ -3118,3 +3118,286 @@ mod spatial_action_intent_tests {
         assert!(svg.contains("svg"));
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 统计文档聚合浏览器 · 八流统一层 (追加)
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[derive(Clone, Debug)]
+pub struct ClusterNode {
+    pub id: u64,
+    pub centroid: (f64, f64, f64),
+    pub members: Vec<(u8, u8, u8)>,
+    pub radius: f64,
+    pub density: f64,
+}
+
+impl ClusterNode {
+    pub fn new(id: u64, centroid: (f64, f64, f64)) -> Self {
+        Self { id, centroid, members: Vec::new(), radius: 0.0, density: 0.0 }
+    }
+    pub fn add_member(&mut self, addr: (u8, u8, u8), dist: f64) {
+        self.members.push(addr);
+        if dist > self.radius { self.radius = dist; }
+        if self.radius > 0.0 {
+            let vol = (4.0 / 3.0) * std::f64::consts::PI * self.radius.powi(3);
+            self.density = self.members.len() as f64 / vol;
+        }
+    }
+}
+
+pub struct ClusteringEngine {
+    pub clusters: Vec<ClusterNode>,
+    pub weight_consonant: f64,
+    pub weight_vowel: f64,
+    pub weight_tone: f64,
+    pub threshold: f64,
+    next_id: u64,
+}
+
+impl ClusteringEngine {
+    pub fn new() -> Self {
+        Self { clusters: Vec::new(), weight_consonant: 3.0, weight_vowel: 2.0, weight_tone: 1.0, threshold: 50.0, next_id: 0 }
+    }
+    pub fn with_weights(wc: f64, wv: f64, wt: f64) -> Self {
+        Self { clusters: Vec::new(), weight_consonant: wc, weight_vowel: wv, weight_tone: wt, threshold: 50.0, next_id: 0 }
+    }
+    pub fn distance(&self, a: (u8, u8, u8), b: (u8, u8, u8)) -> f64 {
+        let dc = (a.0 as f64 - b.0 as f64) * self.weight_consonant;
+        let dv = (a.1 as f64 - b.1 as f64) * self.weight_vowel;
+        let dt = (a.2 as f64 - b.2 as f64) * self.weight_tone;
+        (dc * dc + dv * dv + dt * dt).sqrt()
+    }
+    fn alloc_id(&mut self) -> u64 { let id = self.next_id; self.next_id += 1; id }
+
+    pub fn cluster(&mut self, addresses: &[(u8, u8, u8)]) -> &[ClusterNode] {
+        if addresses.is_empty() { return &self.clusters; }
+        let mut tc: Vec<ClusterNode> = addresses.iter()
+            .map(|&(c, v, t)| ClusterNode::new(self.alloc_id(), (c as f64, v as f64, t as f64)))
+            .collect();
+        for (i, &(c, v, t)) in addresses.iter().enumerate() { tc[i].add_member((c, v, t), 0.0); }
+        loop {
+            let mut min_dist = f64::MAX;
+            let mut merge_pair: Option<(usize, usize)> = None;
+            for i in 0..tc.len() {
+                for j in (i + 1)..tc.len() {
+                    let ci = (tc[i].centroid.0 as u8, tc[i].centroid.1 as u8, tc[i].centroid.2 as u8);
+                    let cj = (tc[j].centroid.0 as u8, tc[j].centroid.1 as u8, tc[j].centroid.2 as u8);
+                    let d = self.distance(ci, cj);
+                    if d < min_dist { min_dist = d; merge_pair = Some((i, j)); }
+                }
+            }
+            if min_dist > self.threshold || tc.len() <= 1 { break; }
+            if let Some((i, j)) = merge_pair {
+                let mut merged = tc[i].members.clone();
+                merged.extend_from_slice(&tc[j].members);
+                let n = merged.len() as f64;
+                let sum = merged.iter().fold((0.0, 0.0, 0.0), |acc, m| (acc.0 + m.0 as f64, acc.1 + m.1 as f64, acc.2 + m.2 as f64));
+                let centroid = (sum.0 / n, sum.1 / n, sum.2 / n);
+                let mut new_cluster = ClusterNode::new(tc[i].id, centroid);
+                for &m in &merged {
+                    let dx = m.0 as f64 - centroid.0; let dy = m.1 as f64 - centroid.1; let dz = m.2 as f64 - centroid.2;
+                    new_cluster.add_member(m, (dx * dx + dy * dy + dz * dz).sqrt());
+                }
+                let (ri, rk) = if i > j { (i, j) } else { (j, i) };
+                tc.remove(ri); tc.remove(rk); tc.push(new_cluster);
+            } else { break; }
+        }
+        self.clusters = tc;
+        &self.clusters
+    }
+
+    pub fn stats(&self) -> ClusterStats {
+        let total: usize = self.clusters.iter().map(|c| c.members.len()).sum();
+        let avg_r = if self.clusters.is_empty() { 0.0 } else { self.clusters.iter().map(|c| c.radius).sum::<f64>() / self.clusters.len() as f64 };
+        let max_d = self.clusters.iter().map(|c| c.density).fold(0.0, f64::max);
+        ClusterStats { cluster_count: self.clusters.len(), total_members: total, avg_radius: avg_r, max_density: max_d }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct ClusterStats {
+    pub cluster_count: usize,
+    pub total_members: usize,
+    pub avg_radius: f64,
+    pub max_density: f64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum FlowKind {
+    Preload, Interpret, Sovereignty, Property, Resonance, Feedback, Invocation, CommonDivisor,
+}
+
+impl FlowKind {
+    pub fn layer(&self) -> u8 {
+        match self { FlowKind::Preload => 1, FlowKind::Interpret => 2, FlowKind::Sovereignty => 3,
+            FlowKind::Property => 4, FlowKind::Resonance => 5, FlowKind::Feedback => 6,
+            FlowKind::Invocation => 7, FlowKind::CommonDivisor => 8 }
+    }
+    pub fn all() -> [FlowKind; 8] {
+        [FlowKind::Preload, FlowKind::Interpret, FlowKind::Sovereignty, FlowKind::Property,
+         FlowKind::Resonance, FlowKind::Feedback, FlowKind::Invocation, FlowKind::CommonDivisor]
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct FlowState {
+    pub kind: FlowKind,
+    pub intensity: f64,
+    pub address: Option<(u8, u8, u8)>,
+    pub completed: bool,
+}
+
+impl FlowState {
+    pub fn new(kind: FlowKind) -> Self {
+        Self { kind, intensity: 0.5, address: None, completed: false }
+    }
+    pub fn advance(&mut self, delta: f64) { self.intensity = (self.intensity + delta).clamp(0.0, 1.0); }
+    pub fn complete(&mut self) { self.completed = true; self.intensity = 1.0; }
+}
+
+#[derive(Clone, Debug)]
+pub enum ContainerInteraction {
+    Absorb { target: String, source: String },
+    Resonate { a: String, b: String, strength: f64 },
+    Invoke { location: (u8, u8, u8), program: String },
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct RouterStats {
+    pub total_routes: usize,
+    pub absorbed_containers: usize,
+    pub resonated_pairs: usize,
+}
+
+pub struct ConsciousnessRouter {
+    pub active_flows: Vec<FlowState>,
+    pub containers: Vec<String>,
+    pub interactions: Vec<ContainerInteraction>,
+    pub stats: RouterStats,
+}
+
+impl ConsciousnessRouter {
+    pub fn new() -> Self {
+        Self { active_flows: Vec::new(), containers: Vec::new(), interactions: Vec::new(), stats: RouterStats::default() }
+    }
+    pub fn register_container(&mut self, name: &str) {
+        if !self.containers.contains(&name.to_string()) { self.containers.push(name.to_string()); }
+    }
+    pub fn activate_flow(&mut self, kind: FlowKind, addr: Option<(u8, u8, u8)>) -> usize {
+        let s = FlowState { kind, intensity: 0.5, address: addr, completed: false };
+        self.active_flows.push(s);
+        self.active_flows.len() - 1
+    }
+    pub fn route(&mut self, addr: (u8, u8, u8), kind: FlowKind) -> Option<usize> {
+        if let Some((idx, _)) = self.active_flows.iter().enumerate()
+            .find(|(_, f)| f.kind == kind && f.address == Some(addr)) { return Some(idx); }
+        Some(self.activate_flow(kind, Some(addr)))
+    }
+    pub fn interact(&mut self, inter: ContainerInteraction) {
+        match &inter {
+            ContainerInteraction::Absorb { .. } => self.stats.absorbed_containers += 1,
+            ContainerInteraction::Resonate { .. } => self.stats.resonated_pairs += 1,
+            _ => {}
+        }
+        self.stats.total_routes += 1;
+        self.interactions.push(inter);
+    }
+    pub fn find_common_divisor(&self, a: &str, b: &str) -> Option<String> {
+        let common: String = a.chars().zip(b.chars())
+            .take_while(|(ca, cb)| ca == cb).map(|(c, _)| c).collect();
+        if common.is_empty() { None } else { Some(common) }
+    }
+    pub fn flows_of_kind(&self, kind: FlowKind) -> Vec<&FlowState> {
+        self.active_flows.iter().filter(|f| f.kind == kind).collect()
+    }
+}
+
+#[cfg(test)]
+mod new_subsystem_tests {
+    use super::*;
+
+    #[test]
+    fn test_clustering_engine() {
+        let mut e = ClusteringEngine::new();
+        let addrs = vec![(0, 0, 0), (1, 0, 0), (0, 1, 0), (40, 60, 90), (41, 60, 90)];
+        e.cluster(&addrs);
+        let s = e.stats();
+        assert!(s.cluster_count >= 1);
+    }
+
+    #[test]
+    fn test_clustering_distance() {
+        let e = ClusteringEngine::new();
+        let d = e.distance((0, 0, 0), (10, 0, 0));
+        assert!((d - 30.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_clustering_merge() {
+        let mut e = ClusteringEngine::with_weights(1.0, 1.0, 1.0);
+        let c = e.cluster(&[(0, 0, 0), (3, 4, 0)]);
+        assert_eq!(c.len(), 1, "距离5 < 阈值50, 应合并为一");
+    }
+
+    #[test]
+    fn test_flow_kind_layers() {
+        assert_eq!(FlowKind::Preload.layer(), 1);
+        assert_eq!(FlowKind::Sovereignty.layer(), 3);
+        assert_eq!(FlowKind::CommonDivisor.layer(), 8);
+    }
+
+    #[test]
+    fn test_flow_state() {
+        let mut s = FlowState::new(FlowKind::Resonance);
+        assert_eq!(s.kind, FlowKind::Resonance);
+        assert!((s.intensity - 0.5).abs() < 0.01);
+        s.advance(0.3);
+        s.complete();
+        assert!(s.completed);
+    }
+
+    #[test]
+    fn test_router() {
+        let mut r = ConsciousnessRouter::new();
+        r.register_container("A");
+        r.register_container("B");
+        assert_eq!(r.containers.len(), 2);
+        let i = r.activate_flow(FlowKind::Resonance, Some((5, 10, 15)));
+        assert_eq!(r.active_flows[i].kind, FlowKind::Resonance);
+    }
+
+    #[test]
+    fn test_router_route() {
+        let mut r = ConsciousnessRouter::new();
+        let i1 = r.activate_flow(FlowKind::Resonance, Some((5, 10, 15)));
+        let i2 = r.route((5, 10, 15), FlowKind::Resonance);
+        assert_eq!(i1, i2.unwrap());
+        let i3 = r.route((6, 10, 15), FlowKind::Resonance);
+        assert_ne!(i1, i3.unwrap());
+    }
+
+    #[test]
+    fn test_router_interact() {
+        let mut r = ConsciousnessRouter::new();
+        r.interact(ContainerInteraction::Absorb { target: "A".to_string(), source: "B".to_string() });
+        assert_eq!(r.interactions.len(), 1);
+        assert_eq!(r.stats.absorbed_containers, 1);
+    }
+
+    #[test]
+    fn test_router_common_divisor() {
+        let r = ConsciousnessRouter::new();
+        assert_eq!(r.find_common_divisor("abcdef", "abcxyz"), Some("abc".to_string()));
+        assert_eq!(r.find_common_divisor("foo", "bar"), None);
+    }
+
+    #[test]
+    fn test_router_flows_of_kind() {
+        let mut r = ConsciousnessRouter::new();
+        r.activate_flow(FlowKind::Resonance, None);
+        r.activate_flow(FlowKind::Resonance, None);
+        r.activate_flow(FlowKind::Feedback, None);
+        assert_eq!(r.flows_of_kind(FlowKind::Resonance).len(), 2);
+    }
+}
