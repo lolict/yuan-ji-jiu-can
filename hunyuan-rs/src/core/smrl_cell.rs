@@ -394,7 +394,7 @@ mod tests {
     }
 
     #[test]
-    fn coord_to_cell_with_owner() {
+    fn test_coord_to_cell_with_owner() {
         use crate::time_chain_identity::TimeCoordinate;
         let tc = TimeCoordinate::genesis();
         let cell = coord_to_cell_with_owner(&tc, CellOwner::Coupled(42));

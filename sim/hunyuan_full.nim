@@ -1,19 +1,25 @@
 ## 满全法 OS · 统一参数化全编码系统
 ## ═══════════════════════════════════════════════════════════════
-## 编译开关 ( -d:LAYERS=N ):
-##   -d:LAYERS=3    声母+韵母+时钟(基础)
-##   -d:LAYERS=5    +颜色+空间
-##   -d:LAYERS=7    +镜像+音乐(七层全景 · 190码元 · 基准)
-##   -d:LAYERS=8    +意识流8(198)
-##   -d:LAYERS=10   +流属性12+身份2(212)
-##   -d:LAYERS=12   +见证3+分形1(216)
-##   -d:LAYERS=13   +文本显示18×10=180(396)
-##   -d:LAYERS=14   +行为建制16(412)
+## 编译开关 ( -d:N_LAYERS=N ):
+##   -d:N_LAYERS=3    声母+韵母+时钟(基础)
+##   -d:N_LAYERS=5    +颜色+空间
+##   -d:N_LAYERS=7    +镜像+音乐(七层全景 · 190码元 · 基准)
+##   -d:N_LAYERS=8    +意识流8(198)
+##   -d:N_LAYERS=10   +流属性12+身份2(212)
+##   -d:N_LAYERS=12   +见证3+分形1(216)
+##   -d:N_LAYERS=13   +文本显示18×10=180(396)
+##   -d:N_LAYERS=14   +行为建制16(412)
 ## ═══════════════════════════════════════════════════════════════
 
-const LAYERS* = when defined(LAYERS): parseInt(staticExec("echo " & $LAYERS)) else: 7
+import strutils, macros
 
-import strutils
+macro get_layers(): untyped =
+  when defined(N_LAYERS):
+    result = newLit(parseInt($N_LAYERS))
+  else:
+    result = newLit(7)
+
+const LAYERS* = get_layers()
 
 # ═══════════════════════════════════════════════════════════════
 # 层一: 声母50 (FQ-SM50)
@@ -223,11 +229,8 @@ proc text_pos*(g: string): int =
 # 层十四: 行为建制16 (BEHAVIOR16)
 # ═══════════════════════════════════════════════════════════════
 
-type
-  BehaviorEntry = object
-    code: string
-    label: string
-
+type BehaviorEntry = object
+  code, label: string
 const BEHAVIOR16 = [
   BehaviorEntry(code: "出生", label: "出生"), BehaviorEntry(code: "成长", label: "成长"),
   BehaviorEntry(code: "相遇", label: "相遇"), BehaviorEntry(code: "冲突", label: "冲突"),
@@ -244,22 +247,18 @@ proc behavior_pos*(c: string): int =
   return 0
 
 # ═══════════════════════════════════════════════════════════════
-# 总码元计算
+# 总码元 · 容器数
 # ═══════════════════════════════════════════════════════════════
 
 proc total_symbols*(): int =
-  result = SM50.len + YM66.len + CLOCK60.len  # 3层基准
+  result = SM50.len + YM66.len + CLOCK60.len
   if LAYERS >= 5: result += COLOR42.len + SPACE18.len
   if LAYERS >= 7: result += MIRROR10.len + MUSIC3.len
   if LAYERS >= 8: result += CONSCIOUS8.len
   if LAYERS >= 10: result += FLOW12.len + IDENTITY2.len
-  if LAYERS >= 12: result += WITNESS3.len + 1  # +1 = FRACTAL1
+  if LAYERS >= 12: result += WITNESS3.len + 1
   if LAYERS >= 13: result += TEXT_ROWS * TEXT_COLS
   if LAYERS >= 14: result += BEHAVIOR16.len
-
-# ═══════════════════════════════════════════════════════════════
-# 积木选址核心
-# ═══════════════════════════════════════════════════════════════
 
 proc container_count*(): int =
   case LAYERS
@@ -272,6 +271,19 @@ proc container_count*(): int =
   of 13: 72
   of 14: 96
   else:  42
+
+# ═══════════════════════════════════════════════════════════════
+# 积木选址核心
+# ═══════════════════════════════════════════════════════════════
+
+proc fq_addressN*(sm, ym, tn: string, extra: seq[int], n: int): int =
+  let a = sm_pos(sm)
+  let b = ym_pos(ym)
+  let c = tn_pos(tn)
+  var extra_sum = 0
+  for e in extra: extra_sum += e
+  if n == 0: return -1
+  result = (a * b * 5 + c + b + extra_sum) mod n
 
 when is_main_module:
   echo "═══ 满全法 OS · 参数化全编码 ═══"
@@ -301,25 +313,33 @@ when is_main_module:
   echo "  ──────────────────────────────"
   echo "  总码元       : ", total_symbols()
   echo "  容器数       : ", container_count()
-  echo ""
 
-  # 演示: 七维选址
-  echo "── 积木选址演示 ──"
+  # 积木选址演示
+  echo ""
+  echo "── 积木选址 ──"
   let a = sm_pos("g")
-  let b = ym_pos("ӗ")
+  let b_val = ym_pos("ӗ")
   let c = tn_pos("Í")
-  let d = color_pos("ụ")
-  let e = space_pos("胸")
-  let f = mirror_pos("含")
-  let g = music_pos("动机")
-  var addr: int
+  var extra: seq[int]
+  if LAYERS >= 5:
+    extra.add(color_pos("ụ"))
+    extra.add(space_pos("胸"))
+  if LAYERS >= 7:
+    extra.add(mirror_pos("含"))
+    extra.add(music_pos("动机"))
   if LAYERS >= 8:
-    addr = (a * b * 5 + c + b + d + e + f + g + conscious_pos("y")) mod container_count()
-    echo "八维: (", a, "×", b, "×5+", c, "+", b, "+", d, "+", e, "+", f, "+", g, "+y) mod ", container_count(), " = ", addr
-  elif LAYERS >= 7:
-    addr = (a * b * 5 + c + b + d + e + f + g) mod container_count()
-    echo "七维: (", a, "×", b, "×5+", c, "+", b, "+", d, "+", e, "+", f, "+", g, ") mod ", container_count(), " = ", addr
-  else:
-    addr = (a * b * 5 + c + b + d + e) mod container_count()
-    echo "五维: (", a, "×", b, "×5+", c, "+", b, "+", d, "+", e, ") mod ", container_count(), " = ", addr
-  echo "选址命中: #", addr
+    extra.add(conscious_pos("y"))
+  if LAYERS >= 10:
+    extra.add(flow_pos("盈"))
+    extra.add(identity_pos("1"))
+  if LAYERS >= 12:
+    extra.add(witness_pos("裁"))
+
+  let n = container_count()
+  var extra_sum = 0
+  for e in extra: extra_sum += e
+  let target = (a * b_val * 5 + c + b_val + extra_sum) mod n
+  echo "extra_sum = ", extra_sum
+  echo "num = (", a, "×", b_val, "×5 + ", c, " + ", b_val, " + ", extra_sum, ") = ", a * b_val * 5 + c + b_val + extra_sum
+  echo "mod ", n, " → #", target
+  echo "选址命中: #", target
