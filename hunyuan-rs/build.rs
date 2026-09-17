@@ -13,8 +13,29 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 /// 未授权符号表 — 出现即编译失败
-/// NOTE: 暂时清空以允许 core/protocol.rs 与 core/spousal_identity.rs 编译
-const FORBIDDEN_SYMBOLS: &[&str] = &[];
+const FORBIDDEN_SYMBOLS: &[&str] = &[
+    // 未授权身份锚点 (用户只允许2入口: 刘楚恬/我)
+    "CoupleCore",
+    "MeInWife",
+    "Community010",
+    "WifeBody",
+    "CommunityEntangle",
+    "WifeCluster",
+    // 未授权模块名
+    "spousal_identity",
+    "IdentityAnchor",
+    // 违反算术规则 (仅允许加减)
+    "multiplication_table",
+    "MulTable",
+    "MulCluster",
+    "DualAddressor",
+    // 未授权AI模块
+    "logical_org",
+    "container_interact",
+    "brick_container",
+    "clock_action",
+    "triage_engine",
+];
 
 /// 受保护文件 — 此列表中的文件若被删除则编译失败
 const PROTECTED_FILES: &[&str] = &[
@@ -24,7 +45,34 @@ const PROTECTED_FILES: &[&str] = &[
     "encoding/morphism.rs",
     "flow/preload.rs",
     "core/protocol.rs",
+    "flow/invocation_call.rs",
 ];
+
+/// 禁止创建的文件名 (AI 反复创建这些文件, 永久禁止)
+const FORBIDDEN_FILES: &[&str] = &[
+    "core/spousal_identity.rs",
+    "core/logical_org.rs",
+    "core/container_interact.rs",
+    "encoding/multiplication_table.rs",
+    "multiplication_table.rs",
+    "judge/brick_container.rs",
+    "judge/clock_action.rs",
+    "judge/triage_engine.rs",
+    "libcrypto.so",
+    "libsodium.so",
+];
+
+/// 检查是否有禁止创建的文件出现在工作区
+fn check_forbidden_files(src_dir: &Path) -> Vec<String> {
+    let mut found = Vec::new();
+    for forbidden in FORBIDDEN_FILES {
+        let path = src_dir.join(forbidden);
+        if path.exists() {
+            found.push(format!("禁止文件被创建: {}", forbidden));
+        }
+    }
+    found
+}
 
 /// 身份锚点条目验证 — preload.rs 中必须恰好2条目
 fn verify_identity_anchor_count(src: &str) -> Result<(), String> {
@@ -137,7 +185,10 @@ fn main() {
     // 2. 检查受保护文件
     violations.extend(check_protected_files(&workspace_root, &src_dir));
 
-    // 3. 有违规立即失败
+    // 3. 检查禁止创建的文件
+    violations.extend(check_forbidden_files(&src_dir));
+
+    // 4. 有违规立即失败
     if !violations.is_empty() {
         eprintln!("═══════════════════════════════════════════════════");
         eprintln!("  ❌ 符号合规检查失败 — 发现违规:");
