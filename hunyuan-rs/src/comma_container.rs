@@ -3893,3 +3893,169 @@ mod syllable_flow_tests {
     #[test] fn test_flow_state_new() { let f = FlowState::new(FlowKind::Sovereignty); assert!(!f.completed); }
     #[test] fn test_flow_state_advance() { let mut f = FlowState::new(FlowKind::Preload); f.advance(0.3); assert!(f.intensity > 0.5); }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 距离感知聚类引擎 · DistancePerceptor
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// 基于音节坐标的加权距离实现 AGNES 风格层次聚类
+// 声母权3×, 韵母权2×, 声调权1×
+// 聚类结果可用于容器本质匹配与公约数寻根
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum Linkage { Single, Complete, Average }
+
+impl Default for Linkage { fn default() -> Self { Linkage::Average } }
+
+/// 音节距离度规 — 加权欧几里得
+#[derive(Clone, Debug)]
+pub struct SyllableMetric {
+    pub w_consonant: f64,
+    pub w_vowel: f64,
+    pub w_tone: f64,
+}
+
+impl SyllableMetric {
+    pub fn new(wc: f64, wv: f64, wt: f64) -> Self { Self { w_consonant: wc, w_vowel: wv, w_tone: wt } }
+    pub fn uniform() -> Self { Self::new(1.0, 1.0, 1.0) }
+
+    /// 计算两音节之间的加权距离
+    pub fn distance(&self, a: (u8, u8, u8), b: (u8, u8, u8)) -> f64 {
+        let dc = (a.0 as f64 - b.0 as f64) * self.w_consonant;
+        let dv = (a.1 as f64 - b.1 as f64) * self.w_vowel;
+        let dt = (a.2 as f64 - b.2 as f64) * self.w_tone;
+        (dc * dc + dv * dv + dt * dt).sqrt()
+    }
+}
+
+impl Default for SyllableMetric { fn default() -> Self { Self::new(3.0, 2.0, 1.0) } }
+
+/// 音节聚类引擎 — 层次聚类 (AGNES)
+#[derive(Clone, Debug)]
+pub struct SyllableCluster {
+    pub members: Vec<(u8, u8, u8)>,
+    pub centroid: (f64, f64, f64),
+}
+
+impl SyllableCluster {
+    pub fn new(syllable: (u8, u8, u8)) -> Self {
+        Self { members: vec![syllable], centroid: (syllable.0 as f64, syllable.1 as f64, syllable.2 as f64) }
+    }
+    pub fn len(&self) -> usize { self.members.len() }
+    pub fn merge(&mut self, other: &SyllableCluster) {
+        self.members.extend_from_slice(&other.members);
+        let n = self.members.len() as f64;
+        self.centroid = (
+            self.members.iter().map(|m| m.0 as f64).sum::<f64>() / n,
+            self.members.iter().map(|m| m.1 as f64).sum::<f64>() / n,
+            self.members.iter().map(|m| m.2 as f64).sum::<f64>() / n,
+        );
+    }
+}
+
+/// 距离感知引擎 — 核心入口
+#[derive(Clone, Debug)]
+pub struct DistancePerceptor {
+    pub metric: SyllableMetric,
+    pub linkage: Linkage,
+    pub threshold: f64,
+    pub clusters: Vec<SyllableCluster>,
+}
+
+impl DistancePerceptor {
+    pub fn new() -> Self { Self { metric: SyllableMetric::default(), linkage: Linkage::Average, threshold: 10.0, clusters: Vec::new() } }
+    pub fn with_metric(mut self, m: SyllableMetric) -> Self { self.metric = m; self }
+    pub fn with_linkage(mut self, l: Linkage) -> Self { self.linkage = l; self }
+    pub fn with_threshold(mut self, t: f64) -> Self { self.threshold = t; self }
+
+    /// AGNES 层次聚类 — 返回聚类数量
+    pub fn cluster(&mut self, syllables: &[(u8, u8, u8)]) -> usize {
+        if syllables.is_empty() { return 0; }
+        self.clusters = syllables.iter().map(|&s| SyllableCluster::new(s)).collect();
+        loop {
+            if self.clusters.len() <= 1 { break; }
+            let (i, j, d) = self.find_closest();
+            if d > self.threshold { break; }
+            let merged = self.clusters.remove(j);
+            self.clusters[i].merge(&merged);
+        }
+        self.clusters.len()
+    }
+
+    fn find_closest(&self) -> (usize, usize, f64) {
+        let mut best = (0, 1, f64::MAX);
+        for i in 0..self.clusters.len() {
+            for j in (i + 1)..self.clusters.len() {
+                let d = self.linkage_distance(&self.clusters[i], &self.clusters[j]);
+                if d < best.2 { best = (i, j, d); }
+            }
+        }
+        best
+    }
+
+    fn linkage_distance(&self, a: &SyllableCluster, b: &SyllableCluster) -> f64 {
+        match self.linkage {
+            Linkage::Single => {
+                a.members.iter().flat_map(|ma| b.members.iter().map(move |mb| self.metric.distance(*ma, *mb))).fold(f64::MAX, f64::min)
+            }
+            Linkage::Complete => {
+                a.members.iter().flat_map(|ma| b.members.iter().map(move |mb| self.metric.distance(*ma, *mb))).fold(0.0f64, f64::max)
+            }
+            Linkage::Average => {
+                let total: f64 = a.members.iter().flat_map(|ma| b.members.iter().map(move |mb| self.metric.distance(*ma, *mb))).sum();
+                total / ((a.members.len() * b.members.len()) as f64)
+            }
+        }
+    }
+
+    /// 按照距离关系聚为指定数量的聚类
+    pub fn cluster_into(&mut self, syllables: &[(u8, u8, u8)], target: usize) -> usize {
+        if syllables.is_empty() { return 0; }
+        self.clusters = syllables.iter().map(|&s| SyllableCluster::new(s)).collect();
+        while self.clusters.len() > target.max(1) {
+            let (i, j, _) = self.find_closest();
+            let merged = self.clusters.remove(j);
+            self.clusters[i].merge(&merged);
+        }
+        self.clusters.len()
+    }
+
+    /// 获取最大聚类
+    pub fn largest_cluster(&self) -> Option<&SyllableCluster> {
+        self.clusters.iter().max_by_key(|c| c.len())
+    }
+
+    /// 整体质心
+    pub fn global_centroid(&self) -> Option<(f64, f64, f64)> {
+        if self.clusters.is_empty() { return None; }
+        let all: Vec<(u8, u8, u8)> = self.clusters.iter().flat_map(|c| c.members.clone()).collect();
+        let n = all.len() as f64;
+        Some((
+            all.iter().map(|m| m.0 as f64).sum::<f64>() / n,
+            all.iter().map(|m| m.1 as f64).sum::<f64>() / n,
+            all.iter().map(|m| m.2 as f64).sum::<f64>() / n,
+        ))
+    }
+}
+
+impl Default for DistancePerceptor {
+    fn default() -> Self { Self::new() }
+}
+
+#[cfg(test)]
+mod distance_perceptor_tests {
+    use super::*;
+    #[test] fn test_metric_distance() { let m = SyllableMetric::new(3.0, 2.0, 1.0); let d = m.distance((0, 0, 0), (1, 0, 0)); assert!((d - 3.0).abs() < 0.01); }
+    #[test] fn test_metric_uniform() { let m = SyllableMetric::uniform(); let d = m.distance((0, 0, 0), (1, 1, 1)); assert!((d - 3.0f64.sqrt()).abs() < 0.01); }
+    #[test] fn test_cluster_new() { let c = SyllableCluster::new((5, 10, 20)); assert_eq!(c.len(), 1); assert_eq!(c.centroid, (5.0, 10.0, 20.0)); }
+    #[test] fn test_cluster_merge() { let mut a = SyllableCluster::new((0, 0, 0)); let b = SyllableCluster::new((10, 10, 10)); a.merge(&b); assert_eq!(a.len(), 2); assert_eq!(a.centroid, (5.0, 5.0, 5.0)); }
+    #[test] fn test_cluster_basic() { let mut p = DistancePerceptor::new(); let n = p.cluster(&[(0, 0, 0), (1, 0, 0), (40, 60, 90), (41, 60, 90)]); assert!(n >= 2); }
+    #[test] fn test_cluster_single() { let mut p = DistancePerceptor::with_threshold(DistancePerceptor::new(), 1.0); let n = p.cluster(&[(0, 0, 0), (10, 0, 0), (20, 0, 0)]); assert_eq!(n, 3); }
+    #[test] fn test_cluster_all_merge() { let mut p = DistancePerceptor::with_threshold(DistancePerceptor::new(), 1000.0); let n = p.cluster(&[(0, 0, 0), (1, 1, 1)]); assert_eq!(n, 1); }
+    #[test] fn test_cluster_linkage() { let mut p = DistancePerceptor::new().with_linkage(Linkage::Complete); let n = p.cluster(&[(0, 0, 0), (1, 0, 0), (40, 60, 90)]); assert!(n >= 2); }
+    #[test] fn test_cluster_into() { let mut p = DistancePerceptor::new(); let n = p.cluster_into(&[(0, 0, 0), (1, 1, 1), (50, 50, 50), (51, 51, 51)], 2); assert_eq!(n, 2); }
+    #[test] fn test_largest_cluster() { let mut p = DistancePerceptor::new(); p.cluster(&[(0, 0, 0), (1, 0, 0), (2, 0, 0), (80, 80, 80)]); let largest = p.largest_cluster().unwrap(); assert_eq!(largest.len(), 3); }
+    #[test] fn test_global_centroid() { let mut p = DistancePerceptor::new(); p.cluster(&[(0, 0, 0), (10, 10, 10)]); let c = p.global_centroid().unwrap(); assert!((c.0 - 5.0).abs() < 0.01); }
+    #[test] fn test_cluster_empty() { let mut p = DistancePerceptor::new(); assert_eq!(p.cluster(&[]), 0); }
+    #[test] fn test_perceptor_default() { let p = DistancePerceptor::default(); assert_eq!(p.clusters.len(), 0); assert!((p.threshold - 10.0).abs() < 0.01); }
+}
