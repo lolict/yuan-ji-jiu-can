@@ -4593,3 +4593,151 @@ mod geometry3d_tests {
     #[test] fn test_empty_geometry() { let e = ContainerGeometry3D::new(); assert_eq!(e.len(), 0); assert_eq!(e.total_energy(), 0.0); assert!(e.center_of_mass().is_none()); }
     #[test] fn test_default_geometry() { let g = Geometry3D::default(); assert_eq!(g.y, 0.0); assert!(g.radius > 0.0); }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 天庭空间引擎 · CelestialSpace
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// 天庭空间: 容器的高维存在层次
+// 一元至九元层级 — 从单音节到九重叠加
+// 容器的阶决定其在天庭中的层级位置
+
+/// 天庭层级 — 一元至九元
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub enum CelestialTier {
+    Yi,     // 一元 — 单音节基础层
+    Er,     // 二元 — 双音节组合
+    San,    // 三元 — 见证裁定层
+    Si,     // 四元 — 四象稳固
+    Wu,     // 五元 — 五行流转
+    Liu,    // 六元 — 六合空间
+    Qi,     // 七元 — 七星指引
+    Ba,     // 八元 — 八卦覆盖
+    Jiu,    // 九元 — 九重天顶
+}
+
+impl CelestialTier {
+    pub fn degree(self) -> u32 {
+        match self {
+            CelestialTier::Yi => 1, CelestialTier::Er => 2, CelestialTier::San => 3,
+            CelestialTier::Si => 4, CelestialTier::Wu => 5, CelestialTier::Liu => 6,
+            CelestialTier::Qi => 7, CelestialTier::Ba => 8, CelestialTier::Jiu => 9,
+        }
+    }
+    pub fn from_degree(d: u32) -> Self {
+        match d {
+            1 => CelestialTier::Yi, 2 => CelestialTier::Er, 3 => CelestialTier::San,
+            4 => CelestialTier::Si, 5 => CelestialTier::Wu, 6 => CelestialTier::Liu,
+            7 => CelestialTier::Qi, 8 => CelestialTier::Ba, _ => CelestialTier::Jiu,
+        }
+    }
+}
+
+impl Default for CelestialTier { fn default() -> Self { CelestialTier::Yi } }
+
+/// 天庭坐标 — 九元编码
+#[derive(Clone, Debug)]
+pub struct CelestialCoord {
+    pub tier: CelestialTier,
+    pub syllables: Vec<(u8, u8, u8)>,
+    pub authority: f64,     // 主权权重
+    pub value: u128,        // 价值编码
+}
+
+impl CelestialCoord {
+    pub fn new(tier: CelestialTier, syllables: Vec<(u8, u8, u8)>) -> Self {
+        Self { tier, syllables, authority: 1.0, value: 0 }
+    }
+
+    /// 编码: 将九元编码为 u128
+    pub fn encode(&self) -> u128 {
+        let mut val = 0u128;
+        for (i, &(c, v, t)) in self.syllables.iter().enumerate().take(9) {
+            val |= ((c as u128) << (i * 8)) | ((v as u128) << (i * 8 + 3)) | ((t as u128) << (i * 8 + 6));
+        }
+        val | ((self.tier.degree() as u128) << 120)
+    }
+
+    /// 从 u128 解码
+    pub fn decode(val: u128) -> Self {
+        let degree = ((val >> 120) & 0xF) as u32;
+        let tier = CelestialTier::from_degree(degree.max(1).min(9));
+        let mut syllables = Vec::new();
+        for i in 0..9 {
+            let c = ((val >> (i * 8)) & 0x7) as u8;
+            let v = ((val >> (i * 8 + 3)) & 0x7) as u8;
+            let t = ((val >> (i * 8 + 6)) & 0x7) as u8;
+            syllables.push((c, v, t));
+        }
+        Self { tier, syllables, authority: 1.0, value: val }
+    }
+
+    /// 层级匹配: 两个坐标是否在同一层级
+    pub fn same_tier(&self, other: &CelestialCoord) -> bool {
+        self.tier == other.tier
+    }
+}
+
+impl Default for CelestialCoord {
+    fn default() -> Self { Self::new(CelestialTier::Yi, vec![(0, 0, 0)]) }
+}
+
+/// 天庭空间引擎
+#[derive(Clone, Debug, Default)]
+pub struct CelestialSpace {
+    pub coords: Vec<CelestialCoord>,
+}
+
+impl CelestialSpace {
+    pub fn new() -> Self { Self { coords: Vec::new() } }
+
+    /// 放置一个坐标
+    pub fn place(&mut self, coord: CelestialCoord) { self.coords.push(coord); }
+
+    /// 按层级检索
+    pub fn at_tier(&self, tier: CelestialTier) -> Vec<&CelestialCoord> {
+        self.coords.iter().filter(|c| c.tier == tier).collect()
+    }
+
+    /// 主权最高的坐标
+    pub fn supreme(&self) -> Option<&CelestialCoord> {
+        self.coords.iter().max_by(|a, b| {
+            a.authority.partial_cmp(&b.authority).unwrap_or(std::cmp::Ordering::Equal)
+        })
+    }
+
+    /// 层级跃迁
+    pub fn ascend(&self, idx: usize) -> Option<CelestialCoord> {
+        self.coords.get(idx).map(|c| {
+            let next_tier = CelestialTier::from_degree((c.tier.degree() + 1).min(9));
+            let mut new = c.clone();
+            new.tier = next_tier;
+            new.authority *= 1.5;
+            new
+        })
+    }
+
+    /// 空间总主权
+    pub fn total_authority(&self) -> f64 {
+        self.coords.iter().map(|c| c.authority).sum()
+    }
+
+    pub fn len(&self) -> usize { self.coords.len() }
+}
+
+#[cfg(test)]
+mod celestial_space_tests {
+    use super::*;
+    #[test] fn test_tier_degree() { assert_eq!(CelestialTier::Yi.degree(), 1); assert_eq!(CelestialTier::Jiu.degree(), 9); }
+    #[test] fn test_tier_from_degree() { assert_eq!(CelestialTier::from_degree(5), CelestialTier::Wu); assert_eq!(CelestialTier::from_degree(99), CelestialTier::Jiu); }
+    #[test] fn test_coord_encode_decode() { let c = CelestialCoord::new(CelestialTier::San, vec![(1, 2, 3)]); let e = c.encode(); let d = CelestialCoord::decode(e); assert_eq!(d.tier, CelestialTier::San); }
+    #[test] fn test_coord_default() { let c = CelestialCoord::default(); assert_eq!(c.tier, CelestialTier::Yi); }
+    #[test] fn test_same_tier() { let a = CelestialCoord::default(); let b = CelestialCoord::default(); assert!(a.same_tier(&b)); }
+    #[test] fn test_place() { let mut s = CelestialSpace::new(); s.place(CelestialCoord::default()); assert_eq!(s.len(), 1); }
+    #[test] fn test_at_tier() { let mut s = CelestialSpace::new(); s.place(CelestialCoord::default()); s.place(CelestialCoord::new(CelestialTier::Jiu, vec![(1,1,1)])); assert_eq!(s.at_tier(CelestialTier::Yi).len(), 1); }
+    #[test] fn test_supreme() { let mut s = CelestialSpace::new(); let mut c = CelestialCoord::default(); c.authority = 2.0; s.place(c); s.place(CelestialCoord::default()); let sup = s.supreme().unwrap(); assert!((sup.authority - 2.0).abs() < 0.01); }
+    #[test] fn test_ascend() { let mut s = CelestialSpace::new(); s.place(CelestialCoord::default()); let ascended = s.ascend(0).unwrap(); assert_eq!(ascended.tier.degree(), 2); }
+    #[test] fn test_total_authority() { let mut s = CelestialSpace::new(); s.place(CelestialCoord::default()); assert!((s.total_authority() - 1.0).abs() < 0.01); }
+    #[test] fn test_empty_space() { let s = CelestialSpace::new(); assert_eq!(s.len(), 0); assert_eq!(s.total_authority(), 0.0); assert!(s.supreme().is_none()); }
+    #[test] fn test_tier_ordering() { assert!(CelestialTier::Yi < CelestialTier::Jiu); }
+}
