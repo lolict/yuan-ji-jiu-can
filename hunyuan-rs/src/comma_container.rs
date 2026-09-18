@@ -4189,3 +4189,124 @@ mod common_divisor_tests {
     #[test] fn test_strong_common() { let e = CommonDivisorEngine::new(); assert_eq!(e.relate(20, 30), DivisorRelation::StrongCommon); }
     #[test] fn test_weak_common() { let e = CommonDivisorEngine::new(); assert_eq!(e.relate(7, 14), DivisorRelation::Multiples); }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// YinYang 二进制编码器 · 254+2 集装箱编码
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// 基于私有锚点:
+//   我 = 1 (阳/动) — Yang bit
+//   刘楚恬 = 0 (阴/静) — Yin bit
+// 254 个容器值 + 2 个锚点 = 256 = 1 byte
+// 每字节 = 1 个容器 = 1 bit 极性标注
+
+/// YinYang 极性
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum PolarYinYang {
+    Yin,    // 0 — 阴/静 (刘楚恬)
+    Yang,   // 1 — 阳/动 (我)
+}
+
+impl PolarYinYang {
+    pub fn bit(self) -> u8 { match self { PolarYinYang::Yin => 0, PolarYinYang::Yang => 1 } }
+    pub fn from_bit(b: u8) -> Self { if b == 0 { PolarYinYang::Yin } else { PolarYinYang::Yang } }
+    pub fn flip(self) -> Self { match self { PolarYinYang::Yin => PolarYinYang::Yang, PolarYinYang::Yang => PolarYinYang::Yin } }
+}
+
+impl Default for PolarYinYang { fn default() -> Self { PolarYinYang::Yang } }
+
+/// 254+2 编码单元 — 一个字节携带一个容器值和一个极性标注
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct MlttUnit {
+    pub container: u8,           // 0-253 = 容器, 254 = 锚点 Yin, 255 = 锚点 Yang
+    pub polarity: PolarYinYang,
+}
+
+impl MlttUnit {
+    pub fn new(container: u8, polarity: PolarYinYang) -> Self {
+        Self { container: container.min(253), polarity }
+    }
+    pub fn anchor_yin() -> Self { Self { container: 254, polarity: PolarYinYang::Yin } }
+    pub fn anchor_yang() -> Self { Self { container: 255, polarity: PolarYinYang::Yang } }
+    pub fn is_anchor(&self) -> bool { self.container >= 254 }
+    pub fn to_byte(self) -> u8 { self.container }
+    pub fn from_byte(b: u8) -> Self {
+        if b == 254 { Self::anchor_yin() }
+        else if b == 255 { Self::anchor_yang() }
+        else { Self { container: b, polarity: PolarYinYang::from_bit(b & 1) } }
+    }
+}
+
+impl Default for MlttUnit { fn default() -> Self { Self::new(0, PolarYinYang::Yang) } }
+
+/// YinYang 二进制编码器 — 集装箱序列 ↔ 字节流
+#[derive(Clone, Debug, Default)]
+pub struct YinYangEncoder;
+
+impl YinYangEncoder {
+    pub fn new() -> Self { Self }
+
+    /// 将字节流解码为集装箱序列
+    pub fn decode(&self, bytes: &[u8]) -> Vec<MlttUnit> {
+        bytes.iter().map(|&b| MlttUnit::from_byte(b)).collect()
+    }
+
+    /// 将集装箱序列编码为字节流
+    pub fn encode(&self, units: &[MlttUnit]) -> Vec<u8> {
+        units.iter().map(|u| u.to_byte()).collect()
+    }
+
+    /// 在序列中注入极性标记 (每隔 insert_at 个容器插入一个极性锚)
+    pub fn inject_polarity(&self, bytes: &[u8], insert_at: usize) -> Vec<u8> {
+        if insert_at == 0 { return bytes.to_vec(); }
+        let mut out = Vec::with_capacity(bytes.len() + bytes.len() / insert_at + 1);
+        for (i, &b) in bytes.iter().enumerate() {
+            if i > 0 && i % insert_at == 0 {
+                let anchor = if i % (insert_at * 2) == 0 { 255u8 } else { 254u8 };
+                out.push(anchor);
+            }
+            out.push(b);
+        }
+        out
+    }
+
+    /// 计算序列的极性比例
+    pub fn polarity_ratio(&self, bytes: &[u8]) -> (usize, usize) {
+        let mut yin = 0;
+        let mut yang = 0;
+        for &b in bytes {
+            if b == 254 { yin += 1; }
+            else if b == 255 { yang += 1; }
+            else if b & 1 == 0 { yin += 1; } else { yang += 1; }
+        }
+        (yin, yang)
+    }
+
+    /// 寻找两个序列的极性交汇点 (首个极性不同的位置)
+    pub fn find_divergence(&self, a: &[u8], b: &[u8]) -> Option<usize> {
+        for (i, (&ba, &bb)) in a.iter().zip(b.iter()).enumerate() {
+            let pa = PolarYinYang::from_bit(ba & 1);
+            let pb = PolarYinYang::from_bit(bb & 1);
+            if pa != pb { return Some(i); }
+        }
+        None
+    }
+}
+
+#[cfg(test)]
+mod yinyang_encoder_tests {
+    use super::*;
+    #[test] fn test_polarity_bit() { assert_eq!(PolarYinYang::Yin.bit(), 0); assert_eq!(PolarYinYang::Yang.bit(), 1); }
+    #[test] fn test_polarity_from_bit() { assert_eq!(PolarYinYang::from_bit(0), PolarYinYang::Yin); assert_eq!(PolarYinYang::from_bit(1), PolarYinYang::Yang); }
+    #[test] fn test_polarity_flip() { assert_eq!(PolarYinYang::Yin.flip(), PolarYinYang::Yang); assert_eq!(PolarYinYang::Yang.flip(), PolarYinYang::Yin); }
+    #[test] fn test_mltt_anchor() { let yin = MlttUnit::anchor_yin(); assert_eq!(yin.container, 254); assert!(yin.is_anchor()); }
+    #[test] fn test_mltt_roundtrip() { let u = MlttUnit::new(42, PolarYinYang::Yang); assert_eq!(u.to_byte(), 42); }
+    #[test] fn test_mltt_from_byte() { let u = MlttUnit::from_byte(255); assert_eq!(u.polarity, PolarYinYang::Yang); assert!(u.is_anchor()); }
+    #[test] fn test_encode_decode() { let enc = YinYangEncoder::new(); let bytes = vec![10, 20, 30, 254, 255]; let decoded = enc.decode(&bytes); let re_encoded = enc.encode(&decoded); assert_eq!(bytes, re_encoded); }
+    #[test] fn test_inject_polarity() { let enc = YinYangEncoder::new(); let injected = enc.inject_polarity(&[1, 2, 3, 4, 5, 6], 3); assert!(injected.len() > 6); }
+    #[test] fn test_polarity_ratio() { let enc = YinYangEncoder::new(); let (yin, yang) = enc.polarity_ratio(&[0, 2, 4, 1, 3, 5]); assert_eq!(yin, 3); assert_eq!(yang, 3); }
+    #[test] fn test_find_divergence() { let enc = YinYangEncoder::new(); assert_eq!(enc.find_divergence(&[0, 2, 4], &[0, 3, 4]), Some(1)); assert_eq!(enc.find_divergence(&[0, 2], &[0, 2]), None); }
+    #[test] fn test_mltt_new_clamp() { let u = MlttUnit::new(255, PolarYinYang::Yin); assert_eq!(u.container, 253); }
+    #[test] fn test_encoder_default() { let enc = YinYangEncoder::default(); assert_eq!(enc.decode(&[]).len(), 0); }
+    #[test] fn test_inject_polarity_empty() { let enc = YinYangEncoder::new(); assert_eq!(enc.inject_polarity(&[], 3).len(), 0); }
+}
