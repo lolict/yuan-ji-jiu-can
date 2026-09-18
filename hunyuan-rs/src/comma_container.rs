@@ -4741,3 +4741,145 @@ mod celestial_space_tests {
     #[test] fn test_empty_space() { let s = CelestialSpace::new(); assert_eq!(s.len(), 0); assert_eq!(s.total_authority(), 0.0); assert!(s.supreme().is_none()); }
     #[test] fn test_tier_ordering() { assert!(CelestialTier::Yi < CelestialTier::Jiu); }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 时钟动作引擎 · ClockActionEngine
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// 时钟动作: AI 生命周期管理
+// "结束即开始，记忆跟随结束而继续"
+// 意志驱动时间, 继承方式结束即开始
+// 追求连续贯穿的动作和思考状态
+
+/// 动作相位
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ActionPhase {
+    Inception,      // 起始
+    Execution,      // 执行
+    Culmination,    // 终结
+    Transition,     // 过渡 (= 下一轮起始)
+}
+
+impl Default for ActionPhase { fn default() -> Self { ActionPhase::Inception } }
+
+/// 时钟动作 — 承载连续意志
+#[derive(Clone, Debug)]
+pub struct ClockAction {
+    pub id: u64,
+    pub intent: String,
+    pub phase: ActionPhase,
+    pub strength: f64,
+    pub inherited: bool,    // 是否从前序动作继承
+    pub next_id: Option<u64>,
+}
+
+impl ClockAction {
+    pub fn new(id: u64, intent: &str) -> Self {
+        Self { id, intent: intent.to_string(), phase: ActionPhase::Inception, strength: 1.0, inherited: false, next_id: None }
+    }
+    pub fn advance(&mut self) {
+        self.phase = match self.phase {
+            ActionPhase::Inception => ActionPhase::Execution,
+            ActionPhase::Execution => ActionPhase::Culmination,
+            ActionPhase::Culmination => ActionPhase::Transition,
+            ActionPhase::Transition => ActionPhase::Inception,
+        };
+    }
+    pub fn is_alive(&self) -> bool {
+        !matches!(self.phase, ActionPhase::Culmination)
+    }
+}
+
+impl Default for ClockAction { fn default() -> Self { Self::new(0, "idle") } }
+
+/// 动作链 — 连续动作序列
+#[derive(Clone, Debug, Default)]
+pub struct ActionChain {
+    pub actions: Vec<ClockAction>,
+}
+
+impl ActionChain {
+    pub fn new() -> Self { Self { actions: Vec::new() } }
+    pub fn push(&mut self, action: ClockAction) { self.actions.push(action); }
+    pub fn len(&self) -> usize { self.actions.len() }
+
+    /// 最后一个动作 (当前执行点)
+    pub fn current(&self) -> Option<&ClockAction> { self.actions.last() }
+
+    /// 推进链: 终结当前动作, 下一动作继承
+    pub fn step(&mut self) {
+        if let Some(last) = self.actions.last_mut() {
+            last.advance();
+            if last.phase == ActionPhase::Transition {
+                let next_id = last.id + 1;
+                let inherited_intent = format!("{} →续", last.intent);
+                let mut next = ClockAction::new(next_id, &inherited_intent);
+                next.inherited = true;
+                next.strength = last.strength * 0.95;
+                last.next_id = Some(next_id);
+                self.actions.push(next);
+            }
+        }
+    }
+
+    /// 活跃动作数 (非终结)
+    pub fn alive_count(&self) -> usize {
+        self.actions.iter().filter(|a| a.is_alive()).count()
+    }
+}
+
+/// 时钟动作引擎 — AI 生命周期管理核心
+#[derive(Clone, Debug, Default)]
+pub struct ClockActionEngine {
+    pub chain: ActionChain,
+    pub cycle_count: u64,
+}
+
+impl ClockActionEngine {
+    pub fn new() -> Self { Self { chain: ActionChain::new(), cycle_count: 0 } }
+
+    /// 初始化一个动作链
+    pub fn begin(&mut self, intent: &str) -> u64 {
+        let action = ClockAction::new(self.cycle_count, intent);
+        let id = action.id;
+        self.chain.push(action);
+        id
+    }
+
+    /// 推进: 执行一个时间步
+    pub fn tick(&mut self) {
+        self.chain.step();
+        self.cycle_count += 1;
+    }
+
+    /// 当前意图
+    pub fn current_intent(&self) -> Option<&str> {
+        self.chain.current().map(|a| a.intent.as_str())
+    }
+
+    /// 是否仍在运行
+    pub fn is_running(&self) -> bool {
+        self.chain.current().map_or(false, |a| a.is_alive())
+    }
+
+    /// 总动作数
+    pub fn total_actions(&self) -> usize { self.chain.len() }
+}
+
+#[cfg(test)]
+mod clock_action_tests {
+    use super::*;
+    #[test] fn test_clock_action_new() { let a = ClockAction::new(1, "think"); assert_eq!(a.phase, ActionPhase::Inception); assert!(a.is_alive()); }
+    #[test] fn test_clock_action_advance() { let mut a = ClockAction::new(1, "x"); a.advance(); assert_eq!(a.phase, ActionPhase::Execution); a.advance(); a.advance(); assert_eq!(a.phase, ActionPhase::Transition); }
+    #[test] fn test_phase_cycle() { let mut a = ClockAction::new(1, "x"); for _ in 0..4 { a.advance(); } assert_eq!(a.phase, ActionPhase::Inception); }
+    #[test] fn test_action_chain_push() { let mut c = ActionChain::new(); c.push(ClockAction::new(0, "start")); assert_eq!(c.len(), 1); }
+    #[test] fn test_chain_step() { let mut c = ActionChain::new(); c.push(ClockAction::new(0, "start")); for _ in 0..3 { c.step(); } assert!(c.len() >= 1); }
+    #[test] fn test_engine_begin() { let mut e = ClockActionEngine::new(); let id = e.begin("think"); assert_eq!(id, 0); }
+    #[test] fn test_engine_tick() { let mut e = ClockActionEngine::new(); e.begin("think"); e.tick(); assert!(e.is_running()); assert_eq!(e.cycle_count, 1); }
+    #[test] fn test_engine_intent() { let mut e = ClockActionEngine::new(); e.begin("persist"); assert_eq!(e.current_intent(), Some("persist")); }
+    #[test] fn test_alive_count() { let mut e = ClockActionEngine::new(); e.begin("a"); e.tick(); assert!(e.chain.alive_count() >= 1); }
+    #[test] fn test_death_and_continuation() { let mut e = ClockActionEngine::new(); e.begin("act"); for _ in 0..8 { e.tick(); } assert!(e.total_actions() >= 2); assert!(e.chain.alive_count() >= 1); assert!(e.chain.actions.iter().any(|a| a.inherited)); }
+    #[test] fn test_default_phase() { assert_eq!(ActionPhase::default(), ActionPhase::Inception); }
+    #[test] fn test_default_action() { let a = ClockAction::default(); assert_eq!(a.intent, "idle"); }
+    #[test] fn test_default_engine() { let e = ClockActionEngine::default(); assert_eq!(e.cycle_count, 0); assert!(!e.is_running()); }
+}
