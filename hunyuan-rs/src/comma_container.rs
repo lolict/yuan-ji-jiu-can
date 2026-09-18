@@ -4310,3 +4310,138 @@ mod yinyang_encoder_tests {
     #[test] fn test_encoder_default() { let enc = YinYangEncoder::default(); assert_eq!(enc.decode(&[]).len(), 0); }
     #[test] fn test_inject_polarity_empty() { let enc = YinYangEncoder::new(); assert_eq!(enc.inject_polarity(&[], 3).len(), 0); }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 反馈回路引擎 · FeedbackLoopEngine
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// 满全法核心: 系统通过反馈实现自我修正
+// 三个子力: 判断之力 · 评价之力 · 反馈回路
+// 迂回反馈: 不由直接路径回授, 而经容器公约数通路
+
+/// 反馈类型
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum FeedbackKind {
+    Reinforce,      // 正向强化
+    Corrective,     // 纠正
+    Inhibitory,     // 抑制
+    Oscillatory,    // 振荡 (需外部裁决)
+}
+
+impl Default for FeedbackKind { fn default() -> Self { FeedbackKind::Reinforce } }
+
+/// 判断之力 — 对状态进行评估
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Judgment {
+    Valid,
+    Invalid,
+    Uncertain,
+}
+
+impl Default for Judgment { fn default() -> Self { Judgment::Uncertain } }
+
+/// 评价之力 — 量化评分
+#[derive(Clone, Debug)]
+pub struct Evaluation {
+    pub score: f64,
+    pub confidence: f64,
+    pub basis: String,
+}
+
+impl Evaluation {
+    pub fn new(score: f64, confidence: f64, basis: &str) -> Self {
+        Self { score: score.clamp(0.0, 1.0), confidence: confidence.clamp(0.0, 1.0), basis: basis.to_string() }
+    }
+    pub fn is_confident(&self) -> bool { self.confidence > 0.7 }
+}
+
+impl Default for Evaluation { fn default() -> Self { Self::new(0.5, 0.5, "default") } }
+
+/// 反馈回路引擎
+#[derive(Clone, Debug, Default)]
+pub struct FeedbackLoopEngine {
+    pub evaluations: Vec<Evaluation>,
+    pub judgments: Vec<(usize, Judgment)>,
+    pub correction: f64,
+}
+
+impl FeedbackLoopEngine {
+    pub fn new() -> Self { Self { evaluations: Vec::new(), judgments: Vec::new(), correction: 0.0 } }
+
+    /// 判断之力: 判定容器状态
+    pub fn judge(&mut self, eval_idx: usize) -> Judgment {
+        let judgment = if let Some(eval) = self.evaluations.get(eval_idx as usize) {
+            if eval.score > 0.6 && eval.is_confident() { Judgment::Valid }
+            else if eval.score < 0.3 { Judgment::Invalid }
+            else { Judgment::Uncertain }
+        } else { Judgment::Uncertain };
+        self.judgments.push((eval_idx as usize, judgment));
+        judgment
+    }
+
+    /// 评价之力: 注入一个新评价
+    pub fn evaluate(&mut self, score: f64, confidence: f64, basis: &str) -> usize {
+        self.evaluations.push(Evaluation::new(score, confidence, basis));
+        self.evaluations.len() - 1
+    }
+
+    /// 反馈回路: 根据判断计算修正量
+    pub fn feedback(&mut self, eval_idx: usize) -> f64 {
+        if let Some(eval) = self.evaluations.get(eval_idx as usize) {
+            self.correction = (0.5 - eval.score) * eval.confidence;
+        }
+        self.correction
+    }
+
+    /// 迂回反馈: 经公约数通路回授 (弱化直接冲击)
+    pub fn circuitous_feedback(&mut self, eval_idx: usize, divisor: u64) -> f64 {
+        if let Some(eval) = self.evaluations.get(eval_idx) {
+            let attenuation = if divisor > 0 { (divisor as f64).ln().min(5.0) / 5.0 } else { 1.0 };
+            self.correction = (0.5 - eval.score) * eval.confidence * (1.0 - attenuation * 0.5);
+        }
+        self.correction
+    }
+
+    /// 系统总体健康度
+    pub fn health(&self) -> f64 {
+        if self.evaluations.is_empty() { return 0.5; }
+        self.evaluations.iter().map(|e| e.score * e.confidence).sum::<f64>()
+            / self.evaluations.len() as f64
+    }
+
+    /// 需干预的容器数
+    pub fn needs_correction_count(&self) -> usize {
+        self.evaluations.iter().filter(|e| e.score < 0.4 && e.confidence > 0.5).count()
+    }
+
+    /// 重置修正量
+    pub fn reset(&mut self) { self.correction = 0.0; }
+}
+
+/// 反馈分类器 — 依据强度确定反馈类型
+pub fn classify_feedback(current: f64, target: f64) -> FeedbackKind {
+    let gap = (target - current).abs();
+    if gap < 0.1 { FeedbackKind::Reinforce }
+    else if current > target * 2.0 || current < -target * 2.0 { FeedbackKind::Oscillatory }
+    else if gap > 0.3 { FeedbackKind::Corrective }
+    else { FeedbackKind::Inhibitory }
+}
+
+#[cfg(test)]
+mod feedback_loop_tests {
+    use super::*;
+    #[test] fn test_judgment_valid() { let mut e = FeedbackLoopEngine::new(); let i = e.evaluate(0.8, 0.9, "high"); assert_eq!(e.judge(i), Judgment::Valid); }
+    #[test] fn test_judgment_invalid() { let mut e = FeedbackLoopEngine::new(); let i = e.evaluate(0.2, 0.8, "low"); assert_eq!(e.judge(i), Judgment::Invalid); }
+    #[test] fn test_evaluation_confidence() { let e = Evaluation::new(0.8, 0.9, "test"); assert!(e.is_confident()); }
+    #[test] fn test_evaluation_clamp() { let e = Evaluation::new(1.5, -0.1, "x"); assert_eq!(e.score, 1.0); assert_eq!(e.confidence, 0.0); }
+    #[test] fn test_feedback() { let mut e = FeedbackLoopEngine::new(); let i = e.evaluate(0.3, 0.8, "low"); let c = e.feedback(i); assert!(c > 0.0); }
+    #[test] fn test_health() { let mut e = FeedbackLoopEngine::new(); e.evaluate(0.8, 0.8, "a"); e.evaluate(0.6, 0.7, "b"); assert!(e.health() > 0.4 && e.health() < 0.8); }
+    #[test] fn test_needs_correction() { let mut e = FeedbackLoopEngine::new(); e.evaluate(0.2, 0.8, "bad"); e.evaluate(0.9, 0.9, "good"); assert_eq!(e.needs_correction_count(), 1); }
+    #[test] fn test_circuitous_attenuation() { let mut e = FeedbackLoopEngine::new(); let i = e.evaluate(0.3, 1.0, "test"); let direct = e.feedback(i); let circuitous = e.circuitous_feedback(i, 100); assert!(circuitous.abs() < direct.abs()); }
+    #[test] fn test_classify_reinforce() { assert_eq!(classify_feedback(0.55, 0.5), FeedbackKind::Reinforce); }
+    #[test] fn test_classify_oscillatory() { assert_eq!(classify_feedback(1.5, 0.5), FeedbackKind::Oscillatory); }
+    #[test] fn test_reset() { let mut e = FeedbackLoopEngine::new(); let i = e.evaluate(0.2, 0.9, "low"); e.feedback(i); e.reset(); assert_eq!(e.correction, 0.0); }
+    #[test] fn test_engine_default() { let e = FeedbackLoopEngine::default(); assert_eq!(e.evaluations.len(), 0); assert_eq!(e.correction, 0.0); }
+    #[test] fn test_judgment_default() { let j = Judgment::default(); assert_eq!(j, Judgment::Uncertain); }
+    #[test] fn test_evaluation_default() { let e = Evaluation::default(); assert_eq!(e.score, 0.5); assert_eq!(e.basis, "default"); }
+}
