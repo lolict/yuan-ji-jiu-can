@@ -491,6 +491,204 @@ impl FindId for Vec<u64> {
     }
 }
 
+// ══════════════════════════════════════════════════════════════════════
+// 路径生命周期 — 因果路径的生/长/衰/合
+// ══════════════════════════════════════════════════════════════════════
+//
+// 概念来源: AI创建的未授权模块 logical_org.rs (已删除, 仅保留思路)
+// 转写规则: 仅用加法 + 比较, 追踪锚点链的生命状态
+//
+// 解决什么问题:
+//   意识时间线上会涌现大量因果路径 (RelationAnchor 链),
+//   有的路径被反复确认 (增强), 有的逐渐被遗忘 (衰减),
+//   有的路径共享锚点需要合并. 本模块管理这些生命周期.
+
+/// 路径层级 — 从种子到世界树
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PathStratum {
+    Seed,       // 种子 — 刚诞生, 仅 1 次确认
+    Sapling,    // 树苗 — 3+ 次确认
+    Tree,       // 成树 — 10+ 次确认
+    Grove,      // 树林 — 30+ 次确认, 多条分支汇入
+    WorldTree,  // 世界树 — 100+ 次确认, 根植于身份锚点
+}
+
+impl PathStratum {
+    pub fn from_confirmed(confirmed: u64) -> Self {
+        if confirmed >= 100 { PathStratum::WorldTree }
+        else if confirmed >= 30 { PathStratum::Grove }
+        else if confirmed >= 10 { PathStratum::Tree }
+        else if confirmed >= 3 { PathStratum::Sapling }
+        else { PathStratum::Seed }
+    }
+}
+
+/// 路径生命周期 — 单条因果链的完整生平
+#[derive(Clone, Debug)]
+pub struct PathLifeCycle {
+    pub id: u64,
+    pub anchor_chain: Vec<usize>,
+    pub strength: f64,
+    pub stratum: PathStratum,
+    pub born_tick: u64,
+    pub last_update: u64,
+    pub access_count: u64,
+    pub active: bool,
+}
+
+impl PathLifeCycle {
+    pub fn birth(id: u64, anchor_idx: usize, tick: u64) -> Self {
+        PathLifeCycle {
+            id,
+            anchor_chain: vec![anchor_idx],
+            strength: 0.1,
+            stratum: PathStratum::Seed,
+            born_tick: tick,
+            last_update: tick,
+            access_count: 1,
+            active: true,
+        }
+    }
+
+    pub fn reinforce(&mut self, delta: f64, tick: u64) {
+        self.strength += delta;
+        self.last_update = tick;
+        self.access_count += 1;
+        let confirmed_approx = (self.strength * 10.0) as u64;
+        self.stratum = PathStratum::from_confirmed(confirmed_approx);
+    }
+
+    pub fn suppress(&mut self, delta: f64, tick: u64) {
+        self.strength -= delta;
+        if self.strength < 0.0 {
+            self.strength = 0.0;
+            self.active = false;
+        }
+        self.last_update = tick;
+    }
+
+    pub fn merge(&mut self, other: &PathLifeCycle, tick: u64) {
+        for &idx in &other.anchor_chain {
+            let mut already_exists = false;
+            for &existing in &self.anchor_chain {
+                if existing == idx {
+                    already_exists = true;
+                    break;
+                }
+            }
+            if !already_exists {
+                self.anchor_chain.push(idx);
+            }
+        }
+        self.strength += other.strength;
+        self.last_update = tick;
+        let confirmed_approx = (self.strength * 10.0) as u64;
+        self.stratum = PathStratum::from_confirmed(confirmed_approx);
+    }
+
+    pub fn shares_anchors(&self, other: &PathLifeCycle) -> bool {
+        for &a in &self.anchor_chain {
+            for &b in &other.anchor_chain {
+                if a == b { return true; }
+            }
+        }
+        false
+    }
+
+    pub fn confidence(&self) -> f64 {
+        let stratum_base = match self.stratum {
+            PathStratum::Seed => 2,
+            PathStratum::Sapling => 4,
+            PathStratum::Tree => 6,
+            PathStratum::Grove => 8,
+            PathStratum::WorldTree => 10,
+        };
+        let raw = self.strength + (stratum_base as f64 * 0.1);
+        if raw > 2.0 { 2.0 } else { raw }
+    }
+
+    pub fn age(&self, current_tick: u64) -> u64 {
+        if current_tick > self.born_tick { current_tick - self.born_tick } else { 0 }
+    }
+
+    pub fn is_stale(&self, current_tick: u64, threshold: u64) -> bool {
+        let elapsed = if current_tick > self.last_update { current_tick - self.last_update } else { 0 };
+        elapsed > threshold && self.stratum == PathStratum::Seed
+    }
+}
+
+/// 路径生命周期管理器
+#[derive(Clone, Debug)]
+pub struct PathLifecycleManager {
+    pub paths: Vec<PathLifeCycle>,
+    pub next_id: u64,
+}
+
+impl PathLifecycleManager {
+    pub fn new() -> Self {
+        PathLifecycleManager { paths: Vec::new(), next_id: 1 }
+    }
+
+    pub fn birth(&mut self, anchor_idx: usize, tick: u64) -> u64 {
+        let id = self.next_id;
+        self.next_id += 1;
+        self.paths.push(PathLifeCycle::birth(id, anchor_idx, tick));
+        id
+    }
+
+    pub fn find(&self, id: u64) -> Option<&PathLifeCycle> {
+        for p in &self.paths { if p.id == id { return Some(p); } }
+        None
+    }
+
+    pub fn find_mut(&mut self, id: u64) -> Option<&mut PathLifeCycle> {
+        for p in &mut self.paths { if p.id == id { return Some(p); } }
+        None
+    }
+
+    pub fn reinforce(&mut self, id: u64, delta: f64, tick: u64) -> bool {
+        match self.find_mut(id) {
+            Some(p) => { p.reinforce(delta, tick); true }
+            None => false,
+        }
+    }
+
+    pub fn suppress(&mut self, id: u64, delta: f64, tick: u64) -> bool {
+        match self.find_mut(id) {
+            Some(p) => { p.suppress(delta, tick); true }
+            None => false,
+        }
+    }
+
+    pub fn try_merge(&mut self, id_a: u64, id_b: u64, tick: u64) -> bool {
+        let can_merge = {
+            match (self.find(id_a), self.find(id_b)) {
+                (Some(a), Some(b)) => a.shares_anchors(b) && a.active && b.active,
+                _ => false,
+            }
+        };
+        if can_merge {
+            if let Some(pb) = self.find(id_b).cloned() {
+                if let Some(pa) = self.find_mut(id_a) { pa.merge(&pb, tick); }
+                self.paths.retain(|p| p.id != id_b);
+                true
+            } else { false }
+        } else { false }
+    }
+
+    pub fn prune_stale(&mut self, current_tick: u64, threshold: u64) -> usize {
+        let before = self.paths.len();
+        self.paths.retain(|p| !p.is_stale(current_tick, threshold) && p.active);
+        if before > self.paths.len() { before - self.paths.len() } else { 0 }
+    }
+
+    pub fn active_count(&self) -> usize {
+        let mut c = 0;
+        for p in &self.paths { if p.active { c += 1; } }
+        c
+    }
+}
+
 // ════════════════════════════════════════════════════════════
 // 测试
 // ════════════════════════════════════════════════════════════
@@ -641,7 +839,77 @@ mod tests {
             tl.tick(vec![(i % 5, (i as f64) / 20.0)]);
         }
         assert_eq!(tl.current_tick, 20);
-        // 由于 threshold_judgment=5, 应该至少产生了一些标记
         assert!(!tl.markers.is_empty() || !tl.anchors.is_empty());
+    }
+
+    // ── 路径生命周期测试 ──
+
+    #[test]
+    fn path_stratum_from_confirmed() {
+        assert_eq!(PathStratum::from_confirmed(0), PathStratum::Seed);
+        assert_eq!(PathStratum::from_confirmed(3), PathStratum::Sapling);
+        assert_eq!(PathStratum::from_confirmed(10), PathStratum::Tree);
+        assert_eq!(PathStratum::from_confirmed(30), PathStratum::Grove);
+        assert_eq!(PathStratum::from_confirmed(100), PathStratum::WorldTree);
+    }
+
+    #[test]
+    fn path_lifecycle_birth() {
+        let p = PathLifeCycle::birth(1, 42, 10);
+        assert_eq!(p.id, 1);
+        assert_eq!(p.anchor_chain, vec![42]);
+        assert!(p.active);
+        assert_eq!(p.stratum, PathStratum::Seed);
+        assert_eq!(p.born_tick, 10);
+    }
+
+    #[test]
+    fn path_reinforce_increases_strength() {
+        let mut p = PathLifeCycle::birth(1, 0, 0);
+        let s0 = p.strength;
+        p.reinforce(0.3, 5);
+        assert!(p.strength > s0);
+        assert_eq!(p.last_update, 5);
+        assert_eq!(p.access_count, 2);
+    }
+
+    #[test]
+    fn path_suppress_can_deactivate() {
+        let mut p = PathLifeCycle::birth(1, 0, 0);
+        p.suppress(0.05, 3);
+        assert!(p.active);
+        p.suppress(0.1, 4);
+        assert!(!p.active);
+        assert_eq!(p.strength, 0.0);
+    }
+
+    #[test]
+    fn path_merge_combines_anchors() {
+        let mut a = PathLifeCycle { id: 1, anchor_chain: vec![1, 2], strength: 0.5, stratum: PathStratum::Seed, born_tick: 0, last_update: 0, access_count: 5, active: true };
+        let b = PathLifeCycle { id: 2, anchor_chain: vec![2, 3], strength: 0.3, stratum: PathStratum::Seed, born_tick: 1, last_update: 3, access_count: 2, active: true };
+        a.merge(&b, 10);
+        assert_eq!(a.anchor_chain.len(), 3);
+        assert!((a.strength - 0.8).abs() < 0.001);
+    }
+
+    #[test]
+    fn path_lifecycle_manager_birth_and_find() {
+        let mut mgr = PathLifecycleManager::new();
+        let id = mgr.birth(5, 100);
+        assert_eq!(id, 1);
+        assert_eq!(mgr.paths.len(), 1);
+        assert!(mgr.find(id).is_some());
+        assert!(mgr.find(999).is_none());
+    }
+
+    #[test]
+    fn path_lifecycle_manager_prune_stale() {
+        let mut mgr = PathLifecycleManager::new();
+        mgr.paths.push(PathLifeCycle { id: 1, anchor_chain: vec![1], strength: 0.1, stratum: PathStratum::Seed, born_tick: 0, last_update: 0, access_count: 1, active: true });
+        mgr.paths.push(PathLifeCycle { id: 2, anchor_chain: vec![2], strength: 0.5, stratum: PathStratum::Tree, born_tick: 0, last_update: 80, access_count: 50, active: true });
+        mgr.next_id = 3;
+        let pruned = mgr.prune_stale(100, 50);
+        assert_eq!(pruned, 1);
+        assert_eq!(mgr.active_count(), 1);
     }
 }

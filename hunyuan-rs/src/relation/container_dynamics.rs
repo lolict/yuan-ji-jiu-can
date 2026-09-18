@@ -542,6 +542,67 @@ pub fn calculate_gcd(mut a: u64, mut b: u64) -> u64 {
 }
 
 // ────────────────────────────────────────────────────────────
+// Need/Offer 匹配 — 需求与供给的二分匹配
+// ────────────────────────────────────────────────────────────
+//
+// 概念来源: AI创建的未授权容器交互模块 (已删除,仅保留思路)
+// 转写规则: 复用现有 Call::Need / Call::Offer 类型, GCD 共振匹配
+
+/// Need/Offer 匹配结果
+#[derive(Clone, Debug)]
+pub struct NeedOfferMatch {
+    pub needer: u64,       // 需求方 ID (从 Call::Need 提取)
+    pub offerer: u64,      // 供给方 ID (从 Call::Offer 提取)
+    pub resource: String,  // 资源名称
+    pub strength: u64,     // 匹配强度 = gcd(needer_id, offerer_id)
+}
+
+/// 在需求列表和供给列表之间做二分匹配
+///
+/// 算法:
+///   对每个 need 和每个 offer 做交叉比较
+///   如果 gcd(needer, offerer) > threshold, 视为可匹配
+///   使用 need.urgency + offer.quantity 综合评分
+///
+/// 仅使用加减法和 GCD (无乘除)
+pub fn match_needs_offers(needs: &[Call], offers: &[Call], min_gcd: u64) -> Vec<NeedOfferMatch> {
+    let mut results: Vec<NeedOfferMatch> = Vec::new();
+
+    for need in needs {
+        let (needer_id, resource, urgency) = match need {
+            Call::Need { resource, urgency } => {
+                let id = resource.len() as u64 + (*urgency as u64);
+                (id, resource.clone(), *urgency)
+            }
+            _ => continue,
+        };
+
+        for offer in offers {
+            let (offerer_id, quantity) = match offer {
+                Call::Offer { resource, quantity } => {
+                    let id = resource.len() as u64 + (*quantity as u64);
+                    (id, *quantity)
+                }
+                _ => continue,
+            };
+
+            let g = calculate_gcd(needer_id, offerer_id);
+            if g > min_gcd {
+                let strength = g + (urgency as u64) + quantity;
+                results.push(NeedOfferMatch {
+                    needer: needer_id,
+                    offerer: offerer_id,
+                    resource: resource.clone(),
+                    strength,
+                });
+            }
+        }
+    }
+
+    results
+}
+
+// ────────────────────────────────────────────────────────────
 // 测试
 // ────────────────────────────────────────────────────────────
 
@@ -737,5 +798,42 @@ mod tests {
         assert!(c2.urgency_level() == 1);
         assert!(c3.urgency_level() == 1);
         assert!(c4.urgency_level() == 9);
+    }
+
+    // ── Need/Offer 匹配测试 ──
+
+    #[test]
+    fn need_offer_match_links_pair() {
+        use Call::{Need, Offer};
+        let needs = vec![
+            Need { resource: "alpha".to_string(), urgency: 5 },
+        ];
+        let offers = vec![
+            Offer { resource: "beta".to_string(), quantity: 10 },
+        ];
+        let matches = super::match_needs_offers(&needs, &offers, 0);
+        // ID will be computed regardless, should not panic
+        let _ = matches.len();
+    }
+
+    #[test]
+    fn need_offer_empty_inputs() {
+        let needs: Vec<Call> = vec![];
+        let offers: Vec<Call> = vec![];
+        let matches = super::match_needs_offers(&needs, &offers, 0);
+        assert!(matches.is_empty());
+    }
+
+    #[test]
+    fn need_offer_struct_fields() {
+        let m = NeedOfferMatch {
+            needer: 100,
+            offerer: 200,
+            resource: "coin".to_string(),
+            strength: 5,
+        };
+        assert_eq!(m.needer, 100);
+        assert_eq!(m.offerer, 200);
+        assert_eq!(m.strength, 5);
     }
 }

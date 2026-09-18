@@ -5,4 +5,5 @@ pub use crate::couple;
 pub use crate::pleasure;
 pub use crate::rel;
 pub use crate::relational;
+pub use crate::resonance_discovery;
 pub use crate::spousal_resonance;

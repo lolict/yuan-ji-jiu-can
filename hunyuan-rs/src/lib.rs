@@ -244,9 +244,7 @@ pub mod license_hub;
 pub mod rel;
 
 // ── v0.1 夫妻身份容器系统 (六锚点 · 维度递增 · 纠缠态) ──
-// 文件暂缺,需要时从 git 历史恢复
-// #[path = "core/spousal_identity.rs"]
-// pub mod spousal_identity;
+// 模块已移除 (preload.rs 身份锚点替代)
 
 // ── v0.12 角度子系统 (384° 满圆制式) ──
 #[path = "relation/angle.rs"]
@@ -322,6 +320,7 @@ pub mod consciousness_timeline;
 pub use consciousness_timeline::{
     ConsciousnessTimeline, TimelineReport, CallStrategy,
     DifferenceMarker, DiffKind, RelationAnchor, Evaluation, EvalLevel,
+    PathLifeCycle, PathStratum, PathLifecycleManager,
 };
 
 #[path = "core/memory.rs"]
@@ -353,6 +352,12 @@ pub mod coord_tensor;
 // ── v0.17 脉息系统 · 心跳节律 × 行走流速 ──
 #[path = "temporal/pulse.rs"]
 pub mod pulse;
+
+// ── v0.42 相位时钟 · 三档变频 · 热标量 ──
+#[path = "temporal/phase_clock.rs"]
+pub mod phase_clock;
+#[path = "temporal/hot_embed.rs"]
+pub mod hot_embed;
 
 // ── v0.10 自举编译器 v2 (Ouroboros) ──
 #[path = "core/l0_self_hosting.rs"]
@@ -559,6 +564,17 @@ pub use task_accumulate::{
     IngestResult, MatchResult,
 };
 
+// ── v0.46 逻辑组织引擎 — (已整合至 temporal/consciousness_timeline.rs 路径生命周期) ──
+
+// ── v0.47 容器交互协议引擎 — (已整合至 relation/container_dynamics.rs Need/Offer) ──
+// ── v0.48 容器字体统一引擎 — 容器=字体=时间 三元统一 ──
+#[path = "core/container_font_unify.rs"]
+pub mod container_font_unify;
+pub use container_font_unify::{
+    FontUnifyEngine, ContainerGlyphGeometry, SemanticKind, FontStats,
+    hanzi_to_syllable_coord, ascii_to_syllable_coord, string_to_syllable_coords,
+};
+
 // ── 对外 re-export ──
 
 // v0.4 基础层
@@ -713,11 +729,19 @@ pub use elf_emitter::{
 // ── v0.39 容器关系动力学 · 呼唤编程 · 反馈环路 (ContainerDynamics) ──
 #[path = "relation/container_dynamics.rs"]
 pub mod container_dynamics;
+
+#[path = "relation/resonance_discovery.rs"]
+pub mod resonance_discovery;
 pub use container_dynamics::{
     Vitality, Observance, Gaze, Call, CallResponse,
     FeedbackLoop, FeedbackKind, FeedbackResult,
     ContainerRelation, JudgmentVerdict, EvaluationScore, EvaluationLevel,
     DynamicsEngine, DynamicsReport, calculate_gcd,
+    NeedOfferMatch,
+};
+pub use resonance_discovery::{
+    gcd_additive, is_resonant, find_resonant, resonance_strength,
+    cluster_by_gcd, largest_proper_divisor,
 };
 
 // ── v0.40 八流统一意识路由器 · 分别器设计 (ConsciousnessRouter) ──
@@ -746,6 +770,23 @@ pub use smrl_cell::{
     SmrlCell, CellOwner, CellTable,
     coord_to_cell, coord_to_cell_with_owner,
     polarity,
+};
+
+// ── v0.49 SMRL 几何裁判引擎 — 空间几何范畴·三元见证·关系归属 ──
+#[path = "core/smrl_geometer.rs"]
+pub mod smrl_geometer;
+pub use smrl_geometer::{
+    GeoJudgeEngine, GeoCoord, GeoCategory, GeoVerdict,
+    WitnessTriangle, WitnessDecision, GeoReport,
+};
+
+// ── v0.50 呼唤编程引擎 — 呼唤信号·公约数调用·反馈闭环·迂回感知·观察者角色 ──
+#[path = "core/call_programming.rs"]
+pub mod call_programming;
+pub use call_programming::{
+    CallProgramEngine, CallSignal, CallPayload, FeedbackSignal,
+    CallSession, ObservationRole, PerceptionDelta, Perception, CallReport,
+    CallFeedbackKind,
 };
 
 // ── v0.43 自举编译器 · YinYang→SmrlCellOp (BootstrapCompiler) ──
