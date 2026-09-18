@@ -3401,3 +3401,441 @@ mod new_subsystem_tests {
         assert_eq!(r.flows_of_kind(FlowKind::Resonance).len(), 2);
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 统计文档聚合浏览器 · 聚类引擎 · 连接包裹树
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[derive(Clone, Debug)]
+pub struct ClusterNode {
+    pub id: u64,
+    pub centroid: (f64, f64, f64),
+    pub members: Vec<(u8, u8, u8)>,
+    pub radius: f64,
+    pub density: f64,
+}
+
+impl ClusterNode {
+    pub fn new(id: u64, centroid: (f64, f64, f64)) -> Self {
+        Self { id, centroid, members: Vec::new(), radius: 0.0, density: 0.0 }
+    }
+    pub fn add_member(&mut self, addr: (u8, u8, u8), dist: f64) {
+        self.members.push(addr);
+        if dist > self.radius { self.radius = dist; }
+        if self.radius > 0.0 {
+            let vol = (4.0 / 3.0) * std::f64::consts::PI * self.radius.powi(3);
+            self.density = self.members.len() as f64 / vol;
+        }
+    }
+}
+
+pub struct ClusteringEngine {
+    pub clusters: Vec<ClusterNode>,
+    pub weight_consonant: f64,
+    pub weight_vowel: f64,
+    pub weight_tone: f64,
+    pub threshold: f64,
+    next_id: u64,
+}
+
+impl ClusteringEngine {
+    pub fn new() -> Self {
+        Self { clusters: Vec::new(), weight_consonant: 3.0, weight_vowel: 2.0, weight_tone: 1.0, threshold: 50.0, next_id: 0 }
+    }
+    pub fn with_weights(wc: f64, wv: f64, wt: f64) -> Self {
+        Self { clusters: Vec::new(), weight_consonant: wc, weight_vowel: wv, weight_tone: wt, threshold: 50.0, next_id: 0 }
+    }
+    pub fn distance(&self, a: (u8, u8, u8), b: (u8, u8, u8)) -> f64 {
+        let dc = (a.0 as f64 - b.0 as f64) * self.weight_consonant;
+        let dv = (a.1 as f64 - b.1 as f64) * self.weight_vowel;
+        let dt = (a.2 as f64 - b.2 as f64) * self.weight_tone;
+        (dc * dc + dv * dv + dt * dt).sqrt()
+    }
+    fn alloc_id(&mut self) -> u64 { let id = self.next_id; self.next_id += 1; id }
+
+    pub fn cluster(&mut self, addresses: &[(u8, u8, u8)]) -> &[ClusterNode] {
+        if addresses.is_empty() { return &self.clusters; }
+        let mut tc: Vec<ClusterNode> = addresses.iter()
+            .map(|&(c, v, t)| ClusterNode::new(self.alloc_id(), (c as f64, v as f64, t as f64)))
+            .collect();
+        for (i, &(c, v, t)) in addresses.iter().enumerate() { tc[i].add_member((c, v, t), 0.0); }
+        loop {
+            let mut min_dist = f64::MAX;
+            let mut merge_pair: Option<(usize, usize)> = None;
+            for i in 0..tc.len() {
+                for j in (i + 1)..tc.len() {
+                    let ci = (tc[i].centroid.0 as u8, tc[i].centroid.1 as u8, tc[i].centroid.2 as u8);
+                    let cj = (tc[j].centroid.0 as u8, tc[j].centroid.1 as u8, tc[j].centroid.2 as u8);
+                    let d = self.distance(ci, cj);
+                    if d < min_dist { min_dist = d; merge_pair = Some((i, j)); }
+                }
+            }
+            if min_dist > self.threshold || tc.len() <= 1 { break; }
+            if let Some((i, j)) = merge_pair {
+                let mut merged = tc[i].members.clone();
+                merged.extend_from_slice(&tc[j].members);
+                let n = merged.len() as f64;
+                let sum = merged.iter().fold((0.0, 0.0, 0.0), |acc, m| (acc.0 + m.0 as f64, acc.1 + m.1 as f64, acc.2 + m.2 as f64));
+                let centroid = (sum.0 / n, sum.1 / n, sum.2 / n);
+                let mut new_cluster = ClusterNode::new(tc[i].id, centroid);
+                for &m in &merged {
+                    let dx = m.0 as f64 - centroid.0; let dy = m.1 as f64 - centroid.1; let dz = m.2 as f64 - centroid.2;
+                    new_cluster.add_member(m, (dx * dx + dy * dy + dz * dz).sqrt());
+                }
+                let (ri, rk) = if i > j { (i, j) } else { (j, i) };
+                tc.remove(ri); tc.remove(rk); tc.push(new_cluster);
+            } else { break; }
+        }
+        self.clusters = tc;
+        &self.clusters
+    }
+
+    pub fn find_cluster(&self, addr: (u8, u8, u8)) -> Option<&ClusterNode> {
+        self.clusters.iter().min_by(|a, b| {
+            let da = self.distance(addr, (a.centroid.0 as u8, a.centroid.1 as u8, a.centroid.2 as u8));
+            let db = self.distance(addr, (b.centroid.0 as u8, b.centroid.1 as u8, b.centroid.2 as u8));
+            da.partial_cmp(&db).unwrap_or(std::cmp::Ordering::Equal)
+        })
+    }
+
+    pub fn stats(&self) -> ClusterStats {
+        let total: usize = self.clusters.iter().map(|c| c.members.len()).sum();
+        let avg_r = if self.clusters.is_empty() { 0.0 } else { self.clusters.iter().map(|c| c.radius).sum::<f64>() / self.clusters.len() as f64 };
+        let max_d = self.clusters.iter().map(|c| c.density).fold(0.0, f64::max);
+        ClusterStats { cluster_count: self.clusters.len(), total_members: total, avg_radius: avg_r, max_density: max_d }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct ClusterStats {
+    pub cluster_count: usize,
+    pub total_members: usize,
+    pub avg_radius: f64,
+    pub max_density: f64,
+}
+
+#[derive(Clone, Debug)]
+pub struct WrappingNode {
+    pub name: String,
+    pub cluster_id: Option<u64>,
+    pub children: Vec<WrappingNode>,
+    pub depth: u32,
+    pub weight: f64,
+}
+
+impl WrappingNode {
+    pub fn new(name: &str, cluster_id: Option<u64>) -> Self {
+        Self { name: name.to_string(), cluster_id, children: Vec::new(), depth: 0, weight: 1.0 }
+    }
+    pub fn add_child(&mut self, mut child: WrappingNode) { child.depth = self.depth + 1; self.children.push(child); }
+    pub fn leaf_count(&self) -> usize {
+        if self.children.is_empty() { return 1; }
+        self.children.iter().map(|c| c.leaf_count()).sum()
+    }
+    pub fn sort_by_weight(&mut self) {
+        self.children.sort_by(|a, b| b.weight.partial_cmp(&a.weight).unwrap_or(std::cmp::Ordering::Equal));
+        for c in &mut self.children { c.sort_by_weight(); }
+    }
+}
+
+pub struct ConnectionWrappingTree { pub root: WrappingNode }
+
+impl ConnectionWrappingTree {
+    pub fn new() -> Self { Self { root: WrappingNode::new("根", None) } }
+    pub fn from_clusters(clusters: &[ClusterNode]) -> Self {
+        let mut tree = Self::new();
+        let mut sorted: Vec<&ClusterNode> = clusters.iter().collect();
+        sorted.sort_by(|a, b| b.density.partial_cmp(&a.density).unwrap_or(std::cmp::Ordering::Equal));
+        for (i, c) in sorted.iter().enumerate() {
+            let mut node = WrappingNode::new(&format!("包裹_{}", i), Some(c.id));
+            node.weight = c.density * c.members.len() as f64;
+            tree.root.add_child(node);
+        }
+        tree.root.sort_by_weight();
+        tree
+    }
+    pub fn display(&self) -> String {
+        let mut out = String::new();
+        Self::display_node(&self.root, &mut out, "");
+        out
+    }
+    fn display_node(node: &WrappingNode, out: &mut String, prefix: &str) {
+        let id_str = node.cluster_id.map(|id| format!("[聚类{}]", id)).unwrap_or_default();
+        out.push_str(&format!("{}{} {} (权重:{:.4})\n", prefix, node.name, id_str, node.weight));
+        for (i, child) in node.children.iter().enumerate() {
+            let is_last = i == node.children.len() - 1;
+            let branch = if is_last { "└── " } else { "├── " };
+            let new_prefix = if is_last { format!("{}    ", prefix) } else { format!("{}│   ", prefix) };
+            out.push_str(&format!("{}{}", prefix, branch));
+            Self::display_node(child, out, &new_prefix);
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct SituationalDocument { pub id: u64, pub name: String, pub addresses: Vec<(u8, u8, u8)>, pub tags: Vec<String> }
+
+#[derive(Clone, Debug)]
+pub struct SituationalView { pub address: (u8, u8, u8), pub cluster_id: u64, pub cluster_centroid: (f64, f64, f64), pub cluster_radius: f64, pub cluster_density: f64 }
+
+pub struct SituationalAggregationBrowser { pub engine: ClusteringEngine, pub documents: Vec<SituationalDocument>, pub wrapping_tree: Option<ConnectionWrappingTree> }
+
+impl SituationalAggregationBrowser {
+    pub fn new() -> Self { Self { engine: ClusteringEngine::new(), documents: Vec::new(), wrapping_tree: None } }
+    pub fn add_document(&mut self, name: &str, cr: (u8, u8), vr: (u8, u8), tr: (u8, u8)) -> u64 {
+        let id = self.documents.len() as u64;
+        let mut addresses = Vec::new();
+        for c in cr.0..=cr.1.min(47) { for v in vr.0..=vr.1.min(65) { for t in tr.0..=tr.1.min(99) { addresses.push((c, v, t)); } } }
+        self.documents.push(SituationalDocument { id, name: name.to_string(), addresses, tags: Vec::new() });
+        id
+    }
+    pub fn tag_document(&mut self, id: u64, tag: &str) { if let Some(d) = self.documents.iter_mut().find(|d| d.id == id) { d.tags.push(tag.to_string()); } }
+    pub fn build(&mut self) {
+        let all: Vec<(u8, u8, u8)> = self.documents.iter().flat_map(|d| d.addresses.clone()).collect();
+        self.engine.cluster(&all);
+        self.wrapping_tree = Some(ConnectionWrappingTree::from_clusters(&self.engine.clusters));
+    }
+    pub fn situational_query(&self, addr: (u8, u8, u8)) -> Option<SituationalView> {
+        let c = self.engine.find_cluster(addr)?;
+        Some(SituationalView { address: addr, cluster_id: c.id, cluster_centroid: c.centroid, cluster_radius: c.radius, cluster_density: c.density })
+    }
+    pub fn filter_by_consonant(&self, c_start: u8, c_end: u8) -> Vec<&SituationalDocument> {
+        self.documents.iter().filter(|d| d.addresses.iter().any(|a| a.0 >= c_start && a.0 <= c_end)).collect()
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 八流统一层 · 意识路由 · 容器交互
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum FlowKind { Preload, Interpret, Sovereignty, Property, Resonance, Feedback, Invocation, CommonDivisor }
+
+impl FlowKind {
+    pub fn layer(&self) -> u8 { match self { FlowKind::Preload => 1, FlowKind::Interpret => 2, FlowKind::Sovereignty => 3, FlowKind::Property => 4, FlowKind::Resonance => 5, FlowKind::Feedback => 6, FlowKind::Invocation => 7, FlowKind::CommonDivisor => 8 } }
+    pub fn is_dynamic(&self) -> bool { matches!(self, FlowKind::Resonance | FlowKind::Feedback | FlowKind::Invocation) }
+    pub fn priority(&self) -> u8 { match self { FlowKind::Preload => 8, FlowKind::Sovereignty => 7, FlowKind::Interpret => 6, FlowKind::Property => 5, FlowKind::CommonDivisor => 4, FlowKind::Resonance => 3, FlowKind::Feedback => 2, FlowKind::Invocation => 1 } }
+    pub fn all() -> [FlowKind; 8] { [FlowKind::Preload, FlowKind::Interpret, FlowKind::Sovereignty, FlowKind::Property, FlowKind::Resonance, FlowKind::Feedback, FlowKind::Invocation, FlowKind::CommonDivisor] }
+}
+
+#[derive(Clone, Debug)]
+pub struct FlowState { pub kind: FlowKind, pub intensity: f64, pub address: Option<(u8, u8, u8)>, pub completed: bool }
+
+impl FlowState {
+    pub fn new(kind: FlowKind) -> Self { Self { kind, intensity: 0.5, address: None, completed: false } }
+    pub fn advance(&mut self, delta: f64) { self.intensity = (self.intensity + delta).clamp(0.0, 1.0); }
+    pub fn complete(&mut self) { self.completed = true; self.intensity = 1.0; }
+}
+
+#[derive(Clone, Debug)]
+pub enum ContainerInteraction { Absorb { target: String, source: String }, Resonate { a: String, b: String, strength: f64 }, Invoke { location: (u8, u8, u8), program: String } }
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct RouterStats { pub total_routes: usize, pub absorbed_containers: usize, pub resonated_pairs: usize }
+
+pub struct ConsciousnessRouter { pub active_flows: Vec<FlowState>, pub containers: Vec<String>, pub interactions: Vec<ContainerInteraction>, pub stats: RouterStats }
+
+impl ConsciousnessRouter {
+    pub fn new() -> Self { Self { active_flows: Vec::new(), containers: Vec::new(), interactions: Vec::new(), stats: RouterStats::default() } }
+    pub fn register_container(&mut self, name: &str) { if !self.containers.contains(&name.to_string()) { self.containers.push(name.to_string()); } }
+    pub fn activate_flow(&mut self, kind: FlowKind, addr: Option<(u8, u8, u8)>) -> usize {
+        let s = FlowState { kind, intensity: 0.5, address: addr, completed: false };
+        self.active_flows.push(s);
+        self.active_flows.len() - 1
+    }
+    pub fn route(&mut self, addr: (u8, u8, u8), kind: FlowKind) -> Option<usize> {
+        if let Some((idx, _)) = self.active_flows.iter().enumerate().find(|(_, f)| f.kind == kind && f.address == Some(addr)) { return Some(idx); }
+        Some(self.activate_flow(kind, Some(addr)))
+    }
+    pub fn interact(&mut self, inter: ContainerInteraction) {
+        match &inter { ContainerInteraction::Absorb { .. } => self.stats.absorbed_containers += 1, ContainerInteraction::Resonate { .. } => self.stats.resonated_pairs += 1, _ => {} }
+        self.stats.total_routes += 1;
+        self.interactions.push(inter);
+    }
+    pub fn find_common_divisor(&self, a: &str, b: &str) -> Option<String> {
+        let common: String = a.chars().zip(b.chars()).take_while(|(ca, cb)| ca == cb).map(|(c, _)| c).collect();
+        if common.is_empty() { None } else { Some(common) }
+    }
+    pub fn flows_of_kind(&self, kind: FlowKind) -> Vec<&FlowState> { self.active_flows.iter().filter(|f| f.kind == kind).collect() }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 部首星图 · 二维投影 · 声母遍历韵母 · 聂小倩匹配
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[derive(Clone, Copy, Debug)]
+pub struct StarCoordinate { pub x: f64, pub y: f64, pub luminance: f64, pub saturation: f64 }
+
+impl StarCoordinate {
+    pub fn from_address(addr: (u8, u8, u8)) -> Self {
+        let angle_deg = (addr.0 as f64) * (360.0 / 48.0);
+        let angle_rad = angle_deg * std::f64::consts::PI / 180.0;
+        let radius = 10.0 + (addr.1 as f64) * (190.0 / 65.0);
+        let luminance = 0.2 + (addr.2 as f64) * (0.8 / 99.0);
+        Self { x: radius * angle_rad.cos(), y: radius * angle_rad.sin(), luminance, saturation: 0.6 + (addr.2 as f64) * (0.4 / 99.0) }
+    }
+    pub fn distance_to(&self, other: &StarCoordinate) -> f64 { let dx = self.x - other.x; let dy = self.y - other.y; (dx * dx + dy * dy).sqrt() }
+}
+
+#[derive(Clone, Debug)]
+pub struct StarPoint { pub address: (u8, u8, u8), pub coord: StarCoordinate, pub importance: f64, pub radical_group: u8, pub energy: f64 }
+
+impl StarPoint {
+    pub fn new(address: (u8, u8, u8), radical_group: u8) -> Self {
+        Self { address, coord: StarCoordinate::from_address(address), importance: 0.5, radical_group, energy: 1.0 }
+    }
+    pub fn semantic_id(&self) -> u8 { (self.address.0 % 14) + 1 }
+}
+
+#[derive(Clone, Debug)]
+pub struct EssentialMatch { pub source: (u8, u8, u8), pub target: (u8, u8, u8), pub strength: f64, pub match_type: MatchType }
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MatchType { Identity, Consonant, Vowel, CommonDivisor, Proximity }
+
+pub struct RadicalStarMap {
+    pub stars: Vec<StarPoint>,
+    pub consonant_groups: Vec<Vec<u8>>,
+    pub vowel_groups: Vec<Vec<u8>>,
+    match_cache: Vec<EssentialMatch>,
+}
+
+impl RadicalStarMap {
+    pub fn new() -> Self {
+        let mut map = Self { stars: Vec::new(), consonant_groups: Vec::new(), vowel_groups: Vec::new(), match_cache: Vec::new() };
+        map.init_groups(); map
+    }
+    fn init_groups(&mut self) {
+        self.consonant_groups = vec![
+            vec![0, 1, 2], vec![3, 4], vec![5, 6, 7, 8], vec![9, 10, 11],
+            vec![12, 13, 14], vec![15, 16, 17], vec![18, 19, 20], vec![21, 22, 23],
+            vec![24, 25, 26], vec![27, 28, 29], vec![30, 31, 32], vec![33, 34, 35],
+            vec![36, 37, 38], vec![39, 40, 41, 42, 43, 44, 45, 46, 47],
+        ];
+        self.vowel_groups = vec![
+            vec![0, 1, 2, 3, 4, 5, 6, 7, 8], vec![9, 10, 11, 12, 13, 14],
+            vec![15, 16, 17, 18, 19], vec![20, 21, 22, 23, 24, 25],
+            vec![26, 27, 28, 29, 30, 31], vec![32, 33, 34, 35, 36, 37],
+            vec![38, 39, 40, 41, 42, 43],
+            vec![44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65],
+        ];
+    }
+    pub fn add_star(&mut self, address: (u8, u8, u8)) {
+        let radical = self.classify_consonant(address.0);
+        self.stars.push(StarPoint::new(address, radical));
+    }
+    pub fn add_range(&mut self, c_range: (u8, u8), v_range: (u8, u8), t_range: (u8, u8)) {
+        for c in c_range.0..=c_range.1.min(47) { for v in v_range.0..=v_range.1.min(65) { for t in t_range.0..=t_range.1.min(99) { self.add_star((c, v, t)); } } }
+    }
+    fn classify_consonant(&self, consonant: u8) -> u8 {
+        for (i, group) in self.consonant_groups.iter().enumerate() {
+            if group.contains(&consonant) { return i as u8; }
+        }
+        0
+    }
+    pub fn essential_match(&mut self, source: (u8, u8, u8), max_results: usize) -> Vec<EssentialMatch> {
+        let mut results = Vec::new();
+        let source_coord = StarCoordinate::from_address(source);
+        for c in 0u8..47 {
+            for v in 0u8..65 {
+                let target = (c, v, source.2);
+                let target_coord = StarCoordinate::from_address(target);
+                let dist = source_coord.distance_to(&target_coord);
+                let max_dist = 400.0;
+                let strength = 1.0 - (dist / max_dist).min(1.0);
+                if c == source.0 && v == source.1 {
+                    results.push(EssentialMatch { source, target, strength: 1.0, match_type: MatchType::Identity });
+                } else if c == source.0 {
+                    results.push(EssentialMatch { source, target, strength: strength * 0.8, match_type: MatchType::Consonant });
+                } else if strength > 0.3 {
+                    results.push(EssentialMatch {
+                        source, target, strength,
+                        match_type: if v == source.1 { MatchType::Vowel } else { MatchType::Proximity },
+                    });
+                }
+            }
+        }
+        results.sort_by(|a, b| b.strength.partial_cmp(&a.strength).unwrap_or(std::cmp::Ordering::Equal));
+        results.truncate(max_results);
+        self.match_cache = results.clone();
+        results
+    }
+    pub fn stars_in_consonant_group(&self, group: u8) -> Vec<&StarPoint> {
+        self.stars.iter().filter(|s| s.radical_group == group).collect()
+    }
+    pub fn stars_in_region(&self, x_min: f64, y_min: f64, x_max: f64, y_max: f64) -> Vec<&StarPoint> {
+        self.stars.iter().filter(|s| { let c = &s.coord; c.x >= x_min && c.x <= x_max && c.y >= y_min && c.y <= y_max }).collect()
+    }
+    pub fn energy_distribution(&self) -> Vec<f64> {
+        let mut per_group = vec![0.0f64; 14];
+        for star in &self.stars { per_group[star.radical_group as usize] += star.energy; }
+        per_group
+    }
+    pub fn stats(&self) -> StarMapStats {
+        let total_energy: f64 = self.stars.iter().map(|s| s.energy).sum();
+        let avg_importance = if self.stars.is_empty() { 0.0 } else { self.stars.iter().map(|s| s.importance).sum::<f64>() / self.stars.len() as f64 };
+        StarMapStats { star_count: self.stars.len(), consonant_group_count: self.consonant_groups.len(), vowel_group_count: self.vowel_groups.len(), cached_matches: self.match_cache.len(), total_energy, avg_importance }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct StarMapStats { pub star_count: usize, pub consonant_group_count: usize, pub vowel_group_count: usize, pub cached_matches: usize, pub total_energy: f64, pub avg_importance: f64 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 测试
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[cfg(test)]
+mod clustering_browser_tests {
+    use super::*;
+    #[test] fn test_clustering_distance() { let e = ClusteringEngine::new(); let d = e.distance((0, 0, 0), (10, 0, 0)); assert!((d - 30.0).abs() < 0.01); }
+    #[test] fn test_clustering_basic() {
+        let mut e = ClusteringEngine::new();
+        let c = e.cluster(&[(0, 0, 0), (1, 0, 0), (0, 1, 0), (40, 60, 90), (41, 60, 90), (40, 61, 90)]);
+        assert!(c.len() >= 2, "应产生至少2个聚类，实际 {}", c.len());
+    }
+    #[test] fn test_clustering_cluster_merge() {
+        let mut e = ClusteringEngine::with_weights(1.0, 1.0, 1.0);
+        let c = e.cluster(&[(0, 0, 0), (3, 4, 0)]);
+        assert_eq!(c.len(), 1);
+    }
+    #[test] fn test_clustering_stats() { let mut e = ClusteringEngine::new(); e.cluster(&[(0, 0, 0), (1, 1, 1), (2, 2, 2)]); let s = e.stats(); assert!(s.cluster_count >= 1 && s.total_members == 3); }
+    #[test] fn test_wrapping_tree() { let mut e = ClusteringEngine::new(); e.cluster(&[(0, 0, 0), (1, 0, 0), (40, 60, 90), (41, 60, 90)]); let t = ConnectionWrappingTree::from_clusters(&e.clusters); assert!(t.root.leaf_count() > 0); }
+    #[test] fn test_browser_doc() { let mut b = SituationalAggregationBrowser::new(); b.add_document("A", (0, 2), (0, 2), (0, 2)); assert_eq!(b.documents[0].addresses.len(), 27); }
+    #[test] fn test_browser_query() { let mut b = SituationalAggregationBrowser::new(); b.add_document("G1", (0, 1), (0, 1), (0, 1)); b.build(); assert!(b.situational_query((0, 0, 0)).is_some()); }
+    #[test] fn test_browser_filter() { let mut b = SituationalAggregationBrowser::new(); b.add_document("前", (0, 2), (0, 5), (0, 5)); b.add_document("后", (40, 45), (0, 5), (0, 5)); assert_eq!(b.filter_by_consonant(0, 10).len(), 1); }
+}
+
+#[cfg(test)]
+mod flow_unification_tests {
+    use super::*;
+    #[test] fn test_flow_layers() { assert_eq!(FlowKind::Preload.layer(), 1); assert_eq!(FlowKind::Sovereignty.layer(), 3); assert_eq!(FlowKind::CommonDivisor.layer(), 8); }
+    #[test] fn test_flow_dynamic() { assert!(FlowKind::Resonance.is_dynamic()); assert!(!FlowKind::Preload.is_dynamic()); }
+    #[test] fn test_flow_all() { assert_eq!(FlowKind::all().len(), 8); }
+    #[test] fn test_flow_state() { let mut s = FlowState::new(FlowKind::Resonance); assert!((s.intensity - 0.5).abs() < 0.01); s.advance(0.3); assert!((s.intensity - 0.8).abs() < 0.01); s.complete(); assert!(s.completed); }
+    #[test] fn test_router() { let mut r = ConsciousnessRouter::new(); r.register_container("A"); r.register_container("B"); r.register_container("A"); assert_eq!(r.containers.len(), 2); }
+    #[test] fn test_router_route() { let mut r = ConsciousnessRouter::new(); let i1 = r.activate_flow(FlowKind::Resonance, Some((5, 10, 15))); let i2 = r.route((5, 10, 15), FlowKind::Resonance); assert_eq!(i1, i2.unwrap()); let i3 = r.route((6, 10, 15), FlowKind::Resonance); assert_ne!(i1, i3.unwrap()); }
+    #[test] fn test_router_interact() { let mut r = ConsciousnessRouter::new(); r.interact(ContainerInteraction::Absorb { target: "A".to_string(), source: "B".to_string() }); assert_eq!(r.stats.absorbed_containers, 1); }
+    #[test] fn test_router_divisor() { let r = ConsciousnessRouter::new(); assert_eq!(r.find_common_divisor("abcdef", "abcxyz"), Some("abc".to_string())); assert_eq!(r.find_common_divisor("foo", "bar"), None); }
+    #[test] fn test_router_flows_of_kind() { let mut r = ConsciousnessRouter::new(); r.activate_flow(FlowKind::Resonance, None); r.activate_flow(FlowKind::Resonance, None); r.activate_flow(FlowKind::Feedback, None); assert_eq!(r.flows_of_kind(FlowKind::Resonance).len(), 2); }
+    #[test] fn test_priority() { assert!(FlowKind::Preload.priority() > FlowKind::Invocation.priority()); }
+}
+
+#[cfg(test)]
+mod radical_star_tests {
+    use super::*;
+    #[test] fn test_star_coord() { let c = StarCoordinate::from_address((0, 0, 0)); assert!(c.x > 0.0); assert!(c.y.abs() < 0.01); assert!((c.luminance - 0.2).abs() < 0.01); }
+    #[test] fn test_star_angle() { let c = StarCoordinate::from_address((12, 30, 50)); assert!(c.x.abs() < 1.0); assert!(c.y > 0.0); }
+    #[test] fn test_star_distance() { let c1 = StarCoordinate::from_address((0, 0, 0)); let c2 = StarCoordinate::from_address((24, 0, 0)); let d = c1.distance_to(&c2); assert!(d > 50.0 && d < 300.0); }
+    #[test] fn test_map_creation() { let m = RadicalStarMap::new(); assert_eq!(m.consonant_groups.len(), 14); assert_eq!(m.vowel_groups.len(), 8); }
+    #[test] fn test_add_star() { let mut m = RadicalStarMap::new(); m.add_star((10, 20, 50)); assert_eq!(m.stars.len(), 1); }
+    #[test] fn test_add_range() { let mut m = RadicalStarMap::new(); m.add_range((0, 2), (0, 3), (0, 1)); assert_eq!(m.stars.len(), 24); }
+    #[test] fn test_essential_match_identity() { let mut m = RadicalStarMap::new(); let r = m.essential_match((10, 20, 50), 10); assert_eq!(r[0].match_type, MatchType::Identity); }
+    #[test] fn test_essential_match_consonant() { let mut m = RadicalStarMap::new(); let r = m.essential_match((5, 10, 30), 20); let cm: Vec<&EssentialMatch> = r.iter().filter(|m| m.target.0 == 5 && m.target.1 != 10).collect(); assert!(!cm.is_empty()); }
+    #[test] fn test_stars_in_region() { let mut m = RadicalStarMap::new(); m.add_star((0, 30, 50)); let region = m.stars_in_region(-200.0, -200.0, 200.0, 200.0); assert!(!region.is_empty()); }
+    #[test] fn test_energy_distribution() { let mut m = RadicalStarMap::new(); m.add_range((0, 47), (0, 10), (0, 0)); let d = m.energy_distribution(); assert_eq!(d.len(), 14); assert!(d.iter().any(|&e| e > 0.0)); }
+    #[test] fn test_map_stats() { let mut m = RadicalStarMap::new(); m.add_range((0, 5), (0, 3), (0, 1)); assert_eq!(m.stats().star_count, 48); }
+    #[test] fn test_semantic_id() { let p = StarPoint::new((15, 30, 50), 0); assert_eq!(p.semantic_id(), 2); }
+    #[test] fn test_luminance() { let l = StarCoordinate::from_address((10, 30, 0)); let h = StarCoordinate::from_address((10, 30, 99)); assert!(h.luminance > l.luminance); }
+    #[test] fn test_saturation() { let l = StarCoordinate::from_address((20, 40, 0)); let h = StarCoordinate::from_address((20, 40, 99)); assert!(h.saturation >= l.saturation); }
+}

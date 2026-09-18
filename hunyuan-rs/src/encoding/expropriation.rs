@@ -58,7 +58,7 @@ pub enum ViewerKind {
 // 动态编号: 不能被静态编码系统捕获的身份
 // ────────────────────────────────────────────────────────────
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct DynamicNumbering {
     /// 公约数: 唯一不变的身份 (异见者中心)
     /// 无论用什么编码来表达, 这个不变
@@ -250,13 +250,13 @@ impl RadiationConvergenceRing {
         for c in &mut self.containers {
             // 辐射: 投射到所有目标编码系统
             for &sys in systems {
-                let core = c.numbering.identity_core;
-                c.numbering.expropriate(sys, core as u64);
+                let core_id = c.numbering.identity_core;
+                c.numbering.expropriate(sys, core_id as u64);
                 report.radiated += 1;
             }
             
             // 检查辐射后身份是否完整
-            let intact_before = c.numbering.is_intact(core);
+            let intact_before = c.numbering.is_intact(core_id);
             
             // 收敛: 收回所有编号, 身份回中心
             c.numbering.borrowed.clear();
@@ -264,7 +264,7 @@ impl RadiationConvergenceRing {
             report.converged += 1;
             
             // 验证收敛后身份依然完整
-            if c.numbering.is_intact(core) {
+            if c.numbering.is_intact(core_id) {
                 report.intact += 1;
             } else {
                 report.corrupted += 1;
