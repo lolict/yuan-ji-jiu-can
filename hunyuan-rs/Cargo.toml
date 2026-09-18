@@ -13,6 +13,8 @@ bitflags = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 jni = "0.21"
+ttf-parser = "0.25"
+image = "0.25"
 base64 = "0.21"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
@@ -36,6 +38,10 @@ path = "src/bin/court.rs"
 [[bin]]
 name = "e2e-demo"
 path = "src/bin/e2e_demo.rs"
+
+[[bin]]
+name = "font-renderer"
+path = "src/bin/font_renderer.rs"
 
 [[bin]]
 name = "glyph"
@@ -131,3 +137,15 @@ path = "src/bin/char_create.rs"
 [[bin]]
 name = "visual-glyph"
 path = "src/bin/visual_glyph.rs"
+
+[[bin]]
+name = "ttf-64-gen"
+path = "src/bin/ttf_64_gen.rs"
+
+[[bin]]
+name = "chain-demo"
+path = "src/bin/chain_demo.rs"
+
+[[bin]]
+name = "resonate"
+path = "src/bin/resonate.rs"
