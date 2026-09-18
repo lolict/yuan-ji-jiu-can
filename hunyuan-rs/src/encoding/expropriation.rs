@@ -248,9 +248,9 @@ impl RadiationConvergenceRing {
         };
         
         for c in &mut self.containers {
+            let core_id = c.numbering.identity_core;
             // 辐射: 投射到所有目标编码系统
             for &sys in systems {
-                let core_id = c.numbering.identity_core;
                 c.numbering.expropriate(sys, core_id as u64);
                 report.radiated += 1;
             }

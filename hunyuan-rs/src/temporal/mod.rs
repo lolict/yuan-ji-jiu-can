@@ -1,5 +1,4 @@
-pub use crate::phase_clock;
-pub use crate::hot_embed;
+// witness declared in lib.rs at crate root
 pub use crate::hierarchical_time;
 pub use crate::logistics_engine;
 pub use crate::pulse;

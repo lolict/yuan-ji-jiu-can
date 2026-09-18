@@ -149,3 +149,11 @@ path = "src/bin/chain_demo.rs"
 [[bin]]
 name = "resonate"
 path = "src/bin/resonate.rs"
+
+[[bin]]
+name = "river"
+path = "src/bin/river.rs"
+
+[[bin]]
+name = "glyph_stroke"
+path = "src/bin/glyph_stroke.rs"

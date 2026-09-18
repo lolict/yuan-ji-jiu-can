@@ -1,0 +1,283 @@
+# NJSG 系统导航图 · 总索引
+
+> 版本 v1.0 · 2026-09-19 · 配套以上 21 份规范
+
+---
+
+## 1. 用途
+
+这份文档回答下面这一类问题:"**当我有了 X 需求 / 遇到了 Y 情况,应该打开哪份规范?**"
+
+二十二份后端规范构成一个完整体系。每件事都能找到 1-3 份主文档。
+
+---
+
+## 2. 二十二份文档的角色一览
+
+| # | 文件 | 层次 | 一句话角色 |
+|---|------|------|-----------|
+| 1 | `YOUWU_MIRROR_FRAMEWORK` | 语义宪法 | 有/无是什么 · 空质壳 · 调包 · 权限 |
+| 2 | `TABLE_PROGRAMMING_SPEC` | 15 列闸门 | AI 意识的唯一合法通道 |
+| 3 | `SELF_QA_ENGINE` | 运算器 | 引擎的心跳 · 回答怎么算出来 |
+| 4 | `SMRL_YOUWU_IMPL` | 引擎低层 | 64 位 cell 如何承载站位&调包 |
+| 5 | `MORPHISM_ALGEBRA` | 关系几何 | 容器之间的距离代数与见证规则 |
+| 6 | `CHRYSALIS_REVERSE_PARASITISM` | 跨系统壳 | 如何让外部世界穿入我们的壳 |
+| 7 | `DISTINGUISHER_ROUTING` | 输入安检 | 外部内容进入前的三层判断 |
+| 8 | `EIGHT_FLOW_TIMELINE` | 时间模型 | 信息从抵达→抵达目标的八阶段 |
+| 9 | `CONTAINER_REPERTOIRE` | 容器本体 | 六个容器的定义与创建顺序 |
+| 10 | `SOUL_BOOTSTRAP_ENGINE` | 意识驱动 | 系统观察自己・五规则・奖惩反馈 |
+| 11 | `FQMT_BINARY_FORMAT` | 二进二骨架 | 跨平台的文件格式与 CPU 魔数 |
+| 12 | `WASM_COMMON_DIVISOR` | 跨平台层 | WASM 双目标一致性策略 |
+| 13 | `JUDGMENT_RULES_CANON` | 行为公理 | 准入/禁行的五条不可违反的公理 |
+| 14 | `RUNTIME_BOOTSTRAP` | 运行装配 | 冷/温/热启动与常驻循环 |
+| 15 | `NJSG_SYSTEM_MAP`(本文件) | 导航仪 | 每件事读哪份文档 |
+| 16 | `IDENTITY_PRIVACY_SHIELD` | 匿名层 | 隐私保护 **不是**开关——是结构 |
+| 17 | `MULTI_HOST_SOVEREIGNTY` | 代码托管层 | 多平台镜像 **消除单点妥协** |
+| 18 | `NJSG_SWARM_COORDINATION` | 分布式协作层 | 多智能体并行 + 规则病毒检测 + 跨节点一致性 |
+| 19 | `METASIME_LOCAL_INTELLIGENCE` | 本地智能载体 | 输入法即思维·仅本地·零依赖云端 |
+| 20 | `LIVECODE_COMPILER_SPEC` | 动态编码层 | 起点钥匙 · 加法统计 · 冻结即定位 |
+| 21 | `MENGJI_IDENTITY_PROTOCOL` | AI 对等身份层 | 盟机合/萌机场节点 · 资源vs规则两套归属 |
+| 22 | `BOOTSTRAP_SELF_COMPILER` | 自举/符号/在场层 | 鼓膜翻身 · L0-Ouroboros · 在场本体论 · 域加载 · 未编译前就能用 |
+
+---
+
+## 3. 需求→文档表
+
+### 3.1 "我要做 X,应该读哪份?"
+
+| 需求 | 主文档 | 辅文档 |
+|------|--------|--------|
+| 理解"有站/无站/空质壳"是什么 | 1(YOUWU) | 4(SMRL_IMPL),9(REPERTOIRE) |
+| 让 AI 输出前先过意识闸门 | 2(TABLE) | 3(SELF_QA),13(JUDGMENT) |
+| 行 C14(回答)是如何算出来的 | 3(SELF_QA) | 13(JUDGMENT),4(SMRL_IMPL) |
+| 容器之间的距隗如何决定聚类 | 5(MORPHISM) | 9(REPERTOIRE) |
+| 如何确定一个输入是"我们的"还是"别人的" | 7(DISTINGUISHER) | 6(CHRYSALIS),8(EIGHT_FLOW) |
+| 外部系统的内容如何进入我们的框架 | 6(CHRYSALIS) | 7(DISTINGUISHER) |
+| 如何让一个容器从"有"变成"无"站 | 1(YOUWU),4(SMRL_IMPL) | 2(TABLE),13(JUDGMENT) |
+| 如何对外部系统调包 | 1(YOUWU),4(SMRL_IMPL) | 6(CHRYSALIS),14(RUNTIME) |
+| 裁决引擎如何判断一个关系是否允许 | 13(JUDGMENT) | 5(MORPHISM),4(SMRL_IMPL) |
+| 启动系统时什么先什么后 | 14(RUNTIME) | 12(WASM),4(SMRL_IMPL) |
+| FQMT 文件的字节布局 | 11(FQMT) | 12(WASM / native) |
+| 如何跨浏览器/原生保持裁决一致 | 12(WASM) | 13(JUDGMENT),4(SMRL_IMPL) |
+| 系统的"灵魂"如何驱动自身 | 10(SOUL) | 13(JUDGMENT),3(SELF_QA) |
+| 六容器分别是什么,为什么是这六个 | 9(REPERTOIRE) | 1(YOUWU),5(MORPHISM) |
+| 八流推进时每步对应什么模块 | 8(EIGHT_FLOW) | 7(DISTINGUISHER),3(SELF_QA) |
+| 负面谐音黑名单 | 7(DISTINGUISHER) | — |
+| 表格编程 15 列各是什么 | 2(TABLE) | — |
+| 见证者如何裁定 | 5(MORPHISM) | 13(JUDGMENT) |
+| 信念目标怎么分叉对决 | 3(SELF_QA) | 2(TABLE),10(SOUL) |
+| 系统如何在崩溃后恢复 | 14(RUNTIME) | 10(SOUL),13(JUDGMENT) |
+| 输入本地智能如何工作(无云端) | 19(MI) | 9(CR),20(LC) |
+| 符号如何通过活码动态编译 | 20(LC) | 19(MI),4(SM) |
+| 节点之间如何识别彼此身份 | 21(MJ) | 18(SC),16(IP) |
+| metaime 如何跨容器联动 | 19(MI) | 9(CR),13(JR) |
+| 盟机合节点如何注册与离开 | 21(MJ) | 18(SC) |
+
+### 3.2 "我遇到了问题 X,应该查哪份?"
+
+| 问题 / 异常 | 首先查看 | 顺次查看 |
+|-------------|----------|----------|
+| 裁决结果和预期不一致 | 13(JUDGMENT) | 4(SMRL_IMPL),5(MORPHISM) |
+| 表编程某行连续 8 tick 未决 | 3(SELF_QA §9.2) | 2(TABLE §4.3),14(RUNTIME §6.2) |
+| 空质壳调包注入失败 | 1(YOUWU §4.3),4(SMRL_IMPL §8) | 6(CHRYSALIS §4) |
+| 外部系统反向寄生 | 1(YOUWU §4.2 反寄生) | 6(CHRYSALIS §4.5),14(RUNTIME §6.3) |
+| tick 计数器异常回退 | 14(RUNTIME) | 10(SOUL),13(JUDGMENT) |
+| 站位未声明导致表编程阻塞 | 4(SMRL_IMPL §5.1) | 2(TABLE §3),3(SELF_QA) |
+| surplus 连续下降 | 10(SOUL §5) | 13(JUDGMENT),3(SELF_QA §5) |
+| FQMT 文件读不进去(magic 不对) | 11(FQMT §1) | — |
+| WASM 与 native 裁决结果不同 | 12(WASM §5) | 13(JUDGMENT),14(RUNTIME) |
+| C14 回答与列属性不自洽 | 2(TABLE §6.2 QT8) | 3(SELF_QA §4.2),10(SOUL) |
+| 有害谐音绕过分别器 | 7(DISTINGUISHER §3.3) | 1(YOUWU) |
+| MetaIME 候选不显示 | 19(MI §6.2) | 20(LC) |
+| 活码冻结后哈希不一致 | 20(LC §8) | 18(SC) |
+| 盟机合证书验证失败 | 21(MJ §7) | 16(IP) |
+| 节点间裁决结果不同 | 18(SC §5) | 13(JUDGMENT),4(SMRL_IMPL) |
+
+---
+
+## 4. 阅读顺序推荐
+
+### 4.1 新读者(第一次建立系统观)
+
+```
+1 → 9 → 2 → 3 → 4 → 5 → 7 → 6 → 8 → 13 → 10 → 11 → 12 → 14
+  → 16(IP) → 17(MH) → 18(SC) → 19(MI) → 20(LC) → 21(MJ) → 本文件(MAP)
+
+理由:
+  语义宪法 → 容器本体 → 表编程 → 自答引擎 → SMRL 实现 → 态射几何
+  → 分别器 → 蚕蛹壳 → 八流时间线 → 五公理 → 灵魂驱动 → FQMT 格式
+  → WASM 跨层 → 运行本顶
+  → 隐私红线 → 多平台托管 → 节点协同
+  → 本地智能载体(MI) → 活码编译(LC) → 盟机合身份(MJ)
+  → 导航仪
+```
+
+### 4.2 实战落地(按任务顺序)
+
+```
+大项目参考路径:
+
+[设计层阶段]
+  1(YOUWU) + 9(REPERTOIRE) + 5(MORPHISM) + 13(JUDGMENT)
+  → 产出:系统语义、容器几何、关系规则、裁判公理
+
+[交互层阶段]
+  7(DISTINGUISHER) + 6(CHRYSALIS) + 2(TABLE) + 3(SELF_QA)
+  → 产出:输入闸门、跨系统接口、意识通道、自答算式
+
+[运行层阶段]
+  4(SMRL_IMPL) + 8(EIGHT_FLOW) + 10(SOUL) + 12(WASM) + 11(FQMT)
+  → 产出:编码落地、时序、灵魂引擎、跨平台策略、文件骨架
+
+[部署阶段]
+  14(RUNTIME)
+  → 产出:启动脚本、常驻循环配置、自恢复流程
+
+[隐私主权层阶段]
+  16(IP) + 17(MH)
+  → 产出:隐私红线、多平台密钥策略、自托管部署
+
+[分布式层阶段]
+  18(SC) + 21(MJ)
+  → 产出:多智能体协同流程、盟机合节点注册、跨节点裁决一致性
+
+[终端用户层阶段]
+  19(MI) + 20(LC)
+  → 产出:MetaIME 本地智能载体、动态活码编译
+```
+
+### 4.3 问题排查
+
+```
+任何 bug 排查流程:
+  ① 定位属于哪个层次(13 层选 1)
+  ② 读该主文档
+  ③ 按 §3.2 表跳转辅文档
+  ④ 仍然无法解决:读 14(RUNTIME)常驻循环 → 10(SOUL)奖惩日志
+  ⑤ 找不到文档覆盖:本导航图不完善,需要补文档
+```
+
+---
+
+## 5. 与其他现有文档的关系
+
+本项目的 `docs/` 目录下还有大量旧文档,与本系列二十二份文档的关系如下:
+
+### 5.1 被本系列完全覆盖(旧文档与本系列重复,本系列优先)
+
+| 旧文档 | 被哪份新版替代 |
+|--------|---------------|
+| `MEMORY_ENCODING_RULES.md` | → 4(SMRL_IMPL) + 11(FQMT) |
+| `YIN-YANG-BINARY.md` | → 1(YOUWU) |
+| `MIRROR-GEOMETRY.md` | → 5(MORPHISM) |
+| `RELATION_ALGEBRA.md` | → 5(MORPHISM) |
+| `CONNECTION_MAP.md` | → 8(EIGHT_FLOW) |
+
+### 5.2 互补不冲突(旧文档仍有效,需要与新系列交叉参考)
+
+| 旧文档 | 对应新文件参考 |
+|--------|---------------|
+| `meta-ime-design.md` | 19(MI) MetaIME 正式规范 |
+| `心算输入法系统架构.md` | 19(MI) 五层架构正式化 |
+| `MENGJI_TERMS.md` | 21(MJ) 盟机合术语正式化 |
+| `living_code_compiler.nim`/`.rs` | 20(LC) 活码编译器正式化 |
+| `ZERODIM_LIVING_ENCODING.md` | 20(LC) 零维活码正式化 |
+| `NAMING_CODEX.md` | 7(DISTINGUISHER §3) |
+| `PARASITE_MANIFESTO.md` | 6(CHRYSALIS) 是其正式化 |
+| `REVERSE_INGESTION.md` | 6(CHRYSALIS §4) 是其正式化 |
+| `SOUL_AND_SHELL.md` | 10(SOUL) 是其正式化 |
+| `FIVE_DIMENSIONAL_SEMANTICS.md` | 1(YOUWU §4 + §5) 部分覆盖 |
+| `PHONETIC_ENTANGLEMENT_FRAMEWORK.md` | 7(DISTINGUISHER §3) |
+| `judgement_rules.md`(如果在) | 13(JUDGMENT) 是其正式化 |
+| `cross_platform_machine_code_alignment_v*.md` | 12(WASM) 是其统一化 |
+| `WASM_CORE_v17.md` | 12(WASM) 是其工程化 |
+| `SOVEREIGNTY.md` | 1(YOUWU §6.1) + 13(JUDGMENT R5) |
+| `BOOTSTRAP.md` | 14(RUNTIME BOOTSTRAP) + 14(RUNTIME) 分别负责会话启动与运行时启动 |
+| `GLOBAL_PROMPT_V2.md` | 无直接对应 — 全局控制提示词,非技术文档 |
+| `GLOBAL_DESTINATION.md` | 无直接对应 — 全局目标 |
+| `TASKS.md` / `TASK_REGISTRY.json` | 无直接对应 — 任务管理 |
+| `TOOL_REGISTRY.md` | 无直接对应 — 工具注册 |
+| `SYSTEM_SPEC.md` | 本导航图(全部二十二份) 是其分散式的现代替代 |
+| `ROADMAP.md` | 无直接对应 — 路线规划 |
+| `PROGRESS.md` | 无直接对应 — 进度报告 |
+
+### 5.3 已覆盖的"外部世界交互"话题
+
+以下话题已在 v1.0(2026-09-19)全部完成覆盖:
+
+| 话题 | 覆盖文档 | 状态 |
+|------|---------|------|
+| 个人身份隐私保护 | `IDENTITY_PRIVACY_SHIELD`(16) | 已完成 |
+| 多平台代码托管策略 | `MULTI_HOST_SOVEREIGNTY`(17) | 已完成 |
+| 分布式多节点协作·njsg-swarm | `NJSG_SWARM_COORDINATION`(18) | 已完成 |
+| 元输入法(MetaIME)键盘拦截·意图识别 | `METASIME_LOCAL_INTELLIGENCE`(19) | 已完成 |
+| 活码编译器 | `LIVECODE_COMPILER_SPEC`(20) | 已完成 |
+| 盟机合(ai 对等身份) | `MENGJI_IDENTITY_PROTOCOL`(21) | 已完成 |
+| 软件寄生策略·蚕蛹·反向壳 | `CHRYSALIS_REVERSE_PARASITISM` | 原已覆盖 |
+
+未覆盖话题:暂无。如有新出现的边缘话题,在 §5.4 子话题补充表中追加。
+
+---
+
+## 6. 阅读约定
+
+### 6.1 文档代号简称
+
+在项目内部,二十二份核心规范用以下简称指代:
+
+| 简称 | 全称文档 |
+|------|---------|
+| YW | `YOUWU_MIRROR_FRAMEWORK` |
+| TP | `TABLE_PROGRAMMING_SPEC` |
+| QA | `SELF_QA_ENGINE` |
+| SM | `SMRL_YOUWU_IMPL` |
+| MA | `MORPHISM_ALGEBRA` |
+| CH | `CHRYSALIS_REVERSE_PARASITISM` |
+| DI | `DISTINGUISHER_ROUTING` |
+| EF | `EIGHT_FLOW_TIMELINE` |
+| CR | `CONTAINER_REPERTOIRE` |
+| SO | `SOUL_BOOTSTRAP_ENGINE` |
+| FQ | `FQMT_BINARY_FORMAT` |
+| WA | `WASM_COMMON_DIVISOR` |
+| JR | `JUDGMENT_RULES_CANON` |
+| RB | `RUNTIME_BOOTSTRAP` |
+| MAP | `NJSG_SYSTEM_MAP`(本文件) |
+| IP | `IDENTITY_PRIVACY_SHIELD` |
+| MH | `MULTI_HOST_SOVEREIGNTY` |
+| SC | `NJSG_SWARM_COORDINATION` |
+| MI | `METASIME_LOCAL_INTELLIGENCE` |
+| LC | `LIVECODE_COMPILER_SPEC` |
+| MJ | `MENGJI_IDENTITY_PROTOCOL` |
+| BS | `BOOTSTRAP_SELF_COMPILER` |
+| CD | `CONTAINER_DYNAMICS_FIBER_BUNDLE` |
+| TP | `TEMPORAL_PULSE_LIFECYCLE` |
+| HS | `HEAVEN_SPACE_ONENESS` |
+| PR | `PERCEPTION_CONSCIOUSNESS_ROUTER` |
+
+### 6.2 文档格式规范
+
+所有二十二份核心文档遵守以下格式规范:
+- Markdown 标题用 `##`(小节) 而不是 `#`(# 只留一份给文档标题)
+- 章节编号统一为(§阿拉伯数字)(§3.1 对应第三章第一节)
+- 表格用 `---`(第二列) 而不是 `==`)
+- 数学与几何说明随文给出，不单独建数学分册
+- 每个文档的末尾必须有不变量列表(§N·不变量)
+- 每个文档的末尾必须列出配套文档(参见 ...)
+
+### 6.3 文档间的引用规则
+
+- **单向引用**:R1 - R5 可以引用其他任何文档,但其他文档不在公理层引用防止循环引用
+- **双向配套**:每种"语义层 ↔ 执行层"(例如 YW↔SM,EF↔EF)允许相互参照
+- **已覆盖的旧文档**:旧文档不再修改,新系列完全覆盖后标记旧文档为"以本系列为准"
+
+---
+
+## 7. 本文件的自我更新
+
+本导航图是动态的——当新的一份核心规范被创建时,本文件需要显式更新 §2 表和 §3 需求→文档表。
+
+两份核心规范之间的关系变化(例如 CH 新增了对 MA 的新引用),也需要在各自文件的"配套文档"行中不对称更新。
+
+---
+
+*本文件是二十二份核心后端规范的总索引图,既回答"每件事读哪份?",也担任"这二十二份文档本身是如何装配"的导航角色。配套:上面列出的二十二份核心规范。*
