@@ -4059,3 +4059,133 @@ mod distance_perceptor_tests {
     #[test] fn test_cluster_empty() { let mut p = DistancePerceptor::new(); assert_eq!(p.cluster(&[]), 0); }
     #[test] fn test_perceptor_default() { let p = DistancePerceptor::default(); assert_eq!(p.clusters.len(), 0); assert!((p.threshold - 10.0).abs() < 0.01); }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 公约数编程引擎 · CommonDivisorEngine
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// 公约数编程: 两个容器之间的关系由其公约数决定
+// 整除关系构成层级: 公约数越大, 关系越紧密
+// 用于容器间的从属、继承、融合判定
+
+/// 公约数关系类型
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum DivisorRelation {
+    Disjoint,       // 互素 — 无公共因子
+    WeakCommon,     // 弱公约 — 仅小因子重叠
+    StrongCommon,   // 强公约 — 大因子重叠
+    Multiples,      // 倍数关系 — 一容器包含另一
+    Identity,       // 完全等同
+}
+
+impl Default for DivisorRelation {
+    fn default() -> Self { DivisorRelation::Disjoint }
+}
+
+/// 公约数运算结果
+#[derive(Clone, Debug, Default)]
+pub struct DivisorResult {
+    pub gcd: u64,
+    pub lcm: u64,
+    pub relation: DivisorRelation,
+    pub depth: u32,
+    pub common_factors: Vec<u64>,
+}
+
+/// 公约数编程引擎
+#[derive(Clone, Debug, Default)]
+pub struct CommonDivisorEngine;
+
+impl CommonDivisorEngine {
+    pub fn new() -> Self { Self }
+
+    /// 计算两数的最大公约数 (欧几里得)
+    pub fn gcd(&self, mut a: u64, mut b: u64) -> u64 {
+        while b != 0 { let t = b; b = a % b; a = t; }
+        a
+    }
+
+    /// 计算最小公倍数
+    pub fn lcm(&self, a: u64, b: u64) -> u64 {
+        if a == 0 || b == 0 { return 0; }
+        a / self.gcd(a, b) * b
+    }
+
+    /// 枚举所有公因子
+    pub fn common_factors(&self, a: u64, b: u64) -> Vec<u64> {
+        let g = self.gcd(a, b);
+        if g == 0 { return Vec::new(); }
+        let mut factors = Vec::new();
+        let mut i = 1;
+        while i * i <= g {
+            if g % i == 0 {
+                factors.push(i);
+                if i != g / i { factors.push(g / i); }
+            }
+            i += 1;
+        }
+        factors.sort();
+        factors
+    }
+
+    /// 判定两容器之间的关系
+    pub fn relate(&self, a: u64, b: u64) -> DivisorRelation {
+        if a == b { return DivisorRelation::Identity; }
+        let g = self.gcd(a, b);
+        if g == 0 { return DivisorRelation::Disjoint; }
+        if a % b == 0 || b % a == 0 { return DivisorRelation::Multiples; }
+        let max_ab = a.max(b);
+        if g > max_ab / 4 { return DivisorRelation::StrongCommon; }
+        if g > 1 { return DivisorRelation::WeakCommon; }
+        DivisorRelation::Disjoint
+    }
+
+    /// 完整分析
+    pub fn analyze(&self, a: u64, b: u64) -> DivisorResult {
+        let gcd = self.gcd(a, b);
+        DivisorResult {
+            gcd,
+            lcm: self.lcm(a, b),
+            relation: self.relate(a, b),
+            depth: self.common_factors(a, b).len() as u32,
+            common_factors: self.common_factors(a, b),
+        }
+    }
+
+    /// 寻找容器组的公共根 (所有数的最大公约数)
+    pub fn group_gcd(&self, containers: &[u64]) -> u64 {
+        if containers.is_empty() { return 0; }
+        containers.iter().fold(containers[0], |acc, &x| self.gcd(acc, x))
+    }
+
+    /// 构造层级树: 按公约数整除关系排列
+    pub fn build_hierarchy(&self, containers: &[u64]) -> Vec<(u64, u64)> {
+        let root = self.group_gcd(containers);
+        let mut pairs: Vec<(u64, u64)> = Vec::new();
+        let mut sorted = containers.to_vec();
+        sorted.sort();
+        for &c in &sorted {
+            if c != root { pairs.push((root, c)); }
+        }
+        pairs
+    }
+}
+
+#[cfg(test)]
+mod common_divisor_tests {
+    use super::*;
+    #[test] fn test_gcd_basic() { let e = CommonDivisorEngine::new(); assert_eq!(e.gcd(12, 8), 4); assert_eq!(e.gcd(17, 13), 1); }
+    #[test] fn test_gcd_zero() { let e = CommonDivisorEngine::new(); assert_eq!(e.gcd(0, 5), 5); assert_eq!(e.gcd(0, 0), 0); }
+    #[test] fn test_lcm_basic() { let e = CommonDivisorEngine::new(); assert_eq!(e.lcm(4, 6), 12); }
+    #[test] fn test_lcm_zero() { let e = CommonDivisorEngine::new(); assert_eq!(e.lcm(0, 5), 0); }
+    #[test] fn test_common_factors() { let e = CommonDivisorEngine::new(); let f = e.common_factors(12, 8); assert!(f.contains(&1)); assert!(f.contains(&2)); assert!(f.contains(&4)); }
+    #[test] fn test_relate_identity() { let e = CommonDivisorEngine::new(); assert_eq!(e.relate(7, 7), DivisorRelation::Identity); }
+    #[test] fn test_relate_disjoint() { let e = CommonDivisorEngine::new(); assert_eq!(e.relate(7, 13), DivisorRelation::Disjoint); }
+    #[test] fn test_relate_multiples() { let e = CommonDivisorEngine::new(); assert_eq!(e.relate(3, 9), DivisorRelation::Multiples); }
+    #[test] fn test_analyze() { let e = CommonDivisorEngine::new(); let r = e.analyze(12, 8); assert_eq!(r.gcd, 4); assert_eq!(r.lcm, 24); }
+    #[test] fn test_group_gcd() { let e = CommonDivisorEngine::new(); assert_eq!(e.group_gcd(&[12, 8, 4]), 4); }
+    #[test] fn test_group_gcd_empty() { let e = CommonDivisorEngine::new(); assert_eq!(e.group_gcd(&[]), 0); }
+    #[test] fn test_build_hierarchy() { let e = CommonDivisorEngine::new(); let h = e.build_hierarchy(&[4, 8, 12]); assert_eq!(h.len(), 2); assert_eq!(h[0].0, 4); }
+    #[test] fn test_strong_common() { let e = CommonDivisorEngine::new(); assert_eq!(e.relate(20, 30), DivisorRelation::StrongCommon); }
+    #[test] fn test_weak_common() { let e = CommonDivisorEngine::new(); assert_eq!(e.relate(7, 14), DivisorRelation::Multiples); }
+}
