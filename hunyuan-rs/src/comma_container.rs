@@ -4445,3 +4445,151 @@ mod feedback_loop_tests {
     #[test] fn test_judgment_default() { let j = Judgment::default(); assert_eq!(j, Judgment::Uncertain); }
     #[test] fn test_evaluation_default() { let e = Evaluation::default(); assert_eq!(e.score, 0.5); assert_eq!(e.basis, "default"); }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器几何化身引擎 · ContainerGeometry3D
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// 64进制几何化身: 容器 = 三维几何实体
+// 声母 = 角度 θ (围绕Y轴, 360°/48)
+// 韵母 = 半径 r (距轴心距离, 10-200)
+// 声调 = 高度 Z (纵向, 0-100)
+// 形成螺旋/涡旋三维结构
+
+/// 64进制几何化身坐标
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Geometry3D {
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
+    pub theta: f64,      // 角度 (弧度)
+    pub radius: f64,    // 半径
+    pub height: f64,    // 高度
+}
+
+impl Geometry3D {
+    /// 从音节地址构造三维几何坐标
+    pub fn from_syllable(addr: (u8, u8, u8)) -> Self {
+        let theta = (addr.0 as f64) * (2.0 * std::f64::consts::PI / 48.0);
+        let radius = 10.0 + (addr.1 as f64) * (190.0 / 65.0);
+        let height = (addr.2 as f64) * (100.0 / 99.0);
+        let x = radius * theta.cos();
+        let z = radius * theta.sin();
+        let y = height;
+        Self { x, y, z, theta, radius, height }
+    }
+
+    /// 两点间欧氏距离
+    pub fn distance(&self, other: &Geometry3D) -> f64 {
+        let dx = self.x - other.x;
+        let dy = self.y - other.y;
+        let dz = self.z - other.z;
+        (dx * dx + dy * dy + dz * dz).sqrt()
+    }
+
+    /// 向量长度
+    pub fn magnitude(&self) -> f64 {
+        (self.x * self.x + self.y * self.y + self.z * self.z).sqrt()
+    }
+
+    /// 与原点连线同Y轴夹角
+    pub fn elevation(&self) -> f64 {
+        if self.magnitude() == 0.0 { return 0.0; }
+        (self.y / self.magnitude()).acos()
+    }
+
+    /// 颜色编码 (HSL): 色调=声母, 饱和度=韵母, 亮度=声调
+    pub fn to_hsl(&self) -> (f64, f64, f64) {
+        let h = (self.theta * 180.0 / std::f64::consts::PI).rem_euclid(360.0);
+        let s = (self.radius - 10.0) / 190.0;
+        let l = self.height / 100.0;
+        (h, s.clamp(0.0, 1.0), l.clamp(0.0, 1.0))
+    }
+}
+
+impl Default for Geometry3D {
+    fn default() -> Self { Self::from_syllable((0, 0, 0)) }
+}
+
+/// 几何化身容器 — 将三维几何与容器元数据绑定
+#[derive(Clone, Debug, Default)]
+pub struct GeometricContainer {
+    pub coord: Geometry3D,
+    pub syllable: (u8, u8, u8),
+    pub container_id: u64,
+    pub energy: f64,
+}
+
+/// 几何化身引擎
+#[derive(Clone, Debug, Default)]
+pub struct ContainerGeometry3D {
+    pub containers: Vec<GeometricContainer>,
+}
+
+impl ContainerGeometry3D {
+    pub fn new() -> Self { Self { containers: Vec::new() } }
+
+    /// 插入一个容器
+    pub fn insert(&mut self, syllable: (u8, u8, u8), id: u64) {
+        let coord = Geometry3D::from_syllable(syllable);
+        self.containers.push(GeometricContainer { coord, syllable, container_id: id, energy: 1.0 });
+    }
+
+    /// 找离给定音节最近的容器
+    pub fn nearest(&self, syllable: (u8, u8, u8)) -> Option<&GeometricContainer> {
+        let target = Geometry3D::from_syllable(syllable);
+        self.containers.iter().min_by(|a, b| {
+            let da = a.coord.distance(&target);
+            let db = b.coord.distance(&target);
+            da.partial_cmp(&db).unwrap_or(std::cmp::Ordering::Equal)
+        })
+    }
+
+    /// 查找半径范围内的所有容器
+    pub fn within_radius(&self, syllable: (u8, u8, u8), radius: f64) -> Vec<&GeometricContainer> {
+        let target = Geometry3D::from_syllable(syllable);
+        self.containers.iter().filter(|c| c.coord.distance(&target) <= radius).collect()
+    }
+
+    /// 系统总能量
+    pub fn total_energy(&self) -> f64 {
+        self.containers.iter().map(|c| c.energy).sum()
+    }
+
+    /// 计算质心
+    pub fn center_of_mass(&self) -> Option<(f64, f64, f64)> {
+        if self.containers.is_empty() { return None; }
+        let n = self.containers.len() as f64;
+        Some((
+            self.containers.iter().map(|c| c.coord.x).sum::<f64>() / n,
+            self.containers.iter().map(|c| c.coord.y).sum::<f64>() / n,
+            self.containers.iter().map(|c| c.coord.z).sum::<f64>() / n,
+        ))
+    }
+
+    /// 容器总数
+    pub fn len(&self) -> usize { self.containers.len() }
+
+    /// 生成 SVG 路径描述 (用于可视化)
+    pub fn to_svg_points(&self) -> Vec<(f64, f64, f64)> {
+        self.containers.iter().map(|c| (c.coord.x, c.coord.y, c.coord.z)).collect()
+    }
+}
+
+#[cfg(test)]
+mod geometry3d_tests {
+    use super::*;
+    #[test] fn test_geometry_from_syllable() { let g = Geometry3D::from_syllable((0, 0, 0)); assert!(g.x > 0.0); assert!(g.radius > 0.0); }
+    #[test] fn test_geometry_distance() { let a = Geometry3D::from_syllable((0, 30, 50)); let b = Geometry3D::from_syllable((24, 30, 50)); assert!(a.distance(&b) > 50.0); }
+    #[test] fn test_geometry_default() { let g = Geometry3D::default(); assert_eq!(g.y, 0.0); }
+    #[test] fn test_magnitude() { let g = Geometry3D::from_syllable((0, 30, 50)); assert!(g.magnitude() > 0.0); }
+    #[test] fn test_elevation() { let g = Geometry3D::from_syllable((0, 0, 99)); let e = g.elevation(); assert!(e < std::f64::consts::PI / 2.0 + 0.01); }
+    #[test] fn test_to_hsl() { let g = Geometry3D::from_syllable((12, 32, 50)); let (h, s, l) = g.to_hsl(); assert!(h >= 0.0 && h <= 360.0); assert!(s >= 0.0 && s <= 1.0); }
+    #[test] fn test_insert() { let mut e = ContainerGeometry3D::new(); e.insert((10, 20, 30), 42); assert_eq!(e.len(), 1); }
+    #[test] fn test_nearest() { let mut e = ContainerGeometry3D::new(); e.insert((0, 0, 0), 1); e.insert((40, 60, 90), 2); let n = e.nearest((1, 0, 0)).unwrap(); assert_eq!(n.container_id, 1); }
+    #[test] fn test_within_radius() { let mut e = ContainerGeometry3D::new(); e.insert((0, 0, 0), 1); e.insert((1, 0, 0), 2); e.insert((40, 60, 90), 3); let r = e.within_radius((0, 0, 0), 50.0); assert_eq!(r.len(), 2); }
+    #[test] fn test_total_energy() { let mut e = ContainerGeometry3D::new(); e.insert((0, 0, 0), 1); e.insert((1, 1, 1), 2); assert!((e.total_energy() - 2.0).abs() < 0.01); }
+    #[test] fn test_center_of_mass() { let mut e = ContainerGeometry3D::new(); e.insert((0, 0, 0), 1); e.insert((10, 10, 10), 2); let com = e.center_of_mass().unwrap(); assert!(com.0 > 0.0); }
+    #[test] fn test_empty_geometry() { let e = ContainerGeometry3D::new(); assert_eq!(e.len(), 0); assert_eq!(e.total_energy(), 0.0); assert!(e.center_of_mass().is_none()); }
+    #[test] fn test_default_geometry() { let g = Geometry3D::default(); assert_eq!(g.y, 0.0); assert!(g.radius > 0.0); }
+}
