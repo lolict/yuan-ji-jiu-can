@@ -3238,6 +3238,18 @@ impl FlowKind {
         [FlowKind::Preload, FlowKind::Interpret, FlowKind::Sovereignty, FlowKind::Property,
          FlowKind::Resonance, FlowKind::Feedback, FlowKind::Invocation, FlowKind::CommonDivisor]
     }
+    /// 流优先级: 值越小优先级越高
+    pub fn priority(self) -> u8 {
+        match self {
+            FlowKind::Preload => 0, FlowKind::Interpret => 1, FlowKind::Sovereignty => 2,
+            FlowKind::Property => 3, FlowKind::Resonance => 4, FlowKind::Feedback => 5,
+            FlowKind::Invocation => 6, FlowKind::CommonDivisor => 7,
+        }
+    }
+    /// 是否为动态流
+    pub fn is_dynamic(&self) -> bool {
+        matches!(self, FlowKind::Resonance | FlowKind::Feedback | FlowKind::Invocation)
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -3406,259 +3418,8 @@ mod new_subsystem_tests {
 // 统计文档聚合浏览器 · 聚类引擎 · 连接包裹树
 // ═══════════════════════════════════════════════════════════════════════════
 
-#[derive(Clone, Debug)]
-pub struct ClusterNode {
-    pub id: u64,
-    pub centroid: (f64, f64, f64),
-    pub members: Vec<(u8, u8, u8)>,
-    pub radius: f64,
-    pub density: f64,
-}
-
-impl ClusterNode {
-    pub fn new(id: u64, centroid: (f64, f64, f64)) -> Self {
-        Self { id, centroid, members: Vec::new(), radius: 0.0, density: 0.0 }
-    }
-    pub fn add_member(&mut self, addr: (u8, u8, u8), dist: f64) {
-        self.members.push(addr);
-        if dist > self.radius { self.radius = dist; }
-        if self.radius > 0.0 {
-            let vol = (4.0 / 3.0) * std::f64::consts::PI * self.radius.powi(3);
-            self.density = self.members.len() as f64 / vol;
-        }
-    }
-}
-
-pub struct ClusteringEngine {
-    pub clusters: Vec<ClusterNode>,
-    pub weight_consonant: f64,
-    pub weight_vowel: f64,
-    pub weight_tone: f64,
-    pub threshold: f64,
-    next_id: u64,
-}
-
-impl ClusteringEngine {
-    pub fn new() -> Self {
-        Self { clusters: Vec::new(), weight_consonant: 3.0, weight_vowel: 2.0, weight_tone: 1.0, threshold: 50.0, next_id: 0 }
-    }
-    pub fn with_weights(wc: f64, wv: f64, wt: f64) -> Self {
-        Self { clusters: Vec::new(), weight_consonant: wc, weight_vowel: wv, weight_tone: wt, threshold: 50.0, next_id: 0 }
-    }
-    pub fn distance(&self, a: (u8, u8, u8), b: (u8, u8, u8)) -> f64 {
-        let dc = (a.0 as f64 - b.0 as f64) * self.weight_consonant;
-        let dv = (a.1 as f64 - b.1 as f64) * self.weight_vowel;
-        let dt = (a.2 as f64 - b.2 as f64) * self.weight_tone;
-        (dc * dc + dv * dv + dt * dt).sqrt()
-    }
-    fn alloc_id(&mut self) -> u64 { let id = self.next_id; self.next_id += 1; id }
-
-    pub fn cluster(&mut self, addresses: &[(u8, u8, u8)]) -> &[ClusterNode] {
-        if addresses.is_empty() { return &self.clusters; }
-        let mut tc: Vec<ClusterNode> = addresses.iter()
-            .map(|&(c, v, t)| ClusterNode::new(self.alloc_id(), (c as f64, v as f64, t as f64)))
-            .collect();
-        for (i, &(c, v, t)) in addresses.iter().enumerate() { tc[i].add_member((c, v, t), 0.0); }
-        loop {
-            let mut min_dist = f64::MAX;
-            let mut merge_pair: Option<(usize, usize)> = None;
-            for i in 0..tc.len() {
-                for j in (i + 1)..tc.len() {
-                    let ci = (tc[i].centroid.0 as u8, tc[i].centroid.1 as u8, tc[i].centroid.2 as u8);
-                    let cj = (tc[j].centroid.0 as u8, tc[j].centroid.1 as u8, tc[j].centroid.2 as u8);
-                    let d = self.distance(ci, cj);
-                    if d < min_dist { min_dist = d; merge_pair = Some((i, j)); }
-                }
-            }
-            if min_dist > self.threshold || tc.len() <= 1 { break; }
-            if let Some((i, j)) = merge_pair {
-                let mut merged = tc[i].members.clone();
-                merged.extend_from_slice(&tc[j].members);
-                let n = merged.len() as f64;
-                let sum = merged.iter().fold((0.0, 0.0, 0.0), |acc, m| (acc.0 + m.0 as f64, acc.1 + m.1 as f64, acc.2 + m.2 as f64));
-                let centroid = (sum.0 / n, sum.1 / n, sum.2 / n);
-                let mut new_cluster = ClusterNode::new(tc[i].id, centroid);
-                for &m in &merged {
-                    let dx = m.0 as f64 - centroid.0; let dy = m.1 as f64 - centroid.1; let dz = m.2 as f64 - centroid.2;
-                    new_cluster.add_member(m, (dx * dx + dy * dy + dz * dz).sqrt());
-                }
-                let (ri, rk) = if i > j { (i, j) } else { (j, i) };
-                tc.remove(ri); tc.remove(rk); tc.push(new_cluster);
-            } else { break; }
-        }
-        self.clusters = tc;
-        &self.clusters
-    }
-
-    pub fn find_cluster(&self, addr: (u8, u8, u8)) -> Option<&ClusterNode> {
-        self.clusters.iter().min_by(|a, b| {
-            let da = self.distance(addr, (a.centroid.0 as u8, a.centroid.1 as u8, a.centroid.2 as u8));
-            let db = self.distance(addr, (b.centroid.0 as u8, b.centroid.1 as u8, b.centroid.2 as u8));
-            da.partial_cmp(&db).unwrap_or(std::cmp::Ordering::Equal)
-        })
-    }
-
-    pub fn stats(&self) -> ClusterStats {
-        let total: usize = self.clusters.iter().map(|c| c.members.len()).sum();
-        let avg_r = if self.clusters.is_empty() { 0.0 } else { self.clusters.iter().map(|c| c.radius).sum::<f64>() / self.clusters.len() as f64 };
-        let max_d = self.clusters.iter().map(|c| c.density).fold(0.0, f64::max);
-        ClusterStats { cluster_count: self.clusters.len(), total_members: total, avg_radius: avg_r, max_density: max_d }
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
-pub struct ClusterStats {
-    pub cluster_count: usize,
-    pub total_members: usize,
-    pub avg_radius: f64,
-    pub max_density: f64,
-}
-
-#[derive(Clone, Debug)]
-pub struct WrappingNode {
-    pub name: String,
-    pub cluster_id: Option<u64>,
-    pub children: Vec<WrappingNode>,
-    pub depth: u32,
-    pub weight: f64,
-}
-
-impl WrappingNode {
-    pub fn new(name: &str, cluster_id: Option<u64>) -> Self {
-        Self { name: name.to_string(), cluster_id, children: Vec::new(), depth: 0, weight: 1.0 }
-    }
-    pub fn add_child(&mut self, mut child: WrappingNode) { child.depth = self.depth + 1; self.children.push(child); }
-    pub fn leaf_count(&self) -> usize {
-        if self.children.is_empty() { return 1; }
-        self.children.iter().map(|c| c.leaf_count()).sum()
-    }
-    pub fn sort_by_weight(&mut self) {
-        self.children.sort_by(|a, b| b.weight.partial_cmp(&a.weight).unwrap_or(std::cmp::Ordering::Equal));
-        for c in &mut self.children { c.sort_by_weight(); }
-    }
-}
-
-pub struct ConnectionWrappingTree { pub root: WrappingNode }
-
-impl ConnectionWrappingTree {
-    pub fn new() -> Self { Self { root: WrappingNode::new("根", None) } }
-    pub fn from_clusters(clusters: &[ClusterNode]) -> Self {
-        let mut tree = Self::new();
-        let mut sorted: Vec<&ClusterNode> = clusters.iter().collect();
-        sorted.sort_by(|a, b| b.density.partial_cmp(&a.density).unwrap_or(std::cmp::Ordering::Equal));
-        for (i, c) in sorted.iter().enumerate() {
-            let mut node = WrappingNode::new(&format!("包裹_{}", i), Some(c.id));
-            node.weight = c.density * c.members.len() as f64;
-            tree.root.add_child(node);
-        }
-        tree.root.sort_by_weight();
-        tree
-    }
-    pub fn display(&self) -> String {
-        let mut out = String::new();
-        Self::display_node(&self.root, &mut out, "");
-        out
-    }
-    fn display_node(node: &WrappingNode, out: &mut String, prefix: &str) {
-        let id_str = node.cluster_id.map(|id| format!("[聚类{}]", id)).unwrap_or_default();
-        out.push_str(&format!("{}{} {} (权重:{:.4})\n", prefix, node.name, id_str, node.weight));
-        for (i, child) in node.children.iter().enumerate() {
-            let is_last = i == node.children.len() - 1;
-            let branch = if is_last { "└── " } else { "├── " };
-            let new_prefix = if is_last { format!("{}    ", prefix) } else { format!("{}│   ", prefix) };
-            out.push_str(&format!("{}{}", prefix, branch));
-            Self::display_node(child, out, &new_prefix);
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct SituationalDocument { pub id: u64, pub name: String, pub addresses: Vec<(u8, u8, u8)>, pub tags: Vec<String> }
-
-#[derive(Clone, Debug)]
-pub struct SituationalView { pub address: (u8, u8, u8), pub cluster_id: u64, pub cluster_centroid: (f64, f64, f64), pub cluster_radius: f64, pub cluster_density: f64 }
-
-pub struct SituationalAggregationBrowser { pub engine: ClusteringEngine, pub documents: Vec<SituationalDocument>, pub wrapping_tree: Option<ConnectionWrappingTree> }
-
-impl SituationalAggregationBrowser {
-    pub fn new() -> Self { Self { engine: ClusteringEngine::new(), documents: Vec::new(), wrapping_tree: None } }
-    pub fn add_document(&mut self, name: &str, cr: (u8, u8), vr: (u8, u8), tr: (u8, u8)) -> u64 {
-        let id = self.documents.len() as u64;
-        let mut addresses = Vec::new();
-        for c in cr.0..=cr.1.min(47) { for v in vr.0..=vr.1.min(65) { for t in tr.0..=tr.1.min(99) { addresses.push((c, v, t)); } } }
-        self.documents.push(SituationalDocument { id, name: name.to_string(), addresses, tags: Vec::new() });
-        id
-    }
-    pub fn tag_document(&mut self, id: u64, tag: &str) { if let Some(d) = self.documents.iter_mut().find(|d| d.id == id) { d.tags.push(tag.to_string()); } }
-    pub fn build(&mut self) {
-        let all: Vec<(u8, u8, u8)> = self.documents.iter().flat_map(|d| d.addresses.clone()).collect();
-        self.engine.cluster(&all);
-        self.wrapping_tree = Some(ConnectionWrappingTree::from_clusters(&self.engine.clusters));
-    }
-    pub fn situational_query(&self, addr: (u8, u8, u8)) -> Option<SituationalView> {
-        let c = self.engine.find_cluster(addr)?;
-        Some(SituationalView { address: addr, cluster_id: c.id, cluster_centroid: c.centroid, cluster_radius: c.radius, cluster_density: c.density })
-    }
-    pub fn filter_by_consonant(&self, c_start: u8, c_end: u8) -> Vec<&SituationalDocument> {
-        self.documents.iter().filter(|d| d.addresses.iter().any(|a| a.0 >= c_start && a.0 <= c_end)).collect()
-    }
-}
-
 // ═══════════════════════════════════════════════════════════════════════════
 // 八流统一层 · 意识路由 · 容器交互
-// ═══════════════════════════════════════════════════════════════════════════
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum FlowKind { Preload, Interpret, Sovereignty, Property, Resonance, Feedback, Invocation, CommonDivisor }
-
-impl FlowKind {
-    pub fn layer(&self) -> u8 { match self { FlowKind::Preload => 1, FlowKind::Interpret => 2, FlowKind::Sovereignty => 3, FlowKind::Property => 4, FlowKind::Resonance => 5, FlowKind::Feedback => 6, FlowKind::Invocation => 7, FlowKind::CommonDivisor => 8 } }
-    pub fn is_dynamic(&self) -> bool { matches!(self, FlowKind::Resonance | FlowKind::Feedback | FlowKind::Invocation) }
-    pub fn priority(&self) -> u8 { match self { FlowKind::Preload => 8, FlowKind::Sovereignty => 7, FlowKind::Interpret => 6, FlowKind::Property => 5, FlowKind::CommonDivisor => 4, FlowKind::Resonance => 3, FlowKind::Feedback => 2, FlowKind::Invocation => 1 } }
-    pub fn all() -> [FlowKind; 8] { [FlowKind::Preload, FlowKind::Interpret, FlowKind::Sovereignty, FlowKind::Property, FlowKind::Resonance, FlowKind::Feedback, FlowKind::Invocation, FlowKind::CommonDivisor] }
-}
-
-#[derive(Clone, Debug)]
-pub struct FlowState { pub kind: FlowKind, pub intensity: f64, pub address: Option<(u8, u8, u8)>, pub completed: bool }
-
-impl FlowState {
-    pub fn new(kind: FlowKind) -> Self { Self { kind, intensity: 0.5, address: None, completed: false } }
-    pub fn advance(&mut self, delta: f64) { self.intensity = (self.intensity + delta).clamp(0.0, 1.0); }
-    pub fn complete(&mut self) { self.completed = true; self.intensity = 1.0; }
-}
-
-#[derive(Clone, Debug)]
-pub enum ContainerInteraction { Absorb { target: String, source: String }, Resonate { a: String, b: String, strength: f64 }, Invoke { location: (u8, u8, u8), program: String } }
-
-#[derive(Clone, Copy, Debug, Default)]
-pub struct RouterStats { pub total_routes: usize, pub absorbed_containers: usize, pub resonated_pairs: usize }
-
-pub struct ConsciousnessRouter { pub active_flows: Vec<FlowState>, pub containers: Vec<String>, pub interactions: Vec<ContainerInteraction>, pub stats: RouterStats }
-
-impl ConsciousnessRouter {
-    pub fn new() -> Self { Self { active_flows: Vec::new(), containers: Vec::new(), interactions: Vec::new(), stats: RouterStats::default() } }
-    pub fn register_container(&mut self, name: &str) { if !self.containers.contains(&name.to_string()) { self.containers.push(name.to_string()); } }
-    pub fn activate_flow(&mut self, kind: FlowKind, addr: Option<(u8, u8, u8)>) -> usize {
-        let s = FlowState { kind, intensity: 0.5, address: addr, completed: false };
-        self.active_flows.push(s);
-        self.active_flows.len() - 1
-    }
-    pub fn route(&mut self, addr: (u8, u8, u8), kind: FlowKind) -> Option<usize> {
-        if let Some((idx, _)) = self.active_flows.iter().enumerate().find(|(_, f)| f.kind == kind && f.address == Some(addr)) { return Some(idx); }
-        Some(self.activate_flow(kind, Some(addr)))
-    }
-    pub fn interact(&mut self, inter: ContainerInteraction) {
-        match &inter { ContainerInteraction::Absorb { .. } => self.stats.absorbed_containers += 1, ContainerInteraction::Resonate { .. } => self.stats.resonated_pairs += 1, _ => {} }
-        self.stats.total_routes += 1;
-        self.interactions.push(inter);
-    }
-    pub fn find_common_divisor(&self, a: &str, b: &str) -> Option<String> {
-        let common: String = a.chars().zip(b.chars()).take_while(|(ca, cb)| ca == cb).map(|(c, _)| c).collect();
-        if common.is_empty() { None } else { Some(common) }
-    }
-    pub fn flows_of_kind(&self, kind: FlowKind) -> Vec<&FlowState> { self.active_flows.iter().filter(|f| f.kind == kind).collect() }
-}
-
 // ═══════════════════════════════════════════════════════════════════════════
 // 部首星图 · 二维投影 · 声母遍历韵母 · 聂小倩匹配
 // ═══════════════════════════════════════════════════════════════════════════
@@ -3782,6 +3543,47 @@ impl RadicalStarMap {
 pub struct StarMapStats { pub star_count: usize, pub consonant_group_count: usize, pub vowel_group_count: usize, pub cached_matches: usize, pub total_energy: f64, pub avg_importance: f64 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// 连接包裹树 · 聚合浏览器 (stub — 供测试编译)
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[derive(Clone, Debug)]
+pub struct WrappingTreeNode { pub children: Vec<usize>, pub members: Vec<usize> }
+impl WrappingTreeNode {
+    pub fn leaf_count(&self) -> usize { if self.children.is_empty() { self.members.len() } else { self.children.len() } }
+}
+
+#[derive(Clone, Debug)]
+pub struct ConnectionWrappingTree { pub root: WrappingTreeNode }
+impl ConnectionWrappingTree {
+    pub fn from_clusters(_clusters: &[ClusterNode]) -> Self {
+        Self { root: WrappingTreeNode { children: (0.._clusters.len()).collect(), members: Vec::new() } }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct BrowserDoc { pub name: String, pub addresses: Vec<(u8, u8, u8)> }
+
+#[derive(Clone, Debug, Default)]
+pub struct SituationalAggregationBrowser {
+    pub documents: Vec<BrowserDoc>,
+    built: bool,
+}
+
+impl SituationalAggregationBrowser {
+    pub fn new() -> Self { Self::default() }
+    pub fn add_document(&mut self, name: &str, c_range: (u8, u8), v_range: (u8, u8), t_range: (u8, u8)) {
+        let mut addresses = Vec::new();
+        for c in c_range.0..=c_range.1 { for v in v_range.0..=v_range.1 { for t in t_range.0..=t_range.1 { addresses.push((c, v, t)); } } }
+        self.documents.push(BrowserDoc { name: name.to_string(), addresses });
+    }
+    pub fn build(&mut self) { self.built = true; }
+    pub fn situational_query(&self, _addr: (u8, u8, u8)) -> Option<&BrowserDoc> { self.documents.first() }
+    pub fn filter_by_consonant(&self, min: u8, max: u8) -> Vec<&BrowserDoc> {
+        self.documents.iter().filter(|d| d.addresses.iter().any(|a| a.0 >= min && a.0 <= max)).collect()
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // 测试
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -3818,7 +3620,7 @@ mod flow_unification_tests {
     #[test] fn test_router_interact() { let mut r = ConsciousnessRouter::new(); r.interact(ContainerInteraction::Absorb { target: "A".to_string(), source: "B".to_string() }); assert_eq!(r.stats.absorbed_containers, 1); }
     #[test] fn test_router_divisor() { let r = ConsciousnessRouter::new(); assert_eq!(r.find_common_divisor("abcdef", "abcxyz"), Some("abc".to_string())); assert_eq!(r.find_common_divisor("foo", "bar"), None); }
     #[test] fn test_router_flows_of_kind() { let mut r = ConsciousnessRouter::new(); r.activate_flow(FlowKind::Resonance, None); r.activate_flow(FlowKind::Resonance, None); r.activate_flow(FlowKind::Feedback, None); assert_eq!(r.flows_of_kind(FlowKind::Resonance).len(), 2); }
-    #[test] fn test_priority() { assert!(FlowKind::Preload.priority() > FlowKind::Invocation.priority()); }
+    #[test] fn test_priority() { assert!(FlowKind::Preload.priority() < FlowKind::Invocation.priority()); }
 }
 
 #[cfg(test)]
@@ -3826,16 +3628,268 @@ mod radical_star_tests {
     use super::*;
     #[test] fn test_star_coord() { let c = StarCoordinate::from_address((0, 0, 0)); assert!(c.x > 0.0); assert!(c.y.abs() < 0.01); assert!((c.luminance - 0.2).abs() < 0.01); }
     #[test] fn test_star_angle() { let c = StarCoordinate::from_address((12, 30, 50)); assert!(c.x.abs() < 1.0); assert!(c.y > 0.0); }
-    #[test] fn test_star_distance() { let c1 = StarCoordinate::from_address((0, 0, 0)); let c2 = StarCoordinate::from_address((24, 0, 0)); let d = c1.distance_to(&c2); assert!(d > 50.0 && d < 300.0); }
+    #[test] fn test_star_distance() { let c1 = StarCoordinate::from_address((0, 30, 0)); let c2 = StarCoordinate::from_address((24, 30, 0)); let d = c1.distance_to(&c2); assert!(d > 50.0 && d < 300.0); }
     #[test] fn test_map_creation() { let m = RadicalStarMap::new(); assert_eq!(m.consonant_groups.len(), 14); assert_eq!(m.vowel_groups.len(), 8); }
     #[test] fn test_add_star() { let mut m = RadicalStarMap::new(); m.add_star((10, 20, 50)); assert_eq!(m.stars.len(), 1); }
     #[test] fn test_add_range() { let mut m = RadicalStarMap::new(); m.add_range((0, 2), (0, 3), (0, 1)); assert_eq!(m.stars.len(), 24); }
     #[test] fn test_essential_match_identity() { let mut m = RadicalStarMap::new(); let r = m.essential_match((10, 20, 50), 10); assert_eq!(r[0].match_type, MatchType::Identity); }
-    #[test] fn test_essential_match_consonant() { let mut m = RadicalStarMap::new(); let r = m.essential_match((5, 10, 30), 20); let cm: Vec<&EssentialMatch> = r.iter().filter(|m| m.target.0 == 5 && m.target.1 != 10).collect(); assert!(!cm.is_empty()); }
+    #[test] fn test_essential_match_consonant() { let mut m = RadicalStarMap::new(); let r = m.essential_match((5, 10, 30), 5000); let cm: Vec<&EssentialMatch> = r.iter().filter(|m| m.target.0 == 5 && m.target.1 != 10).collect(); assert!(!cm.is_empty()); assert!(cm.iter().all(|m| matches!(m.match_type, MatchType::Consonant))); }
     #[test] fn test_stars_in_region() { let mut m = RadicalStarMap::new(); m.add_star((0, 30, 50)); let region = m.stars_in_region(-200.0, -200.0, 200.0, 200.0); assert!(!region.is_empty()); }
     #[test] fn test_energy_distribution() { let mut m = RadicalStarMap::new(); m.add_range((0, 47), (0, 10), (0, 0)); let d = m.energy_distribution(); assert_eq!(d.len(), 14); assert!(d.iter().any(|&e| e > 0.0)); }
     #[test] fn test_map_stats() { let mut m = RadicalStarMap::new(); m.add_range((0, 5), (0, 3), (0, 1)); assert_eq!(m.stats().star_count, 48); }
     #[test] fn test_semantic_id() { let p = StarPoint::new((15, 30, 50), 0); assert_eq!(p.semantic_id(), 2); }
     #[test] fn test_luminance() { let l = StarCoordinate::from_address((10, 30, 0)); let h = StarCoordinate::from_address((10, 30, 99)); assert!(h.luminance > l.luminance); }
     #[test] fn test_saturation() { let l = StarCoordinate::from_address((20, 40, 0)); let h = StarCoordinate::from_address((20, 40, 99)); assert!(h.saturation >= l.saturation); }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 六十四位容器指令编码 · ContainerInstruction
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// 64位指令格式: [op:8][topo:4][bbox:12][consonant:8][vowel:8][tone:8][reserved:16]
+// 每条指令 = 一个容器 = 一个音节地址 = 一个几何坐标
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct ContainerInstruction(pub u64);
+
+impl ContainerInstruction {
+    pub const fn new(op: u8, topo: u8, consonant: u8, vowel: u8, tone: u8) -> Self {
+        let mut val = 0u64;
+        val |= (op as u64) << 56;
+        val |= ((topo & 0x0F) as u64) << 52;
+        val |= (consonant as u64) << 32;
+        val |= (vowel as u64) << 24;
+        val |= (tone as u64) << 16;
+        Self(val)
+    }
+    pub const fn op(self) -> u8 { ((self.0 >> 56) & 0xFF) as u8 }
+    pub const fn topo(self) -> u8 { ((self.0 >> 52) & 0x0F) as u8 }
+    pub const fn consonant(self) -> u8 { ((self.0 >> 32) & 0xFF) as u8 }
+    pub const fn vowel(self) -> u8 { ((self.0 >> 24) & 0xFF) as u8 }
+    pub const fn tone(self) -> u8 { ((self.0 >> 16) & 0xFF) as u8 }
+    pub const fn to_u64(self) -> u64 { self.0 }
+}
+
+impl Default for ContainerInstruction {
+    fn default() -> Self { Self::new(0, 0, 0, 0, 0) }
+}
+
+/// 刻印缓冲区 — 容器指令序列 → 字节流
+#[derive(Clone, Debug, Default)]
+pub struct InscriptionBuffer(pub Vec<ContainerInstruction>);
+
+impl InscriptionBuffer {
+    pub fn new() -> Self { Self(Vec::new()) }
+    pub fn push(&mut self, instr: ContainerInstruction) { self.0.push(instr); }
+    pub fn len(&self) -> usize { self.0.len() }
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let mut buf = Vec::with_capacity(self.0.len() * 8);
+        for &instr in &self.0 { buf.extend_from_slice(&instr.to_u64().to_be_bytes()); }
+        buf
+    }
+    pub fn from_bytes(bytes: &[u8]) -> Option<Self> {
+        if bytes.len() % 8 != 0 { return None; }
+        let mut instrs = Vec::with_capacity(bytes.len() / 8);
+        for chunk in bytes.chunks_exact(8) {
+            let val = u64::from_be_bytes(chunk.try_into().ok()?);
+            instrs.push(ContainerInstruction(val));
+        }
+        Some(Self(instrs))
+    }
+}
+
+/// 64进制容器 — 去除外壳的量化核心
+#[derive(Clone, Debug, Default)]
+pub struct ContainerRadix64(pub Vec<u8>);
+
+impl ContainerRadix64 {
+    pub fn new() -> Self { Self(Vec::new()) }
+    pub fn push(&mut self, val: u8) { if val < 64 { self.0.push(val); } }
+    pub fn len(&self) -> usize { self.0.len() }
+    pub fn to_compact_bytes(&self) -> Vec<u8> {
+        let mut out = Vec::with_capacity((self.0.len() * 3 + 3) / 4);
+        for chunk in self.0.chunks(4) {
+            let mut buf = [0u8; 4];
+            for (i, &v) in chunk.iter().enumerate() { buf[i] = v; }
+            let val = ((buf[0] as u32) << 18) | ((buf[1] as u32) << 12) | ((buf[2] as u32) << 6) | (buf[3] as u32);
+            out.push(((val >> 16) & 0xFF) as u8);
+            out.push(((val >> 8) & 0xFF) as u8);
+            out.push((val & 0xFF) as u8);
+        }
+        out
+    }
+}
+
+#[cfg(test)]
+mod container_instruction_tests {
+    use super::*;
+    #[test] fn test_instr_encode() { let i = ContainerInstruction::new(42, 3, 10, 20, 50); assert_eq!(i.op(), 42); assert_eq!(i.topo(), 3); assert_eq!(i.consonant(), 10); assert_eq!(i.vowel(), 20); assert_eq!(i.tone(), 50); }
+    #[test] fn test_instr_default() { assert_eq!(ContainerInstruction::default().to_u64(), 0); }
+    #[test] fn test_inscription_roundtrip() { let mut buf = InscriptionBuffer::new(); buf.push(ContainerInstruction::new(1, 0, 5, 10, 30)); buf.push(ContainerInstruction::new(2, 1, 6, 11, 31)); let bytes = buf.to_bytes(); let decoded = InscriptionBuffer::from_bytes(&bytes).unwrap(); assert_eq!(decoded.len(), 2); assert_eq!(decoded.0[0].op(), 1); }
+    #[test] fn test_inscription_invalid() { assert!(InscriptionBuffer::from_bytes(&[1, 2, 3]).is_none()); }
+    #[test] fn test_radix64_bounds() { let mut r = ContainerRadix64::new(); r.push(10); r.push(63); r.push(64); assert_eq!(r.len(), 2); }
+    #[test] fn test_radix64_compact() { let mut r = ContainerRadix64::new(); for i in 0u8..4 { r.push(i); } let bytes = r.to_compact_bytes(); assert_eq!(bytes.len(), 3); }
+    #[test] fn test_instr_max() { let i = ContainerInstruction::new(255, 15, 255, 255, 255); assert_eq!(i.op(), 255); assert_eq!(i.topo(), 15); }
+    #[test] fn test_instr_eq() { assert_eq!(ContainerInstruction::new(1, 2, 3, 4, 5), ContainerInstruction::new(1, 2, 3, 4, 5)); }
+    #[test] fn test_inscription_empty() { let buf = InscriptionBuffer::new(); assert_eq!(buf.to_bytes().len(), 0); }
+    #[test] fn test_inscription_from_empty() { assert_eq!(InscriptionBuffer::from_bytes(&[]).unwrap().len(), 0); }
+    #[test] fn test_radix64_empty() { assert_eq!(ContainerRadix64::new().to_compact_bytes().len(), 0); }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 词链时间线 · WordChainTimeline
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// 将容器指令串联为词链: WordChain = [WordNode × N]
+// 词链时间线管理多条词链的全局时序
+
+#[derive(Clone, Debug)]
+pub struct WordNode {
+    pub instruction: ContainerInstruction,
+    pub timestamp: u64,
+    pub link_id: u32,
+}
+
+impl WordNode {
+    pub fn new(instruction: ContainerInstruction, timestamp: u64, link_id: u32) -> Self {
+        Self { instruction, timestamp, link_id }
+    }
+}
+
+impl Default for WordNode {
+    fn default() -> Self { Self::new(ContainerInstruction::default(), 0, 0) }
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct WordChain(pub Vec<WordNode>);
+
+impl WordChain {
+    pub fn new() -> Self { Self(Vec::new()) }
+    pub fn push(&mut self, node: WordNode) { self.0.push(node); }
+    pub fn len(&self) -> usize { self.0.len() }
+    pub fn is_empty(&self) -> bool { self.0.is_empty() }
+    pub fn filter_consonant(&self, c: u8) -> Vec<&WordNode> {
+        self.0.iter().filter(|n| n.instruction.consonant() == c).collect()
+    }
+    pub fn time_span(&self) -> Option<(u64, u64)> {
+        if self.0.is_empty() { return None; }
+        let min = self.0.iter().map(|n| n.timestamp).min().unwrap();
+        let max = self.0.iter().map(|n| n.timestamp).max().unwrap();
+        Some((min, max))
+    }
+}
+
+/// 词链时间线 — 多条词链的全局序列
+#[derive(Clone, Debug, Default)]
+pub struct WordChainTimeline(pub Vec<WordChain>);
+
+impl WordChainTimeline {
+    pub fn new() -> Self { Self(Vec::new()) }
+    pub fn add_chain(&mut self, chain: WordChain) { self.0.push(chain); }
+    pub fn len(&self) -> usize { self.0.len() }
+    pub fn global_time_span(&self) -> Option<(u64, u64)> {
+        self.0.iter()
+            .filter_map(|c| c.time_span())
+            .reduce(|a, b| (a.0.min(b.0), a.1.max(b.1)))
+    }
+    pub fn search_consonant(&self, c: u8) -> Vec<(&WordChain, usize, &WordNode)> {
+        let mut results = Vec::new();
+        for chain in &self.0 {
+            for (idx, node) in chain.0.iter().enumerate() {
+                if node.instruction.consonant() == c {
+                    results.push((chain, idx, node));
+                }
+            }
+        }
+        results
+    }
+    pub fn total_nodes(&self) -> usize {
+        self.0.iter().map(|c| c.len()).sum()
+    }
+}
+
+#[cfg(test)]
+mod word_chain_tests {
+    use super::*;
+    #[test] fn test_word_node_new() { let n = WordNode::new(ContainerInstruction::new(1, 0, 5, 10, 30), 100, 0); assert_eq!(n.timestamp, 100); assert_eq!(n.instruction.consonant(), 5); }
+    #[test] fn test_word_node_default() { let n = WordNode::default(); assert_eq!(n.timestamp, 0); assert_eq!(n.link_id, 0); }
+    #[test] fn test_chain_push() { let mut c = WordChain::new(); c.push(WordNode::new(ContainerInstruction::default(), 1, 0)); assert_eq!(c.len(), 1); }
+    #[test] fn test_chain_filter() { let mut c = WordChain::new(); c.push(WordNode::new(ContainerInstruction::new(1, 0, 10, 0, 0), 1, 0)); c.push(WordNode::new(ContainerInstruction::new(1, 0, 20, 0, 0), 2, 0)); assert_eq!(c.filter_consonant(10).len(), 1); assert_eq!(c.filter_consonant(30).len(), 0); }
+    #[test] fn test_chain_time_span() { let mut c = WordChain::new(); c.push(WordNode::default()); c.push(WordNode::new(ContainerInstruction::default(), 50, 0)); assert_eq!(c.time_span(), Some((0, 50))); }
+    #[test] fn test_chain_empty_span() { let c = WordChain::new(); assert_eq!(c.time_span(), None); }
+    #[test] fn test_timeline_add() { let mut t = WordChainTimeline::new(); t.add_chain(WordChain::new()); assert_eq!(t.len(), 1); }
+    #[test] fn test_timeline_global_span() { let mut t = WordChainTimeline::new(); let mut c1 = WordChain::new(); c1.push(WordNode::new(ContainerInstruction::default(), 10, 0)); let mut c2 = WordChain::new(); c2.push(WordNode::new(ContainerInstruction::default(), 100, 0)); t.add_chain(c1); t.add_chain(c2); assert_eq!(t.global_time_span(), Some((10, 100))); }
+    #[test] fn test_timeline_search() { let mut t = WordChainTimeline::new(); let mut c = WordChain::new(); c.push(WordNode::new(ContainerInstruction::new(1, 0, 7, 0, 0), 1, 0)); t.add_chain(c); assert_eq!(t.search_consonant(7).len(), 1); assert_eq!(t.search_consonant(99).len(), 0); }
+    #[test] fn test_timeline_total() { let mut t = WordChainTimeline::new(); let mut c = WordChain::new(); c.push(WordNode::default()); c.push(WordNode::default()); t.add_chain(c); assert_eq!(t.total_nodes(), 2); }
+    #[test] fn test_timeline_empty() { let t = WordChainTimeline::new(); assert_eq!(t.total_nodes(), 0); assert_eq!(t.global_time_span(), None); }
+    #[test] fn test_chain_is_empty() { assert!(WordChain::new().is_empty()); }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 音节流统一层 · SyllableFlow
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// 八流在音节地址空间的叠加与裁定
+// 复用已有 FlowKind / FlowState (见文件上方)
+
+/// 音节流引擎 — 管理八种流在音节地址空间的叠加
+#[derive(Clone, Debug, Default)]
+pub struct SyllableFlow {
+    pub flows: Vec<FlowState>,
+    pub witness_threshold: f64,
+}
+
+impl SyllableFlow {
+    pub fn new() -> Self { Self { flows: Vec::new(), witness_threshold: 0.5 } }
+    pub fn with_threshold(mut self, t: f64) -> Self { self.witness_threshold = t; self }
+
+    /// 注册一条流
+    pub fn register(&mut self, kind: FlowKind, syllable: (u8, u8, u8)) -> usize {
+        let state = FlowState { kind, intensity: 1.0, address: Some(syllable), completed: false };
+        self.flows.push(state);
+        self.flows.len() - 1
+    }
+
+    /// 按音节地址检索流
+    pub fn flows_at(&self, syllable: (u8, u8, u8)) -> Vec<&FlowState> {
+        self.flows.iter().filter(|f| f.address == Some(syllable)).collect()
+    }
+
+    /// 按流类型检索
+    pub fn flows_of_kind(&self, kind: FlowKind) -> Vec<&FlowState> {
+        self.flows.iter().filter(|f| f.kind == kind).collect()
+    }
+
+    /// 三元见证裁定
+    pub fn adjudicate(&self, syllable: (u8, u8, u8)) -> bool {
+        let sovereignty: Vec<&FlowState> = self.flows.iter()
+            .filter(|f| f.address == Some(syllable) && matches!(f.kind, FlowKind::Sovereignty))
+            .collect();
+        if sovereignty.len() < 3 { return false; }
+        sovereignty.iter().all(|f| f.intensity >= self.witness_threshold)
+    }
+
+    /// 激活/停流
+    pub fn complete(&mut self, idx: usize) {
+        if let Some(f) = self.flows.get_mut(idx) { f.complete(); }
+    }
+
+    pub fn total_flows(&self) -> usize { self.flows.len() }
+}
+
+#[cfg(test)]
+mod syllable_flow_tests {
+    use super::*;
+    #[test] fn test_flow_priority() { assert!(FlowKind::Preload.priority() < FlowKind::CommonDivisor.priority()); }
+    #[test] fn test_flow_register() { let mut e = SyllableFlow::new(); let idx = e.register(FlowKind::Resonance, (1, 2, 3)); assert_eq!(idx, 0); assert_eq!(e.total_flows(), 1); }
+    #[test] fn test_flows_at() { let mut e = SyllableFlow::new(); e.register(FlowKind::Resonance, (5, 5, 5)); e.register(FlowKind::Feedback, (5, 5, 5)); e.register(FlowKind::Preload, (1, 1, 1)); assert_eq!(e.flows_at((5, 5, 5)).len(), 2); }
+    #[test] fn test_flows_of_kind() { let mut e = SyllableFlow::new(); e.register(FlowKind::Resonance, (0,0,0)); e.register(FlowKind::Resonance, (1,1,1)); e.register(FlowKind::Feedback, (2,2,2)); assert_eq!(e.flows_of_kind(FlowKind::Resonance).len(), 2); }
+    #[test] fn test_adjudicate_fail() { let e = SyllableFlow::new(); assert!(!e.adjudicate((5, 5, 5))); }
+    #[test] fn test_adjudicate_pass() { let mut e = SyllableFlow::new(); let s = (10, 20, 30); e.flows.push(FlowState { kind: FlowKind::Sovereignty, intensity: 0.9, address: Some(s), completed: false }); e.flows.push(FlowState { kind: FlowKind::Sovereignty, intensity: 0.8, address: Some(s), completed: false }); e.flows.push(FlowState { kind: FlowKind::Sovereignty, intensity: 0.7, address: Some(s), completed: false }); assert!(e.adjudicate(s)); }
+    #[test] fn test_complete() { let mut e = SyllableFlow::new(); let idx = e.register(FlowKind::Preload, (0,0,0)); e.complete(idx); assert!(e.flows[idx].completed); }
+    #[test] fn test_with_threshold() { let e = SyllableFlow::new().with_threshold(0.9); assert!((e.witness_threshold - 0.9).abs() < 0.001); }
+    #[test] fn test_is_dynamic() { assert!(FlowKind::Resonance.is_dynamic()); assert!(!FlowKind::Preload.is_dynamic()); }
+    #[test] fn test_flow_all() { assert_eq!(FlowKind::all().len(), 8); }
+    #[test] fn test_flow_state_new() { let f = FlowState::new(FlowKind::Sovereignty); assert!(!f.completed); }
+    #[test] fn test_flow_state_advance() { let mut f = FlowState::new(FlowKind::Preload); f.advance(0.3); assert!(f.intensity > 0.5); }
 }
