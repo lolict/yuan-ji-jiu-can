@@ -1,0 +1,43 @@
+# 浏览器壳 · WASM 寄生壳
+[shell]
+name = "browser-wasm"
+version = "0.1.0"
+description = "将满全法 WASM 内核寄生在浏览器运行时中"
+
+[match]
+platforms = ["browser", "web"]
+runtimes = ["wasm32", "wasm64"]
+indicators = ["window", "document", "navigator"]
+auto_detect = ["typeof window !== 'undefined'", "typeof WebAssembly !== 'undefined'"]
+
+[kernel]
+source = "../wasm_kernel/mqf_container.c"
+bridge = "../wasm_kernel/mqf_bridge.c"
+compile_target = "wasm32"
+export_symbols = [
+    "mqf_container_init", "mqf_distance", "mqf_consume",
+    "mqf_merge", "mqf_settle", "mqf_drive", "mqf_cycle",
+    "mqf_judge_polarity", "mqf_bridge_init", "mqf_bridge_judge",
+    "mqf_bridge_relate"
+]
+
+[inject]
+domain_source = "../自举编译器/域索引.txt"
+entry_function = "mqf_bridge_init"
+init_mode = "eager"
+
+[reverse_parasite]
+mechanism = "JS调用WASM导出函数，浏览器事件循环遵循SMRL引擎"
+parasitic_contract = """
+// 外部系统以为自己在用普通的 WASM 模块
+import init, { mqf_bridge_judge, mqf_bridge_relate } from './mqf.js';
+
+// 但每次调用都经过极性判决 → 容器生命周期 → 沉淀驱动
+const result = mqf_bridge_judge(containerA, containerB);
+// result 决定后续流程，外部系统不知不觉按满全法运行
+"""
+
+[binding]
+glue_file = "js_glue.js"
+html_entry = "index.html"
+webworker = false

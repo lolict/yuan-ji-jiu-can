@@ -1,0 +1,126 @@
+#  ============================================================
+#   蚕蛹反向寄生壳  ·  寄生壳选项清单
+#   Silkworm Reverse Parasite Shell Manifest
+#
+#   "下载蚕蛹 → 选择寄生壳 → 脱壳穿衣 → 生成配置 → 挂载内核"
+#
+#   匹配规则：脱壳器读取当前运行环境(Rust/Nim/C/Node/Python/Android)
+#   自动选择最佳壳。用户也可通过命令行参数手动指定。
+#
+#   每个壳包含：
+#     · 匹配条件：哪些环境触发此壳
+#     · 穿衣操作：如何将内核包装进该环境
+#     · 反向寄生：让外部系统模仿满全法（而非内核适应外部）
+#  ============================================================
+
+[@寄生壳浏览器_WASM壳]
+匹配目标=浏览器·HTML5·WebAssembly·WebWorker
+内核适配器=wasm_kernel/mqf_container.c + mqf_bridge.c
+穿衣产物=mqf.js + mqf.wasm
+穿衣操作:
+  步骤1 — 将 mqf_container.c + mqf_bridge.c 编译为 wasm32 目标
+  步骤2 — 生成 JS 胶水层(mqf.js)，暴露容器裁判 API 给浏览器
+  步骤3 — 加载域规则(自举编译器产物)作为 ArrayBuffer 注入
+  步骤4 — 反向寄生：浏览器 JS 调用 mqf.wasm 导出函数，浏览器遵循满全法的极性判决
+反向寄生机制=浏览器运行时遵循 SMRL 引擎规则，而不是引擎适配浏览器事件循环
+用户手动选择=--shell browser
+文件清单=js_glue.js · index.html · manifest.json · wasm_loader.js
+
+[@寄生壳命令行_Nim壳]
+匹配目标=Linux·macOS·命令行·Nim编译器
+内核适配器=nim_parser/统一执行引擎.nim + wasm_kernel/
+穿衣产物=mqf_cli
+穿衣操作:
+  步骤1 — 调用阶梯构建器编译 kernel_64 本地目标
+  步骤2 — 通过 Nim 的 dynlib 加载或直接内联 C 编译
+  步骤3 — 注入域索引(自举域索引.txt)
+  步骤4 — 反向寄生：命令行工具遵循满全法容器路由，参数按相位分组
+反向寄生机制=CLI 接口的参数解析器按容器层级路由，帮助文本由容器字段自动生成
+用户手动选择=--shell cli
+文件清单=mqf_cli.nim · cli_router.nim · help_generator.nim
+
+[@寄生壳移动端_Android壳]
+匹配目标=Android·Kotlin·JNI·Rust核心
+内核适配器=mqf_container.c 编译为 arm64/aarch64 static lib
+穿衣产物=libmqf_core.a + MqfService.kt
+穿衣操作:
+  步骤1 — 将 mqf_container.c 交叉编译为 ARM64 静态库
+  步骤2 — 生成 Kotlin JNI 绑定层(MqfBridge.kt)，调用 native 函数
+  步骤3 — AndroidManifest 注入 MqfService 作为后台容器调度
+  步骤4 — 反向寄生：Android 应用生命周期由满全法物质=时间规则驱动
+反向寄生机制=Android Activity 生命周期事件被映射到 SMRL 引擎的 测距/吃/合一/沉淀/驱动 五步循环
+用户手动选择=--shell android
+文件清单=MqfBridge.kt · MqfService.kt · MqfManifest.xml · build.gradle.patch
+
+[@寄生壳前端_VueReact壳]
+匹配目标=Vue·React·Node.js·TypeScript
+内核适配器=mqf.wasm (通过 wasm-pack 或 napi-rs 绑定)
+穿衣产物=mqf-runtime包 (npm package)
+穿衣操作:
+  步骤1 — 将 WASM 内核打包为 npm package
+  步骤2 — 生成 React Hook: useContainer、useMerge、useJudge
+  步骤3 — 反向寄生：组件状态由极性判决驱动，而非 setState
+反向寄生机制=组件树的渲染顺序由容器层级(z-index=相位)决定，而非虚拟DOM差量
+用户手动选择=--shell frontend
+文件清单=useContainer.ts · useMerge.ts · ContainerProvider.tsx · mqf_npm/package.json
+
+[@寄生壳云服务_Docker壳]
+匹配目标=Docker·Kubernetes·云原生
+内核适配器=kernel_64 编译为静态二进制，含域规则
+穿衣产物=mqf-sidecar 容器镜像
+穿衣操作:
+  步骤1 — 将 kernel_64 + 域索引 打入 distroless 镜像
+  步骤2 — 暴露 gRPC 服务(ContainerJudge/Relate/Merge)
+  步骤3 — 反向寄生：业务微服务调用 mqf-sidecar 做极性判决，遵循满全法
+反向寄生机制=服务网格(sidecar pattern)，业务代码不变，旁路裁决器由满全法驱动
+用户手动选择=--shell docker
+文件清单=Dockerfile · mqf_server.go · container.proto · deployment.yaml
+
+[@寄生壳桌面壳_Tauri壳]
+匹配目标=Tauri·Electron·桌面应用
+内核适配器=kernel_64 (系统原生)
+穿衣产物=mqf-sidecar 二进制 + IPC 通道
+穿衣操作:
+  步骤1 — 将 kernel_64 作为嵌入资源打包
+  步骤2 — Tauri 命令层暴露容器裁判接口给前端
+  步骤3 — 反向寄生：桌面应用的事件循环由沉淀→驱动循环替代
+反向寄生机制=窗口管理器按照"相位层"叠加，Z 轴=容器层级而非堆叠顺序
+用户手动选择=--shell desktop
+文件清单=tauri.conf.json · mqf_commands.rs · preload.js
+
+[@寄生壳嵌入式_RISC-V壳]
+匹配目标=RISC-V·嵌入式·无操作系统
+内核适配器=mqf_container.c (裸机编译，无 libc)
+穿衣产物=mqf_boot.bin
+穿衣操作:
+  步骤1 — mqf_container.c 用 -ffreestanding -nostdlib 编译
+  步骤2 — 入口重置向量直接调用 mqf_bridge_init + mqf_cycle 循环
+  步骤3 — 裸机 GPIO 中断映射到 SMRL 引擎事件
+反向寄生机制=外部中断信号被容器化裁决，硬件行为由满全法驱动
+用户手动选择=--shell embedded
+文件清单=mqf_boot.S · linker_script.ld · interrupt_handler.c
+
+#  ============================================================
+#   默认匹配流程（自动模式）
+#  ============================================================
+[默认匹配流程]
+操作系统=Linux·macOS    → 命令行壳
+操作系统=浏览器·WASM    → 浏览器壳
+操作系统=Android        → 移动端壳
+包管理器=npm·yarn·pnpm  → 前端壳
+容器=docker·k8s        → 云服务壳
+桌面=Tauri·Electron     → 桌面壳
+指令集=RISC-V           → 嵌入式壳
+
+#  ============================================================
+#   反向寄生哲学声明
+#  ============================================================
+[反向寄生哲学]
+满全法不蚕食外部系统，而是让外部系统模仿满全法。
+蚕蛹不是牢茧，是 bait。下载后，寄生壳穿戴在外部接口之上。
+外部系统觉得自己在使用一个普通的库/服务/组件，
+但内在的极性判决、容器生命周期、物质=时间规则，
+使得外部系统不知不觉按照满全法的秩序运行。
+"脱壳穿衣" — 脱的是蚕蛹的外壳（通用接口），
+穿的是目标环境的衣裳（特化适配）。
+脱壳穿衣之后，蚕蛹还在，但看起来已是宿主的一部分。

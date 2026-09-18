@@ -1,0 +1,48 @@
+# 命令行壳 · Nim 寄生壳
+[shell]
+name = "cli-nim"
+version = "0.1.0"
+description = "将满全法寄生在 CLI 工具中，用 Nim 薄壳调用 C 内核"
+
+[match]
+platforms = ["linux", "macos"]
+runtimes = ["nim>=1.6"]
+indicators = ["which nim", "which clang"]
+auto_detect = ["existsEnv('NIM_CMD')", "existsExec('nim')"]
+
+[kernel]
+source = "../wasm_kernel/mqf_container.c"
+bridge = "../wasm_kernel/mqf_bridge.c"
+compile_target = "kernel_64"
+c_compiler = "/usr/bin/clang"
+
+[inject]
+domain_source = "../自举编译器/域索引.txt"
+entry_function = "mqf_bridge_init"
+init_mode = "lazy"
+
+[reverse_parasite]
+mechanism = "CLI参数按容器层级路由，帮助文本由容器字段自动生成"
+parasitic_contract = """
+# 用户以为在用普通 CLI 工具
+$ mqf scan --polarity=阳 --phase=0 --layer=1
+
+# 但参数按相位分组，路由由极性判决决定
+# 搜索结果由 SMRL 引擎的"合一"操作聚合
+# "帮助"文本由容器字段名称反射生成
+"""
+
+[commands]
+root = "mqf"
+subcommands = [
+    { name = "scan",    desc = "扫描域规则条目",    route = "预加载流" },
+    { name = "judge",   desc = "两容器极性判决",    route = "分别流" },
+    { name = "relate",  desc = "容器关系生命周期",  route = "关系流" },
+    { name = "consume", desc = "吃掉容器(减少物质)", route = "驱动" },
+    { name = "merge",   desc = "合一(距离归零)",    route = "合一" },
+    { name = "drive",   desc = "驱动(公倍数推动)",  route = "驱动" },
+]
+
+[binding]
+entry_file = "mqf_cli.nim"
+router_file = "cli_router.nim"
