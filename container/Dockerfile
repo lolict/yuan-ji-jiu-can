@@ -43,12 +43,14 @@ FROM toolchain AS builder
 
 WORKDIR /src/hunyuan-os
 COPY --from=toolchain /src/hunyuan-os /src/hunyuan-os
+COPY entrypoint.c /src/entrypoint.c
 
 # 编译盟机合引擎 (独立编译, 避免全内核离线认证问题)
+# entrypoint.c 为容器提供 main 入口, 与 njsg_mengji.c 链接
 RUN cd kernel && \
     clang -std=c11 -O2 -D_GNU_SOURCE \
     -I. -I./src \
-    src/njsg_mengji.c \
+    /src/entrypoint.c src/njsg_mengji.c \
     -lpthread -lm \
     -o /usr/local/bin/njsg-mengji-demo \
     2>&1 | tail -5 || true
