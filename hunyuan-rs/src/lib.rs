@@ -139,11 +139,6 @@ pub mod celestial_space;
 pub mod fiber_bundle_topo;
 
 // ── v0.53 天庭时空纤维丛引擎 — 时间基空间·意识纤维·SMRL联络·平行移动 ──
-#[path = "core/spacetime_fiber.rs"]
-pub mod spacetime_fiber;
-pub use spacetime_fiber::{
-    SpacetimePoint, SpacetimeFiber, Connection, SpacetimeBundleEngine, SpacetimeFiberReport,
-};
 #[path = "core/cosmos_view.rs"]
 pub mod cosmos_view;
 
@@ -187,33 +182,25 @@ pub use svg_renderer::{render_glyph_svg, render_cell_bitmap, render_character_sh
 
 // ── 在场本体论基础设施 · 文件域加载 · 签名登记 · 局部投现 · 符号清点 ──
 #[path = "core/presence_ontology.rs"]
-pub mod presence_ontology;
-pub use presence_ontology::{PresenceDomain, PresenceTally, PresenceMode, SymbolCategory,
-                            PresenceStats, CategoryStats, IntersectionStats,
-                            AttendanceRecord};
 
 // ── 容器串联引擎 · 前字套壳=后字入口 ──
 #[path = "encoding/container_chain.rs"]
-pub mod container_chain;
 
 // ── 乘法表 · 双通道寻址 · 公约数聚类 ──
-pub mod multiplication_table;
 
 // ── 链路共振 · 壳组分组 · 最长链构建 ──
 #[path = "encoding/chain_resonance.rs"]
-pub mod chain_resonance;
 
-// ── 活码编译器 · 拼音输入→在场登记匹配 ──
+// ── v0.x 活码编译(flow) · 拼音输入→在场登记匹配 ──
 #[path = "flow/livecode_compiler.rs"]
 pub mod livecode_compiler;
-pub use livecode_compiler::{LiveCodeCompiler, LiveCandidate, live_compile, live_float, live_resonate};
 
 // ── v0.10 拓扑描述子系统 ──
 #[path = "encoding/topo.rs"]
 pub mod topo;
 
 // ── v0.10.5 预加载流 — 满全核心运行时机制 ──
-#[path = "flow/preload.rs"]
+#[path = "flow/preload/mod.rs"]
 pub mod preload;
 pub use preload::{PreloadFlow, Preload, 预编译容器, SymbolRegistry, Family,
                   CharProp, 范畴流, 集合, 身份条目 as Symbol,
@@ -273,12 +260,6 @@ pub mod invocation_table;
 pub mod invocation_call;
 
 // ── v0.54 八流统一引擎 — 预加载·谐音路由·主权路由·意识·时间·产权·反馈·存在 ──
-#[path = "core/eight_streams.rs"]
-pub mod eight_streams;
-pub use eight_streams::{
-    StreamId, StreamPacket, StreamPayload, StreamFeedbackKind, PropertyFlags,
-    Discriminator, DiscrimRule, EightStreamsEngine,
-};
 
 // ── v0.12 判断之力 · 评价之力 · 逻辑组织 · 反馈闭环 ──
 #[path = "judge/judgment_power.rs"]
@@ -360,6 +341,13 @@ pub mod cochlear_boot;
 pub use cochlear_boot::{cochlear_bootstrap, CochlearBoot, BootReceipt};
 
 // ── 层级时间戳 v0.1 (基于三元见证的时间追踪 · 替代哈希链) ──
+#[path = "temporal/phase_clock2.rs"]
+pub mod phase_clock2;
+#[path = "temporal/hot_embed2.rs"]
+pub mod hot_embed2;
+#[path = "temporal/witness.rs"]
+pub mod witness;
+
 #[path = "temporal/hierarchical_time.rs"]
 pub mod hierarchical_time;
 pub use hierarchical_time::{HierarchicalTimestamp, LifeEvent, IntegrityReport};
@@ -403,10 +391,6 @@ pub mod coord_tensor;
 pub mod pulse;
 
 // ── v0.42 相位时钟 · 三档变频 · 热标量 ──
-#[path = "temporal/phase_clock.rs"]
-pub mod phase_clock;
-#[path = "temporal/hot_embed.rs"]
-pub mod hot_embed;
 
 // ── v0.10 自举编译器 v2 (Ouroboros) ──
 #[path = "core/l0_self_hosting.rs"]
@@ -609,30 +593,15 @@ pub mod task_accumulate;
 pub use task_accumulate::{
     AccumulationEngine, TaskUnit, TaskState, Modality, Polarity, Ownership,
     TemporalConfig, PropertyConfig, PinyinAddress, Stroke, StrokeTemplateSpace,
-    ShengMu, YunMu, ShengDiao, TaskCluster, ClusteringEngine,
+    ShengMu, YunMu, ShengDiao, TaskCluster, TaskClusteringEngine,
     IngestResult, MatchResult,
 };
 
 // ── v0.46 逻辑组织引擎 — 因果路径排序·呼唤策略·路径叠加态 ──
-#[path = "core/logical_org.rs"]
-pub mod logical_org;
-pub use logical_org::{LogicalPath, OrgStratum, EvalInput, OrgReport};
 
 // ── v0.47 容器交互协议引擎 — 观察者路由·Need/Offer匹配·公约数共振 ──
-#[path = "core/container_interact.rs"]
-pub mod container_interact;
-pub use container_interact::{
-    InteractionEngine, InteractionConfig, ObserverRoute,
-    Match, InteractionEvent, CallSummary, InteractionReport,
-};
 
 // ── v0.48 容器字体统一引擎 — 容器=字体=时间 三元统一 ──
-#[path = "core/container_font_unify.rs"]
-pub mod container_font_unify;
-pub use container_font_unify::{
-    FontUnifyEngine, ContainerGlyphGeometry, SemanticKind, FontStats,
-    hanzi_to_syllable_coord, ascii_to_syllable_coord, string_to_syllable_coords,
-};
 
 // ── 对外 re-export ──
 
@@ -857,11 +826,12 @@ pub use parasite_shell::{
 };
 
 // ── v0.52 WASM 阶梯制双向公约引擎 — 同一源码·双向编译·架构无关 ──
-#[path = "core/wasm_ladder.rs"]
-pub mod wasm_ladder;
-pub use wasm_ladder::{
-    WasmTarget, FixedWidth, HyosMacro, BidirectionalCovenant,
-    VerificationResult, TargetOutput, HYOS_PREFIX,
+
+// ── v0.56 活码编译器引擎 — 起点·活码·加法统计·编码固定=权限数值 ──
+#[path = "core/live_code_compiler.rs"]
+pub mod hunyuan_live_code;
+pub use hunyuan_live_code::{
+    LivingCode, CodeKind, StartPoint, HunyuanLiveCoder, CompiledLayout,
 };
 
 // ── v0.43 自举编译器 · YinYang→SmrlCellOp (BootstrapCompiler) ──
