@@ -17,3 +17,18 @@ impl ParasiteEngine {
     pub fn new() -> Self { Self }
     pub fn stealth_score(&self) -> f64 { 0.75 }
 }
+
+#[derive(Debug, Clone)]
+pub struct ShellProfile {
+    pub kind: ShellKind,
+    pub fingerprint: [u8; 8],
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HeartbeatStatus { Alive, Suspended, Dead }
+
+#[derive(Debug, Clone)]
+pub struct HeartbeatRecovery {
+    pub status: HeartbeatStatus,
+    pub interval_ms: u64,
+}

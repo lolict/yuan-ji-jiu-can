@@ -401,11 +401,11 @@ pub struct FeedbackResult {
 
 pub struct DynamicsEngine {
     /// 所有已知关系
-    relations: Vec<ContainerRelation>,
+    pub relations: Vec<ContainerRelation>,
     /// 全局代数层
-    generation: i32,
+    pub generation: i32,
     /// 待处理呼唤队列
-    pending_calls: Vec<(u64, Call)>,
+    pub pending_calls: Vec<(u64, Call)>,
 }
 
 impl DynamicsEngine {

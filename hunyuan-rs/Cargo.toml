@@ -155,5 +155,9 @@ name = "river"
 path = "src/bin/river.rs"
 
 [[bin]]
+name = "live-code"
+path = "src/bin/live_code.rs"
+
+[[bin]]
 name = "glyph_stroke"
 path = "src/bin/glyph_stroke.rs"

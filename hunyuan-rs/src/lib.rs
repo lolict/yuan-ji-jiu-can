@@ -180,16 +180,7 @@ pub mod svg_renderer;
 pub use svg_renderer::{render_glyph_svg, render_cell_bitmap, render_character_sheet,
                        stroke_path, stroke_color, GRID_SIZE};
 
-// ── 在场本体论基础设施 · 文件域加载 · 签名登记 · 局部投现 · 符号清点 ──
-#[path = "core/presence_ontology.rs"]
-
-// ── 容器串联引擎 · 前字套壳=后字入口 ──
-#[path = "encoding/container_chain.rs"]
-
-// ── 乘法表 · 双通道寻址 · 公约数聚类 ──
-
-// ── 链路共振 · 壳组分组 · 最长链构建 ──
-#[path = "encoding/chain_resonance.rs"]
+// (已移除 AI 模块: presence_ontology, container_chain, chain_resonance)
 
 // ── v0.x 活码编译(flow) · 拼音输入→在场登记匹配 ──
 #[path = "flow/livecode_compiler.rs"]
@@ -341,12 +332,7 @@ pub mod cochlear_boot;
 pub use cochlear_boot::{cochlear_bootstrap, CochlearBoot, BootReceipt};
 
 // ── 层级时间戳 v0.1 (基于三元见证的时间追踪 · 替代哈希链) ──
-#[path = "temporal/phase_clock2.rs"]
-pub mod phase_clock2;
-#[path = "temporal/hot_embed2.rs"]
-pub mod hot_embed2;
-#[path = "temporal/witness.rs"]
-pub mod witness;
+// (已移除 AI 模块: phase_clock2, hot_embed2, witness)
 
 #[path = "temporal/hierarchical_time.rs"]
 pub mod hierarchical_time;
@@ -800,22 +786,7 @@ pub use smrl_cell::{
     polarity,
 };
 
-// ── v0.49 SMRL 几何裁判引擎 — 空间几何范畴·三元见证·关系归属 ──
-#[path = "core/smrl_geometer.rs"]
-pub mod smrl_geometer;
-pub use smrl_geometer::{
-    GeoJudgeEngine, GeoCoord, GeoCategory, GeoVerdict,
-    WitnessTriangle, WitnessDecision, GeoReport,
-};
-
-// ── v0.50 呼唤编程引擎 — 呼唤信号·公约数调用·反馈闭环·迂回感知·观察者角色 ──
-#[path = "core/call_programming.rs"]
-pub mod call_programming;
-pub use call_programming::{
-    CallProgramEngine, CallSignal, CallPayload, FeedbackSignal,
-    CallSession, ObservationRole, PerceptionDelta, Perception, CallReport,
-    CallFeedbackKind,
-};
+// (已移除 AI 模块: smrl_geometer, call_programming)
 
 // ── v0.51 蚕蛹反向寄生壳引擎 — 蚕蛹初始包·脱壳穿衣·心跳恢复 ──
 #[path = "core/parasite_shell.rs"]

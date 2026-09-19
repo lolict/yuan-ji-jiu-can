@@ -259,9 +259,9 @@ pub struct TaskCluster {
     pub time_max: u64,
 }
 
-pub struct ClusteringEngine;
+pub struct TaskClusteringEngine;
 
-impl ClusteringEngine {
+impl TaskClusteringEngine {
     /// 按相位进行简单K-Means聚类
     pub fn cluster(tasks: &[TaskUnit], k: usize) -> Vec<TaskCluster> {
         if tasks.is_empty() || k == 0 { return Vec::new(); }
@@ -560,12 +560,12 @@ impl AccumulationEngine {
     // ─── 聚类与统计 ────────────────────────────────────────────────────
 
     pub fn cluster_tasks(&mut self, k: usize) -> &[TaskCluster] {
-        self.clusters = ClusteringEngine::cluster(&self.history, k);
+        self.clusters = TaskClusteringEngine::cluster(&self.history, k);
         &self.clusters
     }
 
     pub fn cluster_stats(&self) -> Vec<(usize, f64, f64)> {
-        ClusteringEngine::frequency_distribution(&self.clusters)
+        TaskClusteringEngine::frequency_distribution(&self.clusters)
     }
 
     // ─── 查询接口 ─────────────────────────────────────────────────────
