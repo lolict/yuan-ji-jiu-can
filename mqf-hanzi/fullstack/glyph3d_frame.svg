@@ -1,0 +1,22 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='480' height='120'>
+<rect width='480' height='120' fill='#0a0a0a'/>
+<text x='10' y='20' fill='#aaa' font-size='10'>容器=字体=时间 · tick=4</text>
+<circle cx='281' cy='93' r='3' fill='#ff4444'/>
+<circle cx='270' cy='64' r='3' fill='#ff4444'/>
+<circle cx='259' cy='33' r='3' fill='#ff4444'/>
+<circle cx='250' cy='104' r='3' fill='#ff4444'/>
+<circle cx='240' cy='74' r='3' fill='#ff4444'/>
+<circle cx='230' cy='44' r='3' fill='#ff4444'/>
+<circle cx='221' cy='115' r='3' fill='#ff4444'/>
+<circle cx='210' cy='84' r='3' fill='#ff4444'/>
+<circle cx='199' cy='55' r='3' fill='#ff4444'/>
+<circle cx='285' cy='93' r='3' fill='#4488ff'/>
+<circle cx='274' cy='64' r='3' fill='#4488ff'/>
+<circle cx='263' cy='33' r='3' fill='#4488ff'/>
+<circle cx='254' cy='104' r='3' fill='#4488ff'/>
+<circle cx='244' cy='74' r='3' fill='#4488ff'/>
+<circle cx='234' cy='44' r='3' fill='#4488ff'/>
+<circle cx='225' cy='115' r='3' fill='#4488ff'/>
+<circle cx='214' cy='84' r='3' fill='#4488ff'/>
+<circle cx='203' cy='55' r='3' fill='#4488ff'/>
+</svg>
