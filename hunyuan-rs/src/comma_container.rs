@@ -4883,3 +4883,159 @@ mod clock_action_tests {
     #[test] fn test_default_action() { let a = ClockAction::default(); assert_eq!(a.intent, "idle"); }
     #[test] fn test_default_engine() { let e = ClockActionEngine::default(); assert_eq!(e.cycle_count, 0); assert!(!e.is_running()); }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 蚕蛹寄生壳引擎 · ParasiteShellEngine
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// 蚕蛹反向寄生: 下载初始包 → 解析寄生壳选项 → 手动/自动匹配 → "脱壳穿衣"
+// 使外部系统模仿自身, 而非自身适应外部规则
+// 架构无关: 同一份内核可在多种宿主环境中"穿衣"寄生
+
+/// 寄生壳类型
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ShellKind {
+    Process,        // 进程寄生 — 注入到其他进程
+    Service,        // 服务寄生 — 注册为系统服务
+    Extension,      // 扩展寄生 — 作为应用扩展/插件
+    Kernel,         // 内核寄生 — 最低层系统模块
+    Cloud,          // 云寄生 — 以云函数/FaaS 形式存在
+    Static,         // 静态寄生 — 嵌入静态站点/网页
+}
+
+impl Default for ShellKind { fn default() -> Self { ShellKind::Process } }
+
+/// 寄生壳配置
+#[derive(Clone, Debug)]
+pub struct ShellProfile {
+    pub kind: ShellKind,
+    pub host_id: String,
+    pub heartbeat_interval: u64,    // 心跳间隔 (毫秒)
+    pub recovery_strategy: RecoveryStrategy,
+    pub entry_point: String,
+    pub payload: Vec<u8>,
+}
+
+impl ShellProfile {
+    pub fn new(kind: ShellKind, host_id: &str) -> Self {
+        Self {
+            kind,
+            host_id: host_id.to_string(),
+            heartbeat_interval: 5000,
+            recovery_strategy: RecoveryStrategy::Restart,
+            entry_point: "auto".to_string(),
+            payload: Vec::new(),
+        }
+    }
+}
+
+/// 恢复策略
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum RecoveryStrategy {
+    Restart,        // 重启
+    Failover,       // 转移到备用节点
+    Reincarnate,    // 重生 (完全重建)
+}
+
+impl Default for RecoveryStrategy { fn default() -> Self { RecoveryStrategy::Restart } }
+
+/// 心跳状态
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum HeartbeatStatus {
+    Healthy,
+    Stalled,
+    Critical,
+    Dead,
+}
+
+impl Default for HeartbeatStatus { fn default() -> Self { HeartbeatStatus::Healthy } }
+
+/// 蚕蛹壳引擎 — 脱壳穿衣 → 匹配寄生壳 → 部署内核
+#[derive(Clone, Debug)]
+pub struct ParasiteShellEngine {
+    pub initial_cocoon: Vec<u8>,
+    pub available_shells: Vec<ShellKind>,
+    pub active_profile: Option<ShellProfile>,
+    pub heartbeat_status: HeartbeatStatus,
+    pub kernel_attached: bool,
+}
+
+impl ParasiteShellEngine {
+    pub fn new() -> Self {
+        Self {
+            initial_cocoon: Vec::new(),
+            available_shells: vec![
+                ShellKind::Process, ShellKind::Service, ShellKind::Extension,
+                ShellKind::Kernel, ShellKind::Cloud, ShellKind::Static,
+            ],
+            active_profile: None,
+            heartbeat_status: HeartbeatStatus::Healthy,
+            kernel_attached: false,
+        }
+    }
+
+    /// 下载初始包 (设置蚕蛹内容)
+    pub fn load_cocoon(&mut self, data: &[u8]) {
+        self.initial_cocoon = data.to_vec();
+    }
+
+    /// 脱壳: 解析蚕蛹内容, 提取可用的寄生壳选项
+    pub fn unshell(&self) -> &[ShellKind] {
+        &self.available_shells
+    }
+
+    /// 穿衣: 为选定的壳类型生成配置
+    pub fn dress(&mut self, kind: ShellKind, host_id: &mut String) -> Option<&ShellProfile> {
+        if !self.available_shells.contains(&kind) { return None; }
+        let mut profile = ShellProfile::new(kind, host_id);
+        if !self.initial_cocoon.is_empty() {
+            profile.payload = self.initial_cocoon.clone();
+        }
+        self.active_profile = Some(profile);
+        self.kernel_attached = true;
+        self.active_profile.as_ref()
+    }
+
+    /// 自动匹配: 根据宿主环境选择最佳寄生壳
+    pub fn auto_match(&mut self, env_hint: &str) -> Option<&ShellProfile> {
+        let kind = if env_hint.contains("kernel") { ShellKind::Kernel }
+        else if env_hint.contains("service") { ShellKind::Service }
+        else if env_hint.contains("browser") { ShellKind::Static }
+        else if env_hint.contains("cloud") { ShellKind::Cloud }
+        else if env_hint.contains("extension") { ShellKind::Extension }
+        else { ShellKind::Process };
+        self.dress(kind, &mut format!("auto-{}", env_hint))
+    }
+
+    /// 执行心跳检查
+    pub fn heartbeat(&mut self) -> HeartbeatStatus {
+        self.heartbeat_status = if self.kernel_attached {
+            HeartbeatStatus::Healthy
+        } else {
+            HeartbeatStatus::Critical
+        };
+        self.heartbeat_status
+    }
+
+    /// 是否已穿衣 (内核已附着)
+    pub fn is_dressed(&self) -> bool {
+        self.active_profile.is_some() && self.kernel_attached
+    }
+}
+
+impl Default for ParasiteShellEngine { fn default() -> Self { Self::new() } }
+
+#[cfg(test)]
+mod parasite_shell_tests {
+    use super::*;
+    #[test] fn test_cocoon_load() { let mut e = ParasiteShellEngine::new(); e.load_cocoon(&[1, 2, 3, 4]); assert_eq!(e.initial_cocoon.len(), 4); }
+    #[test] fn test_unshell() { let e = ParasiteShellEngine::new(); assert!(e.unshell().len() >= 4); }
+    #[test] fn test_dress() { let mut e = ParasiteShellEngine::new(); let mut host = String::from("host1"); let p = e.dress(ShellKind::Process, &mut host).unwrap(); assert_eq!(p.kind, ShellKind::Process); assert!(e.is_dressed()); }
+    #[test] fn test_dress_invalid() { let mut e = ParasiteShellEngine::new(); e.available_shells.clear(); let mut host = String::from("h"); assert!(e.dress(ShellKind::Kernel, &mut host).is_none()); }
+    #[test] fn test_auto_match() { let mut e = ParasiteShellEngine::new(); e.load_cocoon(&[0u8; 16]); let p = e.auto_match("cloud-runtime").unwrap(); assert_eq!(p.kind, ShellKind::Cloud); }
+    #[test] fn test_heartbeat_healthy() { let mut e = ParasiteShellEngine::new(); let mut host = String::from("h"); e.dress(ShellKind::Service, &mut host); assert_eq!(e.heartbeat(), HeartbeatStatus::Healthy); }
+    #[test] fn test_heartbeat_critical() { let mut e = ParasiteShellEngine::new(); assert_eq!(e.heartbeat(), HeartbeatStatus::Critical); }
+    #[test] fn test_default() { let e = ParasiteShellEngine::default(); assert!(!e.is_dressed()); }
+    #[test] fn test_shell_profile() { let p = ShellProfile::new(ShellKind::Cloud, "aws"); assert_eq!(p.host_id, "aws"); assert_eq!(p.recovery_strategy, RecoveryStrategy::Restart); }
+    #[test] fn test_recovery_default() { assert_eq!(RecoveryStrategy::default(), RecoveryStrategy::Restart); }
+}
