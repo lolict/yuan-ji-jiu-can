@@ -1,0 +1,68 @@
+# 盟机合网络 · 容器编排
+# 三节点最小验证场 (里程碑一传输层落地)
+#
+# 使用:
+#   docker compose up -d          # 启动三个盟机场
+#   docker compose logs -f farm-a # 查看 A 节点日志
+#   docker compose exec farm-a /usr/local/bin/njsg-mengji-demo
+#
+# 网络拓扑:
+#   farm-a (盟机合掌) ←──→ farm-b (萌机场)
+#        ↕                    ↕
+#        └─── farm-c (萌机场) ─┘
+
+services:
+  farm-a:
+    image: ghcr.io/lolict/hunyuan-container:main
+    container_name: njsg-farm-a
+    hostname: farm-a
+    volumes:
+      - farm-a-data:/var/lib/hunyuan-os
+    networks:
+      - mengji-net
+    environment:
+      - NJSG_NODE_ID=farm-a
+      - NJSG_NODE_TYPE=PHONG
+      - NJSG_ANCHOR=1
+      - NJSG_SEEDS=farm-b:9000,farm-c:9000
+    restart: unless-stopped
+
+  farm-b:
+    image: ghcr.io/lolict/hunyuan-container:main
+    container_name: njsg-farm-b
+    hostname: farm-b
+    volumes:
+      - farm-b-data:/var/lib/hunyuan-os
+    networks:
+      - mengji-net
+    environment:
+      - NJSG_NODE_ID=farm-b
+      - NJSG_NODE_TYPE=FARM
+      - NJSG_SEEDS=farm-a:9000
+    restart: unless-stopped
+
+  farm-c:
+    image: ghcr.io/lolict/hunyuan-container:main
+    container_name: njsg-farm-c
+    hostname: farm-c
+    volumes:
+      - farm-c-data:/var/lib/hunyuan-os
+    networks:
+      - mengji-net
+    environment:
+      - NJSG_NODE_ID=farm-c
+      - NJSG_NODE_TYPE=FARM
+      - NJSG_SEEDS=farm-a:9000,farm-b:9000
+    restart: unless-stopped
+
+volumes:
+  farm-a-data:
+  farm-b-data:
+  farm-c-data:
+
+networks:
+  mengji-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
