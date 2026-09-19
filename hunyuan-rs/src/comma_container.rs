@@ -5174,3 +5174,126 @@ mod bootstrap_compiler_tests {
     #[test] fn test_default_phase() { let c = BootstrapCompiler::default(); assert_eq!(c.symbol_count(), 0); }
     #[test] fn test_symbol_dedup() { let mut c = BootstrapCompiler::new(); c.register_symbol("a", "/a"); c.register_symbol("a", "/a"); assert_eq!(c.symbol_count(), 2); }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 域加载预引擎 · DomainLoader
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// "域加载": 运行前预加载所有符号, 运行时不增加内存
+// 符号定义与索引构建须一次性完成
+// 容器=地址=数据库: 域即地址空间, 加载即解析所有地址引用
+// 索引而非搜索: O(1) 访问, 无运行时查找开销
+
+/// 域加载阶段
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum LoadPhase {
+    Pending,        // 待加载
+    Indexing,       // 索引构建中
+    Linking,        // 地址解析中
+    Ready,          // 就绪 (可执行)
+}
+
+impl Default for LoadPhase { fn default() -> Self { LoadPhase::Pending } }
+
+/// 域符号 — 地址 = 内容 = 数据库记录
+#[derive(Clone, Debug)]
+pub struct DomainSymbol {
+    pub address: u64,
+    pub name: String,
+    pub size: usize,
+    pub loaded: bool,
+    pub content: Vec<u8>,
+}
+
+impl DomainSymbol {
+    pub fn new(address: u64, name: &str) -> Self {
+        Self { address, name: name.to_string(), size: 0, loaded: false, content: Vec::new() }
+    }
+}
+
+/// 域加载引擎 — 预加载所有符号到不可变索引
+#[derive(Clone, Debug)]
+pub struct DomainLoader {
+    pub symbols: HashMap<u64, DomainSymbol>,
+    pub name_index: HashMap<String, u64>,
+    pub phase: LoadPhase,
+    pub total_loaded: usize,
+    pub memory_floor: usize,    // 内存底限 (加载后不再增长)
+}
+
+impl DomainLoader {
+    pub fn new() -> Self {
+        Self {
+            symbols: HashMap::new(),
+            name_index: HashMap::new(),
+            phase: LoadPhase::Pending,
+            total_loaded: 0,
+            memory_floor: 0,
+        }
+    }
+
+    /// 注册符号 (构建索引)
+    pub fn declare(&mut self, address: u64, name: &str) -> usize {
+        let sym = DomainSymbol::new(address, name);
+        self.name_index.insert(name.to_string(), address);
+        self.symbols.insert(address, sym);
+        self.symbols.len()
+    }
+
+    /// 加载: 将所有声明的符号标记为已加载
+    pub fn load(&mut self) {
+        self.phase = LoadPhase::Indexing;
+        for sym in self.symbols.values_mut() {
+            sym.loaded = true;
+            sym.size = sym.content.len();
+        }
+        self.phase = LoadPhase::Linking;
+        self.total_loaded = self.symbols.len();
+        self.memory_floor = self.total_loaded * std::mem::size_of::<DomainSymbol>();
+        self.phase = LoadPhase::Ready;
+    }
+
+    /// 按地址查找 (O(1) 索引)
+    pub fn find_by_address(&self, address: u64) -> Option<&DomainSymbol> {
+        self.symbols.get(&address)
+    }
+
+    /// 按名称查找 (两次 O(1))
+    pub fn find_by_name(&self, name: &str) -> Option<&DomainSymbol> {
+        self.name_index.get(name).and_then(|addr| self.symbols.get(addr))
+    }
+
+    /// 写入符号内容 (仅加载前)
+    pub fn write_content(&mut self, address: u64, content: &[u8]) -> bool {
+        if self.phase == LoadPhase::Ready { return false; }
+        if let Some(sym) = self.symbols.get_mut(&address) {
+            sym.content = content.to_vec();
+            true
+        } else { false }
+    }
+
+    /// 是否已就绪
+    pub fn is_ready(&self) -> bool { self.phase == LoadPhase::Ready }
+
+    /// 符号总数
+    pub fn symbol_count(&self) -> usize { self.symbols.len() }
+
+    /// 内存底限 (字节)
+    pub fn memory_usage(&self) -> usize { self.memory_floor }
+}
+
+impl Default for DomainLoader { fn default() -> Self { Self::new() } }
+
+#[cfg(test)]
+mod domain_loader_tests {
+    use super::*;
+    #[test] fn test_declare() { let mut d = DomainLoader::new(); d.declare(0x1000, "root"); assert_eq!(d.symbol_count(), 1); }
+    #[test] fn test_load() { let mut d = DomainLoader::new(); d.declare(0x1000, "a"); d.declare(0x2000, "b"); d.load(); assert!(d.is_ready()); assert_eq!(d.total_loaded, 2); }
+    #[test] fn test_find_by_address() { let mut d = DomainLoader::new(); d.declare(0x1000, "x"); d.load(); assert!(d.find_by_address(0x1000).is_some()); assert!(d.find_by_address(0x9999).is_none()); }
+    #[test] fn test_find_by_name() { let mut d = DomainLoader::new(); d.declare(0x1000, "root"); d.load(); assert_eq!(d.find_by_name("root").unwrap().address, 0x1000); }
+    #[test] fn test_write_content() { let mut d = DomainLoader::new(); d.declare(0x1000, "a"); assert!(d.write_content(0x1000, &[1, 2, 3])); d.load(); assert!(!d.write_content(0x1000, &[4])); }
+    #[test] fn test_name_index() { let mut d = DomainLoader::new(); d.declare(0x1000, "a"); d.declare(0x2000, "b"); assert_eq!(d.find_by_name("a").unwrap().address, 0x1000); }
+    #[test] fn test_default() { let d = DomainLoader::default(); assert_eq!(d.symbol_count(), 0); assert!(!d.is_ready()); }
+    #[test] fn test_load_phases() { let mut d = DomainLoader::new(); d.declare(1, "x"); assert_eq!(d.phase, LoadPhase::Pending); d.load(); assert_eq!(d.phase, LoadPhase::Ready); }
+    #[test] fn test_memory_floor() { let mut d = DomainLoader::new(); d.declare(1, "x"); d.load(); assert!(d.memory_usage() > 0); }
+}
