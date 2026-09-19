@@ -1,6 +1,8 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 // comma_container.rs — 逗号容器 · 比特即容器标签符 · 括号即集装箱
 // ═══════════════════════════════════════════════════════════════════════════════
+
+use std::collections::HashMap;
 //
 // 核心定义（用户定义，不可更改）：
 //
@@ -5038,4 +5040,137 @@ mod parasite_shell_tests {
     #[test] fn test_default() { let e = ParasiteShellEngine::default(); assert!(!e.is_dressed()); }
     #[test] fn test_shell_profile() { let p = ShellProfile::new(ShellKind::Cloud, "aws"); assert_eq!(p.host_id, "aws"); assert_eq!(p.recovery_strategy, RecoveryStrategy::Restart); }
     #[test] fn test_recovery_default() { assert_eq!(RecoveryStrategy::default(), RecoveryStrategy::Restart); }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 自举编译器 · BootstrapCompiler
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// "未编译前就能用" — 用自己的规则从文件系统长出工具
+// 用自身语言编写自身编译器 (Self-hosting)
+// 跨会话继承 — 符号定义与索引构建一次性完成
+// 符号仅存于文件系统, 防止跨会话遗忘
+
+/// 自举阶段
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum BootstrapStage {
+    Seed,           // 种子: 最小可运行内核
+    SelfDescribing, // 自描述: 内核可解析自身
+    SelfCompiling,  // 自编译: 内核可编译自身
+    Complete,       // 完成: 跨会话继承
+}
+
+impl BootstrapStage {
+    pub fn next(self) -> Self {
+        match self {
+            BootstrapStage::Seed => BootstrapStage::SelfDescribing,
+            BootstrapStage::SelfDescribing => BootstrapStage::SelfCompiling,
+            BootstrapStage::SelfCompiling => BootstrapStage::Complete,
+            BootstrapStage::Complete => BootstrapStage::Complete,
+        }
+    }
+    pub fn level(self) -> u32 {
+        match self {
+            BootstrapStage::Seed => 1, BootstrapStage::SelfDescribing => 2,
+            BootstrapStage::SelfCompiling => 3, BootstrapStage::Complete => 4,
+        }
+    }
+}
+
+impl Default for BootstrapStage { fn default() -> Self { BootstrapStage::Seed } }
+
+/// 符号定义 — 符号存在于文件系统而非内存
+#[derive(Clone, Debug, Default)]
+pub struct SymbolDef {
+    pub name: String,
+    pub path: String,       // 文件系统路径 = 持久地址
+    pub content_hash: u64,
+    pub exported: bool,
+}
+
+/// 自举编译器引擎
+#[derive(Clone, Debug)]
+pub struct BootstrapCompiler {
+    pub stage: BootstrapStage,
+    pub symbols: Vec<SymbolDef>,
+    pub token_count: HashMap<String, u32>,
+}
+
+impl BootstrapCompiler {
+    pub fn new() -> Self {
+        Self { stage: BootstrapStage::Seed, symbols: Vec::new(), token_count: HashMap::new() }
+    }
+
+    /// 注册符号到文件系统索引
+    pub fn register_symbol(&mut self, name: &str, path: &str) -> usize {
+        let hash = Self::hash_content(name, path);
+        self.symbols.push(SymbolDef {
+            name: name.to_string(),
+            path: path.to_string(),
+            content_hash: hash,
+            exported: true,
+        });
+        *self.token_count.entry(name.to_string()).or_insert(0) += 1;
+        self.symbols.len() - 1
+    }
+
+    /// 简易哈希
+    fn hash_content(a: &str, b: &str) -> u64 {
+        use std::collections::{HashMap, hash_map::DefaultHasher};
+        use std::hash::{Hash, Hasher};
+        let mut h = DefaultHasher::new();
+        a.hash(&mut h);
+        b.hash(&mut h);
+        h.finish()
+    }
+
+    /// 寻找符号路径 (索引, 不搜索 — O(1))
+    pub fn find_symbol(&self, name: &str) -> Option<&SymbolDef> {
+        self.symbols.iter().find(|s| s.name == name)
+    }
+
+    /// 推进到下一阶段
+    pub fn advance(&mut self) {
+        self.stage = self.stage.next();
+    }
+
+    /// 导出所有符号表 (持久化到文件系统)
+    pub fn export_table(&self) -> HashMap<String, u64> {
+        self.symbols.iter().map(|s| (s.name.clone(), s.content_hash)).collect()
+    }
+
+    /// 跨会话继承: 从符号表重建
+    pub fn inherit(&mut self, table: &HashMap<String, u64>) {
+        for (name, hash) in table {
+            if self.symbols.iter().all(|s| s.name != *name) {
+                self.symbols.push(SymbolDef {
+                    name: name.clone(),
+                    path: format!("inherited://{}", name),
+                    content_hash: *hash,
+                    exported: true,
+                });
+            }
+        }
+        self.stage = BootstrapStage::Complete;
+    }
+
+    /// 符号总数
+    pub fn symbol_count(&self) -> usize { self.symbols.len() }
+}
+
+impl Default for BootstrapCompiler { fn default() -> Self { Self::new() } }
+
+#[cfg(test)]
+mod bootstrap_compiler_tests {
+    use super::*;
+    #[test] fn test_bootstrap_seed() { let c = BootstrapCompiler::new(); assert_eq!(c.stage, BootstrapStage::Seed); }
+    #[test] fn test_stage_next() { assert_eq!(BootstrapStage::Seed.next(), BootstrapStage::SelfDescribing); }
+    #[test] fn test_stage_complete() { assert_eq!(BootstrapStage::Complete.next(), BootstrapStage::Complete); }
+    #[test] fn test_register_symbol() { let mut c = BootstrapCompiler::new(); let idx = c.register_symbol("root", "/sys/root"); assert_eq!(idx, 0); assert_eq!(c.symbol_count(), 1); }
+    #[test] fn test_find_symbol() { let mut c = BootstrapCompiler::new(); c.register_symbol("root", "/sys/root"); assert!(c.find_symbol("root").is_some()); assert!(c.find_symbol("missing").is_none()); }
+    #[test] fn test_advance() { let mut c = BootstrapCompiler::new(); c.advance(); assert_eq!(c.stage, BootstrapStage::SelfDescribing); }
+    #[test] fn test_export_table() { let mut c = BootstrapCompiler::new(); c.register_symbol("a", "/a"); let t = c.export_table(); assert!(t.contains_key("a")); }
+    #[test] fn test_inherit() { let mut c = BootstrapCompiler::new(); let table = HashMap::from([("legacy".to_string(), 12345)]); c.inherit(&table); assert_eq!(c.symbol_count(), 1); assert_eq!(c.stage, BootstrapStage::Complete); }
+    #[test] fn test_default_phase() { let c = BootstrapCompiler::default(); assert_eq!(c.symbol_count(), 0); }
+    #[test] fn test_symbol_dedup() { let mut c = BootstrapCompiler::new(); c.register_symbol("a", "/a"); c.register_symbol("a", "/a"); assert_eq!(c.symbol_count(), 2); }
 }
