@@ -74,3 +74,6 @@ cbsy/cbsy
 cbsy/cbsy_bridge
 cognition_os/cocoon_shell
 encoding/z-api.txt
+*.svg
+*.tmp
+.__pipe_*
