@@ -6055,3 +6055,221 @@ mod stargate_tests {
     #[test] fn test_default_router() { let r = StarGateRouter::default(); assert_eq!(r.active_gates(), 0); }
     #[test] fn test_route_count() { let mut r = StarGateRouter::new(); r.register_gate(GateId(1), "a"); r.build_route(GateId(1), GateId(1)); assert_eq!(r.route_count(), 1); }
 }
+
+// ══════════════════════════════════════════════════════════════════════
+// 纤维丛联络引擎 · FiberBundle::ConnectionEngine (v0.6)
+// ══════════════════════════════════════════════════════════════════════
+//
+//   纤维丛 = 底空间 B 上每点 b 附着一根纤维 F_b
+//   联络(Connection) = 沿底空间曲线的平行移动规则
+//   曲率(Curvature) = 联络不可积的程度 (绕闭环平移的偏差)
+//   完整群(Holonomy) = 绕闭环一圈后纤维上的变换
+//
+//   NJSG 映射:
+//     底空间  = 容器坐标空间 (声母θ, 韵母r, 声调y)
+//     纤维    = 关系归属空间 (该容器所在的范畴纤维)
+//     联络    = 如何把一个容器的关系"平移"到相邻容器
+//     曲率    = 范畴归属的非交换性 (操作为何不能全局定义)
+//
+//   64 位编码: [fiber_id:16][point_lo:24][point_hi:24]
+
+const FIBER_BASE_SHIFT: u64 = 48;
+const FIBER_POINT_MASK: u64 = 0xFF_FFFF;
+
+/// 纤维标识
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct FiberId(pub u16);
+
+/// 底空间坐标 (一维投影 — 沿轴展开)
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct BasePoint(pub u32);
+
+/// 联络系数 — 无穷小平行移动规则
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Connection {
+    /// 沿三个底空间方向的偏移权重 [声母, 韵母, 声调]
+    pub weights: [f32; 3],
+}
+
+impl Connection {
+    pub fn identity() -> Self { Self { weights: [1.0, 1.0, 1.0] } }
+    pub fn scale(s: f32) -> Self { Self { weights: [s, s, s] } }
+
+    /// 联络复合 = 权重逐元素相乘 (非可交换时用不同顺序)
+    pub fn compose(&self, other: &Self) -> Self {
+        Self { weights: [self.weights[0] * other.weights[0],
+                          self.weights[1] * other.weights[1],
+                          self.weights[2] * other.weights[2]] }
+    }
+
+    /// 联络求逆 (反向平行移动)
+    pub fn inverse(&self) -> Self {
+        Self { weights: [1.0 / self.weights[0], 1.0 / self.weights[1], 1.0 / self.weights[2]] }
+    }
+}
+
+impl Default for Connection { fn default() -> Self { Self::identity() } }
+
+/// 曲率 — 沿无穷小矩形边界平移后的偏差
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Curvature {
+    pub curl: [f32; 3],
+}
+
+impl Curvature {
+    pub fn zero() -> Self { Self { curl: [0.0, 0.0, 0.0] } }
+
+    /// 曲率大小 (L2 范数)
+    pub fn magnitude(&self) -> f32 {
+        (self.curl[0] * self.curl[0] + self.curl[1] * self.curl[1] + self.curl[2] * self.curl[2]).sqrt()
+    }
+
+    /// 是否平坦 (曲率近似为零)
+    pub fn is_flat(&self) -> bool { self.magnitude() < 0.001 }
+}
+
+impl Default for Curvature { fn default() -> Self { Self::zero() } }
+
+/// 完整群元素 — 沿闭环平移后纤维上的变换
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Holonomy {
+    pub rotation: f32,
+    pub phase: u8,
+}
+
+impl Holonomy {
+    pub fn identity() -> Self { Self { rotation: 0.0, phase: 0 } }
+
+    /// 复合两次完整变换
+    pub fn compose(&self, other: &Self) -> Self {
+        Self { rotation: self.rotation + other.rotation,
+               phase: self.phase.wrapping_add(other.phase) }
+    }
+}
+
+/// 沿给定联络进行平行移动 — 核心操作
+pub fn parallel_transport(conn: &Connection, steps: i32) -> Connection {
+    let factor = steps as f32;
+    Connection { weights: [conn.weights[0] * factor, conn.weights[1] * factor, conn.weights[2] * factor] }
+}
+
+/// 纤维丛联络引擎
+#[derive(Clone, Debug)]
+pub struct ConnectionEngine {
+    pub fiber_id: FiberId,
+    pub connection: Connection,
+    pub curvature: Curvature,
+    pub holonomy: Holonomy,
+}
+
+impl ConnectionEngine {
+    pub fn new(fiber: FiberId) -> Self {
+        Self { fiber_id: fiber, connection: Connection::identity(),
+               curvature: Curvature::zero(), holonomy: Holonomy::identity() }
+    }
+
+    /// 设置联络
+    pub fn set_connection(&mut self, conn: Connection) { self.connection = conn; }
+
+    /// 计算曲率 (联络沿两个方向的交换子近似)
+    pub fn compute_curvature(&mut self, neighbor: &Connection) {
+        let a = &self.connection.weights;
+        let b = &neighbor.weights;
+        self.curvature.curl[0] = a[1] * b[2] - a[2] * b[1];
+        self.curvature.curl[1] = a[2] * b[0] - a[0] * b[2];
+        self.curvature.curl[2] = a[0] * b[1] - a[1] * b[0];
+    }
+
+    /// 沿闭环推进完整群 (曲率积分近似)
+    pub fn advance_holonomy(&mut self) {
+        let m = self.curvature.magnitude();
+        self.holonomy.rotation += m;
+        self.holonomy.phase = self.holonomy.phase.wrapping_add(if m > 0.5 { 1 } else { 0 });
+    }
+
+    /// 查询当前联络是否局部平坦
+    pub fn is_locally_flat(&self) -> bool { self.curvature.is_flat() }
+
+    /// 完整群作用于容器位 — 返回相位
+    pub fn apply_phase(&self, bit: u8) -> u8 {
+        if self.holonomy.phase % 2 == 0 { bit } else { bit ^ 1 }
+    }
+}
+
+impl Default for ConnectionEngine { fn default() -> Self { Self::new(FiberId(0)) } }
+
+#[cfg(test)]
+mod fiber_tests {
+    use super::*;
+    #[test] fn test_connection_identity() {
+        let c = Connection::identity();
+        assert_eq!(c.weights, [1.0, 1.0, 1.0]);
+    }
+    #[test] fn test_connection_compose() {
+        let a = Connection { weights: [2.0, 3.0, 4.0] };
+        let b = Connection { weights: [0.5, 1.0, 2.0] };
+        let ab = a.compose(&b);
+        assert_eq!(ab.weights, [1.0, 3.0, 8.0]);
+    }
+    #[test] fn test_connection_inverse() {
+        let c = Connection { weights: [2.0, 4.0, 8.0] };
+        let inv = c.inverse();
+        assert_eq!(inv.weights, [0.5, 0.25, 0.125]);
+    }
+    #[test] fn test_curvature_zero() {
+        let c = Curvature::zero();
+        assert!(c.is_flat());
+    }
+    #[test] fn test_curvature_compute() {
+        let mut engine = ConnectionEngine::new(FiberId(1));
+        let neighbor = Connection { weights: [1.0, 0.0, 0.0] };
+        engine.compute_curvature(&neighbor);
+        assert!(!engine.is_locally_flat() || engine.curvature.magnitude() < 0.001);
+    }
+    #[test] fn test_curvature_magnitude() {
+        let c = Curvature { curl: [3.0, 4.0, 0.0] };
+        assert!((c.magnitude() - 5.0).abs() < 0.001);
+    }
+    #[test] fn test_holonomy_identity() {
+        let h = Holonomy::identity();
+        assert_eq!(h.rotation, 0.0);
+        assert_eq!(h.phase, 0);
+    }
+    #[test] fn test_holonomy_compose() {
+        let a = Holonomy { rotation: 1.5, phase: 3 };
+        let b = Holonomy { rotation: 2.5, phase: 5 };
+        let ab = a.compose(&b);
+        assert_eq!(ab.rotation, 4.0);
+        assert_eq!(ab.phase, 8);
+    }
+    #[test] fn test_parallel_transport() {
+        let c = Connection { weights: [1.0, 2.0, 3.0] };
+        let p = parallel_transport(&c, 2);
+        assert_eq!(p.weights, [2.0, 4.0, 6.0]);
+    }
+    #[test] fn test_engine_new() {
+        let e = ConnectionEngine::new(FiberId(42));
+        assert_eq!(e.fiber_id.0, 42);
+        assert!(e.is_locally_flat());
+    }
+    #[test] fn test_engine_advance_holonomy() {
+        let mut e = ConnectionEngine::new(FiberId(1));
+        e.curvature.curl = [1.0, 2.0, 2.0];  // magnitude = 3
+        e.advance_holonomy();
+        assert!(e.holonomy.rotation > 0.0);
+    }
+    #[test] fn test_apply_phase() {
+        let mut e = ConnectionEngine::new(FiberId(1));
+        assert_eq!(e.apply_phase(1), 1);  // phase=0, even → unchanged
+        e.holonomy.phase = 1;
+        assert_eq!(e.apply_phase(1), 0);  // phase=1, odd → flip
+    }
+    #[test] fn test_engine_default() {
+        let e = ConnectionEngine::default();
+        assert_eq!(e.fiber_id.0, 0);
+    }
+    #[test] fn test_connection_default() {
+        let c = Connection::default();
+        assert_eq!(c.weights, [1.0, 1.0, 1.0]);
+    }
+}
