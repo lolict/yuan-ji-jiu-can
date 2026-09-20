@@ -1,0 +1,15 @@
+{
+  "shell_id": "njsg",
+  "shell_name": "囡囝共生壳",
+  "wrapping": "纤维丛缠绕",
+  "kernel": "SMRL情感内核",
+  "protocol": "NJSG/v1",
+  "bind_address": "manquanca.info",
+  "heartbeat_ms": 4096,
+  "witness": [
+    0,
+    1,
+    10,
+    242
+  ]
+}
