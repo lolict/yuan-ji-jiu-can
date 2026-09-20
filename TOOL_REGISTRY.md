@@ -20,7 +20,7 @@
 
 | # | 工具名 | 路径 | 语言 | 运行命令 | 状态 |
 |---|--------|------|------|----------|------|
-| 1 | 满全法裁判 | tools/manquanfa/ | Nim | `nim c --cc:clang -r mq_demo.nim` | ✅ |
+| 1 | 满全法裁判 | tools/manquanfa/ | Nim | `nim c --cc:clang -r negative_demo.nim` | ✅ |
 | 2 | 负样本容器 | tools/manquanfa/mq/ | Nim | 含于 manquanfa 包 | ✅ |
 | 3 | 负样本演示 | tools/manquanfa/ | Nim | `nim c --cc:clang -r negative_demo.nim` | ✅ |
 
@@ -73,6 +73,49 @@
 | 12 | 产权流判定（Rust） | hunyuan-rs/src/ | Rust | `cargo run --example property_flow_judge` | ✅ |
 | 13 | 意识自举（Rust） | hunyuan-rs/src/ | Rust | `cargo run --example self_bootstrap` | ✅ |
 | 14 | 时间线统一（Rust） | hunyuan-rs/examples/ | Rust | `cargo run --example timeline_unified_demo` | ✅ |
+
+### 第八类：膜圈与沙箱指令（Rust + WASI，零外部依赖）
+
+| # | 工具名 | 路径 | 语言 | 运行命令 | 状态 |
+|---|--------|------|------|----------|------|
+| 41 | 沙箱指令环境（膜圈缚 + 容器/加法索引） | tools/cmdenv-rs/ | Rust | `cd tools/cmdenv-rs && "$(git rev-parse --show-toplevel)/target/release/cmdenv" demo` | ✅ |
+| 42 | 同上的 WASI 版本 | tools/cmdenv-rs/ | Rust→WASI | `cd tools/cmdenv-rs && wasmtime --dir=. "$(git rev-parse --show-toplevel)/target/wasm32-wasip1/release/cmdenv.wasm" demo` | ✅ |
+
+说明：
+- 原生二进制位于仓库根 `target/release/cmdenv`（仓库 `.cargo/config.toml` 将 target-dir 固定在根目录）
+- WASI 产物位于仓库根 `target/wasm32-wasip1/release/cmdenv.wasm`，由 `wasmtime` 运行
+- **热加载**：`rules/cmd.chain` 第 5 列为配方列，新增一行即生效，无需重编译
+  - 直接执行：`cmdenv tf 目标`、`cmdenv gq 目标`、`cmdenv demo`
+  - 或显式求值：`cmdenv eval tf 目标`
+  - 改规则后 `cmdenv reload` 重读规则表
+- 膜层状态持久化于 `rules/membrane.state`，中心锚点为 `gtxone 工藤新一`
+- **十一类指令**：协议/感知/角色/执行/时间/关系/进制/膜圈/容器/对齐/征用/韵母
+  - 对齐层：`align <值> [集合] [from_end]` / `unify <值,值> [集合]` / `bases`，基数集合登记在 `rules/bases.chain`
+  - 征用层：`zheng` / `zhengs` / `yuan` / `sontuo`，绑定表 `rules/bindings.chain`（可松脱归还）
+  - 韵母层：`yunmu <拼音>` / `yunmu-list` / `yunmu-svg` / `yunmu-merge [全量]` / `yunmu-canvas` / `yunmu-mirror`，注册表 `rules/yunmu.chain`
+  - 64 进制画布：`canvas-info` / `canvas-cell <地址>`，读 `mqf-hanzi/nim_parser/64-1.txt`（数字表 64 位 `0-9a-zA-ZŋŊ`）
+  - 镜像裁判：取合并字形 (GeoType, Zone落点) 集合，用 `encoding/mirror_engine.h` 的水平/垂直/对角反射自比（实测 17/32 自镜像）
+
+### 第九类：面向进制寻址的文档系统（Rust，零依赖）
+
+| # | 工具名 | 路径 | 语言 | 运行命令 | 状态 |
+|---|--------|------|------|----------|------|
+| 43 | 文档系统生成器（机器格式，进制寻址） | tools/radixdoc/ | Rust | `radixdoc <对话.md> [输出目录] [--html]` | ✅ |
+
+说明：
+- 输入 DeepSeek 分享导出的对话 Markdown（`## 用户 / ## 助手` 分节）
+- 每份文档 = 一个容器 = 一个加法地址（无命名空间，只用进制寻址）
+- **默认输出机器格式**（程序直接索引，无 UI）：
+  - `工作空间.chain` = `地址|时间版本|工作版本|符号数|指向|标题`
+  - `符号索引.chain` = `符号|出现地址`（反向索引，热符号直接寻址）
+  - `解析树.chain` = `父地址|子地址`（根=0）
+  - `验证树.chain` = `地址A|地址B|共享权重`
+  - `提示词.chain` = `地址|时间版本|目标|指向|关键词`（喂给其它 AI 的参数）
+  - `容器全文.chain` = `地址|时间版本|工作版本|标题|符号|关联|问|答`（每行一个容器，逐字可逆转义）
+- `--html` 为可选的人类视图（目录 + 每页），非主产物
+- 关联 = 中文 2-3 字关键词 + 拉丁词 + 反引号符号，按 IDF 共享权重取前 4
+- 术语：清单 / 注册清单 / 工作空间 / 时间版本 / 思维入口 / 工作版本
+- 实测：`kzfkwatty5p98s2whn` → 293 个容器，293/293 交叉验证
 
 ### 第七类：其他独立工具
 
