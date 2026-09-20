@@ -5408,3 +5408,100 @@ mod additive_stat_tests {
     #[test] fn test_state_default() { let s = AdditiveState::default(); assert_eq!(s.accumulator, 0); assert_eq!(s.count, 0); }
     #[test] fn test_wrapping_add() { let mut s = AdditiveState::new(); s.accumulator = u128::MAX; s.accumulate(1); assert_eq!(s.accumulator, 0); }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器关系动力学引擎 · RelationDynamics
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// 容器间相互作用力: 吸引 · 排斥 · 共生 · 吞噬
+// 动态容器 vs 静态容器: 动态产生力, 静态接受力
+// 观察者被观察者: 观察行为改变被观察容器状态
+// 容器交互: 两者接触产生新属性
+
+/// 关系类型
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum RelationKind {
+    Attraction,     // 吸引
+    Repulsion,      // 排斥
+    Symbiosis,      // 共生
+    Engulf,         // 吞噬
+    Neutral,        // 中性
+}
+
+impl Default for RelationKind { fn default() -> Self { RelationKind::Neutral } }
+
+/// 容器属性 — 动/静
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ContainerClass {
+    Dynamic,        // 动态 — 产生作用力
+    Static,         // 静态 — 接受作用力
+}
+
+impl Default for ContainerClass { fn default() -> Self { ContainerClass::Dynamic } }
+
+/// 关系动力学引擎
+#[derive(Clone, Debug)]
+pub struct RelationDynamics {
+    pub pairs: Vec<((u8, u8, u8), (u8, u8, u8), RelationKind)>,
+    pub observe_log: Vec<(usize, f64)>,   // (容器索引, 观察影响量)
+}
+
+impl RelationDynamics {
+    pub fn new() -> Self { Self { pairs: Vec::new(), observe_log: Vec::new() } }
+
+    /// 注册关系对
+    pub fn register(&mut self, a: (u8, u8, u8), b: (u8, u8, u8), kind: RelationKind) -> usize {
+        self.pairs.push((a, b, kind));
+        self.pairs.len() - 1
+    }
+
+    /// 判定两个容器的关系
+    pub fn relate(&self, dist: f64) -> RelationKind {
+        if dist < 10.0 { RelationKind::Engulf }
+        else if dist < 50.0 { RelationKind::Attraction }
+        else if dist < 150.0 { RelationKind::Symbiosis }
+        else if dist < 300.0 { RelationKind::Repulsion }
+        else { RelationKind::Neutral }
+    }
+
+    /// 观察者影响: 观察行为改变被观察容器 (距离缩短)
+    pub fn observe(&mut self, container_idx: usize, observer_strength: f64) -> f64 {
+        let impact = observer_strength * 0.1;
+        self.observe_log.push((container_idx, impact));
+        impact
+    }
+
+    /// 计算系统总能量
+    pub fn total_energy(&self) -> f64 {
+        use RelationKind::*;
+        self.pairs.iter().map(|&(_, _, kind)| match kind {
+            Attraction => 1.0,
+            Repulsion => -1.0,
+            Symbiosis => 2.0,
+            Engulf => 3.0,
+            Neutral => 0.0,
+        }).sum()
+    }
+
+    /// 吸引对数
+    pub fn attraction_count(&self) -> usize {
+        self.pairs.iter().filter(|&&(_, _, k)| k == RelationKind::Attraction || k == RelationKind::Symbiosis).count()
+    }
+
+    /// 关系对总数
+    pub fn pair_count(&self) -> usize { self.pairs.len() }
+}
+
+impl Default for RelationDynamics { fn default() -> Self { Self::new() } }
+
+#[cfg(test)]
+mod relation_dynamics_tests {
+    use super::*;
+    #[test] fn test_register() { let mut d = RelationDynamics::new(); assert_eq!(d.register((0,0,0), (1,1,1), RelationKind::Attraction), 0); assert_eq!(d.pair_count(), 1); }
+    #[test] fn test_relate_close() { let d = RelationDynamics::new(); assert_eq!(d.relate(5.0), RelationKind::Engulf); }
+    #[test] fn test_relate_far() { let d = RelationDynamics::new(); assert_eq!(d.relate(500.0), RelationKind::Neutral); }
+    #[test] fn test_observe() { let mut d = RelationDynamics::new(); let impact = d.observe(0, 5.0); assert!((impact - 0.5).abs() < 0.01); assert_eq!(d.observe_log.len(), 1); }
+    #[test] fn test_total_energy() { let mut d = RelationDynamics::new(); d.register((0,0,0), (1,1,1), RelationKind::Attraction); d.register((0,0,0), (2,2,2), RelationKind::Repulsion); assert!((d.total_energy() - 0.0).abs() < 0.01); }
+    #[test] fn test_attraction_count() { let mut d = RelationDynamics::new(); d.register((0,0,0), (1,1,1), RelationKind::Attraction); d.register((0,0,0), (2,2,2), RelationKind::Neutral); assert_eq!(d.attraction_count(), 1); }
+    #[test] fn test_default() { let d = RelationDynamics::default(); assert_eq!(d.pair_count(), 0); }
+}
