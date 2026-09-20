@@ -5297,3 +5297,114 @@ mod domain_loader_tests {
     #[test] fn test_load_phases() { let mut d = DomainLoader::new(); d.declare(1, "x"); assert_eq!(d.phase, LoadPhase::Pending); d.load(); assert_eq!(d.phase, LoadPhase::Ready); }
     #[test] fn test_memory_floor() { let mut d = DomainLoader::new(); d.declare(1, "x"); d.load(); assert!(d.memory_usage() > 0); }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 加法统计引擎 · AdditiveStatisticEngine
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// 加法统计法: 容器数值通过加法而非幂次累计
+// 摆脱幂次二进制扩张 — 加法保持线性, 不会爆炸
+// "去除外壳的量化核心": 进制 = 量化的核心, 编码 = 他人的无价值壳
+// 每固定一个位置, 按加法确定其权限值
+
+/// 加法统计状态
+#[derive(Clone, Debug)]
+pub struct AdditiveState {
+    pub accumulator: u128,
+    pub count: u32,
+    pub fixed_positions: Vec<(usize, u64)>,  // (位置, 固定值)
+}
+
+impl AdditiveState {
+    pub fn new() -> Self { Self { accumulator: 0, count: 0, fixed_positions: Vec::new() } }
+
+    /// 累加一个容器值 (加法, 非幂次)
+    pub fn accumulate(&mut self, value: u64) -> u128 {
+        self.accumulator = self.accumulator.wrapping_add(value as u128);
+        self.count += 1;
+        self.accumulator
+    }
+
+    /// 固定一个位置的值 (按排列顺序确定权限)
+    pub fn fix_position(&mut self, pos: usize, value: u64) {
+        self.fixed_positions.push((pos, value));
+        self.fixed_positions.sort_by_key(|&(p, _)| p);
+    }
+
+    /// 获取固定位置的加法总值
+    pub fn fixed_total(&self) -> u128 {
+        self.fixed_positions.iter().map(|&(_, v)| v as u128).sum()
+    }
+
+    /// 未固定的自由度 (位置可任意活动)
+    pub fn degrees_of_freedom(&self, total_positions: usize) -> usize {
+        total_positions.saturating_sub(self.fixed_positions.len())
+    }
+
+    /// 状态值: 固定贡献 + 浮动贡献
+    pub fn combined_value(&self) -> u128 {
+        self.fixed_total().wrapping_add(self.accumulator)
+    }
+}
+
+impl Default for AdditiveState { fn default() -> Self { Self::new() } }
+
+/// 加法统计引擎
+#[derive(Clone, Debug, Default)]
+pub struct AdditiveStatisticEngine {
+    pub states: Vec<AdditiveState>,
+    pub global_threshold: u128,
+}
+
+impl AdditiveStatisticEngine {
+    pub fn new() -> Self { Self { states: Vec::new(), global_threshold: 100 } }
+
+    /// 创建一个新的统计状态
+    pub fn create_state(&mut self) -> usize {
+        self.states.push(AdditiveState::new());
+        self.states.len() - 1
+    }
+
+    /// 向指定状态添加容器值
+    pub fn add(&mut self, state_idx: usize, value: u64) -> Option<u128> {
+        self.states.get_mut(state_idx).map(|s| s.accumulate(value))
+    }
+
+    /// 固定位置
+    pub fn fix(&mut self, state_idx: usize, pos: usize, value: u64) -> bool {
+        if let Some(s) = self.states.get_mut(state_idx) {
+            s.fix_position(pos, value);
+            true
+        } else { false }
+    }
+
+    /// 状态是否超过阈值
+    pub fn is_above_threshold(&self, state_idx: usize) -> bool {
+        self.states.get(state_idx).map_or(false, |s| s.combined_value() > self.global_threshold)
+    }
+
+    /// 所有状态的累计值
+    pub fn global_accumulator(&self) -> u128 {
+        self.states.iter().map(|s| s.accumulator).sum()
+    }
+
+    /// 阈值触发统计
+    pub fn count_above_threshold(&self) -> usize {
+        self.states.iter().filter(|s| s.combined_value() > self.global_threshold).count()
+    }
+}
+
+#[cfg(test)]
+mod additive_stat_tests {
+    use super::*;
+    #[test] fn test_accumulate() { let mut s = AdditiveState::new(); assert_eq!(s.accumulate(10), 10); assert_eq!(s.accumulate(20), 30); assert_eq!(s.count, 2); }
+    #[test] fn test_fix_position() { let mut s = AdditiveState::new(); s.fix_position(2, 100); s.fix_position(0, 50); assert_eq!(s.fixed_total(), 150); assert_eq!(s.fixed_positions[0].0, 0); }
+    #[test] fn test_combined_value() { let mut s = AdditiveState::new(); s.accumulate(40); s.fix_position(0, 60); assert_eq!(s.combined_value(), 100); }
+    #[test] fn test_degrees_of_freedom() { let mut s = AdditiveState::new(); s.fix_position(0, 10); s.fix_position(1, 20); assert_eq!(s.degrees_of_freedom(5), 3); }
+    #[test] fn test_engine_add() { let mut e = AdditiveStatisticEngine::new(); let si = e.create_state(); assert_eq!(e.add(si, 42), Some(42)); }
+    #[test] fn test_engine_fix() { let mut e = AdditiveStatisticEngine::new(); let si = e.create_state(); assert!(e.fix(si, 0, 100)); assert_eq!(e.states[si].fixed_total(), 100); assert!(!e.fix(99, 0, 100)); }
+    #[test] fn test_threshold() { let mut e = AdditiveStatisticEngine::new(); let si = e.create_state(); e.add(si, 150); assert!(e.is_above_threshold(si)); }
+    #[test] fn test_global_accumulator() { let mut e = AdditiveStatisticEngine::new(); let s1 = e.create_state(); let s2 = e.create_state(); e.add(s1, 30); e.add(s2, 70); assert_eq!(e.global_accumulator(), 100); }
+    #[test] fn test_state_default() { let s = AdditiveState::default(); assert_eq!(s.accumulator, 0); assert_eq!(s.count, 0); }
+    #[test] fn test_wrapping_add() { let mut s = AdditiveState::new(); s.accumulator = u128::MAX; s.accumulate(1); assert_eq!(s.accumulator, 0); }
+}
