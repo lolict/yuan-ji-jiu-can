@@ -5494,6 +5494,152 @@ impl RelationDynamics {
 
 impl Default for RelationDynamics { fn default() -> Self { Self::new() } }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器交互引擎 · ContainerInteractionEngine
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// 容器间通信: 消息传递 · 状态同步 · 事件驱动
+// 仅加法范式: 所有数值变化通过加法完成, 无乘除
+// 容器 = 逗号分割的左右半容器, 交互 = 跨越边界的符号流动
+
+/// 交互事件类型
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum InteractionEvent {
+    Observe,      // 观察: 获知对方状态 (只读)
+    Send,         // 发送: 向对方传递符号
+    Receive,      // 接收: 从对方获取符号
+    Sync,         // 同步: 状态对齐
+    Merge,        // 融合: 两个容器合并为共生体
+    Split,        // 分裂: 一个容器分为两个独立体
+}
+
+impl Default for InteractionEvent { fn default() -> Self { InteractionEvent::Observe } }
+
+/// 交互消息
+#[derive(Clone, Debug)]
+pub struct InteractionMessage {
+    pub sender_id: u64,
+    pub receiver_id: u64,
+    pub event: InteractionEvent,
+    pub payload_symbols: Vec<String>,
+    pub strength: u64,  // 加法累计的交互强度
+}
+
+impl InteractionMessage {
+    pub fn new(sender: u64, receiver: u64, event: InteractionEvent) -> Self {
+        Self { sender_id: sender, receiver_id: receiver, event, payload_symbols: Vec::new(), strength: 0 }
+    }
+}
+
+/// 容器交互状态
+#[derive(Clone, Debug)]
+pub struct ContainerInteractionState {
+    pub container_id: u64,
+    pub symbol_count: u64,
+    pub interaction_count: u64,
+    pub received_count: u64,
+    pub sent_count: u64,
+    pub sync_level: u64,  // 同步级别 (加法累计)
+}
+
+impl ContainerInteractionState {
+    pub fn new(id: u64) -> Self {
+        Self { container_id: id, symbol_count: 0, interaction_count: 0, received_count: 0, sent_count: 0, sync_level: 0 }
+    }
+}
+
+/// 容器交互引擎
+#[derive(Clone, Debug, Default)]
+pub struct ContainerInteractionEngine {
+    pub states: Vec<ContainerInteractionState>,
+    pub message_log: Vec<InteractionMessage>,
+    pub sync_threshold: u64,
+}
+
+impl ContainerInteractionEngine {
+    pub fn new() -> Self { Self { states: Vec::new(), message_log: Vec::new(), sync_threshold: 10 } }
+
+    /// 根据 container_id 查找状态索引
+    fn find_index(&self, container_id: u64) -> Option<usize> {
+        self.states.iter().position(|s| s.container_id == container_id)
+    }
+
+    /// 注册容器
+    pub fn register(&mut self, id: u64) -> usize {
+        self.states.push(ContainerInteractionState::new(id));
+        self.states.len() - 1
+    }
+
+    /// 发送消息 (发送方 +1, 不计接收)
+    pub fn send(&mut self, msg: InteractionMessage) -> u64 {
+        if let Some(idx) = self.find_index(msg.sender_id) {
+            self.states[idx].sent_count += 1;
+            self.states[idx].interaction_count += 1;
+        }
+        self.message_log.push(msg);
+        (self.message_log.len() - 1) as u64
+    }
+
+    /// 接收消息 (接收方 +1, sync_level 加法增强)
+    pub fn receive(&mut self, msg_id: u64) -> bool {
+        let mid = msg_id as usize;
+        if mid >= self.message_log.len() { return false; }
+        let receiver_id = self.message_log[mid].receiver_id;
+        if let Some(idx) = self.find_index(receiver_id) {
+            self.states[idx].received_count += 1;
+            self.states[idx].interaction_count += 1;
+            self.states[idx].sync_level += self.message_log[mid].strength;
+            return true;
+        }
+        false
+    }
+
+    /// 容器间同步: 同步级别超过阈值则达成同步
+    pub fn try_sync(&self, a_id: u64, b_id: u64) -> bool {
+        let a = match self.find_index(a_id) { Some(i) => i, None => return false };
+        let b = match self.find_index(b_id) { Some(i) => i, None => return false };
+        let combined = self.states[a].sync_level.wrapping_add(self.states[b].sync_level);
+        combined >= self.sync_threshold
+    }
+
+    /// 融合容器: 合并双方的 symbol_count (加法)
+    pub fn merge(&mut self, a_id: u64, b_id: u64) -> Option<u64> {
+        let a = self.find_index(a_id)?;
+        let b = self.find_index(b_id)?;
+        let merged = self.states[a].symbol_count.wrapping_add(self.states[b].symbol_count);
+        self.states[a].symbol_count = merged;
+        self.states[b].symbol_count = 0;
+        Some(merged)
+    }
+
+    /// 分裂容器: 均分 symbol_count (仅剩一半, 返回 (剩余, 分离))
+    pub fn split(&mut self, id: u64) -> Option<(u64, u64)> {
+        let idx = self.find_index(id)?;
+        let total = self.states[idx].symbol_count;
+        let half = total / 2;
+        let other = total - half;
+        self.states[idx].symbol_count = half;
+        Some((half, other))
+    }
+
+    /// 系统总交互量 (所有容器交互次数之和, 加法)
+    pub fn total_interactions(&self) -> u64 {
+        self.states.iter().map(|s| s.interaction_count).fold(0u64, |acc, x| acc.wrapping_add(x))
+    }
+
+    /// 最活跃容器 (交互次数最多, 仅加法比较)
+    pub fn most_active(&self) -> Option<u64> {
+        self.states.iter().max_by_key(|s| s.interaction_count).map(|s| s.container_id)
+    }
+
+    /// 符号增量: 向容器添加符号
+    pub fn add_symbols(&mut self, id: u64, count: u64) -> Option<u64> {
+        let idx = self.find_index(id)?;
+        self.states[idx].symbol_count += count;
+        Some(self.states[idx].symbol_count)
+    }
+}
+
 #[cfg(test)]
 mod relation_dynamics_tests {
     use super::*;
@@ -5504,4 +5650,278 @@ mod relation_dynamics_tests {
     #[test] fn test_total_energy() { let mut d = RelationDynamics::new(); d.register((0,0,0), (1,1,1), RelationKind::Attraction); d.register((0,0,0), (2,2,2), RelationKind::Repulsion); assert!((d.total_energy() - 0.0).abs() < 0.01); }
     #[test] fn test_attraction_count() { let mut d = RelationDynamics::new(); d.register((0,0,0), (1,1,1), RelationKind::Attraction); d.register((0,0,0), (2,2,2), RelationKind::Neutral); assert_eq!(d.attraction_count(), 1); }
     #[test] fn test_default() { let d = RelationDynamics::default(); assert_eq!(d.pair_count(), 0); }
+}
+
+#[cfg(test)]
+mod container_interaction_tests {
+    use super::*;
+
+    #[test]
+    fn test_register_container() {
+        let mut engine = ContainerInteractionEngine::new();
+        let idx = engine.register(100);
+        assert_eq!(idx, 0);
+        assert_eq!(engine.states[0].container_id, 100);
+        assert_eq!(engine.states[0].symbol_count, 0);
+    }
+
+    #[test]
+    fn test_send_message() {
+        let mut engine = ContainerInteractionEngine::new();
+        engine.register(1);
+        engine.register(2);
+        let msg = InteractionMessage::new(1, 2, InteractionEvent::Send);
+        let id = engine.send(msg);
+        assert_eq!(id, 0);
+        assert_eq!(engine.states[0].sent_count, 1);
+    }
+
+    #[test]
+    fn test_receive_message() {
+        let mut engine = ContainerInteractionEngine::new();
+        engine.register(1);
+        engine.register(2);
+        engine.send(InteractionMessage::new(1, 2, InteractionEvent::Receive));
+        assert!(engine.receive(0));
+        assert_eq!(engine.states[1].received_count, 1);
+    }
+
+    #[test]
+    fn test_add_symbols() {
+        let mut engine = ContainerInteractionEngine::new();
+        engine.register(10);
+        assert_eq!(engine.add_symbols(10, 5), Some(5));
+        assert_eq!(engine.add_symbols(10, 3), Some(8));
+    }
+
+    #[test]
+    fn test_merge_containers() {
+        let mut engine = ContainerInteractionEngine::new();
+        engine.register(1);  // id=1 at index 0
+        engine.register(2);  // id=2 at index 1
+        engine.add_symbols(1, 10);
+        engine.add_symbols(2, 20);
+        let merged = engine.merge(1, 2);
+        assert_eq!(merged, Some(30));
+        assert_eq!(engine.states[0].symbol_count, 30);  // a_id=1 at index 0 holds merged
+        assert_eq!(engine.states[1].symbol_count, 0);   // b_id=2 at index 1 reset
+    }
+
+    #[test]
+    fn test_try_sync_pass() {
+        let mut engine = ContainerInteractionEngine::new();
+        engine.sync_threshold = 10;
+        engine.register(1);
+        engine.register(2);
+        // send+receive multiple times to accumulate sync_level
+        for _ in 0..15 {
+            let mut msg = InteractionMessage::new(1, 2, InteractionEvent::Sync);
+            msg.strength = 1;
+            let id = engine.send(msg);
+            engine.receive(id);
+        }
+        // states[1].sync_level should be 15, combined with states[0] which is 0
+        assert!(engine.try_sync(1, 2));
+    }
+
+    #[test]
+    fn test_try_sync_fail() {
+        let mut engine = ContainerInteractionEngine::new();
+        engine.sync_threshold = 100;
+        engine.register(1);
+        engine.register(2);
+        let msg = InteractionMessage::new(1, 2, InteractionEvent::Sync);
+        let id = engine.send(msg);
+        engine.receive(id);
+        // sync_level = 0, combined = 0 < threshold
+        assert!(!engine.try_sync(1, 2));
+    }
+
+    #[test]
+    fn test_most_active() {
+        let mut engine = ContainerInteractionEngine::new();
+        engine.register(1);
+        engine.register(2);
+        // container 1 sends 3 times, container 2 sends 1 time
+        for _ in 0..3 { engine.send(InteractionMessage::new(1, 2, InteractionEvent::Send)); }
+        engine.send(InteractionMessage::new(2, 1, InteractionEvent::Send));
+        assert_eq!(engine.most_active(), Some(1));
+    }
+
+    #[test]
+    fn test_total_interactions() {
+        let mut engine = ContainerInteractionEngine::new();
+        engine.register(1);
+        engine.register(2);
+        engine.send(InteractionMessage::new(1, 2, InteractionEvent::Send));
+        engine.send(InteractionMessage::new(2, 1, InteractionEvent::Send));
+        // send increments sender's interaction_count
+        assert_eq!(engine.total_interactions(), 2);
+    }
+
+    #[test]
+    fn test_split_container() {
+        let mut engine = ContainerInteractionEngine::new();
+        engine.register(1);
+        engine.add_symbols(1, 10);
+        let result = engine.split(1);
+        assert_eq!(result, Some((5, 5)));
+        assert_eq!(engine.states[0].symbol_count, 5);
+    }
+
+    #[test]
+    fn test_default() {
+        let engine = ContainerInteractionEngine::default();
+        assert_eq!(engine.total_interactions(), 0);
+        assert_eq!(engine.most_active(), None);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 聂小倩匹配引擎 · NiaoXiaoQianMatcher
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// 聂小倩匹配: 容器A 遍历所有容器B 寻找本质匹配 (essential match)
+// 不是距离最近 = 匹配, 而是共振频率一致 = 本质匹配
+// 声母遍历韵母: 固定声母, 遍历所有韵母, 寻找使系统能量最低的共鸣点
+// 用于: 容器配对 · 夫妻命运共同体匹配 · 共生伙伴选择
+
+/// 匹配本质度
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum MatchEssence {
+    Harmonic,       // 谐波 — 完全共振
+    Complementary,  // 互补 — 阴阳相吸
+    Adjacent,       // 邻近 — 可培养
+    Dissonant,      // 不谐 — 冲突
+}
+
+impl Default for MatchEssence { fn default() -> Self { MatchEssence::Adjacent } }
+
+/// 匹配结果 V2 (重命名避免与 3454 行 EssentialMatch 冲突)
+#[derive(Clone, Debug)]
+pub struct NiaoXiaoMatch {
+    pub source: (u8, u8, u8),
+    pub target: (u8, u8, u8),
+    pub essence: MatchEssence,
+    pub resonance: f64,
+    pub yinyang_balance: f64,
+}
+
+impl NiaoXiaoMatch {
+    pub fn is_strong(&self) -> bool {
+        matches!(self.essence, MatchEssence::Harmonic) && self.resonance > 0.8
+    }
+}
+
+/// 聂小倩匹配引擎
+#[derive(Clone, Debug)]
+pub struct NiaoXiaoQianMatcher {
+    pub matches: Vec<NiaoXiaoMatch>,
+    pub resonance_threshold: f64,
+}
+
+impl NiaoXiaoQianMatcher {
+    pub fn new() -> Self { Self { matches: Vec::new(), resonance_threshold: 0.5 } }
+    pub fn with_threshold(mut self, t: f64) -> Self { self.resonance_threshold = t.clamp(0.0, 1.0); self }
+
+    /// 声母遍历韵母: 固定声母 c, 遍历所有韵母 v, 计算共振度
+    pub fn search(&mut self, source: (u8, u8, u8)) -> &mut Self {
+        self.matches.clear();
+        let s_c = source.0;
+        for v in 0u8..65 {
+            if v == source.1 { continue; }
+            let resonance = self.compute_resonance(source, (s_c, v, source.2));
+            let essence = self.classify_resonance(resonance);
+            let balance = self.compute_yinyang_balance(source, (s_c, v, source.2));
+            self.matches.push(NiaoXiaoMatch {
+                source, target: (s_c, v, source.2), essence, resonance, yinyang_balance: balance,
+            });
+        }
+        self
+    }
+
+    /// 韵母遍历声母: 同理反方向
+    pub fn search_reverse(&mut self, source: (u8, u8, u8)) -> &mut Self {
+        self.matches.clear();
+        let s_v = source.1;
+        for c in 0u8..47 {
+            if c == source.0 { continue; }
+            let resonance = self.compute_resonance(source, (c, s_v, source.2));
+            let essence = self.classify_resonance(resonance);
+            let balance = self.compute_yinyang_balance(source, (c, s_v, source.2));
+            self.matches.push(NiaoXiaoMatch {
+                source, target: (c, s_v, source.2), essence, resonance, yinyang_balance: balance,
+            });
+        }
+        self
+    }
+
+    /// 全局搜索: 遍历所有音节寻找最佳匹配
+    pub fn search_global(&self, source: (u8, u8, u8), limit: usize) -> Vec<NiaoXiaoMatch> {
+        let mut all = Vec::with_capacity(limit.max(1));
+        for c in 0u8..47 {
+            for v in 0u8..65 {
+                let resonance = self.compute_resonance(source, (c, v, source.2));
+                if resonance >= self.resonance_threshold && resonance < 0.99 {
+                    let essence = self.classify_resonance(resonance);
+                    all.push(NiaoXiaoMatch {
+                        source, target: (c, v, source.2), essence,
+                        resonance, yinyang_balance: self.compute_yinyang_balance(source, (c, v, source.2)),
+                    });
+                }
+            }
+        }
+        all.sort_by(|a, b| b.resonance.partial_cmp(&a.resonance).unwrap_or(std::cmp::Ordering::Equal));
+        all.truncate(limit.min(all.len()));
+        all
+    }
+
+    fn compute_resonance(&self, a: (u8, u8, u8), b: (u8, u8, u8)) -> f64 {
+        // 共振度 = 1 / (1 + 加权距离), 调和递减
+        let dc = ((a.0 as f64 - b.0 as f64) * 3.0).abs();
+        let dv = ((a.1 as f64 - b.1 as f64) * 2.0).abs();
+        let dt = ((a.2 as f64 - b.2 as f64) * 1.0).abs();
+        let dist = (dc * dc + dv * dv + dt * dt).sqrt() / 50.0;
+        1.0 / (1.0 + dist)
+    }
+
+    fn classify_resonance(&self, res: f64) -> MatchEssence {
+        if res > 0.8 { MatchEssence::Harmonic }
+        else if res > 0.5 { MatchEssence::Complementary }
+        else if res > 0.25 { MatchEssence::Adjacent }
+        else { MatchEssence::Dissonant }
+    }
+
+    fn compute_yinyang_balance(&self, a: (u8, u8, u8), b: (u8, u8, u8)) -> f64 {
+        let parity_a = (a.0 + a.1 + a.2) as f64 % 2.0;
+        let parity_b = (b.0 + b.1 + b.2) as f64 % 2.0;
+        if parity_a != parity_b { 1.0 } else { 0.5 }
+    }
+
+    /// 强匹配数量
+    pub fn strong_count(&self) -> usize { self.matches.iter().filter(|m| m.is_strong()).count() }
+
+    /// 最佳匹配
+    pub fn best(&self) -> Option<&NiaoXiaoMatch> {
+        self.matches.iter().max_by(|a, b| a.resonance.partial_cmp(&b.resonance).unwrap_or(std::cmp::Ordering::Equal))
+    }
+
+    pub fn match_count(&self) -> usize { self.matches.len() }
+}
+
+impl Default for NiaoXiaoQianMatcher { fn default() -> Self { Self::new() } }
+
+#[cfg(test)]
+mod niaoxiaoqian_tests {
+    use super::*;
+    #[test] fn test_search() { let mut m = NiaoXiaoQianMatcher::new(); m.search((10, 20, 30)); assert_eq!(m.match_count(), 64); }
+    #[test] fn test_search_reverse() { let mut m = NiaoXiaoQianMatcher::new(); m.search_reverse((10, 20, 30)); assert_eq!(m.match_count(), 46); }
+    #[test] fn test_best() { let mut m = NiaoXiaoQianMatcher::new(); m.search((10, 20, 30)); assert!(m.best().is_some()); }
+    #[test] fn test_global_limit() { let m = NiaoXiaoQianMatcher::new(); let r = m.search_global((10, 20, 30), 5); assert!(r.len() <= 5); }
+    #[test] fn test_strong_match() { let m = NiaoXiaoQianMatcher::default(); let r = m.search_global((10, 20, 30), 100); assert!(!r.is_empty()); assert!(r[0].resonance > 0.5); }
+    #[test] fn test_resonance() { let m = NiaoXiaoQianMatcher::new(); let r = m.compute_resonance((0, 0, 0), (0, 1, 0)); assert!(r > 0.0 && r < 1.0); }
+    #[test] fn test_yinyang_balance() { let m = NiaoXiaoQianMatcher::new(); let b = m.compute_yinyang_balance((0, 0, 0), (1, 0, 0)); assert!(b == 1.0 || b == 0.5); }
+    #[test] fn test_match_strong() { let m = NiaoXiaoMatch { source: (0,0,0), target: (0,1,0), essence: MatchEssence::Harmonic, resonance: 0.9, yinyang_balance: 1.0 }; assert!(m.is_strong()); }
+    #[test] fn test_match_not_strong() { let m = NiaoXiaoMatch { source: (0,0,0), target: (50,50,50), essence: MatchEssence::Adjacent, resonance: 0.3, yinyang_balance: 0.5 }; assert!(!m.is_strong()); }
+    #[test] fn test_default_matcher() { let m = NiaoXiaoQianMatcher::default(); assert_eq!(m.match_count(), 0); }
 }
