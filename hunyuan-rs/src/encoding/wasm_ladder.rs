@@ -1,4 +1,4 @@
-// WASM 阶梯制双向公约引擎 (auto-generated stub for parallel-session compatibility)
+// WASM 阶梯制双向公约引擎 (auto-generated stub for parallel-session cleanup compatibility)
 // 同一源码 · 双向编译 · 架构无关
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

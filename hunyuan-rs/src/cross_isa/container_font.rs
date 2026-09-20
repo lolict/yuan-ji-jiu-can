@@ -229,7 +229,7 @@ fn build_sources(bw: u8, extended: bool) -> Vec<GlyphSource> {
             StateCategory::MirrorEntangled => 0x12,
             StateCategory::ExtendedEntangled => 0x13,
         };
-        let coord = Coord3D::new(xs, c.state as u16, c.orbit.len() as u8);
+        let coord = Coord3D::new(xs, c.state as u16, (c.state % 16) as u8);
         let pack = ContainerPack::new(cp as u64, coord, 1, bits.clone().into_bytes());
         srcs.push(GlyphSource { codepoint: cp, name: format!("state_{}_{}", bits, c.category.name_cn()), bits, classification: c.clone(), pack });
         cp += 1;
@@ -335,6 +335,9 @@ fn build_mcod_table(srcs: &[GlyphSource]) -> Vec<u8> {
                 w.u16(s.classification.orbit.elements[i as usize] as u16);
             } else { w.u16(0); }
         }
+        w.u8(s.pack.func_code as u8);
+        w.u8(s.pack.time_stamp as u8);
+        w.u16(s.pack.param_slot as u16);
         while (w.pos()-es) < 48 { w.u8(0); }
     }
     w.buf

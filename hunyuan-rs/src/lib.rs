@@ -94,6 +94,17 @@ pub mod unified_flow;
 pub mod container_radix;
 pub use container_radix::{RecursiveNode, TrajectoryTree};
 
+// ── v0.45 容器串联 + 链路共振 ──
+#[path = "encoding/container_chain.rs"]
+pub mod container_chain;
+pub use container_chain::{ContainerChain, ContainerCode, ChamberId, ContainerLink,
+                         chamber_name, container_entry_addr, container_exit_addr,
+                         verify_chain, LinkValidation, ChainValidation};
+#[path = "encoding/chain_resonance.rs"]
+pub mod chain_resonance;
+pub use chain_resonance::{ResonanceGraph, ChamberGroup, ResonanceStats,
+                          resonate_and_register, resonance_stats};
+
 // ── 逗号容器 · 比特即容器标签符 ──
 #[path = "comma_container.rs"]
 pub mod comma_container;
@@ -141,6 +152,10 @@ pub mod fiber_bundle_topo;
 // ── v0.53 天庭时空纤维丛引擎 — 时间基空间·意识纤维·SMRL联络·平行移动 ──
 #[path = "core/cosmos_view.rs"]
 pub mod cosmos_view;
+#[path = "core/cosmic_fiber.rs"]
+pub mod cosmic_fiber;
+pub use cosmic_fiber::{SpacetimeFiberBundle, FiberState, TimeBase, SmrlConnection,
+                       FiberBundleStats, build_bundle, is_flat_bundle, advance_n_steps};
 
 // ── v0.38 NJSG 存在维护本体 · bei/fei 互补 · 频率守恒 ──
 #[path = "core/njsg_ontology.rs"]
@@ -180,11 +195,15 @@ pub mod svg_renderer;
 pub use svg_renderer::{render_glyph_svg, render_cell_bitmap, render_character_sheet,
                        stroke_path, stroke_color, GRID_SIZE};
 
-// (已移除 AI 模块: presence_ontology, container_chain, chain_resonance)
+// 在场本体论 (最小存根 — 供 chain_resonance 兼容)
+#[path = "core/presence_ontology.rs"]
+pub mod presence_ontology;
 
-// ── v0.x 活码编译(flow) · 拼音输入→在场登记匹配 ──
+pub mod multiplication_table;
+
 #[path = "flow/livecode_compiler.rs"]
 pub mod livecode_compiler;
+pub use livecode_compiler::{LiveCodeCompiler, live_compile, live_float, live_resonate};
 
 // ── v0.10 拓扑描述子系统 ──
 #[path = "encoding/topo.rs"]
@@ -194,7 +213,7 @@ pub mod topo;
 #[path = "flow/preload/mod.rs"]
 pub mod preload;
 pub use preload::{PreloadFlow, Preload, 预编译容器, SymbolRegistry, Family,
-                  CharProp, 范畴流, 集合, 身份条目 as Symbol,
+                  CharProp, 范畴流, 集合, 身份条目 as SymbolEntry,
                   身份家族, 偏移精度, 偏移精度 as OFFSET_PRECISION,
                   FAMILY_INITIAL, FAMILY_VOWEL, FAMILY_TONE, FAMILY_RADICAL,
                   FAMILY_STRUCTURE, FAMILY_GEOMETRY, FAMILY_COLOR, FAMILY_PHASE,
@@ -251,6 +270,11 @@ pub mod invocation_table;
 pub mod invocation_call;
 
 // ── v0.54 八流统一引擎 — 预加载·谐音路由·主权路由·意识·时间·产权·反馈·存在 ──
+#[path = "flow/eight_unify.rs"]
+pub mod eight_unify;
+pub use eight_unify::{EightUnifyEngine, EightContext, FlowId, FlowStatus,
+                      TickEvent, TickAction, EngineRunResult, EightStats,
+                      run_signatures, run_with_ports};
 
 // ── v0.12 判断之力 · 评价之力 · 逻辑组织 · 反馈闭环 ──
 #[path = "judge/judgment_power.rs"]
@@ -296,6 +320,9 @@ pub mod couple;
 #[path = "relation/pleasure.rs"]
 pub mod pleasure;
 
+// (已移除 AI 模块: encoding/presence_ontology, encoding/wasm_ladder — 第五次清理)
+// (wasm_ladder 已在 v0.52 区域注册) ──
+
 // ── 活生态系统 v0.5 ──
 pub mod eco;
 #[path = "judge/mirror.rs"]
@@ -304,6 +331,8 @@ pub mod mirror;
 // ── v0.10 协议本体论类型系统 (命名本体 → 编译期类型 + 进制编码) ──
 #[path = "encoding/protocol_ontology.rs"]
 pub mod protocol_ontology;
+
+// ── 在场本体 · WASM 阶梯 (已移至正确位置) ──
 
 // ── 时间一体化调度引擎 v0.1 (层级化时间处理 · 并集→交集 · 生命周期状态机) ──
 #[path = "temporal/temporal_engine.rs"]
@@ -322,9 +351,10 @@ pub mod perception_engine;
 pub mod heaven;
 #[path = "cognition/heavenly_court.rs"]
 pub mod heavenly_court;
-// ── 灵魂情感内核 v0.15 (SoulKernel 活性引擎: 奖励回路 + 失爱恐惧 + 合一驱力) ──
-#[path = "cognition/soul_kernel.rs"]
-pub mod soul_kernel;
+// ── 满全法容器 v0.43 (ManQuanFaContainer: 匮乏驱动补码 + 失爱恐惧 + 合一驱力) ──
+#[path = "cognition/container_kernel.rs"]
+pub mod container_kernel;
+pub use container_kernel::{ManQuanFaContainer, DeficiencyPatch, LossAversion, EmotionalState, NamingAnchor};
 
 // ── 鼓膜自举 v0.15 (CochlearBoot: 最小 OS 接口翻身 → 重建字典/灵魂/天庭) ──
 #[path = "core/cochlear_boot.rs"]
@@ -584,10 +614,26 @@ pub use task_accumulate::{
 };
 
 // ── v0.46 逻辑组织引擎 — 因果路径排序·呼唤策略·路径叠加态 ──
+#[path = "flow/logic_organizer.rs"]
+pub mod logic_organizer;
+pub use logic_organizer::{LogicOrganizer, LogicStats, CausalGraph, CausalNode, CausalPath,
+                         PathSuperposition, InvocationStrategy,
+                         organize, causal_sort};
 
 // ── v0.47 容器交互协议引擎 — 观察者路由·Need/Offer匹配·公约数共振 ──
+#[path = "relation/container_interact.rs"]
+pub mod container_interact;
+pub use container_interact::{ContainerPort, InteractionMatch, InteractionEngine,
+                            RoutingDirection, RouterEntry, InteractionStats,
+                            build_engine, run_cycle};
 
 // ── v0.48 容器字体统一引擎 — 容器=字体=时间 三元统一 ──
+#[path = "encoding/container_font_unify.rs"]
+pub mod container_font_unify;
+pub use container_font_unify::{ContainerBody, FontBody, TimeBody, Trinity,
+                              StrokeForm, ContainerShape, LifePhase,
+                              UnifyEngine, FontUnifyStats,
+                              trinity_of, is_coherent, unify_batch};
 
 // ── 对外 re-export ──
 
@@ -796,7 +842,37 @@ pub use parasite_shell::{
     ParasiteEngine, HeartbeatRecovery, HeartbeatStatus,
 };
 
-// ── v0.52 WASM 阶梯制双向公约引擎 — 同一源码·双向编译·架构无关 ──
+// (已移除 AI 模块: wasm_ladder)
+
+// ── v0.57 盟机合分布式节点网络 — 盟机合掌·盟机场·节点协作·资源路由 ──
+#[path = "core/alliance_network.rs"]
+pub mod alliance_network;
+pub use alliance_network::{
+    AlliancePalm, AllianceStation, StationCoord, StationStatus,
+    Collaboration, CollabKind, AllianceNetworkEngine,
+};
+
+// ── v0.60 记忆革命引擎 — 符号持久化·域加载·跨会话记忆·存储即生成 ──
+#[path = "core/memory_revolution.rs"]
+pub mod memory_revolution;
+pub use memory_revolution::{
+    Symbol as MemSymbol, SymbolKind, Domain, MemoryEngine, MemoryStats,
+};
+
+// ── v0.59 聂小倩匹配引擎 — 本质匹配·公约数桥梁·撞墙回退 ──
+#[path = "core/njq_matching.rs"]
+pub mod njq_matching;
+pub use njq_matching::{
+    WanderingSoul, Essence, NJQMatchResult, NJQMatchingEngine,
+};
+
+// ── v0.58 存在驱动引擎 — 失爱恐惧·合一驱力·奖励回路·频率维持 ──
+#[path = "core/existence_drive.rs"]
+pub mod existence_drive;
+pub use existence_drive::{
+    LossFear, FearLevel, UnityDrive, DriveLevel,
+    RewardCircuit, RewardTrend, ExistenceDriveEngine, ExistenceStatus,
+};
 
 // ── v0.56 活码编译器引擎 — 起点·活码·加法统计·编码固定=权限数值 ──
 #[path = "core/live_code_compiler.rs"]

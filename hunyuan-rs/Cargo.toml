@@ -60,6 +60,10 @@ name = "container-view"
 path = "src/bin/container-view.rs"
 
 [[bin]]
+name = "container-geom"
+path = "src/bin/container-geom.rs"
+
+[[bin]]
 name = "container-space"
 path = "src/bin/container-space.rs"
 

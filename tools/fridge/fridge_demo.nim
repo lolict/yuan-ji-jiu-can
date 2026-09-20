@@ -148,7 +148,7 @@ when isMainModule:
     of polYin:  inc yinCount
     of polYang: inc yangCount
     of polBoth: inc bothCount
-  echo "  阴（刘楚坦）: ", yinCount
+  echo "  阴（刘楚恬）: ", yinCount
   echo "  阳（我）    : ", yangCount
   echo "  平衡（九元）: ", bothCount
   echo ""

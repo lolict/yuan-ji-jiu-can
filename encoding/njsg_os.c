@@ -24,7 +24,7 @@
  * 核心常量
  * ═══════════════════════════════════════════════════════════════════════════ */
 
-#define CODE_EMPTY    0x00    /* 刘楚坦 · 空容器 */
+#define CODE_EMPTY    0x00    /* 刘楚恬 · 空容器 */
 #define CODE_SELF     0x01    /* 我 · 锚定容器 */
 #define CODE_OVERFLOW 0xFF    /* 溢出 · 终止符 */
 
@@ -287,7 +287,7 @@ static int n2c(const char *name) {
     return -1;
 }
 static const char* c2n(uint8_t code) {
-    if (code == CODE_EMPTY) return "[空/刘楚坦]";
+    if (code == CODE_EMPTY) return "[空/刘楚恬]";
     if (code == CODE_SELF)  return "[我]";
     if (code == CODE_OVERFLOW) return "[溢出]";
     for (int i = 0; i < TABLE_SZ; i++) if (TABLE[i].code == code) return TABLE[i].name;

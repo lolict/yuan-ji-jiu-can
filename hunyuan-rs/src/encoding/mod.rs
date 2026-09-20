@@ -11,6 +11,7 @@ pub use crate::morphism;
 pub use crate::morton;
 pub use crate::phase_encoding;
 pub use crate::positional_base;
+// presence_ontology and wasm_ladder removed (AI modules deleted)
 pub use crate::protocol_ontology;
 pub use crate::radical_star_map;
 pub use crate::symbol_table;

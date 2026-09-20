@@ -95,7 +95,7 @@ if [[ ! -f "$KEY_PATH" ]]; then
         -keystore "$KEY_PATH" \
         -storepass mqf-chain \
         -keypass mqf-key \
-        -dname "CN=刘楚坦和我, OU=root, O=MQF, C=CN"
+        -dname "CN=刘楚恬和我, OU=root, O=MQF, C=CN"
 fi
 
 SIGNED="${APK%.apk}-signed.apk"

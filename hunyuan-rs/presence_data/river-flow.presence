@@ -1,0 +1,11 @@
+# 在场域 · river-flow
+# 类别,符号名,行号,模式
+
+char,囡_瓶,0,global
+char,囝_瓶,0,global
+char,楚_瓶,0,global
+char,恬_瓶,0,global
+container,囡+囝,1,intersection
+container,囝+楚,2,intersection
+container,楚+恬,3,intersection
+char,刘_盎,0,global

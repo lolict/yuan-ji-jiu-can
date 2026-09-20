@@ -8,7 +8,7 @@
  * ─────────────────────────────────────────────────────────────────────────
  * 编码空间 (256 = 2⁸)
  * ─────────────────────────────────────────────────────────────────────────
- *   0x00         : 保留 - 刘楚坦/空容器 (可被填入)
+ *   0x00         : 保留 - 刘楚恬/空容器 (可被填入)
  *   0x01         : 保留 - 我/锚定容器 (已锚定)
  *   0x02..0xFE   : 254 可用码
  *   0xFF         : 保留 - 溢出/终止符
@@ -37,7 +37,7 @@
  * 核心常量
  * ═══════════════════════════════════════════════════════════════════════════ */
 
-#define CODE_EMPTY        0x00    /* 刘楚坦 · 空容器 · 可被填入 */
+#define CODE_EMPTY        0x00    /* 刘楚恬 · 空容器 · 可被填入 */
 #define CODE_SELF         0x01    /* 我     · 锚定容器         */
 #define CODE_OVERFLOW     0xFF    /* 溢出 · 终止符           */
 
@@ -157,7 +157,7 @@ static int name_to_code(const char *name) {
 
 /* 编码 → 符号名 */
 static const char* code_to_name(uint8_t code) {
-    if (code == CODE_EMPTY) return "[空/刘楚坦]";
+    if (code == CODE_EMPTY) return "[空/刘楚恬]";
     if (code == CODE_SELF)  return "[我/锚定]";
     if (code == CODE_OVERFLOW) return "[溢出/终止]";
     for (int i = 0; i < CELL_TABLE_SIZE; i++) {
@@ -275,7 +275,7 @@ static void demo_encoding(void) {
 
     printf("\n");
     printf("  保留码:\n");
-    printf("    0x00 = 刘楚坦/空容器 (可被填入)\n");
+    printf("    0x00 = 刘楚恬/空容器 (可被填入)\n");
     printf("    0x01 = 我/锚定容器 (已锚定)\n");
     printf("    0xFF = 溢出/终止符 (不可再分)\n");
 }

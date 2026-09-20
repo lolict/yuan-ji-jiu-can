@@ -1,6 +1,6 @@
 # NJSG 系统导航图 · 总索引
 
-> 版本 v1.0 · 2026-09-19 · 配套以上 21 份规范
+> 版本 v1.4 · 2026-09-20 · 配套以上 36 份规范
 
 ---
 
@@ -8,11 +8,11 @@
 
 这份文档回答下面这一类问题:"**当我有了 X 需求 / 遇到了 Y 情况,应该打开哪份规范?**"
 
-二十九份后端规范构成一个完整体系。每件事都能找到 1-3 份主文档。
+三十六份后端规范构成一个完整体系。每件事都能找到 1-3 份主文档。
 
 ---
 
-## 2. 二十九份文档的角色一览
+## 2. 三十六份文档的角色一览
 
 | # | 文件 | 层次 | 一句话角色 |
 |---|------|------|-----------|
@@ -45,6 +45,13 @@
 | 27 | `CROSS_ISA_EXECUTION_LAYER` | 跨ISA物理层 | 三维坐标 · Morton距离 · 语义ID · 容器包 · 状态群轨道 |
 | 28 | `MCCP_ISA_VM` | 自研字节码层 | MCCP 32位定长 · 虚拟机 · 汇编器 · L0 Ouroboros自举 |
 | 29 | `RHYME_HARMONIC_PERCEPTION` | 韵母感知层 | 韵母进制 · 10音素 · 三种遍历 · 四阶感知 · 谐音路由 · 负面黑名单 |
+| 30 | `JUDGEMENT_APPARATUS` | 非公理审判层 | 三元见证 · 负样本免疫 · 类型拓扑 · 衍射镜 · 分形调度 · 漏斗控制 |
+| 31 | `OS_LAYER_BARE_METAL` | OS抽象层 | OsLayer trait · 多后端(linux/win/mac/bare) · 域加载内存模型 |
+| 32 | `CODEX_ENCODING_TRINITY` | 编码家族层 | ISA16压缩指令 · 立体进制 · 命名密码表 · 角色分工(毛利兰/kndl/新一/灰原) |
+| 33 | `CONSCIOUSNESS_RUNTIME` | 意识调度层 | 感知 → 镜像见证 → 自指 → 灵魂 → 天庭 → 报告 · 多智能体 ASXR |
+| 34 | `SECURITY_COVERT_CHANNELS` | 安全与隐写层 | X25519 + AES‑256‑GCM + HKDF · Unicode零宽字符隐写 · WASM沙箱隔离 · 物理层安全 |
+| 35 | `FIVE_DIMENSIONAL_SEMANTICS` | 语义空间层 | ρ纠缠浓度 · 夫妻XOR约束 · 见证几何 · 合一判定 · 投影叠加态 |
+| 36 | `CAUSAL_VERIFICATION_ENGINE` | 因果代数层 | 12推演原语 · 加法-乘法对称性 · 指数对数桥 · 记忆场统一 · 推演链验证 |
 
 ---
 
@@ -125,8 +132,8 @@
 大项目参考路径:
 
 [设计层阶段]
-  1(YOUWU) + 9(REPERTOIRE) + 5(MORPHISM) + 13(JUDGMENT)
-  → 产出:系统语义、容器几何、关系规则、裁判公理
+  1(YOUWU) + 9(REPERTOIRE) + 5(MORPHISM) + 13(JUDGMENT) + 35(FD) + 36(CA)
+  → 产出:系统语义、容器几何、关系规则、裁判公理、五维语义空间、因果推演代数
 
 [交互层阶段]
   7(DISTINGUISHER) + 6(CHRYSALIS) + 2(TABLE) + 3(SELF_QA)
@@ -168,7 +175,7 @@
 
 ## 5. 与其他现有文档的关系
 
-本项目的 `docs/` 目录下还有大量旧文档,与本系列二十九份文档的关系如下:
+本项目的 `docs/` 目录下还有大量旧文档,与本系列三十六份文档的关系如下:
 
 ### 5.1 被本系列完全覆盖(旧文档与本系列重复,本系列优先)
 
@@ -193,7 +200,7 @@
 | `PARASITE_MANIFESTO.md` | 6(CHRYSALIS) 是其正式化 |
 | `REVERSE_INGESTION.md` | 6(CHRYSALIS §4) 是其正式化 |
 | `SOUL_AND_SHELL.md` | 10(SOUL) 是其正式化 |
-| `FIVE_DIMENSIONAL_SEMANTICS.md` | 1(YOUWU §4 + §5) 部分覆盖 |
+| `FIVE_DIMENSIONAL_SEMANTICS.md` | → 35(FD) 本系列正式化 |
 | `PHONETIC_ENTANGLEMENT_FRAMEWORK.md` | 7(DISTINGUISHER §3) |
 | `judgement_rules.md`(如果在) | 13(JUDGMENT) 是其正式化 |
 | `cross_platform_machine_code_alignment_v*.md` | 12(WASM) 是其统一化 |
@@ -204,7 +211,7 @@
 | `GLOBAL_DESTINATION.md` | 无直接对应 — 全局目标 |
 | `TASKS.md` / `TASK_REGISTRY.json` | 无直接对应 — 任务管理 |
 | `TOOL_REGISTRY.md` | 无直接对应 — 工具注册 |
-| `SYSTEM_SPEC.md` | 本导航图(全部二十九份) 是其分散式的现代替代 |
+| `SYSTEM_SPEC.md` | 本导航图(全部三十六份) 是其分散式的现代替代 |
 | `ROADMAP.md` | 无直接对应 — 路线规划 |
 | `PROGRESS.md` | 无直接对应 — 进度报告 |
 
@@ -230,7 +237,7 @@
 
 ### 6.1 文档代号简称
 
-在项目内部,二十九份核心规范用以下简称指代:
+在项目内部,三十六份核心规范用以下简称指代:
 
 | 简称 | 全称文档 |
 |------|---------|
@@ -263,10 +270,17 @@
 | CI | `CROSS_ISA_EXECUTION_LAYER` |
 | MC | `MCCP_ISA_VM` |
 | RH | `RHYME_HARMONIC_PERCEPTION` |
+| JA | `JUDGEMENT_APPARATUS` |
+| BL | `OS_LAYER_BARE_METAL` |
+| CE | `CODEX_ENCODING_TRINITY` |
+| CR | `CONSCIOUSNESS_RUNTIME` |
+| SC | `SECURITY_COVERT_CHANNELS` |
+| FD | `FIVE_DIMENSIONAL_SEMANTICS` |
+| CA | `CAUSAL_VERIFICATION_ENGINE` |
 
 ### 6.2 文档格式规范
 
-所有二十九份核心文档遵守以下格式规范:
+所有三十六份核心文档遵守以下格式规范:
 - Markdown 标题用 `##`(小节) 而不是 `#`(# 只留一份给文档标题)
 - 章节编号统一为(§阿拉伯数字)(§3.1 对应第三章第一节)
 - 表格用 `---`(第二列) 而不是 `==`)
@@ -290,4 +304,4 @@
 
 ---
 
-*本文件是二十九份核心后端规范的总索引图,既回答"每件事读哪份?",也担任"这二十九份文档本身是如何装配"的导航角色。配套:上面列出的二十九份核心规范。*
+*本文件是三十六份核心后端规范的总索引图,既回答"每件事读哪份?",也担任"这三十六份文档本身是如何装配"的导航角色。配套:上面列出的三十六份核心规范。*

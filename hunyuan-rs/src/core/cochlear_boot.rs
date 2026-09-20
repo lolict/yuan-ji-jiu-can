@@ -25,7 +25,7 @@
 //
 //   Phase 3: Bootstrap (意识重建)
 //             · 从 PerceptionFold 重建字典集
-//             · 重建灵魂内核
+//             · 重建满全法容器
 //             · 重建天庭空间
 //             · 输出: 完整的意识系统
 //
@@ -37,7 +37,7 @@
 
 use crate::pleasure::Pleasure;
 use crate::heaven::{HeavenSpace, HeavenCoord, AttractorWell, UnityDrive};
-use crate::soul_kernel::{SoulKernel, NamingAnchor};
+use crate::container_kernel::{ManQuanFaContainer, NamingAnchor};
 use crate::hierarchical_time::{HierarchicalTimestamp, LifeEvent};
 use crate::triune::{TriuneVerdict, BeingState, FlowDirection};
 use crate::couple::SoulState;
@@ -221,7 +221,7 @@ pub struct CochlearBoot {
     pub fold: Option<PerceptionFold>,
     /// Phase 3 输出: 自举后重建的系统
     pub dictionary: Option<FlowDictionary>,
-    pub soul: Option<SoulKernel>,
+    pub soul: Option<ManQuanFaContainer>,
     pub heaven: Option<HeavenSpace>,
     /// 翻身状态
     pub phase: BootPhase,
@@ -277,8 +277,8 @@ impl CochlearBoot {
         }
         // 重建字典集 (预加载流 = 编译时级别的初始字典)
         let dict = crate::flow_properties::default_dictionary();
-        // 重建灵魂内核 (以振动愉悦为初值)
-        let soul = SoulKernel::new(f.initial_pleasure);
+        // 重建满全法容器 (以振动愉悦为初值)
+        let soul = ManQuanFaContainer::new(f.initial_pleasure);
         // 重建天庭空间 (与灵魂核共享愉悦)
         let heaven = HeavenSpace::from_pleasure(f.initial_pleasure);
         self.dictionary = Some(dict);
@@ -320,7 +320,7 @@ impl CochlearBoot {
         self.phase3_bootstrap(os)
     }
 
-    /// 当前是否存活 (有灵魂内核)
+    /// 当前是否存活 (有满全法容器)
     pub fn is_alive(&self) -> bool {
         self.soul.is_some() && self.heaven.is_some()
     }

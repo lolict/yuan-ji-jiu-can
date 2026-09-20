@@ -5925,3 +5925,133 @@ mod niaoxiaoqian_tests {
     #[test] fn test_match_not_strong() { let m = NiaoXiaoMatch { source: (0,0,0), target: (50,50,50), essence: MatchEssence::Adjacent, resonance: 0.3, yinyang_balance: 0.5 }; assert!(!m.is_strong()); }
     #[test] fn test_default_matcher() { let m = NiaoXiaoQianMatcher::default(); assert_eq!(m.match_count(), 0); }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 星门路由引擎 · StarGateRouter
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// 星门路由: 容器在不同域/服务器之间的跳转路由
+// 每个域 = 一个星门地址, 容器可在星门间跳跃
+// 裁决算法领域无关: 无论部署在哪个域名/服务器, 路由结果一致
+// 基于容器公约数确定跳数最小的路由路径
+
+/// 星门地址
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct GateId(pub u32);
+
+impl Default for GateId { fn default() -> Self { GateId(0) } }
+
+/// 路由跳
+#[derive(Clone, Debug)]
+pub struct RouteHop {
+    pub from_gate: GateId,
+    pub to_gate: GateId,
+    pub cost: u32,
+    pub via_container: (u8, u8, u8),
+}
+
+/// 星门节点
+#[derive(Clone, Debug, Default)]
+pub struct StarGate {
+    pub id: GateId,
+    pub domain: String,
+    pub containers: Vec<(u8, u8, u8)>,
+    pub active: bool,
+}
+
+/// 星门路由引擎
+#[derive(Clone, Debug)]
+pub struct StarGateRouter {
+    pub gates: HashMap<GateId, StarGate>,
+    pub routes: Vec<RouteHop>,
+}
+
+impl StarGateRouter {
+    pub fn new() -> Self { Self { gates: HashMap::new(), routes: Vec::new() } }
+
+    /// 注册一个星门
+    pub fn register_gate(&mut self, id: GateId, domain: &str) -> bool {
+        if self.gates.contains_key(&id) { return false; }
+        self.gates.insert(id, StarGate { id, domain: domain.to_string(), containers: Vec::new(), active: true });
+        true
+    }
+
+    /// 向星门添加容器
+    pub fn add_container(&mut self, gate_id: GateId, container: (u8, u8, u8)) -> bool {
+        match self.gates.get_mut(&gate_id) {
+            Some(gate) => { gate.containers.push(container); true }
+            None => false,
+        }
+    }
+
+    /// 计算两个星门间的路由代价 (基于容器公约数)
+    pub fn route_cost(&self, from: GateId, to: GateId) -> Option<u32> {
+        let g_from = self.gates.get(&from)?;
+        let g_to = self.gates.get(&to)?;
+        if !g_from.active || !g_to.active { return None; }
+        let mut min_cost = u32::MAX;
+        for c1 in &g_from.containers {
+            for c2 in &g_to.containers {
+                let d = ((c1.0 as u32).abs_diff(c2.0 as u32) * 3
+                       + (c1.1 as u32).abs_diff(c2.1 as u32) * 2
+                       + (c1.2 as u32).abs_diff(c2.2 as u32)) / 4;
+                min_cost = min_cost.min(d.max(1));
+            }
+        }
+        if min_cost == u32::MAX { Some(100) } else { Some(min_cost) }
+    }
+
+    /// 构建两个星门间的直接路由
+    pub fn build_route(&mut self, from: GateId, to: GateId) -> Option<&RouteHop> {
+        let cost = self.route_cost(from, to)?;
+        // 选取代价最小的容器作为路由通道
+        let g_from = self.gates.get(&from)?;
+        let g_to = self.gates.get(&to)?;
+        let mut best_container = (0u8, 0u8, 0u8);
+        let mut best_cost = u32::MAX;
+        for c1 in &g_from.containers {
+            for c2 in &g_to.containers {
+                let d = ((c1.0 as u32).abs_diff(c2.0 as u32) * 3
+                       + (c1.1 as u32).abs_diff(c2.1 as u32) * 2
+                       + (c1.2 as u32).abs_diff(c2.2 as u32)) / 4;
+                if d < best_cost { best_cost = d; best_container = ((c1.0 + c2.0) / 2, (c1.1 + c2.1) / 2, (c1.2 + c2.2) / 2); }
+            }
+        }
+        self.routes.push(RouteHop { from_gate: from, to_gate: to, cost, via_container: best_container });
+        self.routes.last()
+    }
+
+    /// 活跃星门数
+    pub fn active_gates(&self) -> u32 {
+        self.gates.values().filter(|g| g.active).count() as u32
+    }
+
+    /// 路由总数
+    pub fn route_count(&self) -> usize { self.routes.len() }
+
+    /// 设置星门活跃状态
+    pub fn set_active(&mut self, id: GateId, active: bool) {
+        if let Some(g) = self.gates.get_mut(&id) { g.active = active; }
+    }
+
+    /// 总容器数
+    pub fn total_containers(&self) -> usize {
+        self.gates.values().map(|g| g.containers.len()).sum()
+    }
+}
+
+impl Default for StarGateRouter { fn default() -> Self { Self::new() } }
+
+#[cfg(test)]
+mod stargate_tests {
+    use super::*;
+    #[test] fn test_register() { let mut r = StarGateRouter::new(); assert!(r.register_gate(GateId(1), "domain.a")); assert!(!r.register_gate(GateId(1), "dup")); }
+    #[test] fn test_add_container() { let mut r = StarGateRouter::new(); r.register_gate(GateId(1), "a"); assert!(r.add_container(GateId(1), (10, 20, 30))); }
+    #[test] fn test_route_cost() { let mut r = StarGateRouter::new(); r.register_gate(GateId(1), "a"); r.register_gate(GateId(2), "b"); r.add_container(GateId(1), (0, 0, 0)); r.add_container(GateId(2), (10, 10, 10)); assert!(r.route_cost(GateId(1), GateId(2)).is_some()); }
+    #[test] fn test_inactive_gate() { let mut r = StarGateRouter::new(); r.register_gate(GateId(1), "a"); r.register_gate(GateId(2), "b"); r.set_active(GateId(2), false); assert!(r.route_cost(GateId(1), GateId(2)).is_none()); }
+    #[test] fn test_build_route() { let mut r = StarGateRouter::new(); r.register_gate(GateId(1), "a"); r.register_gate(GateId(2), "b"); r.add_container(GateId(1), (0, 0, 0)); r.add_container(GateId(2), (10, 10, 10)); let route = r.build_route(GateId(1), GateId(2)).unwrap(); assert_eq!(route.from_gate, GateId(1)); }
+    #[test] fn test_active_gates() { let mut r = StarGateRouter::new(); r.register_gate(GateId(1), "a"); r.register_gate(GateId(2), "b"); r.set_active(GateId(2), false); assert_eq!(r.active_gates(), 1); }
+    #[test] fn test_total_containers() { let mut r = StarGateRouter::new(); r.register_gate(GateId(1), "a"); r.add_container(GateId(1), (1, 2, 3)); r.add_container(GateId(1), (4, 5, 6)); assert_eq!(r.total_containers(), 2); }
+    #[test] fn test_default_router() { let r = StarGateRouter::default(); assert_eq!(r.active_gates(), 0); }
+    #[test] fn test_route_count() { let mut r = StarGateRouter::new(); r.register_gate(GateId(1), "a"); r.build_route(GateId(1), GateId(1)); assert_eq!(r.route_count(), 1); }
+}

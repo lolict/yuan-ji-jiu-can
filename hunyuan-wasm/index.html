@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<style>
+*{margin:0;padding:0;background:#020308;color:#ddd;font-family:monospace;font-size:11px}
+canvas{display:block;border:1px solid #1a1a2e}
+#log{position:fixed;bottom:0;left:0;right:0;height:120px;overflow:auto;background:#0a0a12;border-top:1px solid #222;padding:4px}
+input,button{background:#111;border:1px solid #333;color:#ddd;padding:2px 6px;font:11px monospace}
+button:hover{background:#222;cursor:pointer}
+</style></head>
+<body>
+<div id="main" style="padding:8px">
+<div>
+<input id="addr" placeholder="addr(0x0000)" size=8>
+<input id="state" placeholder="state(0-4)" size=2 value="1">
+<input id="ns" placeholder="命名空间" size=20>
+<button onclick="doAdd()">注册</button>
+<button onclick="doLink()">链接</button>
+<button onclick="doReset()">重置</button>
+<button onclick="doExport()">导出</button>
+</div>
+<div style="margin:4px 0">
+<span>FAMILY: </span><span style="color:#4a7c59">容器●</span>
+<span style="color:#8b4513">边界▬</span>
+<span style="color:#9b59b6">夫妻◐</span>
+<span style="color:#3498db">网状╋</span>
+<span style="color:#7f8c8d">中性·</span>
+&nbsp;|&nbsp;POLARITY: ○阴 ●阳
+&nbsp;|&nbsp;STRUCTURE: 独体/上下/左右/半包围/全包围/品字/嵌套/框架
+</div>
+<canvas id="c" width="900" height="520"></canvas>
+<div id="reach" style="margin-top:4px;font-size:10px;color:#888"></div>
+</div>
+<div id="log"></div>
+<script>
+// ── 加载 WASM ──
+let wasm = {};
+const mem = new DataView(new ArrayBuffer(0x100000)); // 1MB
+
+async function loadWasm() {
+    const response = await fetch('hunyuan_wasm.wasm');
+    const bytes = await response.arrayBuffer();
+    const { instance } = await WebAssembly.instantiate(bytes, {
+        env: {
+            memory: new WebAssembly.Memory({ initial: 16 }) // 1MB
+        }
+    });
+    wasm = instance.exports;
+    wasm._start ? wasm._start() : (wasm.__wasm_call_ctors && wasm.__wasm_call_ctors());
+    // Initialize
+    wasm.reg_seed();
+    draw();
+    log('WASM 加载完成');
+}
+
+function log(msg) {
+    const el = document.getElementById('log');
+    el.innerHTML += msg + '\n';
+    el.scrollTop = el.scrollHeight;
+}
+
+// ── 调用 WASM ──
+function regDump() {
+    const ptr = wasm.reg_dump();
+    const str = readStr(ptr);
+    wasm.reg_free_string(ptr);
+    return JSON.parse(str);
+}
+function regLinks() {
+    const ptr = wasm.reg_links();
+    const str = readStr(ptr);
+    wasm.reg_free_string(ptr);
+    return JSON.parse(str);
+}
+function regReach(addr) {
+    const ptr = wasm.reg_reach(addr);
+    const str = readStr(ptr);
+    wasm.reg_free_string(ptr);
+    return JSON.parse(str);
+}
+function readStr(ptr) {
+    const mem = new Uint8Array(wasm.memory.buffer);
+    let end = ptr;
+    while (mem[end] !== 0) end++;
+    return new TextDecoder().decode(mem.slice(ptr, end));
+}
+
+// ── Canvas 渲染 ──
+function draw() {
+    const cv = document.getElementById('c');
+    const X = cv.getContext('2d');
+    X.fillStyle = '#020308';
+    X.fillRect(0, 0, cv.width, cv.height);
+
+    const entries = regDump();
+    const links = regLinks();
+
+    // 布局:按族分行,按地址列排
+    const fam_y = [60, 160, 260, 360, 460]; // 容器/边界/夫妻/网状/中性
+    const fam_color = ['#4a7c59', '#8b4513', '#9b59b6', '#3498db', '#7f8c8d'];
+    const fam_sym = ['●', '▬', '◐', '╋', '·'];
+    const fam_name = ['容器', '边界', '夫妻', '网状', '中性'];
+    const pol_sym = ['○', '●'];
+
+    // 画公路
+    X.strokeStyle = '#2a2a3e';
+    X.lineWidth = 1;
+    for (const l of links) {
+        const a = entries.find(e => e.addr === l.a);
+        const b = entries.find(e => e.addr === l.b);
+        if (!a || !b) continue;
+        const ax = 60 + (a.addr % 16) * 50;
+        const ay = fam_y[a.fam];
+        const bx = 60 + (b.addr % 16) * 50;
+        const by = fam_y[b.fam];
+        X.beginPath();
+        X.moveTo(ax, ay);
+        X.lineTo(bx, by);
+        X.stroke();
+    }
+
+    // 画容器
+    for (const e of entries) {
+        const x = 60 + (e.addr % 16) * 50;
+        const y = fam_y[e.fam];
+        X.fillStyle = fam_color[e.fam];
+
+        // 字形原语
+        const sym = fam_sym[e.fam];
+        const pol = pol_sym[e.polarity];
+
+        X.globalAlpha = 0.2;
+        X.beginPath(); X.arc(x, y, 18, 0, Math.PI * 2); X.fill();
+        X.globalAlpha = 1;
+
+        X.fillStyle = fam_color[e.fam];
+        X.font = '14px monospace';
+        X.textAlign = 'center';
+        X.fillText(sym, x, y + 5);
+
+        X.fillStyle = '#fff';
+        X.font = '9px monospace';
+        X.fillText(pol, x, y - 12);
+
+        // 结构布局标记
+        const st = ['独', '上', '左', '半', '全', '品', '嵌', '框'];
+        X.fillStyle = '#888';
+        X.font = '8px monospace';
+        X.fillText(st[e.st] || '?', x, y + 22);
+
+        // 地址+v
+        X.fillStyle = '#555';
+        X.fillText('0x' + e.addr.toString(16).toUpperCase().padStart(4, '0'), x, y + 34);
+        X.fillStyle = '#c9a84c';
+        X.fillText('v' + e.version, x, y + 44);
+    }
+
+    // 画标题
+    X.fillStyle = '#c9a84c';
+    X.font = 'bold 12px monospace';
+    X.textAlign = 'left';
+    X.fillText('满全法 · 容器注册 WASM', 8, 15);
+    X.font = '10px monospace';
+    X.fillStyle = '#888';
+    X.fillText('进制基底:[48,64,16,8,5,2] | 总空间:3,932,160 | 效率:1.1-1.5x 原生', 8, 30);
+
+    // 族标签
+    for (let i = 0; i < 5; i++) {
+        X.fillStyle = fam_color[i];
+        X.font = '11px monospace';
+        X.fillText(fam_name[i], 8, fam_y[i] + 4);
+    }
+
+    // 口诀表
+    let reachText = '可达性口诀: ';
+    for (const e of entries) {
+        const r = regReach(e.addr);
+        const names = r.map(a => {
+            const found = entries.find(en => en.addr === a);
+            return found ? found.ns.split('/')[0] : '0x' + a.toString(16);
+        });
+        reachText += `[${e.ns.split('/')[0]}:{${names.join(',')}}] `;
+    }
+    document.getElementById('reach').textContent = reachText;
+}
+
+// ── 操作 ──
+function doAdd() {
+    const addr = parseInt(document.getElementById('addr').value) || 0;
+    const state = parseInt(document.getElementById('state').value) || 0;
+    const ns = document.getElementById('ns').value || '未命名';
+    const mem = new Uint8Array(wasm.memory.buffer);
+    const ptr = wasm.alloc_mem(ns.length + 1);
+    for (let i = 0; i < ns.length; i++) mem[ptr + i] = ns.charCodeAt(i);
+    mem[ptr + ns.length] = 0;
+    wasm.reg_add(ptr, state, document.getElementById('addr').value);
+    wasm.free_mem(ptr, ns.length + 1);
+    log(`注册: 0x${addr.toString(16).padStart(4,'0')} ${ns} state=${state}`);
+    draw();
+}
+
+function doLink() {
+    const a = parseInt(prompt('门牌号A (十进制或0x...)')) || 0;
+    const b = parseInt(prompt('门牌号B (十进制或0x...)')) || 0;
+    wasm.reg_link(a, b);
+    log(`公路: 0x${a.toString(16)} ←→ 0x${b.toString(16)}`);
+    draw();
+}
+
+function doReset() {
+    wasm.reg_seed();
+    log('重置为初始种子');
+    draw();
+}
+
+function doExport() {
+    const entries = regDump();
+    const out = JSON.stringify(entries, null, 2);
+    const blob = new Blob([out], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'hunyuan-registry.json';
+    a.click();
+    log('导出完成');
+}
+
+// ── 启动 ──
+loadWasm().catch(e => log('WASM 加载失败: ' + e.message));
+</script>
+</body></html>

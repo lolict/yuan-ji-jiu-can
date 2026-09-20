@@ -1,0 +1,8 @@
+# 在场域 · river-flow
+# 类别,符号名,行号,模式
+
+char,囡_瓶,0,global
+char,囝_瓶,0,global
+container,囡+囝,1,intersection
+char,生_杯,0,global
+char,共_盎,0,global

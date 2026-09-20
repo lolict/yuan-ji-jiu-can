@@ -8,6 +8,6 @@ pub use crate::mind_organ;
 pub use crate::observer;
 pub use crate::oneness;
 pub use crate::perception_engine;
-pub use crate::soul_kernel;
+pub use crate::container_kernel;
 pub use crate::swarm;
 pub use crate::heavenly_court;

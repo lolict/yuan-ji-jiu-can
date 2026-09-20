@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>汉字直驱容器编码 · 满全法</title>
+<style>
+:root {
+  --bg: #0d1117; --card: #161b22; --border: #30363d;
+  --fg: #c9d1d9; --accent: #58a6ff; --yin: #8b949e; --yang: #f2cc60;
+  --wife: #ff7b72; --husband: #79c0ff; --neutral: #a5d6ff;
+}
+body { font-family: monospace; background: var(--bg); color: var(--fg); padding: 24px; max-width: 960px; margin: 0 auto; }
+h1 { color: var(--accent); font-size: 20px; margin-bottom: 4px; }
+.subtitle { color: var(--yin); font-size: 13px; margin-bottom: 24px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; margin-bottom: 32px; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+.card .ch { font-size: 42px; line-height: 1; color: var(--accent); margin-bottom: 8px; }
+.card .meta { font-size: 12px; color: var(--fg); opacity: 0.9; line-height: 1.5; }
+.card .strokes { color: var(--neutral); font-size: 11px; margin-bottom: 4px; }
+.card .containers { color: var(--accent); margin: 4px 0; word-break: break-all; }
+.card .polarity { margin-top: 6px; font-size: 12px; }
+.card .polarity .yin { color: var(--yin); }
+.card .polarity .yang { color: var(--yang); }
+.card .display { display: inline-block; padding: 2px 8px; border-radius: 4px; background: rgba(88,166,255,0.15); color: var(--accent); }
+.card .bits { font-size: 11px; color: var(--yin); margin-top: 4px; }
+.card .bits .wife { color: var(--wife); }
+.card .bits .husband { color: var(--husband); }
+.card.unknown { opacity: 0.5; }
+.chain-section { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+.chain-section h2 { margin: 0 0 12px 0; color: var(--accent); font-size: 16px; }
+.chain-flow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.chain-step { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.chain-step .from, .chain-step .to { padding: 4px 10px; background: rgba(88,166,255,0.1); border-radius: 6px; }
+.chain-step .from small, .chain-step .to small { display: block; font-size: 10px; opacity: 0.7; text-align: center; }
+.chain-step .arrow { color: var(--accent); }
+</style>
+</head>
+<body>
+<h1>汉字直驱容器编码</h1>
+<div class="subtitle">来源: 满全法 · 收录 3 字</div>
+<div class="grid">
+<div class="card">
+  <div class="ch">满</div>
+  <div class="strokes">12画 · 横→竖→提→点→横→竖→横→点→撇→捺→横→横</div>
+  <div class="containers">袋 + 桶 + 壶 + 盂 + 袋 + 桶 + 袋 + 盂 + 罐 + 盆 + 袋 + 袋</div>
+  <div class="containers" style="opacity:0.7">→ 袋(5层) 装 桶(2层) 装 罐 装 盆 装 盂(2层) 装 壶</div>
+  <div class="polarity"><span class="yin">阴</span> · 妻子侧(6) · 显态 <span class="display">盎</span></div>
+  <div class="bits">6bit:111111 ·  <span class="wife">妻=1</span> <span class="">夫=0</span></div>
+</div><div class="card">
+  <div class="ch">全</div>
+  <div class="strokes">7画 · 横→撇→捺→横→横→竖→横</div>
+  <div class="containers">袋 + 罐 + 盆 + 袋 + 袋 + 桶 + 袋</div>
+  <div class="containers" style="opacity:0.7">→ 袋(4层) 装 桶 装 罐 装 盆</div>
+  <div class="polarity"><span class="yang">阳</span> · 妻子侧(6) · 显态 <span class="display">盉</span></div>
+  <div class="bits">6bit:001111 ·  <span class="wife">妻=1</span> <span class="">夫=0</span></div>
+</div><div class="card">
+  <div class="ch">法</div>
+  <div class="strokes">7画 · 横→竖→横→横→点→撇→捺</div>
+  <div class="containers">袋 + 桶 + 袋 + 袋 + 盂 + 罐 + 盆</div>
+  <div class="containers" style="opacity:0.7">→ 袋(3层) 装 桶 装 罐 装 盆 装 盂</div>
+  <div class="polarity"><span class="yang">阳</span> · 妻子侧(6) · 显态 <span class="display">盉</span></div>
+  <div class="bits">6bit:011111 ·  <span class="wife">妻=1</span> <span class="">夫=0</span></div>
+</div>
+</div>
+<div class="chain-section"><h2>容器串联</h2><div class="chain-flow"><div class="chain-step"><span class="from">满<small>盎</small></span>
+<span class="arrow">▶</span><span class="to">全<small>入口=袋</small></span></div><div class="chain-step"><span class="from">全<small>盉</small></span>
+<span class="arrow">▶</span><span class="to">法<small>入口=盆</small></span></div></div></div>
+</body>
+</html>

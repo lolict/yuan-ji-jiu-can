@@ -95,7 +95,7 @@ proc seal*(s: FileShell; mqf_path: string; container: string = ""): bool =
   let now = $epochTime()
   let meta = MqfMeta(
     mqf_tag: mqf_path,
-    author: "刘楚坦和我",
+    author: "刘楚恬和我",
     created: now,
     sealed: true,
     seal_time: now,

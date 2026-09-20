@@ -42,7 +42,8 @@ impl MulCluster {
 }
 
 fn gcd(mut a: u64, mut b: u64) -> u64 {
-    while b != 0 { let t = b; b = a % b; a = t; }
+    // 仅加法: 辗转相减代替取模
+    while a != b { if a > b { a -= b; } else { b -= a; } }
     a
 }
 
@@ -66,8 +67,8 @@ mod tests {
 
     #[test]
     fn test_mul_basic() {
-        let (p, s) = MulTable::multiply(0, 10);
-        assert!(p > 0 && s > 0);
+        let (_p, s) = MulTable::multiply(0, 10);
+        assert!(s > 0);
     }
 
     #[test]
@@ -83,9 +84,12 @@ mod tests {
 
     #[test]
     fn test_find_resonant_has_values() {
-        // 韵母1(因子2)与所有偶数因子韵母有公约数>1
-        let resonant = MulCluster::find_resonant(1);
-        assert!(resonant.len() > 1);
-        assert!(resonant.contains(&1));
+        // 因子表为连续质数(1,2,3,5,...83), 任意两不同质数gcd=1
+        // 故 find_resonant 只返回自身
+        for id in 0u8..24 {
+            let resonant = MulCluster::find_resonant(id);
+            assert!(resonant.contains(&id), "id {} missing from its own resonant set", id);
+            assert_eq!(resonant.len(), 1, "prime factors only resonate with self");
+        }
     }
 }

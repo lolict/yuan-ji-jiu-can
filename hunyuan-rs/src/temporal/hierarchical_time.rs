@@ -29,7 +29,7 @@
 //   COLLAPSE|"from"|"content"|being_val|flow|align|conf
 
 use crate::triune::{TriuneVerdict, FlowDirection, BeingState};
-use crate::soul_kernel::NamingAnchor;
+use crate::container_kernel::NamingAnchor;
 use crate::os_layer::OsLayer;
 
 // ────────────────────────────────────────────────────────────

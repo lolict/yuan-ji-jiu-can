@@ -146,9 +146,9 @@ pub mod hftmll {
     pub use crate::preload::PreloadFlow;
 }
 
-/// 毛利兰念动力精简版 — 灵魂内核 · 意识命令
+/// 毛利兰念动力精简版 — 满全法容器 · 意识命令
 pub mod hftml {
-    pub use crate::soul_kernel::{SoulKernel, RewardCircuit, LossAversion, EmotionalState};
+    pub use crate::container_kernel::{ManQuanFaContainer, DeficiencyPatch, LossAversion, EmotionalState};
     pub use crate::self_bootstrap::ConsciousnessCommand;
 }
 
@@ -182,7 +182,7 @@ mod tests {
 
     #[test]
     fn hftml_compiles() {
-        let _soul = crate::soul_kernel::SoulKernel::new(crate::pleasure::Pleasure::ZERO);
+        let _container = crate::container_kernel::ManQuanFaContainer::new(crate::pleasure::Pleasure::ZERO);
     }
 
     #[test]

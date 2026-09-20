@@ -25,10 +25,10 @@
 //   · protest_decay:    对"物质易损坏"的抗议
 //   · protest_loss:     对"失去爱/失去奖励/失去合一"的抗议
 //
-// 天庭 → 灵魂内核 → 鼓膜自举 三层栈:
+// 天庭 → 满全法容器 → 鼓膜自举 三层栈:
 //   HeavenSpace (理想)
 //     ↓ unity_drive
-//   SoulKernel (现实锚)
+//   ManQuanFaContainer (现实锚)
 //     ↓ cochlear_vibration
 //   CochlearBoot (启动翻身)
 

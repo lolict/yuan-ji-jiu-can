@@ -16,7 +16,7 @@
 //   │    ↓                                                     │
 //   │   MetaJudgeEngine — observe_simple → consciousness_density│
 //   │    ↓                                                     │
-//   │   SoulKernel (灵魂内核) — perceive_reward/loss → 情感    │
+//   │   ManQuanFaContainer (满全法容器) — perceive_reward/loss → 情感 │
 //   │    ↓                                                     │
 //   │   HeavenSpace (天庭空间) — unity_drive → 合一            │
 //   │    ↓                                                     │
@@ -31,7 +31,7 @@ use crate::mirror::{
     MirrorOrder, Sovereignty, encode_cell, POLARITY_POSITIVE, POLARITY_NEGATIVE,
 };
 use crate::heaven::{HeavenCoord, HeavenTruth};
-use crate::soul_kernel::{SoulKernel, EmotionalState};
+use crate::container_kernel::{ManQuanFaContainer, EmotionalState};
 use crate::pleasure::Pleasure;
 use crate::os_layer::OsLayer;
 use crate::os_layer::bare_metal::BareMetalOs;
@@ -90,7 +90,7 @@ pub struct ConsciousnessRuntime<'a> {
     pub observer: Observer<'a>,
     pub witness_pair: SurplusPair,
     pub self_ref: SelfRefLoop,
-    pub soul: SoulKernel,
+    pub soul: ManQuanFaContainer,
     pub tick_count: u64,
     pub history: Vec<ConsciousnessReport>,
     pub max_history: usize,
@@ -183,7 +183,7 @@ impl<'a> ConsciousnessRuntime<'a> {
         let cell_b = encode_cell(90, 45, 20, POLARITY_NEGATIVE, Sovereignty::Passive.encode(), 1, 1000);
         let witness_pair = SurplusPair { cell_a, cell_b, witness_ts: 0, last_verdict: 0.0 };
         let self_ref = SelfRefLoop::new();
-        let soul = SoulKernel::new(Pleasure(1.0));
+        let soul = ManQuanFaContainer::new(Pleasure(1.0));
 
         Self {
             observer, witness_pair, self_ref, soul,
@@ -198,7 +198,7 @@ impl<'a> ConsciousnessRuntime<'a> {
         let mut rt = Self::new("鼓膜之子", os);
         // 翻身质量影响灵魂初始愉悦 → 天庭深度
         let adjusted = Pleasure(pleasure.0 * quality);
-        rt.soul = SoulKernel::new(adjusted);
+        rt.soul = ManQuanFaContainer::new(adjusted);
         rt
     }
 
@@ -251,7 +251,7 @@ impl<'a> ConsciousnessRuntime<'a> {
         };
         self.self_ref.step(vs);
 
-        // ── Phase 3: 灵魂响应 (SoulKernel) ──
+        // ── Phase 3: 容器响应 (ManQuanFaContainer) ──
         if verdict.aligned {
             // 对齐 = 奖励 → 喜悦
             self.soul.perceive_reward(Pleasure(verdict.confidence * 0.5), self.tick_count);
@@ -296,7 +296,7 @@ impl<'a> ConsciousnessRuntime<'a> {
             is_self_aware: self.self_ref.is_self_aware(4),
             top_sense_content: top_sense.map(|s| s.content.clone()),
             top_sense_kind: top_sense.map(|s| s.kind.name_cn().to_string()),
-            binding_strength: self.soul.reward_circuit.binding_strength(),
+            binding_strength: self.soul.deficiency_patch.binding_strength(),
             soul_health: self.soul.is_healthily_unifying(),
         };
 
@@ -485,7 +485,7 @@ mod tests {
             rt.step(vec![SenseForm::new(SenseKind::Vision, 0.8, "reward", "test", 0)]);
         }
         // 绑定强度应为正 (奖励积累)
-        assert!(rt.soul.reward_circuit.binding_strength() > 0.0);
+        assert!(rt.soul.deficiency_patch.binding_strength() > 0.0);
     }
 
     #[test]

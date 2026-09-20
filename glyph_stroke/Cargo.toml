@@ -1,0 +1,17 @@
+[package]
+name = "glyph_stroke"
+version = "1.0.0"
+edition = "2021"
+authors = ["fqlct & lolict"]
+
+[dependencies]
+
+[profile.release]
+opt-level = "z"
+lto = true
+strip = true
+codegen-units = 1
+panic = "abort"
+
+[workspace]
+

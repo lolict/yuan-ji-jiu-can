@@ -875,6 +875,9 @@ def main():
     elif command == "sync":
         cmd_sync(args)
 
+    elif command == "repl":
+        cmd_repl()
+
     elif command == "history":
         import subprocess
         history_script = os.path.join(os.path.dirname(__file__), "register_history.py")
@@ -1041,8 +1044,138 @@ def cmd_ime(args: list):
     elif subcmd == "stats":
         print(ime.stats())
 
-    else:
-        print(f"未知: {subcmd}")
+def cmd_repl():
+    """热编程 REPL · 自己的编程语言壳"""
+    print("═══ 囡囝共生 · 热编程 REPL ═══")
+    print("输入表达式 · 回车即时裁决 · quit 退出")
+    print()
+    
+    court = CourtEngine()
+    court.set_state(COURT_STATE_NJSG)
+    ime = MetaImeEngine()
+    
+    # 工作空间: id → cell
+    cells = {}
+    _next_id = [0]
+    
+    def _add_cell(mccp, sov, pol, wit, flow=0):
+        cell = ((pol & 0xF) << 60) | ((wit & 0xF) << 56) | ((flow & 0xF) << 52) | ((sov & 0x1FFFFF) << 32) | (mccp & 0xFFFFFFFF)
+        cid = _next_id[0]
+        cells[cid] = cell
+        _next_id[0] += 1
+        return cid, cell
+    
+    _repl_help()
+    
+    while True:
+        try:
+            line = input("◈ ").strip()
+        except (EOFError, KeyboardInterrupt):
+            print()
+            break
+        if not line:
+            continue
+        if line in ('quit', 'exit', 'q'):
+            break
+        if line == 'help':
+            _repl_help()
+            continue
+        
+        try:
+            parts = line.split()
+            cmd = parts[0].lower()
+            
+            if cmd == 'add' and len(parts) >= 5:
+                mccp = int(parts[1], 0)
+                sov = int(parts[2], 0)
+                pol = int(parts[3], 0)
+                wit = int(parts[4], 0)
+                cid, cell = _add_cell(mccp, sov, pol, wit)
+                pn = ['妻','夫','系统'][pol] if pol < 3 else '?'
+                print(f"  ✓ #{cid} 0x{cell:012X} [{pn} w{wit} s0x{sov:X}]")
+            
+            elif cmd == 'show':
+                if not cells:
+                    print("  (空)")
+                for cid, cell in sorted(cells.items()):
+                    pol = (cell >> 60) & 0xF
+                    wit = (cell >> 56) & 0xF
+                    sov = (cell >> 32) & 0x1FFFFF
+                    mccp = cell & 0xFFFFFFFF
+                    pn = ['妻','夫','系统'][pol] if pol < 3 else '?'
+                    print(f"  #{cid} MCCP=0x{mccp:08X} SOV=0x{sov:05X} POL={pn} WIT={wit}")
+            
+            elif cmd == 'judge' and len(parts) >= 3:
+                ia = int(parts[1])
+                ib = int(parts[2])
+                if ia not in cells or ib not in cells:
+                    print(f"  无效 id · 现有: {list(cells.keys())}")
+                    continue
+                r = court.judge(cells[ia], cells[ib], 0)
+                print(f"  [{ia}]×[{ib}] → {r['verdict_str']} ({r['reason_str']}) conf={r['confidence']:.2f}")
+                if r['output_cell'] and r['verdict'] == COURT_MERGE:
+                    cid, _ = _add_cell(
+                        r['output_cell'] & 0xFFFFFFFF,
+                        (r['output_cell'] >> 32) & 0x1FFFFF,
+                        (r['output_cell'] >> 60) & 0xF,
+                        (r['output_cell'] >> 56) & 0xF,
+                    )
+                    print(f"      → 融合为新细胞 #{cid}")
+            
+            elif cmd == 'state' and len(parts) >= 2:
+                smap = {'nn': COURT_STATE_NJSG, 'njsg': COURT_STATE_NJSG,
+                        'jj': COURT_STATE_JJ, 'jn': COURT_STATE_JN}
+                s = smap.get(parts[1].lower())
+                if s is None:
+                    print(f"  无效态 nn|njsg|jj|jn")
+                    continue
+                court.set_state(s)
+                print(f"  → 态: {['NN','NJSG','JJ','JN'][s]}")
+            
+            elif cmd == 'encode' and len(parts) >= 5:
+                sm = int(parts[1], 0)
+                ym = int(parts[2], 0)
+                tone = int(parts[3], 0)
+                pol = int(parts[4], 0)
+                wit = int(parts[5], 0) if len(parts) > 5 else 1
+                cell = ime.encode(sm, ym, tone, pol, wit, 0, 0x100)
+                cid = _next_id[0]
+                cells[cid] = cell
+                _next_id[0] += 1
+                d = ime.decode(cell)
+                pn = ['妻','夫','系统'][d['polarity']] if d['polarity'] < 3 else '?'
+                print(f"  → #{cid} 0x{cell:012X} [{pn} w{d['wit']} s0x{d['sovereignty']:X}]")
+            
+            elif cmd == 'ime':
+                print(ime.stats())
+            
+            elif cmd == 'clear':
+                print("\033[2J\033[H", end='')
+                _repl_help()
+            
+            elif cmd == 'del' and len(parts) >= 2:
+                ia = int(parts[1])
+                if ia in cells:
+                    del cells[ia]
+                    print(f"  ✗ #{ia} 已删除")
+                else:
+                    print(f"  #{ia} 不存在")
+            
+            else:
+                print(f"  未知: {cmd} · help 查看")
+        
+        except Exception as e:
+            print(f"  ✗ {e}")
+
+
+def _repl_help():
+    print("表达式:")
+    print("  add <mccp> <sov> <pol> <wit>      — 添加细胞")
+    print("  encode <sm> <ym> <tone> <pol> [wit] — MetaIME 编码")
+    print("  judge <id_a> <id_b>               — 裁决 (融合后自动加新细胞)")
+    print("  state <nn|njsg|jj|jn>             — 切换囡囝态")
+    print("  show · del <id> · ime · clear      — 显示/删除/统计/清屏")
+    print("")
 
 
 # ── 天庭空间 ──────────────────────────────────────────────
