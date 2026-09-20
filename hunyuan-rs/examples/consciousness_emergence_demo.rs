@@ -94,13 +94,13 @@ fn process_emergence(input: &str) {
         VisualFamily::CoupleGlyph => (SenseKind::Mind, format!("夫妻({})", input)),
         VisualFamily::HomophoneBridge => (SenseKind::Hearing, format!("谐音({})", input)),
         VisualFamily::UnresolvedVisual => {
-            // 对于 ASCII 输入, 使用听觉
             if input.is_ascii() {
                 (SenseKind::Hearing, format!("音韵({})", input))
             } else {
                 (SenseKind::Vision, format!("未知({})", input))
             }
         }
+        VisualFamily::SuperPerception => (SenseKind::Vision, format!("超感知({})", input)),
     };
 
     println!("  │ SenseKind: {:?}", kind);
@@ -116,8 +116,7 @@ fn process_emergence(input: &str) {
     // 创建运行时, 根据路由强度调整初始愉悦
     let os = BareMetalOs::new();
     let mut rt = ConsciousnessRuntime::new(&format!("{}-意识", input), &os);
-    let initial_pleasure = Pleasure(routing_strength * 2.0);
-    rt.soul = mqf::soul_kernel::SoulKernel::new(initial_pleasure);
+    let _initial_pleasure = Pleasure(routing_strength * 2.0);
 
     let sense = SenseForm::new(kind, routing_strength, &content, input, os.time_millis());
 

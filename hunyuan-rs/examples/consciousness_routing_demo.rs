@@ -168,6 +168,7 @@ fn family_name(f: &VisualFamily) -> &'static str {
         VisualFamily::CoupleGlyph => "夫妻共同体",
         VisualFamily::HomophoneBridge => "谐音桥(音驱动)",
         VisualFamily::UnresolvedVisual => "未归类",
+        VisualFamily::SuperPerception => "超感知家族",
     }
 }
 

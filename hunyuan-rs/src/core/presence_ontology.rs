@@ -2,7 +2,8 @@
 // 仅提供 container_chain / chain_resonance 需要的类型
 // 原始完整实现已被移除, 此为编译兼容性存根
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::time::SystemTime;
 
 /// 符号类别
 #[derive(Clone, Copy, Debug)]
@@ -20,14 +21,19 @@ pub struct AttendanceRecord {
     pub mode: PresenceMode,
     pub category: SymbolCategory,
     pub order: usize,
+    pub file_path: PathBuf,
+    pub line_no: usize,
+    pub registered_at: SystemTime,
 }
 
 impl AttendanceRecord {
     pub fn global(domain: &str, category: SymbolCategory, name: impl Into<String>, _desc: impl Into<String>, order: usize) -> Self {
-        Self { symbol_name: name.into(), domain: domain.to_string(), mode: PresenceMode::Global, category, order }
+        Self { symbol_name: name.into(), domain: domain.to_string(), mode: PresenceMode::Global, category, order,
+                file_path: PathBuf::from("<global>"), line_no: 0, registered_at: SystemTime::now() }
     }
     pub fn intersection(domain: &str, category: SymbolCategory, name: impl Into<String>, _desc: impl Into<String>, order: u64) -> Self {
-        Self { symbol_name: name.into(), domain: domain.to_string(), mode: PresenceMode::Local, category, order: order as usize }
+        Self { symbol_name: name.into(), domain: domain.to_string(), mode: PresenceMode::Local, category, order: order as usize,
+                file_path: PathBuf::from("<intersection>"), line_no: 0, registered_at: SystemTime::now() }
     }
 }
 

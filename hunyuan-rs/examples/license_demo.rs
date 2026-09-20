@@ -2,7 +2,7 @@
 // license_demo.rs — 许可枢纽演示: 断层检测 + 边界穿越 + 中间符号
 // ══════════════════════════════════════════════════════════════════════
 
-use mqf::judge::license_hub::{LicenseHub, License, PassVerdict, pass_through};
+use mqf::license_hub::{LicenseHub, License, PassVerdict, pass_through};
 
 fn main() {
     println!("═══════════════════════════════════════════════════");
@@ -17,9 +17,9 @@ fn main() {
     for ch in &test_chars {
         let lic = hub.query_glyph(*ch);
         let status = match lic {
-            License::Allowed => "✓ 许可",
+            License::Allowed => "✓ 许可".to_string(),
             License::Borderline(d) => format!("⚠ 边界(距离={})", d),
-            License::Denied => "✗ 不许可",
+            License::Denied => "✗ 不许可".to_string(),
         };
         println!("  {}: {}", ch, status);
     }

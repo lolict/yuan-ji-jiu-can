@@ -19,6 +19,13 @@ pub struct ResonanceGraph {
 }
 
 impl ResonanceGraph {
+    /// 从字符串便捷构建
+    pub fn build_from_str(input: &str) -> Self {
+        use crate::container_chain::encode_chars_to_codes;
+        let codes = encode_chars_to_codes(input);
+        Self::build(&codes)
+    }
+
     pub fn build(input: &[ContainerCode]) -> Self {
         let mut map: std::collections::HashMap<u8, Vec<ContainerCode>> = std::collections::HashMap::new();
         for code in input {
@@ -61,6 +68,13 @@ impl ResonanceGraph {
         }
         out
     }
+}
+
+/// 基于字符串的共振并登记 (便捷函数)
+pub fn resonate_and_register_str(input: &str, domain: &mut PresenceDomain) -> ResonanceGraph {
+    use crate::container_chain::encode_chars_to_codes;
+    let codes = encode_chars_to_codes(input);
+    resonate_and_register(&codes, domain)
 }
 
 pub fn resonate_and_register(input: &[ContainerCode], domain: &mut PresenceDomain) -> ResonanceGraph {

@@ -199,6 +199,10 @@ pub use svg_renderer::{render_glyph_svg, render_cell_bitmap, render_character_sh
 #[path = "core/presence_ontology.rs"]
 pub mod presence_ontology;
 
+// ── 灵魂内核 (最小存根 — 供示例兼容) ──
+#[path = "core/soul_kernel.rs"]
+pub mod soul_kernel;
+
 pub mod multiplication_table;
 
 #[path = "flow/livecode_compiler.rs"]
@@ -305,6 +309,7 @@ pub use self_bootstrap::{ConsciousnessCommand, encode_to_cell, decode_from_cell,
 // ── 囡囝共生底层舞台 (v0.5 · 自举骨架) ──
 #[path = "judge/triune.rs"]
 pub mod triune;
+// ── v0.61 毛利兰立体进制引擎 — 三维寻址·kndl外壳·卦限进动·灰原哀统计 ──
 #[path = "encoding/mlil.rs"]
 pub mod mlil;
 #[path = "core/smrl.rs"]

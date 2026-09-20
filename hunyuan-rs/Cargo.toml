@@ -165,3 +165,7 @@ path = "src/bin/live_code.rs"
 [[bin]]
 name = "glyph_stroke"
 path = "src/bin/glyph_stroke.rs"
+
+[[bin]]
+name = "mlil-visual"
+path = "src/bin/mlil-visual.rs"

@@ -148,6 +148,7 @@ fn main() {
                 _ => 0.30,
             }
         }
+        VisualFamily::SuperPerception => 0.85,
     };
 
     // SenseForm 转换
@@ -158,6 +159,7 @@ fn main() {
         VisualFamily::HomophoneBridge => (SenseKind::Hearing, format!("谐音({})", input)),
         VisualFamily::UnresolvedVisual => (SenseKind::Mind, format!("{}({})",
             if input.is_ascii() { "音韵" } else { "未知" }, input)),
+        VisualFamily::SuperPerception => (SenseKind::Vision, format!("超感知({})", input)),
     };
 
     let sense = SenseForm::new(kind, routing_strength, &content, input, os.time_millis());

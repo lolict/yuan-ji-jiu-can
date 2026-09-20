@@ -37,7 +37,7 @@ impl PresenceDomain {
 pub enum SymbolCategory { Character, Radical, Glyph }
 
 #[derive(Clone, Debug)]
-pub struct LiveCandidate { pub glyph: char, pub spelling: &'static str, pub tone: u8, pub addition_addr: u64, pub resonance_count: u32, pub attendance: AttendanceRecord, pub rank_score: u64 }
+pub struct LiveCandidate { pub glyph: char, pub spelling: String, pub tone: u8, pub addition_addr: u64, pub resonance_count: u32, pub attendance: AttendanceRecord, pub rank_score: u64 }
 
 impl LiveCandidate {
     pub fn fingerprint(&self) -> u64 {
@@ -57,23 +57,23 @@ pub struct LiveCodeCompiler { pub domain: PresenceDomain }
 
 impl LiveCodeCompiler {
     pub fn new(name: &str) -> Self { Self { domain: PresenceDomain::new(name) } }
-    pub fn compile(&mut self, spelling: &'static str, tone: u8, prefs: &[char]) -> Vec<LiveCandidate> {
+    pub fn compile(&mut self, spelling: &str, tone: u8, prefs: &[char]) -> Vec<LiveCandidate> {
         let mut cands = Vec::new();
         for (i, &ch) in prefs.iter().enumerate() {
             let att = AttendanceRecord::global(&self.domain.name, SymbolCategory::Character, format!("{}_{}", ch, spelling), format!("livecode:{}@{}", spelling, tone), i + 1);
             self.domain.attend(att.clone());
-            cands.push(LiveCandidate { glyph: ch, spelling, tone, addition_addr: (i + 1) as u64, resonance_count: 1, attendance: att, rank_score: simple_hash(&format!("{}{}", ch, tone)) });
+            cands.push(LiveCandidate { glyph: ch, spelling: spelling.to_string(), tone, addition_addr: (i + 1) as u64, resonance_count: 1, attendance: att, rank_score: simple_hash(&format!("{}{}", ch, tone)) });
         }
         cands
     }
-    pub fn compile_floating(&mut self, spelling: &'static str, prefs: &[char]) -> Vec<LiveCandidate> { self.compile(spelling, 0, prefs) }
+    pub fn compile_floating(&mut self, spelling: &str, prefs: &[char]) -> Vec<LiveCandidate> { self.compile(spelling, 0, prefs) }
     pub fn cross_resonate(&self, spelling: &str) -> u32 { (simple_hash(spelling) % 64) as u32 }
 }
 
-pub fn live_compile(spelling: &'static str, tone: u8, prefs: &[char]) -> Vec<LiveCandidate> {
+pub fn live_compile(spelling: &str, tone: u8, prefs: &[char]) -> Vec<LiveCandidate> {
     let mut c = LiveCodeCompiler::new("live-compile"); c.compile(spelling, tone, prefs)
 }
-pub fn live_float(spelling: &'static str, prefs: &[char]) -> Vec<LiveCandidate> {
+pub fn live_float(spelling: &str, prefs: &[char]) -> Vec<LiveCandidate> {
     let mut c = LiveCodeCompiler::new("live-float"); c.compile_floating(spelling, prefs)
 }
 pub fn live_resonate(spelling: &str) -> u32 { LiveCodeCompiler::new("q").cross_resonate(spelling) }
@@ -81,7 +81,7 @@ pub fn live_resonate(spelling: &str) -> u32 { LiveCodeCompiler::new("q").cross_r
 #[cfg(test)]
 mod tests {
     use super::*;
-    #[test] fn test_live_compile_basic() { let c = live_compile("an", 1, &['安', '按', '暗']); assert_eq!(c.len(), 3); for c in &c { assert_eq!(c.attendance.mode, PresenceMode::Global); } }
+    #[test] fn test_live_compile_basic() { let c = live_compile("an", 1, &['安', '按', '暗']); assert_eq!(c.len(), 3); for cc in &c { assert_eq!(cc.attendance.mode, PresenceMode::Global); } }
     #[test] fn test_live_float() { let c = live_float("zhi", &['之', '指']); assert_eq!(c.len(), 2); assert_eq!(c[0].tone, 0); }
     #[test] fn test_live_resonate() { let r = live_resonate("an"); assert!(r < 64); }
     #[test] fn test_fingerprint_unique() { let c = live_compile("an", 1, &['安', '按']); assert_ne!(c[0].fingerprint(), c[1].fingerprint()); }

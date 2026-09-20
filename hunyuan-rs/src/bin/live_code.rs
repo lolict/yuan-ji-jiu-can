@@ -1,18 +1,6 @@
 // ═════════════════════════════════════════════════════════════════════════
 // live-code.rs — 活码编译器命令行工具 (在场本体论版)
 // ═════════════════════════════════════════════════════════════════════════
-//
-//   活码 = 符号在场登记,不是数值。
-//   拼音"起点"激活在场登记查询,声调锁定登记。
-//
-// 用法:
-//   live-code <韵母> [声调]          编译在场候选
-//   live-code --float <韵母>         自由浮动 (未锁定声调)
-//   live-code --resonate <韵母>      跨韵母共振查询
-//   live-code --code <韵母> <字符>   单字符在场指纹
-//   live-code --demo                 演示模式
-//
-// ═════════════════════════════════════════════════════════════════════════
 
 use std::env;
 use std::process;
@@ -66,7 +54,7 @@ fn cmd_compile(spelling: &str, tone: u8) {
     println!("╠══════════════════════════════════════════════════════╣");
 
     for (i, c) in cands.iter().enumerate().take(10) {
-        let mark = if c.attendance.mode == mqf::presence_ontology::PresenceMode::Global { "全" } else { "局" };
+        let mark = if c.attendance.mode == mqf::livecode_compiler::PresenceMode::Global { "全" } else { "局" };
         println!("║  {}. {}  @{}  共振={}  加={}  指纹={:016x} {} ║",
             i + 1,
             c.glyph,
@@ -79,14 +67,14 @@ fn cmd_compile(spelling: &str, tone: u8) {
     }
 
     println!("╠══════════════════════════════════════════════════════╣");
-    println!("║  域: {:<12}  模式: {}                      ║",
+    println!("║  域: {:<12}  模式: {:?}                      ║",
         cands[0].attendance.domain,
         cands[0].attendance.mode);
     println!("╚══════════════════════════════════════════════════════╝");
 }
 
 fn cmd_float(spelling: &str) {
-    let cands = mqf::livecode_compiler::live_float(spelling);
+    let cands = mqf::livecode_compiler::live_float(spelling, &[]);
 
     println!("自由浮动 · {} (未锁定声调, {} 候选)", spelling, cands.len());
     for (i, c) in cands.iter().enumerate().take(8) {
@@ -100,14 +88,11 @@ fn cmd_resonate(spelling: &str) {
     let result = mqf::livecode_compiler::live_resonate(spelling);
 
     println!("跨韵母共振 · {}", spelling);
-    if result.is_empty() {
+    if result == 0 {
         println!("  (无共振韵母)");
         return;
     }
-
-    for (sp, chars) in &result {
-        println!("  {} → {}", sp, chars.iter().collect::<String>());
-    }
+    println!("  共振值: {} (壳={})", result, result % 4);
 }
 
 fn cmd_code(spelling: &str, ch_str: &str) {
@@ -122,7 +107,7 @@ fn cmd_code(spelling: &str, ch_str: &str) {
         println!("共振兄弟数: {}", c.resonance_count);
         println!("在场指纹: {:016x}", c.fingerprint());
         println!("在场域: {}", c.attendance.domain);
-        println!("到场模式: {}", c.attendance.mode);
+        println!("到场模式: {:?}", c.attendance.mode);
         println!("排名分: {}", c.rank_score);
     } else {
         println!("未找到候选");

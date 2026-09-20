@@ -9,12 +9,9 @@ pub struct GlyphPool;
 impl GlyphPool {
     pub fn new() -> Self { Self }
 
-    pub fn get(&self, c: char) -> Option<&LivingGlyph> {
-        static NONE: Option<LivingGlyph> = None;
-        if c == '囡' {
-            // This is a stub; we cannot return a reference to temporary
-            return None;
-        }
+    pub fn len(&self) -> usize { 0 }
+
+    pub fn get(&self, _c: char) -> Option<&LivingGlyph> {
         None
     }
 }

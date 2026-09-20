@@ -52,6 +52,14 @@ pub fn build_chain_from_str(input: &str) -> ContainerChain {
 pub fn glyph_entry_addr(ch: char) -> ChamberId { (ch as u64 % 4) as ChamberId }
 pub fn glyph_exit_addr(ch: char) -> ChamberId { (ch as u64 % 4) as ChamberId }
 
+/// 基于字符串构建并登记 (便捷函数)
+pub fn build_and_register_from_str(input: &str) -> (ContainerChain, PresenceDomain) {
+    let codes = encode_chars_to_codes(input);
+    let mut domain = PresenceDomain::new("chain-domain");
+    let chain = ContainerChain::build_and_register(&codes, &mut domain);
+    (chain, domain)
+}
+
 #[derive(Clone, Debug)]
 pub struct ContainerLink {
     pub prev: ContainerCode,
