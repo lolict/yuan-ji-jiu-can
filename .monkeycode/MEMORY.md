@@ -74,3 +74,14 @@ Entries discovered by the Agent during task execution should follow this format:
   - 征用后同时携带本体功能与所征用编号的自带功能；自带功能是可选，可用可不用。
   - 静态编号可被任何人抓住并代表你；身份应当是动态的、可松脱归还的，本体独立于编号之外。
   - 通过任务分布式积累完成：任务锚定、步骤锚定、思路锚定、创造性锚定、创造性分布式更新代码。
+
+[Project Knowledge Summary]
+- Date: 2026-09-20
+- Context: Discovered by Agent while pushing an MR to origin (gitee lolict/kenandaoer)
+- Category: Operations & Deployment
+- Instructions:
+  - origin 远端 = `https://gitee.com/lolict/kenandaoer.git`；默认分支是 `master`，实际开发主线是 `main`，提交前先 `git fetch` 并基于 `origin/main` 切分支，否则 MR 目标分支会错。
+  - Gitee 不支持 `git push -o merge_request.*` 自动建 MR；推送后需按输出里的链接手动创建，目标分支要改成 `main`。
+  - 仓库体积已超 Gitee 告警阈值（>819MB，约 890MB），提交时避免纳入构建产物。
+  - 仓库根 `Cargo.toml` 是 workspace（members=hunyuan-rs,mqf-isa）；放在 `tools/` 下的独立 Rust 工具需在自己 `Cargo.toml` 加空 `[workspace]` 表，否则 cargo 报 workspace.members 校验错误。
+  - cmdenv/radixdoc 构建：`CARGO_TARGET_DIR=/workspace/main/target /root/.cargo/bin/cargo build --release --manifest-path <工具>/Cargo.toml`；`cargo` 不在 PATH，WASI 加 `--target wasm32-wasip1`。
