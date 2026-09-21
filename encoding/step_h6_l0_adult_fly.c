@@ -129,7 +129,10 @@ static void emit_bare_c(const char *fname) {
 
     fprintf(f, "typedef enum { YIN=0, YANG=1 } polarity_t;\n");
     fprintf(f, "typedef int (*bag_fn_t)(int a, int b, polarity_t *pol);\n");
-    fprintf(f, "typedef struct { const char *name; bag_fn_t fn; } bag_entry_t;\n\n");
+    fprintf(f, "typedef struct { const char *name; bag_fn_t fn; } bag_entry_t;\n");
+    fprintf(f, "#ifdef HOST_ADAPTER\n");
+    fprintf(f, "#include <stdio.h>\n");
+    fprintf(f, "#endif\n\n");
 
     /* 内联小工具 (无 libc) */
     fprintf(f, "static void *memcpy(void *dst, const void *src, long n) {\n");
@@ -277,15 +280,12 @@ static int run_bare_mode(void) {
 
         /* 用 HOST_ADAPTER 宏编译宿主验证版 */
         printf("  🔧 编译宿主兼容版 (验证函数表)...\n");
-        /* 替换掉裸机 _start 入口，改用 main (libcT) 启动 */
-        rc = system("sed 's/^void _start)/void __bare_start)/' bag_bare.c | "
-                   "sed 's/void __bare_start/__attribute__((used)) static void __bare_start/' > bag_bare_host_src.c && "
-                   "cc -DHOST_ADAPTER -o bag_bare_host bag_bare_host_src.c 2>&1");
+        rc = system("cc -DHOST_ADAPTER -o bag_bare_host bag_bare.c 2>&1");
         if (rc == 0) {
             printf("  ✅ 宿主版编译成功 bag_bare_host\n");
             rc = system("bag_bare_host 2>&1 | sed 's/^/    /'");
         } else {
-            printf("  ⚠ 宿主版编译跳过 (bag_bare_host_src.c 已生成供检查)\n");
+            printf("  ⚠ 宿主版编译跳过\n");
         }
     } else {
         printf("  ⚠ 裸机编译不支持 (无 _start 支持), 降级验证\n");
