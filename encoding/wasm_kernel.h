@@ -164,6 +164,32 @@ NJSG_EXPORT int  wk_route(wk_kernel_t *kernel, NJSG_uint64 symbol, wk_flow_t flo
 NJSG_EXPORT void wk_stats(const wk_kernel_t *kernel, char *buf, NJSG_size buf_size);
 
 /**
+ * 激活/休眠八流中的一条
+ * @param flow  要操作的流
+ * @param active 1=激活 · 0=休眠
+ * @return 0=成功 · -1=无效流
+ */
+NJSG_EXPORT int  wk_set_flow(wk_kernel_t *kernel, wk_flow_t flow, NJSG_bool active);
+
+/**
+ * 获取流的当前状态
+ * @return 1=激活 · 0=休眠 · -1=无效流
+ */
+NJSG_EXPORT int  wk_get_flow(const wk_kernel_t *kernel, wk_flow_t flow);
+
+/**
+ * 锁定内核 (进入裁决模式)
+ * 锁定后: 未登记符号拒绝 · 主权不匹配拒绝 · 休眠流拒绝
+ */
+NJSG_EXPORT void wk_lock(wk_kernel_t *kernel);
+
+/**
+ * 解锁内核 (进入宽容模式)
+ * 解锁后: 仅日志 · 不拦截
+ */
+NJSG_EXPORT void wk_unlock(wk_kernel_t *kernel);
+
+/**
  * 持久化: 保存内核状态到文件
  * @param kernel     内核指针
  * @param filename   文件路径

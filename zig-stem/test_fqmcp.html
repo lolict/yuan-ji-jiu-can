@@ -171,6 +171,8 @@ function testMemory() {
   log(`  总是在 1 页内: ${pages <= 1 ? '是 ✓' : '否 ✗'}`, pages <= 1 ? 'ok' : 'err');
 }
 
+const readUtf8 = (ptr, len) => decodeUtf8(ptr);
+
 function testDescribe() {
   log('═══ 内核自描述 ═══');
   if (!wasm.exports.fqmcp_describe) {
@@ -178,8 +180,7 @@ function testDescribe() {
     return;
   }
   const ptr = wasm.exports.fqmcp_describe();
-  const len = wasm.exports.fqmcp_last_len();
-  const text = readUtf8(ptr, len);
+  const text = readUtf8(ptr);
   const lines = text.split('\n');
   for (const line of lines) {
     if (line.startsWith('[')) log(`  ${line}`, 'ok');

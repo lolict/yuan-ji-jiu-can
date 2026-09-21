@@ -148,6 +148,34 @@ NJSG_EXPORT int wk_route(wk_kernel_t *kernel, NJSG_uint64 symbol, wk_flow_t flow
 }
 
 /* ═══════════════════════════════════════════════════════════════
+ * 八流控制
+ * ═══════════════════════════════════════════════════════════════ */
+
+NJSG_EXPORT int wk_set_flow(wk_kernel_t *kernel, wk_flow_t flow, NJSG_bool active) {
+    if (!kernel || kernel->magic != WK_MAGIC) return -1;
+    if (flow >= WK_FLOW_MAX) return -1;
+    kernel->flow_state[flow] = active ? 1 : 0;
+    return 0;
+}
+
+NJSG_EXPORT int wk_get_flow(const wk_kernel_t *kernel, wk_flow_t flow) {
+    if (!kernel || kernel->magic != WK_MAGIC) return -1;
+    if (flow >= WK_FLOW_MAX) return -1;
+    return kernel->flow_state[flow];
+}
+
+NJSG_EXPORT void wk_lock(wk_kernel_t *kernel) {
+    if (!kernel || kernel->magic != WK_MAGIC) return;
+    kernel->locked = 1;
+    kernel->active = 1;
+}
+
+NJSG_EXPORT void wk_unlock(wk_kernel_t *kernel) {
+    if (!kernel || kernel->magic != WK_MAGIC) return;
+    kernel->locked = 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════
  * 内核统计
  * ═══════════════════════════════════════════════════════════════ */
 

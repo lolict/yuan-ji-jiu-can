@@ -89,9 +89,18 @@ int main(void) {
     printf("  锁定 + 未登记符号: rc=%d (expected -2=DENY) %s\n",
            rc, rc == -2 ? "OK" : "FAIL");
     
-    /* 锁定 + 已登记 + 主权匹配 */
+    /* 锁定 + 已登记 + 休眠流 */
     rc = wk_route(&kernel, cell, WK_FLOW_PRELOAD);
-    printf("  锁定 + 已登记 + 主权匹配: rc=%d (expected 0=ALLOW) %s\n",
+    printf("  锁定 + 已登记 + 休眠流: rc=%d (expected -4=DENY) %s\n",
+           rc, rc == -4 ? "OK" : "FAIL");
+
+    /* 激活流 */
+    wk_set_flow(&kernel, WK_FLOW_PRELOAD, NJSG_TRUE);
+    printf("\n  激活预加载流: flow_state=%u (expected 1)\n", kernel.flow_state[WK_FLOW_PRELOAD]);
+    
+    /* 锁定 + 已登记 + 主权匹配 + 流激活 */
+    rc = wk_route(&kernel, cell, WK_FLOW_PRELOAD);
+    printf("  锁定 + 已登记 + 流激活: rc=%d (expected 0=ALLOW) %s\n",
            rc, rc == 0 ? "OK" : "FAIL");
     
     /* 锁定 + 已登记 + 主权不匹配 */
@@ -99,12 +108,59 @@ int main(void) {
     printf("  锁定 + 主权不匹配: rc=%d (expected -3=DENY) %s\n",
            rc, rc == -3 ? "OK" : "FAIL");
     
-    /* ── 6. 统计 ── */
-    printf("\n[6] 统计\n");
+    /* ── 6. 八流控制 ── */
+    printf("\n[6] 八流控制\n");
+
+    /* 全部八流初始化为休眠 */
+    const char *flow_names[] = {"预加载", "归类", "聚类", "分别", "属性", "解释", "关系", "概念"};
+    printf("  八流初始状态: ");
+    for (int f = 0; f < 8; f++) {
+        printf("%s=%u ", flow_names[f], wk_get_flow(&kernel, (wk_flow_t)f));
+    }
+    printf("\n");
+
+    /* 激活所有流 */
+    for (int f = 0; f < 8; f++) {
+        wk_set_flow(&kernel, (wk_flow_t)f, NJSG_TRUE);
+    }
+    printf("  激活后: ");
+    for (int f = 0; f < 8; f++) {
+        printf("%s=%u ", flow_names[f], wk_get_flow(&kernel, (wk_flow_t)f));
+    }
+    printf("\n");
+
+    /* ── 7. 锁定/解锁 ── */
+    printf("\n[7] 锁定/解锁\n");
+    wk_unlock(&kernel);
+    printf("  解锁: locked=%u active=%u\n", kernel.locked, kernel.active);
+    wk_lock(&kernel);
+    printf("  锁定: locked=%u active=%u %s\n", kernel.locked, kernel.active,
+           (kernel.locked == 1 && kernel.active == 1) ? "OK" : "FAIL");
+
+    /* ── 8. 统计 ── */
+    printf("\n[8] 统计\n");
     char stats[256];
     wk_stats(&kernel, stats, sizeof(stats));
     printf("  %s\n", stats);
-    
+
+    /* ── 9. 持久化 ── */
+    printf("\n[9] 持久化 (保存/加载)\n");
+    wk_save(&kernel, "/tmp/test_wk.bin");
+    printf("  保存内核到 /tmp/test_wk.bin: OK\n");
+
+    /* 修改内核状态 */
+    wk_set_state(&kernel, WK_STATE_NN);
+    wk_set_flow(&kernel, WK_FLOW_PRELOAD, NJSG_FALSE);
+    NJSG_uint16 old_count = kernel.symbol_count;
+    printf("  修改: state=0x%02X, PRELOAD流=0, symbol_count=%u\n", kernel.state, old_count);
+
+    /* 加载并验证恢复 */
+    wk_load(&kernel, "/tmp/test_wk.bin");
+    printf("  加载内核: state=0x%02X (expected 0x03=囝囡), PRELOAD流=%u (expected 1)\n",
+           kernel.state, kernel.flow_state[WK_FLOW_PRELOAD]);
+    int persist_ok = (kernel.state == WK_STATE_JN && kernel.symbol_count == old_count);
+    printf("  持久化闭环: %s\n", persist_ok ? "OK" : "FAIL");
+
     printf("\n═══ 测试完成 ═══\n");
     return 0;
 }

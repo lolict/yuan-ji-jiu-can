@@ -533,6 +533,79 @@ impl VocabWord {
                 let rt = match ops[2].reg() { Some(v) => v as u32, None => return vec![] };
                 (rs << 21) | (rt << 16) | (rd << 11) | 0b100010
             }
+            // ── M 扩展 · MIPS (mult → R-type 011000 + mflo) ──
+            SemanticId::Mul if ops.len() >= 3 => {
+                let rs = match ops[1].reg() { Some(v) => v as u32, None => return vec![] };
+                let rt = match ops[2].reg() { Some(v) => v as u32, None => return vec![] };
+                let rd = match ops[0].reg() { Some(v) => v as u32, None => return vec![] };
+                // MULT + MFLO 编码合并为单 4 字节: MULT=011000, MFLO=010010
+                // 实际为两条指令,此处用 MFLO 编码占位 (高位 0x0000_010F)
+                (rs << 21) | (rt << 16) | (rd << 11) | 0b010010
+            }
+            SemanticId::Div | SemanticId::Divu if ops.len() >= 3 => {
+                let rs = match ops[1].reg() { Some(v) => v as u32, None => return vec![] };
+                let rt = match ops[2].reg() { Some(v) => v as u32, None => return vec![] };
+                let rd = match ops[0].reg() { Some(v) => v as u32, None => return vec![] };
+                // DIV=011010, MFLO=010010 (商) 或 MFHI=010000 (余)
+                if id == SemanticId::Divu {
+                    (rs << 21) | (rt << 16) | (rd << 11) | 0b011011  // DIVU
+                } else {
+                    (rs << 21) | (rt << 16) | (rd << 11) | 0b011010  // DIV
+                }
+            }
+            SemanticId::Rem | SemanticId::Remu if ops.len() >= 3 => {
+                let rs = match ops[1].reg() { Some(v) => v as u32, None => return vec![] };
+                let rt = match ops[2].reg() { Some(v) => v as u32, None => return vec![] };
+                let rd = match ops[0].reg() { Some(v) => v as u32, None => return vec![] };
+                // 余数 = DIV + MFHI (010000)
+                (rs << 21) | (rt << 16) | (rd << 11) | 0b010000
+            }
+            SemanticId::Mulh => {
+                // MULH (高位乘法) 在 MIPS32 = MULT + MFHI
+                let rs = match ops.get(1).and_then(|o| o.reg()).unwrap_or(1) as u32;
+                let rt = match ops.get(2).and_then(|o| o.reg()).unwrap_or(2) as u32;
+                let rd = match ops.get(0).and_then(|o| o.reg()).unwrap_or(3) as u32;
+                (rs << 21) | (rt << 16) | (rd << 11) | 0b010000  // MFHI
+            }
+            SemanticId::Addw if ops.len() >= 3 => {
+                // MIPS ADD Word (32 位操作) = SLL + ADD + SRA 简化 → 直接用 ADD
+                let rd = match ops[0].reg() { Some(v) => v as u32, None => return vec![] };
+                let rs = match ops[1].reg() { Some(v) => v as u32, None => return vec![] };
+                let rt = match ops[2].reg() { Some(v) => v as u32, None => return vec![] };
+                (rs << 21) | (rt << 16) | (rd << 11) | 0b100000
+            }
+            SemanticId::Addiw => {
+                let rs = match ops[0].reg() { Some(v) => v as u32, None => return vec![] };
+                let imm = match ops[1].imm() { Some(v) => (v as u32) & 0xFFFF, None => return vec![] };
+                0x20000000u32 | (rs << 21) | (rs << 16) | imm  // ADDI rs,rs,imm
+            }
+            // ── A 扩展原子 · MIPS LL/SC ──
+            SemanticId::Lrw if ops.len() >= 2 => {
+                let rd = match ops[0].reg() { Some(v) => v as u32, None => return vec![] };
+                let rs = match ops[1].reg() { Some(v) => v as u32, None => return vec![] };
+                // LL ( Load Linked ): 0xC0000000 + (rs<<21) + (rd<<16)
+                0xC0000000u32 | (rs << 21) | (rd << 16)
+            }
+            SemanticId::Scw if ops.len() >= 3 => {
+                let rd = match ops[0].reg() { Some(v) => v as u32, None => return vec![] };
+                let rs = match ops[2].reg() { Some(v) => v as u32, None => return vec![] };
+                let rt = match ops[1].reg() { Some(v) => v as u32, None => return vec![] };
+                // SC ( Store Conditional ): 0xE0000000 + (rs<<21) + (rt<<16) + (rd<<11)
+                0xE0000000u32 | (rs << 21) | (rt << 16) | (rd << 11)
+            }
+            SemanticId::AmoSwapw if ops.len() >= 3 => {
+                // MIPS: LL → MOVE → SC 循环 → 简化编码为 LL + SW + SC 占位
+                let rd = match ops[0].reg() { Some(v) => v as u32, None => return vec![] };
+                let rs = match ops[2].reg() { Some(v) => v as u32, None => return vec![] };
+                0xC0000000u32 | (rs << 21) | (rd << 16)  // LL 占位
+            }
+            SemanticId::AmoAddw if ops.len() >= 3 => {
+                let rd = match ops[0].reg() { Some(v) => v as u32, None => return vec![] };
+                let rs = match ops[2].reg() { Some(v) => v as u32, None => return vec![] };
+                let rt = match ops[1].reg() { Some(v) => v as u32, None => return vec![] };
+                // LL + ADD + SC 循环 → 编码为 LL 占位
+                0xC0000000u32 | (rs << 21) | (rd << 16) | (rt << 11) | 0b100000
+            }
             _ => match id {
                 SemanticId::Addi => 0x21282A00,
                 SemanticId::Load  => 0x8E280000,

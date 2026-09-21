@@ -321,15 +321,25 @@ static int eval_line(interp_t *it, char *line) {
         return 0;
     }
 
-    /* 入 茧袋名 声母 C壳声母 — 茧从 C 壳借根 (一次) */
+    /* 入 茧袋名 声母 C壳声母 — 茧从 C 壳借根 (一次)
+       借根 = 把整个 C 壳元表复制到茧内本地元表, 飞后自驱动 */
     if (strcmp(toks[0], "入") == 0) {
         if (nt < 4) return -2;
         cocoon_t *co = cocoon_find(it, toks[1]);
         if (!co) { printf("  ❌ 茧未找到\n"); return -2; }
-        /* toks[2] = 茧内声母, toks[3] = C 壳声母镜像 */
-        (void)toks[2]; (void)toks[3];
+        /* 复制全部 C 壳声母入茧内 (飞后可用) */
+        int copied = 0;
+        for (int i = 0; i < it->c_meta_count; i++) {
+            char one_step[1][NAME_SZ];
+            strncpy(one_step[0], it->c_meta[i].name, NAME_SZ - 1);
+            one_step[0][NAME_SZ - 1] = '\0';
+            if (cocoon_register_chain(it, co, it->c_meta[i].name, one_step, 1) == 0)
+                copied++;
+        }
+        /* 记录借根 (兼容检查) */
         co->c_seed = c_meta_find(it, toks[3]);
-        printf("  📥 茧 %s 入: 借 C 根 %s (%p)\n", co->name, toks[3], (void*)co->c_seed);
+        printf("  📥 茧 %s 入: 借 C 根 %s 并复制 %d 声母入茧内\n",
+               co->name, toks[3], copied);
         return 0;
     }
 
@@ -486,13 +496,13 @@ static void suite(void) {
         "入 主茧 合 合\n");
       ASSERT(it.cocoons[0].c_seed != NULL, "茧入 C 根 合"); }
 
-    /* 3. 茧自主化 (化) — 不借 C 根 */
+    /* 3. 茧先化后入: 入会把 C 声母(7 条)复制到茧, 化追加 1 条 */
     { interp_t it; interp_init(&it);
       run_script(&it,
         "茧袋 主茧\n"
-        "化 主茧 = 合 合 损\n"        /* 化出"合合损": 先合后损 */
-        "入 主茧 合 合\n");          /* 借一个 C 根作备用 */
-      ASSERT(it.cocoons[0].meta_count == 1, "茧化入元表: 合合损");
+        "化 主茧 = 合 合 损\n"        /* 化出"合合损": 链长 3 */
+        "入 主茧 合 合\n");          /* 入: 复制 7 条 C 声母 + 保留合合损 = 8 */
+      ASSERT(it.cocoons[0].meta_count == 8, "入后元表: 7 C 声母 + 1 化链 = 8");
       ASSERT(it.cocoons[0].local_meta[0].chain_len == 3, "合合损链长 = 3"); }
 
     /* 4. 茧飞 */
@@ -503,10 +513,11 @@ static void suite(void) {
         "飞 主茧\n");
       ASSERT(it.cocoons[0].flown == 1, "茧飞: 脱离 C 壳"); }
 
-    /* 5. 飞后茧内驱动 (问袋) — 不借 C */
+    /* 5. 飞后茧内驱动 (问袋) — 茧自带 C 声母副本 */
     { interp_t it; interp_init(&it);
       run_script(&it,
         "茧袋 主茧\n"
+        "入 主茧 合 合\n"             /* 借 C 根 + 复制所有 C 声母 */
         "化 主茧 = 合 合 损\n"        /* 合合损"操作 */
         "飞 主茧\n"
         "袋 a = 10\n"
@@ -537,7 +548,7 @@ static void suite(void) {
         "入 主茧 合 合\n"
         "飞 主茧\n"
         "照 元袋\n");
-      ASSERT(it.cocoon_count == 1 && it.cocoons[0].meta_count == 1, "照 元袋: 茧元表完整"); }
+      ASSERT(it.cocoon_count == 1 && it.cocoons[0].meta_count == 8, "照 元袋: 茧元表 8 条完整"); }
 
     /* 8. C 壳用 (兼容 H4 旧语法) */
     { interp_t it; interp_init(&it);

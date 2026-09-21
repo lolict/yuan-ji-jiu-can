@@ -284,6 +284,10 @@ pub use eight_unify::{EightUnifyEngine, EightContext, FlowId, FlowStatus,
 #[path = "judge/judgment_power.rs"]
 pub mod judgment_power;
 
+// ── v0.14 逻辑组织 · 规则固化 · 公约数层级 · 关系归属 ──
+#[path = "judge/logical_org.rs"]
+pub mod logical_org;
+
 // ── v0.5 许可枢纽 · AI体输出必经的意识表格 (断层检测+中间符号+边界穿越) ──
 #[path = "judge/license_hub.rs"]
 pub mod license_hub;
