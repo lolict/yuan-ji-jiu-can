@@ -55,6 +55,13 @@ RUN cd kernel && \
     -o /usr/local/bin/njsg-mengji-demo \
     2>&1 | tail -5 || true
 
+# 构建时验证 — 运行全量里程碑,检查输出是否含 PASS 标记
+# 如果 M1-M15 任何一个失败,构建立即失败(ci 回归防线)
+RUN stdbuf -oL /usr/local/bin/njsg-mengji-demo 2>&1 | tee /tmp/mengji-build-verify.log && \
+    grep -q "PASS" /tmp/mengji-build-verify.log && \
+    echo "[容器构建验证] 盟机合里程碑 PASS ✓" || \
+    (echo "[容器构建验证] 盟机合里程碑失败 ✗"; exit 1)
+
 # 编译自举编译器工具链
 RUN cd tools && \
     for dir in mccp_core full-mapping eight-flows; do \
