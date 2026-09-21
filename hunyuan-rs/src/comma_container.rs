@@ -6273,3 +6273,563 @@ mod fiber_tests {
         assert_eq!(c.weights, [1.0, 1.0, 1.0]);
     }
 }
+
+// ══════════════════════════════════════════════════════════════════════
+// 分别器设计 · SeparatorDesign (v0.7)
+// ══════════════════════════════════════════════════════════════════════
+//
+//   分别器 = 将混合流按 YinYang 极性分拣到八流通道
+//
+//   八流统一 (NJSG 核心路由协议):
+//     Preload      预加载   — 运行前预加载所有符号
+///    Interpret    解释流   — 编译时符号解析
+///    Sovereignty  主权路由 — 裁决准入
+///    Property     产权流   — 归属判定
+///    Resonance    共振流   — 聂小倩匹配
+///    Feedback     反馈流   — 迂回反馈/反射感知
+///    Invocation   呼唤流   — 触发调用
+///    CommonDivisor 公约数流 — 统摄收敛
+//
+//   YinYang 极性: 我=1(阳/主动), 刘楚恬=0(阴/静)
+//   分拣规则: 容器声母韵母调组合 → 极性映射 → 流通道
+
+/// 八流通道枚举
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum FlowChannel {
+    Preload,       // 预加载
+    Interpret,     // 解释
+    Sovereignty,   // 主权
+    Property,      // 产权
+    Resonance,     // 共振
+    Feedback,      // 反馈
+    Invocation,    // 呼唤
+    CommonDivisor, // 公约数
+}
+
+impl FlowChannel {
+    /// 通道总数
+    pub const COUNT: usize = 8;
+
+    /// 按索引取通道 (循环)
+    pub fn from_index(idx: usize) -> Self {
+        use FlowChannel::*;
+        const CHANNELS: [FlowChannel; 8] =
+            [Preload, Interpret, Sovereignty, Property, Resonance, Feedback, Invocation, CommonDivisor];
+        CHANNELS[idx % 8]
+    }
+
+    /// 通道优先级 (越小越优先)
+    pub fn priority(&self) -> u8 {
+        use FlowChannel::*;
+        match self {
+            CommonDivisor => 0, // 公约数统摄收敛 = 最高优先
+            Preload => 1,
+            Interpret => 2,
+            Sovereignty => 3,
+            Property => 4,
+            Resonance => 5,
+            Feedback => 6,
+            Invocation => 7,
+        }
+    }
+}
+
+use FlowChannel::*;
+
+/// 分别器标识
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct SeparatorId(pub u16);
+
+/// 分拣规则 — 定义容器到通道的映射
+#[derive(Clone, Debug)]
+pub struct SeparatorRule {
+    pub channel: FlowChannel,
+    pub consonant_range: (u8, u8),  // 声母范围
+    pub vowel_range: (u8, u8),      // 韵母范围
+    pub polarity: Option<bool>,     // 极性过滤 (None = 不过滤)
+}
+
+impl SeparatorRule {
+    pub fn new(channel: FlowChannel) -> Self {
+        Self { channel, consonant_range: (0, 47), vowel_range: (0, 65), polarity: None }
+    }
+
+    /// 设置声母过滤范围
+    pub fn with_consonant(mut self, lo: u8, hi: u8) -> Self {
+        self.consonant_range = (lo, hi);
+        self
+    }
+
+    /// 设置韵母过滤范围
+    pub fn with_vowel(mut self, lo: u8, hi: u8) -> Self {
+        self.vowel_range = (lo, hi);
+        self
+    }
+
+    /// 设置极性过滤
+    pub fn with_polarity(mut self, polarity: bool) -> Self {
+        self.polarity = Some(polarity);
+        self
+    }
+
+    /// 检查容器是否匹配此规则
+    pub fn matches(&self, consonant: u8, vowel: u8, is_yang: bool) -> bool {
+        if consonant < self.consonant_range.0 || consonant > self.consonant_range.1 {
+            return false;
+        }
+        if vowel < self.vowel_range.0 || vowel > self.vowel_range.1 {
+            return false;
+        }
+        if let Some(required) = self.polarity {
+            if required != is_yang { return false; }
+        }
+        true
+    }
+}
+
+/// 分别器引擎 — 核心分拣逻辑
+#[derive(Clone, Debug)]
+pub struct SeparatorDesign {
+    pub id: SeparatorId,
+    pub rules: Vec<SeparatorRule>,
+    /// 各通道计数 (加法统计)
+    pub channel_counts: [u64; 8],
+    pub total_separated: u64,
+}
+
+impl SeparatorDesign {
+    pub fn new(id: SeparatorId) -> Self {
+        Self { id, rules: Vec::new(), channel_counts: [0; 8], total_separated: 0 }
+    }
+
+    /// 添加分拣规则
+    pub fn add_rule(&mut self, rule: SeparatorRule) {
+        self.rules.push(rule);
+    }
+
+    /// 对单个容器进行分拣 — 返回命中的通道
+    pub fn separate(&mut self, consonant: u8, vowel: u8, is_yang: bool) -> Option<FlowChannel> {
+        for rule in &self.rules {
+            if rule.matches(consonant, vowel, is_yang) {
+                let idx = rule.channel.priority() as usize;
+                self.channel_counts[idx] += 1;
+                self.total_separated += 1;
+                return Some(rule.channel);
+            }
+        }
+        None
+    }
+
+    /// 计算极性 (YinYang 二进制映射: 我=1 阳, 刘楚恬=0 阴)
+    pub fn compute_polarity(consonant: u8, vowel: u8, tone: u8) -> bool {
+        // 声母奇数 = 阳(1), 韵母声调组合判定
+        consonant % 2 == 1
+    }
+
+    /// 批量分拣 — 输入: 容器数组, 输出: 各通道分拣结果
+    pub fn separate_batch(&mut self, containers: &[(u8, u8, u8)]) -> Vec<(usize, FlowChannel)> {
+        let mut results = Vec::new();
+        for (i, &(c, v, t)) in containers.iter().enumerate() {
+            let yang = Self::compute_polarity(c, v, t);
+            if let Some(ch) = self.separate(c, v, yang) {
+                results.push((i, ch));
+            }
+        }
+        results
+    }
+
+    /// 检查是否所有规则覆盖了全部声母/韵母空间 (分别器完整性检查)
+    pub fn is_complete(&self) -> bool {
+        let mut consonant_covered = 0u64;
+        let mut vowel_covered = 0u64;
+        for rule in &self.rules {
+            for c in rule.consonant_range.0..=rule.consonant_range.1 {
+                consonant_covered |= 1u64 << c;
+            }
+            for v in rule.vowel_range.0..=rule.vowel_range.1 {
+                if v < 64 { vowel_covered |= 1u64 << v; }
+            }
+        }
+        consonant_covered == 0xFFFF_FFFF_FFFF_FFFFu64 && vowel_covered == 0xFFFF_FFFF_FFFF_FFFFu64
+    }
+
+    /// 获取指定通道的计数
+    pub fn channel_count(&self, ch: FlowChannel) -> u64 {
+        self.channel_counts[ch.priority() as usize]
+    }
+
+    /// 八流平衡度 (标准差近似, 0 = 完全平衡)
+    pub fn balance_score(&self) -> f64 {
+        if self.total_separated == 0 { return 0.0; }
+        let mean = self.total_separated as f64 / 8.0;
+        let variance: f64 = self.channel_counts.iter()
+            .map(|&c| (c as f64 - mean) * (c as f64 - mean))
+            .sum::<f64>() / 8.0;
+        variance.sqrt()
+    }
+
+    /// 重置计数
+    pub fn reset_counts(&mut self) {
+        self.channel_counts = [0; 8];
+        self.total_separated = 0;
+    }
+}
+
+impl Default for SeparatorDesign {
+    fn default() -> Self { Self::new(SeparatorId(0)) }
+}
+
+#[cfg(test)]
+mod separator_tests {
+    use super::*;
+    #[test] fn test_channel_count() {
+        assert_eq!(FlowChannel::COUNT, 8);
+    }
+    #[test] fn test_channel_from_index() {
+        assert_eq!(FlowChannel::from_index(0), FlowChannel::Preload);
+        assert_eq!(FlowChannel::from_index(7), FlowChannel::CommonDivisor);
+        assert_eq!(FlowChannel::from_index(8), FlowChannel::Preload); // 循环
+    }
+    #[test] fn test_channel_priority() {
+        assert!(FlowChannel::CommonDivisor.priority() < FlowChannel::Invocation.priority());
+        assert_eq!(FlowChannel::CommonDivisor.priority(), 0);
+    }
+    #[test] fn test_rule_new() {
+        let r = SeparatorRule::new(FlowChannel::Resonance);
+        assert_eq!(r.channel, FlowChannel::Resonance);
+        assert_eq!(r.consonant_range, (0, 47));
+        assert_eq!(r.vowel_range, (0, 65));
+        assert_eq!(r.polarity, None);
+    }
+    #[test] fn test_rule_builder() {
+        let r = SeparatorRule::new(FlowChannel::Sovereignty)
+            .with_consonant(10, 20)
+            .with_vowel(5, 30)
+            .with_polarity(true);
+        assert!(r.matches(15, 10, true));
+        assert!(!r.matches(15, 10, false));
+        assert!(!r.matches(5, 10, true));
+    }
+    #[test] fn test_rule_matches_all() {
+        let r = SeparatorRule::new(FlowChannel::Preload);
+        assert!(r.matches(0, 0, false));
+        assert!(r.matches(47, 65, true));
+    }
+    #[test] fn test_separator_new() {
+        let s = SeparatorDesign::new(SeparatorId(1));
+        assert_eq!(s.rules.len(), 0);
+        assert_eq!(s.total_separated, 0);
+    }
+    #[test] fn test_separate() {
+        let mut s = SeparatorDesign::new(SeparatorId(1));
+        s.add_rule(SeparatorRule::new(FlowChannel::Resonance).with_consonant(0, 23));
+        s.add_rule(SeparatorRule::new(FlowChannel::Feedback).with_consonant(24, 47));
+        let ch1 = s.separate(10, 30, true);
+        assert_eq!(ch1, Some(FlowChannel::Resonance));
+        let ch2 = s.separate(30, 30, true);
+        assert_eq!(ch2, Some(FlowChannel::Feedback));
+    }
+    #[test] fn test_compute_polarity() {
+        assert!(SeparatorDesign::compute_polarity(1, 0, 0));   // 奇=阳
+        assert!(!SeparatorDesign::compute_polarity(0, 0, 0));  // 偶=阴
+        assert!(SeparatorDesign::compute_polarity(47, 0, 0));  // 奇=阳
+    }
+    #[test] fn test_separate_batch() {
+        let mut s = SeparatorDesign::new(SeparatorId(1));
+        s.add_rule(SeparatorRule::new(FlowChannel::Sovereignty).with_consonant(0, 23));
+        let containers = [(5, 10, 1), (30, 20, 2), (15, 3, 0)];
+        let results = s.separate_batch(&containers);
+        assert_eq!(results.len(), 2);  // 2 个匹配 (5 和 15 在 0-23 范围内)
+    }
+    #[test] fn test_separator_channel_count() {
+        let mut s = SeparatorDesign::new(SeparatorId(1));
+        s.add_rule(SeparatorRule::new(FlowChannel::CommonDivisor));
+        s.separate(10, 10, true);
+        s.separate(20, 20, false);
+        assert_eq!(s.channel_count(FlowChannel::CommonDivisor), 2);
+    }
+    #[test] fn test_balance_score() {
+        let mut s = SeparatorDesign::new(SeparatorId(1));
+        s.add_rule(SeparatorRule::new(FlowChannel::Preload));
+        for c in 0..8 { s.separate(c, 0, c % 2 == 1); }
+        let score = s.balance_score();
+        assert!(score >= 0.0);
+    }
+    #[test] fn test_reset_counts() {
+        let mut s = SeparatorDesign::new(SeparatorId(1));
+        s.add_rule(SeparatorRule::new(FlowChannel::Feedback));
+        s.separate(10, 10, true);
+        assert!(s.total_separated > 0);
+        s.reset_counts();
+        assert_eq!(s.total_separated, 0);
+    }
+    #[test] fn test_separator_default() {
+        let s = SeparatorDesign::default();
+        assert_eq!(s.id.0, 0);
+    }
+    #[test] fn test_rule_match_polarity_filtered() {
+        let r = SeparatorRule::new(FlowChannel::Resonance).with_polarity(false);
+        assert!(r.matches(0, 0, false));
+        assert!(!r.matches(0, 0, true));
+    }
+    #[test] fn test_rule_vowel_out_of_range() {
+        let r = SeparatorRule::new(FlowChannel::Property).with_vowel(10, 20);
+        assert!(!r.matches(0, 25, false));
+        assert!(r.matches(0, 15, false));
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器协商引擎 · ContainerNegotiationEngine
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// 公约数仲裁: 容器间提案 · 加权投票 · 共识达成
+// 仅加法范式: GCD 通过辗转相减, 权重通过加法累计
+// 核心哲学: 公约数 = 共识基础, 最大公约数 = 最小共识
+
+/// 协商提案
+#[derive(Clone, Debug)]
+pub struct Proposal {
+    pub proposer_id: u64,
+    pub value: u64,
+    pub weight: u64,
+}
+
+impl Proposal {
+    pub fn new(id: u64, value: u64) -> Self { Self { proposer_id: id, value, weight: 1 } }
+    pub fn with_weight(id: u64, value: u64, weight: u64) -> Self { Self { proposer_id: id, value, weight } }
+}
+
+/// 协商阶段
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum NegotiationPhase {
+    Propose,      // 提案阶段
+    Arbitrate,    // 仲裁阶段
+    Consensus,    // 共识达成
+    Deadlock,     // 僵局: 无共识
+}
+
+impl Default for NegotiationPhase { fn default() -> Self { NegotiationPhase::Propose } }
+
+/// 协商结果
+#[derive(Clone, Debug)]
+pub struct NegotiationResult {
+    pub phase: NegotiationPhase,
+    pub agreed_value: u64,       // 共识值 (最大公约数)
+    pub supporter_ids: Vec<u64>, // 支持共识的容器
+    pub total_weight: u64,       // 总权重
+    pub rounds: u64,             // 协商轮数
+}
+
+/// 容器协商引擎
+#[derive(Clone, Debug, Default)]
+pub struct ContainerNegotiationEngine {
+    pub proposals: Vec<Proposal>,
+    pub consensus_threshold: u64,  // 共识阈值 (GCD 必须超过此值)
+    pub phase: NegotiationPhase,
+    pub round_count: u64,
+}
+
+impl ContainerNegotiationEngine {
+    pub fn new() -> Self { Self { proposals: Vec::new(), consensus_threshold: 1, phase: NegotiationPhase::Propose, round_count: 0 } }
+
+    /// 提交提案
+    pub fn propose(&mut self, proposal: Proposal) { self.proposals.push(proposal); }
+
+    /// 获取指定提案的索引
+    fn find_proposal(&self, id: u64) -> Option<usize> {
+        self.proposals.iter().position(|p| p.proposer_id == id)
+    }
+
+    /// 仅加法 GCD: 辗转相减
+    fn gcd_subtract(a: u64, b: u64) -> u64 {
+        let mut x = a;
+        let mut y = b;
+        while x != y { if x > y { x -= y; } else { y -= x; } }
+        x
+    }
+
+    /// 多提案 GCD: 逐一累积
+    fn multi_gcd(values: &[u64]) -> u64 {
+        if values.is_empty() { return 0; }
+        let mut result = values[0];
+        for &v in &values[1..] { result = Self::gcd_subtract(result, v); }
+        result
+    }
+
+    /// 执行仲裁: 计算所有提案值的 GCD
+    pub fn arbitrate(&mut self) -> NegotiationResult {
+        self.round_count += 1;
+        self.phase = NegotiationPhase::Arbitrate;
+
+        if self.proposals.is_empty() {
+            return NegotiationResult { phase: NegotiationPhase::Deadlock, agreed_value: 0, supporter_ids: Vec::new(), total_weight: 0, rounds: self.round_count };
+        }
+
+        let values: Vec<u64> = self.proposals.iter().map(|p| p.value).collect();
+        let agreed = Self::multi_gcd(&values);
+
+        if agreed > self.consensus_threshold {
+            self.phase = NegotiationPhase::Consensus;
+            let supporters: Vec<u64> = self.proposals.iter()
+                .filter(|p| Self::gcd_subtract(p.value, agreed) == agreed)
+                .map(|p| p.proposer_id)
+                .collect();
+            let total_weight: u64 = self.proposals.iter().fold(0u64, |acc, p| acc.wrapping_add(p.weight));
+            NegotiationResult { phase: NegotiationPhase::Consensus, agreed_value: agreed, supporter_ids: supporters, total_weight, rounds: self.round_count }
+        } else {
+            self.phase = NegotiationPhase::Deadlock;
+            NegotiationResult { phase: NegotiationPhase::Deadlock, agreed_value: agreed, supporter_ids: Vec::new(), total_weight: 0, rounds: self.round_count }
+        }
+    }
+
+    /// 达成强共识: 所有提案值相等 (GCD = 值本身)
+    pub fn strong_consensus(&self) -> Option<u64> {
+        if self.proposals.is_empty() { return None; }
+        let first = self.proposals[0].value;
+        if self.proposals.iter().all(|p| p.value == first) { Some(first) } else { None }
+    }
+
+    /// 两容器的共识度: GCD(smaller, larger) — 纯加法
+    pub fn consensus_degree(&self, a_id: u64, b_id: u64) -> Option<u64> {
+        let a_idx = self.find_proposal(a_id)?;
+        let b_idx = self.find_proposal(b_id)?;
+        let (small, large) = if self.proposals[a_idx].value <= self.proposals[b_idx].value {
+            (self.proposals[a_idx].value, self.proposals[b_idx].value)
+        } else {
+            (self.proposals[b_idx].value, self.proposals[a_idx].value)
+        };
+        Some(Self::gcd_subtract(small, large))
+    }
+
+    /// 移除提案
+    pub fn remove_proposal(&mut self, id: u64) -> Option<Proposal> {
+        let idx = self.find_proposal(id)?;
+        Some(self.proposals.remove(idx))
+    }
+
+    /// 协商参与者数量
+    pub fn participant_count(&self) -> usize { self.proposals.len() }
+
+    /// 总权重
+    pub fn total_weight(&self) -> u64 {
+        self.proposals.iter().fold(0u64, |acc, p| acc.wrapping_add(p.weight))
+    }
+}
+
+#[cfg(test)]
+mod container_negotiation_tests {
+    use super::*;
+
+    #[test]
+    fn test_gcd_subtract() {
+        assert_eq!(ContainerNegotiationEngine::gcd_subtract(12, 8), 4);
+        assert_eq!(ContainerNegotiationEngine::gcd_subtract(7, 3), 1);
+        assert_eq!(ContainerNegotiationEngine::gcd_subtract(32, 64), 32);
+    }
+
+    #[test]
+    fn test_multi_gcd() {
+        assert_eq!(ContainerNegotiationEngine::multi_gcd(&[12, 8, 4]), 4);
+        assert_eq!(ContainerNegotiationEngine::multi_gcd(&[6, 9, 15]), 3);
+        assert_eq!(ContainerNegotiationEngine::multi_gcd(&[7, 11, 13]), 1);
+    }
+
+    #[test]
+    fn test_propose_and_arbitrate_consensus() {
+        let mut engine = ContainerNegotiationEngine::new();
+        engine.consensus_threshold = 1;
+        engine.propose(Proposal::new(1, 12));
+        engine.propose(Proposal::new(2, 8));
+        engine.propose(Proposal::new(3, 4));
+        let result = engine.arbitrate();
+        assert_eq!(result.phase, NegotiationPhase::Consensus);
+        assert_eq!(result.agreed_value, 4);
+        assert_eq!(result.supporter_ids.len(), 3);
+    }
+
+    #[test]
+    fn test_arbitrate_deadlock() {
+        let mut engine = ContainerNegotiationEngine::new();
+        engine.consensus_threshold = 5;  // 高阈值
+        engine.propose(Proposal::new(1, 7));
+        engine.propose(Proposal::new(2, 11));
+        let result = engine.arbitrate();
+        assert_eq!(result.phase, NegotiationPhase::Deadlock);
+        assert_eq!(result.agreed_value, 1);
+    }
+
+    #[test]
+    fn test_strong_consensus() {
+        let mut engine = ContainerNegotiationEngine::new();
+        engine.propose(Proposal::new(1, 42));
+        engine.propose(Proposal::new(2, 42));
+        engine.propose(Proposal::new(3, 42));
+        assert_eq!(engine.strong_consensus(), Some(42));
+    }
+
+    #[test]
+    fn test_no_strong_consensus() {
+        let mut engine = ContainerNegotiationEngine::new();
+        engine.propose(Proposal::new(1, 10));
+        engine.propose(Proposal::new(2, 20));
+        assert_eq!(engine.strong_consensus(), None);
+    }
+
+    #[test]
+    fn test_consensus_degree() {
+        let mut engine = ContainerNegotiationEngine::new();
+        engine.propose(Proposal::new(1, 12));
+        engine.propose(Proposal::new(2, 8));
+        let degree = engine.consensus_degree(1, 2);
+        assert!(degree.is_some());
+        // gcd(8, 12) = 4
+        assert_eq!(degree, Some(4));
+    }
+
+    #[test]
+    fn test_remove_proposal() {
+        let mut engine = ContainerNegotiationEngine::new();
+        engine.propose(Proposal::new(1, 100));
+        engine.propose(Proposal::new(2, 200));
+        engine.remove_proposal(1);
+        assert_eq!(engine.participant_count(), 1);
+        assert_eq!(engine.proposals[0].proposer_id, 2);
+    }
+
+    #[test]
+    fn test_total_weight() {
+        let mut engine = ContainerNegotiationEngine::new();
+        engine.propose(Proposal::with_weight(1, 10, 5));
+        engine.propose(Proposal::with_weight(2, 20, 3));
+        assert_eq!(engine.total_weight(), 8);
+    }
+
+    #[test]
+    fn test_arbitrate_empty() {
+        let mut engine = ContainerNegotiationEngine::new();
+        let result = engine.arbitrate();
+        assert_eq!(result.phase, NegotiationPhase::Deadlock);
+        assert_eq!(result.agreed_value, 0);
+    }
+
+    #[test]
+    fn test_arbitrate_round_count() {
+        let mut engine = ContainerNegotiationEngine::new();
+        engine.propose(Proposal::new(1, 6));
+        engine.propose(Proposal::new(2, 12));
+        let r1 = engine.arbitrate();
+        assert_eq!(r1.rounds, 1);
+        // 第二轮
+        engine.propose(Proposal::new(3, 18));
+        let r2 = engine.arbitrate();
+        assert_eq!(r2.rounds, 2);
+    }
+
+    #[test]
+    fn test_default() {
+        let engine = ContainerNegotiationEngine::default();
+        assert_eq!(engine.participant_count(), 0);
+        assert_eq!(engine.phase, NegotiationPhase::Propose);
+    }
+}
