@@ -1,0 +1,215 @@
+<!DOCTYPE html><html lang="zh"><head><meta charset="UTF-8">
+<title>WASM 阶梯制·双向公约 — 双路编译</title>
+<style>
+body{font-family:"HanYuan64","Noto Sans CJK SC",monospace;background:#0a0a1a;color:#ddd;margin:0;padding:20px}
+h1{font-size:22px;color:#fff;margin:4px 0}
+.sub{color:#888;font-size:13px;margin-bottom:16px}
+.ladder{display:flex;flex-direction:column;gap:0;align-items:center;margin-bottom:24px}
+.step{width:100%;max-width:800px;text-align:center;padding:10px 16px;border:1px solid #333;border-radius:6px;position:relative}
+.step-source{background:#0d1a35;border-color:#4A90D9}
+.step-macro{background:#1a1a35;border-color:#7B68EE}
+.step-type{background:#1a2a1a;border-color:#50B86C}
+.step-dual{display:grid;grid-template-columns:1fr auto 1fr;gap:0;align-items:stretch}
+.dual-left{background:#0d1a0d;border:1px solid #50B86C;border-radius:0 0 0 6px;margin-right:0}
+.dual-mid{background:#2a2a10;border:1px solid #D98C4A;text-align:center;padding:10px 8px;display:flex;align-items:center;justify-content:center;min-width:80px}
+.dual-right{background:#1a0d1a;border:1px solid #E86868;border-radius:0 0 6px 0}
+.step-output{background:#1a1a1a;border-color:#D98C4A}
+.arrow{color:#666;text-align:center;font-size:18px;padding:2px 0}
+.step .label{font-size:11px;color:#888;display:block;margin-bottom:4px}
+.step .title{font-size:15px;color:#fff;font-weight:bold}
+.step .desc{font-size:11px;color:#888;margin-top:4px}
+pre{margin:0;padding:8px;font-size:11px;text-align:left;color:#bbb;background:#05050f;border-radius:4px;overflow-x:auto;line-height:1.4}
+.table{margin-bottom:24px}
+table{width:100%;max-width:800px;border-collapse:collapse;font-size:11px}
+th{background:#16213e;color:#7B68EE;padding:6px 8px;text-align:left;border-bottom:2px solid #333}
+td{padding:4px 8px;border-bottom:1px solid #1a1a3a;font-family:monospace}
+tr:nth-child(even)td{background:#0f0f24}
+tr:hover td{background:#1a1a40}
+.bits{color:#4A90D9}
+.wasm32{color:#50B86C}
+.wasm64{color:#E86868}
+.rule{background:#12122a;border:1px solid #333;padding:6px 8px;border-radius:4px;font-size:11px;font-family:monospace}
+.rule-m{background:#1a1a35;border-left:3px solid #7B68EE}
+.rule-32{background:#0d1a0d;border-left:3px solid #50B86C}
+.rule-64{background:#1a0d1a;border-left:3px solid #E86868}
+.section-title{color:#7B68EE;font-size:14px;margin:20px 0 10px 0;border-bottom:1px solid #333;padding-bottom:4px}
+.stats{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.stat{background:#12122a;border:1px solid #333;border-radius:6px;padding:8px 14px;font-size:12px}
+.stat b{color:#4A90D9;font-size:16px;display:block}
+</style></head><body>
+<h1>WASM 阶梯制 · 双向公约</h1>
+<p class="sub">同一份源码 → 宏前缀统一 → 固定宽度类型 → 双路编译(wasm32+wasm64) → 等价验证</p>
+<div class="stats">
+<div class="stat"><b>1</b>源码</div>
+<div class="stat"><b>6</b>宏规则</div>
+<div class="stat"><b>12</b>固定宽度类型</div>
+<div class="stat"><b>2</b>编译目标</div>
+<div class="stat"><b>1</b>等价语义</div>
+</div>
+<div class="ladder">
+<div class="step step-source">
+<span class="label">第0阶 · 架构无关源码</span>
+<span class="title">containers.c</span>
+<div class="desc">一份源码, 同时编译 wasm32 和 wasm64</div>
+<pre>
+/* 容器运算 — 架构无关源码 */
+#include <stdint.h>
+#include <mqf_prefix.h>
+
+typedef uint32_t ContainerCode;
+typedef uint64_t PackId;
+typedef uint16_t Topology;
+
+struct Container {
+    MQF_TYPE code;
+    MQF_TYPE topology;
+    MQF_TYPE time_slot;
+    uint8_t yinyang_bit;
+    uint8_t align_flag;
+};
+
+int64_t route(Container* c, int64_t memory) {
+    MQF_TYPE x = MQF_LOAD(&c->code);
+    MQF_TYPE y = MQF_LOAD(&c->topology);
+
+    /* 公约数裁判 */
+    for (MQF_TYPE d = 2; d <= x; d++) {
+        if (x % d == 0 && y % d == 0)
+            return MQF_CAST(d);
+    }
+    return memory;  /* 记忆跟随结束而继续 */
+}
+</pre>
+</div>
+<div class="arrow">▼ 宏前缀展开 ▼</div>
+<div class="step step-macro">
+<span class="label">第1阶 · 宏前缀统一层</span>
+<span class="title">mqf_prefix.h</span>
+<div class="desc">MQF_ 宏前缀由预处理器按目标架构展开</div>
+<div class="rule rule-m">
+<b>MQF_TYPE</b>: <span class="wasm32">#define intptr_t i32     </span> │ <span class="wasm64">#define intptr_t i64     </span>
+  <span style="color:#888">架构指针宽度</span>
+</div>
+<div class="rule rule-m">
+<b>MQF_SIZE</b>: <span class="wasm32">#define SIZE 4           </span> │ <span class="wasm64">#define SIZE 8           </span>
+  <span style="color:#888">字节宽度常量</span>
+</div>
+<div class="rule rule-m">
+<b>MQF_LOAD</b>: <span class="wasm32">#define LOAD(p) i32.load </span> │ <span class="wasm64">#define LOAD(p) i64.load </span>
+  <span style="color:#888">内存加载指令</span>
+</div>
+<div class="rule rule-m">
+<b>MQF_STORE</b>: <span class="wasm32">#define STORE(p,v) i32.store</span> │ <span class="wasm64">#define STORE(p,v) i64.store</span>
+  <span style="color:#888">内存存储指令</span>
+</div>
+<div class="rule rule-m">
+<b>MQF_ALIGN</b>: <span class="wasm32">#define ALIGN 2          </span> │ <span class="wasm64">#define ALIGN 3          </span>
+  <span style="color:#888">对齐指数(2^2=4, 2^3=8)</span>
+</div>
+<div class="rule rule-m">
+<b>MQF_CAST</b>: <span class="wasm32">#define CAST(v) v        </span> │ <span class="wasm64">#define CAST(v) i64.extend_i32_u(v)</span>
+  <span style="color:#888">位宽转换</span>
+</div>
+</div>
+<div class="arrow">▼ 类型宽度分派 ▼</div>
+<div class="step step-type">
+<span class="label">第2阶 · 固定宽度保证</span>
+<span class="title">stdint · 跨平台等价</span>
+<div class="desc">同一类型名在不同位宽下保证字面语义一致</div>
+<pre style="font-size:10px">
+类型          C          WASM32       WASM64        角色
+─────────────────────────────────────────────────────────
+i8     int8_t         i32(load8_s)   i64(load8_s)   状态标志
+u8     uint8_t        i32(load8_u)   i64(load8_u)   YinYang
+i16    int16_t        i32(load16_s)  i64(load16_s)  声母索引
+u16    uint16_t       i32(load16_u)  i64(load16_u)  容器码
+i32    int32_t        i32            i64(ext_s/i32) 拓扑码
+u32    uint32_t       i32            i64(ext_u/i32) TimeSlot
+i64    int64_t        i64(2×i32)     i64            pack_id
+u64    uint64_t       i64(2×i32)     i64            param_slot
+f32    float          f32            f32            能量值
+f64    double         f64            f64            记忆精度
+ptr32  uint32_t(bits:ptr) i32            i64(trunc)     wasm32地址
+ptr64  uint64_t(bits:ptr) N/A            i64            wasm64地址
+</pre>
+</div>
+<div class="arrow">▼ 双向编译 ▼</div>
+<div class="step step-dual">
+<div class="dual-left">
+<span class="label" style="color:#50B86C">wasm32 目标</span>
+<pre style="font-size:10px">
+;; memory: 1 page × 64KB
+(module
+  (func $route
+    (param $code i32)
+    (result i64)
+    i32.load (local.get $code)
+    ;; i32 = ptr/unit size
+  )
+  (memory (export "mem") 1)
+)
+</pre>
+</div>
+<div class="dual-mid">
+⇅<br>一<br>份<br>源<br>码<br>⇅
+</div>
+<div class="dual-right">
+<span class="label" style="color:#E86868">wasm64 目标</span>
+<pre style="font-size:10px">
+;; memory: 1 page × 64KB
+(module
+  (func $route
+    (param $code i64)
+    (result i64)
+    i64.load (local.get $code)
+    ;; i64 = ptr/unit size
+  )
+  (memory (export "mem") 1)
+)
+</pre>
+</div>
+</div>
+<div class="arrow">▼ 等价验证 ▼</div>
+<div class="step step-output">
+<span class="label">第3阶 · 等价输出</span>
+<span class="title">containers.wasm32.wasm ‖ containers.wasm64.wasm</span>
+<div class="desc">两个字码对 (0x5D, 0x00, 0x83, 0x0D) 验证位宽语义一致</div>
+<div style="display:flex;gap:16px;justify-content:center;margin-top:8px">
+<div style="background:#0d1a0d;border:1px solid #50B86C;border-radius:4px;padding:8px 12px;font-size:11px">
+<b style="color:#50B86C">wasm32</b><br>
+header: <span style="color:#aaa">00 61 73 6D 01 00 00 00</span><br>
+type  : <span style="color:#aaa">60 01 7F 01 7E</span><br>
+memory: <span style="color:#aaa">00 01 (1 page)</span><br>
+func  : <span style="color:#aaa">i32 → i64 common_divisor</span>
+</div>
+<div style="background:#1a0d1a;border:1px solid #E86868;border-radius:4px;padding:8px 12px;font-size:11px">
+<b style="color:#E86868">wasm64</b><br>
+header: <span style="color:#aaa">00 61 73 6D 01 00 00 00</span><br>
+type  : <span style="color:#aaa">60 01 7E 01 7E</span><br>
+memory: <span style="color:#aaa">00 01 (1 page)</span><br>
+func  : <span style="color:#aaa">i64 → i64 common_divisor</span>
+</div>
+</div>
+</div>
+</div>
+<div class="section-title">完整类型分派表</div>
+<div class="table">
+<table><thead><tr>
+<th>类型</th><th>C typedef</th><th>位宽</th><th>符号</th>
+<th>wasm32 表示</th><th>wasm64 表示</th><th>角色</th>
+</tr></thead><tbody>
+<tr><td><b>i8</b></td><td>int8_t</td><td><span class="bits">8b</span></td><td>有</td><td class="wasm32">i32(load8_s)</td><td class="wasm64">i64(load8_s)</td><td style="color:#888">状态标志</td></tr>
+<tr><td><b>u8</b></td><td>uint8_t</td><td><span class="bits">8b</span></td><td>无</td><td class="wasm32">i32(load8_u)</td><td class="wasm64">i64(load8_u)</td><td style="color:#888">YinYang</td></tr>
+<tr><td><b>i16</b></td><td>int16_t</td><td><span class="bits">16b</span></td><td>有</td><td class="wasm32">i32(load16_s)</td><td class="wasm64">i64(load16_s)</td><td style="color:#888">声母索引</td></tr>
+<tr><td><b>u16</b></td><td>uint16_t</td><td><span class="bits">16b</span></td><td>无</td><td class="wasm32">i32(load16_u)</td><td class="wasm64">i64(load16_u)</td><td style="color:#888">容器码</td></tr>
+<tr><td><b>i32</b></td><td>int32_t</td><td><span class="bits">32b</span></td><td>有</td><td class="wasm32">i32</td><td class="wasm64">i64(ext_s/i32)</td><td style="color:#888">拓扑码</td></tr>
+<tr><td><b>u32</b></td><td>uint32_t</td><td><span class="bits">32b</span></td><td>无</td><td class="wasm32">i32</td><td class="wasm64">i64(ext_u/i32)</td><td style="color:#888">TimeSlot</td></tr>
+<tr><td><b>i64</b></td><td>int64_t</td><td><span class="bits">64b</span></td><td>有</td><td class="wasm32">i64(2×i32)</td><td class="wasm64">i64</td><td style="color:#888">pack_id</td></tr>
+<tr><td><b>u64</b></td><td>uint64_t</td><td><span class="bits">64b</span></td><td>无</td><td class="wasm32">i64(2×i32)</td><td class="wasm64">i64</td><td style="color:#888">param_slot</td></tr>
+<tr><td><b>f32</b></td><td>float</td><td><span class="bits">32b</span></td><td>有</td><td class="wasm32">f32</td><td class="wasm64">f32</td><td style="color:#888">能量值</td></tr>
+<tr><td><b>f64</b></td><td>double</td><td><span class="bits">64b</span></td><td>有</td><td class="wasm32">f64</td><td class="wasm64">f64</td><td style="color:#888">记忆精度</td></tr>
+<tr><td><b>ptr32</b></td><td>uint32_t(bits:ptr)</td><td><span class="bits">32b</span></td><td>无</td><td class="wasm32">i32</td><td class="wasm64">i64(trunc)</td><td style="color:#888">wasm32地址</td></tr>
+<tr><td><b>ptr64</b></td><td>uint64_t(bits:ptr)</td><td><span class="bits">64b</span></td><td>无</td><td class="wasm32">N/A</td><td class="wasm64">i64</td><td style="color:#888">wasm64地址</td></tr>
+</tbody></table>
+</div>
+</body></html>

@@ -1,0 +1,148 @@
+{
+  "strategy": "阶梯制·双向公约",
+  "source": "containers.c (单源码)",
+  "fixed_width_types": [
+
+    {
+      "name": "i8",
+      "c_typedef": "int8_t",
+      "bits": 8,
+      "signed": true,
+      "wasm32": "i32(load8_s)",
+      "wasm64": "i64(load8_s)",
+      "role": "状态标志"
+    },
+    {
+      "name": "u8",
+      "c_typedef": "uint8_t",
+      "bits": 8,
+      "signed": false,
+      "wasm32": "i32(load8_u)",
+      "wasm64": "i64(load8_u)",
+      "role": "YinYang"
+    },
+    {
+      "name": "i16",
+      "c_typedef": "int16_t",
+      "bits": 16,
+      "signed": true,
+      "wasm32": "i32(load16_s)",
+      "wasm64": "i64(load16_s)",
+      "role": "声母索引"
+    },
+    {
+      "name": "u16",
+      "c_typedef": "uint16_t",
+      "bits": 16,
+      "signed": false,
+      "wasm32": "i32(load16_u)",
+      "wasm64": "i64(load16_u)",
+      "role": "容器码"
+    },
+    {
+      "name": "i32",
+      "c_typedef": "int32_t",
+      "bits": 32,
+      "signed": true,
+      "wasm32": "i32",
+      "wasm64": "i64(ext_s/i32)",
+      "role": "拓扑码"
+    },
+    {
+      "name": "u32",
+      "c_typedef": "uint32_t",
+      "bits": 32,
+      "signed": false,
+      "wasm32": "i32",
+      "wasm64": "i64(ext_u/i32)",
+      "role": "TimeSlot"
+    },
+    {
+      "name": "i64",
+      "c_typedef": "int64_t",
+      "bits": 64,
+      "signed": true,
+      "wasm32": "i64(2×i32)",
+      "wasm64": "i64",
+      "role": "pack_id"
+    },
+    {
+      "name": "u64",
+      "c_typedef": "uint64_t",
+      "bits": 64,
+      "signed": false,
+      "wasm32": "i64(2×i32)",
+      "wasm64": "i64",
+      "role": "param_slot"
+    },
+    {
+      "name": "f32",
+      "c_typedef": "float",
+      "bits": 32,
+      "signed": true,
+      "wasm32": "f32",
+      "wasm64": "f32",
+      "role": "能量值"
+    },
+    {
+      "name": "f64",
+      "c_typedef": "double",
+      "bits": 64,
+      "signed": true,
+      "wasm32": "f64",
+      "wasm64": "f64",
+      "role": "记忆精度"
+    },
+    {
+      "name": "ptr32",
+      "c_typedef": "uint32_t(bits:ptr)",
+      "bits": 32,
+      "signed": false,
+      "wasm32": "i32",
+      "wasm64": "i64(trunc)",
+      "role": "wasm32地址"
+    },
+    {
+      "name": "ptr64",
+      "c_typedef": "uint64_t(bits:ptr)",
+      "bits": 64,
+      "signed": false,
+      "wasm32": "N/A",
+      "wasm64": "i64",
+      "role": "wasm64地址"
+    }
+  ],
+  "macro_rules": [
+
+    {
+      "name": "MQF_TYPE",
+      "wasm32": "#define intptr_t i32",
+      "wasm64": "#define intptr_t i64"
+    },
+    {
+      "name": "MQF_SIZE",
+      "wasm32": "#define SIZE 4",
+      "wasm64": "#define SIZE 8"
+    },
+    {
+      "name": "MQF_LOAD",
+      "wasm32": "#define LOAD(p) i32.load",
+      "wasm64": "#define LOAD(p) i64.load"
+    },
+    {
+      "name": "MQF_STORE",
+      "wasm32": "#define STORE(p,v) i32.store",
+      "wasm64": "#define STORE(p,v) i64.store"
+    },
+    {
+      "name": "MQF_ALIGN",
+      "wasm32": "#define ALIGN 2",
+      "wasm64": "#define ALIGN 3"
+    },
+    {
+      "name": "MQF_CAST",
+      "wasm32": "#define CAST(v) v",
+      "wasm64": "#define CAST(v) i64.extend_i32_u(v)"
+    }
+  ]
+}
