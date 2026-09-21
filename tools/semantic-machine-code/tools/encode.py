@@ -81,6 +81,8 @@ def encode(semantic_id: str, operands: list, arch: str = "rv32i", registers: dic
         return _encode_rv32i(semantic_id, operands, mappings, registers)
     elif arch == "mips32":
         return _encode_mips32(semantic_id, operands, mappings, registers)
+    elif arch == "arm64":
+        return _encode_arm64(semantic_id, operands, mappings, registers)
     else:
         raise ValueError(f"暂不支持架构: {arch}")
 
@@ -229,6 +231,69 @@ def _encode_mips32(semantic_id, operands, mappings, registers):
         target = _parse_operand(operands[0], registers)[1]
         code |= (target & 0x3FFFFFF)
 
+    return code
+
+
+def _encode_arm64(semantic_id, operands, mappings, registers):
+    """ARM64 AArch64 编码：前缀占位 + 寄存器/立即数填充。
+
+    前缀字符串取自 opcodes 表（变长位串），高位对齐，凹槽由格式决定。
+    """
+    inst = mappings["instructions"][semantic_id]
+    fmt = inst["format"]
+    opkey_str = mappings["opcodes"][inst["opkey"]]
+
+    prefix_val = int(opkey_str, 2)
+    prefix_len = len(opkey_str)
+    code = prefix_val << (32 - prefix_len)
+
+    if fmt == "DS":
+        # 前缀 11bits [31:21] → Rm[20:16] imm6[15:10] Rn[9:5] Rd[4:0]
+        Rd = _parse_operand(operands[0], registers)[1]
+        Rn = _parse_operand(operands[1], registers)[1]
+        Rm = _parse_operand(operands[2], registers)[1]
+        code |= (Rm & 0x1F) << 16
+        code |= (Rn & 0x1F) << 5
+        code |= (Rd & 0x1F)
+    elif fmt == "DI":
+        # 前缀 8bits [31:24] → shift[23:22] imm12[21:10] Rn[9:5] Rd[4:0]
+        Rd = _parse_operand(operands[0], registers)[1]
+        Rn = _parse_operand(operands[1], registers)[1]
+        imm12 = _parse_operand(operands[2], registers)[1]
+        shift = 0
+        code |= (shift & 0x3) << 22
+        code |= (imm12 & 0xFFF) << 10
+        code |= (Rn & 0x1F) << 5
+        code |= (Rd & 0x1F)
+    elif fmt == "LSU":
+        # LW/SW: operands = [Rt, imm12, Rn]
+        # 前缀 8bits [31:24] → imm12[21:10] Rn[9:5] Rt[4:0]
+        Rt = _parse_operand(operands[0], registers)[1]
+        imm12 = _parse_operand(operands[1], registers)[1]
+        Rn = _parse_operand(operands[2], registers)[1]
+        code |= (imm12 & 0xFFF) << 10
+        code |= (Rn & 0x1F) << 5
+        code |= (Rt & 0x1F)
+    elif fmt == "MOV_IMM":
+        # 前缀 9bits [31:23] → hw[22:21] imm16[20:5] Rd[4:0]
+        hw = 0 if semantic_id == "MOV" else 1  # LUI 左移16位
+        Rd = _parse_operand(operands[0], registers)[1]
+        imm16 = _parse_operand(operands[1], registers)[1]
+        code |= (hw & 0x3) << 21
+        code |= (imm16 & 0xFFFF) << 5
+        code |= (Rd & 0x1F)
+    elif fmt == "B":
+        # JMP: 前缀 6bits [31:26] → imm26[25:0]
+        imm26 = _parse_operand(operands[0], registers)[1]
+        code |= (imm26 & 0x3FFFFFF)
+    elif fmt == "BC":
+        # BEQ/BNE: 前缀 8bits [31:24] → imm19[23:5] op1[4] cond[3:0]
+        cond = 0x0 if semantic_id == "BEQ" else 0x1  # EQ=0000 NE=0001
+        imm19 = _parse_operand(operands[0], registers)[1]
+        code |= (imm19 & 0x7FFFF) << 5
+        code |= cond
+    else:
+        raise ValueError(f"ARM64 格式 {fmt} 尚未实现")
     return code
 
 

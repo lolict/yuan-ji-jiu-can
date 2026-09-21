@@ -34,6 +34,8 @@ def decode(machine_code: int, arch: str = "rv32i", mappings: dict = None) -> dic
         return _decode_rv32i(machine_code, mappings)
     elif arch == "mips32":
         return _decode_mips32(machine_code, mappings)
+    elif arch == "arm64":
+        return _decode_arm64(machine_code, mappings)
     raise ValueError(f"暂不支持架构: {arch}")
 
 
@@ -215,6 +217,105 @@ def _rv32i_operands(sid, fmt, code, rd, rs1, rs2, funct7, regs) -> dict:
 def _alias(num: int, regs: dict) -> str:
     """寄存器编号 → 规范名（始终 xN 形式，确保往返一致）。"""
     return f"x{num}"
+
+
+def _decode_arm64(code: int, mappings: dict) -> dict:
+    """ARM64 AArch64 解码：前缀匹配 + 位域提取。
+
+    前缀字符串为变长位串，高位对齐。共享 opkey 的指令（MOV/LUI, BEQ/BNE）
+    由子字段（hw[22:21] 或 cond[3:0]）区分。
+    """
+    # 1. 收集所有 (opkey_str, fmt, Rw_semantics) 候选
+    candidates = []
+    for opkey, op_str in mappings["opcodes"].items():
+        prefix = int(op_str, 2)
+        p_len = len(op_str)
+        if (code >> (32 - p_len)) == prefix:
+            # 找哪些指令引用此 opkey
+            for sid, inst in mappings["instructions"].items():
+                if inst["opkey"] != opkey:
+                    continue
+                # 子字段消歧
+                if opkey == "MOV_IMM":
+                    hw = (code >> 21) & 0x3
+                    semantic = "LUI" if hw == 1 else "MOV"
+                elif opkey == "B_COND":
+                    cond = code & 0xF
+                    semantic = "BEQ" if cond == 0x0 else "BNE"
+                else:
+                    semantic = sid
+                candidates.append((semantic, inst["format"], code))
+
+    if not candidates:
+        raise ValueError(f"机器码 0x{code:08X} 在 ARM64 映射中未找到")
+
+    semantic, fmt, code = candidates[0]
+    machine_hex = f"0x{code:08X}"
+    regs = mappings.get("registers", {})
+
+    if fmt == "DS":
+        Rd = code & 0x1F
+        Rn = (code >> 5) & 0x1F
+        Rm = (code >> 16) & 0x1F
+        return {
+            "semantic": semantic, "format": fmt,
+            "operands": [_alias(Rd, regs), _alias(Rn, regs), _alias(Rm, regs)],
+            "fields": {"Rd": Rd, "Rn": Rn, "Rm": Rm},
+            "machine_code": machine_hex
+        }
+    elif fmt == "DI":
+        Rd = code & 0x1F
+        Rn = (code >> 5) & 0x1F
+        imm12 = (code >> 10) & 0xFFF
+        return {
+            "semantic": semantic, "format": fmt,
+            "operands": [_alias(Rd, regs), _alias(Rn, regs), str(imm12)],
+            "fields": {"Rd": Rd, "Rn": Rn, "imm12": imm12},
+            "machine_code": machine_hex
+        }
+    elif fmt == "LSU":
+        Rt = code & 0x1F
+        Rn = (code >> 5) & 0x1F
+        imm12 = (code >> 10) & 0xFFF
+        return {
+            "semantic": semantic, "format": fmt,
+            "operands": [_alias(Rt, regs), str(imm12), _alias(Rn, regs)],
+            "fields": {"Rt": Rt, "Rn": Rn, "imm12": imm12},
+            "machine_code": machine_hex
+        }
+    elif fmt == "MOV_IMM":
+        Rd = code & 0x1F
+        imm16 = (code >> 5) & 0xFFFF
+        hw = (code >> 21) & 0x3
+        return {
+            "semantic": semantic, "format": fmt,
+            "operands": [_alias(Rd, regs), imm16],
+            "fields": {"Rd": Rd, "imm16": imm16, "hw": hw},
+            "machine_code": machine_hex
+        }
+    elif fmt == "B":
+        imm26 = code & 0x3FFFFFF
+        if imm26 & 0x2000000:  # 符号扩展
+            imm26 -= 0x4000000
+        return {
+            "semantic": semantic, "format": fmt,
+            "operands": [imm26],
+            "fields": {"imm26": imm26},
+            "machine_code": machine_hex
+        }
+    elif fmt == "BC":
+        cond = code & 0xF
+        imm19 = (code >> 5) & 0x7FFFF
+        if imm19 & 0x40000:  # 符号扩展
+            imm19 -= 0x80000
+        return {
+            "semantic": semantic, "format": fmt,
+            "operands": [imm19],
+            "fields": {"cond": cond, "imm19": imm19},
+            "machine_code": machine_hex
+        }
+
+    raise ValueError(f"机器码 0x{code:08X} ARM64 格式 {fmt} 解码未实现")
 
 
 # —— CLI 入口 ——

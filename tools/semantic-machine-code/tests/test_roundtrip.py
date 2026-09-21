@@ -109,6 +109,39 @@ check("rv64i", "LD",    ["x8", 0, "x9"])
 check("rv64i", "SD",    ["x10", 0, "x2"])
 check("rv64i", "LWU",   ["x8", 0, "x9"])
 
+# ── ARM64 ──
+print("\n═══ ARM64 往返测试 ═══")
+# DS 型 (Rd, Rn, Rm)
+check("arm64", "ADD", ["x1", "x2", "x3"])
+check("arm64", "SUB", ["x10", "x11", "x12"])
+check("arm64", "AND", ["x7", "x8", "x9"])
+check("arm64", "OR",  ["x4", "x5", "x6"])
+check("arm64", "XOR", ["x0", "x1", "x2"])
+
+# DI 型 (Rd, Rn, #imm12)
+check("arm64", "ADDI", ["x5", "x0", 42])
+check("arm64", "ADDI", ["x10", "x0", 0])
+check("arm64", "SUBI", ["x6", "x7", 0xFF])
+
+# LSU 型 (Rt, imm12, Rn)
+check("arm64", "LW", ["x8", 0, "x9"])
+check("arm64", "LW", ["x10", 4, "x2"])
+check("arm64", "SW", ["x3", 0, "x4"])
+check("arm64", "SW", ["x5", 8, "x6"])
+
+# MOV_IMM 型
+check("arm64", "MOV", ["x5", 0])
+check("arm64", "MOV", ["x10", 42])
+check("arm64", "LUI", ["x1", 4660])
+
+# B 型 (无条件跳转)
+check("arm64", "JMP", [0])
+check("arm64", "JMP", [4])
+
+# BC 型 (条件跳转)
+check("arm64", "BEQ", [8])
+check("arm64", "BNE", [0xF00])
+
 # ── 结果 ──
 print(f"\n结果: {PASS} 通过, {FAIL} 失败")
 sys.exit(0 if FAIL == 0 else 1)
