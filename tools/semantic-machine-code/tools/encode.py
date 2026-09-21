@@ -133,9 +133,10 @@ def _encode_rv32i(semantic_id, operands, mappings, registers):
             code |= (funct7_bits & 0x7F) << 25
             code |= (imm & 0xFFF) << 20
     elif fmt == "S":
+        # S 型：rs2, offset(base)
         rs2 = _parse_operand(operands[0], registers)[1]
-        rs1 = _parse_operand(operands[1], registers)[1]
-        imm = _parse_operand(operands[2], registers)[1]
+        imm = _parse_operand(operands[1], registers)[1]
+        rs1 = _parse_operand(operands[2], registers)[1]
         imm_lo = imm & 0x1F
         imm_hi = (imm >> 5) & 0x7F
         code |= (rs1 & 0x1F) << 15
