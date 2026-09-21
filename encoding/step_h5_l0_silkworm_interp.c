@@ -150,7 +150,7 @@ static cocoon_t* cocoon_new(interp_t *it, const char *name) {
     cocoon_t *co = &it->cocoons[it->cocoon_count++];
     strncpy(co->name, name, NAME_SZ - 1); co->name[NAME_SZ-1] = '\0';
     co->bag_count = 0; co->meta_count = 0;
-    co->flown = 0; co->c_seed = NULL;
+    co->flown = 0; co->c_seed = 0;
     return co;
 }
 
@@ -238,6 +238,13 @@ static enum leaf_op name_to_leaf(const char *name) {
     if (strcmp(name, "益") == 0) return LEAF_MUL2;
     if (strcmp(name, "损") == 0) return LEAF_DIV2;
     return LEAF_NONE;
+}
+
+/* C 壳元表查找 (返回函数指针, 仍供 C 壳册/用) */
+static bag_fn_t c_meta_find(interp_t *it, const char *name) {
+    for (int i = 0; i < it->c_meta_count; i++)
+        if (strcmp(it->c_meta[i].name, name) == 0) return it->c_meta[i].fn;
+    return NULL;
 }
 
 /* 茧内查找叶子 (返回 leaf_id, LEAF_NONE=未找) */
@@ -387,23 +394,21 @@ static int eval_line(interp_t *it, char *line) {
     }
 
     /* 入 茧袋名 声母 C壳声母 — 茧从 C 壳借根 (一次)
-       借根 = 把整个 C 壳元表复制到茧内本地元表, 飞后自驱动 */
+       借根 = 把 C 壳声母表复制为茧内叶子原语, 飞后自驱动 */
     if (strcmp(toks[0], "入") == 0) {
         if (nt < 4) return -2;
         cocoon_t *co = cocoon_find(it, toks[1]);
         if (!co) { printf("  ❌ 茧未找到\n"); return -2; }
-        /* 复制全部 C 壳声母入茧内 (飞后可用) */
+        /* 复制全部 C 壳声母入茧内为叶子原语 */
         int copied = 0;
         for (int i = 0; i < it->c_meta_count; i++) {
-            char one_step[1][NAME_SZ];
-            strncpy(one_step[0], it->c_meta[i].name, NAME_SZ - 1);
-            one_step[0][NAME_SZ - 1] = '\0';
-            if (cocoon_register_chain(it, co, it->c_meta[i].name, one_step, 1) == 0)
+            enum leaf_op lf = name_to_leaf(it->c_meta[i].name);
+            if (lf != LEAF_NONE && cocoon_register_leaf(it, co, it->c_meta[i].name, lf) == 0)
                 copied++;
         }
-        /* 记录借根 (兼容检查) */
-        co->c_seed = c_meta_find(it, toks[3]);
-        printf("  📥 茧 %s 入: 借 C 根 %s 并复制 %d 声母入茧内\n",
+        /* 记录入根标记 */
+        co->c_seed = 1;
+        printf("  📥 茧 %s 入: 借 C 根 %s 为 %d 叶子入茧内\n",
                co->name, toks[3], copied);
         return 0;
     }
@@ -457,7 +462,7 @@ static int eval_line(interp_t *it, char *line) {
 
     /* 问 茧袋名 袋A 袋B -> 袋C — 茧内本地驱动 */
     if (strcmp(toks[0], "问") == 0) {
-        if (nt < 6) return -2;
+        if (nt < 4) return -2;
         cocoon_t *co = cocoon_find(it, toks[1]);
         if (!co) { printf("  ❌ 茧未找到\n"); return -2; }
         bag_t *a = drawer_find(&it->drawer, toks[2]);
@@ -559,7 +564,7 @@ static void suite(void) {
       run_script(&it,
         "茧袋 主茧\n"
         "入 主茧 合 合\n");
-      ASSERT(it.cocoons[0].c_seed != NULL, "茧入 C 根 合"); }
+      ASSERT(it.cocoons[0].c_seed == 1, "茧入 C 根 合"); }
 
     /* 3. 茧先化后入: 入会把 C 声母(7 条)复制到茧, 化追加 1 条 */
     { interp_t it; interp_init(&it);
