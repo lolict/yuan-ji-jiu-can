@@ -169,3 +169,11 @@ path = "src/bin/glyph_stroke.rs"
 [[bin]]
 name = "mlil-visual"
 path = "src/bin/mlil-visual.rs"
+
+[[bin]]
+name = "clock-swarm-demo"
+path = "src/bin/clock-swarm-demo.rs"
+
+[[bin]]
+name = "presence-snapshot"
+path = "src/bin/presence-snapshot.rs"

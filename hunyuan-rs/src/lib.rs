@@ -312,6 +312,18 @@ pub mod triune;
 // ── v0.61 毛利兰立体进制引擎 — 三维寻址·kndl外壳·卦限进动·灰原哀统计 ──
 #[path = "encoding/mlil.rs"]
 pub mod mlil;
+// ── v0.62 时钟动作引擎 — AI生命周期·结束即开始·继承式唤醒·因果链落盘 ──
+#[path = "flow/clock_action_engine.rs"]
+pub mod clock_action_engine;
+// ── v0.63 NJSG Swarm 子代理引擎 — 本体-分身·名称锁定·冲突裁决·并行调度 ──
+#[path = "flow/njsg_swarm.rs"]
+pub mod njsg_swarm;
+// ── v0.64 域预加载引擎 — 运行前预加载符号·运行时不增内存·索引即寻址 ──
+#[path = "core/domain_preload.rs"]
+pub mod domain_preload;
+// ── v0.65 容器中间表示 — 统一地址空间·代数选址替代·关系归属计算·容器图集 ──
+#[path = "core/container_ir.rs"]
+pub mod container_ir;
 #[path = "core/smrl.rs"]
 pub mod smrl;
 #[path = "judge/funnel.rs"]
@@ -367,7 +379,10 @@ pub mod cochlear_boot;
 pub use cochlear_boot::{cochlear_bootstrap, CochlearBoot, BootReceipt};
 
 // ── 层级时间戳 v0.1 (基于三元见证的时间追踪 · 替代哈希链) ──
-// (已移除 AI 模块: phase_clock2, hot_embed2, witness)
+#[path = "temporal/phase_clock2.rs"]
+pub mod phase_clock2;
+#[path = "temporal/witness.rs"]
+pub mod witness;
 
 #[path = "temporal/hierarchical_time.rs"]
 pub mod hierarchical_time;
@@ -855,6 +870,20 @@ pub mod alliance_network;
 pub use alliance_network::{
     AlliancePalm, AllianceStation, StationCoord, StationStatus,
     Collaboration, CollabKind, AllianceNetworkEngine,
+};
+
+// ── v0.62 系统状态快照引擎 — 状态持久化·快照·恢复·时间旅行·系统韧性 ──
+#[path = "core/state_snapshot.rs"]
+pub mod state_snapshot;
+pub use state_snapshot::{
+    StateValue, Snapshot, SnapshotManager, serialize_snapshot,
+};
+
+// ── v0.61 隐私身份引擎 — 匿名化名·零知识证明·多方签名·身份堡垒 ──
+#[path = "core/privacy_identity.rs"]
+pub mod privacy_identity;
+pub use privacy_identity::{
+    Alias, IdentityFortress, ZkpProof, MultiSig,
 };
 
 // ── v0.60 记忆革命引擎 — 符号持久化·域加载·跨会话记忆·存储即生成 ──

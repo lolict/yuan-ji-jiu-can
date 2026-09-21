@@ -147,8 +147,7 @@ impl SmrlCell {
         match self.sovereignty() {
             0 => CellOwner::Ownerless,
             1 => CellOwner::Lolict,
-            2 => CellOwner::Chutian,
-            n => CellOwner::Coupled((n - 3) as u64),
+            n => CellOwner::Coupled((n - 2) as u64),
         }
     }
 }
@@ -158,10 +157,8 @@ impl SmrlCell {
 pub enum CellOwner {
     /// 无主容器
     Ownerless,
-    /// lolict 所有
+    /// lolict 所有（同时也是夫妻共同核心）
     Lolict,
-    /// 刘楚恬所有
-    Chutian,
     /// 共生偏移容器 (偏移量编码在 sovereignty 字段)
     Coupled(u64),
 }
@@ -172,8 +169,7 @@ impl CellOwner {
         match self {
             CellOwner::Ownerless => 0,
             CellOwner::Lolict => 1,
-            CellOwner::Chutian => 2,
-            CellOwner::Coupled(n) => ((n + 3) & 0xFFFF) as u16,
+            CellOwner::Coupled(n) => ((n + 2) & 0xFFFF) as u16,
         }
     }
 }
@@ -374,12 +370,11 @@ mod tests {
     fn owner_encoding() {
         assert_eq!(CellOwner::Ownerless.encode(), 0);
         assert_eq!(CellOwner::Lolict.encode(), 1);
-        assert_eq!(CellOwner::Chutian.encode(), 2);
         let c = SmrlCell::from_axes(0, 0, 1, 0, 1);
         assert_eq!(c.owner(), CellOwner::Lolict);
         let c2 = SmrlCell::from_axes(0, 0, 2, 0, 1);
-        assert_eq!(c2.owner(), CellOwner::Chutian);
-        let c3 = SmrlCell::from_axes(0, 0, 45, 0, 1);  // 42 + 3 offset
+        assert_eq!(c2.owner(), CellOwner::Coupled(0));
+        let c3 = SmrlCell::from_axes(0, 0, 44, 0, 1);  // 42 + 2 offset
         assert_eq!(c3.owner(), CellOwner::Coupled(42));
     }
 
@@ -398,7 +393,7 @@ mod tests {
         use crate::time_chain_identity::TimeCoordinate;
         let tc = TimeCoordinate::genesis();
         let cell = coord_to_cell_with_owner(&tc, CellOwner::Coupled(42));
-        assert_eq!(cell.sovereignty(), 45);  // 42 + 3 offset
+        assert_eq!(cell.sovereignty(), 44);  // 42 + 2 offset
         assert_eq!(cell.owner(), CellOwner::Coupled(42));
     }
 
@@ -423,8 +418,8 @@ mod tests {
         table.insert(c3);
         let lolict_cells = table.find_by_sovereignty(1);
         assert_eq!(lolict_cells.len(), 2);
-        let chutian_cells = table.find_by_sovereignty(2);
-        assert_eq!(chutian_cells.len(), 1);
+        let coupled_cells = table.find_by_sovereignty(2);
+        assert_eq!(coupled_cells.len(), 1);
         let yin_cells = table.find_by_polarity(0);
         assert_eq!(yin_cells.len(), 2);
         let yang_cells = table.find_by_polarity(1);

@@ -35,6 +35,7 @@
   missing-u-pairs | 路径: tools/doc-registry/MISSING_U_PAIRS.md | 已完成
   ipa-lower | 路径: tools/kungguan-container/ipa_lower.nim | 已完成
   ipa-upper | 路径: tools/kungguan-container/ipa_upper.nim | 已完成
+  symbol-integration-map | 路径: tools/doc-registry/SYMBOL_INTEGRATION_MAP.md | 已完成
 }
 
 # ======================================================
@@ -50,6 +51,7 @@
   @missing-u-pairs -> 直接拿到 ü 配对符号 Unicode 搜索结果
   @ipa-lower -> 直接拿到 IPA 小写表（含行7的 ɏ =ü解）
   @ipa-upper -> 直接拿到 IPA 大写表（含行7的 Ɏ =ü解）
+  @symbol-integration-map -> 拿到 IPA × yunmu64 × tone60 复用关系图
 }
 
 # ======================================================

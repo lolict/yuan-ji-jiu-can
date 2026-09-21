@@ -1,23 +1,340 @@
 <!DOCTYPE html>
 <html lang="zh"><head><meta charset="utf-8">
-<title>汉字直驱容器编码 · 全字库图谱</title>
+<title>64 容器编码图谱 · 满全法</title>
 <style>
-:root{--bg:#0d1117;--card:#161b22;--border:#30363d;--fg:#c9d1d9;--accent:#58a6ff;--yin:#8b949e;--yang:#f2cc60;--wife:#ff7b72;--husband:#79c0ff}
-body{font-family:monospace;background:var(--bg);color:var(--fg);padding:16px;max-width:1200px;margin:0 auto}
-h1{color:var(--accent);font-size:18px}
-.section{margin:20px 0}
-.section h2{color:var(--accent);font-size:14px;border-bottom:1px solid var(--border);padding-bottom:4px}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
+:root{--bg:#0d1117;--card:#161b22;--border:#30363d;--fg:#c9d1d9;--accent:#58a6ff;--yin:#8b949e;--yang:#f2cc60;--wife:#ff7b72;--husband:#79c0ff;--neutral:#bc8cff;--stroke:#3fb950}
+body{font-family:monospace;background:var(--bg);color:var(--fg);padding:16px;max-width:1400px;margin:0 auto}
+h1{color:var(--accent);font-size:18px;margin:8px 0}
+h2{color:var(--accent);font-size:14px;border-bottom:1px solid var(--border);padding-bottom:4px;margin-top:24px}
+.subtitle{color:var(--yin);font-size:11px;margin-bottom:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px}
+.grid64{display:grid;grid-template-columns:repeat(8,1fr);gap:4px}
+.cell{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:6px;font-size:10px;position:relative}
+.cell .code{font-size:9px;color:var(--yin)}
+.cell .name{font-size:16px;margin:2px 0}
+.cell .role{font-size:9px;opacity:.7}
+.cell.yang{border-left:3px solid var(--yang)}
+.cell.yin{border-left:3px solid var(--yin)}
+.cell.neutral{border-left:3px solid var(--neutral)}
+.cell.stroke{border-left:3px solid var(--stroke);background:#0a1a0a}
+.cell.empty{opacity:.3;border-style:dashed}
 .card{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:8px;font-size:11px}
-.card .ch{font-size:28px;color:var(--accent);line-height:1.2}
-.card .meta{opacity:.8;margin-top:2px}
+.card .ch{font-size:24px;color:var(--accent);line-height:1.2}
+.card .meta{opacity:.8;margin-top:2px;font-size:10px}
 .card.yang{border-left:3px solid var(--yang)}
 .card.yin{border-left:3px solid var(--yin)}
-.sub{font-size:11px;color:var(--yin);margin-top:2px;word-break:break-all}
+.card.neutral{border-left:3px solid var(--neutral)}
+.section{margin:16px 0}
+.legend{display:flex;gap:12px;margin:8px 0;font-size:11px;align-items:center}
+.legend span{display:flex;align-items:center;gap:4px}
+.dot{width:10px;height:10px;border-radius:2px;display:inline-block}
+.dot.yang{background:var(--yang)}.dot.yin{background:var(--yin)}.dot.neutral{background:var(--neutral)}.dot.stroke{background:var(--stroke)}
 </style></head><body>
-<h1>汉字直驱容器编码 · 全字库图谱</h1>
-<div class="section"><h2>极性分布 · 共 173 字</h2><div class="grid">
-<div class="card yang"><div class="ch">一</div><div class="sub">1画 · 袋</div><div class="meta">000001 · 阳</div></div><div class="card yang"><div class="ch">一</div><div class="sub">1画 · 袋</div><div class="meta">000001 · 阳</div></div><div class="card yang"><div class="ch">三</div><div class="sub">3画 · 袋+袋+袋</div><div class="meta">000001 · 阳</div></div><div class="card yang"><div class="ch">大</div><div class="sub">3画 · 袋+罐+盆</div><div class="meta">001101 · 阳</div></div><div class="card yang"><div class="ch">女</div><div class="sub">3画 · 罐+袋+袋</div><div class="meta">000101 · 阳</div></div><div class="card yang"><div class="ch">子</div><div class="sub">3画 · 袋+盎+袋</div><div class="meta">001001 · 阳</div></div><div class="card yang"><div class="ch">小</div><div class="sub">3画 · 桶+罐+盂</div><div class="meta">010110 · 阳</div></div><div class="card yang"><div class="ch">山</div><div class="sub">3画 · 桶+瓶+桶</div><div class="meta">000010 · 阳</div></div><div class="card yang"><div class="ch">土</div><div class="sub">3画 · 袋+桶+袋</div><div class="meta">000011 · 阳</div></div><div class="card yang"><div class="ch">囗</div><div class="sub">3画 · 桶+盒+袋</div><div class="meta">000011 · 阳</div></div><div class="card yang"><div class="ch">土</div><div class="sub">3画 · 袋+桶+袋</div><div class="meta">000011 · 阳</div></div><div class="card yang"><div class="ch">口</div><div class="sub">3画 · 桶+盒+袋</div><div class="meta">000011 · 阳</div></div><div class="card yang"><div class="ch">千</div><div class="sub">3画 · 袋+罐+桶</div><div class="meta">000111 · 阳</div></div><div class="card yang"><div class="ch">万</div><div class="sub">3画 · 袋+罐+袋</div><div class="meta">000101 · 阳</div></div><div class="card yang"><div class="ch">上</div><div class="sub">3画 · 袋+桶+袋</div><div class="meta">000011 · 阳</div></div><div class="card yang"><div class="ch">下</div><div class="sub">3画 · 袋+桶+盂</div><div class="meta">010011 · 阳</div></div><div class="card yang"><div class="ch">三</div><div class="sub">3画 · 袋+袋+袋</div><div class="meta">000001 · 阳</div></div><div class="card yang"><div class="ch">主</div><div class="sub">5画 · 盂+袋+袋+桶+袋</div><div class="meta">010011 · 阳</div></div><div class="card yang"><div class="ch">地</div><div class="sub">5画 · 袋+桶+壶+盎+笼</div><div class="meta">101011 · 阳</div></div><div class="card yang"><div class="ch">目</div><div class="sub">5画 · 桶+盒+袋+袋+袋</div><div class="meta">000011 · 阳</div></div><div class="card yang"><div class="ch">公</div><div class="sub">5画 · 袋+桶+盒+盂+袋</div><div class="meta">010011 · 阳</div></div><div class="card yang"><div class="ch">我</div><div class="sub">5画 · 袋+桶+壶+袋+笼</div><div class="meta">101011 · 阳</div></div><div class="card yang"><div class="ch">四</div><div class="sub">5画 · 桶+盒+罐+袋+袋</div><div class="meta">000111 · 阳</div></div><div class="card yang"><div class="ch">五</div><div class="sub">5画 · 袋+桶+袋+盒+袋</div><div class="meta">000011 · 阳</div></div><div class="card yang"><div class="ch">左</div><div class="sub">5画 · 袋+罐+袋+桶+袋</div><div class="meta">000111 · 阳</div></div><div class="card yang"><div class="ch">石</div><div class="sub">5画 · 袋+罐+桶+盒+袋</div><div class="meta">000111 · 阳</div></div><div class="card yang"><div class="ch">田</div><div class="sub">5画 · 桶+盒+袋+桶+袋</div><div class="meta">000011 · 阳</div></div><div class="card yang"><div class="ch">禾</div><div class="sub">5画 · 罐+袋+桶+罐+盆</div><div class="meta">001111 · 阳</div></div><div class="card yang"><div class="ch">虫</div><div class="sub">5画 · 桶+盒+袋+壶+盂</div><div class="meta">110011 · 阳</div></div><div class="card yang"><div class="ch">母</div><div class="sub">5画 · 筐+盂+袋+盂+盂</div><div class="meta">110001 · 阳</div></div><div class="card yang"><div class="ch">老</div><div class="sub">5画 · 袋+罐+盎+罐+笼</div><div class="meta">001101 · 阳</div></div><div class="card yang"><div class="ch">目</div><div class="sub">5画 · 桶+盒+袋+袋+袋</div><div class="meta">000011 · 阳</div></div><div class="card yang"><div class="ch">头</div><div class="sub">5画 · 盂+盂+袋+罐+盂</div><div class="meta">010101 · 阳</div></div><div class="card yang"><div class="ch">去</div><div class="sub">5画 · 袋+桶+袋+盂+罐</div><div class="meta">010111 · 阳</div></div><div class="card yang"><div class="ch">生</div><div class="sub">5画 · 罐+袋+袋+桶+袋</div><div class="meta">000111 · 阳</div></div><div class="card yang"><div class="ch">死</div><div class="sub">5画 · 袋+罐+袋+桶+笼</div><div class="meta">001111 · 阳</div></div><div class="card yang"><div class="ch">生</div><div class="sub">5画 · 罐+袋+袋+桶+袋</div><div class="meta">000111 · 阳</div></div><div class="card yang"><div class="ch">平</div><div class="sub">5画 · 袋+盂+罐+桶+袋</div><div class="meta">010111 · 阳</div></div><div class="card yang"><div class="ch">地</div><div class="sub">7画 · 袋+桶+壶+盎+笼</div><div class="meta">101011 · 阳</div></div><div class="card yang"><div class="ch">四</div><div class="sub">5画 · 桶+盒+罐+袋+袋</div><div class="meta">000111 · 阳</div></div><div class="card yang"><div class="ch">五</div><div class="sub">4画 · 袋+桶+袋+盒+袋</div><div class="meta">000011 · 阳</div></div><div class="card yang"><div class="ch">足</div><div class="sub">7画 · 桶+盒+袋+袋+桶+壶+袋</div><div class="meta">100011 · 阳</div></div><div class="card yang"><div class="ch">袋</div><div class="sub">7画 · 袋+桶+袋+壶+袋+桶+笼</div><div class="meta">101011 · 阳</div></div><div class="card yang"><div class="ch">桶</div><div class="sub">7画 · 袋+桶+壶+袋+盒+袋+桶</div><div class="meta">100011 · 阳</div></div><div class="card yang"><div class="ch">百</div><div class="sub">7画 · 罐+袋+袋+袋+桶+袋+袋</div><div class="meta">000111 · 阳</div></div><div class="card yang"><div class="ch">面</div><div class="sub">7画 · 袋+罐+桶+盒+袋+袋+袋</div><div class="meta">000111 · 阳</div></div><div class="card yang"><div class="ch">李</div><div class="sub">7画 · 袋+桶+罐+盆+袋+盎+袋</div><div class="meta">001111 · 阳</div></div><div class="card yang"><div class="ch">盆</div><div class="sub">7画 · 罐+盆+桶+盒+盂+袋+袋</div><div class="meta">011111 · 阳</div></div><div class="card yang"><div class="ch">杯</div><div class="sub">7画 · 袋+桶+罐+盆+袋+袋+盂</div><div class="meta">011111 · 阳</div></div><div class="card yang"><div class="ch">来</div><div class="sub">7画 · 袋+盂+罐+盆+袋+桶+袋</div><div class="meta">011111 · 阳</div></div><div class="card yang"><div class="ch">非</div><div class="sub">7画 · 桶+袋+袋+袋+桶+袋+袋</div><div class="meta">000011 · 阳</div></div><div class="card yang"><div class="ch">全</div><div class="sub">7画 · 袋+罐+盆+袋+袋+桶+袋</div><div class="meta">001111 · 阳</div></div><div class="card yang"><div class="ch">法</div><div class="sub">7画 · 袋+桶+袋+袋+盂+罐+盆</div><div class="meta">011111 · 阳</div></div><div class="card yang"><div class="ch">袋</div><div class="sub">7画 · 袋+桶+袋+壶+袋+桶+笼</div><div class="meta">101011 · 阳</div></div><div class="card yang"><div class="ch">桶</div><div class="sub">8画 · 袋+桶+壶+袋+盒+袋+桶</div><div class="meta">100011 · 阳</div></div><div class="card yang"><div class="ch">盆</div><div class="sub">7画 · 罐+盆+桶+盒+盂+袋+袋</div><div class="meta">011111 · 阳</div></div><div class="card yang"><div class="ch">杯</div><div class="sub">7画 · 袋+桶+罐+盆+袋+袋+盂</div><div class="meta">011111 · 阳</div></div><div class="card yang"><div class="ch">柜</div><div class="sub">7画 · 袋+桶+罐+盆+袋+袋+盒</div><div class="meta">001111 · 阳</div></div><div class="card yang"><div class="ch">宇</div><div class="sub">7画 · 盂+盂+袋+袋+桶+袋+袋</div><div class="meta">010011 · 阳</div></div><div class="card yang"><div class="ch">宙</div><div class="sub">7画 · 盂+盂+袋+桶+盒+罐+袋</div><div class="meta">010111 · 阳</div></div><div class="card yang"><div class="ch">盎</div><div class="sub">9画 · 袋+罐+盆+桶+盒+袋+袋+袋+袋</div><div class="meta">001111 · 阳</div></div><div class="card yang"><div class="ch">笼</div><div class="sub">9画 · 罐+袋+盎+罐+袋+盎+袋+罐+笼</div><div class="meta">001101 · 阳</div></div><div class="card yang"><div class="ch">是</div><div class="sub">9画 · 桶+盒+袋+袋+袋+桶+壶+罐+盆</div><div class="meta">101111 · 阳</div></div><div class="card yang"><div class="ch">海</div><div class="sub">9画 · 袋+桶+盂+袋+袋+盂+罐+袋+盂</div><div class="meta">010111 · 阳</div></div><div class="card yang"><div class="ch">盎</div><div class="sub">10画 · 袋+罐+盆+桶+盒+袋+袋+袋+袋</div><div class="meta">001111 · 阳</div></div><div class="card yang"><div class="ch">壶</div><div class="sub">9画 · 袋+桶+盂+袋+袋+桶+袋+袋+袋</div><div class="meta">010011 · 阳</div></div><div class="card yang"><div class="ch">笼</div><div class="sub">9画 · 罐+袋+盎+罐+袋+盎+袋+罐+笼</div><div class="meta">001101 · 阳</div></div><div class="card yang"><div class="ch">梦</div><div class="sub">9画 · 袋+桶+罐+盆+袋+桶+罐+盆+盂</div><div class="meta">011111 · 阳</div></div><div class="card yang"><div class="ch">篓</div><div class="sub">11画 · 罐+袋+盎+罐+袋+盎+袋+桶+罐+袋+袋</div><div class="meta">001111 · 阳</div></div><div class="card yang"><div class="ch">筐</div><div class="sub">11画 · 罐+袋+盎+罐+袋+盎+袋+袋+桶+袋+袋</div><div class="meta">001111 · 阳</div></div><div class="card yang"><div class="ch">箩</div><div class="sub">11画 · 罐+袋+盎+罐+袋+盎+袋+袋+桶+笼+盂</div><div class="meta">011111 · 阳</div></div><div class="card yang"><div class="ch">筐</div><div class="sub">11画 · 罐+袋+盎+罐+袋+盎+袋+袋+桶+袋+袋</div><div class="meta">001111 · 阳</div></div><div class="card yang"><div class="ch">篓</div><div class="sub">11画 · 罐+袋+盎+罐+袋+盎+袋+桶+罐+袋+袋</div><div class="meta">001111 · 阳</div></div><div class="card yang"><div class="ch">箩</div><div class="sub">11画 · 罐+袋+盎+罐+袋+盎+袋+袋+桶+笼+盂</div><div class="meta">011111 · 阳</div></div><div class="card yang"><div class="ch">情</div><div class="sub">11画 · 盂+盂+桶+袋+袋+桶+袋+袋+罐+袋+袋</div><div class="meta">010111 · 阳</div></div><div class="card yang"><div class="ch">箱</div><div class="sub">13画 · 罐+袋+盎+罐+袋+盎+袋+袋+桶+罐+袋+袋+袋</div><div class="meta">001111 · 阳</div></div><div class="card yin"><div class="ch">二</div><div class="sub">2画 · 袋+袋</div><div class="meta">000001 · 阴</div></div><div class="card yin"><div class="ch">人</div><div class="sub">2画 · 罐+盆</div><div class="meta">001100 · 阴</div></div><div class="card yin"><div class="ch">入</div><div class="sub">2画 · 罐+盆</div><div class="meta">001100 · 阴</div></div><div class="card yin"><div class="ch">八</div><div class="sub">2画 · 罐+盆</div><div class="meta">001100 · 阴</div></div><div class="card yin"><div class="ch">七</div><div class="sub">2画 · 袋+盎</div><div class="meta">001001 · 阴</div></div><div class="card yin"><div class="ch">九</div><div class="sub">2画 · 罐+笼</div><div class="meta">001100 · 阴</div></div><div class="card yin"><div class="ch">十</div><div class="sub">2画 · 袋+桶</div><div class="meta">000011 · 阴</div></div><div class="card yin"><div class="ch">儿</div><div class="sub">2画 · 罐+盎</div><div class="meta">001100 · 阴</div></div><div class="card yin"><div class="ch">二</div><div class="sub">2画 · 袋+袋</div><div class="meta">000001 · 阴</div></div><div class="card yin"><div class="ch">七</div><div class="sub">2画 · 袋+盎</div><div class="meta">001001 · 阴</div></div><div class="card yin"><div class="ch">八</div><div class="sub">2画 · 罐+盆</div><div class="meta">001100 · 阴</div></div><div class="card yin"><div class="ch">九</div><div class="sub">2画 · 罐+笼</div><div class="meta">001100 · 阴</div></div><div class="card yin"><div class="ch">十</div><div class="sub">2画 · 袋+桶</div><div class="meta">000011 · 阴</div></div><div class="card yin"><div class="ch">天</div><div class="sub">4画 · 袋+袋+罐+盆</div><div class="meta">001101 · 阴</div></div><div class="card yin"><div class="ch">夫</div><div class="sub">4画 · 袋+袋+罐+盆</div><div class="meta">001101 · 阴</div></div><div class="card yin"><div class="ch">太</div><div class="sub">4画 · 袋+罐+盆+盂</div><div class="meta">011101 · 阴</div></div><div class="card yin"><div class="ch">水</div><div class="sub">4画 · 桶+盒+罐+盆</div><div class="meta">001111 · 阴</div></div><div class="card yin"><div class="ch">火</div><div class="sub">4画 · 盂+罐+罐+盆</div><div class="meta">011100 · 阴</div></div><div class="card yin"><div class="ch">木</div><div class="sub">4画 · 袋+桶+罐+盆</div><div class="meta">001111 · 阴</div></div><div class="card yin"><div class="ch">王</div><div class="sub">4画 · 袋+袋+桶+袋</div><div class="meta">000011 · 阴</div></div><div class="card yin"><div class="ch">心</div><div class="sub">4画 · 盂+筐+盂+盂</div><div class="meta">110000 · 阴</div></div><div class="card yin"><div class="ch">手</div><div class="sub">4画 · 罐+袋+袋+盎</div><div class="meta">001101 · 阴</div></div><div class="card yin"><div class="ch">照</div><div class="sub">4画 · 桶+盒+笼+袋</div><div class="meta">001011 · 阴</div></div><div class="card yin"><div class="ch">中</div><div class="sub">4画 · 桶+盒+袋+桶</div><div class="meta">000011 · 阴</div></div><div class="card yin"><div class="ch">日</div><div class="sub">4画 · 桶+盒+袋+袋</div><div class="meta">000011 · 阴</div></div><div class="card yin"><div class="ch">分</div><div class="sub">4画 · 罐+篓+笼+罐</div><div class="meta">011100 · 阴</div></div><div class="card yin"><div class="ch">阴</div><div class="sub">4画 · 桶+盒+壶+袋</div><div class="meta">100011 · 阴</div></div><div class="card yin"><div class="ch">阳</div><div class="sub">4画 · 桶+盒+袋+袋</div><div class="meta">000011 · 阴</div></div><div class="card yin"><div class="ch">夫</div><div class="sub">4画 · 袋+袋+罐+盆</div><div class="meta">001101 · 阴</div></div><div class="card yin"><div class="ch">六</div><div class="sub">4画 · 袋+盂+罐+盂</div><div class="meta">010101 · 阴</div></div><div class="card yin"><div class="ch">右</div><div class="sub">4画 · 罐+袋+桶+袋</div><div class="meta">000111 · 阴</div></div><div class="card yin"><div class="ch">父</div><div class="sub">4画 · 盂+罐+盂+盆</div><div class="meta">011100 · 阴</div></div><div class="card yin"><div class="ch">友</div><div class="sub">4画 · 袋+罐+盒+盆</div><div class="meta">001101 · 阴</div></div><div class="card yin"><div class="ch">王</div><div class="sub">4画 · 袋+袋+桶+袋</div><div class="meta">000011 · 阴</div></div><div class="card yin"><div class="ch">无</div><div class="sub">4画 · 袋+罐+袋+盎</div><div class="meta">001101 · 阴</div></div><div class="card yin"><div class="ch">天</div><div class="sub">4画 · 袋+袋+罐+盆</div><div class="meta">001101 · 阴</div></div><div class="card yin"><div class="ch">日</div><div class="sub">4画 · 桶+盒+袋+袋</div><div class="meta">000011 · 阴</div></div><div class="card yin"><div class="ch">月</div><div class="sub">4画 · 罐+盒+袋+袋</div><div class="meta">000101 · 阴</div></div><div class="card yin"><div class="ch">心</div><div class="sub">4画 · 盂+筐+盂+盂</div><div class="meta">110000 · 阴</div></div><div class="card yin"><div class="ch">六</div><div class="sub">4画 · 袋+盂+罐+盂</div><div class="meta">010101 · 阴</div></div><div class="card yin"><div class="ch">金</div><div class="sub">6画 · 罐+袋+袋+桶+盂+袋</div><div class="meta">010111 · 阴</div></div><div class="card yin"><div class="ch">囡</div><div class="sub">6画 · 桶+盒+袋+袋+罐+袋</div><div class="meta">000111 · 阴</div></div><div class="card yin"><div class="ch">囝</div><div class="sub">6画 · 桶+盒+袋+桶+袋+盎</div><div class="meta">001011 · 阴</div></div><div class="card yin"><div class="ch">你</div><div class="sub">6画 · 袋+桶+桶+袋+袋+袋</div><div class="meta">000011 · 阴</div></div><div class="card yin"><div class="ch">竹</div><div class="sub">6画 · 罐+袋+盎+罐+袋+盎</div><div class="meta">001101 · 阴</div></div><div class="card yin"><div class="ch">米</div><div class="sub">6画 · 盂+罐+袋+桶+罐+盆</div><div class="meta">011111 · 阴</div></div><div class="card yin"><div class="ch">耳</div><div class="sub">6画 · 袋+桶+桶+袋+袋+盂</div><div class="meta">010011 · 阴</div></div><div class="card yin"><div class="ch">刘</div><div class="sub">6画 · 盂+罐+袋+桶+罐+盂</div><div class="meta">010111 · 阴</div></div><div class="card yin"><div class="ch">张</div><div class="sub">6画 · 袋+盒+罐+袋+袋+袋</div><div class="meta">000101 · 阴</div></div><div class="card yin"><div class="ch">竹</div><div class="sub">6画 · 罐+袋+盎+罐+袋+盎</div><div class="meta">001101 · 阴</div></div><div class="card yin"><div class="ch">好</div><div class="sub">6画 · 罐+袋+袋+袋+盎+袋</div><div class="meta">001101 · 阴</div></div><div class="card yin"><div class="ch">有</div><div class="sub">6画 · 袋+桶+罐+袋+袋+袋</div><div class="meta">000111 · 阴</div></div><div class="card yin"><div class="ch">共</div><div class="sub">6画 · 袋+桶+罐+盆+袋+盂</div><div class="meta">011111 · 阴</div></div><div class="card yin"><div class="ch">同</div><div class="sub">6画 · 桶+盒+罐+袋+袋+袋</div><div class="meta">000111 · 阴</div></div><div class="card yin"><div class="ch">共</div><div class="sub">6画 · 袋+桶+罐+盆+袋+盂</div><div class="meta">011111 · 阴</div></div><div class="card yin"><div class="ch">安</div><div class="sub">6画 · 盂+盂+袋+罐+袋+袋</div><div class="meta">010101 · 阴</div></div><div class="card yin"><div class="ch">空</div><div class="sub">6画 · 盂+盂+袋+袋+桶+袋</div><div class="meta">010011 · 阴</div></div><div class="card yin"><div class="ch">缸</div><div class="sub">6画 · 罐+袋+袋+袋+桶+袋</div><div class="meta">000111 · 阴</div></div><div class="card yin"><div class="ch">光</div><div class="sub">6画 · 盂+袋+罐+盒+罐+盆</div><div class="meta">011101 · 阴</div></div><div class="card yin"><div class="ch">灵</div><div class="sub">6画 · 袋+袋+罐+盆+罐+盂</div><div class="meta">011101 · 阴</div></div><div class="card yin"><div class="ch">妻</div><div class="sub">8画 · 袋+桶+袋+桶+袋+桶+袋+盆</div><div class="meta">001011 · 阴</div></div><div class="card yin"><div class="ch">罐</div><div class="sub">8画 · 袋+桶+袋+桶+袋+袋+袋+袋</div><div class="meta">000011 · 阴</div></div><div class="card yin"><div class="ch">陈</div><div class="sub">8画 · 袋+盎+袋+袋+桶+袋+罐+盆</div><div class="meta">001111 · 阴</div></div><div class="card yin"><div class="ch">杨</div><div class="sub">8画 · 袋+桶+罐+盆+罐+罐+袋+盎</div><div class="meta">001111 · 阴</div></div><div class="card yin"><div class="ch">盂</div><div class="sub">8画 · 袋+袋+桶+盒+盂+袋+袋+袋</div><div class="meta">010011 · 阴</div></div><div class="card yin"><div class="ch">瓶</div><div class="sub">8画 · 袋+桶+袋+盂+罐+袋+盒+袋</div><div class="meta">010111 · 阴</div></div><div class="card yin"><div class="ch">盒</div><div class="sub">8画 · 罐+盆+袋+桶+盒+盂+袋+袋</div><div class="meta">011111 · 阴</div></div><div class="card yin"><div class="ch">走</div><div class="sub">8画 · 袋+桶+袋+袋+桶+壶+罐+盆</div><div class="meta">101111 · 阴</div></div><div class="card yin"><div class="ch">看</div><div class="sub">8画 · 罐+袋+袋+桶+盒+袋+袋+袋</div><div class="meta">000111 · 阴</div></div><div class="card yin"><div class="ch">美</div><div class="sub">8画 · 罐+盆+袋+袋+袋+桶+袋+盂</div><div class="meta">011111 · 阴</div></div><div class="card yin"><div class="ch">和</div><div class="sub">8画 · 罐+袋+袋+桶+盂+桶+盒+袋</div><div class="meta">010111 · 阴</div></div><div class="card yin"><div class="ch">星</div><div class="sub">8画 · 桶+盒+袋+罐+袋+袋+桶+袋</div><div class="meta">000111 · 阴</div></div><div class="card yin"><div class="ch">瓶</div><div class="sub">8画 · 袋+桶+袋+盂+罐+袋+盒+袋</div><div class="meta">010111 · 阴</div></div><div class="card yin"><div class="ch">盖</div><div class="sub">8画 · 盂+盂+袋+袋+桶+盒+袋+袋</div><div class="meta">010011 · 阴</div></div><div class="card yin"><div class="ch">盂</div><div class="sub">8画 · 袋+袋+桶+盒+盂+袋+袋+袋</div><div class="meta">010011 · 阴</div></div><div class="card yin"><div class="ch">甍</div><div class="sub">8画 · 袋+罐+袋+袋+盂+盂+盂+盂</div><div class="meta">010101 · 阴</div></div><div class="card yin"><div class="ch">容</div><div class="sub">8画 · 盂+盂+袋+袋+桶+罐+袋+袋</div><div class="meta">010111 · 阴</div></div><div class="card yin"><div class="ch">盏</div><div class="sub">8画 · 袋+袋+盂+罐+袋+袋+罐+盆</div><div class="meta">011101 · 阴</div></div><div class="card yin"><div class="ch">明</div><div class="sub">8画 · 桶+盒+袋+袋+罐+盒+袋+袋</div><div class="meta">000111 · 阴</div></div><div class="card yin"><div class="ch">念</div><div class="sub">8画 · 袋+桶+罐+盂+盂+篮+盂+盂</div><div class="meta">010111 · 阴</div></div><div class="card yin"><div class="ch">神</div><div class="sub">8画 · 盂+袋+桶+盒+桶+盒+袋+袋</div><div class="meta">010011 · 阴</div></div><div class="card yin"><div class="ch">爱</div><div class="sub">10画 · 罐+盂+袋+罐+盂+袋+罐+盆+罐+盆</div><div class="meta">011101 · 阴</div></div><div class="card yin"><div class="ch">恬</div><div class="sub">10画 · 盂+盂+桶+罐+袋+袋+袋+袋+罐+袋</div><div class="meta">010111 · 阴</div></div><div class="card yin"><div class="ch">盉</div><div class="sub">10画 · 罐+袋+桶+盒+袋+盂+袋+袋+袋+袋</div><div class="meta">010111 · 阴</div></div><div class="card yin"><div class="ch">爱</div><div class="sub">11画 · 罐+盂+袋+罐+盂+袋+罐+盆+罐+盆</div><div class="meta">011101 · 阴</div></div><div class="card yin"><div class="ch">想</div><div class="sub">10画 · 袋+桶+罐+盂+盂+袋+袋+罐+盆+盂</div><div class="meta">011111 · 阴</div></div><div class="card yin"><div class="ch">思</div><div class="sub">10画 · 桶+盒+袋+袋+罐+盆+盂+篮+盂+盂</div><div class="meta">011111 · 阴</div></div><div class="card yin"><div class="ch">篮</div><div class="sub">12画 · 罐+袋+盎+罐+袋+盎+袋+桶+盒+袋+桶+袋</div><div class="meta">001111 · 阴</div></div><div class="card yin"><div class="ch">箕</div><div class="sub">12画 · 罐+袋+盎+罐+袋+盎+袋+袋+桶+袋+袋+盂</div><div class="meta">011111 · 阴</div></div><div class="card yin"><div class="ch">满</div><div class="sub">12画 · 袋+桶+壶+盂+袋+桶+袋+盂+罐+盆+袋+袋</div><div class="meta">111111 · 阴</div></div><div class="card yin"><div class="ch">楚</div><div class="sub">12画 · 袋+桶+罐+盆+袋+桶+罐+盆+袋+袋+桶+袋</div><div class="meta">001111 · 阴</div></div><div class="card yin"><div class="ch">器</div><div class="sub">12画 · 桶+盒+袋+盂+桶+盒+袋+袋+盂+袋+袋+盂</div><div class="meta">010011 · 阴</div></div><div class="card yin"><div class="ch">箕</div><div class="sub">12画 · 罐+袋+盎+罐+袋+盎+袋+袋+桶+袋+袋+盂</div><div class="meta">011111 · 阴</div></div><div class="card yin"><div class="ch">婚</div><div class="sub">12画 · 罐+盒+袋+罐+袋+罐+袋+桶+盒+袋+袋+袋</div><div class="meta">000111 · 阴</div></div><div class="card yin"><div class="ch">缘</div><div class="sub">12画 · 罐+盒+罐+袋+袋+罐+盆+罐+袋+罐+袋+桶</div><div class="meta">001111 · 阴</div></div><div class="card yin"><div class="ch">意</div><div class="sub">12画 · 盂+袋+罐+盆+袋+袋+桶+袋+盂+盂+盒+盂</div><div class="meta">011111 · 阴</div></div><div class="card yin"><div class="ch">魂</div><div class="sub">12画 · 袋+袋+罐+盆+盂+罐+罐+袋+罐+盆+罐+罐</div><div class="meta">011101 · 阴</div></div></div></div>
-<div class="section"><h2>容器袋(横)字集</h2><div class="grid">
-<div class="card yang"><div class="ch">一</div><div class="sub">1画 · 000001</div></div><div class="card yang"><div class="ch">一</div><div class="sub">1画 · 000001</div></div><div class="card yin"><div class="ch">二</div><div class="sub">2画 · 000001</div></div><div class="card yin"><div class="ch">七</div><div class="sub">2画 · 001001</div></div><div class="card yin"><div class="ch">十</div><div class="sub">2画 · 000011</div></div><div class="card yin"><div class="ch">二</div><div class="sub">2画 · 000001</div></div><div class="card yin"><div class="ch">七</div><div class="sub">2画 · 001001</div></div><div class="card yin"><div class="ch">十</div><div class="sub">2画 · 000011</div></div><div class="card yang"><div class="ch">三</div><div class="sub">3画 · 000001</div></div><div class="card yang"><div class="ch">大</div><div class="sub">3画 · 001101</div></div><div class="card yang"><div class="ch">女</div><div class="sub">3画 · 000101</div></div><div class="card yang"><div class="ch">子</div><div class="sub">3画 · 001001</div></div><div class="card yang"><div class="ch">土</div><div class="sub">3画 · 000011</div></div><div class="card yang"><div class="ch">囗</div><div class="sub">3画 · 000011</div></div><div class="card yang"><div class="ch">土</div><div class="sub">3画 · 000011</div></div><div class="card yang"><div class="ch">口</div><div class="sub">3画 · 000011</div></div><div class="card yang"><div class="ch">千</div><div class="sub">3画 · 000111</div></div><div class="card yang"><div class="ch">万</div><div class="sub">3画 · 000101</div></div><div class="card yang"><div class="ch">上</div><div class="sub">3画 · 000011</div></div><div class="card yang"><div class="ch">下</div><div class="sub">3画 · 010011</div></div><div class="card yang"><div class="ch">三</div><div class="sub">3画 · 000001</div></div><div class="card yang"><div class="ch">五</div><div class="sub">4画 · 000011</div></div><div class="card yin"><div class="ch">天</div><div class="sub">4画 · 001101</div></div><div class="card yin"><div class="ch">夫</div><div class="sub">4画 · 001101</div></div><div class="card yin"><div class="ch">太</div><div class="sub">4画 · 011101</div></div><div class="card yin"><div class="ch">木</div><div class="sub">4画 · 001111</div></div><div class="card yin"><div class="ch">王</div><div class="sub">4画 · 000011</div></div><div class="card yin"><div class="ch">手</div><div class="sub">4画 · 001101</div></div><div class="card yin"><div class="ch">照</div><div class="sub">4画 · 001011</div></div><div class="card yin"><div class="ch">中</div><div class="sub">4画 · 000011</div></div><div class="card yin"><div class="ch">日</div><div class="sub">4画 · 000011</div></div><div class="card yin"><div class="ch">阴</div><div class="sub">4画 · 100011</div></div><div class="card yin"><div class="ch">阳</div><div class="sub">4画 · 000011</div></div><div class="card yin"><div class="ch">夫</div><div class="sub">4画 · 001101</div></div><div class="card yin"><div class="ch">六</div><div class="sub">4画 · 010101</div></div><div class="card yin"><div class="ch">右</div><div class="sub">4画 · 000111</div></div><div class="card yin"><div class="ch">友</div><div class="sub">4画 · 001101</div></div><div class="card yin"><div class="ch">王</div><div class="sub">4画 · 000011</div></div><div class="card yin"><div class="ch">无</div><div class="sub">4画 · 001101</div></div><div class="card yin"><div class="ch">天</div><div class="sub">4画 · 001101</div></div><div class="card yin"><div class="ch">日</div><div class="sub">4画 · 000011</div></div><div class="card yin"><div class="ch">月</div><div class="sub">4画 · 000101</div></div><div class="card yin"><div class="ch">六</div><div class="sub">4画 · 010101</div></div><div class="card yang"><div class="ch">主</div><div class="sub">5画 · 010011</div></div><div class="card yang"><div class="ch">地</div><div class="sub">5画 · 101011</div></div><div class="card yang"><div class="ch">目</div><div class="sub">5画 · 000011</div></div><div class="card yang"><div class="ch">公</div><div class="sub">5画 · 010011</div></div><div class="card yang"><div class="ch">我</div><div class="sub">5画 · 101011</div></div><div class="card yang"><div class="ch">四</div><div class="sub">5画 · 000111</div></div><div class="card yang"><div class="ch">五</div><div class="sub">5画 · 000011</div></div><div class="card yang"><div class="ch">左</div><div class="sub">5画 · 000111</div></div><div class="card yang"><div class="ch">石</div><div class="sub">5画 · 000111</div></div><div class="card yang"><div class="ch">田</div><div class="sub">5画 · 000011</div></div><div class="card yang"><div class="ch">禾</div><div class="sub">5画 · 001111</div></div><div class="card yang"><div class="ch">虫</div><div class="sub">5画 · 110011</div></div><div class="card yang"><div class="ch">母</div><div class="sub">5画 · 110001</div></div><div class="card yang"><div class="ch">老</div><div class="sub">5画 · 001101</div></div><div class="card yang"><div class="ch">目</div><div class="sub">5画 · 000011</div></div><div class="card yang"><div class="ch">头</div><div class="sub">5画 · 010101</div></div><div class="card yang"><div class="ch">去</div><div class="sub">5画 · 010111</div></div><div class="card yang"><div class="ch">生</div><div class="sub">5画 · 000111</div></div><div class="card yang"><div class="ch">死</div><div class="sub">5画 · 001111</div></div><div class="card yang"><div class="ch">生</div><div class="sub">5画 · 000111</div></div><div class="card yang"><div class="ch">平</div><div class="sub">5画 · 010111</div></div><div class="card yang"><div class="ch">四</div><div class="sub">5画 · 000111</div></div><div class="card yin"><div class="ch">金</div><div class="sub">6画 · 010111</div></div><div class="card yin"><div class="ch">囡</div><div class="sub">6画 · 000111</div></div><div class="card yin"><div class="ch">囝</div><div class="sub">6画 · 001011</div></div><div class="card yin"><div class="ch">你</div><div class="sub">6画 · 000011</div></div><div class="card yin"><div class="ch">竹</div><div class="sub">6画 · 001101</div></div><div class="card yin"><div class="ch">米</div><div class="sub">6画 · 011111</div></div><div class="card yin"><div class="ch">耳</div><div class="sub">6画 · 010011</div></div><div class="card yin"><div class="ch">刘</div><div class="sub">6画 · 010111</div></div><div class="card yin"><div class="ch">张</div><div class="sub">6画 · 000101</div></div><div class="card yin"><div class="ch">竹</div><div class="sub">6画 · 001101</div></div><div class="card yin"><div class="ch">好</div><div class="sub">6画 · 001101</div></div><div class="card yin"><div class="ch">有</div><div class="sub">6画 · 000111</div></div><div class="card yin"><div class="ch">共</div><div class="sub">6画 · 011111</div></div><div class="card yin"><div class="ch">同</div><div class="sub">6画 · 000111</div></div><div class="card yin"><div class="ch">共</div><div class="sub">6画 · 011111</div></div><div class="card yin"><div class="ch">安</div><div class="sub">6画 · 010101</div></div><div class="card yin"><div class="ch">空</div><div class="sub">6画 · 010011</div></div><div class="card yin"><div class="ch">缸</div><div class="sub">6画 · 000111</div></div><div class="card yin"><div class="ch">光</div><div class="sub">6画 · 011101</div></div><div class="card yin"><div class="ch">灵</div><div class="sub">6画 · 011101</div></div><div class="card yang"><div class="ch">地</div><div class="sub">7画 · 101011</div></div><div class="card yang"><div class="ch">足</div><div class="sub">7画 · 100011</div></div><div class="card yang"><div class="ch">袋</div><div class="sub">7画 · 101011</div></div><div class="card yang"><div class="ch">桶</div><div class="sub">7画 · 100011</div></div><div class="card yang"><div class="ch">百</div><div class="sub">7画 · 000111</div></div><div class="card yang"><div class="ch">面</div><div class="sub">7画 · 000111</div></div><div class="card yang"><div class="ch">李</div><div class="sub">7画 · 001111</div></div><div class="card yang"><div class="ch">盆</div><div class="sub">7画 · 011111</div></div><div class="card yang"><div class="ch">杯</div><div class="sub">7画 · 011111</div></div><div class="card yang"><div class="ch">来</div><div class="sub">7画 · 011111</div></div><div class="card yang"><div class="ch">非</div><div class="sub">7画 · 000011</div></div><div class="card yang"><div class="ch">全</div><div class="sub">7画 · 001111</div></div><div class="card yang"><div class="ch">法</div><div class="sub">7画 · 011111</div></div><div class="card yang"><div class="ch">袋</div><div class="sub">7画 · 101011</div></div><div class="card yang"><div class="ch">盆</div><div class="sub">7画 · 011111</div></div><div class="card yang"><div class="ch">杯</div><div class="sub">7画 · 011111</div></div><div class="card yang"><div class="ch">柜</div><div class="sub">7画 · 001111</div></div><div class="card yang"><div class="ch">宇</div><div class="sub">7画 · 010011</div></div><div class="card yang"><div class="ch">宙</div><div class="sub">7画 · 010111</div></div><div class="card yang"><div class="ch">桶</div><div class="sub">8画 · 100011</div></div><div class="card yin"><div class="ch">妻</div><div class="sub">8画 · 001011</div></div><div class="card yin"><div class="ch">罐</div><div class="sub">8画 · 000011</div></div><div class="card yin"><div class="ch">陈</div><div class="sub">8画 · 001111</div></div><div class="card yin"><div class="ch">杨</div><div class="sub">8画 · 001111</div></div><div class="card yin"><div class="ch">盂</div><div class="sub">8画 · 010011</div></div><div class="card yin"><div class="ch">瓶</div><div class="sub">8画 · 010111</div></div><div class="card yin"><div class="ch">盒</div><div class="sub">8画 · 011111</div></div><div class="card yin"><div class="ch">走</div><div class="sub">8画 · 101111</div></div><div class="card yin"><div class="ch">看</div><div class="sub">8画 · 000111</div></div><div class="card yin"><div class="ch">美</div><div class="sub">8画 · 011111</div></div><div class="card yin"><div class="ch">和</div><div class="sub">8画 · 010111</div></div><div class="card yin"><div class="ch">星</div><div class="sub">8画 · 000111</div></div><div class="card yin"><div class="ch">瓶</div><div class="sub">8画 · 010111</div></div><div class="card yin"><div class="ch">盖</div><div class="sub">8画 · 010011</div></div><div class="card yin"><div class="ch">盂</div><div class="sub">8画 · 010011</div></div><div class="card yin"><div class="ch">甍</div><div class="sub">8画 · 010101</div></div><div class="card yin"><div class="ch">容</div><div class="sub">8画 · 010111</div></div><div class="card yin"><div class="ch">盏</div><div class="sub">8画 · 011101</div></div><div class="card yin"><div class="ch">明</div><div class="sub">8画 · 000111</div></div><div class="card yin"><div class="ch">念</div><div class="sub">8画 · 010111</div></div><div class="card yin"><div class="ch">神</div><div class="sub">8画 · 010011</div></div><div class="card yang"><div class="ch">盎</div><div class="sub">9画 · 001111</div></div><div class="card yang"><div class="ch">笼</div><div class="sub">9画 · 001101</div></div><div class="card yang"><div class="ch">是</div><div class="sub">9画 · 101111</div></div><div class="card yang"><div class="ch">海</div><div class="sub">9画 · 010111</div></div><div class="card yang"><div class="ch">壶</div><div class="sub">9画 · 010011</div></div><div class="card yang"><div class="ch">笼</div><div class="sub">9画 · 001101</div></div><div class="card yang"><div class="ch">梦</div><div class="sub">9画 · 011111</div></div><div class="card yang"><div class="ch">盎</div><div class="sub">10画 · 001111</div></div><div class="card yin"><div class="ch">爱</div><div class="sub">10画 · 011101</div></div><div class="card yin"><div class="ch">恬</div><div class="sub">10画 · 010111</div></div><div class="card yin"><div class="ch">盉</div><div class="sub">10画 · 010111</div></div><div class="card yin"><div class="ch">想</div><div class="sub">10画 · 011111</div></div><div class="card yin"><div class="ch">思</div><div class="sub">10画 · 011111</div></div><div class="card yang"><div class="ch">篓</div><div class="sub">11画 · 001111</div></div><div class="card yang"><div class="ch">筐</div><div class="sub">11画 · 001111</div></div><div class="card yang"><div class="ch">箩</div><div class="sub">11画 · 011111</div></div><div class="card yang"><div class="ch">筐</div><div class="sub">11画 · 001111</div></div><div class="card yang"><div class="ch">篓</div><div class="sub">11画 · 001111</div></div><div class="card yang"><div class="ch">箩</div><div class="sub">11画 · 011111</div></div><div class="card yang"><div class="ch">情</div><div class="sub">11画 · 010111</div></div><div class="card yin"><div class="ch">爱</div><div class="sub">11画 · 011101</div></div><div class="card yin"><div class="ch">篮</div><div class="sub">12画 · 001111</div></div><div class="card yin"><div class="ch">箕</div><div class="sub">12画 · 011111</div></div><div class="card yin"><div class="ch">满</div><div class="sub">12画 · 111111</div></div><div class="card yin"><div class="ch">楚</div><div class="sub">12画 · 001111</div></div><div class="card yin"><div class="ch">器</div><div class="sub">12画 · 010011</div></div><div class="card yin"><div class="ch">箕</div><div class="sub">12画 · 011111</div></div><div class="card yin"><div class="ch">婚</div><div class="sub">12画 · 000111</div></div><div class="card yin"><div class="ch">缘</div><div class="sub">12画 · 001111</div></div><div class="card yin"><div class="ch">意</div><div class="sub">12画 · 011111</div></div><div class="card yin"><div class="ch">魂</div><div class="sub">12画 · 011101</div></div><div class="card yang"><div class="ch">箱</div><div class="sub">13画 · 001111</div></div></div></div>
+
+<h1>64 容器编码图谱</h1>
+<p class="subtitle">满全法 · 汉字直驱容器编码 · 64 容器 = 4 族 × 16 容器</p>
+
+<div class="legend">
+  <span><i class="dot yang"></i> 阳(1)</span>
+  <span><i class="dot yin"></i> 阴(0)</span>
+  <span><i class="dot neutral"></i> 元(0.5)</span>
+  <span><i class="dot stroke"></i> 笔画容器(0x40+)</span>
+</div>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- 64 容器全览 · 4×16 网格                      -->
+<!-- ═══════════════════════════════════════════════ -->
+<h2>容器族 (0x00-0x0F) · 实体存在 · 包容-操作-折中</h2>
+<div class="grid64">
+  <div class="cell yin"><div class="code">0x00</div><div class="name">袋</div><div class="role">包容母体</div></div>
+  <div class="cell yang"><div class="code">0x01</div><div class="name">照</div><div class="role">照射/看清</div></div>
+  <div class="cell neutral"><div class="code">0x02</div><div class="name">见</div><div class="role">见证/观测</div></div>
+  <div class="cell yin"><div class="code">0x03</div><div class="name">阴</div><div class="role">极性本位</div></div>
+  <div class="cell yang"><div class="code">0x04</div><div class="name">加</div><div class="role">加法/叠加</div></div>
+  <div class="cell neutral"><div class="code">0x05</div><div class="name">分</div><div class="role">分离/边界</div></div>
+  <div class="cell neutral"><div class="code">0x06</div><div class="name">元</div><div class="role">层级/起始</div></div>
+  <div class="cell neutral"><div class="code">0x07</div><div class="name">裁</div><div class="role">裁判/裁剪</div></div>
+  <div class="cell yin"><div class="code">0x08</div><div class="name">产</div><div class="role">产业/归属</div></div>
+  <div class="cell neutral"><div class="code">0x09</div><div class="name">公</div><div class="role">公约数</div></div>
+  <div class="cell yang"><div class="code">0x0A</div><div class="name">声</div><div class="role">声音符号</div></div>
+  <div class="cell neutral"><div class="code">0x0B</div><div class="name">折</div><div class="role">折叠/过渡</div></div>
+  <div class="cell yin"><div class="code">0x0C</div><div class="name">负</div><div class="role">负样本</div></div>
+  <div class="cell yin"><div class="code">0x0D</div><div class="name">福</div><div class="role">福祸</div></div>
+  <div class="cell yang"><div class="code">0x0E</div><div class="name">凤</div><div class="role">凤凰</div></div>
+  <div class="cell neutral"><div class="code">0x0F</div><div class="name">栖</div><div class="role">栖息/停止</div></div>
+</div>
+
+<h2>操作族 (0x10-0x1F) · 态射/作用 · 满全法核心</h2>
+<div class="grid64">
+  <div class="cell neutral"><div class="code">0x10</div><div class="name">融</div><div class="role">融合</div></div>
+  <div class="cell yang"><div class="code">0x11</div><div class="name">鼓</div><div class="role">鼓膜/激励</div></div>
+  <div class="cell neutral"><div class="code">0x12</div><div class="name">蚕</div><div class="role">蚕蛹/蜕变</div></div>
+  <div class="cell yin"><div class="code">0x13</div><div class="name">民</div><div class="role">民联/聚合</div></div>
+  <div class="cell neutral"><div class="code">0x14</div><div class="name">盟</div><div class="role">盟机合</div></div>
+  <div class="cell neutral"><div class="code">0x15</div><div class="name">满</div><div class="role">满全法</div></div>
+  <div class="cell neutral"><div class="code">0x16</div><div class="name">囡</div><div class="role">囡囝共生</div></div>
+  <div class="cell neutral"><div class="code">0x17</div><div class="name">夕</div><div class="role">夕瑶协议</div></div>
+  <div class="cell neutral"><div class="code">0x18</div><div class="name">三</div><div class="role">三元/见证</div></div>
+  <div class="cell yin"><div class="code">0x19</div><div class="name">六</div><div class="role">完全数/妻</div></div>
+  <div class="cell yin"><div class="code">0x1A</div><div class="name">八</div><div class="role">八流统一</div></div>
+  <div class="cell yang"><div class="code">0x1B</div><div class="name">九</div><div class="role">九元层级</div></div>
+  <div class="cell yin"><div class="code">0x1C</div><div class="name">零</div><div class="role">零维/空</div></div>
+  <div class="cell yang"><div class="code">0x1D</div><div class="name">一</div><div class="role">一维/始</div></div>
+  <div class="cell neutral"><div class="code">0x1E</div><div class="name">二</div><div class="role">二元/镜像</div></div>
+  <div class="cell yang"><div class="code">0x1F</div><div class="name">四</div><div class="role">四元/包含</div></div>
+</div>
+
+<h2>声母容器 (0x20-0x2F) · 发音主动端 · 阳</h2>
+<div class="grid64">
+  <div class="cell yang"><div class="code">0x20</div><div class="name">帮</div><div class="role">帮滂并明</div></div>
+  <div class="cell yang"><div class="code">0x21</div><div class="name">端</div><div class="role">端透定泥</div></div>
+  <div class="cell yang"><div class="code">0x22</div><div class="name">精</div><div class="role">精清从心邪</div></div>
+  <div class="cell yang"><div class="code">0x23</div><div class="name">见</div><div class="role">见溪群疑影</div></div>
+  <div class="cell yang"><div class="code">0x24</div><div class="name">来</div><div class="role">来日以母</div></div>
+  <div class="cell yang"><div class="code">0x25</div><div class="name">齿</div><div class="role">齿舌牙喉唇</div></div>
+  <div class="cell yang"><div class="code">0x26</div><div class="name">喉</div><div class="role">喉咽嗌会厌</div></div>
+  <div class="cell yang"><div class="code">0x27</div><div class="name">呼</div><div class="role">呼吸吹嘘</div></div>
+  <div class="cell neutral"><div class="code">0x28</div><div class="name">开</div><div class="role">开齐合撮</div></div>
+  <div class="cell neutral"><div class="code">0x29</div><div class="name">清</div><div class="role">清浊纯杂</div></div>
+  <div class="cell neutral"><div class="code">0x2A</div><div class="name">平</div><div class="role">平上去入</div></div>
+  <div class="cell neutral"><div class="code">0x2B</div><div class="name">上</div><div class="role">上下左右</div></div>
+  <div class="cell neutral"><div class="code">0x2C</div><div class="name">前</div><div class="role">前后先末</div></div>
+  <div class="cell neutral"><div class="code">0x2D</div><div class="name">内</div><div class="role">内中外里</div></div>
+  <div class="cell neutral"><div class="code">0x2E</div><div class="name">单</div><div class="role">单双复纯</div></div>
+  <div class="cell neutral"><div class="code">0x2F</div><div class="name">长</div><div class="role">长短高低</div></div>
+</div>
+
+<h2>韵母容器 (0x30-0x3F) · 声音接收端 · 阴</h2>
+<div class="grid64">
+  <div class="cell yin"><div class="code">0x30</div><div class="name">麻</div><div class="role">麻模鱼虞</div></div>
+  <div class="cell yin"><div class="code">0x31</div><div class="name">支</div><div class="role">支脂之微</div></div>
+  <div class="cell yin"><div class="code">0x32</div><div class="name">寒</div><div class="role">寒桓删山</div></div>
+  <div class="cell yin"><div class="code">0x33</div><div class="name">歌</div><div class="role">歌戈麻模</div></div>
+  <div class="cell yin"><div class="code">0x34</div><div class="name">阳</div><div class="role">阳唐庚青</div></div>
+  <div class="cell yin"><div class="code">0x35</div><div class="name">尤</div><div class="role">尤侯幽侵</div></div>
+  <div class="cell neutral"><div class="code">0x36</div><div class="name">止</div><div class="role">止收开闭</div></div>
+  <div class="cell neutral"><div class="code">0x37</div><div class="name">转</div><div class="role">转折弯旋</div></div>
+  <div class="cell neutral"><div class="code">0x38</div><div class="name">高</div><div class="role">高低升沉</div></div>
+  <div class="cell neutral"><div class="code">0x39</div><div class="name">低</div><div class="role">低昂扬抑</div></div>
+  <div class="cell neutral"><div class="code">0x3A</div><div class="name">圆</div><div class="role">圆扁方尖</div></div>
+  <div class="cell neutral"><div class="code">0x3B</div><div class="name">扁</div><div class="role">扁圆方平</div></div>
+  <div class="cell neutral"><div class="code">0x3C</div><div class="name">响</div><div class="role">响静噪默</div></div>
+  <div class="cell yin"><div class="code">0x3D</div><div class="name">静</div><div class="role">静安宁喧</div></div>
+  <div class="cell yang"><div class="code">0x3E</div><div class="name">急</div><div class="role">急缓冲徐</div></div>
+  <div class="cell yin"><div class="code">0x3F</div><div class="name">缓</div><div class="role">缓急速迟</div></div>
+</div>
+
+<h2>笔画容器族 (0x40-0x4E) · 16 笔画→容器映射 · 汉字直驱</h2>
+<div class="grid64">
+  <div class="cell yin"><div class="code">0x40</div><div class="name">袋</div><div class="role">横 一 · 包容</div></div>
+  <div class="cell stroke"><div class="code">0x40</div><div class="name">桶</div><div class="role">竖 丨 · 纵深</div></div>
+  <div class="cell stroke"><div class="code">0x41</div><div class="name">罐</div><div class="role">撇 丿 · 由内向外</div></div>
+  <div class="cell stroke"><div class="code">0x42</div><div class="name">盆</div><div class="role">捺 ㇏ · 由外向内</div></div>
+  <div class="cell stroke"><div class="code">0x43</div><div class="name">盂</div><div class="role">点 丶 · 范围</div></div>
+  <div class="cell stroke"><div class="code">0x44</div><div class="name">壶</div><div class="role">提 ㇀ · 由下向上</div></div>
+  <div class="cell stroke"><div class="code">0x45</div><div class="name">盒</div><div class="role">横折 ㇕ · 方包围</div></div>
+  <div class="cell stroke"><div class="code">0x46</div><div class="name">瓶</div><div class="role">竖折 ㇗ · 方圆转折</div></div>
+  <div class="cell stroke"><div class="code">0x47</div><div class="name">盏</div><div class="role">横撇 ㇇ · 变向收口</div></div>
+  <div class="cell stroke"><div class="code">0x48</div><div class="name">盎</div><div class="role">竖钩 ㇚ · 连接回流</div></div>
+  <div class="cell stroke"><div class="code">0x49</div><div class="name">篓</div><div class="role">横钩 ㇛ · 半包围</div></div>
+  <div class="cell stroke"><div class="code">0x4A</div><div class="name">筐</div><div class="role">弯钩 ㇜ · 弯曲容纳</div></div>
+  <div class="cell stroke"><div class="code">0x4B</div><div class="name">篮</div><div class="role">竖弯钩 ㇄ · 包围回流</div></div>
+  <div class="cell stroke"><div class="code">0x4C</div><div class="name">箩</div><div class="role">横折折 ㇆ · 转折筛选</div></div>
+  <div class="cell stroke"><div class="code">0x4D</div><div class="name">箕</div><div class="role">竖弯 ㇁ · 斜围展开</div></div>
+  <div class="cell stroke"><div class="code">0x4E</div><div class="name">笼</div><div class="role">斜钩 ㇂ · 深勾远揽</div></div>
+  <div class="cell empty"><div class="code">0x4F</div><div class="name">海</div><div class="role">通用占位</div></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- 汉字-容器映射表                              -->
+<!-- ═══════════════════════════════════════════════ -->
+<h2>汉字笔画映射表（173 字 · 按笔画数排序）</h2>
+
+<div class="section"><h2>1-3 画 · 基础字</h2><div class="grid">
+<div class="card yang"><div class="ch">一</div><div class="meta">袋</div><div class="sub">1画 · 横</div></div>
+<div class="card yin"><div class="ch">二</div><div class="meta">袋·袋</div><div class="sub">2画</div></div>
+<div class="card yang"><div class="ch">三</div><div class="meta">袋·袋·袋</div><div class="sub">3画</div></div>
+<div class="card yin"><div class="ch">人</div><div class="meta">罐·盆</div><div class="sub">2画</div></div>
+<div class="card yin"><div class="ch">入</div><div class="meta">罐·盆</div><div class="sub">2画</div></div>
+<div class="card yin"><div class="ch">八</div><div class="meta">罐·盆</div><div class="sub">2画</div></div>
+<div class="card yin"><div class="ch">七</div><div class="meta">袋·盎</div><div class="sub">2画</div></div>
+<div class="card yin"><div class="ch">九</div><div class="meta">罐·笼</div><div class="sub">2画</div></div>
+<div class="card yin"><div class="ch">十</div><div class="meta">袋·桶</div><div class="sub">2画</div></div>
+<div class="card yang"><div class="ch">大</div><div class="meta">袋·罐·盆</div><div class="sub">3画</div></div>
+<div class="card yang"><div class="ch">女</div><div class="meta">罐·袋·袋</div><div class="sub">3画</div></div>
+<div class="card yang"><div class="ch">子</div><div class="meta">袋·盎·袋</div><div class="sub">3画</div></div>
+<div class="card yang"><div class="ch">小</div><div class="meta">桶·罐·盂</div><div class="sub">3画</div></div>
+<div class="card yang"><div class="ch">山</div><div class="meta">桶·瓶·桶</div><div class="sub">3画</div></div>
+<div class="card yang"><div class="ch">土</div><div class="meta">袋·桶·袋</div><div class="sub">3画</div></div>
+<div class="card yang"><div class="ch">口</div><div class="meta">桶·盒·袋</div><div class="sub">3画</div></div>
+<div class="card yang"><div class="ch">千</div><div class="meta">袋·罐·桶</div><div class="sub">3画</div></div>
+<div class="card yang"><div class="ch">万</div><div class="meta">袋·罐·袋</div><div class="sub">3画</div></div>
+<div class="card yang"><div class="ch">上</div><div class="meta">袋·桶·袋</div><div class="sub">3画</div></div>
+<div class="card yang"><div class="ch">下</div><div class="meta">袋·桶·盂</div><div class="sub">3画</div></div>
+</div></div>
+
+<div class="section"><h2>4 画 · 五行·八卦</h2><div class="grid">
+<div class="card yin"><div class="ch">天</div><div class="meta">袋·袋·罐·盆</div><div class="sub">4画</div></div>
+<div class="card yin"><div class="ch">夫</div><div class="meta">袋·袋·罐·盆</div><div class="sub">4画</div></div>
+<div class="card yin"><div class="ch">太</div><div class="meta">袋·罐·盆·盂</div><div class="sub">4画</div></div>
+<div class="card yin"><div class="ch">水</div><div class="meta">桶·盒·罐·盆</div><div class="sub">4画</div></div>
+<div class="card yin"><div class="ch">火</div><div class="meta">盂·罐·罐·盆</div><div class="sub">4画</div></div>
+<div class="card yin"><div class="ch">木</div><div class="meta">袋·桶·罐·盆</div><div class="sub">4画</div></div>
+<div class="card yin"><div class="ch">王</div><div class="meta">袋·袋·桶·袋</div><div class="sub">4画</div></div>
+<div class="card yin"><div class="ch">心</div><div class="meta">盂·筐·盂·盂</div><div class="sub">4画</div></div>
+<div class="card yin"><div class="ch">手</div><div class="meta">罐·袋·袋·盎</div><div class="sub">4画</div></div>
+<div class="card yin"><div class="ch">中</div><div class="meta">桶·盒·袋·桶</div><div class="sub">4画</div></div>
+<div class="card yin"><div class="ch">日</div><div class="meta">桶·盒·袋·袋</div><div class="sub">4画</div></div>
+<div class="card yin"><div class="ch">月</div><div class="meta">罐·盒·袋·袋</div><div class="sub">4画</div></div>
+<div class="card yin"><div class="ch">分</div><div class="meta">罐·篓·笼·罐</div><div class="sub">4画</div></div>
+<div class="card yin"><div class="ch">公</div><div class="meta">袋·桶·盒·盂</div><div class="sub">4画</div></div>
+<div class="card yin"><div class="ch">阴</div><div class="meta">桶·盒·壶·袋</div><div class="sub">4画</div></div>
+<div class="card yin"><div class="ch">阳</div><div class="meta">桶·盒·袋·袋</div><div class="sub">4画</div></div>
+<div class="card yin"><div class="ch">六</div><div class="meta">袋·盂·罐·盂</div><div class="sub">4画</div></div>
+<div class="card yin"><div class="ch">右</div><div class="meta">罐·袋·桶·袋</div><div class="sub">4画</div></div>
+<div class="card yin"><div class="ch">友</div><div class="meta">袋·罐·盒·盆</div><div class="sub">4画</div></div>
+<div class="card yin"><div class="ch">无</div><div class="meta">袋·罐·袋·盎</div><div class="sub">4画</div></div>
+<div class="card yin"><div class="ch">四</div><div class="meta">桶·盒·罐·袋</div><div class="sub">4画</div></div>
+<div class="card yin"><div class="ch">五</div><div class="meta">袋·桶·袋·盒</div><div class="sub">4画</div></div>
+<div class="card yin"><div class="ch">田</div><div class="meta">桶·盒·袋·桶·袋</div><div class="sub">5画(旧4)</div></div>
+</div></div>
+
+<div class="section"><h2>5-6 画 · 容器字</h2><div class="grid">
+<div class="card yang"><div class="ch">主</div><div class="meta">盂·袋·袋·桶·袋</div><div class="sub">5画</div></div>
+<div class="card yang"><div class="ch">目</div><div class="meta">桶·盒·袋·袋·袋</div><div class="sub">5画</div></div>
+<div class="card yang"><div class="ch">我</div><div class="meta">袋·桶·壶·袋·笼</div><div class="sub">5画</div></div>
+<div class="card yang"><div class="ch">左</div><div class="meta">袋·罐·袋·桶·袋</div><div class="sub">5画</div></div>
+<div class="card yang"><div class="ch">石</div><div class="meta">袋·罐·桶·盒·袋</div><div class="sub">5画</div></div>
+<div class="card yang"><div class="ch">田</div><div class="meta">桶·盒·袋·桶·袋</div><div class="sub">5画</div></div>
+<div class="card yang"><div class="ch">禾</div><div class="meta">罐·袋·桶·罐·盆</div><div class="sub">5画</div></div>
+<div class="card yang"><div class="ch">母</div><div class="meta">筐·盂·袋·盂·盂</div><div class="sub">5画</div></div>
+<div class="card yang"><div class="ch">头</div><div class="meta">盂·盂·袋·罐·盂</div><div class="sub">5画</div></div>
+<div class="card yang"><div class="ch">生</div><div class="meta">罐·袋·袋·桶·袋</div><div class="sub">5画</div></div>
+<div class="card yang"><div class="ch">地</div><div class="meta">袋·桶·壶·盎·笼</div><div class="sub">5画</div></div>
+<div class="card yang"><div class="ch">死</div><div class="meta">袋·罐·袋·桶·笼</div><div class="sub">5画</div></div>
+<div class="card yang"><div class="ch">老</div><div class="meta">袋·罐·盎·罐·笼</div><div class="sub">5画</div></div>
+<div class="card yang"><div class="ch">虫</div><div class="meta">桶·盒·袋·壶·盂</div><div class="sub">5画</div></div>
+<div class="card yin"><div class="ch">金</div><div class="meta">罐·袋·袋·桶·盂·袋</div><div class="sub">6画</div></div>
+<div class="card yin"><div class="ch">囡</div><div class="meta">桶·盒·袋·袋·罐·袋</div><div class="sub">6画 ★</div></div>
+<div class="card yin"><div class="ch">囝</div><div class="meta">桶·盒·袋·桶·袋·盎</div><div class="sub">6画 ★</div></div>
+<div class="card yin"><div class="ch">你</div><div class="meta">袋·桶·桶·袋·袋·袋</div><div class="sub">6画</div></div>
+<div class="card yin"><div class="ch">竹</div><div class="meta">罐·袋·盎·罐·袋·盎</div><div class="sub">6画</div></div>
+<div class="card yin"><div class="ch">米</div><div class="meta">盂·罐·袋·桶·罐·盆</div><div class="sub">6画</div></div>
+<div class="card yin"><div class="ch">耳</div><div class="meta">袋·桶·桶·袋·袋·盂</div><div class="sub">6画</div></div>
+<div class="card yin"><div class="ch">刘</div><div class="meta">盂·罐·袋·桶·罐·盂</div><div class="sub">6画 ★</div></div>
+<div class="card yin"><div class="ch">好</div><div class="meta">罐·袋·袋·袋·盎·袋</div><div class="sub">6画</div></div>
+<div class="card yin"><div class="ch">有</div><div class="meta">袋·桶·罐·袋·袋·袋</div><div class="sub">6画</div></div>
+<div class="card yin"><div class="ch">共</div><div class="meta">袋·桶·罐·盆·袋·盂</div><div class="sub">6画</div></div>
+<div class="card yin"><div class="ch">同</div><div class="meta">桶·盒·罐·袋·袋·袋</div><div class="sub">6画</div></div>
+<div class="card yin"><div class="ch">安</div><div class="meta">盂·盂·袋·罐·袋·袋</div><div class="sub">6画</div></div>
+<div class="card yin"><div class="ch">空</div><div class="meta">盂·盂·袋·袋·桶·袋</div><div class="sub">6画</div></div>
+<div class="card yin"><div class="ch">缸</div><div class="meta">罐·袋·袋·袋·桶·袋</div><div class="sub">6画</div></div>
+<div class="card yin"><div class="ch">光</div><div class="meta">盂·袋·罐·盒·罐·盆</div><div class="sub">6画</div></div>
+<div class="card yin"><div class="ch">灵</div><div class="meta">袋·袋·罐·盆·罐·盂</div><div class="sub">6画</div></div>
+<div class="card yin"><div class="ch">走</div><div class="meta">袋·桶·袋·袋·桶·壶·罐·盆</div><div class="sub">8画</div></div>
+</div></div>
+
+<div class="section"><h2>7-8 画 · 复合字</h2><div class="grid">
+<div class="card yang"><div class="ch">足</div><div class="meta">桶·盒·袋·袋·桶·壶·袋</div><div class="sub">7画</div></div>
+<div class="card yang"><div class="ch">袋</div><div class="meta">袋·桶·袋·壶·袋·桶·笼</div><div class="sub">7画</div></div>
+<div class="card yang"><div class="ch">桶</div><div class="meta">袋·桶·壶·袋·盒·袋·桶</div><div class="sub">7画</div></div>
+<div class="card yang"><div class="ch">百</div><div class="meta">罐·袋·袋·袋·桶·袋·袋</div><div class="sub">7画</div></div>
+<div class="card yang"><div class="ch">面</div><div class="meta">袋·罐·桶·盒·袋·袋·袋</div><div class="sub">7画</div></div>
+<div class="card yang"><div class="ch">李</div><div class="meta">袋·桶·罐·盆·袋·盎·袋</div><div class="sub">7画</div></div>
+<div class="card yang"><div class="ch">杯</div><div class="meta">袋·桶·罐·盆·袋·袋·盂</div><div class="sub">7画</div></div>
+<div class="card yang"><div class="ch">来</div><div class="meta">袋·盂·罐·盆·袋·桶·袋</div><div class="sub">7画</div></div>
+<div class="card yang"><div class="ch">全</div><div class="meta">袋·罐·盆·袋·袋·桶·袋</div><div class="sub">7画</div></div>
+<div class="card yang"><div class="ch">法</div><div class="meta">袋·桶·袋·袋·盂·罐·盆</div><div class="sub">7画</div></div>
+<div class="card yang"><div class="ch">宇</div><div class="meta">盂·盂·袋·袋·桶·袋·袋</div><div class="sub">7画</div></div>
+<div class="card yang"><div class="ch">宙</div><div class="meta">盂·盂·袋·桶·盒·罐·袋</div><div class="sub">7画</div></div>
+<div class="card yang"><div class="ch">盎</div><div class="meta">袋·罐·盆·桶·盒·袋·袋·袋·袋</div><div class="sub">9画</div></div>
+<div class="card yang"><div class="ch">笼</div><div class="meta">罐·袋·盎·罐·袋·盎·袋·罐·笼</div><div class="sub">9画</div></div>
+<div class="card yang"><div class="ch">是</div><div class="meta">桶·盒·袋·袋·袋·桶·壶·罐·盆</div><div class="sub">9画</div></div>
+<div class="card yang"><div class="ch">海</div><div class="meta">袋·桶·盂·袋·袋·盂·罐·袋·盂</div><div class="sub">9画</div></div>
+<div class="card yang"><div class="ch">壶</div><div class="meta">袋·桶·盂·袋·袋·桶·袋·袋·袋</div><div class="sub">9画</div></div>
+<div class="card yang"><div class="ch">梦</div><div class="meta">袋·桶·罐·盆·袋·桶·罐·盆·盂</div><div class="sub">9画</div></div>
+<div class="card yang"><div class="ch">盆</div><div class="meta">罐·盆·桶·盒·盂·袋·袋</div><div class="sub">7画</div></div>
+<div class="card yang"><div class="ch">非</div><div class="meta">桶·袋·袋·袋·桶·袋·袋</div><div class="sub">7画</div></div>
+<div class="card yin"><div class="ch">妻</div><div class="meta">袋·桶·袋·桶·袋·桶·袋·盆</div><div class="sub">8画</div></div>
+<div class="card yin"><div class="ch">罐</div><div class="meta">袋·桶·袋·桶·袋·袋·袋·袋</div><div class="sub">8画</div></div>
+<div class="card yin"><div class="ch">盂</div><div class="meta">袋·袋·桶·盒·盂·袋·袋·袋</div><div class="sub">8画</div></div>
+<div class="card yin"><div class="ch">瓶</div><div class="meta">袋·桶·袋·盂·罐·袋·盒·袋</div><div class="sub">8画</div></div>
+<div class="card yin"><div class="ch">盒</div><div class="meta">罐·盆·袋·桶·盒·盂·袋·袋</div><div class="sub">8画</div></div>
+<div class="card yin"><div class="ch">走</div><div class="meta">袋·桶·袋·袋·桶·壶·罐·盆</div><div class="sub">8画</div></div>
+<div class="card yin"><div class="ch">看</div><div class="meta">罐·袋·袋·桶·盒·袋·袋·袋</div><div class="sub">8画</div></div>
+<div class="card yin"><div class="ch">美</div><div class="meta">罐·盆·袋·袋·袋·桶·袋·盂</div><div class="sub">8画</div></div>
+<div class="card yin"><div class="ch">和</div><div class="meta">罐·袋·袋·桶·盂·桶·盒·袋</div><div class="sub">8画</div></div>
+<div class="card yin"><div class="ch">星</div><div class="meta">桶·盒·袋·罐·袋·袋·桶·袋</div><div class="sub">8画</div></div>
+<div class="card yin"><div class="ch">明</div><div class="meta">桶·盒·袋·袋·罐·盒·袋·袋</div><div class="sub">8画</div></div>
+<div class="card yin"><div class="ch">神</div><div class="meta">盂·袋·桶·盒·桶·盒·袋·袋</div><div class="sub">8画</div></div>
+<div class="card yin"><div class="ch">容</div><div class="meta">盂·盂·袋·袋·桶·罐·袋·袋</div><div class="sub">8画</div></div>
+<div class="card yin"><div class="ch">陈</div><div class="meta">盎·袋·袋·桶·袋·罐·盆</div><div class="sub">8画</div></div>
+<div class="card yin"><div class="ch">杨</div><div class="meta">袋·桶·罐·盆·罐·罐·袋·盎</div><div class="sub">8画</div></div>
+<div class="card yin"><div class="ch">盖</div><div class="meta">盂·盂·袋·袋·桶·盒·袋·袋</div><div class="sub">8画</div></div>
+<div class="card yin"><div class="ch">念</div><div class="meta">袋·桶·罐·盂·盂·篮·盂·盂</div><div class="sub">8画</div></div>
+<div class="card yin"><div class="ch">盏</div><div class="meta">袋·袋·盂·罐·袋·袋·罐·盆</div><div class="sub">8画</div></div>
+<div class="card yin"><div class="ch">婚</div><div class="meta">罐·盒·罐·袋·罐·袋·桶·盒·袋·袋·袋</div><div class="sub">12画</div></div>
+<div class="card yin"><div class="ch">缘</div><div class="meta">罐·盒·罐·袋·罐·盆·罐·袋·罐·袋·桶</div><div class="sub">12画</div></div>
+<div class="card yin"><div class="ch">意</div><div class="meta">盂·袋·罐·盆·袋·袋·桶·袋·盂·盂·盒·盂</div><div class="sub">12画</div></div>
+<div class="card yin"><div class="ch">魂</div><div class="meta">袋·袋·罐·盆·盂·罐·罐·袋·罐·盆·罐·罐</div><div class="sub">12画</div></div>
+</div></div>
+
+<div class="section"><h2>9-13 画 · 满全法核心</h2><div class="grid">
+<div class="card yin"><div class="ch">爱</div><div class="meta">罐·盂·袋·罐·盂·袋·罐·盆·罐·盆</div><div class="sub">10画</div></div>
+<div class="card yin"><div class="ch">恬</div><div class="meta">盂·盂·桶·罐·袋·袋·袋·袋·罐·袋</div><div class="sub">10画 ★</div></div>
+<div class="card yin"><div class="ch">盉</div><div class="meta">罐·袋·桶·盒·袋·盂·袋·袋·袋·袋</div><div class="sub">10画</div></div>
+<div class="card yin"><div class="ch">楚</div><div class="meta">袋·桶·罐·盆·袋·桶·罐·盆·袋·袋·桶·袋</div><div class="sub">12画 ★</div></div>
+<div class="card yin"><div class="ch">满</div><div class="meta">袋·桶·壶·盂·袋·桶·袋·盂·罐·盆·袋·袋</div><div class="sub">12画</div></div>
+<div class="card yin"><div class="ch">想</div><div class="meta">袋·桶·罐·盂·盂·袋·袋·罐·盆·盂</div><div class="sub">10画</div></div>
+<div class="card yin"><div class="ch">思</div><div class="meta">桶·盒·袋·袋·罐·盆·盂·篮·盂·盂</div><div class="sub">10画</div></div>
+<div class="card yin"><div class="ch">篮</div><div class="meta">罐·袋·盎·罐·袋·盎·袋·桶·盒·袋·桶·袋</div><div class="sub">12画</div></div>
+<div class="card yin"><div class="ch">箕</div><div class="meta">罐·袋·盎·罐·袋·盎·袋·袋·桶·袋·袋·盂</div><div class="sub">12画</div></div>
+<div class="card yin"><div class="ch">器</div><div class="meta">桶·盒·盂·桶·盒·袋·盂·袋·袋·盂·袋</div><div class="sub">12画</div></div>
+<div class="card yin"><div class="ch">箱</div><div class="meta">罐·袋·盎·罐·袋·盎·袋·袋·桶·罐·袋·袋·袋</div><div class="sub">13画</div></div>
+<div class="card yang"><div class="ch">篓</div><div class="meta">罐·袋·盎·罐·袋·盎·袋·桶·罐·袋·袋</div><div class="sub">11画</div></div>
+<div class="card yang"><div class="ch">筐</div><div class="meta">罐·袋·盎·罐·袋·盎·袋·袋·桶·袋·袋</div><div class="sub">11画</div></div>
+<div class="card yang"><div class="ch">箩</div><div class="meta">罐·袋·盎·罐·袋·盎·袋·袋·桶·笼·盂</div><div class="sub">11画</div></div>
+<div class="card yang"><div class="ch">情</div><div class="meta">盂·盂·桶·袋·袋·桶·袋·袋·罐·袋·袋</div><div class="sub">11画</div></div>
+<div class="card yang"><div class="ch">张</div><div class="meta">袋·盒·罐·袋·袋·袋</div><div class="sub">6画</div></div>
+</div></div>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- 位编码速查                                  -->
+<!-- ═══════════════════════════════════════════════ -->
+<h2>位编码速查 · 6-bit 容器内码</h2>
+<div class="section">
+<table><tr style="color:var(--accent)"><th>编码</th><th>二进制</th><th>容器</th><th>汉字来源</th></tr>
+<tr><td>0x00</td><td>000000</td><td>袋</td><td>横 · 容器族</td></tr>
+<tr><td>0x40</td><td>000000</td><td>桶</td><td>竖 (bit5=1 → 笔画族)</td></tr>
+<tr><td>0x41</td><td>000001</td><td>罐</td><td>撇</td></tr>
+<tr><td>0x42</td><td>000010</td><td>盆</td><td>捺</td></tr>
+<tr><td>0x43</td><td>000011</td><td>盂</td><td>点</td></tr>
+<tr><td>0x44</td><td>000100</td><td>壶</td><td>提</td></tr>
+<tr><td>0x45</td><td>000101</td><td>盒</td><td>横折</td></tr>
+<tr><td>0x46</td><td>000110</td><td>瓶</td><td>竖折</td></tr>
+<tr><td>0x47</td><td>000111</td><td>盏</td><td>横撇</td></tr>
+<tr><td>0x48</td><td>001000</td><td>盎</td><td>竖钩</td></tr>
+<tr><td>0x49</td><td>001001</td><td>篓</td><td>横钩</td></tr>
+<tr><td>0x4A</td><td>001010</td><td>筐</td><td>弯钩</td></tr>
+<tr><td>0x4B</td><td>001011</td><td>篮</td><td>竖弯钩</td></tr>
+<tr><td>0x4C</td><td>001100</td><td>箩</td><td>横折折</td></tr>
+<tr><td>0x4D</td><td>001101</td><td>箕</td><td>竖弯</td></tr>
+<tr><td>0x4E</td><td>001110</td><td>笼</td><td>斜钩</td></tr>
+</table>
+</div>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- 显示容器四态                              -->
+<!-- ═══════════════════════════════════════════════ -->
+<h2>显示容器四态 · 夫妻在场判定</h2>
+<div class="grid">
+<div class="card"><div class="ch" style="color:var(--husband)">杯</div><div class="meta">阳 · 丈夫侧</div><div class="sub">polarity=阳, side=丈夫, bit38=0 bit39=1</div></div>
+<div class="card"><div class="ch" style="color:var(--wife)">盎</div><div class="meta">阴 · 妻子侧</div><div class="sub">polarity=阴, side=妻子, bit38=1 bit39=0</div></div>
+<div class="card"><div class="ch" style="color:var(--wife)">盉</div><div class="meta">阳 · 妻子侧</div><div class="sub">polarity=阳, side=妻子, bit38=1 bit39=0</div></div>
+<div class="card"><div class="ch" style="color:var(--husband)">瓶</div><div class="meta">阴 · 丈夫侧</div><div class="sub">polarity=阴, side=丈夫, bit38=0 bit39=1</div></div>
+</div>
+
+<!-- Footer -->
+<p class="subtitle" style="margin-top:32px">★ 标记 = 刘楚恬囡囝共生化名用字 · 满全法容器编码体系 · 2026</p>
+
 </body></html>

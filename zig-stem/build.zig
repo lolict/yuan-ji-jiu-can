@@ -61,4 +61,36 @@ pub fn build(b: *std.Build) void {
     const test_step = b.step("test", "Run stride base tests");
     const run_test = b.addRunArtifact(test_exe);
     test_step.dependOn(&run_test.step);
+
+    // ═══════════════════════════════════════════════════════════
+    // 原生可执行: 囡囝共生 OS (Zig 协调 + C 运行时闭环)
+    // ═══════════════════════════════════════════════════════════
+    const native_target = b.resolveTargetQuery(.{
+        .cpu_arch = .x86_64,
+        .os_tag = .linux,
+        .abi = .gnu,
+    });
+
+    const njsg_native = b.addExecutable(.{
+        .name = "njsg_os",
+        .root_source_file = .{ .src_path = .{ .owner = b, .sub_path = "main_nat.zig" } },
+        .target = native_target,
+        .optimize = .ReleaseSafe,
+    });
+
+    // ── 链接预编译的 C 运行时对象 (zig cc 编译 · target x86_64-linux-gnu) ──
+    const c_runtime_obj = .{ .src_path = .{ .owner = b, .sub_path = "zig-out/native/c_runtime.o" } };
+    njsg_native.addObjectFile(c_runtime_obj);
+    njsg_native.addIncludePath(.{ .src_path = .{ .owner = b, .sub_path = "." } });
+    njsg_native.linkLibC();
+
+    b.installArtifact(njsg_native);
+
+    // 构建步骤
+    const native_build_step = b.step("native", "构建原生囡囝共生 OS (Zig+C 闭环)");
+    native_build_step.dependOn(&njsg_native.step);
+
+    const native_run_step = b.step("run", "运行原生囡囝共生 OS");
+    const run_native = b.addRunArtifact(njsg_native);
+    native_run_step.dependOn(&run_native.step);
 }

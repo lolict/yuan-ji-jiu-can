@@ -200,6 +200,17 @@ function draw() {
       ctx.stroke();
       ctx.globalAlpha = 1;
     }
+    // 鼓膜自举闪帧光晕
+    if (c._flash && c._flash > 0) {
+      ctx.strokeStyle = '#ffffff';
+      ctx.globalAlpha = c._flash;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(c.x, c.y, 12 + (1 - c._flash) * 20, 0, Math.PI * 2);
+      ctx.stroke();
+      c._flash -= 0.03;
+      ctx.globalAlpha = 1;
+    }
     // 主圆
     ctx.fillStyle = color;
     ctx.beginPath();
@@ -262,16 +273,26 @@ function animate() {
   animFrame = requestAnimationFrame(animate);
 }
 
-function addRandomCell() {
-  const pol = Math.floor(Math.random() * 3);
-  const mccp = Math.floor(Math.random() * 0xFFF) + 0x100;
-  const sov = (Math.floor(Math.random() * 20) + 1) * 0x1000;
-  cells.push({
-    mccp, sovereignty: sov, polarity: pol, witness: Math.floor(Math.random() * 4),
-    x: undefined, y: undefined, vx: 0, vy: 0
-  });
-  updateUI();
-  log(`添加细胞: 0x${(mccp >>> 0).toString(16).toUpperCase()} [${POL_NAMES[pol]}]`);
+async function addRandomCell() {
+const pol = Math.floor(Math.random() * 3);
+const mccp = Math.floor(Math.random() * 0xFFF) + 0x100;
+const sov = (Math.floor(Math.random() * 20) + 1) * 0x1000;
+const newCell = {
+mccp, sovereignty: sov, polarity: pol, witness: Math.floor(Math.random() * 4),
+x: undefined, y: undefined, vx: 0, vy: 0
+};
+cells.push(newCell);
+updateUI();
+  log(`✓ 添加细胞: 0x${(mccp >>> 0).toString(16).toUpperCase()} [${POL_NAMES[pol]}]`);
+  // ── 鼓膜自举: 自动与所有已有细胞裁决 ──
+  if (cells.length > 1) {
+    for (let i = 0; i < cells.length - 1; i++) {
+      const r = await realCourtJudge(cells[i], newCell);
+      history.push({a:i, b:cells.length-1, v:r.verdict, t: history.length});
+      log(`    ×#${i}→#${cells.length-1}: ${r.verdict_str} (${r.confidence.toFixed(2)})`);
+    }
+    flashEdge(cells.length - 1);
+  }
 }
 
 // 调用真实天庭 API 进行裁决
@@ -363,6 +384,18 @@ function log(msg, type) {
                 type === 'transform' ? 'var(--accent)' :
                 type === 'err' ? 'var(--red)' : 'var(--cyan)';
   el.innerHTML = `<span style="color:${color}">${new Date().toLocaleTimeString()} ${msg}</span>\n` + el.innerHTML;
+}
+
+// 鼓膜自举闪帧: 新细胞添加时视觉反馈
+let flashTimers = {};
+function flashEdge(cellIdx) {
+  if (flashTimers[cellIdx]) clearTimeout(flashTimers[cellIdx]);
+  if (cells[cellIdx]) {
+    cells[cellIdx]._flash = 1.0;
+    flashTimers[cellIdx] = setTimeout(() => {
+      if (cells[cellIdx]) cells[cellIdx]._flash = 0;
+    }, 600);
+  }
 }
 
 // 添加一些初始细胞

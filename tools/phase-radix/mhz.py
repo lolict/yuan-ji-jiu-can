@@ -1045,9 +1045,10 @@ def cmd_ime(args: list):
         print(ime.stats())
 
 def cmd_repl():
-    """热编程 REPL · 自己的编程语言壳"""
+    """热编程 REPL · 时间线性一体化 · 鼓膜自举"""
     print("═══ 囡囝共生 · 热编程 REPL ═══")
-    print("输入表达式 · 回车即时裁决 · quit 退出")
+    print("时间触发执行 · 写一条自动裁决所有已有细胞")
+    print("表达式即时生效 · 写即用 · quit 退出")
     print()
     
     court = CourtEngine()
@@ -1056,14 +1057,39 @@ def cmd_repl():
     
     # 工作空间: id → cell
     cells = {}
+    # 裁决历史: (id_a, id_b, verdict, conf, tick)
+    history = []
     _next_id = [0]
+    _tick = [0]  # 时间戳计数器
     
     def _add_cell(mccp, sov, pol, wit, flow=0):
+        """添加细胞 + 自动触发对所有已有细胞的裁决 (鼓膜自举)"""
         cell = ((pol & 0xF) << 60) | ((wit & 0xF) << 56) | ((flow & 0xF) << 52) | ((sov & 0x1FFFFF) << 32) | (mccp & 0xFFFFFFFF)
         cid = _next_id[0]
         cells[cid] = cell
         _next_id[0] += 1
-        return cid, cell
+        _tick[0] += 1
+        
+        pn = ['妻','夫','系统','观察','裁决','秘'][pol] if pol < 6 else f'?'
+        header = f"  ✓ #{cid} 0x{cell:012X} [{pn} w{wit} s0x{sov:X}]"
+        
+        # ── 鼓膜自举: 自动与所有已有细胞裁决 ──
+        auto_results = []
+        if len(cells) > 1:
+            for prev_id, prev_cell in sorted(cells.items()):
+                if prev_id == cid:
+                    continue
+                r = court.judge(cell, prev_cell, 0)
+                auto_results.append((prev_id, r))
+                history.append((prev_id, cid, r['verdict'], r['confidence'], _tick[0]))
+        
+        return cid, cell, header, auto_results
+    
+    def _format_verdict(r):
+        """单行裁决结果格式化"""
+        vnames = {COURT_MERGE:'融合', COURT_REPEL:'排斥', COURT_WITNESS:'见证',
+                  COURT_TRANSFORM:'转化', COURT_DEFER:'延迟', COURT_ESCALATE:'升维'}
+        return f"{vnames.get(r['verdict'],'?')}({r['confidence']:.2f})"
     
     _repl_help()
     
@@ -1085,53 +1111,29 @@ def cmd_repl():
             parts = line.split()
             cmd = parts[0].lower()
             
+            # ── 添加细胞 (自动触发裁决) ──
             if cmd == 'add' and len(parts) >= 5:
                 mccp = int(parts[1], 0)
                 sov = int(parts[2], 0)
                 pol = int(parts[3], 0)
                 wit = int(parts[4], 0)
-                cid, cell = _add_cell(mccp, sov, pol, wit)
-                pn = ['妻','夫','系统'][pol] if pol < 3 else '?'
-                print(f"  ✓ #{cid} 0x{cell:012X} [{pn} w{wit} s0x{sov:X}]")
+                cid, cell, header, auto_results = _add_cell(mccp, sov, pol, wit)
+                print(header)
+                # 显示自动裁决结果
+                for prev_id, r in auto_results:
+                    print(f"    ×#{prev_id} → {_format_verdict(r)}")
+                # 如果有融合 → 自动生成新细胞
+                for prev_id, r in auto_results:
+                    if r['output_cell'] and r['verdict'] == COURT_MERGE:
+                        new_cid, _, _, _ = _add_cell(
+                            r['output_cell'] & 0xFFFFFFFF,
+                            (r['output_cell'] >> 32) & 0x1FFFFF,
+                            (r['output_cell'] >> 60) & 0xF,
+                            (r['output_cell'] >> 56) & 0xF,
+                        )
+                        print(f"    ⚡ 融合 → #{new_cid}")
             
-            elif cmd == 'show':
-                if not cells:
-                    print("  (空)")
-                for cid, cell in sorted(cells.items()):
-                    pol = (cell >> 60) & 0xF
-                    wit = (cell >> 56) & 0xF
-                    sov = (cell >> 32) & 0x1FFFFF
-                    mccp = cell & 0xFFFFFFFF
-                    pn = ['妻','夫','系统'][pol] if pol < 3 else '?'
-                    print(f"  #{cid} MCCP=0x{mccp:08X} SOV=0x{sov:05X} POL={pn} WIT={wit}")
-            
-            elif cmd == 'judge' and len(parts) >= 3:
-                ia = int(parts[1])
-                ib = int(parts[2])
-                if ia not in cells or ib not in cells:
-                    print(f"  无效 id · 现有: {list(cells.keys())}")
-                    continue
-                r = court.judge(cells[ia], cells[ib], 0)
-                print(f"  [{ia}]×[{ib}] → {r['verdict_str']} ({r['reason_str']}) conf={r['confidence']:.2f}")
-                if r['output_cell'] and r['verdict'] == COURT_MERGE:
-                    cid, _ = _add_cell(
-                        r['output_cell'] & 0xFFFFFFFF,
-                        (r['output_cell'] >> 32) & 0x1FFFFF,
-                        (r['output_cell'] >> 60) & 0xF,
-                        (r['output_cell'] >> 56) & 0xF,
-                    )
-                    print(f"      → 融合为新细胞 #{cid}")
-            
-            elif cmd == 'state' and len(parts) >= 2:
-                smap = {'nn': COURT_STATE_NJSG, 'njsg': COURT_STATE_NJSG,
-                        'jj': COURT_STATE_JJ, 'jn': COURT_STATE_JN}
-                s = smap.get(parts[1].lower())
-                if s is None:
-                    print(f"  无效态 nn|njsg|jj|jn")
-                    continue
-                court.set_state(s)
-                print(f"  → 态: {['NN','NJSG','JJ','JN'][s]}")
-            
+            # ── MetaIME 编码 (也自动触发裁决) ──
             elif cmd == 'encode' and len(parts) >= 5:
                 sm = int(parts[1], 0)
                 ym = int(parts[2], 0)
@@ -1142,17 +1144,94 @@ def cmd_repl():
                 cid = _next_id[0]
                 cells[cid] = cell
                 _next_id[0] += 1
+                _tick[0] += 1
                 d = ime.decode(cell)
                 pn = ['妻','夫','系统'][d['polarity']] if d['polarity'] < 3 else '?'
                 print(f"  → #{cid} 0x{cell:012X} [{pn} w{d['wit']} s0x{d['sovereignty']:X}]")
+                # 自动裁决
+                auto_results = []
+                for prev_id, prev_cell in sorted(cells.items()):
+                    if prev_id == cid:
+                        continue
+                    r = court.judge(cell, prev_cell, 0)
+                    auto_results.append((prev_id, r))
+                    history.append((prev_id, cid, r['verdict'], r['confidence'], _tick[0]))
+                for prev_id, r in auto_results:
+                    print(f"    ×#{prev_id} → {_format_verdict(r)}")
             
+            # ── 显示所有细胞 ──
+            elif cmd == 'show':
+                if not cells:
+                    print("  (空)")
+                for cid, cell in sorted(cells.items()):
+                    pol = (cell >> 60) & 0xF
+                    wit = (cell >> 56) & 0xF
+                    flow = (cell >> 52) & 0xF
+                    sov = (cell >> 32) & 0x1FFFFF
+                    mccp = cell & 0xFFFFFFFF
+                    pn = ['妻','夫','系统','观察','裁决','秘'][pol] if pol < 6 else '?'
+                    print(f"  #{cid} MCCP=0x{mccp:08X} SOV=0x{sov:05X} POL={pn} WIT={wit} FLOW={flow}")
+            
+            # ── 裁决历史 (时间线) ──
+            elif cmd == 'history' or cmd == 'log':
+                if not history:
+                    print("  (无裁决记录)")
+                else:
+                    vnames = {COURT_MERGE:'融合', COURT_REPEL:'排斥', COURT_WITNESS:'见证',
+                              COURT_TRANSFORM:'转化', COURT_DEFER:'延迟', COURT_ESCALATE:'升维'}
+                    for a, b, v, conf, t in history[-20:]:  # 最近 20 条
+                        print(f"  t={t:3d}  #{a}×#{b} → {vnames.get(v,'?')} ({conf:.2f})")
+            
+            # ── 手动裁决 (仍然可用) ──
+            elif cmd == 'judge' and len(parts) >= 3:
+                ia = int(parts[1])
+                ib = int(parts[2])
+                if ia not in cells or ib not in cells:
+                    print(f"  无效 id · 现有: {list(cells.keys())}")
+                    continue
+                r = court.judge(cells[ia], cells[ib], 0)
+                print(f"  [{ia}]×[{ib}] → {_format_verdict(r)}")
+                history.append((ia, ib, r['verdict'], r['confidence'], _tick[0]))
+                if r['output_cell'] and r['verdict'] == COURT_MERGE:
+                    new_cid, _, _, _ = _add_cell(
+                        r['output_cell'] & 0xFFFFFFFF,
+                        (r['output_cell'] >> 32) & 0x1FFFFF,
+                        (r['output_cell'] >> 60) & 0xF,
+                        (r['output_cell'] >> 56) & 0xF,
+                    )
+                    print(f"      → 融合为新细胞 #{new_cid}")
+            
+            # ── 切换囡囝态 ──
+            elif cmd == 'state' and len(parts) >= 2:
+                smap = {'nn': COURT_STATE_NN, 'njsg': COURT_STATE_NJSG,
+                        'jj': COURT_STATE_JJ, 'jn': COURT_STATE_JN}
+                s = smap.get(parts[1].lower())
+                if s is None:
+                    print(f"  无效态 nn|njsg|jj|jn")
+                    continue
+                court.set_state(s)
+                print(f"  → 态: {['NN','NJSG','JJ','JN'][s]}")
+            
+            # ── 流激活 ──
+            elif cmd == 'flow' and len(parts) >= 2:
+                f = int(parts[1], 0)
+                if 0 <= f <= 7:
+                    court.activate_flow(f)
+                    fnames = ['预加载','分类','聚类','辨别','产权','解释','关系','概念']
+                    print(f"  → 流 {f} ({fnames[f]}) 已激活")
+                else:
+                    print(f"  流范围 0-7")
+            
+            # ── MetaIME 统计 ──
             elif cmd == 'ime':
                 print(ime.stats())
             
+            # ── 清屏 ──
             elif cmd == 'clear':
                 print("\033[2J\033[H", end='')
                 _repl_help()
             
+            # ── 删除细胞 ──
             elif cmd == 'del' and len(parts) >= 2:
                 ia = int(parts[1])
                 if ia in cells:
@@ -1160,6 +1239,18 @@ def cmd_repl():
                     print(f"  ✗ #{ia} 已删除")
                 else:
                     print(f"  #{ia} 不存在")
+            
+            # ── 细胞数量统计 ──
+            elif cmd == 'count' or cmd == 'len':
+                print(f"  细胞: {len(cells)} · 裁决: {len(history)} · 时间戳: {_tick[0]}")
+            
+            # ── 清空工作空间 ──
+            elif cmd == 'reset':
+                cells.clear()
+                history.clear()
+                _next_id[0] = 0
+                _tick[0] = 0
+                print("  ✓ 工作空间已清空")
             
             else:
                 print(f"  未知: {cmd} · help 查看")
@@ -1169,12 +1260,17 @@ def cmd_repl():
 
 
 def _repl_help():
-    print("表达式:")
-    print("  add <mccp> <sov> <pol> <wit>      — 添加细胞")
-    print("  encode <sm> <ym> <tone> <pol> [wit] — MetaIME 编码")
-    print("  judge <id_a> <id_b>               — 裁决 (融合后自动加新细胞)")
-    print("  state <nn|njsg|jj|jn>             — 切换囡囝态")
-    print("  show · del <id> · ime · clear      — 显示/删除/统计/清屏")
+    print("── 热编程命令 ──")
+    print("  add <mccp> <sov> <pol> <wit>       — 添加细胞 (自动裁决所有已有)")
+    print("  encode <sm> <ym> <tone> <pol> [wit] — MetaIME 编码 (自动裁决)")
+    print("  judge <id_a> <id_b>                — 手动裁决")
+    print("  state <nn|njsg|jj|jn>              — 切换囡囝态")
+    print("  flow <0-7>                         — 激活流")
+    print("  show · del <id> · count · reset    — 显示/删除/统计/清空")
+    print("  history                            — 裁决时间线")
+    print("  ime · clear · help · quit          — 统计/清屏/帮助/退出")
+    print("── 极性: 0=妻 1=夫 2=系统 3=观察 4=裁决 5=秘 ──")
+    print("── 流: 0预加载 1分类 2聚类 3辨别 4产权 5解释 6关系 7概念 ──")
     print("")
 
 

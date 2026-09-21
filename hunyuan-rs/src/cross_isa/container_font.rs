@@ -418,24 +418,39 @@ pub fn read_mcod_entries(data: &[u8]) -> Vec<FontEntry> {
         o += 16;
     }
     let mcod = match mcod_data { Some(d)=>d, None=>return Vec::new() };
-    if mcod.len() < 8 { return Vec::new(); }
-    let ver = u16::from_be_bytes([mcod[4],mcod[5]]);
-    let nent = u16::from_be_bytes([mcod[6],mcod[7]]) as usize;
-    let esz = if ver>=2 { 48 } else { u16::from_be_bytes([mcod[8],mcod[9]]) };
-    let mut ents = Vec::new();
-    let mut p = 8;
+    // MCOD header: magic(4) + version(2) + nent(2) + entry_size(2) = 10 bytes
+    if mcod.len() < 10 { return Vec::new(); }
+    let ver = u16::from_be_bytes([mcod[4], mcod[5]]);
+    let nent = u16::from_be_bytes([mcod[6], mcod[7]]) as usize;
+    let esz = if ver >= 2 { 48 } else { u16::from_be_bytes([mcod[8], mcod[9]]) as usize };
+    let mut ents = Vec::with_capacity(nent);
+    let mut p = 10; // entries start after 10-byte header
     for _ in 0..nent {
-        if p+esz as usize > mcod.len() { break; }
-        let pid = u32::from_be_bytes([mcod[p],mcod[p+1],mcod[p+2],mcod[p+3]]) as u64;
-        let cat = u16::from_be_bytes([mcod[p+4],mcod[p+5]]);
-        let bw = mcod[p+6]; let ol = mcod[p+7];
-        let rep = u16::from_be_bytes([mcod[p+8],mcod[p+9]]);
+        if p + esz > mcod.len() { break; }
+        let pid = u32::from_be_bytes([mcod[p], mcod[p+1], mcod[p+2], mcod[p+3]]) as u64;
+        let cat = u16::from_be_bytes([mcod[p+4], mcod[p+5]]);
+        let bw = mcod[p+6];
+        let ol = mcod[p+7];
+        let rep = u16::from_be_bytes([mcod[p+8], mcod[p+9]]);
         let mut elems = Vec::new();
-        for i in 0..8 { if p+(10+i*2)+2 <= mcod.len() { elems.push(u16::from_be_bytes([mcod[p+10+i*2], mcod[p+11+i*2]])); } }
-        let pl = vec![(bw<<4)|0x01, ol, cat as u8, ol];
-        let pack = ContainerPack::new(pid, Coord3D::new(cat as u8, rep, ol), 1, pl);
-        ents.push(FontEntry { pack_id: pid, coord: Coord3D::new(cat as u8, rep, ol), align_flag: 1, payload: pack.payload.clone(), witness: pack.witness, category: cat, bit_width: bw, orbit_len: ol, representative: rep, orbit_elements: elems });
-        p += esz as usize;
+        for i in 0..8 {
+            if p + 10 + i*2 + 2 <= mcod.len() {
+                elems.push(u16::from_be_bytes([mcod[p+10+i*2], mcod[p+11+i*2]]));
+            }
+        }
+        // Coord3D bytes at [26]=X(func_code) [27]=Z(time_stamp%16) [28-29]=Y(param_slot)
+        let coord = if p + 30 <= mcod.len() {
+            Coord3D::new(mcod[p+26], u16::from_be_bytes([mcod[p+28], mcod[p+29]]), mcod[p+27])
+        } else {
+            Coord3D::new(cat as u8, rep, ol)
+        };
+        ents.push(FontEntry {
+            pack_id: pid, coord, align_flag: 1,
+            payload: vec![(bw << 4) | 0x01, ol, cat as u8, ol],
+            witness: [0; 3], category: cat, bit_width: bw,
+            orbit_len: ol, representative: rep, orbit_elements: elems,
+        });
+        p += esz;
     }
     ents
 }
