@@ -30,7 +30,7 @@ def decode(machine_code: int, arch: str = "rv32i", mappings: dict = None) -> dic
     if mappings is None:
         mappings = _load_json(f"mappings/{arch}.json")
 
-    if arch == "rv32i":
+    if arch in ("rv32i", "rv64i"):
         return _decode_rv32i(machine_code, mappings)
     elif arch == "mips32":
         return _decode_mips32(machine_code, mappings)
@@ -158,16 +158,31 @@ def _rv32i_operands(sid, fmt, code, rd, rs1, rs2, funct7, regs) -> dict:
             "machine_code": machine_hex
         }
     elif fmt == "I":
-        imm = (code >> 20) & 0xFFF
-        if imm & 0x800:
-            imm -= 0x1000  # 符号扩展
-        if sid in ("LW", "LH", "LBU", "LHU", "LB"):
+        # 判断是否为存储加载类
+        is_load = sid.startswith("L")
+        # 判断是否移位指令
+        is_shift = sid in ("SLLI", "SRLI", "SRAI", "SLLIW", "SRLIW", "SRAIW")
+        if is_load:
+            imm = (code >> 20) & 0xFFF
+            if imm & 0x800:
+                imm -= 0x1000
             return {
                 "semantic": sid, "format": "I-LOAD",
                 "operands": [reg_name(rd), str(imm), reg_name(rs1)],
                 "fields": {"rd": rd, "rs1": rs1, "imm12": imm},
                 "machine_code": machine_hex
             }
+        if is_shift:
+            shamt = (code >> 20) & 0x3F
+            return {
+                "semantic": sid, "format": "I-SHIFT",
+                "operands": [reg_name(rd), reg_name(rs1), shamt],
+                "fields": {"rd": rd, "rs1": rs1, "shamt": shamt, "funct7": funct7},
+                "machine_code": machine_hex
+            }
+        imm = (code >> 20) & 0xFFF
+        if imm & 0x800:
+            imm -= 0x1000
         return {
             "semantic": sid, "format": "I",
             "operands": [reg_name(rd), reg_name(rs1), str(imm)],

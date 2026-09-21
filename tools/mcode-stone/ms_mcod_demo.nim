@@ -1,6 +1,6 @@
-## ms_mcod_demo — MCOD 字体容器 E2E 演示
+## ms_mcod_demo — MCOD 字体容器 E2E 演示（生产级 · 全 39 条 RV32I 指令）
 ##
-## 1. 选取若干 RV32I 指令 + 操作数
+## 1. 全 39 条 RV32I 指令 + 代表性操作数
 ## 2. ms_rv32i.encode 得到机器码
 ## 3. ms_font.buildTTF 组装成 .ttf 文件，内含 MCOD 自定义表
 ## 4. writeFile 写盘
@@ -10,7 +10,7 @@ import std/[os, paths, strutils, streams]
 import ms_types, ms_rv32i, ms_font
 
 # ═══════════════════════════════════════════════════
-#  1. 构造演示指令序列
+#  1. 全 39 条 RV32I 指令 + 代表性操作数
 # ═══════════════════════════════════════════════════
 
 type
@@ -19,24 +19,68 @@ type
     op: Operands
 
 const CASES: seq[DemoCase] = @[
-  ("ADD",    newOperands(rd = 1'u8, rs1 = 2'u8, rs2 = 3'u8)),
-  ("SUB",    newOperands(rd = 2'u8, rs1 = 3'u8, rs2 = 4'u8)),
-  ("ADDI",   newOperands(rd = 5'u8, rs1 = 0'u8, imm = 7)),
-  ("LW",     newOperands(rd = 3'u8, rs1 = 4'u8, imm = 0)),
-  ("SW",     newOperands(rs1 = 5'u8, rs2 = 6'u8, imm = 8)),
-  ("BEQ",    newOperands(rs1 = 1'u8, rs2 = 2'u8, imm = 16)),
-  ("JAL",    newOperands(rd = 1'u8, imm = 100)),
-  ("LUI",    newOperands(rd = 2'u8, imm = 0x12345)),
-  ("AUIPC",  newOperands(rd = 3'u8, imm = 0xABCDE)),
+  # ── R-type (10) ──
+  ("ADD",    newOperands(rd = 1'u8,  rs1 = 2'u8,  rs2 = 3'u8)),
+  ("SUB",    newOperands(rd = 2'u8,  rs1 = 3'u8,  rs2 = 4'u8)),
+  ("SLL",    newOperands(rd = 4'u8,  rs1 = 8'u8,  rs2 = 2'u8)),
+  ("SLT",    newOperands(rd = 28'u8, rs1 = 29'u8, rs2 = 30'u8)),
+  ("SLTU",   newOperands(rd = 3'u8,  rs1 = 4'u8,  rs2 = 5'u8)),
+  ("XOR",    newOperands(rd = 14'u8, rs1 = 15'u8, rs2 = 16'u8)),
+  ("SRL",    newOperands(rd = 17'u8, rs1 = 18'u8, rs2 = 19'u8)),
+  ("SRA",    newOperands(rd = 20'u8, rs1 = 21'u8, rs2 = 22'u8)),
+  ("OR",     newOperands(rd = 6'u8,  rs1 = 7'u8,  rs2 = 8'u8)),
+  ("AND",    newOperands(rd = 9'u8,  rs1 = 10'u8, rs2 = 11'u8)),
+
+  # ── I-type ALU (9) ──
+  ("ADDI",   newOperands(rd = 3'u8,  rs1 = 4'u8,  imm = -128)),
+  ("SLTI",   newOperands(rd = 1'u8,  rs1 = 2'u8,  imm = 100)),
+  ("SLTIU",  newOperands(rd = 31'u8, rs1 = 30'u8, imm = 1)),
+  ("XORI",   newOperands(rd = 25'u8, rs1 = 26'u8, imm = 0x7FF)),
+  ("ORI",    newOperands(rd = 2'u8,  rs1 = 3'u8,  imm = 42)),
+  ("ANDI",   newOperands(rd = 4'u8,  rs1 = 5'u8,  imm = 0xFF)),
+  ("SLLI",   newOperands(rd = 6'u8,  rs1 = 7'u8,  shamt = 13)),
+  ("SRLI",   newOperands(rd = 8'u8,  rs1 = 9'u8,  shamt = 4)),
+  ("SRAI",   newOperands(rd = 10'u8, rs1 = 11'u8, shamt = 20)),
+
+  # ── Load (5) ──
+  ("LB",     newOperands(rd = 5'u8,  rs1 = 6'u8,  imm = -4)),
+  ("LH",     newOperands(rd = 7'u8,  rs1 = 8'u8,  imm = 0)),
+  ("LW",     newOperands(rd = 9'u8,  rs1 = 10'u8, imm = 256)),
+  ("LBU",    newOperands(rd = 11'u8, rs1 = 12'u8, imm = 2047)),
+  ("LHU",    newOperands(rd = 13'u8, rs1 = 14'u8, imm = -2048)),
+
+  # ── Store (3) ──
+  ("SB",     newOperands(rs1 = 15'u8, rs2 = 16'u8, imm = 100)),
+  ("SH",     newOperands(rs1 = 17'u8, rs2 = 18'u8, imm = -50)),
+  ("SW",     newOperands(rs1 = 19'u8, rs2 = 20'u8, imm = 0)),
+
+  # ── Branch (6) ──
+  ("BEQ",    newOperands(rs1 = 1'u8,  rs2 = 2'u8,  imm = 16)),
+  ("BNE",    newOperands(rs1 = 3'u8,  rs2 = 4'u8,  imm = -32)),
+  ("BLT",    newOperands(rs1 = 5'u8,  rs2 = 6'u8,  imm = 64)),
+  ("BGE",    newOperands(rs1 = 7'u8,  rs2 = 8'u8,  imm = -128)),
+  ("BLTU",   newOperands(rs1 = 9'u8,  rs2 = 10'u8, imm = 256)),
+  ("BGEU",   newOperands(rs1 = 11'u8, rs2 = 12'u8, imm = -512)),
+
+  # ── Jump (2) ──
+  ("JAL",    newOperands(rd = 1'u8,  imm = 100)),
+  ("JALR",   newOperands(rd = 0'u8,  rs1 = 1'u8,  imm = 4)),
+
+  # ── Upper (2) ──
+  ("LUI",    newOperands(rd = 2'u8,  imm = 0x12345)),
+  ("AUIPC",  newOperands(rd = 3'u8,  imm = 0xABCDE)),
+
+  # ── System (2) ──
   ("ECALL",  noneOperands()),
+  ("EBREAK", noneOperands()),
 ]
 
 when isMainModule:
   echo ""
-  echo "╔══════════════════════════════════════════════╗"
-  echo "║   MCOD 字体容器 · Semantic ID ↔ Machine Code ║"
-  echo "║   .ttf 内嵌 MCOD 自定义表                    ║"
-  echo "╚══════════════════════════════════════════════╝"
+  echo "╔══════════════════════════════════════════════════╗"
+  echo "║   MCOD 字体容器 · Semantic ID ↔ Machine Code     ║"
+  echo "║   全 39 条 RV32I 指令 · 生产级嵌入               ║"
+  echo "╚══════════════════════════════════════════════════╝"
   echo ""
 
   # ───────────── 编码每个指令（RV32I） ─────────────
@@ -44,7 +88,8 @@ when isMainModule:
   var entries: seq[McodEntry] = @[]
   var cmapPairs: seq[tuple[cp: uint32; gid: uint16]] = @[]
 
-  echo "[", CASES.len, " 条语义 ID]"
+  echo "[", CASES.len, " 条语义 ID · MCOD 嵌入序列]"
+  var encSuccess = 0
   for i, c in CASES:
     let enc = encodeRV32I(c.semId, c.op)
     if not enc.ok:
@@ -62,6 +107,11 @@ when isMainModule:
     echo "  ", ($c.semId).alignLeft(7), " ", $c.op,
          " → 0x", toHex(code32, 8).toUpperAscii(),
          " codepoint=U+", toHex(cp, 4).toUpperAscii()
+    inc encSuccess
+
+  if encSuccess != CASES.len:
+    echo "  ✗ 编码失败数: ", CASES.len - encSuccess
+    quit(1)
 
   # ───────────── buildTTF ─────────────
   let cfg = FontConfig(
@@ -76,7 +126,7 @@ when isMainModule:
   )
 
   let nameRecords: seq[NameRecord] = @[
-    (3'u16, 1'u16, 0x0409'u16, 1'u16, 0'u16, 0'u16, "Hunyuan RV32I MCOD"),  ## nameID 1 family
+    (3'u16, 1'u16, 0x0409'u16, 1'u16, 0'u16, 0'u16, "Hunyuan RV32I MCOD"),
     (3'u16, 1'u16, 0x0409'u16, 2'u16, 0'u16, 0'u16, "Regular"),
     (3'u16, 1'u16, 0x0409'u16, 3'u16, 0'u16, 0'u16, "Hunyuan-RV32I-MCOD"),
     (3'u16, 1'u16, 0x0409'u16, 4'u16, 0'u16, 0'u16, "Hunyuan RV32I MCOD Regular"),
@@ -85,7 +135,7 @@ when isMainModule:
   ]
 
   echo ""
-  echo "─── buildTTF ──"
+  echo "─── buildTTF (11 表 + MCOD 自定义表) ──"
   let fontBytes = buildTTF(cfg, 700'u16, cmapPairs, nameRecords, entries)
   echo "  文件字节数: ", fontBytes.len
 
@@ -168,7 +218,6 @@ when isMainModule:
          " → machine_code=0x", codeHex
 
     # 校验 codeBytes 与 ms_rv32i 对该 semId 的 encode 一致
-    # 从三元重新 encode
     var found = false
     for j, c in CASES:
       if c.semId == semIdStr:

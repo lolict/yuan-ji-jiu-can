@@ -77,7 +77,7 @@ def encode(semantic_id: str, operands: list, arch: str = "rv32i", registers: dic
     if registers is None:
         registers = mappings.get("registers", {})
 
-    if arch == "rv32i":
+    if arch in ("rv32i", "rv64i"):
         return _encode_rv32i(semantic_id, operands, mappings, registers)
     elif arch == "mips32":
         return _encode_mips32(semantic_id, operands, mappings, registers)
@@ -106,18 +106,32 @@ def _encode_rv32i(semantic_id, operands, mappings, registers):
         code |= (rs2 & 0x1F) << 20
         code |= (funct7_bits & 0x7F) << 25
     elif fmt == "I":
-        is_load = semantic_id.startswith("L")  # LW/LH/LB/LBU/LHU: rd, imm, rs1
+        is_load = semantic_id.startswith("L")  # LW/LWU/LD: rd, imm, rs1
+        is_shift = semantic_id in ("SLLI", "SRLI", "SRAI", "SLLIW", "SRLIW", "SRAIW")
         if is_load:
             rd  = _parse_operand(operands[0], registers)[1]
             imm = _parse_operand(operands[1], registers)[1]
             rs1 = _parse_operand(operands[2], registers)[1]
+            code |= (rd & 0x1F) << 7
+            code |= (rs1 & 0x1F) << 15
+            code |= (imm & 0xFFF) << 20
+        elif is_shift:
+            # SLLI/SRAI/SLLIW/SRAIW: rd, rs1, shamt → funct7[31:25] + shamt[24:20]
+            rd   = _parse_operand(operands[0], registers)[1]
+            rs1  = _parse_operand(operands[1], registers)[1]
+            shamt = _parse_operand(operands[2], registers)[1]
+            code |= (rd & 0x1F) << 7
+            code |= (rs1 & 0x1F) << 15
+            code |= (funct7_bits & 0x7F) << 25
+            code |= (shamt & 0x3F) << 20
         else:
             rd  = _parse_operand(operands[0], registers)[1]
             rs1 = _parse_operand(operands[1], registers)[1]
             imm = _parse_operand(operands[2], registers)[1]
-        code |= (rd & 0x1F) << 7
-        code |= (rs1 & 0x1F) << 15
-        code |= (imm & 0xFFF) << 20
+            code |= (rd & 0x1F) << 7
+            code |= (rs1 & 0x1F) << 15
+            code |= (funct7_bits & 0x7F) << 25
+            code |= (imm & 0xFFF) << 20
     elif fmt == "S":
         rs2 = _parse_operand(operands[0], registers)[1]
         rs1 = _parse_operand(operands[1], registers)[1]

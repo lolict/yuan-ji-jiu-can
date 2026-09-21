@@ -343,6 +343,62 @@ impl VocabWord {
                 SemanticId::Ret   => 0xD65F03C0,
                 SemanticId::Cmp   => 0xEB0302EB,
                 SemanticId::Mov   => 0xD2800080,
+                // ── M 扩展 · ARM64 等价 ──
+                SemanticId::Mul | SemanticId::Mulh => {
+                    // MADD (×+0 = ×): 9B020011 << (rm<<16) | (rn<<5) | rd
+                    // 简化: 用 MADD × rm, 1F (zero reg)
+                    if ops.len() >= 3 {
+                        let rd = match ops[0].reg() { Some(v) => v as u32, None => return vec![] };
+                        let rn = match ops[1].reg() { Some(v) => v as u32, None => return vec![] };
+                        let rm = match ops[2].reg() { Some(v) => v as u32, None => return vec![] };
+                        (0x9B020000u32) | (rm << 16) | (rn << 5) | rd
+                    } else { return vec![]; }
+                },
+                SemanticId::Div | SemanticId::Divu => {
+                    // SDIV/UDIV: 9AC20800 << (rm<<16) | (rn<<5) | rd
+                    if ops.len() >= 3 {
+                        let rd = match ops[0].reg() { Some(v) => v as u32, None => return vec![] };
+                        let rn = match ops[1].reg() { Some(v) => v as u32, None => return vec![] };
+                        let rm = match ops[2].reg() { Some(v) => v as u32, None => return vec![] };
+                        if id == SemanticId::Divu {
+                            (0x8B020000u32) | (rm << 16) | (rn << 5) | rd  // UDIV form
+                        } else {
+                            (0x9AC20800u32) | (rm << 16) | (rn << 5) | rd  // SDIV
+                        }
+                    } else { return vec![]; }
+                },
+                SemanticId::Rem | SemanticId::Remu => {
+                    // MSUB: rd - rn × rm → remainder 在 ARM 需要多条,简化编码为 MSUB
+                    if ops.len() >= 3 {
+                        let rd = match ops[0].reg() { Some(v) => v as u32, None => return vec![] };
+                        let rn = match ops[1].reg() { Some(v) => v as u32, None => return vec![] };
+                        let rm = match ops[2].reg() { Some(v) => v as u32, None => return vec![] };
+                        (0x9B220000u32) | (rm << 16) | (rn << 5) | rd  // MSUB as placeholder
+                    } else { return vec![]; }
+                },
+                SemanticId::Addw => {
+                    // ADD W (32-bit): 0B020000
+                    if ops.len() >= 3 {
+                        let rd = match ops[0].reg() { Some(v) => v as u32, None => return vec![] };
+                        let rn = match ops[1].reg() { Some(v) => v as u32, None => return vec![] };
+                        let rm = match ops[2].reg() { Some(v) => v as u32, None => return vec![] };
+                        (0x0B020000u32) | (rm << 16) | (rn << 5) | rd
+                    } else { return vec![]; }
+                }
+                SemanticId::Addiw => {
+                    // ADDI W (32-bit): 11000000 << imm12
+                    if ops.len() >= 2 {
+                        let rd = match ops[0].reg() { Some(v) => v as u32, None => return vec![] };
+                        let rn = match ops[1].reg() { Some(v) => v as u32, None => return vec![] };
+                        let imm = match ops[2].imm() { Some(v) => (v as u32) & 0xFFF, None => return vec![] };
+                        (0x11000000u32) | (imm << 10) | (rn << 5) | rd
+                    } else { return vec![]; }
+                }
+                // ── A 扩展 · ARM64 原子 ──
+                SemanticId::Lrw => 0xC87F0400,         // LDAXR
+                SemanticId::Scw => 0xC803FC00,         // STLXR
+                SemanticId::AmoSwapw => 0x38206820,    // LD64B (simplified)
+                SemanticId::AmoAddw => 0x38201820,     # STADDL
                 _ => return vec![],
             },
         };

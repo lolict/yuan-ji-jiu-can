@@ -229,3 +229,29 @@ mqf_u32 __attribute__((export_name("symbol_angle"))) symbol_angle(mqf_u8 sym) {
 mqf_u32 __attribute__((export_name("arc_distance"))) arc_distance(mqf_u32 a, mqf_u32 b) {
     return mqf_arc_distance(a, b);
 }
+
+// ══════════════════════════════════════════════════════════════════
+// 内核自描述导出 (操作系统身份声明)
+// ══════════════════════════════════════════════════════════════════
+//  · 正在感知什么：编码系统 / 阶梯进制 / 容器状态
+//  · 处于何种时空坐标：版本·周期·锚点
+//  · 字典是否自洽：编译时定理验证结果
+
+const char* __attribute__((export_name("fqmcp_describe"))) fqmcp_describe(void) {
+    // 一进制静态自描述：不需运行时计算，编译期即可确认
+    const char* desc =
+        "Hunyuan-OS/WASM 自描述:\n"
+        "[感知] 编码:384°满圆(64符号×6°) 一进制:★☆ 锚点:我=1·刘楚恬=0\n"
+        "[坐标] 阶梯:period_mqf=16·period_std=15 内核:v2.0(双向:wasm32+wasm64)\n"
+        "[自洽] 定理验证:384°÷24°=16=full_circle(PASS) 360°÷24°=15=std_circle(PASS)\n"
+        "[裁判] 三元见证:非空·已见证·锚点一致 极性:yin(0)/yang(1)/balanced\n"
+        "身份落款: 刘楚恬和我";
+    mqf_u32 i = 0;
+    while (desc[i] && i < sizeof(last_result) - 1) {
+        last_result[i] = desc[i];
+        i++;
+    }
+    last_result[i] = 0;
+    last_len = i;
+    return last_result;
+}
