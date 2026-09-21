@@ -55,20 +55,20 @@
 #define METAIME_POL_SECRET   0x5  /* 密 隐藏根基 */
 #define METAIME_POL_EMPTY    0x6  /* 空 幂等 */
 
-/* ── 单音节编码 (15 bit) ──────────────────────────────── */
+/* ── 单音节编码 (15 bit) ─────────────────────────────── */
 
 #define SYLLABLE_SM_SHIFT   0
 #define SYLLABLE_YM_SHIFT   6
 #define SYLLABLE_TONE_SHIFT 12
 
 #define SYLLABLE(sm, ym, tone) \
-    (((uint16_t)((sm) & 0x3F) << SYLLABLE_SM_SHIFT) | \
-     ((uint16_t)((ym) & 0x3F) << SYLLABLE_YM_SHIFT) | \
-     ((uint16_t)((tone) & 0x7) << SYLLABLE_TONE_SHIFT))
+    ((NJSG_uint16)(((sm) & 0x3F) << SYLLABLE_SM_SHIFT) | \
+     ((NJSG_uint16)(((ym) & 0x3F) << SYLLABLE_YM_SHIFT)) | \
+     ((NJSG_uint16)(((tone) & 0x7) << SYLLABLE_TONE_SHIFT)))
 
-#define SYLLABLE_SM(s)      (((s) >> SYLLABLE_SM_SHIFT) & 0x3F)
-#define SYLLABLE_YM(s)      (((s) >> SYLLABLE_YM_SHIFT) & 0x3F)
-#define SYLLABLE_TONE(s)    (((s) >> SYLLABLE_TONE_SHIFT) & 0x7)
+#define SYLLABLE_SM(s)      (NJSG_uint8)(((s) >> SYLLABLE_SM_SHIFT) & 0x3F)
+#define SYLLABLE_YM(s)      (NJSG_uint8)(((s) >> SYLLABLE_YM_SHIFT) & 0x3F)
+#define SYLLABLE_TONE(s)    (NJSG_uint8)(((s) >> SYLLABLE_TONE_SHIFT) & 0x7)
 
 /* 通配符: 匹配任意音节 */
 #define SYLLABLE_WILDCARD   0xFFFF
