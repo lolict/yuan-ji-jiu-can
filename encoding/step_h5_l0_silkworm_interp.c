@@ -333,7 +333,8 @@ static int eval_line(interp_t *it, char *line) {
         return 0;
     }
 
-    /* 化 茧袋名 = 袋1 袋2 ... — 茧自费组合, 不借 C 根 */
+    /* 化 茧袋名 = 袋1 袋2 ... — 茧自费组合, 不借 C 根
+       自动用链名拼接作茧内声母 key (合+损 → "合损") */
     if (strcmp(toks[0], "化") == 0) {
         if (nt < 5) return -2;
         cocoon_t *co = cocoon_find(it, toks[1]);
@@ -341,15 +342,17 @@ static int eval_line(interp_t *it, char *line) {
         int eq_pos = -1;
         for (int i = 2; i < nt; i++) if (strcmp(toks[i], "=") == 0) { eq_pos = i; break; }
         if (eq_pos < 2) { printf("  ⚠️ 化需 = \n"); return -2; }
-        /* toks[2] 是化出的声母名, toks[4..] 是链 */
         char chain[MAX_CHAIN][NAME_SZ]; int cl = 0;
         for (int i = eq_pos+1; i < nt && cl < MAX_CHAIN; i++) {
             if (strcmp(toks[i], "->") == 0 || strcmp(toks[i], "→") == 0) continue;
             strncpy(chain[cl], toks[i], NAME_SZ-1); chain[cl][NAME_SZ-1] = '\0'; cl++;
         }
         if (cl < 2) { printf("  ⚠️ 化链需≥2\n"); return -2; }
-        if (cocoon_register_chain(it, co, toks[2], chain, cl) != 0) { printf("  ⚠️ 茧元表满\n"); return -2; }
-        printf("  🎨 茧 %s 化: %s = ", co->name, toks[2]);
+        /* 自动拼接 chain 名作茧内声母 key */
+        char chain_name[NAME_SZ]; chain_name[0] = '\0';
+        for (int s = 0; s < cl; s++) strncat(chain_name, chain[s], NAME_SZ - strlen(chain_name) - 1);
+        if (cocoon_register_chain(it, co, chain_name, chain, cl) != 0) { printf("  ⚠️ 茧元表满\n"); return -2; }
+        printf("  🎨 茧 %s 化: %s = ", co->name, chain_name);
         for (int s = 0; s < cl; s++) { if (s) printf(" · "); printf("%s", chain[s]); }
         printf(" (茧自产, 未借 C 根)\n");
         return 0;

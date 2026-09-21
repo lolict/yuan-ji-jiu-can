@@ -398,7 +398,7 @@ impl VocabWord {
                 SemanticId::Lrw => 0xC87F0400,         // LDAXR
                 SemanticId::Scw => 0xC803FC00,         // STLXR
                 SemanticId::AmoSwapw => 0x38206820,    // LD64B (simplified)
-                SemanticId::AmoAddw => 0x38201820,     # STADDL
+                SemanticId::AmoAddw => 0x38201820,     // STADDL
                 _ => return vec![],
             },
         };
