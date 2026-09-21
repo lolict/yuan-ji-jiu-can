@@ -26,7 +26,7 @@ proc deCell(c:Cell64):tuple[sem:uint8, ini:uint8, fin:uint8, y:uint16, z:uint16]
   result.y = uint16((c shr 23) and 0xFFFF)
   result.z = uint16((c shr 7) and 0xFFFF)
 
-proc cell2font(c:Cell64):uint32 = let d = de_cell(c); (if d.sem < 16: 0xF100'u32 + d.sem else: 0xF000'u32)
+proc c2font(c:Cell64):uint32 = let d = deCell(c); (if d.sem < 16: 0xF100'u32 + d.sem else: 0xF000'u32)
 
 type HRec = object ch, py, ini, fin: string; sem: SemKind
 
@@ -45,7 +45,7 @@ const HT: seq<HRec] = [
   HRec(ch:"数", py:"shu", ini:"sh", fin:"u", sem:semLui),
 ]
 
-proc hz2c(hz:string):Cell64 = for e in HT: if e.ch == hz: return mk_cell(e.ch, e.ini, e.fin, e.sem, plX); return 0
+proc hz2c(hz:string):Cell64 = for e in HT: if e.ch == hz: return mkCell(e.ch, e.ini, e.fin, e.sem, plX); return 0
 
 proc stopo(e:SemKind):string = case e
   of semAdd, semSub, semSll, semSrl, semSra, semSlt: "sphere"
@@ -58,15 +58,13 @@ when is_main_module:
   echo "=== Hanzi -> Cell64 -> Sem -> Font -> MachineCode ==="
   let encs = build_cross_isa_map()
 
-  echo "
-[1] Hanzi -> 64-bit Cell"
+  echo "\n[1] Hanzi -> 64-bit Cell"
   for e in HT:
     let c = hz2c(e.ch)
     echo "  ", e.ch, " ", e.py.alignLeft(6), " ", ($e.sem)[3..^1].alignLeft(8),
          " 0x", toHex(c).toUpperAscii.alignLeft(16), " pol=", (c shr 63)
 
-  echo "
-[2] Cell -> 3D Coord (X=sem Y=initial+final Z=time)"
+  echo "\n[2] Cell -> 3D Coord (X=sem Y=initial+final Z=time)"
   for e in HT:
     let c = hz2c(e.ch)
     let d = deCell(c)
@@ -75,22 +73,19 @@ when is_main_module:
          " Z=0x", toHex(d.z).toUpperAscii.alignLeft(6),
          " topo=", stopo(e.sem)
 
-  echo "
-[3] Sem -> Font Codepoint"
+  echo "\n[3] Sem -> Font Codepoint"
   for e in HT:
     echo "  ", e.ch, " ", ($e.sem)[3..^1].alignLeft(8),
-         " U+", toHex(cell2font(hz2c(e.ch))).toUpperAscii
+         " U+", toHex(c2font(hz2c(e.ch))).toUpperAscii
 
-  echo "
-[4] 'ADD' (加) in 4 ISAs"
+  echo "\n[4] 'ADD' (加) in 4 ISAs"
   for isa in IsaKind:
     for e in encs:
       if e.sem == semAdd and e.isa == isa:
         echo "  ", ($isa).alignLeft(10), " ", e.machine_hex, "  ", e.asm_text
         break
 
-  echo "
-[5] Full trace for '加' (add)"
+  echo "\n[5] Full trace for '加' (add)"
   let cc = hz2c("加")
   let dd = deCell(cc)
   echo "  Input: 加 (jia)"
@@ -100,7 +95,7 @@ when is_main_module:
   echo "    sem_id = ", dd.sem, " (semAdd)"
   echo "    initial = ", dd.ini, " final = ", dd.fin
   echo "  3D: X = ", dd.sem, " Y = 0x", toHex(dd.y).toUpperAscii, " Z = 0x", toHex(dd.z).toUpperAscii
-  echo "  Font: U+", toHex(cell2font(cc)).toUpperAscii
+  echo "  Font: U+", toHex(c2font(cc)).toUpperAscii
   echo "  Machine codes:"
   for isa in IsaKind:
     for e in encs:
@@ -108,5 +103,4 @@ when is_main_module:
         echo "    ", ($isa).alignLeft(8), " -> ", e.machine_hex
         break
 
-  echo "
-=== DONE ==="
+  echo "\n=== DONE ==="

@@ -1111,8 +1111,8 @@ Input → Perception → Distinguish → Lookup → Traverse → Cluster → Att
 
 ## MCODE Stone · RV32I 精确编解码+MCOD 字体容器（tools/mcode-stone/）
 
-> 全 41 条 RV32I 指令 · R/I/S/B/U/J 六格式 · 仅加减 · 禁用乘除
-> 57/57 round-trip 全通过 · MCOD 自定义表写盘/读盘往返恒等 10/10
+> 全 39 条 RV32I 指令 · R/I/S/B/U/J 六格式 · 仅加减 · 禁用乘除
+> 57/57 round-trip 全通过 · MCOD 生产级嵌入 39/39 全通过 (PUA U+F000..U+F026)
 
 ### ms_types.nim — 通用类型层
 

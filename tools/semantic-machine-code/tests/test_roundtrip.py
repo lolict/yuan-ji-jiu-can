@@ -88,6 +88,27 @@ check("mips32", "LUI",  ["$1", 0x1234])
 # J 型
 check("mips32", "JMP",  [0x1000])
 
+# ── RV64I ──
+print("\n═══ RV64I 往返测试 ═══")
+# 基本 RV32I 兼容性（编码一致）
+check("rv64i", "ADD",  ["x1", "x2", "x3"])
+check("rv64i", "SUB",  ["x10", "x11", "x12"])
+check("rv64i", "ADDI", ["x5", "x0", 42])
+check("rv64i", "LUI",  ["x1", 74565])
+# RV64I 新增字操作
+check("rv64i", "ADDIW", ["x5", "x0", 100])
+check("rv64i", "ADDW",  ["x1", "x2", "x3"])
+check("rv64i", "SUBW",  ["x10", "x11", "x12"])
+check("rv64i", "SLLW",  ["x1", "x2", "x3"])
+check("rv64i", "SRLW",  ["x1", "x2", "x3"])
+check("rv64i", "SRAW",  ["x1", "x2", "x3"])
+check("rv64i", "SLLIW", ["x5", "x6", 4])
+check("rv64i", "SRAIW", ["x5", "x6", 8])
+# 64位加载/存储
+check("rv64i", "LD",    ["x8", 0, "x9"])
+check("rv64i", "SD",    ["x10", 0, "x2"])
+check("rv64i", "LWU",   ["x8", 0, "x9"])
+
 # ── 结果 ──
 print(f"\n结果: {PASS} 通过, {FAIL} 失败")
 sys.exit(0 if FAIL == 0 else 1)

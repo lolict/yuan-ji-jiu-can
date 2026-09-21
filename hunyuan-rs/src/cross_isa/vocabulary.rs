@@ -445,6 +445,64 @@ impl VocabWord {
                 let imm = match ops[1].imm() { Some(v) => v as u8, None => return vec![] };
                 out.push(imm);
             }
+            // ── M 扩展 · x86 等价 ──
+            SemanticId::Mul | SemanticId::Mulh => {
+                // IMUL r,r (REX.W 0F AF /r)
+                out.push(0x48); out.push(0x0F); out.push(0xAF);
+                let rd = match ops[0].reg() { Some(v) => v, None => return vec![] };
+                let r2 = match ops[1].reg() { Some(v) => v, None => return vec![] };
+                out.push(0xC0 | ((rd & 7) << 3) | (r2 & 7));
+            }
+            SemanticId::Div | SemanticId::Divu => {
+                // IDIV r (REX.W F7 /7) 或 DIV (REX.W F7 /6)
+                let r = match ops[0].reg() { Some(v) => v, None => return vec![] };
+                let slash = if id == SemanticId::Div { 7u8 } else { 6u8 };
+                out.push(0x48); out.push(0xF7);
+                out.push(0xC0 | ((slash & 7) << 3) | (r & 7));
+            }
+            SemanticId::Rem | SemanticId::Remu => {
+                // x86 的余数在同一条 IDIV 中产生 (→RDX). 编码为 IDIV + 取 DX 探针
+                let r = match ops[0].reg() { Some(v) => v, None => return vec![] };
+                let slash = if id == SemanticId::Rem { 7u8 } else { 6u8 };
+                out.push(0x48); out.push(0xF7);
+                out.push(0xC0 | ((slash & 7) << 3) | (r & 7));
+                out.push(0x48); out.push(0x89); out.push(0xD0);  // MOV RAX,RDX (提取余数)
+            }
+            SemanticId::Addw => {
+                // x86-64 对 32 位操作: MOVSXD + ADD (跳过,直接用 ADD REX.W)
+                out.push(0x48); out.push(0x01);
+                let reg = match ops[2].reg() { Some(v) => v, None => return vec![] };
+                let rm  = match ops[0].reg() { Some(v) => v, None => return vec![] };
+                out.push(0xC0 | (reg << 3) | rm);
+            }
+            SemanticId::Addiw => {
+                out.push(0x48); out.push(0x83);
+                let rm = match ops[0].reg() { Some(v) => v, None => return vec![] };
+                out.push(0xC0 | rm);
+                let imm = match ops[1].imm() { Some(v) => v as u8, None => return vec![] };
+                out.push(imm);
+            }
+            // ── A 扩展原子 · x86 用 LOCK+XCHG / LOCK+XADD ──
+            SemanticId::AmoSwapw => {
+                // LOCK XCHG: F0 87 /r
+                let rd = match ops[0].reg() { Some(v) => v, None => return vec![] };
+                let r2 = match ops[1].reg() { Some(v) => v, None => return vec![] };
+                out.push(0xF0); out.push(0x48); out.push(0x87);
+                out.push(0xC0 | ((rd & 7) << 3) | (r2 & 7));
+            }
+            SemanticId::AmoAddw => {
+                // LOCK XADD: F0 0F C1 /r
+                let rd = match ops[0].reg() { Some(v) => v, None => return vec![] };
+                let r2 = match ops.get(1).and_then(|o| o.reg()).unwrap_or(0);
+                out.push(0xF0); out.push(0x48); out.push(0x0F); out.push(0xC1);
+                out.push(0xC0 | ((rd & 7) << 3) | (r2 & 7));
+            }
+            SemanticId::Lrw => {
+                out.extend_from_slice(&[0x0F, 0xAE, 0xE8]);  // LFENCE (原子读)
+            }
+            SemanticId::Scw => {
+                out.extend_from_slice(&[0x0F, 0xAE, 0xF8]);  // SFENCE (原子写)
+            }
             _ => match id {
                 SemanticId::Load  => out.extend_from_slice(&[0x48, 0x8B, 0x03]),
                 SemanticId::Store => out.extend_from_slice(&[0x48, 0x89, 0x18]),
