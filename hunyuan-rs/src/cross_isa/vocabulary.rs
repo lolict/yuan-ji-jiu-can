@@ -493,7 +493,7 @@ impl VocabWord {
             SemanticId::AmoAddw => {
                 // LOCK XADD: F0 0F C1 /r
                 let rd = match ops[0].reg() { Some(v) => v, None => return vec![] };
-                let r2 = match ops.get(1).and_then(|o| o.reg()).unwrap_or(0);
+                let r2 = (ops.get(1).and_then(|o| o.reg()).unwrap_or(0)) as u8;
                 out.push(0xF0); out.push(0x48); out.push(0x0F); out.push(0xC1);
                 out.push(0xC0 | ((rd & 7) << 3) | (r2 & 7));
             }
@@ -562,9 +562,9 @@ impl VocabWord {
             }
             SemanticId::Mulh => {
                 // MULH (高位乘法) 在 MIPS32 = MULT + MFHI
-                let rs = match ops.get(1).and_then(|o| o.reg()).unwrap_or(1) as u32;
-                let rt = match ops.get(2).and_then(|o| o.reg()).unwrap_or(2) as u32;
-                let rd = match ops.get(0).and_then(|o| o.reg()).unwrap_or(3) as u32;
+                let rs = ops.get(1).and_then(|o| o.reg()).unwrap_or(1) as u32;
+                let rt = ops.get(2).and_then(|o| o.reg()).unwrap_or(2) as u32;
+                let rd = ops.get(0).and_then(|o| o.reg()).unwrap_or(3) as u32;
                 (rs << 21) | (rt << 16) | (rd << 11) | 0b010000  // MFHI
             }
             SemanticId::Addw if ops.len() >= 3 => {
@@ -574,7 +574,7 @@ impl VocabWord {
                 let rt = match ops[2].reg() { Some(v) => v as u32, None => return vec![] };
                 (rs << 21) | (rt << 16) | (rd << 11) | 0b100000
             }
-            SemanticId::Addiw => {
+            SemanticId::Addiw if ops.len() >= 2 => {
                 let rs = match ops[0].reg() { Some(v) => v as u32, None => return vec![] };
                 let imm = match ops[1].imm() { Some(v) => (v as u32) & 0xFFFF, None => return vec![] };
                 0x20000000u32 | (rs << 21) | (rs << 16) | imm  // ADDI rs,rs,imm
@@ -839,6 +839,71 @@ mod tests {
                 plat,
             );
             assert!(w.native_encoding.len() > 0, "ADD on {:?} empty", plat);
+        }
+    }
+
+    // ── 跨平台 RV64I/M/A 测试 ──
+    #[test]
+    fn riscv_m_ext_all_nonempty() {
+        // M 扩展语义ID 在 RISC-V 上全部产出非空编码
+        let ops3 = vec![Operand::Reg(1), Operand::Reg(2), Operand::Reg(3)];
+        for &id in &[SemanticId::Mul, SemanticId::Mulh, SemanticId::Div, SemanticId::Divu,
+                     SemanticId::Rem, SemanticId::Remu] {
+            let w = VocabWord::new(id, ops3.clone(), Platform::RiscV);
+            assert!(!w.native_encoding.is_empty(), "M ext {:?} empty on RISC-V", id);
+        }
+    }
+
+    #[test]
+    fn arm64_m_ext_all_nonempty() {
+        let ops3 = vec![Operand::Reg(0), Operand::Reg(1), Operand::Reg(2)];
+        for &id in &[SemanticId::Mul, SemanticId::Mulh, SemanticId::Div, SemanticId::Divu,
+                     SemanticId::Rem, SemanticId::Remu] {
+            let w = VocabWord::new(id, ops3.clone(), Platform::ARM64);
+            assert!(!w.native_encoding.is_empty(), "M ext {:?} empty on ARM64", id);
+        }
+    }
+
+    #[test]
+    fn x86_m_ext_all_nonempty() {
+        let ops3 = vec![Operand::Reg(0), Operand::Reg(1), Operand::Reg(2)];
+        for &id in &[SemanticId::Mul, SemanticId::Div, SemanticId::Divu,
+                     SemanticId::Rem, SemanticId::Remu] {
+            let w = VocabWord::new(id, ops3.clone(), Platform::X86_64);
+            assert!(!w.native_encoding.is_empty(), "M ext {:?} empty on x86-64", id);
+        }
+    }
+
+    #[test]
+    fn mips_m_ext_all_nonempty() {
+        let ops3 = vec![Operand::Reg(1), Operand::Reg(2), Operand::Reg(3)];
+        for &id in &[SemanticId::Mul, SemanticId::Mulh, SemanticId::Div, SemanticId::Divu,
+                     SemanticId::Rem, SemanticId::Remu, SemanticId::Addw, SemanticId::Addiw] {
+            let w = VocabWord::new(id, ops3.clone(), Platform::MIPS32);
+            assert!(!w.native_encoding.is_empty(), "M ext {:?} empty on MIPS32", id);
+        }
+    }
+
+    #[test]
+    fn riscv_a_ext_all_nonempty() {
+        // A 扩展: LrW/ScW/AmoSwapW/AmoAddW 在 RISC-V
+        let ops3 = vec![Operand::Reg(0), Operand::Reg(1), Operand::Reg(2)];
+        for &id in &[SemanticId::Lrw, SemanticId::Scw, SemanticId::AmoSwapw, SemanticId::AmoAddw] {
+            let w = VocabWord::new(id, ops3.clone(), Platform::RiscV);
+            assert!(!w.native_encoding.is_empty(), "A ext {:?} empty on RISC-V", id);
+        }
+    }
+
+    #[test]
+    fn a_ext_cross_platform() {
+        // LRW/SCW 在所有平台均有语义占位
+        let ops_lr = vec![Operand::Reg(0), Operand::Reg(1)];
+        let ops_sc = vec![Operand::Reg(0), Operand::Reg(1), Operand::Reg(2)];
+        for &plt in &[Platform::RiscV, Platform::ARM64, Platform::X86_64, Platform::MIPS32] {
+            let w_lr = VocabWord::new(SemanticId::Lrw, ops_lr.clone(), plt);
+            let w_sc = VocabWord::new(SemanticId::Scw, ops_sc.clone(), plt);
+            assert!(!w_lr.native_encoding.is_empty(), "Lrw empty on {:?}", plt);
+            assert!(!w_sc.native_encoding.is_empty(), "Scw empty on {:?}", plt);
         }
     }
 

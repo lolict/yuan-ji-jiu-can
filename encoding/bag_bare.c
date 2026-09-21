@@ -68,6 +68,7 @@ void _start(void) {
     __asm__ volatile ("1: jmp 1b");
 }
 
+#ifdef HOST_ADAPTER
 /* 宿主适配: 用于验证 */
 int main(void){
     bag_run_all();
@@ -79,3 +80,4 @@ int main(void){
     }
     return 0;
 }
+#endif

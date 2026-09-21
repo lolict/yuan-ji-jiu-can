@@ -58,7 +58,7 @@ pub fn divides(a: u64, b: u64) -> bool {
 ///   - 深度    = 与根节点的公约数链长度
 ///
 /// 公约数链: rule ↔ gcd ↔ gcd of gcd ↔ ... ↔ 1 (根)
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct RuleNode {
     /// 规则唯一 ID (来自原始规则)
     pub rule_id: u64,

@@ -51,6 +51,9 @@ typedef struct cocoon cocoon_t;
 typedef struct interp interp_t;
 typedef int (*bag_fn_t)(interp_t *it, int a, int b, enum polarity *pol);
 
+/* 茧内叶子原语 ID (飞后走 switch, 不回调 C) */
+enum leaf_op { LEAF_NONE=0, LEAF_ADD, LEAF_JUDGE, LEAF_SNAP, LEAF_INC, LEAF_DEC, LEAF_MUL2, LEAF_DIV2 };
+
 /* 袋子 */
 typedef struct {
     char     name[NAME_SZ];
@@ -72,11 +75,11 @@ struct cocoon {
     char       name[NAME_SZ];
     int        bag_indices[MAX_BAGS];  /* 本茧含哪些袋子(屉内 idx) */
     int        bag_count;
-    /* 茧内本地元表: 声母名 → 袋子链 (完全在袋子世界内) */
-    struct { char name[NAME_SZ]; char chain[MAX_CHAIN][NAME_SZ]; int chain_len; } local_meta[LOCAL_OPS];
+    /* 茧内本地元表: 声母名 → 叶子原语(leaf_id) 或 组合链(is_leaf=0) */
+    struct { char name[NAME_SZ]; char chain[MAX_CHAIN][NAME_SZ]; int chain_len; int is_leaf; enum leaf_op leaf; } local_meta[LOCAL_OPS];
     int        meta_count;
-    int        flown;       /* 已飞? 飞后 C 不参与 */
-    bag_fn_t   c_seed;      /* C 借根 (入), 飞后失效 */
+    int        flown;       /* 已飞? 飞后袋子原生派发 */
+    int        c_seed;      /* 仅入根标记, 不再指向 C 函数 (飞后失效) */
 };
 
 /* interp_t pre-declared above; full definition */
@@ -151,11 +154,13 @@ static cocoon_t* cocoon_new(interp_t *it, const char *name) {
     return co;
 }
 
-/* 茧内本地元表注册 */
+/* 茧内本地元表注册组合链 */
 static int cocoon_register_chain(interp_t *it, cocoon_t *co, const char *name, char chain[][NAME_SZ], int len) {
     (void)it;
     for (int i = 0; i < co->meta_count; i++) {
         if (strcmp(co->local_meta[i].name, name) == 0) {
+            co->local_meta[i].is_leaf = 0;
+            co->local_meta[i].leaf = LEAF_NONE;
             co->local_meta[i].chain_len = len;
             for (int k = 0; k < len; k++) strncpy(co->local_meta[i].chain[k], chain[k], NAME_SZ-1);
             return 0;
@@ -165,12 +170,49 @@ static int cocoon_register_chain(interp_t *it, cocoon_t *co, const char *name, c
     int idx = co->meta_count++;
     strncpy(co->local_meta[idx].name, name, NAME_SZ-1);
     co->local_meta[idx].name[NAME_SZ-1] = '\0';
+    co->local_meta[idx].is_leaf = 0;
+    co->local_meta[idx].leaf = LEAF_NONE;
     co->local_meta[idx].chain_len = len;
     for (int k = 0; k < len; k++) {
         strncpy(co->local_meta[idx].chain[k], chain[k], NAME_SZ-1);
         co->local_meta[idx].chain[k][NAME_SZ-1] = '\0';
     }
     return 0;
+}
+
+/* 茧内注册叶子原语 */
+static int cocoon_register_leaf(interp_t *it, cocoon_t *co, const char *name, enum leaf_op leaf) {
+    (void)it;
+    for (int i = 0; i < co->meta_count; i++) {
+        if (strcmp(co->local_meta[i].name, name) == 0) {
+            co->local_meta[i].is_leaf = 1;
+            co->local_meta[i].leaf = leaf;
+            co->local_meta[i].chain_len = 0;
+            return 0;
+        }
+    }
+    if (co->meta_count >= LOCAL_OPS) return -1;
+    int idx = co->meta_count++;
+    strncpy(co->local_meta[idx].name, name, NAME_SZ-1);
+    co->local_meta[idx].name[NAME_SZ-1] = '\0';
+    co->local_meta[idx].is_leaf = 1;
+    co->local_meta[idx].leaf = leaf;
+    co->local_meta[idx].chain_len = 0;
+    return 0;
+}
+
+/* 茧内叶子原语执行 (飞后走此, 不回调 C) */
+static int cocoon_leaf_exec(enum leaf_op leaf, int a, int b, enum polarity *pol) {
+    switch (leaf) {
+    case LEAF_ADD:   { (void)pol; return a + b; }
+    case LEAF_JUDGE: { (void)b; *pol = (a >= THRESHOLD) ? YANG : YIN; return a; }
+    case LEAF_SNAP:  { (void)b; (void)pol; return a; }
+    case LEAF_INC:   { (void)b; (void)pol; return a + 1; }
+    case LEAF_DEC:   { (void)b; (void)pol; return a - 1; }
+    case LEAF_MUL2:  { (void)b; (void)pol; return a * 2; }
+    case LEAF_DIV2:  { (void)b; (void)pol; return a / 2; }
+    default: return a;
+    }
 }
 
 /* 茧内查找 */
@@ -186,29 +228,52 @@ static int cocoon_find_local(cocoon_t *co, const char *name, char out_chain[][NA
     return -1;
 }
 
-/* C 壳元表查找 */
-static bag_fn_t c_meta_find(interp_t *it, const char *name) {
-    for (int i = 0; i < it->c_meta_count; i++)
-        if (strcmp(it->c_meta[i].name, name) == 0) return it->c_meta[i].fn;
-    return NULL;
+/* 名字 → 叶子原语 ID (映射 C 壳声母到茧内叶子 ID) */
+static enum leaf_op name_to_leaf(const char *name) {
+    if (strcmp(name, "合") == 0) return LEAF_ADD;
+    if (strcmp(name, "裁") == 0) return LEAF_JUDGE;
+    if (strcmp(name, "照") == 0) return LEAF_SNAP;
+    if (strcmp(name, "进") == 0) return LEAF_INC;
+    if (strcmp(name, "退") == 0) return LEAF_DEC;
+    if (strcmp(name, "益") == 0) return LEAF_MUL2;
+    if (strcmp(name, "损") == 0) return LEAF_DIV2;
+    return LEAF_NONE;
 }
 
-/* 袋子链在茧内本地元表上执行 (脱离 C) */
+/* 茧内查找叶子 (返回 leaf_id, LEAF_NONE=未找) */
+static enum leaf_op cocoon_find_leaf(cocoon_t *co, const char *name) {
+    for (int i = 0; i < co->meta_count; i++)
+        if (co->local_meta[i].is_leaf && strcmp(co->local_meta[i].name, name) == 0)
+            return co->local_meta[i].leaf;
+    return LEAF_NONE;
+}
+
+/* 袋子链在茧内本地元表上执行 (飞后走叶子原语, 不回调 C) */
 static int run_chain_on_cocoon(interp_t *it, cocoon_t *co, char chain[][NAME_SZ], int chain_len,
                                int a, int b, enum polarity *pol) {
     int acc = a;
     enum polarity local_pol = YIN;
     for (int s = 0; s < chain_len; s++) {
+        /* 1. 优先查茧内叶子原语 */
+        enum leaf_op lf = cocoon_find_leaf(co, chain[s]);
+        if (lf != LEAF_NONE) {
+            acc = cocoon_leaf_exec(lf, acc, b, &local_pol);
+            continue;
+        }
+        /* 2. 查茧内组合链并展开 */
         char sub_chain[MAX_CHAIN][NAME_SZ]; int sub_len;
-        /* 先在茧内查, 若失败则回退 C 壳 (未飞时) */
         if (cocoon_find_local(co, chain[s], sub_chain, &sub_len) == 0) {
             acc = run_chain_on_cocoon(it, co, sub_chain, sub_len, acc, b, &local_pol);
-        } else if (!co->flown && c_meta_find(it, chain[s])) {
-            /* 回退 C 壳 */
-            acc = c_meta_find(it, chain[s])(it, acc, b, &local_pol);
-        } else {
-            printf("    ⚠️ 茧 %s 内无 %s\n", co->name, chain[s]);
-            return acc;
+            continue;
+        }
+        /* 3. 未飞时回退 C 壳 */
+        if (!co->flown) {
+            for (int i = 0; i < it->c_meta_count; i++) {
+                if (strcmp(it->c_meta[i].name, chain[s]) == 0) {
+                    acc = it->c_meta[i].fn(it, acc, b, &local_pol);
+                    break;
+                }
+            }
         }
     }
     *pol = local_pol;

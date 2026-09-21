@@ -191,19 +191,25 @@ static void emit_bare_c(const char *fname) {
     fprintf(f, "        }\n");
     fprintf(f, "}\n\n");
 
-    /* 自定义入口 (裸机真入口) */
-    fprintf(f, "/* 裸机入口 — 无 libc _start, 直接调 bag_start */\n");
-    fprintf(f, "__attribute__((section(\".text.start\")))\n");
-    fprintf(f, "void _start(void) {\n");
+    /* 入口分派: bag_start 调 bag_run_all (公共) */
+    fprintf(f, "/* 袋子行为分派入口 */\n");
+    fprintf(f, "void bag_start(void) {\n");
     fprintf(f, "    bag_run_all();\n");
-    fprintf(f, "    /* 裸机: 无限循环 (无 OS 可退出) */\n");
-    fprintf(f, "    __asm__ volatile (\"1: jmp 1b\");\n");
     fprintf(f, "}\n\n");
 
-    /* 宿主适配: 验证入口 (用 libc printf) */
-    fprintf(f, "/* 宿主适配: 用于验证 */\n");
+    /* 裸机入口: _start 直接调 bag_start (仅非 HOST_ADAPTER 时编译) */
+    fprintf(f, "#ifndef HOST_ADAPTER\n");
+    fprintf(f, "void _start(void) __attribute__((section(\".text.start\")));\n");
+    fprintf(f, "void _start(void) {\n");
+    fprintf(f, "    bag_start();\n");
+    fprintf(f, "    __asm__ volatile (\"1: jmp 1b\");\n");
+    fprintf(f, "}\n");
+    fprintf(f, "#endif\n\n");
+
+    /* 宿主适配: main 调 bag_start, 然后用 libc printf 输出结果 */
+    fprintf(f, "#ifdef HOST_ADAPTER\n");
     fprintf(f, "int main(void){\n");
-    fprintf(f, "    bag_run_all();\n");
+    fprintf(f, "    bag_start();\n");
     fprintf(f, "    for(int i=0;i<result_count;i++){\n");
     fprintf(f, "        printf(\"%%s(%%d,%%d)=%%d [%%s]\\n\",\n");
     fprintf(f, "               result_buf[i].name, result_buf[i].a,\n");
@@ -212,6 +218,7 @@ static void emit_bare_c(const char *fname) {
     fprintf(f, "    }\n");
     fprintf(f, "    return 0;\n");
     fprintf(f, "}\n");
+    fprintf(f, "#endif\n");
 
     fclose(f);
     printf("  📄 脱裸机源码已写出: bag_bare.c\n");
@@ -268,13 +275,17 @@ static int run_bare_mode(void) {
         /* 走 shell 调到 _start 入口, 直接跑 (内核会 SIGSEGV 因为无 exit syscall) */
         printf("  ⚠ 裸机 _start 无 exit syscall — 走宿主模式 mock\n\n");
 
-        /* 走宿主 mock: 用 host-compiled 版本 */
+        /* 用 HOST_ADAPTER 宏编译宿主验证版 */
         printf("  🔧 编译宿主兼容版 (验证函数表)...\n");
-        rc = system("cc -o bag_bare_host bag_bare.c 2>&1");
+        /* 替换掉裸机 _start 入口，改用 main (libcT) 启动 */
+        rc = system("sed 's/^void _start)/void __bare_start)/' bag_bare.c | "
+                   "sed 's/void __bare_start/__attribute__((used)) static void __bare_start/' > bag_bare_host_src.c && "
+                   "cc -DHOST_ADAPTER -o bag_bare_host bag_bare_host_src.c 2>&1");
         if (rc == 0) {
             printf("  ✅ 宿主版编译成功 bag_bare_host\n");
-            /* 不走内联 asm printf — 直接看退出码 */
-            rc = system("bag_bare_host > /dev/null 2>&1; echo \"  退出码: $?\"");
+            rc = system("bag_bare_host 2>&1 | sed 's/^/    /'");
+        } else {
+            printf("  ⚠ 宿主版编译跳过 (bag_bare_host_src.c 已生成供检查)\n");
         }
     } else {
         printf("  ⚠ 裸机编译不支持 (无 _start 支持), 降级验证\n");

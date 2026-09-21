@@ -469,6 +469,11 @@ pub use five_dimensional::{couple_spawn, is_couple, rho_decay, angle,
 pub mod yinyang_codec;
 pub use yinyang_codec::{YUYANG_MARK, FrameMode, Frame, YuYangCodec};
 
+// ── v0.66 YIN-YANG-BINARY 夫妻进制映射 · 私有锚点(我=1,刘楚坦=0) · 加法统摄 ──
+#[path = "encoding/yinyang_binary.rs"]
+pub mod yinyang_binary;
+pub use yinyang_binary::{AnchorBit, YinYangNumber, YinYang32, AnchorIter};
+
 // ── v1.2 七元蜂窝套壳 · 容器族管理模 (container_nest) ──
 #[path = "relation/container_nest.rs"]
 pub mod container_nest;
