@@ -940,6 +940,19 @@ pub mod morton;
 pub mod morphism;
 pub use morton::{Coord3D, MortonCode};
 
+// ── v0.45 满全法活性容器内核 (ActiveContainerKernel) ──
+// "灵魂内核"在满全法下的重命名实现:
+//   灵魂 → 普通容器 (无特殊性)
+//   奖励回路 → 匮乏驱动补码 (DeficiencyCell)
+// 完全基于 SmrlCell(v0.42) + BootstrapCompiler(v0.43)
+// #[path = "core/active_container.rs"]  // TEMP: file missing
+// pub mod active_container;
+// pub use active_container::{
+//     ActiveContainerKernel, ActiveState, FearState, KernelDiagnostic,
+//     DeficiencyCell, LossAversionCell, UnityCell,
+//     deficiency_rule, loss_aversion_rule, unity_rule,
+// };
+
 // ── v0.40 里外维度 · 矢量封装 · 单中心仲裁 (InsideOut) ──
 #[path = "cognition/inside_out.rs"]
 pub mod inside_out;

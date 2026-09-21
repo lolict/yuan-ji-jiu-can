@@ -8,6 +8,10 @@ description = "囡囝共生 · 囡囝共生元 OS — Rust 核心"
 license = "Proprietary"
 repository = "https://github.com/lolict/hunyuan-os"
 
+[lib]
+name = "mqf"
+path = "src/lib.rs"
+
 [dependencies]
 bitflags = "2"
 serde = { version = "1", features = ["derive"] }
@@ -22,10 +26,6 @@ wasm-bindgen = "0.2"
 
 [build-dependencies]
 cc = "1"
-
-[lib]
-name = "mqf"
-path = "src/lib.rs"
 
 [[bin]]
 name = "mqf"
@@ -173,6 +173,10 @@ path = "src/bin/mlil-visual.rs"
 [[bin]]
 name = "clock-swarm-demo"
 path = "src/bin/clock-swarm-demo.rs"
+
+[[bin]]
+name = "yinyang-binary"
+path = "src/bin/yinyang_binary.rs"
 
 [[bin]]
 name = "presence-snapshot"

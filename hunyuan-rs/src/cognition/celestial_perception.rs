@@ -72,6 +72,13 @@ pub use celestial_perception_v12::{
     JitExecutionEngine, FrameRecord, BagStatus, BagContainer,
     BagIntrospection, BagPool, CelestialPerceptionV12, V12_VERSION,
 };
+#[path = "celestial_perception_v13.rs"]
+pub mod celestial_perception_v13;
+pub use celestial_perception_v13::{
+    WasmTarget, WasmModule, WasmCompiler,
+    ShellPhase, ShellKind, ShellConfig, ParasiteShell,
+    ParasiteManager, CelestialPerceptionV13, V13_VERSION,
+};
 
 // ======================================================================
 // 辅助函数
