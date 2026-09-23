@@ -330,6 +330,10 @@ pub mod domain_preload;
 pub mod container_ir;
 #[path = "core/container_composer.rs"]  // v0.68 容器串联引擎 — 前字套壳=后字入口
 pub mod container_composer;
+#[path = "core/distance_perception.rs"]  // v0.69 距离感知引擎 — 聂小倩匹配·加权距离·聚类
+pub mod distance_perception;
+#[path = "core/fiber_bundle.rs"]  // v0.70 纤维丛引擎 — 局部平凡化·截面·转移函数
+pub mod fiber_bundle;
 // ── v0.66 运行环引擎 — 最小OS接口·鼓膜自举·八流心跳·编码在场·结束即开始 ──
 #[path = "core/runtime_loop.rs"]
 pub mod runtime_loop;
