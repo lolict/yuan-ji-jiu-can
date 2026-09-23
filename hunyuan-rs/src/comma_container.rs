@@ -9084,3 +9084,264 @@ mod reflection_tests {
         assert_eq!(e.container_count(), 0);
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器判断引擎 · ContainerJudgmentEngine (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   判断之力 = 对「关系」的定位 (囡囝感知四阶 · 阶段三)
+//   「这种变化与谁有关?」 — 将两个分离的涟漪绑定成因果对
+//
+//   输入: 来自 ContainerReflectionEngine 的 DiffMark 序列
+//   输出: JudgmentAnchor — 因果锚点 (cause_id → effect_id, strength)
+//
+//   判断规则:
+//     - 同一时间窗口内, 不同容器的差异标记互为因果候选
+//     - 变化幅度大者为「因」, 小者为「果」
+//     - 强度 = |mag_a - mag_b| (仅加法实现)
+//
+//   仅加法范式: 所有比较用 >/<, 强度用减法, 无乘除
+
+/// 因果锚点 — 判断之力的产物
+#[derive(Clone, Debug)]
+pub struct JudgmentAnchor {
+    pub cause_id: u64,     // 因 (触发者)
+    pub effect_id: u64,    // 果 (受影响者)
+    pub tick: u64,         // 锚定时刻
+    pub strength: u64,     // 因果强度 (仅加法计算)
+}
+
+impl JudgmentAnchor {
+    pub fn new(cause_id: u64, effect_id: u64, tick: u64, strength: u64) -> Self {
+        Self { cause_id, effect_id, tick, strength }
+    }
+}
+
+/// 容器判断引擎
+#[derive(Clone, Debug, Default)]
+pub struct ContainerJudgmentEngine {
+    pub anchors: Vec<JudgmentAnchor>,
+    pub window_count: u64,
+}
+
+impl ContainerJudgmentEngine {
+    pub fn new() -> Self {
+        Self { anchors: Vec::new(), window_count: 0 }
+    }
+
+    /// 分析一批差异标记, 找出因果对 (仅加法范式)
+    pub fn judge(&mut self, diffs: &[DiffMark]) -> Vec<JudgmentAnchor> {
+        let mut new_anchors: Vec<JudgmentAnchor> = Vec::new();
+
+        // 按 (from_tick, to_tick) 分组 (同一窗口内的标记才互为因果候选)
+        // 使用 O(n²) 配对处理 (n 通常很小, 每个窗口仅几个差异)
+        for i in 0..diffs.len() {
+            for j in (i + 1)..diffs.len() {
+                let a = &diffs[i];
+                let b = &diffs[j];
+                // 必须同一窗口
+                if a.from_tick != b.from_tick || a.to_tick != b.to_tick { continue; }
+                // 必须不同容器 (不建立因果)
+                if a.container_id == b.container_id { continue; }
+                // 不稳定的 (Stable) 不参与因果判断
+                if a.kind == DiffKind::Stable || b.kind == DiffKind::Stable { continue; }
+                // 同 tick 窗口 → 按幅度定因果方向
+                let (cause, effect, strength) = if a.magnitude >= b.magnitude {
+                    (a.container_id, b.container_id,
+                     a.magnitude - b.magnitude)
+                } else {
+                    (b.container_id, a.container_id,
+                     b.magnitude - a.magnitude)
+                };
+                if strength == 0 { continue; } // 等幅不算因果 (可能是巧合)
+                new_anchors.push(JudgmentAnchor::new(
+                    cause, effect, a.to_tick, strength,
+                ));
+            }
+        }
+
+        self.anchors.extend(new_anchors.clone());
+        self.window_count = self.window_count + 1;
+        new_anchors
+    }
+
+    /// 最强因果锚点 (按 strength)
+    pub fn strongest(&self) -> Option<&JudgmentAnchor> {
+        self.anchors.iter().max_by_key(|a| a.strength)
+    }
+
+    /// 累计锚点数
+    pub fn anchor_count(&self) -> usize { self.anchors.len() }
+
+    /// 涉及某容器的锚点 (无论因/果)
+    pub fn involving(&self, container_id: u64) -> Vec<&JudgmentAnchor> {
+        self.anchors.iter()
+            .filter(|a| a.cause_id == container_id || a.effect_id == container_id)
+            .collect()
+    }
+
+    // 注: retain 是标准库 Vec 方法, 可以直接用
+    pub fn retain<F>(&mut self, f: F) where F: FnMut(&JudgmentAnchor) -> bool {
+        self.anchors.retain(f);
+    }
+
+    /// 重置
+    pub fn clear(&mut self) {
+        self.anchors.clear();
+        self.window_count = 0;
+    }
+
+    /// 窗口计数
+    pub fn windows_judged(&self) -> u64 { self.window_count }
+}
+
+#[cfg(test)]
+mod judgment_tests {
+    use super::*;
+
+    #[test]
+    fn test_judge_empty() {
+        let mut e = ContainerJudgmentEngine::new();
+        let a = e.judge(&[]);
+        assert!(a.is_empty());
+        assert_eq!(e.anchor_count(), 0);
+    }
+
+    #[test]
+    fn test_judge_single_diff() {
+        let mut e = ContainerJudgmentEngine::new();
+        let diffs = vec![
+            DiffMark { container_id: 1, from_tick: 10, to_tick: 20,
+                       kind: DiffKind::AmplitudeShift, magnitude: 50 },
+        ];
+        let a = e.judge(&diffs);
+        // 只有一个标记 → 无法配对
+        assert!(a.is_empty());
+    }
+
+    #[test]
+    fn test_judge_basic_pair() {
+        let mut e = ContainerJudgmentEngine::new();
+        let diffs = vec![
+            DiffMark { container_id: 1, from_tick: 10, to_tick: 20,
+                       kind: DiffKind::AmplitudeShift, magnitude: 80 },
+            DiffMark { container_id: 2, from_tick: 10, to_tick: 20,
+                       kind: DiffKind::AmplitudeShift, magnitude: 30 },
+        ];
+        let a = e.judge(&diffs);
+        assert_eq!(a.len(), 1);
+        assert_eq!(a[0].cause_id, 1);   // 变化大的为因
+        assert_eq!(a[0].effect_id, 2);  // 变化小的为果
+        assert_eq!(a[0].strength, 50);  // 80 - 30
+    }
+
+    #[test]
+    fn test_judge_equal_magnitude() {
+        let mut e = ContainerJudgmentEngine::new();
+        let diffs = vec![
+            DiffMark { container_id: 1, from_tick: 10, to_tick: 20,
+                       kind: DiffKind::AmplitudeShift, magnitude: 50 },
+            DiffMark { container_id: 2, from_tick: 10, to_tick: 20,
+                       kind: DiffKind::AmplitudeShift, magnitude: 50 },
+        ];
+        let a = e.judge(&diffs);
+        assert!(a.is_empty());  // 等幅被过滤
+    }
+
+    #[test]
+    fn test_judge_skip_same_container() {
+        let mut e = ContainerJudgmentEngine::new();
+        let diffs = vec![
+            DiffMark { container_id: 1, from_tick: 10, to_tick: 20,
+                       kind: DiffKind::AmplitudeShift, magnitude: 80 },
+            DiffMark { container_id: 1, from_tick: 20, to_tick: 30,
+                       kind: DiffKind::AmplitudeShift, magnitude: 20 },
+        ];
+        let a = e.judge(&diffs);
+        // 同容器不同窗口 → 不配对
+        assert!(a.is_empty());
+    }
+
+    #[test]
+    fn test_judge_skip_different_window() {
+        let mut e = ContainerJudgmentEngine::new();
+        let diffs = vec![
+            DiffMark { container_id: 1, from_tick: 10, to_tick: 20,
+                       kind: DiffKind::AmplitudeShift, magnitude: 80 },
+            DiffMark { container_id: 2, from_tick: 20, to_tick: 30,
+                       kind: DiffKind::AmplitudeShift, magnitude: 30 },
+        ];
+        let a = e.judge(&diffs);
+        // 不同窗口 → 不配对
+        assert!(a.is_empty());
+    }
+
+    #[test]
+    fn test_strongest() {
+        let mut e = ContainerJudgmentEngine::new();
+        e.judge(&[
+            DiffMark { container_id: 1, from_tick: 10, to_tick: 20,
+                       kind: DiffKind::AmplitudeShift, magnitude: 100 },
+            DiffMark { container_id: 2, from_tick: 10, to_tick: 20,
+                       kind: DiffKind::AmplitudeShift, magnitude: 30 },
+        ]);
+        e.judge(&[
+            DiffMark { container_id: 3, from_tick: 20, to_tick: 30,
+                       kind: DiffKind::AmplitudeShift, magnitude: 90 },
+            DiffMark { container_id: 4, from_tick: 20, to_tick: 30,
+                       kind: DiffKind::AmplitudeShift, magnitude: 20 },
+        ]);
+        let s = e.strongest().unwrap();
+        // 第一对强度 70, 第二对强度 70 → 取第一个 70 的
+        assert_eq!(s.strength, 70);
+    }
+
+    #[test]
+    fn test_involving() {
+        let mut e = ContainerJudgmentEngine::new();
+        e.judge(&[
+            DiffMark { container_id: 1, from_tick: 10, to_tick: 20,
+                       kind: DiffKind::AmplitudeShift, magnitude: 80 },
+            DiffMark { container_id: 2, from_tick: 10, to_tick: 20,
+                       kind: DiffKind::AmplitudeShift, magnitude: 30 },
+        ]);
+        let inv = e.involving(1);
+        assert_eq!(inv.len(), 1);
+    }
+
+    #[test]
+    fn test_clear() {
+        let mut e = ContainerJudgmentEngine::new();
+        e.judge(&[
+            DiffMark { container_id: 1, from_tick: 10, to_tick: 20,
+                       kind: DiffKind::AmplitudeShift, magnitude: 80 },
+            DiffMark { container_id: 2, from_tick: 10, to_tick: 20,
+                       kind: DiffKind::AmplitudeShift, magnitude: 30 },
+        ]);
+        assert!(e.anchor_count() > 0);
+        e.clear();
+        assert_eq!(e.anchor_count(), 0);
+        assert_eq!(e.windows_judged(), 0);
+    }
+
+    #[test]
+    fn test_default() {
+        let e = ContainerJudgmentEngine::default();
+        assert_eq!(e.anchor_count(), 0);
+        assert_eq!(e.windows_judged(), 0);
+    }
+
+    #[test]
+    fn test_retain() {
+        let mut e = ContainerJudgmentEngine::new();
+        e.judge(&[
+            DiffMark { container_id: 1, from_tick: 10, to_tick: 20,
+                       kind: DiffKind::AmplitudeShift, magnitude: 100 },
+            DiffMark { container_id: 2, from_tick: 10, to_tick: 20,
+                       kind: DiffKind::AmplitudeShift, magnitude: 30 },
+        ]);
+        assert_eq!(e.anchor_count(), 1);
+        e.retain(|a| a.strength > 50);  // 70 满足, 保留
+        assert_eq!(e.anchor_count(), 1);
+    }
+}

@@ -395,7 +395,8 @@ pub mod phase_clock2;
 pub mod witness;
 #[path = "temporal/homophone_route.rs"]
 pub mod homophone_route;
-
+#[path = "temporal/observer_dynamics.rs"]
+pub mod observer_dynamics;
 #[path = "temporal/hierarchical_time.rs"]
 pub mod hierarchical_time;
 pub use hierarchical_time::{HierarchicalTimestamp, LifeEvent, IntegrityReport};
@@ -671,13 +672,12 @@ pub use container_interact::{ContainerPort, InteractionMatch, InteractionEngine,
                             RoutingDirection, RouterEntry, InteractionStats,
                             build_engine, run_cycle};
 
-// ── v0.48 容器字体统一引擎 — 容器=字体=时间 三元统一 ──
-#[path = "encoding/container_font_unify.rs"]
+// ── v0.48 容器=字体=时间 — 汉字几何化身 (满全法: 汉字即容器即编码) ──
+#[path = "core/container_font_unify.rs"]
 pub mod container_font_unify;
-pub use container_font_unify::{ContainerBody, FontBody, TimeBody, Trinity,
-                              StrokeForm, ContainerShape, LifePhase,
-                              UnifyEngine, FontUnifyStats,
-                              trinity_of, is_coherent, unify_batch};
+pub use container_font_unify::{
+    HanziGlyph, GlyphSpace, GlyphField, HanziPolarity,
+};
 
 // ── 对外 re-export ──
 
