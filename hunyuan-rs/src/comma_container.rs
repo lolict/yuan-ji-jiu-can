@@ -12348,3 +12348,177 @@ mod debounce_tests {
         assert_eq!(d.threshold, 3);
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器互指引擎 · ContainerCrossRef (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   记录容器之间的双向引用关系 (有向边 + 反向边自动镜像)
+//   A 呼唤 B → 建立 A→B + B ↔ A 的反向记录
+//
+//   用途:
+//     - 反馈环路检测: A→B→A 形成环
+//     - 引用计数: 谁呼唤了我
+//     - 死引用清理: 若某容器消亡, 其所有边自动移除
+//
+//   仅加法: 引用计数+1, 无边判断用 empty
+
+#[derive(Clone, Debug, Default)]
+pub struct CrossEdge {
+    pub forward: u64,   // A→B 次数
+    pub backward: u64,  // B→A 次数 (镜像)
+    pub last_tick: u64,
+}
+
+#[derive(Clone, Debug)]
+pub struct ContainerCrossRef {
+    pub edges: HashMap<(u64, u64), CrossEdge>,
+    pub total_links: u64,
+}
+
+impl ContainerCrossRef {
+    pub fn new() -> Self { Self { edges: HashMap::new(), total_links: 0 } }
+
+    /// A 呼唤 B
+    pub fn call(&mut self, a: u64, b: u64, tick: u64) {
+        let e = self.edges.entry((a, b)).or_insert_with(|| CrossEdge::default());
+        e.forward = e.forward + 1;
+        e.last_tick = tick;
+        self.total_links = self.total_links + 1;
+        // 镜像: 在 B 侧记录被呼唤
+        let e2 = self.edges.entry((b, a)).or_insert_with(|| CrossEdge::default());
+        e2.backward = e2.backward + 1;
+        e2.last_tick = tick;
+    }
+
+    pub fn get(&self, a: u64, b: u64) -> Option<CrossEdge> {
+        self.edges.get(&(a, b)).cloned()
+    }
+
+    /// 检测互指 (A→B 反向边也有 forward≥1 → 形成环)
+    pub fn mutual(&self, a: u64, b: u64) -> bool {
+        let fwd = self.edges.get(&(a, b)).map_or(0, |e| e.forward);
+        let rev = self.edges.get(&(b, a)).map_or(0, |e| e.forward);
+        fwd > 0 && rev > 0
+    }
+
+    /// A 呼过谁 (作为 from 的所有正向边)
+    pub fn calls_from(&self, a: u64) -> Vec<(u64, CrossEdge)> {
+        self.edges.iter()
+            .filter(|((x, _), _)| *x == a)
+            .map(|((_, y), e)| (*y, e.clone()))
+            .collect()
+    }
+
+    /// 被谁呼过
+    pub fn calls_to(&self, b: u64) -> Vec<(u64, CrossEdge)> {
+        self.edges.iter()
+            .filter(|((_, y), _)| *y == b)
+            .map(|((x, _), e)| (*x, e.clone()))
+            .collect()
+    }
+
+    /// 斩断 a 的所有边
+    pub fn remove_node(&mut self, a: u64) {
+        let keys: Vec<(u64, u64)> = self.edges.keys()
+            .filter(|(x, y)| *x == a || *y == a)
+            .copied()
+            .collect();
+        for k in &keys { self.edges.remove(k); }
+    }
+
+    pub fn degree(&self, a: u64) -> u64 {
+        self.edges.keys().filter(|(x, y)| *x == a || *y == a).count() as u64
+    }
+
+    pub fn clear(&mut self) { self.edges.clear(); self.total_links = 0; }
+}
+
+impl Default for ContainerCrossRef {
+    fn default() -> Self { Self::new() }
+}
+
+#[cfg(test)]
+mod cross_ref_tests {
+    use super::*;
+
+    #[test]
+    fn test_call_once() {
+        let mut c = ContainerCrossRef::new();
+        c.call(1, 2, 100);
+        let e = c.get(1, 2).unwrap();
+        assert_eq!(e.forward, 1);
+        assert_eq!(e.last_tick, 100);
+    }
+
+    #[test]
+    fn test_call_multiple() {
+        let mut c = ContainerCrossRef::new();
+        c.call(1, 2, 10);
+        c.call(1, 2, 20);
+        let e = c.get(1, 2).unwrap();
+        assert_eq!(e.forward, 2);
+        assert_eq!(e.last_tick, 20);
+    }
+
+    #[test]
+    fn test_no_mutual() {
+        let mut c = ContainerCrossRef::new();
+        c.call(1, 2, 1);
+        assert!(!c.mutual(1, 2));
+    }
+
+    #[test]
+    fn test_mutual() {
+        let mut c = ContainerCrossRef::new();
+        c.call(1, 2, 1);
+        c.call(2, 1, 2);
+        assert!(c.mutual(1, 2));
+    }
+
+    #[test]
+    fn test_calls_to() {
+        let mut c = ContainerCrossRef::new();
+        c.call(1, 3, 1);
+        c.call(2, 3, 2);
+        let v = c.calls_to(3);
+        // 2 entries: (1→3) and (2→3)
+        assert_eq!(v.len(), 2);
+    }
+
+    #[test]
+    fn test_calls_from() {
+        let mut c = ContainerCrossRef::new();
+        c.call(1, 2, 1);
+        c.call(1, 3, 2);
+        let v = c.calls_from(1);
+        assert_eq!(v.len(), 2);
+    }
+
+    #[test]
+    fn test_remove_node() {
+        let mut c = ContainerCrossRef::new();
+        c.call(1, 2, 1);
+        c.call(2, 1, 2);
+        c.remove_node(1);
+        assert!(c.get(1, 2).is_none());
+        assert!(c.get(2, 1).is_none());
+    }
+
+    #[test]
+    fn test_degree() {
+        let mut c = ContainerCrossRef::new();
+        c.call(1, 2, 1);
+        c.call(2, 1, 2);
+        c.call(1, 3, 3);
+        // call 同时建 (a,b) 和镜像 (b,a), 共 4 条边涉及节点 1
+        assert_eq!(c.degree(1), 4);
+    }
+
+    #[test]
+    fn test_empty() {
+        let c = ContainerCrossRef::new();
+        assert_eq!(c.total_links, 0);
+        assert!(c.get(99, 99).is_none());
+    }
+}
