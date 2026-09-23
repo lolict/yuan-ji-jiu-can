@@ -334,6 +334,10 @@ pub mod container_composer;
 pub mod distance_perception;
 #[path = "core/fiber_bundle.rs"]  // v0.70 纤维丛引擎 — 局部平凡化·截面·转移函数
 pub mod fiber_bundle;
+#[path = "core/subobject_classifier.rs"]  // v0.71 亚对象分类器 — Topos·三值真值·子对象·拉回
+pub mod subobject_classifier;
+#[path = "core/call_programming.rs"]  // v0.72 呼唤编程引擎 — 呼唤表·协议数调用·观察者·迂回反馈
+pub mod call_programming;
 // ── v0.66 运行环引擎 — 最小OS接口·鼓膜自举·八流心跳·编码在场·结束即开始 ──
 #[path = "core/runtime_loop.rs"]
 pub mod runtime_loop;

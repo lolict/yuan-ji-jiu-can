@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>八流统一 · 模拟器</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:monospace;background:#0a0e15;color:#c0cce0;display:flex;flex-direction:column;height:100vh;overflow:hidden}
+header{background:#10192a;border-bottom:1px solid #1a2a44;display:flex;align-items:center;padding:8px 14px;gap:10px;flex-shrink:0}
+header h1{font-size:13px;color:#a78bfa;white-space:nowrap}
+.stat{font-size:10px;background:rgba(255,255,255,0.04);border:1px solid #1a2a44;border-radius:3px;padding:3px 8px;display:flex;gap:4px}
+.stat .label{color:#456080}
+.stat .val{color:#38bdf8;font-weight:600}
+.btn{background:#1a2a44;border:none;color:#c0cce0;padding:5px 10px;border-radius:3px;cursor:pointer;font-family:inherit;font-size:10px}
+.btn:hover{background:#38bdf8;color:#000}
+.btn.active{background:#34d37f;color:#000;font-weight:600}
+.spacer{flex:1}
+select{background:#0e1422;border:1px solid #1a2a44;color:#c0cce0;font-size:10px;padding:3px;border-radius:3px}
+.content{display:flex;flex:1;overflow:hidden}
+main{flex:1;position:relative;background:#0a0e15}
+canvas{position:absolute;top:0;left:0;width:100%;height:100%;display:block}
+aside{width:260px;flex-shrink:0;background:#0d1422;border-left:1px solid #1a2a44;overflow-y:auto;padding:12px;font-size:10px}
+aside h2{font-size:9px;color:#456080;text-transform:uppercase;letter-spacing:0.1em;margin:12px 0 4px}
+aside h2:first-child{margin-top:0}
+.row{display:flex;justify-content:space-between;padding:2px 0}
+.k{color:#456080}.v{color:#38bdf8;font-weight:600}
+.flowbar{display:flex;align-items:center;gap:6px;margin:3px 0;height:18px}
+.flowbar .name{width:42px;font-size:9px}
+.flowbar .track{flex:1;height:6px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden}
+.flowbar .fill{height:100%;border-radius:3px;transition:width 0.3s}
+.flowbar .count{width:20px;text-align:right;font-size:9px;color:#c0cce0}
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.lg{display:flex;align-items:center;gap:3px;font-size:9px}
+.dot{width:8px;height:8px;border-radius:50%}
+.hint{position:fixed;bottom:8px;left:50%;transform:translateX(-50%);background:rgba(13,20,34,0.85);border:1px solid #1a2a44;border-radius:4px;padding:4px 12px;font-size:9px;color:#456080;pointer-events:none}
+</style>
+</head>
+<body>
+<header>
+  <h1>&#9789; 八流统一模拟器</h1>
+  <div class="stat"><span class="label">tick</span><span class="val" id="sTick">0</span></div>
+  <div class="stat"><span class="label">活跃流</span><span class="val" id="sActive">0</span></div>
+  <div class="stat"><span class="label">hop</span><span class="val" id="sHops">0</span></div>
+  <div class="spacer"></div>
+  <button class="btn" id="btnPlay" onclick="togglePlay()">&#9654; 运行</button>
+  <button class="btn" id="btnAuto" onclick="toggleAuto()">&#9850; 自动发射</button>
+  <select id="speed" onchange="setSpeed(this.value)">
+    <option value="3">0.3x</option><option value="2">0.5x</option><option value="1" selected>1x</option><option value="0.5">2x</option><option value="0.3">3x</option>
+  </select>
+</header>
+
+<div class="content">
+  <main id="canvasWrap"><canvas id="c"></canvas></main>
+  <aside id="panel">
+    <h2>&#9789; 八流通道</h2>
+    <div id="flowBars"></div>
+    <h2>&#9733; 输出</h2>
+    <div class="legend">
+      <div class="lg"><div class="dot" style="background:#8b5cf6"></div>容器族</div>
+      <div class="lg"><div class="dot" style="background:#38bdf8"></div>操作族</div>
+      <div class="lg"><div class="dot" style="background:#34d37f"></div>声母</div>
+      <div class="lg"><div class="dot" style="background:#f472b6"></div>韵母</div>
+    </div>
+    <h2>规则</h2>
+    <div style="line-height:1.6;color:#456080">
+      点击容器 = 发射脉冲<br>
+      脉冲沿六边邻居传播<br>
+      优先级 = 衰减系数<br>
+      源容器 = 各流依次激活<br>
+      共鸣 = 韵/声公约数计算
+    </div>
+    <h2>选中容器</h2>
+    <div id="selInfo"><div style="color:#456080;font-style:italic">点击容器激活</div></div>
+  </aside>
+</div>
+
+<div class="hint">点击容器 &#8594; 发射八流脉冲 &#8594; 沿六角邻居传播</div>
+
+<script>
+var canvas=null,ctx=null,W=800,H=600,DPR=1,wrap=null;
+function init(){
+  canvas=document.getElementById('c');
+  if(!canvas){setTimeout(init,30);return;}
+  wrap=document.getElementById('canvasWrap');
+  ctx=canvas.getContext('2d');
+  DPR=window.devicePixelRatio||1;
+  resize();
+}
+function resize(){
+  if(!canvas)return;
+  var r=wrap.getBoundingClientRect();
+  W=r.width;H=r.height;
+  canvas.width=W*DPR;canvas.height=H*DPR;
+  canvas.style.width=W+'px';canvas.style.height=H+'px';
+  if(ctx)ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+window.addEventListener('resize',resize);
+window.addEventListener('load',function(){setTimeout(resize,30)});
+setTimeout(init,10);
+
+var FLOW_DEFS=[
+  {id:0,n:'预加载',c:'#a78bfa'},
+  {id:1,n:'谐音',c:'#38bdf8'},
+  {id:2,n:'主权',c:'#f59e0b'},
+  {id:3,n:'意识',c:'#8b5cf6'},
+  {id:4,n:'时间',c:'#10b981'},
+  {id:5,n:'产权',c:'#06b6d4'},
+  {id:6,n:'反馈',c:'#f472b6'},
+  {id:7,n:'存在',c:'#22d3ee'},
+];
+var FCOL=FLOW_DEFS.map(function(f){return f.c});
+
+var CN=(function(){
+  var L=[],nm=['袋','照','见','阴','加','分','元','裁','产','公','声','折','负','福','凤','栖',
+    '融','鼓','蚕','民','盟','满','囡','夕','三','六','八','九','零','一','二','四',
+    '桶','罐','盆','盂','壶','盒','瓶','盏','盎','篓','筐','篮','箩','箕','笼','海',
+    '帮','端','精','见2','来','齿','喉','呼','开','清','平','上','前','内','单','长'];
+  var pl=['Yin','Yang','Neutral','Yin','Yang','Neutral','Neutral','Neutral',
+    'Yin','Neutral','Yang','Neutral','Yin','Yin','Yang','Neutral',
+    'Neutral','Yang','Neutral','Yin','Neutral','Neutral','Neutral','Neutral',
+    'Neutral','Yin','Yin','Yang','Yin','Yang','Neutral','Yang',
+    'Yang','Yang','Yang','Yang','Yang','Yang','Yang','Yang',
+    'Neutral','Neutral','Neutral','Neutral','Neutral','Neutral','Neutral','Neutral',
+    'Yin','Yin','Yin','Yin','Yin','Yang','Neutral','Neutral',
+    'Neutral','Neutral','Neutral','Neutral','Neutral','Neutral','Neutral','Yin'];
+  for(var i=0;i<64;i++){
+    var y=((i>>0)&1)+((i>>2)&1)*3+((i>>4)&1)*9;
+    var x=((i>>1)&1)+((i>>3)&1)*3+((i>>5)&1)*9;
+    L.push({code:i,n:nm[i],p:pl[i],f:Math.floor(i/16),cx:x,cy:y});
+  }
+  return L;
+})();
+
+var S=44;
+var CPOS=CN.map(function(c){return {x:(c.cx-4.5)*S, y:(c.cy-4.5)*S}});
+
+function hexD(a,b){
+  var dx=b.cx-a.cx,dy=b.cy-a.cy;
+  return (Math.abs(dx)+Math.abs(dy)+Math.abs(dx+dy))/2;
+}
+
+var pulses=[],fcnt=new Array(8).fill(0);
+var tick=0,running=false,autoFire=false,spf=1;
+var totalHops=0,lastAuto=0,selected=-1;
+
+var camX=0,camY=0,camZ=1,dragging=false,ds={x:0,y:0},hov=-1;
+
+function findAt(fx,fy){
+  var best=-1,bd=0.5;
+  for(var i=0;i<64;i++){
+    var d=Math.hypot(CPOS[i].x-fx,CPOS[i].y-fy);
+    if(d<bd){bd=d;best=i;}
+  }
+  return best;
+}
+
+function neighbors(idx){
+  var c=CN[idx],R=[];
+  for(var j=0;j<64;j++){
+    if(j!==idx&&hexD(c,CN[j])===1&&Math.floor(j/16)===Math.floor(idx/16))R.push(j);
+  }
+  return R;
+}
+
+function emitFrom(idx){
+  selected=idx;
+  var cp=CPOS[idx];
+  for(var fi=0;fi<8;fi++){
+    var en=1.0-fi*0.07;
+    pulses.push({fx:cp.x,fy:cp.y,flow:fi,energy:en,born:performance.now(),age:0,hop:0,targetIdx:-1,sparked:false});
+    fcnt[fi]++;
+  }
+  updateSel(idx);
+}
+
+function updateSel(idx){
+  var c=CN[idx];
+  var fn=['容器族','操作族','声母容器','韵母容器'][c.f];
+  document.getElementById('selInfo').innerHTML='<div class="row"><span class="k">'+c.n+'</span><span class="v">'+fn+'</span></div><div class="row"><span class="k">编码</span><span class="v">0x'+c.code.toString(16).toUpperCase().padStart(2,'0')+'</span></div><div class="row"><span class="k">极性</span><span class="v">'+c.p+'</span></div><div class="row"><span class="k">坐标</span><span class="v">('+c.cx+','+c.cy+')</span></div>';
+}
+
+var lastT=performance.now();
+function draw(ts){
+  if(!canvas||W<10){requestAnimationFrame(draw);return;}
+  sizeCanvas();
+  var dt=(ts-lastT)*spf;
+  lastT=ts;
+  if(running)tick+=dt*0.01;
+  ctx.clearRect(0,0,W,H);
+
+  // BG
+  var bg=ctx.createRadialGradient(W/2+camX,H/2+camY,0,W/2+camX,H/2+camY,Math.max(W,H)*0.65);
+  bg.addColorStop(0,'#10192a');bg.addColorStop(1,'#060a10');
+  ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+
+  // DEBUG RECT
+  ctx.fillStyle='rgba(255,80,80,1)';
+  ctx.fillRect(W*0.35,H*0.35,W*0.3,H*0.3);
+
+  // Links
+  ctx.lineWidth=0.7;
+  for(var i=0;i<64;i++){
+    var nb=neighbors(i);
+    for(var k=0;k<nb.length;k++){
+      var j=nb[k];if(j<=i)continue;
+      var ax=W/2+camX+CPOS[i].x*camZ,ay=H/2+camY+CPOS[i].y*camZ;
+      var bx=W/2+camX+CPOS[j].x*camZ,by=H/2+camY+CPOS[j].y*camZ;
+      ctx.strokeStyle='rgba(60,90,130,0.3)';
+      ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(bx,by);ctx.stroke();
+    }
+  }
+
+  // Pulses
+  var now=performance.now(),actCt=0;
+  for(var i=pulses.length-1;i>=0;i--){
+    var p=pulses[i];p.age=now-p.born;
+    var life=1500+p.flow*300;
+    if(p.age>life){pulses.splice(i,1);continue;}
+    actCt++;
+    if(p.targetIdx<0||(p.age-p.hop*250>250)){
+      var ci=findAt(p.fx,p.fy);
+      if(ci>=0){var nb2=neighbors(ci);if(nb2.length>0){p.targetIdx=nb2[Math.floor(Math.random()*nb2.length)];p.hop++;totalHops++;}}
+    }
+    var t=Math.min(1,(p.age-(p.hop-1)*250)/250);
+    if(p.targetIdx>=0){
+      var ci2=findAt(p.fx,p.fy);
+      var cx2=p.fx,cy2=p.fy;
+      if(ci2>=0){cx2=CPOS[ci2].x;cy2=CPOS[ci2].y;}
+      var tp=CPOS[p.targetIdx];
+      p.fx=cx2+(tp.x-cx2)*t;p.fy=cy2+(tp.y-cy2)*t;
+    }
+    var px=W/2+camX+p.fx*camZ,py=H/2+camY+p.fy*camZ;
+    var alpha=(1-p.age/life)*p.energy;
+    var pr=(3+p.energy*4)*camZ;
+    var col=FCOL[p.flow];
+    var g=ctx.createRadialGradient(px,py,0,px,py,pr*2.5);
+    g.addColorStop(0,col+'aa');g.addColorStop(1,col+'00');
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(px,py,pr*2.5,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=col;ctx.globalAlpha=alpha;
+    ctx.beginPath();ctx.arc(px,py,pr,0,Math.PI*2);ctx.fill();
+    ctx.globalAlpha=1;
+    if(p.targetIdx>=0&&t>0.4&&!p.sparked){
+      p.sparked=true;
+      if(Math.random()<0.3){
+        var n3=neighbors(p.targetIdx);
+        if(n3.length>0){
+          var al=n3[Math.floor(Math.random()*n3.length)];
+          pulses.push({fx:p.fx,fy:p.fy,flow:p.flow,energy:p.energy*0.55,born:now,age:0,hop:p.hop,targetIdx:al,sparked:false});
+          fcnt[p.flow]++;
+        }
+      }
+    }
+    if(t>=0.95){p.targetIdx=-1;p.sparked=false;}
+  }
+
+  // Auto-fire
+  if(autoFire&&now-lastAuto>800){
+    lastAuto=now;emitFrom(Math.floor(Math.random()*64));
+  }
+
+  // Container nodes
+  var fm=['#8b5cf6','#38bdf8','#34d37f','#f472b6'];
+  var polC={Yin:'#ec4899',Yang:'#60a5fa',Neutral:'#35d07f'};
+  for(var i=0;i<64;i++){
+    var cx=W/2+camX+CPOS[i].x*camZ;
+    var cy=H/2+camY+CPOS[i].y*camZ;
+    var isH=(hov===i),isS=(selected===i);
+    var isD=(selected.length!==undefined&&selected>=0&&!isS);
+    var nr=12*camZ;
+    if(isH||isS)nr=14*camZ;
+
+    // Near glow
+    var nfl=-1,ne=0;
+    for(var pi=0;pi<pulses.length;pi++){
+      var pp=pulses[pi];
+      if(Math.hypot(pp.fx-CPOS[i].x,pp.fy-CPOS[i].y)<0.6){
+        if(pp.energy>ne){ne=pp.energy;nfl=pp.flow;}
+      }
+    }
+    if(nfl>=0){
+      var gg=ctx.createRadialGradient(cx,cy,0,cx,cy,nr*2.8);
+      gg.addColorStop(0,FCOL[nfl]+'55');gg.addColorStop(1,FCOL[nfl]+'00');
+      ctx.fillStyle=gg;ctx.beginPath();ctx.arc(cx,cy,nr*2.8,0,Math.PI*2);ctx.fill();
+      nr=(12+ne*5)*camZ;
+    }
+
+    ctx.fillStyle=isS?'#ffffff':fm[CN[i].f];
+    if(ctx.globalAlpha!==undefined&&selected>=0&&!isS)ctx.globalAlpha=0.4;
+    ctx.beginPath();ctx.arc(cx,cy,nr,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle=isS?'#fff':'rgba(0,0,0,0.5)';
+    ctx.lineWidth=isS?1.5:0.6;ctx.stroke();
+    ctx.globalAlpha=1;
+
+    // polarity center
+    ctx.fillStyle=polC[CN[i].p];
+    ctx.beginPath();ctx.arc(cx,cy,nr*0.32,0,Math.PI*2);ctx.fill();
+
+    // name
+    if(camZ>0.5){
+      ctx.fillStyle='#fff';
+      ctx.font='bold '+Math.round(10*camZ)+'px monospace';
+      ctx.textAlign='center';
+      ctx.fillText(CN[i].n,cx,cy-nr-4);
+    }
+  }
+
+  document.getElementById('sTick').textContent=Math.floor(tick);
+  document.getElementById('sActive').textContent=actCt;
+  document.getElementById('sHops').textContent=totalHops;
+  updateFlowBars(actCt);
+  requestAnimationFrame(draw);
+}
+
+function updateFlowBars(ac){
+  var mx=1;for(var i=0;i<8;i++)if(fcnt[i]>mx)mx=fcnt[i];
+  var h='';
+  for(var fi=0;fi<8;fi++){
+    var pct=(fcnt[fi]/mx)*100;
+    h+='<div class="flowbar"><div class="name" style="color:'+FCOL[fi]+'">'+FLOW_DEFS[fi].n+'</div><div class="track"><div class="fill" style="width:'+pct+'%;background:'+FCOL[fi]+'"></div></div><div class="count">'+fcnt[fi]+'</div></div>';
+    if(Math.random()<0.08)fcnt[fi]=Math.max(0,fcnt[fi]-1);
+  }
+  document.getElementById('flowBars').innerHTML=h;
+}
+
+canvas.addEventListener('mousedown',function(e){dragging=true;ds={x:e.clientX-camX,y:e.clientY-camY};});
+canvas.addEventListener('mousemove',function(e){
+  if(dragging){camX=e.clientX-ds.x;camY=e.clientY-ds.y;}
+  else{
+    var mx=(e.clientX - canvas.getBoundingClientRect().left - W/2 - camX)/camZ;
+    var my=(e.clientY - canvas.getBoundingClientRect().top - H/2 - camY)/camZ;
+    var best=-1,bd=16*camZ;
+    for(var i=0;i<64;i++){
+      var d=Math.hypot(mx-CPOS[i].x,my-CPOS[i].y);
+      if(d<bd){bd=d;best=i;}
+    }
+    hov=best;canvas.style.cursor=best>=0?'pointer':'default';
+  }
+});
+canvas.addEventListener('mouseup',function(e){
+  if(dragging&&Math.abs(e.clientX-ds.x-camX)<3&&Math.abs(e.clientY-ds.y-camY)<3&&hov>=0)emitFrom(hov);
+  dragging=false;
+});
+canvas.addEventListener('mouseleave',function(){dragging=false;hov=-1;});
+canvas.addEventListener('wheel',function(e){camZ*=e.deltaY>0?0.93:1.07;camZ=Math.max(0.5,Math.min(2.5,camZ));});
+
+function togglePlay(){running=!running;var b=document.getElementById('btnPlay');b.classList.toggle('active',running);b.innerHTML=running?'&#10073;&#10073; 暂停':'&#9654; 运行';}
+function toggleAuto(){autoFire=!autoFire;document.getElementById('btnAuto').classList.toggle('active',autoFire);}
+function setSpeed(v){spf=parseFloat(v);}
+
+// Start
+emitFrom(0);emitFrom(21);
+setTimeout(function(){emitFrom(42);emitFrom(63);},500);
+setInterval(function(){emitFrom(Math.floor(Math.random()*64));},5000);
+requestAnimationFrame(draw);
+</script>
+</body>
+</html>
