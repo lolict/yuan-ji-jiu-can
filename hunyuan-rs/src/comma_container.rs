@@ -8208,3 +8208,572 @@ mod container_memory_tests {
         assert_eq!(engine.current_tick, 0);
     }
 }
+
+// ══════════════════════════════════════════════════════════════════════
+// 公约数编程引擎 · CommonDivisorEngine (v1.0)
+// ══════════════════════════════════════════════════════════════════════
+//
+//   公约数 = 统摄收敛之力 (优先级 0, 八流之首)
+//   公约数编程 = 寻找容器间的公共因子, 以加法统摄剩余存在
+//   "以加法统计法统摄剩余存在以摆脱幂次二进制扩张"
+//
+//   核心操作:
+//     - uclid_gcd(a,b) — 欧几里得辗转相除求最大公因数
+//     - converge()     — 将多容器收敛到一个公共值
+//     - unify()        — 统摄剩余: 合并所有容器的公共因子
+//     - factorize()    — 将容器值分解为公约数×余数
+//     - coprime()      — 判定互质 (无公共因子=需要分别器介入)
+//     - lcm()          — 最小公倍数 (另一种统摄: 扩展收敛)
+//
+//   NJSG 哲学: 公约数是夫妻关系的最小表达 (两人共有的"1")
+//   幂次扩张 = 冲突分离 (2^n); 加法统摄 = 共生收敛 (sum)
+
+/// 公因数关系类型
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum GcdRelation {
+    Divides,    // a 整除 b
+    Multiple,   // a 是 b 的倍数
+    Coprime,    // 互质 (gcd=1, 需分别器介入)
+    Equal,      // 完全相等 (同一容器)
+}
+
+impl GcdRelation {
+    /// 两值之间的关系
+    pub fn classify(a: u64, b: u64) -> Self {
+        if a == b { return Self::Equal; }
+        let g = euclid_gcd(a.max(b), a.min(b));
+        if g == 1 { Self::Coprime }
+        else if a > b && a % b == 0 { Self::Multiple }
+        else { Self::Divides }
+    }
+
+    /// 是否可公约 (非互质)
+    pub fn is_reducible(&self) -> bool { !matches!(self, Self::Coprime) }
+}
+
+/// 收敛点 — 多容器共享的公共值
+#[derive(Clone, Debug)]
+pub struct ConvergencePoint {
+    pub common_value: u64,      // 公共值 (gcd)
+    pub participants: Vec<u32>,  // 参与容器 id
+    pub residual_sum: u64,      // 余数之和 (加法统摄剩余)
+}
+
+impl ConvergencePoint {
+    pub fn new(value: u64) -> Self {
+        Self { common_value: value, participants: Vec::new(), residual_sum: 0 }
+    }
+
+    /// 统摄率 = 公共值 / (公共值 + 余数和)
+    pub fn unity_ratio(&self) -> f64 {
+        let total = self.common_value + self.residual_sum;
+        if total == 0 { 1.0 } else { self.common_value as f64 / total as f64 }
+    }
+}
+
+/// 欧几里得辗转相除 (求最大公因数)
+pub fn euclid_gcd(mut a: u64, mut b: u64) -> u64 {
+    while b != 0 {
+        let t = b;
+        b = a % b;
+        a = t;
+    }
+    a
+}
+
+/// 最小公倍数 (防溢出: a / gcd * b)
+pub fn euclid_lcm(a: u64, b: u64) -> u64 {
+    if a == 0 || b == 0 { return 0; }
+    let g = euclid_gcd(a.max(b), a.min(b));
+    a / g * b
+}
+
+/// 公约数编程引擎
+#[derive(Clone, Debug)]
+pub struct CommonDivisorRuntime {
+    /// 容器值表
+    pub values: HashMap<u32, u64>,
+    /// 已发现的收敛点
+    pub convergences: Vec<ConvergencePoint>,
+    /// 是否自动统摄剩余
+    pub auto_unify: bool,
+}
+
+impl CommonDivisorRuntime {
+    pub fn new() -> Self {
+        Self { values: HashMap::new(), convergences: Vec::new(), auto_unify: true }
+    }
+
+    /// 注册容器值
+    pub fn register(&mut self, id: u32, value: u64) {
+        self.values.insert(id, value);
+    }
+
+    /// 获取容器值
+    pub fn get_value(&self, id: u32) -> Option<u64> {
+        self.values.get(&id).copied()
+    }
+
+    /// 两容器间的关系
+    pub fn relation(&self, id_a: u32, id_b: u32) -> Option<GcdRelation> {
+        let a = self.values.get(&id_a)?;
+        let b = self.values.get(&id_b)?;
+        Some(GcdRelation::classify(*a, *b))
+    }
+
+    /// 求多容器的公共收敛值 (所有值的最大公因数)
+    pub fn converge_ids(&self, ids: &[u32]) -> Option<u64> {
+        if ids.is_empty() { return None; }
+        let mut vals = ids.iter().filter_map(|id| self.values.get(id));
+        let first = *vals.next()?;
+        Some(vals.fold(first, |acc, &v| euclid_gcd(acc.max(v), acc.min(v))))
+    }
+
+    /// 分解: value = gcd × quotient + residual
+    pub fn factorize(&self, id: u32, with: u64) -> Option<(u64, u64)> {
+        let &val = self.values.get(&id)?;
+        let g = euclid_gcd(val.max(with), val.min(with));
+        Some((g, val / g))
+    }
+
+    /// 寻找所有可公约容器对
+    pub fn find_reducible_pairs(&self) -> Vec<(u32, u32, u64)> {
+        let ids: Vec<u32> = self.values.keys().copied().collect();
+        let mut pairs = Vec::new();
+        for i in 0..ids.len() {
+            for j in (i + 1)..ids.len() {
+                let a = self.values[&ids[i]];
+                let b = self.values[&ids[j]];
+                let g = euclid_gcd(a.max(b), a.min(b));
+                if g > 1 { pairs.push((ids[i], ids[j], g)); }
+            }
+        }
+        pairs
+    }
+
+    /// 统摄所有容器: 计算总 gcd 并累加余数
+    pub fn unify_all(&mut self) -> Option<ConvergencePoint> {
+        if self.values.is_empty() { return None; }
+        let ids: Vec<u32> = self.values.keys().copied().collect();
+        let common = self.converge_ids(&ids)?;
+        let total: u64 = ids.iter().filter_map(|id| self.values.get(id)).sum();
+        let residual = total.saturating_sub(common * ids.len() as u64);
+        let cp = ConvergencePoint { common_value: common, participants: ids, residual_sum: residual };
+        if self.auto_unify { self.convergences.push(cp.clone()); }
+        Some(cp)
+    }
+
+    /// 加法统摄剩余: 将所有余数归一到公共值
+    pub fn absorb_residuals(&mut self) -> u64 {
+        let mut total = 0u64;
+        for val in self.values.values() {
+            total = total.wrapping_add(*val);
+        }
+        total
+    }
+
+    /// 互质判定 (gcd=1)
+    pub fn is_coprime(&self, id_a: u32, id_b: u32) -> bool {
+        matches!(self.relation(id_a, id_b), Some(GcdRelation::Coprime))
+    }
+
+    /// 计算最小公倍数统摄 (扩展收敛)
+    pub fn lcm_unify(&self, ids: &[u32]) -> Option<u64> {
+        if ids.is_empty() { return None; }
+        let mut vals = ids.iter().filter_map(|id| self.values.get(id));
+        let first = *vals.next()?;
+        Some(vals.fold(first, |acc, &v| euclid_lcm(acc, v)))
+    }
+
+    /// 八流统一总协定: 求所有容器的加法统摄值
+    pub fn grand_unification(&self) -> u64 {
+        self.values.values().copied().fold(0u64, u64::wrapping_add)
+    }
+
+    /// 重置
+    pub fn clear(&mut self) {
+        self.values.clear();
+        self.convergences.clear();
+    }
+
+    /// 容器数
+    pub fn len(&self) -> usize { self.values.len() }
+    pub fn is_empty(&self) -> bool { self.values.is_empty() }
+}
+
+impl Default for CommonDivisorRuntime { fn default() -> Self { Self::new() } }
+
+#[cfg(test)]
+mod gcd_tests {
+    use super::*;
+    #[test] fn test_euclid_gcd_basic() {
+        assert_eq!(euclid_gcd(12, 8), 4);
+        assert_eq!(euclid_gcd(17, 13), 1);
+        assert_eq!(euclid_gcd(100, 25), 25);
+        assert_eq!(euclid_gcd(0, 5), 5);
+        assert_eq!(euclid_gcd(7, 0), 7);
+    }
+    #[test] fn test_euclid_lcm_basic() {
+        assert_eq!(euclid_lcm(4, 6), 12);
+        assert_eq!(euclid_lcm(3, 5), 15);
+        assert_eq!(euclid_lcm(0, 5), 0);
+    }
+    #[test] fn test_relation_equal() {
+        assert_eq!(GcdRelation::classify(10, 10), GcdRelation::Equal);
+    }
+    #[test] fn test_relation_coprime() {
+        assert_eq!(GcdRelation::classify(17, 13), GcdRelation::Coprime);
+    }
+    #[test] fn test_relation_multiple() {
+        assert_eq!(GcdRelation::classify(12, 4), GcdRelation::Multiple);
+    }
+    #[test] fn test_convergence_point() {
+        let mut cp = ConvergencePoint::new(5);
+        cp.participants.push(1);
+        cp.participants.push(2);
+        cp.residual_sum = 3;
+        assert!((cp.unity_ratio() - (5.0 / 8.0)).abs() < 0.001);
+    }
+    #[test] fn test_engine_register() {
+        let mut e = CommonDivisorRuntime::new();
+        e.register(1, 12);
+        e.register(2, 18);
+        assert_eq!(e.len(), 2);
+    }
+    #[test] fn test_engine_converge() {
+        let mut e = CommonDivisorRuntime::new();
+        e.register(1, 12);
+        e.register(2, 18);
+        e.register(3, 24);
+        let g = e.converge_ids(&[1, 2, 3]);
+        assert_eq!(g, Some(6));
+    }
+    #[test] fn test_engine_factorize() {
+        let mut e = CommonDivisorRuntime::new();
+        e.register(1, 12);
+        let (g, q) = e.factorize(1, 18).unwrap();
+        assert_eq!(g, 6); // gcd(12,18)=6
+        assert_eq!(q, 2); // 12/6=2
+    }
+    #[test] fn test_find_reducible_pairs() {
+        let mut e = CommonDivisorRuntime::new();
+        e.register(1, 12);
+        e.register(2, 18);
+        e.register(3, 7); // 与 12,18 互质
+        let pairs = e.find_reducible_pairs();
+        // 只有 (1,2) 可约 (gcd=6)
+        assert_eq!(pairs.len(), 1);
+        assert_eq!(pairs[0].2, 6);
+    }
+    #[test] fn test_unify_all() {
+        let mut e = CommonDivisorRuntime::new();
+        e.register(1, 12);
+        e.register(2, 18);
+        let cp = e.unify_all().unwrap();
+        assert_eq!(cp.common_value, 6);
+        assert_eq!(cp.participants.len(), 2);
+    }
+    #[test] fn test_absorb_residuals() {
+        let mut e = CommonDivisorRuntime::new();
+        e.register(1, 100);
+        e.register(2, 200);
+        assert_eq!(e.absorb_residuals(), 300);
+    }
+    #[test] fn test_is_coprime() {
+        let mut e = CommonDivisorRuntime::new();
+        e.register(1, 17);
+        e.register(2, 13);
+        assert!(e.is_coprime(1, 2));
+        e.register(3, 34); // 17*2, 与 17 不互质
+        assert!(!e.is_coprime(1, 3));
+    }
+    #[test] fn test_grand_unification() {
+        let mut e = CommonDivisorRuntime::new();
+        e.register(1, 10);
+        e.register(2, 20);
+        e.register(3, 30);
+        assert_eq!(e.grand_unification(), 60);
+    }
+    #[test] fn test_lcm_unify() {
+        let mut e = CommonDivisorRuntime::new();
+        e.register(1, 4);
+        e.register(2, 6);
+        let l = e.lcm_unify(&[1, 2]);
+        assert_eq!(l, Some(12));
+    }
+    #[test] fn test_engine_default() {
+        let e = CommonDivisorRuntime::default();
+        assert!(e.is_empty());
+    }
+    #[test] fn test_relation_is_reducible() {
+        assert!(GcdRelation::Equal.is_reducible());
+        assert!(GcdRelation::Divides.is_reducible());
+        assert!(GcdRelation::Multiple.is_reducible());
+        assert!(!GcdRelation::Coprime.is_reducible());
+    }
+    #[test] fn test_clear() {
+        let mut e = CommonDivisorRuntime::new();
+        e.register(1, 100);
+        assert_eq!(e.len(), 1);
+        e.clear();
+        assert!(e.is_empty());
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器共鸣引擎 · ContainerResonanceEngine
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// 公约数共振: 容器的频率在公约数处共鸣
+// 谐波放大: 共鸣强度通过累加放大
+// 共鸣仓: 互相共鸣的容器组成的共振腔
+
+/// 共鸣容器
+#[derive(Clone, Debug)]
+pub struct ResonantNode {
+    pub container_id: u64,
+    pub frequency: u64,    // 基频
+    pub amplitude: u64,    // 振幅 (共鸣强度, 加法累计)
+}
+
+impl ResonantNode {
+    pub fn new(id: u64, freq: u64) -> Self { Self { container_id: id, frequency: freq, amplitude: 0 } }
+}
+
+/// 共鸣仓: 一组互相共鸣的容器
+#[derive(Clone, Debug)]
+pub struct ResonantChamber {
+    pub base_frequency: u64,     // 基频 (所有成员的 GCD)
+    pub member_ids: Vec<u64>,
+    pub collective_amplitude: u64, // 仓内总振幅
+}
+
+/// 容器共鸣引擎
+#[derive(Clone, Debug, Default)]
+pub struct ContainerResonanceEngine {
+    pub nodes: Vec<ResonantNode>,
+    pub threshold: u64,  // 共鸣阈值 (GCD 必须超过此值)
+}
+
+impl ContainerResonanceEngine {
+    pub fn new() -> Self { Self { nodes: Vec::new(), threshold: 1 } }
+
+    /// 注册共振节点
+    pub fn register(&mut self, id: u64, frequency: u64) -> usize {
+        self.nodes.push(ResonantNode::new(id, frequency));
+        self.nodes.len() - 1
+    }
+
+    /// 仅加法 GCD
+    fn gcd_subtract(a: u64, b: u64) -> u64 {
+        let mut x = a;
+        let mut y = b;
+        while x != y { if x > y { x -= y; } else { y -= x; } }
+        x
+    }
+
+    /// 两节点共鸣检测: GCD > threshold
+    pub fn is_resonant(&self, a_id: u64, b_id: u64) -> bool {
+        let a = match self.nodes.iter().find(|n| n.container_id == a_id) { Some(n) => n, None => return false };
+        let b = match self.nodes.iter().find(|n| n.container_id == b_id) { Some(n) => n, None => return false };
+        Self::gcd_subtract(a.frequency, b.frequency) > self.threshold
+    }
+
+    /// 两节点共鸣强度 = GCD
+    pub fn resonance_strength(&self, a_id: u64, b_id: u64) -> u64 {
+        let a = match self.nodes.iter().find(|n| n.container_id == a_id) { Some(n) => n, None => return 0 };
+        let b = match self.nodes.iter().find(|n| n.container_id == b_id) { Some(n) => n, None => return 0 };
+        Self::gcd_subtract(a.frequency, b.frequency)
+    }
+
+    /// 谐波放大: 节点振幅增量 = 共鸣强度
+    pub fn amplify(&mut self, target_id: u64, partner_ids: &[u64]) -> u64 {
+        let target = match self.nodes.iter().find(|n| n.container_id == target_id) { Some(n) => n.clone(), None => return 0 };
+        let mut total_amplified = 0;
+        for partner_id in partner_ids {
+            if *partner_id == target_id { continue; }
+            let partner = match self.nodes.iter().find(|n| n.container_id == *partner_id) { Some(n) => n, None => { continue; } };
+            let g = Self::gcd_subtract(target.frequency, partner.frequency);
+            if g > self.threshold {
+                if let Some(idx) = self.nodes.iter().position(|n| n.container_id == target_id) {
+                    self.nodes[idx].amplitude = self.nodes[idx].amplitude.wrapping_add(g);
+                    total_amplified = total_amplified.wrapping_add(g);
+                }
+            }
+        }
+        total_amplified
+    }
+
+    /// 寻找所有共鸣对
+    pub fn find_all_resonant_pairs(&self) -> Vec<(u64, u64, u64)> {
+        let mut pairs = Vec::new();
+        for i in 0..self.nodes.len() {
+            for j in (i + 1)..self.nodes.len() {
+                let g = Self::gcd_subtract(self.nodes[i].frequency, self.nodes[j].frequency);
+                if g > self.threshold {
+                    pairs.push((self.nodes[i].container_id, self.nodes[j].container_id, g));
+                }
+            }
+        }
+        pairs
+    }
+
+    /// 构建共鸣仓: 找出最大连通共鸣组
+    pub fn build_chambers(&self) -> Vec<ResonantChamber> {
+        let pairs = self.find_all_resonant_pairs();
+        if pairs.is_empty() { return Vec::new(); }
+
+        // 简单聚类: 共享节点的对合并为同一仓
+        let mut chambers: Vec<ResonantChamber> = Vec::new();
+        for (a, b, strength) in &pairs {
+            let mut merged = false;
+            for chamber in &mut chambers {
+                if chamber.member_ids.contains(a) || chamber.member_ids.contains(b) {
+                    if !chamber.member_ids.contains(a) { chamber.member_ids.push(*a); }
+                    if !chamber.member_ids.contains(b) { chamber.member_ids.push(*b); }
+                    chamber.collective_amplitude = chamber.collective_amplitude.wrapping_add(*strength);
+                    merged = true;
+                    break;
+                }
+            }
+            if !merged {
+                let mut base = *strength;
+                // 重新计算基频为仓内所有成员频率的 GCD
+                let member_freqs: Vec<u64> = self.nodes.iter()
+                    .filter(|n| n.container_id == *a || n.container_id == *b)
+                    .map(|n| n.frequency)
+                    .collect();
+                for &f in &member_freqs { base = Self::gcd_subtract(base.max(f), base.min(f)); }
+                chambers.push(ResonantChamber { base_frequency: base, member_ids: vec![*a, *b], collective_amplitude: *strength });
+            }
+        }
+        chambers
+    }
+
+    /// 总节点数
+    pub fn node_count(&self) -> usize { self.nodes.len() }
+
+    /// 最大振幅节点
+    pub fn loudest(&self) -> Option<u64> {
+        self.nodes.iter().max_by_key(|n| n.amplitude).map(|n| n.container_id)
+    }
+}
+
+#[cfg(test)]
+mod container_resonance_tests {
+    use super::*;
+
+    #[test]
+    fn test_register_node() {
+        let mut engine = ContainerResonanceEngine::new();
+        engine.register(1, 12);
+        assert_eq!(engine.node_count(), 1);
+        assert_eq!(engine.nodes[0].frequency, 12);
+    }
+
+    #[test]
+    fn test_resonance_true() {
+        let mut engine = ContainerResonanceEngine::new();
+        engine.threshold = 1;
+        engine.register(1, 12);
+        engine.register(2, 8);
+        // gcd(12,8)=4 > 1 → resonant
+        assert!(engine.is_resonant(1, 2));
+    }
+
+    #[test]
+    fn test_resonance_false() {
+        let mut engine = ContainerResonanceEngine::new();
+        engine.threshold = 1;
+        engine.register(1, 7);
+        engine.register(2, 11);
+        // gcd(7,11)=1 not > 1 → not resonant
+        assert!(!engine.is_resonant(1, 2));
+    }
+
+    #[test]
+    fn test_resonance_strength() {
+        let mut engine = ContainerResonanceEngine::new();
+        engine.register(1, 32);
+        engine.register(2, 64);
+        assert_eq!(engine.resonance_strength(1, 2), 32);
+    }
+
+    #[test]
+    fn test_amplify() {
+        let mut engine = ContainerResonanceEngine::new();
+        engine.threshold = 1;
+        engine.register(1, 12); // target
+        engine.register(2, 8);  // gcd=4
+        engine.register(3, 16); // gcd=4
+        engine.register(4, 7);  // gcd=1 (no contribution)
+        let amplified = engine.amplify(1, &[2, 3, 4]);
+        // amplify: 4 (from node 2) + 4 (from node 3) + 0 (node 4 below threshold) = 8
+        assert_eq!(amplified, 8);
+        assert_eq!(engine.nodes[0].amplitude, 8);
+    }
+
+    #[test]
+    fn test_find_all_resonant_pairs() {
+        let mut engine = ContainerResonanceEngine::new();
+        engine.threshold = 1;
+        engine.register(1, 12);
+        engine.register(2, 8);  // gcd(12,8)=4 ✓
+        engine.register(3, 5);  // gcd(12,5)=1 ✗, gcd(8,5)=1 ✗
+        let pairs = engine.find_all_resonant_pairs();
+        assert_eq!(pairs.len(), 1);
+        assert_eq!(pairs[0], (1, 2, 4));
+    }
+
+    #[test]
+    fn test_build_chambers() {
+        let mut engine = ContainerResonanceEngine::new();
+        engine.threshold = 1;
+        engine.register(1, 12);
+        engine.register(2, 18); // gcd(12,18)=6 ✓
+        engine.register(3, 30); // gcd(18,30)=6 ✓
+        let chambers = engine.build_chambers();
+        assert_eq!(chambers.len(), 1);
+        assert!(chambers[0].member_ids.contains(&1));
+        assert!(chambers[0].member_ids.contains(&2));
+        assert!(chambers[0].member_ids.contains(&3));
+    }
+
+    #[test]
+    fn test_isolate_chambers() {
+        let mut engine = ContainerResonanceEngine::new();
+        engine.threshold = 1;
+        // group 1: 12,18 (gcd=6)
+        engine.register(1, 12);
+        engine.register(2, 18);
+        // group 2: 35,49 (gcd=7), but gcd with group1 < threshold
+        engine.register(3, 35);
+        engine.register(4, 49);
+        let chambers = engine.build_chambers();
+        assert_eq!(chambers.len(), 2);
+    }
+
+    #[test]
+    fn test_loudest() {
+        let mut engine = ContainerResonanceEngine::new();
+        engine.threshold = 1;
+        engine.register(1, 100);
+        engine.register(2, 200);
+        engine.register(3, 300);
+        engine.amplify(2, &[1, 3]); // 100 from 1, 100 from 3 = 200
+        assert_eq!(engine.loudest(), Some(2));
+    }
+
+    #[test]
+    fn test_no_resonance_unknown() {
+        let engine = ContainerResonanceEngine::new();
+        assert_eq!(engine.resonance_strength(99, 100), 0);
+        assert!(!engine.is_resonant(99, 100));
+    }
+
+    #[test]
+    fn test_default() {
+        let engine = ContainerResonanceEngine::default();
+        assert_eq!(engine.node_count(), 0);
+    }
+}
