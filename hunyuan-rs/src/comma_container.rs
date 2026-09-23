@@ -10343,3 +10343,228 @@ mod witness_tests {
         assert_eq!(e.events.len(), 0);
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 逻辑组织引擎 · ContainerLogicEngine (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+//   逻辑组织 (Logic Organization) — 囡囝感知四阶 · 逻辑路径涌现
+//   「评价结果积累到临界点，自组织形成逻辑路径」
+//
+//   机制:
+//     - 接收 ContainerAgencyEngine 的行动指令流
+//     - 将多个 ActionDirective 连接为 LogicPath (逻辑路径)
+//     - path 优先级 = 所有指令的 priority 之和 (加法累积)
+//     - path 仅在总优先级 >= threshold 时才激活
+//
+//   这是「生态而非规则引擎」原则的具体体现:
+//     评价 (Evaluation) → 行动指令 (ActionDirective) → 路径涌现 (LogicPath)
+//
+//   仅加法范式: 路径优先级全部加法累积, 无乘除
+
+/// 逻辑路径 — 一连串行动指令组成的链条
+#[derive(Clone, Debug)]
+pub struct LogicPath {
+    pub id: u64,
+    pub directive_indices: Vec<usize>,  // 指向 ActionDirective 的索引
+    pub total_priority: u64,            // 路径优先级 (加法累积)
+    pub activated: bool,                // 是否已激活
+}
+
+/// 逻辑组织引擎
+#[derive(Clone, Debug)]
+pub struct ContainerLogicEngine {
+    /// 已构建的逻辑路径
+    pub paths: Vec<LogicPath>,
+    /// 激活阈值 (加法比较)
+    pub activate_threshold: u64,
+    /// 当前路径 id 计数器
+    pub next_id: u64,
+    /// 已激活路径数
+    pub active_count: u64,
+}
+
+impl ContainerLogicEngine {
+    pub fn new() -> Self {
+        Self {
+            paths: Vec::new(),
+            activate_threshold: 100,
+            next_id: 1,
+            active_count: 0,
+        }
+    }
+
+    /// 从一批行动指令中涌现逻辑路径 (仅加法)
+    pub fn organize(&mut self, directives: &[ActionDirective]) -> u64 {
+        if directives.is_empty() { return 0; }
+        // 仅把 Strong/Strengthen 级别的行动纳入逻辑路径
+        let high: Vec<usize> = directives.iter().enumerate()
+            .filter(|(_, d)| {
+                matches!(d.kind, ActionKind::Strengthen | ActionKind::Maintain)
+            })
+            .map(|(i, _)| i)
+            .collect();
+        if high.is_empty() { return 0; }
+        // 路径优先级 = 所有纳入指令的 priority 之和 (仅加法)
+        let total: u64 = high.iter().map(|&i| directives[i].priority).fold(0u64, |acc, p| acc.wrapping_add(p));
+        let activated = total >= self.activate_threshold;
+        let id = self.next_id;
+        self.next_id = self.next_id + 1;
+        let path = LogicPath { id, directive_indices: high, total_priority: total, activated };
+        self.paths.push(path);
+        if activated { self.active_count = self.active_count + 1; }
+        id
+    }
+
+    /// 检查路径是否激活
+    pub fn is_activated(&self, path_id: u64) -> bool {
+        self.paths.iter().find(|p| p.id == path_id)
+            .map(|p| p.activated)
+            .unwrap_or(false)
+    }
+
+    /// 获取已激活路径 (按 priority 降序)
+    pub fn active_paths(&self) -> Vec<&LogicPath> {
+        let mut r: Vec<&LogicPath> = self.paths.iter().filter(|p| p.activated).collect();
+        r.sort_by(|a, b| b.total_priority.cmp(&a.total_priority));
+        r
+    }
+
+    /// 路径总数
+    pub fn path_count(&self) -> usize { self.paths.len() }
+
+    /// 重置
+    pub fn clear(&mut self) {
+        self.paths.clear();
+        self.next_id = 1;
+        self.active_count = 0;
+    }
+
+    /// 调整激活阈值
+    pub fn set_threshold(&mut self, new_threshold: u64) {
+        self.activate_threshold = new_threshold;
+        // 重新计算激活状态
+        self.active_count = 0;
+        for p in self.paths.iter_mut() {
+            p.activated = p.total_priority >= self.activate_threshold;
+            if p.activated { self.active_count = self.active_count + 1; }
+        }
+    }
+
+    /// 活跃路径的最高优先级
+    pub fn top_priority(&self) -> Option<u64> {
+        self.active_paths().first().map(|p| p.total_priority)
+    }
+}
+
+impl Default for ContainerLogicEngine {
+    fn default() -> Self { Self::new() }
+}
+
+#[cfg(test)]
+mod logic_tests {
+    use super::*;
+
+    fn directive(kind: ActionKind, priority: u64) -> ActionDirective {
+        ActionDirective::new(0, 0, kind, priority)
+    }
+
+    #[test]
+    fn test_organize_empty() {
+        let mut e = ContainerLogicEngine::new();
+        assert_eq!(e.organize(&[]), 0);
+    }
+
+    #[test]
+    fn test_organize_no_high_directives() {
+        let mut e = ContainerLogicEngine::new();
+        let id = e.organize(&[directive(ActionKind::Isolate, 50), directive(ActionKind::Monitor, 50)]);
+        assert_eq!(id, 0);  // 没有强指令, 不建路径
+    }
+
+    #[test]
+    fn test_organize_basic() {
+        let mut e = ContainerLogicEngine::new();
+        let id = e.organize(&[
+            directive(ActionKind::Strengthen, 80),
+            directive(ActionKind::Maintain, 40),
+        ]);
+        assert_eq!(id, 1);
+        assert!(e.is_activated(1));  // 80+40=120 >= 100
+        assert_eq!(e.path_count(), 1);
+        assert_eq!(e.active_count, 1);
+    }
+
+    #[test]
+    fn test_organize_below_threshold() {
+        let mut e = ContainerLogicEngine::new();
+        let id = e.organize(&[directive(ActionKind::Strengthen, 30)]);
+        assert_eq!(id, 1);
+        assert!(!e.is_activated(1));  // 30 < 100
+    }
+
+    #[test]
+    fn test_active_paths_sort() {
+        let mut e = ContainerLogicEngine::new();
+        e.organize(&[directive(ActionKind::Strengthen, 90)]);  // 90 < 100, not activated
+        e.organize(&[directive(ActionKind::Strengthen, 60)]);   // not activated
+        e.set_threshold(50);  // 现在两者都激活
+        let r = e.active_paths();
+        assert_eq!(r.len(), 2);
+        assert_eq!(r[0].total_priority, 90);
+        assert_eq!(r[1].total_priority, 60);
+    }
+
+    #[test]
+    fn test_set_threshold_lowers_bar() {
+        let mut e = ContainerLogicEngine::new();
+        e.organize(&[directive(ActionKind::Strengthen, 150)]);  // activated (>= 100)
+        assert_eq!(e.active_count, 1);
+        e.set_threshold(200);  // 提高到 200, 不再激活
+        assert_eq!(e.active_count, 0);
+    }
+
+    #[test]
+    fn test_path_count() {
+        let mut e = ContainerLogicEngine::new();
+        e.organize(&[directive(ActionKind::Strengthen, 200)]);
+        e.organize(&[directive(ActionKind::Maintain, 150)]);
+        e.organize(&[directive(ActionKind::Monitor, 100)]);  // 弱, 不计入
+        assert_eq!(e.path_count(), 2);
+    }
+
+    #[test]
+    fn test_clear() {
+        let mut e = ContainerLogicEngine::new();
+        e.organize(&[directive(ActionKind::Strengthen, 200)]);
+        assert_eq!(e.path_count(), 1);
+        e.clear();
+        assert_eq!(e.path_count(), 0);
+        assert_eq!(e.active_count, 0);
+    }
+
+    #[test]
+    fn test_default() {
+        let e = ContainerLogicEngine::default();
+        assert_eq!(e.path_count(), 0);
+        assert_eq!(e.activate_threshold, 100);
+    }
+
+    #[test]
+    fn test_top_priority() {
+        let mut e = ContainerLogicEngine::new();
+        assert_eq!(e.top_priority(), None);
+        e.organize(&[directive(ActionKind::Strengthen, 200), directive(ActionKind::Maintain, 50)]);  // 250
+        e.organize(&[directive(ActionKind::Strengthen, 180)]);  // 180
+        assert_eq!(e.top_priority(), Some(250));
+    }
+
+    #[test]
+    fn test_next_id_sequence() {
+        let mut e = ContainerLogicEngine::new();
+        let id1 = e.organize(&[directive(ActionKind::Strengthen, 200)]);
+        let id2 = e.organize(&[directive(ActionKind::Strengthen, 200)]);
+        assert_eq!(id1, 1);
+        assert_eq!(id2, 2);
+    }
+}
