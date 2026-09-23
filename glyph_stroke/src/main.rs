@@ -465,6 +465,8 @@ fn main() {
         eprintln!("      glyph_stroke --fold <字1> <字2>  # 容器叠加运算");
         eprintln!("      glyph_stroke --state <汉字>       # 容器状态演化");
         eprintln!("      glyph_stroke --verify <汉字>      # 编码一致性校验");
+        eprintln!("      glyph_stroke --compose <字串>     # 短语级容器组合");
+        eprintln!("      glyph_stroke --tree  <汉字>       # 容器层级树");
         eprintln!("      glyph_stroke --reverse 袋");
         process::exit(1);
     }
@@ -479,6 +481,8 @@ fn main() {
     let mut fold_mode = false;
     let mut state_mode = false;
     let mut verify_mode = false;
+    let mut compose_mode = false;
+    let mut tree_mode = false;
     let mut output_file: Option<&str> = None;
     let mut input = "";
 
@@ -495,6 +499,8 @@ fn main() {
             "--json" | "-j" => { json_mode = true; i += 1; }
             "--state" | "-t" => { state_mode = true; i += 1; }
             "--verify" | "-v" => { verify_mode = true; i += 1; }
+            "--compose" | "-c" => { compose_mode = true; i += 1; }
+            "--tree" | "-T" => { tree_mode = true; i += 1; }
             "--fold" | "-f" => {
                 fold_mode = true;
                 i += 1;
@@ -528,6 +534,10 @@ fn main() {
         encode_state(input)
     } else if verify_mode {
         encode_verify(input)
+    } else if compose_mode {
+        encode_compose(input)
+    } else if tree_mode {
+        encode_tree(input)
     } else if fold_mode {
         let combined = if let Some(ref a2) = fold_arg2 {
             format!("{} {}", input, a2)
@@ -795,6 +805,198 @@ fn encode_verify(input: &str) -> String {
     buf.push_str(&format!("校验结果: {}
 ", if all_ok { "全部通过 ✓" } else { "存在异常 ✗" }));
     buf.push_str(&format!("输入: \"{}\" ({} 字)\n", input, input.chars().count()));
+    buf
+}
+
+// ════════════════════════════════════════════════════════════════
+// 短语级容器组合 — 冲突检测与裁决
+// ════════════════════════════════════════════════════════════════
+
+/// 两字之间的关系类型
+#[derive(Clone, Copy)]
+enum ContainerRelation {
+    Resonance,  // 共鸣：共享容器，自然融合
+    Compatible, // 兼容：不冲突也不共享，各自独立
+    Conflict,   // 冲突：极性对立，需裁决
+    Symbiosis,  // 互补：无共享但可共生
+}
+
+fn detect_relation(cell1: u64, cell2: u64, p1: &str, p2: &str) -> ContainerRelation {
+    let shared = cell1 & cell2;
+    if shared != 0 {
+        ContainerRelation::Resonance
+    } else if p1 != p2 {
+        ContainerRelation::Conflict
+    } else {
+        ContainerRelation::Symbiosis
+    }
+}
+
+impl std::fmt::Display for ContainerRelation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Resonance => write!(f, "共鸣"),
+            Self::Compatible => write!(f, "兼容"),
+            Self::Conflict => write!(f, "冲突"),
+            Self::Symbiosis => write!(f, "共生"),
+        }
+    }
+}
+
+fn encode_compose(input: &str) -> String {
+    let mut buf = String::new();
+    buf.push_str("═══ 短语级容器组合 ═══\n");
+    buf.push_str("输入: ");
+    buf.push_str(&format!("\"{}\"\n", input));
+    buf.push_str("字序: ");
+    let chars: Vec<char> = input.chars().collect();
+    buf.push_str(&chars.iter().map(|c| c.to_string()).collect::<Vec<_>>().join(" → "));
+    buf.push_str("\n\n");
+
+    // 逐字编码
+    let mut codes: Vec<(char, GlyphCode)> = Vec::new();
+    for ch in &chars {
+        if let Ok(gc) = encode_char(*ch) {
+            codes.push((*ch, gc));
+        }
+    }
+
+    // 两两关系分析
+    buf.push_str("── 相邻字关系矩阵 ──\n");
+    for i in 0..codes.len() {
+        for j in (i+1)..codes.len() {
+            let (ch1, gc1) = &codes[i];
+            let (ch2, gc2) = &codes[j];
+            let mut cell1: u64 = 0;
+            let mut cell2: u64 = 0;
+            for &s in &gc1.strokes { cell1 |= 1u64 << s; }
+            for &s in &gc2.strokes { cell2 |= 1u64 << s; }
+
+            let rel = detect_relation(cell1, cell2, gc1.polarity, gc2.polarity);
+            let shared = cell1 & cell2;
+
+            let rel_icon = match rel {
+                ContainerRelation::Resonance => "⟷",
+                ContainerRelation::Compatible => "─",
+                ContainerRelation::Conflict => "✕",
+                ContainerRelation::Symbiosis => "∘",
+            };
+
+            buf.push_str(&format!("  {} {} {} : ", ch1, rel_icon, ch2));
+
+            if shared != 0 {
+                let mut shared_set: Vec<&str> = Vec::new();
+                for k in 0..16u8 { if (shared >> k) & 1 == 1 { shared_set.push(CONTAINER_NAMES[k as usize]); } }
+                buf.push_str(&format!("共享[{}] ", shared_set.join("+")));
+            } else {
+                buf.push_str("无共享 ");
+            }
+
+            buf.push_str(&format!("→ {}\n", rel));
+        }
+    }
+
+    // 裁决建议
+    buf.push_str("\n── 裁决建议 ──\n");
+
+    // 按极性分组
+    let mut yang_chars: Vec<char> = Vec::new();
+    let mut yin_chars: Vec<char> = Vec::new();
+    for (ch, gc) in &codes {
+        if gc.polarity == "阳" { yang_chars.push(*ch); } else { yin_chars.push(*ch); }
+    }
+
+    buf.push_str(&format!("阳极字组: [{}] ({}个)\n", yang_chars.iter().map(|c| c.to_string()).collect::<Vec<_>>().join(", "), yang_chars.len()));
+    buf.push_str(&format!("阴极字组: [{}] ({}个)\n", yin_chars.iter().map(|c| c.to_string()).collect::<Vec<_>>().join(", "), yin_chars.len()));
+
+    // 判定主导态
+    if yang_chars.len() > yin_chars.len() {
+        buf.push_str("→ 整体偏阳，显示容器: 杯 或 盉\n");
+    } else if yin_chars.len() > yang_chars.len() {
+        buf.push_str("→ 整体偏阴，显示容器: 盎 或 瓶\n");
+    } else {
+        buf.push_str("→ 阴阳平衡，需进一步裁决\n");
+    }
+
+    // 融合后容器全集
+    let mut merged_cell: u64 = 0;
+    for (_, gc) in &codes {
+        for &s in &gc.strokes { merged_cell |= 1u64 << s; }
+    }
+    let mut merged_set: Vec<&str> = Vec::new();
+    for i in 0..16u8 { if (merged_cell >> i) & 1 == 1 { merged_set.push(CONTAINER_NAMES[i as usize]); } }
+    buf.push_str(&format!("\n融合容器全集: [{}] (0x{:04X})\n", merged_set.join(", "), merged_cell & 0xFFFF));
+
+    // 自举检验：融合后的容器名能否反向编码
+    let mut bootstrap_hits = 0;
+    for name in &merged_set {
+        let name_char = name.chars().next().unwrap();
+        if encode_char(name_char).is_ok() {
+            bootstrap_hits += 1;
+        }
+    }
+    if !merged_set.is_empty() {
+        let ratio = bootstrap_hits as f64 / merged_set.len() as f64;
+        buf.push_str(&format!("自举率: {}/{} ({:.0}%) 容器名可自身编码\n",
+            bootstrap_hits, merged_set.len(), ratio * 100.0));
+    }
+
+    buf
+}
+
+// ════════════════════════════════════════════════════════════════
+// 容器层级树 — 显示容器嵌套关系
+// ════════════════════════════════════════════════════════════════
+
+fn encode_tree(input: &str) -> String {
+    let mut buf = String::new();
+    buf.push_str("═══ 容器层级树 ═══\n");
+    buf.push_str("规则: 外层容器装内层容器，相同容器累加层数\n\n");
+
+    for ch in input.chars() {
+        if let Ok(gc) = encode_char(ch) {
+            buf.push_str(&format!("【{}】{}画 · {} · {}\n", ch, gc.strokes.len(), gc.polarity, gc.side));
+
+            // 按笔画顺序构建嵌套树
+            let mut stack: Vec<(&str, u32)> = Vec::new(); // (容器名, 层数)
+
+            for (i, &s) in gc.strokes.iter().enumerate() {
+                let cont_name = CONTAINER_NAMES[s as usize];
+
+                // 如果栈顶是同容器，累加层数
+                if let Some(top) = stack.last_mut() {
+                    if top.0 == cont_name {
+                        top.1 += 1;
+                        continue;
+                    }
+                }
+
+                // 不同容器 → 新的嵌套层
+                stack.push((cont_name, 1));
+
+                // 显示缩进的树形
+                let depth = stack.len();
+                let indent = "  ".repeat(depth);
+                let iffirst = if i == 0 { "" } else { "" };
+                buf.push_str(&format!("{}└─ {} ({}层)\n", indent, cont_name, 1));
+            }
+
+            // 汇总
+            let mut summary: std::collections::HashMap<&str, u32> = std::collections::HashMap::new();
+            for (_, &s) in gc.strokes.iter().enumerate() {
+                *summary.entry(CONTAINER_NAMES[s as usize]).or_insert(0) += 1;
+            }
+
+            buf.push_str("  ── 层级统计: ");
+            let mut summary_vec: Vec<(&str, u32)> = summary.into_iter().collect();
+            summary_vec.sort_by_key(|x| std::cmp::Reverse(x.1));
+            for (name, count) in &summary_vec {
+                buf.push_str(&format!("{}({}层) ", name, count));
+            }
+            buf.push_str("\n\n");
+        }
+    }
+
     buf
 }
 

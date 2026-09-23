@@ -104,7 +104,7 @@ impl FiberNode {
         // 主权级别：Y 轴中 4 位 [0-9]
         let sov = ((coord.y >> 4) & 0x0F).min(9) as u8;
         // 价值编码：payload 校验和的低 8 位
-        let val = (pack.witness.iter().copied().fold(0u8, |a, b| a.wrapping_add(*pack.payload.get(b as usize % pack.payload.len().max(1)).unwrap_or(&0))));
+        let val = pack.witness.iter().copied().fold(0u8, |a: u8, b: u8| a.wrapping_add(*pack.payload.get(b as usize % pack.payload.len().max(1)).unwrap_or(&0)));
         // 见证有效
         let witness_ok = pack.witness != [0xFF, 0xFF, 0xFF] && pack.witness != [0xFF, 0xFE, 0xFD];
 

@@ -378,14 +378,14 @@ mod tests {
             op: AdapterOp::Fetch,
             target: SoundAddress::new(Initial::L, Final::An, Tone::YinPing),
             caller: Sovereignty::ActiveSub,
-            payload: b"https://example.com".to_vec(),
+            payload: b"file:///dev/null".to_vec(),
             timestamp_ms: 1725600000,
         };
         let r = bag.invoke(req);
-        // 即使外部 curl 失败, 结果结构仍符合囡囝协议 (ok=false 且有错误信息)
-        // 不暴露 HTTP 403/404 等外部概念
+        // 如果获取成功, 容器已缓存并返回 (修复前 container 总是 None)
         if r.ok {
-            assert!(r.bytes.len() > 0);
+            assert!(r.container.is_some(), "fetch成功应返回缓存的容器");
+            assert_eq!(bag.cache.len(), 1);
         } else {
             // 外部失败 → 囡囝协议返回有意义的错误
             assert!(r.error.is_some());

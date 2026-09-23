@@ -144,7 +144,7 @@ impl PerceptionReport {
                 hash ^= byte as u64;
                 hash = hash.wrapping_mul(0x100000001b3);
             }
-            hash ^= (feature.confidence.to_bits().wrapping_add(feature.judgment as u64));
+            hash ^= feature.confidence.to_bits().wrapping_add(feature.judgment as u64);
             hash = hash.wrapping_mul(0x100000001b3);
         }
         self.summary_hash = hash;
