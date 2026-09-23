@@ -2210,7 +2210,7 @@ impl SpatialTime {
     }
 
     /// 双符号地址可以存储多少年
-    pub fn years_covered_double_digit(&self) -> f128_compat {
+    pub fn years_covered_double_digit(&self) -> F128Compat {
         let seconds_per_year: u128 = 365 * 86_400;
         let addr = self.address_space_with_digits(2);
         addr / seconds_per_year
@@ -2390,7 +2390,7 @@ impl ActionTime {
 
 /// 乘法结果返回类型（f128 兼容性，Rust 稳定版用 f64 近似）
 
-pub type f128_compat = u128; // 对于整数精确定数用 u128
+pub type F128Compat = u128; // 对于整数精确定数用 u128
 
 /// 容器命名统计
 
@@ -6831,5 +6831,722 @@ mod container_negotiation_tests {
         let engine = ContainerNegotiationEngine::default();
         assert_eq!(engine.participant_count(), 0);
         assert_eq!(engine.phase, NegotiationPhase::Propose);
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// 活码编译器 · LiveCodeCompiler (v0.8)
+// ══════════════════════════════════════════════════════════════════════
+//
+//   活码 = 未被固定前可活动的位置编码
+//   起点钥匙 + 固定动作 → 码按排列顺序确定权限和数值 (加法统计法)
+//
+//   核心哲学:
+//     "未编译前就能用" — 码在浮动状态下任意活动
+//     "固定后按排列顺序确定权限和数值" — 单一确定性的丧失换取可控性
+//     "加法统计法" — 替代幂次二进制扩张, 以加法收敛统摄
+//
+//   七层编码体系:
+//     0 声母层 · 1 韵母层 · 2 声调层 · 3 壳层
+//     4 纤维层 · 5 流层 · 6 仲裁层 · [7 预留]
+//
+//   64 位活码字: [value:16][position:16][permission:8][layer:3][state:2][reserved:17]
+
+/// 活码状态
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum LiveCodeState {
+    Floating,  // 浮动: 位置任意活动
+    Activated, // 激活: 起点钥匙已插入
+    Fixed,     // 固定: 位置锁定, 权限数值确定
+    Compiled,  // 编译: 最终生成容器指令
+}
+
+impl LiveCodeState {
+    /// 状态能否推进到下一阶段
+    pub fn can_advance(&self) -> bool {
+        matches!(self, LiveCodeState::Floating | LiveCodeState::Activated | LiveCodeState::Fixed)
+    }
+
+    /// 是否已确定 (不再变动)
+    pub fn is_deterministic(&self) -> bool {
+        matches!(self, LiveCodeState::Fixed | LiveCodeState::Compiled)
+    }
+}
+
+impl Default for LiveCodeState { fn default() -> Self { LiveCodeState::Floating } }
+
+/// 七层编码
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum EncodingLayer {
+    Consonant = 0, // 声母
+    Vowel = 1,     // 韵母
+    Tone = 2,      // 声调
+    Shell = 3,     // 壳
+    Fiber = 4,     // 纤维
+    Flow = 5,      // 流
+    Arbitration = 6, // 仲裁
+    _Reserved = 7, // 预留
+}
+
+impl EncodingLayer {
+    pub const COUNT: usize = 7; // 不含预留
+    pub fn from_u8(v: u8) -> Option<Self> {
+        use EncodingLayer::*;
+        match v {
+            0 => Some(Consonant),
+            1 => Some(Vowel),
+            2 => Some(Tone),
+            3 => Some(Shell),
+            4 => Some(Fiber),
+            5 => Some(Flow),
+            6 => Some(Arbitration),
+            _ => None,
+        }
+    }
+}
+
+/// 起点钥匙 — 激活浮动码的触发条件
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct StartingPoint {
+    pub layer: u8,
+    pub index: u16,
+    pub checksum: u8,
+}
+
+impl StartingPoint {
+    pub fn new(layer: EncodingLayer, index: u16) -> Self {
+        let mut checksum = (layer as u8) ^ (index as u8) ^ ((index >> 8) as u8);
+        checksum = checksum.wrapping_mul(0x9E as u8);
+        Self { layer: layer as u8, index, checksum }
+    }
+
+    pub fn verify(&self) -> bool {
+        let mut expected = self.layer ^ (self.index as u8) ^ ((self.index >> 8) as u8);
+        expected = expected.wrapping_mul(0x9E as u8);
+        expected == self.checksum
+    }
+}
+
+/// 活码表项 — 单个可活动编码单元
+#[derive(Clone, Debug)]
+pub struct LiveCodeEntry {
+    pub id: u32,
+    pub value: u16,           // 编码值
+    pub position: u16,        // 当前位置 (编译后固定的排列位置)
+    pub permission: u8,       // 权限级别 (0-255, 加法统计)
+    pub layer: EncodingLayer, // 所属编码层
+    pub state: LiveCodeState,
+}
+
+impl LiveCodeEntry {
+    pub fn new(id: u32, value: u16, layer: EncodingLayer) -> Self {
+        Self { id, value, position: 0, permission: 0, layer, state: LiveCodeState::Floating }
+    }
+
+    /// 是否处于浮动状态
+    pub fn is_floating(&self) -> bool { self.state == LiveCodeState::Floating }
+
+    /// 推进到下一状态
+    pub fn advance(&mut self) -> bool {
+        use LiveCodeState::*;
+        let next = match self.state {
+            Floating => Activated,
+            Activated => Fixed,
+            Fixed => Compiled,
+            Compiled => return false,
+        };
+        // 每次推进, 权限按加法累积 (当前值 + 层权重)
+        self.permission = self.permission.wrapping_add(self.layer as u8 + 1);
+        self.state = next;
+        true
+    }
+}
+
+/// 活码编译器 — 核心编译引擎
+#[derive(Clone, Debug)]
+pub struct LiveCodeCompiler {
+    pub codes: Vec<LiveCodeEntry>,
+    pub starting_point: Option<StartingPoint>,
+    pub next_id: u32,
+    pub total_compiled: u64,
+}
+
+impl LiveCodeCompiler {
+    pub fn new() -> Self {
+        Self { codes: Vec::new(), starting_point: None, next_id: 1, total_compiled: 0 }
+    }
+
+    /// 插入一个新的活码 (初始为浮动状态)
+    pub fn insert(&mut self, value: u16, layer: EncodingLayer) -> u32 {
+        let id = self.next_id;
+        self.next_id += 1;
+        self.codes.push(LiveCodeEntry::new(id, value, layer));
+        id
+    }
+
+    /// 设置起点钥匙
+    pub fn set_starting_point(&mut self, sp: StartingPoint) {
+        self.starting_point = Some(sp);
+    }
+
+    /// 激活所有浮动码 (起点钥匙验证通过后)
+    pub fn activate_all(&mut self) -> usize {
+        let sp = match &self.starting_point {
+            Some(sp) if sp.verify() => sp,
+            _ => return 0,
+        };
+        let mut count = 0;
+        for code in self.codes.iter_mut() {
+            if code.is_floating() && code.layer as u8 == sp.layer {
+                let _ = code.advance();  // Floating → Activated
+                count += 1;
+            }
+        }
+        count
+    }
+
+    /// 编译单个活码 (从当前状态推进到 Fixed/Compiled)
+    pub fn compile_one(&mut self, id: u32) -> bool {
+        if let Some(code) = self.codes.iter_mut().find(|c| c.id == id) {
+            if code.advance() {
+                if code.state == LiveCodeState::Compiled {
+                    self.total_compiled += 1;
+                }
+                return true;
+            }
+        }
+        false
+    }
+
+    /// 编译全部 — 逐码推进, 每码可能需要多步 (Activated→Fixed→Compiled)
+    pub fn compile_all(&mut self) -> usize {
+        let mut total = 0;
+        loop {
+            let ids: Vec<u32> = self.codes.iter()
+                .filter(|c| c.state != LiveCodeState::Compiled)
+                .map(|c| c.id).collect();
+            if ids.is_empty() { break; }
+            let mut progressed = false;
+            for id in ids {
+                if self.compile_one(id) { total += 1; progressed = true; }
+            }
+            if !progressed { break; }
+        }
+        total
+    }
+
+    /// 加法统计 — 所有已编译码的权限累加 (替代幂次二进制扩张)
+    pub fn additive_total(&self) -> u64 {
+        self.codes.iter()
+            .filter(|c| c.state == LiveCodeState::Compiled)
+            .fold(0u64, |acc, c| acc.wrapping_add(c.value as u64))
+    }
+
+    /// 按层分别加法统计
+    pub fn layer_total(&self, layer: EncodingLayer) -> u64 {
+        self.codes.iter()
+            .filter(|c| c.state == LiveCodeState::Compiled && c.layer as u8 == layer as u8)
+            .fold(0u64, |acc, c| acc.wrapping_add(c.value as u64))
+    }
+
+    /// 排列码 — 按位置排序 (编译后位置确定权限顺序)
+    pub fn arrange(&mut self) {
+        self.codes.sort_by_key(|c| c.position);
+        for (i, code) in self.codes.iter_mut().enumerate() {
+            if code.state == LiveCodeState::Fixed || code.state == LiveCodeState::Compiled {
+                code.position = i as u16;
+            }
+        }
+    }
+
+    /// 定位码位置 (编译过程中)
+    pub fn position_code(&mut self, id: u32, new_pos: u16) -> bool {
+        if let Some(code) = self.codes.iter_mut().find(|c| c.id == id) {
+            if !code.state.is_deterministic() {
+                code.position = new_pos;
+                return true;
+            }
+        }
+        false
+    }
+
+    /// 已编译码数量
+    pub fn compiled_count(&self) -> usize {
+        self.codes.iter().filter(|c| c.state == LiveCodeState::Compiled).count()
+    }
+
+    /// 浮动码数量
+    pub fn floating_count(&self) -> usize {
+        self.codes.iter().filter(|c| c.state == LiveCodeState::Floating).count()
+    }
+
+    /// 全部编译完成?
+    pub fn is_fully_compiled(&self) -> bool {
+        !self.codes.is_empty() && self.codes.iter().all(|c| c.state == LiveCodeState::Compiled)
+    }
+
+    /// 重置 (全部回浮动)
+    pub fn reset(&mut self) {
+        for code in self.codes.iter_mut() {
+            code.state = LiveCodeState::Floating;
+            code.position = 0;
+            code.permission = 0;
+        }
+        self.total_compiled = 0;
+    }
+}
+
+impl Default for LiveCodeCompiler { fn default() -> Self { Self::new() } }
+
+#[cfg(test)]
+mod livecode_tests {
+    use super::*;
+    #[test] fn test_live_state_default() {
+        let s = LiveCodeState::default();
+        assert_eq!(s, LiveCodeState::Floating);
+    }
+    #[test] fn test_live_state_can_advance() {
+        assert!(LiveCodeState::Floating.can_advance());
+        assert!(LiveCodeState::Activated.can_advance());
+        assert!(LiveCodeState::Fixed.can_advance());
+        assert!(!LiveCodeState::Compiled.can_advance());
+    }
+    #[test] fn test_live_state_is_deterministic() {
+        assert!(!LiveCodeState::Floating.is_deterministic());
+        assert!(!LiveCodeState::Activated.is_deterministic());
+        assert!(LiveCodeState::Fixed.is_deterministic());
+        assert!(LiveCodeState::Compiled.is_deterministic());
+    }
+    #[test] fn test_layer_from_u8() {
+        assert_eq!(EncodingLayer::from_u8(0), Some(EncodingLayer::Consonant));
+        assert_eq!(EncodingLayer::from_u8(6), Some(EncodingLayer::Arbitration));
+        assert_eq!(EncodingLayer::from_u8(7), None);
+    }
+    #[test] fn test_starting_point_verify() {
+        let sp = StartingPoint::new(EncodingLayer::Vowel, 42);
+        assert!(sp.verify());
+    }
+    #[test] fn test_entry_new() {
+        let e = LiveCodeEntry::new(100, 0xABCD, EncodingLayer::Tone);
+        assert_eq!(e.id, 100);
+        assert_eq!(e.value, 0xABCD);
+        assert_eq!(e.state, LiveCodeState::Floating);
+    }
+    #[test] fn test_entry_advance() {
+        let mut e = LiveCodeEntry::new(1, 10, EncodingLayer::Consonant);
+        assert!(e.advance());  // Floating → Activated
+        assert_eq!(e.state, LiveCodeState::Activated);
+        assert!(e.advance());  // Activated → Fixed
+        assert_eq!(e.state, LiveCodeState::Fixed);
+        assert!(e.advance());  // Fixed → Compiled
+        assert_eq!(e.state, LiveCodeState::Compiled);
+        assert!(!e.advance()); // 已到顶
+    }
+    #[test] fn test_compiler_new() {
+        let c = LiveCodeCompiler::new();
+        assert_eq!(c.codes.len(), 0);
+        assert!(c.starting_point.is_none());
+    }
+    #[test] fn test_compiler_insert() {
+        let mut c = LiveCodeCompiler::new();
+        let id = c.insert(0xFF, EncodingLayer::Consonant);
+        assert_eq!(id, 1);
+        assert_eq!(c.codes.len(), 1);
+    }
+    #[test] fn test_activate_all() {
+        let mut c = LiveCodeCompiler::new();
+        c.insert(100, EncodingLayer::Vowel);
+        c.insert(200, EncodingLayer::Vowel);
+        c.insert(300, EncodingLayer::Consonant);
+        c.set_starting_point(StartingPoint::new(EncodingLayer::Vowel, 0));
+        let activated = c.activate_all();
+        assert_eq!(activated, 2);
+        assert_eq!(c.floating_count(), 1); // Consonant 未被激活
+    }
+    #[test] fn test_compile_all() {
+        let mut c = LiveCodeCompiler::new();
+        let id1 = c.insert(10, EncodingLayer::Fiber);
+        c.set_starting_point(StartingPoint::new(EncodingLayer::Fiber, 0));
+        c.activate_all();
+        let compiled = c.compile_all();
+        assert!(compiled > 0);
+        assert_eq!(c.compiled_count(), 1);
+    }
+    #[test] fn test_additive_total() {
+        let mut c = LiveCodeCompiler::new();
+        c.insert(100, EncodingLayer::Flow);
+        c.insert(200, EncodingLayer::Flow);
+        c.insert(50, EncodingLayer::Flow);
+        c.set_starting_point(StartingPoint::new(EncodingLayer::Flow, 0));
+        c.activate_all();
+        c.compile_all();
+        assert_eq!(c.additive_total(), 350);
+    }
+    #[test] fn test_layer_total() {
+        let mut c = LiveCodeCompiler::new();
+        c.insert(100, EncodingLayer::Consonant);
+        c.insert(200, EncodingLayer::Vowel);
+        for layer in [EncodingLayer::Consonant, EncodingLayer::Vowel] {
+            c.set_starting_point(StartingPoint::new(layer, 0));
+            c.activate_all();
+            c.compile_all();
+        }
+        assert_eq!(c.layer_total(EncodingLayer::Consonant), 100);
+        assert_eq!(c.layer_total(EncodingLayer::Vowel), 200);
+    }
+    #[test] fn test_arrange() {
+        let mut c = LiveCodeCompiler::new();
+        let id1 = c.insert(30, EncodingLayer::Shell);
+        let id2 = c.insert(10, EncodingLayer::Shell);
+        let id3 = c.insert(20, EncodingLayer::Shell);
+        c.set_starting_point(StartingPoint::new(EncodingLayer::Shell, 0));
+        c.activate_all();
+        // 在 Fixed 状态 (非确定性) 时定位
+        c.position_code(id1, 2);
+        c.position_code(id2, 0);
+        c.position_code(id3, 1);
+        c.compile_all();  // 进一步编译, 位置在 Fixed 时已设置
+        c.arrange();
+        // arrange 按 position 排序 (id2=0, id3=1, id1=2)
+        assert_eq!(c.codes[0].id, id2);
+        assert_eq!(c.codes[1].id, id3);
+        assert_eq!(c.codes[2].id, id1);
+    }
+    #[test] fn test_is_fully_compiled() {
+        let mut c = LiveCodeCompiler::new();
+        assert!(!c.is_fully_compiled()); // 空 = 未完成
+        c.insert(1, EncodingLayer::Arbitration);
+        c.set_starting_point(StartingPoint::new(EncodingLayer::Arbitration, 0));
+        c.activate_all();
+        c.compile_all();
+        assert!(c.is_fully_compiled());
+    }
+    #[test] fn test_reset() {
+        let mut c = LiveCodeCompiler::new();
+        c.insert(1, EncodingLayer::Consonant);
+        c.set_starting_point(StartingPoint::new(EncodingLayer::Consonant, 0));
+        c.activate_all();
+        c.compile_all();
+        assert_eq!(c.compiled_count(), 1);
+        c.reset();
+        assert_eq!(c.floating_count(), 1);
+        assert_eq!(c.compiled_count(), 0);
+    }
+    #[test] fn test_compiler_default() {
+        let c = LiveCodeCompiler::default();
+        assert_eq!(c.next_id, 1);
+    }
+    #[test] fn test_no_starting_point() {
+        let mut c = LiveCodeCompiler::new();
+        c.insert(1, EncodingLayer::Consonant);
+        // 不设起点钥匙 → 无法激活
+        let activated = c.activate_all();
+        assert_eq!(activated, 0);
+        assert_eq!(c.floating_count(), 1);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器演化引擎 · ContainerEvolutionEngine
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// 生命周期: 种子→萌芽→成长→成熟→衰退→重生 (六阶段循环)
+// 加法年龄: 通过加法累计, 达到阈值则跃迁
+// 环境适应: 资源丰度·竞争压力·共生助力 → 适应度纯加法累积
+
+/// 生命周期六阶段
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum LifeCyclePhase {
+    Seed,      // 种子: 潜能未发
+    Sprout,    // 萌芽: 初次显现
+    Grow,      // 成长: 扩张积累
+    Mature,    // 成熟: 圆满稳定
+    Decline,   // 衰退: 老化和资源消耗
+    Rebirth,   // 重生: 回归种子, 循环再始
+}
+
+impl Default for LifeCyclePhase { fn default() -> Self { LifeCyclePhase::Seed } }
+
+/// 单个容器的演化状态
+#[derive(Clone, Debug)]
+pub struct EvolutionState {
+    pub container_id: u64,
+    pub phase: LifeCyclePhase,
+    pub age: u64,              // 加法累计年龄
+    pub energy: u64,           // 能量 (加法积累)
+    pub adaptation: u64,       // 环境适应度
+    pub generation: u64,       // 经历了几次重生循环
+}
+
+impl EvolutionState {
+    pub fn new(id: u64) -> Self { Self { container_id: id, phase: LifeCyclePhase::Seed, age: 0, energy: 0, adaptation: 0, generation: 0 } }
+}
+
+/// 环境因子 (仅加法影响)
+#[derive(Clone, Copy, Debug)]
+pub struct Environment {
+    pub resource_abundance: u64,  // 资源丰度 (正)
+    pub competition_pressure: u64, // 竞争压力 (负)
+    pub symbiosis_boost: u64,     // 共生助力 (正)
+}
+
+impl Default for Environment { fn default() -> Self { Self { resource_abundance: 1, competition_pressure: 0, symbiosis_boost: 0 } } }
+
+/// 容器演化引擎
+#[derive(Clone, Debug, Default)]
+pub struct ContainerEvolutionEngine {
+    pub states: Vec<EvolutionState>,
+    pub env: Environment,
+    pub phase_thresholds: [u64; 6],  // 六阶段跃迁阈值
+}
+
+impl ContainerEvolutionEngine {
+    pub fn new() -> Self {
+        Self {
+            states: Vec::new(),
+            env: Environment::default(),
+            phase_thresholds: [10, 25, 50, 100, 200, u64::MAX], // Seed→Sprout→Grow→Mature→Decline→Rebirth
+        }
+    }
+
+    /// 注册容器
+    pub fn register(&mut self, id: u64) -> usize {
+        self.states.push(EvolutionState::new(id));
+        self.states.len() - 1
+    }
+
+    /// 根据 ID 查找索引
+    fn find_index(&self, id: u64) -> Option<usize> {
+        self.states.iter().position(|s| s.container_id == id)
+    }
+
+    /// 推进时间 tick: 年龄 +1, 能量根据环境变化
+    pub fn tick(&mut self, id: u64) -> Option<u64> {
+        let idx = self.find_index(id)?;
+        self.states[idx].age += 1;
+        // 能量变化 = 资源丰度 + 共生助力 - 竞争压力 (净环境效应)
+        let net = self.env.resource_abundance.wrapping_add(self.env.symbiosis_boost);
+        self.states[idx].energy = self.states[idx].energy.wrapping_add(net).saturating_sub(self.env.competition_pressure);
+        // 适应度累加
+        self.states[idx].adaptation = self.states[idx].adaptation.wrapping_add(self.env.resource_abundance + 1);
+        Some(self.states[idx].age)
+    }
+
+    /// 检查并跃迁: 年龄超过当前阶段阈值则进入下一阶段
+    /// 特殊: Rebirth 阶段无条件循环回 Seed (重生即再生)
+    pub fn try_transition(&mut self, id: u64) -> Option<LifeCyclePhase> {
+        let idx = self.find_index(id)?;
+        let phase_idx = self.phase_index(self.states[idx].phase);
+        // Rebirth → Seed 是无条件循环 (重生完成一轮)
+        if self.states[idx].phase == LifeCyclePhase::Rebirth {
+            self.states[idx].phase = LifeCyclePhase::Seed;
+            self.states[idx].generation += 1;
+            return Some(LifeCyclePhase::Seed);
+        }
+        let threshold = self.phase_thresholds[phase_idx];
+        if self.states[idx].age >= threshold {
+            let next = self.next_phase(self.states[idx].phase);
+            self.states[idx].phase = next;
+            Some(next)
+        } else {
+            None
+        }
+    }
+
+    /// 阶段 → 索引
+    fn phase_index(&self, phase: LifeCyclePhase) -> usize {
+        match phase {
+            LifeCyclePhase::Seed => 0,
+            LifeCyclePhase::Sprout => 1,
+            LifeCyclePhase::Grow => 2,
+            LifeCyclePhase::Mature => 3,
+            LifeCyclePhase::Decline => 4,
+            LifeCyclePhase::Rebirth => 5,
+        }
+    }
+
+    /// 下一阶段
+    fn next_phase(&self, phase: LifeCyclePhase) -> LifeCyclePhase {
+        match phase {
+            LifeCyclePhase::Seed => LifeCyclePhase::Sprout,
+            LifeCyclePhase::Sprout => LifeCyclePhase::Grow,
+            LifeCyclePhase::Grow => LifeCyclePhase::Mature,
+            LifeCyclePhase::Mature => LifeCyclePhase::Decline,
+            LifeCyclePhase::Decline => LifeCyclePhase::Rebirth,
+            LifeCyclePhase::Rebirth => LifeCyclePhase::Seed, // 循环
+        }
+    }
+
+    /// 容器数量
+    pub fn population(&self) -> usize { self.states.len() }
+
+    /// 各阶段种群计数 (加法统计)
+    pub fn phase_distribution(&self) -> [usize; 6] {
+        let mut dist = [0usize; 6];
+        for s in &self.states { dist[self.phase_index(s.phase)] += 1; }
+        dist
+    }
+
+    /// 总能量
+    pub fn total_energy(&self) -> u64 {
+        self.states.iter().fold(0u64, |acc, s| acc.wrapping_add(s.energy))
+    }
+
+    /// 设置环境
+    pub fn set_environment(&mut self, resource: u64, competition: u64, symbiosis: u64) {
+        self.env = Environment { resource_abundance: resource, competition_pressure: competition, symbiosis_boost: symbiosis };
+    }
+}
+
+#[cfg(test)]
+mod container_evolution_tests {
+    use super::*;
+
+    #[test]
+    fn test_register_and_initial_phase() {
+        let mut engine = ContainerEvolutionEngine::new();
+        engine.register(1);
+        assert_eq!(engine.states[0].phase, LifeCyclePhase::Seed);
+        assert_eq!(engine.states[0].age, 0);
+        assert_eq!(engine.states[0].generation, 0);
+    }
+
+    #[test]
+    fn test_tick_increments_age() {
+        let mut engine = ContainerEvolutionEngine::new();
+        engine.register(1);
+        assert_eq!(engine.tick(1), Some(1));
+        assert_eq!(engine.tick(1), Some(2));
+        assert_eq!(engine.states[0].age, 2);
+    }
+
+    #[test]
+    fn test_transition_seed_to_sprout() {
+        let mut engine = ContainerEvolutionEngine::new();
+        // threshold for Seed→Sprout is 10
+        engine.register(1);
+        for _ in 0..10 { engine.tick(1); }
+        let result = engine.try_transition(1);
+        assert_eq!(result, Some(LifeCyclePhase::Sprout));
+    }
+
+    #[test]
+    fn test_no_transition_before_threshold() {
+        let mut engine = ContainerEvolutionEngine::new();
+        engine.register(1);
+        for _ in 0..5 { engine.tick(1); } // age=5 < threshold=10
+        let result = engine.try_transition(1);
+        assert_eq!(result, None);
+        assert_eq!(engine.states[0].phase, LifeCyclePhase::Seed);
+    }
+
+    #[test]
+    fn test_full_lifecycle() {
+        let mut engine = ContainerEvolutionEngine::new();
+        engine.register(1);
+        let thresholds = [10u64, 25, 50, 100, 200];
+        let expected = [LifeCyclePhase::Sprout, LifeCyclePhase::Grow, LifeCyclePhase::Mature, LifeCyclePhase::Decline, LifeCyclePhase::Rebirth];
+        for (i, &th) in thresholds.iter().enumerate() {
+            // tick enough times to reach threshold
+            for _ in 0..th { engine.tick(1); }
+            let r = engine.try_transition(1);
+            assert_eq!(r, Some(expected[i]), "Failed at phase {} (threshold {})", i, th);
+        }
+    }
+
+    #[test]
+    fn test_rebirth_cycle() {
+        let mut engine = ContainerEvolutionEngine::new();
+        engine.register(1);
+        // Go through all phases
+        for _ in 0..10 { engine.tick(1); } // Seed→Sprout (10)
+        assert_eq!(engine.try_transition(1), Some(LifeCyclePhase::Sprout));
+        for _ in 0..25 { engine.tick(1); } // Sprout→Grow
+        assert_eq!(engine.try_transition(1), Some(LifeCyclePhase::Grow));
+        for _ in 0..50 { engine.tick(1); } // Grow→Mature
+        assert_eq!(engine.try_transition(1), Some(LifeCyclePhase::Mature));
+        for _ in 0..100 { engine.tick(1); } // Mature→Decline
+        assert_eq!(engine.try_transition(1), Some(LifeCyclePhase::Decline));
+        for _ in 0..200 { engine.tick(1); } // Decline→Rebirth
+        assert_eq!(engine.try_transition(1), Some(LifeCyclePhase::Rebirth));
+        // Rebirth → Seed (无条件循环)
+        let r = engine.try_transition(1);
+        assert_eq!(r, Some(LifeCyclePhase::Seed));
+        assert_eq!(engine.states[0].generation, 1); // 完成一轮重生
+    }
+
+    #[test]
+    fn test_generation_count() {
+        let mut engine = ContainerEvolutionEngine::new();
+        engine.register(1);
+        assert_eq!(engine.states[0].generation, 0);
+        // Advance through all phases
+        for _ in 0..10 { engine.tick(1); } engine.try_transition(1); // Sprout
+        for _ in 0..25 { engine.tick(1); } engine.try_transition(1); // Grow
+        for _ in 0..50 { engine.tick(1); } engine.try_transition(1); // Mature
+        for _ in 0..100 { engine.tick(1); } engine.try_transition(1); // Decline
+        for _ in 0..200 { engine.tick(1); } engine.try_transition(1); // Rebirth
+        // Rebirth → Seed triggers generation increment
+        engine.try_transition(1);
+        assert_eq!(engine.states[0].generation, 1);
+    }
+
+    #[test]
+    fn test_tick_energy_positive_env() {
+        let mut engine = ContainerEvolutionEngine::new();
+        engine.set_environment(5, 2, 1); // net = 5+1-2 = 4
+        engine.register(1);
+        engine.tick(1);
+        assert_eq!(engine.states[0].energy, 4);
+    }
+
+    #[test]
+    fn test_tick_energy_negative_env() {
+        let mut engine = ContainerEvolutionEngine::new();
+        engine.set_environment(1, 10, 0); // net = 1+0-10 = -9 → saturating_sub → 0
+        engine.register(1);
+        engine.tick(1);
+        assert_eq!(engine.states[0].energy, 0); // saturating
+    }
+
+    #[test]
+    fn test_phase_distribution() {
+        let mut engine = ContainerEvolutionEngine::new();
+        engine.register(1); // Seed
+        engine.register(2); // Seed
+        engine.register(3); // Seed
+        // advance container 1 to Grow
+        for _ in 0..50 { engine.tick(1); }
+        engine.try_transition(1); // Sprout
+        engine.try_transition(1); // Grow
+        let dist = engine.phase_distribution();
+        assert_eq!(dist[0], 2); // 2 still in Seed (ids 2, 3)
+        assert_eq!(dist[2], 1); // 1 in Grow (id 1)
+    }
+
+    #[test]
+    fn test_total_energy() {
+        let mut engine = ContainerEvolutionEngine::new();
+        engine.set_environment(1, 0, 0);
+        engine.register(1);
+        engine.register(2);
+        engine.tick(1);
+        engine.tick(2);
+        assert_eq!(engine.total_energy(), 2); // each gets 1
+    }
+
+    #[test]
+    fn test_population() {
+        let mut engine = ContainerEvolutionEngine::new();
+        assert_eq!(engine.population(), 0);
+        engine.register(1);
+        engine.register(2);
+        assert_eq!(engine.population(), 2);
+    }
+
+    #[test]
+    fn test_default() {
+        let engine = ContainerEvolutionEngine::default();
+        assert_eq!(engine.population(), 0);
     }
 }
