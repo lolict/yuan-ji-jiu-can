@@ -328,6 +328,9 @@ pub mod domain_preload;
 // ── v0.65 容器中间表示 — 统一地址空间·代数选址替代·关系归属计算·容器图集 ──
 #[path = "core/container_ir.rs"]
 pub mod container_ir;
+// ── v0.66 运行环引擎 — 最小OS接口·鼓膜自举·八流心跳·编码在场·结束即开始 ──
+#[path = "core/runtime_loop.rs"]
+pub mod runtime_loop;
 #[path = "core/smrl.rs"]
 pub mod smrl;
 #[path = "judge/funnel.rs"]
@@ -341,8 +344,9 @@ pub mod couple;
 #[path = "relation/pleasure.rs"]
 pub mod pleasure;
 
-// (已移除 AI 模块: encoding/presence_ontology, encoding/wasm_ladder — 第五次清理)
-// (wasm_ladder 已在 v0.52 区域注册) ──
+// ── WASM 阶梯制·双向公约引擎 (v0.64) ──
+#[path = "encoding/wasm_ladder.rs"]
+pub mod wasm_ladder;
 
 // ── 活生态系统 v0.5 ──
 pub mod eco;
@@ -387,6 +391,8 @@ pub use cochlear_boot::{cochlear_bootstrap, CochlearBoot, BootReceipt};
 pub mod phase_clock2;
 #[path = "temporal/witness.rs"]
 pub mod witness;
+#[path = "temporal/homophone_route.rs"]
+pub mod homophone_route;
 
 #[path = "temporal/hierarchical_time.rs"]
 pub mod hierarchical_time;
@@ -500,6 +506,13 @@ pub use consciousness_runtime::{ConsciousnessRuntime, ConsciousnessReport, Consc
 // ── v0.26 天庭 · 视觉 · 袋层级 · 审判奖惩 · 历史积累 (CelestialPerception) ──
 #[path = "cognition/celestial_perception.rs"]
 pub mod celestial_perception;
+
+// ── v0.43 天觉v13: WASM编译目标 + 蚕蛹寄生壳运行时 (依赖v12) ──
+#[path = "cognition/celestial_perception_v12.rs"]
+pub mod celestial_perception_v12;
+
+#[path = "cognition/celestial_perception_v13.rs"]
+pub mod celestial_perception_v13;
 pub use celestial_perception::{
     // 基础类型 (v1)
     Bag, BagAttributes, BagHierarchy, HierarchyReport,
@@ -556,7 +569,7 @@ pub mod glyph_pixel_algebra;
 pub use glyph_pixel_algebra::{
     GlyphPixel, GlyphImage, GlyphTemplates, SerPixel, SerGlyph,
 };
-pub use glyph_pixel_algebra::Phase;
+pub use glyph_pixel_algebra::phase;
 
 // ── v0.32 颜色进制 · 相位画图 · 区块链纠缠 · 分布式制衡 (PhaseEncoding) ──
 #[path = "encoding/phase_encoding.rs"]
@@ -674,7 +687,7 @@ pub use mccp_vm::{
     KIND_INSTRUCTION,
     OP_NOP, OP_HALT, OP_PUSH, OP_POP, OP_DUP, OP_SWAP, OP_OVER, OP_ROT,
     OP_ADD, OP_SUB, OP_MUL, OP_DIV, OP_MOD, OP_NEG,
-    OP_MULconst, OP_ADDconst,
+    OP_MUL_CONST, OP_ADD_CONST,
     OP_AND, OP_OR, OP_XOR, OP_NOT, OP_SHL, OP_SHR,
     OP_EQ, OP_NE, OP_LT, OP_GT, OP_LE, OP_GE,
     OP_JMP, OP_JZ, OP_JNZ, OP_CALL, OP_RET,
@@ -871,7 +884,7 @@ pub use parasite_shell::{
     ParasiteEngine, HeartbeatRecovery, HeartbeatStatus,
 };
 
-// (已移除 AI 模块: wasm_ladder)
+pub use wasm_ladder::{WasmWidth, WasmModule, ValType, FuncType, Instr, BlockType, ExportKind, Export, FuncBody, LocalDecl, MemLimit, DataSegment, BidirectionalOutput, WasmExpr, compile_bidirectional, encode_leb128_u, encode_leb128_s};
 
 // ── v0.57 盟机合分布式节点网络 — 盟机合掌·盟机场·节点协作·资源路由 ──
 #[path = "core/alliance_network.rs"]
@@ -933,6 +946,15 @@ pub use bootstrap_compiler::{
     container_dynamics_rule, consciousness_router_rule, silkworm_parasite_rule,
 };
 
+// ── v0.44 自举编译器 · BootstrapFS (工具从文件系统长出来 · 摆脱硬编码) ──
+#[path = "core/bootstrap_fs.rs"]
+pub mod bootstrap_fs;
+pub use bootstrap_fs::{
+    BootstrapFS, Toolchain, ToolRegistry, ToolManifestEntry, ToolRole,
+    RegisteredTool, BootstrapError, decode_ir_stream,
+    seed_manifest, seed_tools, seed_all,
+};
+
 // ── v0.44 莫顿码 · 三维坐标系索引 (Morton) ──
 #[path = "encoding/morton.rs"]
 pub mod morton;
@@ -945,13 +967,23 @@ pub use morton::{Coord3D, MortonCode};
 //   灵魂 → 普通容器 (无特殊性)
 //   奖励回路 → 匮乏驱动补码 (DeficiencyCell)
 // 完全基于 SmrlCell(v0.42) + BootstrapCompiler(v0.43)
-// #[path = "core/active_container.rs"]  // TEMP: file missing
-// pub mod active_container;
-// pub use active_container::{
-//     ActiveContainerKernel, ActiveState, FearState, KernelDiagnostic,
-//     DeficiencyCell, LossAversionCell, UnityCell,
-//     deficiency_rule, loss_aversion_rule, unity_rule,
-// };
+#[path = "core/active_container.rs"]
+pub mod active_container;
+pub use active_container::{
+    ActiveContainerKernel, ActiveState, FearState, KernelDiagnostic,
+    DeficiencyCell, LossAversionCell, UnityCell,
+    deficiency_rule, loss_aversion_rule, unity_rule,
+};
+
+// ── v0.46 自复制编译器 (BootstrapSelfReplicate) ──
+// 编译器能用 SmrlCellOp 修改自身规则表 — 闭环自举
+// 三种操作: 匮乏→生长 / 合一→精简 / 恐慌→镜像
+// 完全基于 SmrlCell(v0.42) + BootstrapCompiler(v0.43) + ActiveContainer(v0.45)
+#[path = "core/bootstrap_self_replicate.rs"]
+pub mod bootstrap_self_replicate;
+pub use bootstrap_self_replicate::{
+    SelfReplicateCompiler, RuleTable, RuleEntry, RuleState, MAX_RULES,
+};
 
 // ── v0.40 里外维度 · 矢量封装 · 单中心仲裁 (InsideOut) ──
 #[path = "cognition/inside_out.rs"]
