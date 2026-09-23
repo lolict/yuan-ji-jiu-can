@@ -9870,3 +9870,218 @@ mod agency_tests {
         assert_eq!(e.directives.len(), 0);
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 呼唤编程引擎 · ContainerCallEngine (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+//   呼唤编程 (Calling Programming) — 满全法核心范式
+//   「以数字驱动的、隐式调用的、调用代码被公约数自身吸收的」
+//
+//   与传统函数调用的三个本质区别:
+//     1. 地址即入口 — 无需名称层, 纯数字地址直接定位
+//     2. 约束条件 = 公约数 — 调用是否成立取决于 caller 与 callee 的公约数关系
+//     3. 返回值 = 差异 — 不是求值结果, 而是两容器状态的差异标记
+//
+//   呼唤表 (CallTable):
+//     - 键: (caller_id, callee_id) 的配对
+//     - 值: CallEntry { 累计调用数, 最近强度, 建立 tick }
+//
+//   仅加法范式: 计数/强度全部加法累积, 无乘除
+
+/// 呼唤条目 — 一对容器之间的呼唤关系
+#[derive(Clone, Debug)]
+pub struct CallEntry {
+    pub caller_id: u64,
+    pub callee_id: u64,
+    pub call_count: u64,      // 累计呼唤次数 (加法累积)
+    pub last_strength: u64,   // 最近一次呼唤强度
+    pub established_tick: u64,// 首次呼唤时刻
+}
+
+impl CallEntry {
+    pub fn new(caller_id: u64, callee_id: u64, strength: u64, tick: u64) -> Self {
+        Self { caller_id, callee_id, call_count: 1, last_strength: strength, established_tick: tick }
+    }
+}
+
+/// 呼唤编程引擎
+#[derive(Clone, Debug)]
+pub struct ContainerCallEngine {
+    /// 呼唤表: (caller_id, callee_id) → CallEntry
+    pub entries: HashMap<(u64, u64), CallEntry>,
+    /// 累计呼唤总数
+    pub total_calls: u64,
+}
+
+impl ContainerCallEngine {
+    pub fn new() -> Self {
+        Self { entries: HashMap::new(), total_calls: 0 }
+    }
+
+    /// 发出一次呼唤 (caller → callee)
+    pub fn call(&mut self, caller_id: u64, callee_id: u64, strength: u64, tick: u64) -> u64 {
+        let key = (caller_id, callee_id);
+        let existed = self.entries.contains_key(&key);
+        let entry = self.entries.entry(key).or_insert_with(|| {
+            CallEntry::new(caller_id, callee_id, strength, tick)
+        });
+        if existed {
+            // 已存在 → 加法累积 (count 已经在 new 里是 1, 仅非首次才累加)
+            entry.call_count = entry.call_count + 1;
+            entry.last_strength = strength;
+        }
+        self.total_calls = self.total_calls + 1;
+        entry.call_count
+    }
+
+    /// 获取呼唤条目
+    pub fn get_entry(&self, caller_id: u64, callee_id: u64) -> Option<&CallEntry> {
+        self.entries.get(&(caller_id, callee_id))
+    }
+
+    /// 检查一对容器是否有过呼唤
+    pub fn has_called(&self, caller_id: u64, callee_id: u64) -> bool {
+        self.entries.contains_key(&(caller_id, callee_id))
+    }
+
+    /// 查询某容器的所有呼唤 (作为 caller)
+    pub fn calls_from(&self, caller_id: u64) -> Vec<&CallEntry> {
+        self.entries.values()
+            .filter(|e| e.caller_id == caller_id)
+            .collect()
+    }
+
+    /// 查询某容器的所有被呼唤 (作为 callee)
+    pub fn calls_to(&self, callee_id: u64) -> Vec<&CallEntry> {
+        self.entries.values()
+            .filter(|e| e.callee_id == callee_id)
+            .collect()
+    }
+
+    /// 最常被呼唤的 callee (被呼唤次数最多)
+    pub fn most_called_callee(&self) -> Option<u64> {
+        // 按 callee_id 聚合总 call_count (仅加法)
+        let mut agg: HashMap<u64, u64> = HashMap::new();
+        for entry in self.entries.values() {
+            let v = agg.entry(entry.callee_id).or_insert(0);
+            *v = *v + entry.call_count;
+        }
+        agg.into_iter().max_by_key(|&(_, count)| count).map(|(id, _)| id)
+    }
+
+    /// 呼唤关联数
+    pub fn entry_count(&self) -> usize { self.entries.len() }
+
+    /// 重置
+    pub fn clear(&mut self) {
+        self.entries.clear();
+        self.total_calls = 0;
+    }
+}
+
+impl Default for ContainerCallEngine {
+    fn default() -> Self { Self::new() }
+}
+
+#[cfg(test)]
+mod call_tests {
+    use super::*;
+
+    #[test]
+    fn test_call_basic() {
+        let mut e = ContainerCallEngine::new();
+        let n = e.call(1, 2, 50, 10);
+        assert_eq!(n, 1);
+        assert!(e.has_called(1, 2));
+        assert!(!e.has_called(2, 1));
+    }
+
+    #[test]
+    fn test_call_accumulate() {
+        let mut e = ContainerCallEngine::new();
+        e.call(1, 2, 50, 10);
+        e.call(1, 2, 60, 20);
+        e.call(1, 2, 70, 30);
+        let entry = e.get_entry(1, 2).unwrap();
+        assert_eq!(entry.call_count, 3);
+        assert_eq!(entry.last_strength, 70);  // 最近一次
+        assert_eq!(entry.established_tick, 10); // 首次
+    }
+
+    #[test]
+    fn test_unknown_entry() {
+        let e = ContainerCallEngine::new();
+        assert!(e.get_entry(99, 88).is_none());
+    }
+
+    #[test]
+    fn test_calls_from_to() {
+        let mut e = ContainerCallEngine::new();
+        e.call(1, 2, 10, 1);
+        e.call(1, 3, 20, 2);
+        e.call(2, 3, 30, 3);
+        let from_1 = e.calls_from(1);
+        assert_eq!(from_1.len(), 2);
+        let to_3 = e.calls_to(3);
+        assert_eq!(to_3.len(), 2);  // 1→3 和 2→3
+    }
+
+    #[test]
+    fn test_most_called_callee() {
+        let mut e = ContainerCallEngine::new();
+        e.call(1, 2, 10, 1);
+        e.call(3, 4, 20, 2); // 4 被唤 1 次
+        e.call(5, 4, 20, 3); // 4 再被唤 1 次 (共 2)
+        e.call(6, 7, 20, 4); // 7 被唤 1 次
+        assert_eq!(e.most_called_callee(), Some(4));
+    }
+
+    #[test]
+    fn test_has_called_neg() {
+        let mut e = ContainerCallEngine::new();
+        e.call(1, 2, 10, 1);
+        assert!(!e.has_called(2, 1));  // 反向不成立
+        assert!(!e.has_called(3, 4));
+    }
+
+    #[test]
+    fn test_total_calls() {
+        let mut e = ContainerCallEngine::new();
+        e.call(1, 2, 10, 1);
+        e.call(2, 3, 20, 2);
+        assert_eq!(e.total_calls, 2);
+    }
+
+    #[test]
+    fn test_clear() {
+        let mut e = ContainerCallEngine::new();
+        e.call(1, 2, 10, 1);
+        e.clear();
+        assert_eq!(e.entry_count(), 0);
+        assert_eq!(e.total_calls, 0);
+    }
+
+    #[test]
+    fn test_default() {
+        let e = ContainerCallEngine::default();
+        assert_eq!(e.total_calls, 0);
+    }
+
+    #[test]
+    fn test_most_called_empty() {
+        let e = ContainerCallEngine::new();
+        assert_eq!(e.most_called_callee(), None);
+    }
+
+    #[test]
+    fn test_duplicate_key_does_not_replace() {
+        let mut e = ContainerCallEngine::new();
+        e.call(1, 2, 10, 5);
+        e.call(1, 2, 20, 10);
+        let entry = e.get_entry(1, 2).unwrap();
+        // 第一次建立的 established_tick 应保留
+        assert_eq!(entry.established_tick, 5);
+        assert_eq!(entry.call_count, 2);
+    }
+}
