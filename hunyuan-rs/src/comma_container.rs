@@ -12206,3 +12206,145 @@ mod live_code_tests {
         assert_eq!(lc.total_ops, 0);
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器消抖引擎 · ContainerDebounce (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   信号防抖 — 输入信号必须有稳定的 tick 滑动窗口才能被确认
+//
+//   方式: 连续 N tick 内信号稳定不变, 才输出
+//   作用: 去除高频抖动, 使反馈环路稳定
+//
+//   仅加法: 每 tick +1 计数, 归零同样用 =0 判定
+
+#[derive(Clone, Debug)]
+pub struct ContainerDebounce {
+    pub threshold: u64,       // 确认所需稳定 tick 数
+    pub current_signal: u64,  // 当前暂存信号
+    pub stable_count: u64,    // 连续稳定 tick
+    pub confirmed_signal: u64, // 上次确认信号
+    pub confirmed: bool,      // 是否已确认
+    pub total_feeds: u64,     // 总喂入次数
+    pub total_changes: u64,   // 实际确认变化次数
+}
+
+impl ContainerDebounce {
+    pub fn new(threshold: u64) -> Self {
+        Self { threshold, current_signal: 0, stable_count: 0, confirmed_signal: 0, confirmed: false, total_feeds: 0, total_changes: 0 }
+    }
+
+    /// 每 tick 调用: 喂入信号; 返回 Some(信号) 当且仅当窗口稳定
+    pub fn feed(&mut self, signal: u64) -> Option<u64> {
+        self.total_feeds = self.total_feeds + 1;
+        if signal == self.current_signal {
+            self.stable_count = self.stable_count + 1;
+        } else {
+            self.current_signal = signal;
+            self.stable_count = 1;
+        }
+        if self.stable_count >= self.threshold {
+            let changed = if self.confirmed_signal != signal { true } else { false };
+            self.confirmed_signal = signal;
+            self.confirmed = true;
+            if changed { self.total_changes = self.total_changes + 1; }
+            Some(signal)
+        } else {
+            None
+        }
+    }
+
+    pub fn is_confirmed(&self) -> bool { self.confirmed }
+    pub fn last_confirmed(&self) -> u64 { self.confirmed_signal }
+    pub fn reset(&mut self) {
+        self.current_signal = 0;
+        self.stable_count = 0;
+        self.confirmed_signal = 0;
+        self.confirmed = false;
+        self.total_feeds = 0;
+        self.total_changes = 0;
+    }
+
+    /// 剩余 tick 数直到确认 (当 stable_count >= threshold 时返回 0)
+    pub fn ticks_to_confirm(&self) -> u64 {
+        if self.stable_count >= self.threshold { 0 }
+        else { self.threshold - self.stable_count }
+    }
+}
+
+impl Default for ContainerDebounce {
+    fn default() -> Self { Self::new(3) }
+}
+
+#[cfg(test)]
+mod debounce_tests {
+    use super::*;
+
+    #[test]
+    fn test_threshold_3() {
+        let mut d = ContainerDebounce::new(3);
+        assert!(d.feed(10).is_none());   // 1/3
+        assert!(d.feed(10).is_none());   // 2/3
+        assert_eq!(d.feed(10), Some(10)); // 3/3 → 确认
+    }
+
+    #[test]
+    fn test_glitch_recovery() {
+        let mut d = ContainerDebounce::new(3);
+        assert!(d.feed(5).is_none());     // 1/3 (signal=5)
+        assert!(d.feed(99).is_none());    // 毛刺! signal 切换为 99, stable=1/3
+        assert!(d.feed(5).is_none());     // 毛刺! signal 切换回 5, stable=1/3
+        assert!(d.feed(5).is_none());     // 2/3
+        assert_eq!(d.feed(5), Some(5));   // 3/3 → 确认 5
+    }
+
+    #[test]
+    fn test_unchanged_reconfirm() {
+        let mut d = ContainerDebounce::new(2);
+        d.feed(42); d.feed(42);
+        assert_eq!(d.feed(42), Some(42)); // 继续喂相同值, 继续确认
+    }
+
+    #[test]
+    fn test_ticks_to_confirm() {
+        let mut d = ContainerDebounce::new(5);
+        d.feed(1);
+        assert_eq!(d.ticks_to_confirm(), 4);
+        d.feed(1);
+        d.feed(1);
+        assert_eq!(d.ticks_to_confirm(), 2);
+    }
+
+    #[test]
+    fn test_changes_counter() {
+        let mut d = ContainerDebounce::new(1);
+        d.feed(10); // 确认变化1
+        d.feed(10); // 同值, 不算变化
+        d.feed(20); // 确认变化2
+        assert_eq!(d.total_changes, 2);
+    }
+
+    #[test]
+    fn test_threshold_one() {
+        let mut d = ContainerDebounce::new(1);
+        // threshold=1: 每次 feed 都立即确认
+        assert_eq!(d.feed(7), Some(7));
+        assert_eq!(d.feed(7), Some(7));
+    }
+
+    #[test]
+    fn test_reset() {
+        let mut d = ContainerDebounce::new(2);
+        d.feed(5); d.feed(5);
+        d.reset();
+        assert!(!d.is_confirmed());
+        assert_eq!(d.total_feeds, 0);
+        assert!(d.feed(5).is_none()); // 重新开始
+    }
+
+    #[test]
+    fn test_default_threshold_three() {
+        let d = ContainerDebounce::default();
+        assert_eq!(d.threshold, 3);
+    }
+}
