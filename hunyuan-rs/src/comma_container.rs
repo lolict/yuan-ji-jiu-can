@@ -8762,3 +8762,325 @@ mod timeline_tests {
         assert_eq!(b.phase, TimelinePhase::Branched);
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器反射感知引擎 · ContainerReflectionEngine (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   反射感知 = 对「改变」的觉察 (囡囝感知四阶 · 阶段二)
+//   "差异标记是判断之力的原材料"
+//
+//   核心操作:
+//     - record()       — 记录容器在某 tick 的涟漪印记
+//     - sense()        — 比较两 tick 之间的差异, 产生差异标记
+//     - reflect_all()  — 对所有容器执行反射感知
+//     - diff_count()   — 累计差异标记数
+//     - last_diff()    — 最近的差异标记
+//
+//   涟漪三要素: 振幅 (加法累加), 相位 (加法偏移), 时间 (tick)
+//   差异: |a - b| 用减法实现 (if a >= b { a - b } else { b - a })
+//
+//   仅加法范式: 所有运算只用加减法/比较/位移
+
+/// 涟漪印记 — 容器在某一时刻的状态快照
+#[derive(Clone, Debug)]
+pub struct RippleImprint {
+    pub container_id: u64,
+    pub tick: u64,
+    pub amplitude: u64,    // 信号振幅 (加法累加)
+    pub phase: u64,        // 相位偏移
+}
+
+impl RippleImprint {
+    pub fn new(container_id: u64, tick: u64, amplitude: u64, phase: u64) -> Self {
+        Self { container_id, tick, amplitude, phase }
+    }
+}
+
+/// 差异类型 — 信号变化的模式
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum DiffKind {
+    Stable,           // 稳定无变化
+    AmplitudeShift,   // 振幅变化
+    PhaseDrift,       // 相位漂移
+    Appearance,       // 新出现 (前 tick 不存在)
+    Disappearance,    // 消失 (后 tick 不存在)
+}
+
+/// 差异标记 — 反射感知的产物, 判断之力的原材料
+#[derive(Clone, Debug)]
+pub struct DiffMark {
+    pub container_id: u64,
+    pub from_tick: u64,
+    pub to_tick: u64,
+    pub kind: DiffKind,
+    pub magnitude: u64,    // 差异幅度 (绝对差, 加法计算)
+}
+
+/// 容器反射感知引擎
+#[derive(Clone, Debug)]
+pub struct ContainerReflectionEngine {
+    /// 容器历史印记: container_id -> Vec<RippleImprint>
+    pub imprints: HashMap<u64, Vec<RippleImprint>>,
+    /// 累计的差异标记
+    pub diff_marks: Vec<DiffMark>,
+    /// 已处理到的最后 tick
+    pub last_tick: u64,
+    /// 每容器最大历史深度
+    pub max_history: usize,
+}
+
+impl ContainerReflectionEngine {
+    pub fn new() -> Self {
+        Self {
+            imprints: HashMap::new(),
+            diff_marks: Vec::new(),
+            last_tick: 0,
+            max_history: 1000,
+        }
+    }
+
+    /// 记录容器在某 tick 的涟漪印记
+    pub fn record(&mut self, container_id: u64, tick: u64, amplitude: u64, phase: u64) {
+        let entry = self.imprints.entry(container_id).or_default();
+        entry.push(RippleImprint::new(container_id, tick, amplitude, phase));
+        // 截断过期历史
+        if entry.len() > self.max_history {
+            let excess = entry.len() - self.max_history;
+            entry.drain(0..excess);
+        }
+        if tick > self.last_tick { self.last_tick = tick; }
+    }
+
+    /// 获取容器在指定 tick 的最新印记 (不超过 target_tick)
+    pub fn latest_imprint(&self, container_id: u64, target_tick: u64) -> Option<&RippleImprint> {
+        self.imprints.get(&container_id)?
+            .iter()
+            .filter(|i| i.tick <= target_tick)
+            .max_by_key(|i| i.tick)
+    }
+
+    /// 两值之绝对差 (仅加法: if a >= b { a-b } else { b-a })
+    fn abs_diff(a: u64, b: u64) -> u64 {
+        if a >= b { a - b } else { b - a }
+    }
+
+    /// 感知容器在两个 tick 之间的差异, 返回差异标记
+    pub fn sense(&self, container_id: u64, from_tick: u64, to_tick: u64) -> Option<DiffMark> {
+        let prev = self.latest_imprint(container_id, from_tick);
+        // curr: 在 (from_tick, to_tick] 区间内最新的印记 (不能与 prev 同 tick)
+        let curr = self.imprints.get(&container_id)
+            .and_then(|v| {
+                v.iter()
+                    .filter(|i| i.tick > from_tick && i.tick <= to_tick)
+                    .max_by_key(|i| i.tick)
+            });
+
+        match (prev, curr) {
+            (None, None) => None,
+            (None, Some(c)) => Some(DiffMark {
+                container_id, from_tick, to_tick,
+                kind: DiffKind::Appearance,
+                magnitude: c.amplitude,
+            }),
+            (Some(p), None) => Some(DiffMark {
+                container_id, from_tick, to_tick,
+                kind: DiffKind::Disappearance,
+                magnitude: p.amplitude,
+            }),
+            (Some(p), Some(c)) => {
+                let amp_diff = Self::abs_diff(p.amplitude, c.amplitude);
+                let phase_diff = Self::abs_diff(p.phase, c.phase);
+                let magnitude = amp_diff;
+                let kind = if amp_diff == 0 && phase_diff == 0 {
+                    DiffKind::Stable
+                } else if amp_diff >= phase_diff {
+                    DiffKind::AmplitudeShift
+                } else {
+                    DiffKind::PhaseDrift
+                };
+                Some(DiffMark { container_id, from_tick, to_tick, kind, magnitude })
+            }
+        }
+    }
+
+    /// 对所有容器执行一次反射感知, 产出差异标记
+    pub fn reflect_all(&mut self, from_tick: u64, to_tick: u64) -> Vec<DiffMark> {
+        let ids: Vec<u64> = self.imprints.keys().copied().collect();
+        let mut marks = Vec::new();
+        for id in ids {
+            if let Some(mark) = self.sense(id, from_tick, to_tick) {
+                if mark.kind != DiffKind::Stable {
+                    marks.push(mark);
+                }
+            }
+        }
+        // 累计标记
+        self.diff_marks.extend(marks.clone());
+        marks
+    }
+
+    /// 累计差异标记数
+    pub fn diff_count(&self) -> usize { self.diff_marks.len() }
+
+    /// 最近的差异标记
+    pub fn last_diff(&self) -> Option<&DiffMark> { self.diff_marks.last() }
+
+    /// 有多少容器被追踪
+    pub fn container_count(&self) -> usize { self.imprints.len() }
+
+    /// 清空差异标记
+    pub fn clear_diff_marks(&mut self) { self.diff_marks.clear(); }
+
+    /// 重置全部
+    pub fn clear(&mut self) {
+        self.imprints.clear();
+        self.diff_marks.clear();
+        self.last_tick = 0;
+    }
+}
+
+impl Default for ContainerReflectionEngine {
+    fn default() -> Self { Self::new() }
+}
+
+#[cfg(test)]
+mod reflection_tests {
+    use super::*;
+
+    #[test]
+    fn test_record_and_latest() {
+        let mut e = ContainerReflectionEngine::new();
+        e.record(1, 10, 100, 0);
+        let imp = e.latest_imprint(1, 10).unwrap();
+        assert_eq!(imp.amplitude, 100);
+        assert_eq!(imp.phase, 0);
+    }
+
+    #[test]
+    fn test_record_unknown_container() {
+        let e = ContainerReflectionEngine::new();
+        assert!(e.latest_imprint(99, 10).is_none());
+    }
+
+    #[test]
+    fn test_sense_stable() {
+        let mut e = ContainerReflectionEngine::new();
+        e.record(1, 10, 50, 0);
+        e.record(1, 20, 50, 0);
+        let mark = e.sense(1, 10, 20).unwrap();
+        assert_eq!(mark.kind, DiffKind::Stable);
+        assert_eq!(mark.magnitude, 0);
+    }
+
+    #[test]
+    fn test_sense_amplitude_shift() {
+        let mut e = ContainerReflectionEngine::new();
+        e.record(1, 10, 50, 0);
+        e.record(1, 20, 80, 0);
+        let mark = e.sense(1, 10, 20).unwrap();
+        assert_eq!(mark.kind, DiffKind::AmplitudeShift);
+        assert_eq!(mark.magnitude, 30);
+    }
+
+    #[test]
+    fn test_sense_phase_drift() {
+        let mut e = ContainerReflectionEngine::new();
+        e.record(1, 10, 50, 0);
+        e.record(1, 20, 50, 100);
+        let mark = e.sense(1, 10, 20).unwrap();
+        // phase_diff=100 > amp_diff=0 → PhaseDrift
+        assert_eq!(mark.kind, DiffKind::PhaseDrift);
+        assert_eq!(mark.magnitude, 0);
+    }
+
+    #[test]
+    fn test_sense_appearance() {
+        let mut e = ContainerReflectionEngine::new();
+        e.record(1, 20, 42, 0);
+        // 在 tick 10 没有, 在 tick 20 有 → 新出现
+        let mark = e.sense(1, 10, 20).unwrap();
+        assert_eq!(mark.kind, DiffKind::Appearance);
+        assert_eq!(mark.magnitude, 42);
+    }
+
+    #[test]
+    fn test_sense_disappearance() {
+        let mut e = ContainerReflectionEngine::new();
+        e.record(1, 10, 42, 0);
+        // 在 tick 10 有, 在 tick 20 无 → 消失
+        let mark = e.sense(1, 10, 20).unwrap();
+        assert_eq!(mark.kind, DiffKind::Disappearance);
+        assert_eq!(mark.magnitude, 42);
+    }
+
+    #[test]
+    fn test_sense_unknown() {
+        let e = ContainerReflectionEngine::new();
+        assert!(e.sense(99, 10, 20).is_none());
+    }
+
+    #[test]
+    fn test_reflect_all() {
+        let mut e = ContainerReflectionEngine::new();
+        // 容器 1: 振幅变化
+        e.record(1, 10, 50, 0);
+        e.record(1, 20, 80, 0);
+        // 容器 2: 稳定
+        e.record(2, 10, 100, 0);
+        e.record(2, 20, 100, 0);
+        // 容器 3: 仅在 20 有 (新出现)
+        e.record(3, 20, 77, 0);
+
+        let marks = e.reflect_all(10, 20);
+        // 容器1 (变化) + 容器3 (新出现) = 2 个差异标记
+        assert_eq!(marks.len(), 2);
+        assert_eq!(e.diff_count(), 2);
+    }
+
+    #[test]
+    fn test_diff_does_not_record_stable() {
+        let mut e = ContainerReflectionEngine::new();
+        e.record(1, 10, 50, 0);
+        e.record(1, 20, 50, 0);
+        let marks = e.reflect_all(10, 20);
+        // 稳定 → 不出差异标记
+        assert_eq!(marks.len(), 0);
+        assert_eq!(e.diff_count(), 0);
+    }
+
+    #[test]
+    fn test_container_count() {
+        let mut e = ContainerReflectionEngine::new();
+        e.record(1, 10, 1, 0);
+        e.record(2, 10, 2, 0);
+        e.record(3, 10, 3, 0);
+        assert_eq!(e.container_count(), 3);
+    }
+
+    #[test]
+    fn test_clear() {
+        let mut e = ContainerReflectionEngine::new();
+        e.record(1, 10, 100, 0);
+        e.record(1, 20, 200, 0);
+        e.reflect_all(10, 20);
+        assert!(e.diff_count() > 0);
+        e.clear();
+        assert_eq!(e.diff_count(), 0);
+        assert_eq!(e.container_count(), 0);
+    }
+
+    #[test]
+    fn test_abs_diff() {
+        assert_eq!(ContainerReflectionEngine::abs_diff(10, 5), 5);
+        assert_eq!(ContainerReflectionEngine::abs_diff(5, 10), 5);
+        assert_eq!(ContainerReflectionEngine::abs_diff(7, 7), 0);
+    }
+
+    #[test]
+    fn test_default() {
+        let e = ContainerReflectionEngine::default();
+        assert_eq!(e.diff_count(), 0);
+        assert_eq!(e.container_count(), 0);
+    }
+}
