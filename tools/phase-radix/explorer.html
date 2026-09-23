@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>囡囝容器探索器</title>
+<style>
+:root{--bg:#090d14;--panel:#101828;--border:#1c2b44;--text:#c8d4e8;--muted:#486080;--green:#35d07f;--cyan:#3baded;--violet:#8b5cf6;--yellow:#e5a148;--pink:#ec4899}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'JetBrains Mono','Noto Sans Mono CJK SC',monospace;background:var(--bg);color:var(--text);display:grid;grid-template-columns:1fr 320px;grid-template-rows:48px 1fr;height:100vh;overflow:hidden}
+header{grid-column:1/-1;background:linear-gradient(180deg,#11192a 0%,#0c1220 100%);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:12px;z-index:10}
+header h1{font-size:14px;color:var(--violet);letter-spacing:0.02em}
+header .tabs{display:flex;gap:4px}
+header .tab{padding:5px 12px;border-radius:4px;cursor:pointer;font-size:11px;color:var(--muted);transition:all .15s}
+header .tab.active{background:var(--border);color:var(--cyan)}
+header .tab:hover:not(.active){background:rgba(59,173,237,0.1)}
+header .spacer{flex:1}
+header input{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:5px 10px;border-radius:4px;font-family:inherit;font-size:11px;width:160px;outline:none}
+header input:focus{border-color:var(--cyan)}
+main{position:relative;overflow:hidden;background:radial-gradient(ellipse at center,#0f1828 0%,#070b10 100%)}
+canvas{display:block}
+aside{background:var(--panel);border-left:1px solid var(--border);overflow-y:auto;padding:16px;font-size:11px}
+aside h2{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin:14px 0 6px}
+aside h2:first-child{margin-top:0}
+aside h3{font-size:13px;color:var(--cyan);margin-bottom:8px}
+.row{display:flex;justify-content:space-between;padding:3px 0}
+.row:hover{background:rgba(255,255,255,0.02)}
+.k{color:var(--muted)}.v{color:var(--cyan);font-weight:600}
+.v.yin{color:var(--pink)}.v.yang{color:var(--yellow)}.v.neutral{color:var(--green)}
+.tag{display:inline-block;padding:1px 6px;border-radius:3px;font-size:9px;margin-left:4px;vertical-align:middle}
+.leg{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px}
+.lg{display:flex;align-items:center;gap:4px;font-size:10px}
+.dot{width:10px;height:10px;border-radius:50%}
+.btn{background:var(--border);border:none;color:var(--text);padding:5px 10px;border-radius:3px;cursor:pointer;font-family:inherit;font-size:10px;margin:3px 3px 3px 0;transition:all .15s}
+.btn:hover{background:var(--cyan);color:#000}
+.btn.active{background:var(--green);color:#000;font-weight:600}
+.empty{color:var(--muted);font-style:italic;text-align:center;padding:20px 0}
+#hint{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:6px 14px;font-size:10px;color:var(--muted);z-index:10;pointer-events:none}
+</style>
+</head>
+<body>
+<header>
+  <h1>&#9677; 囡囝容器探索器</h1>
+  <div class="tabs">
+    <div class="tab active" data-mode="explore" onclick="setMode(this)">探索</div>
+    <div class="tab" data-mode="compare" onclick="setMode(this)">两容器对比</div>
+    <div class="tab" data-mode="witness" onclick="setMode(this)">三元见证</div>
+    <div class="tab" data-mode="yinyang" onclick="setMode(this)">夫妻进制</div>
+  </div>
+  <div class="spacer"></div>
+  <input id="q" placeholder="搜索容器名/编码&hellip;" onkeydown="if(event.key==='Enter')doSearch(this.value)">
+</header>
+
+<main id="mainCanvas">
+  <canvas id="c"></canvas>
+</main>
+
+<aside id="panel">
+  <div id="panelExplore">
+    <div id="selInfo">
+      <div class="empty">点击容器查看<br>编码/极性/坐标/家族</div>
+    </div>
+    <h2>编码系统</h2>
+    <div class="row"><span class="k">容器数</span><span class="v">64</span></div>
+    <div class="row"><span class="k">进制</span><span class="v">三维进制</span></div>
+    <div class="row"><span class="k">X权</span><span class="v">bit1,3,5 &times;1,&times;3,&times;9</span></div>
+    <div class="row"><span class="k">Y权</span><span class="v">bit0,2,4 &times;1,&times;3,&times;9</span></div>
+    <h2>四族</h2>
+    <div class="leg">
+      <div class="lg"><div class="dot" style="background:#8b5cf6"></div>容器族 0x00-0F</div>
+      <div class="lg"><div class="dot" style="background:#e5a148"></div>操作族 0x10-1F</div>
+      <div class="lg"><div class="dot" style="background:#3baded"></div>声母容器 0x20-2F</div>
+      <div class="lg"><div class="dot" style="background:#ef4444"></div>韵母容器 0x30-3F</div>
+    </div>
+    <h2>极性图例</h2>
+    <div class="leg">
+      <div class="lg"><div class="dot" style="background:#ec4899"></div>阴 Yin</div>
+      <div class="lg"><div class="dot" style="background:#60a5fa"></div>阳 Yang</div>
+      <div class="lg"><div class="dot" style="background:#35d07f"></div>元 Neutral</div>
+    </div>
+  </div>
+
+  <div id="panelCompare" style="display:none">
+    <h3>&#9734; 两容器几何</h3>
+    <div id="cmpInfo"><div class="empty">点击两个容器<br>查看几何关系</div></div>
+  </div>
+
+  <div id="panelWitness" style="display:none">
+    <h3>&#9651; 三元见证</h3>
+    <div id="witInfo"><div class="empty">点击三个容器<br>查看是否构成见证</div></div>
+  </div>
+
+  <div id="panelYinyang" style="display:none">
+    <h3>&#9872; 夫妻进制 (YinYang Binary)</h3>
+    <div id="yyInfo"><div class="empty">点击两个容器<br>查看加法统摄与XOR对比</div></div>
+  </div>
+</aside>
+
+<div id="hint">模式: 探索 &middot; 点击选择容器 &middot; 滚轮缩放 &middot; 拖拽平移</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+//  囡囝容器探索器
+// ══════════════════════════════════════════════════════
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let W, H, DPR = window.devicePixelRatio || 1;
+
+function resize() {
+  const r = document.getElementById('mainCanvas').getBoundingClientRect();
+  W = r.width; H = r.height;
+  canvas.width = W * DPR; canvas.height = H * DPR;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ── 容器数据 ──
+const C = [
+  // 容器族 0x00-0F
+  {n:'袋',py:'dai',p:'Yin',f:0},{n:'照',py:'zhao',p:'Yang',f:0},{n:'见',py:'jian',p:'Neutral',f:0},
+  {n:'阴',py:'yin',p:'Yin',f:0},{n:'加',py:'jia',p:'Yang',f:0},{n:'分',py:'fen',p:'Neutral',f:0},
+  {n:'元',py:'yuan',p:'Neutral',f:0},{n:'裁',py:'cai',p:'Neutral',f:0},
+  {n:'产',py:'chan',p:'Yin',f:0},{n:'公',py:'gong',p:'Neutral',f:0},{n:'声',py:'sheng',p:'Yang',f:0},{n:'折',py:'zhe',p:'Neutral',f:0},
+  {n:'负',py:'fu',p:'Yin',f:0},{n:'福',py:'fu2',p:'Yin',f:0},{n:'凤',py:'feng',p:'Yang',f:0},{n:'栖',py:'qi',p:'Neutral',f:0},
+  // 操作族 0x10-1F
+  {n:'融',py:'rong',p:'Neutral',f:1},{n:'鼓',py:'gu',p:'Yang',f:1},{n:'蚕',py:'can',p:'Neutral',f:1},{n:'民',py:'min',p:'Yin',f:1},
+  {n:'盟',py:'meng',p:'Neutral',f:1},{n:'满',py:'man',p:'Neutral',f:1},{n:'囡',py:'nan',p:'Neutral',f:1},{n:'夕',py:'xi',p:'Neutral',f:1},
+  {n:'三',py:'san',p:'Neutral',f:1},{n:'六',py:'liu',p:'Yin',f:1},{n:'八',py:'ba',p:'Yin',f:1},{n:'九',py:'jiu',p:'Yang',f:1},
+  {n:'零',py:'ling',p:'Yin',f:1},{n:'一',py:'yi',p:'Yang',f:1},{n:'二',py:'er',p:'Neutral',f:1},{n:'四',py:'si',p:'Yang',f:1},
+  // 声母容器 0x20-2F
+  {n:'桶',py:'tong',p:'Yang',f:2},{n:'罐',py:'guan',p:'Yang',f:2},{n:'盆',py:'pen',p:'Yang',f:2},{n:'盂',py:'yu2',p:'Yang',f:2},
+  {n:'壶',py:'hu2',p:'Yang',f:2},{n:'盒',py:'he',p:'Yang',f:2},{n:'瓶',py:'ping',p:'Yang',f:2},{n:'盏',py:'zhan',p:'Yang',f:2},
+  {n:'盎',py:'ang',p:'Neutral',f:2},{n:'篓',py:'lou',p:'Neutral',f:2},{n:'筐',py:'kuang',p:'Neutral',f:2},{n:'篮',py:'lan',p:'Neutral',f:2},
+  {n:'箩',py:'luo',p:'Neutral',f:2},{n:'箕',py:'ji',p:'Neutral',f:2},{n:'笼',py:'long',p:'Neutral',f:2},{n:'海',py:'hai',p:'Neutral',f:2},
+  // 韵母容器 0x30-3F
+  {n:'帮',py:'bang',p:'Yin',f:3},{n:'端',py:'duan',p:'Yin',f:3},{n:'精',py:'jing2',p:'Yin',f:3},{n:'见2',py:'jian2',p:'Yin',f:3},
+  {n:'来',py:'lai',p:'Yin',f:3},{n:'齿',py:'chi',p:'Yang',f:3},{n:'喉',py:'hou',p:'Neutral',f:3},{n:'呼',py:'hu3',p:'Neutral',f:3},
+  {n:'开',py:'kai',p:'Neutral',f:3},{n:'清',py:'qing',p:'Neutral',f:3},{n:'平',py:'ping2',p:'Neutral',f:3},{n:'上',py:'shang',p:'Neutral',f:3},
+  {n:'前',py:'qian',p:'Neutral',f:3},{n:'内',py:'nei',p:'Neutral',f:3},{n:'单',py:'dan',p:'Neutral',f:3},{n:'长',py:'chang',p:'Yin',f:3},
+];
+const CODE = C.map((c,i) => Object.assign({}, c, {code:i}));
+
+// 三维进制坐标: bit0/2/4→Y; bit1/3/5→X; bit6→Z层
+function coord(code) {
+  const y = ((code>>0)&1)*1 + ((code>>2)&1)*3 + ((code>>4)&1)*9;
+  const x = ((code>>1)&1)*1 + ((code>>3)&1)*3 + ((code>>5)&1)*9;
+  return {x, y};
+}
+
+// Hex distance in same layer
+function hexDist(a, b) {
+  const ca = coord(a.code), cb = coord(b.code);
+  const dq = cb.x - ca.x, dr = cb.y - ca.y;
+  return (Math.abs(dq) + Math.abs(dr) + Math.abs(dq+dr)) / 2;
+}
+
+// 极性组合
+function polCombine(a, b) {
+  if ((a==='Yin'&&b==='Yang')||(a==='Yang'&&b==='Yin')) return '元(中和)';
+  if (a==='Neutral'||b==='Neutral') return '元(保持)';
+  if (a==='Yin'&&b==='Yin') return '阴(叠加)';
+  if (a==='Yang'&&b==='Yang') return '阳(谐振)';
+  return '?';
+}
+
+// 见证规则: 不能全同极性, 也不能全不同
+function triuneWitness(a, b, c) {
+  const allSame = a===b && b===c;
+  const allDiff = a!==b && b!==c && a!==c;
+  return !allSame && !allDiff;
+}
+
+// ── 布局: 六边形网格中心点 ──
+const SCALE = 40;
+const containersWithPos = CODE.map(c => {
+  const co = coord(c.code);
+  return Object.assign({}, c, {
+    cx: co.x, cy: co.y,
+    // pixel position in grid-space
+    px: co.x * SCALE * 0.87,
+    py: co.y * SCALE
+  });
+});
+
+// 相机
+let camX = 0, camY = 0, camZ = 1;
+let dragging = false, dragStartX = 0, dragStartY = 0, camStartX = 0, camStartY = 0;
+
+canvas.addEventListener('mousedown', e => {
+  dragging = true; dragStartX = e.clientX; dragStartY = e.clientY; camStartX = camX; camStartY = camY;
+});
+canvas.addEventListener('mousemove', e => {
+  if (dragging) {
+    camX = camStartX + (e.clientX - dragStartX);
+    camY = camStartY + (e.clientY - dragStartY);
+  } else {
+    // hover
+    const rect = canvas.getBoundingClientRect();
+    const mx = (e.clientX - rect.left - W/2 - camX) / camZ;
+    const my = (e.clientY - rect.top - H/2 - camY) / camZ;
+    let best = -1, bestD = SCALE*0.45;
+    for (const c of containersWithPos) {
+      const d = Math.sqrt((mx-c.px)**2 + (my-c.py)**2);
+      if (d < bestD) { bestD = d; best = c.code; }
+    }
+    hovered = best;
+    canvas.style.cursor = best >= 0 ? 'pointer' : 'default';
+  }
+});
+canvas.addEventListener('mouseup', e => {
+  if (dragging && Math.abs(e.clientX-dragStartX)<3 && Math.abs(e.clientY-dragStartY)<3) {
+    onClick(hovered);
+  }
+  dragging = false;
+});
+canvas.addEventListener('mouseleave', () => { dragging = false; hovered = -1; });
+canvas.addEventListener('wheel', e => {
+  camZ *= e.deltaY > 0 ? 0.92 : 1.08;
+  camZ = Math.max(0.4, Math.min(2.5, camZ));
+});
+
+// ── 配色 ──
+const FAM_COL = ['#8b5cf6','#e5a148','#3baded','#ef4444'];
+const FAM_NAMES = ['容器族','操作族','声母容器','韵母容器'];
+const POL_COL = {Yin:'#ec4899',Yang:'#60a5fa',Neutral:'#35d07f'};
+
+let mode = 'explore';
+let selected = []; // up to 3 selections
+let hovered = -1;
+let colorBy = 'family';
+
+function setMode(el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  mode = el.dataset.mode;
+  selected = [];
+  document.querySelectorAll('[id^=panel]')
+    .forEach(p => p.style.display = 'none');
+  const pid = 'panel' + mode.charAt(0).toUpperCase() + mode.slice(1);
+  document.getElementById(pid).style.display = 'block';
+  document.getElementById('hint').textContent =
+    mode==='explore' ? '模式: 探索 · 点击选择容器' :
+    mode==='compare' ? '模式: 两容器 · 点击两个容器查看几何关系' :
+    mode==='witness' ? '模式: 三元见证 · 点击三个容器查看见证关系' :
+    mode==='yinyang' ? '模式: 夫妻进制 · 点击两个容器查看加法统摄' : '';
+  updatePanel();
+  draw();
+}
+
+function onClick(code) {
+  if (code < 0) return;
+  if (mode === 'explore') {
+    selected = [code];
+  } else if (mode === 'compare') {
+    selected = selected.slice(0, 1);
+    if (!selected.includes(code)) selected.push(code);
+  } else if (mode === 'witness') {
+    if (selected.includes(code)) {
+      selected = selected.filter(c => c !== code);
+    } else if (selected.length < 3) {
+      selected.push(code);
+    } else {
+      selected = [code];
+    }
+  } else if (mode === 'yinyang') {
+    selected = selected.slice(0, 1);
+    if (!selected.includes(code)) selected.push(code);
+  }
+  updatePanel();
+  draw();
+}
+
+function updatePanel() {
+  const pnl = document.getElementById('panel' + mode.charAt(0).toUpperCase() + mode.slice(1));
+  if (!pnl) return;
+  if (mode === 'explore') return; // static info
+  const info = pnl.querySelector('div[id$="Info"]');
+
+  if (selected.length === 0) {
+    info.innerHTML = '<div class="empty">点击容器开始<br>进行对比</div>';
+    return;
+  }
+
+  const sel = selected.map(code => CODE[code]);
+
+  if (mode === 'compare') {
+    if (selected.length === 1) {
+      const c = sel[0];
+      info.innerHTML = `<div class="row"><span class="k">选择 A</span><span class="v">${c.n}</span></div>
+        <div class="row"><span class="k">还差</span><span class="v">请选择B容器</span></div>`;
+      return;
+    }
+    const a = sel[0], b = sel[1];
+    const dist = hexDist(a, b);
+    const sameLayer = coord(a.code).x !== undefined; // both have coords
+    info.innerHTML = `
+      <h3>${a.n} vs ${b.n}</h3>
+      <div class="row"><span class="k">距离</span><span class="v">${dist}</span></div>
+      <div class="row"><span class="k">极性组合</span><span class="v">${polCombine(a.p, b.p)}</span></div>
+      <div class="row"><span class="k">A家族</span><span class="v">${FAM_NAMES[a.f]}</span></div>
+      <div class="row"><span class="k">B家族</span><span class="v">${FAM_NAMES[b.f]}</span></div>
+      <div class="row"><span class="k">同层</span><span class="v">${Math.floor(a.code/0x20)===Math.floor(b.code/0x20)?'是':'否'}</span></div>
+      <h2>编码</h2>
+      <div class="row"><span class="k">A编码</span><span class="v">0x${a.code.toString(16).toUpperCase().padStart(2,'0')}</span></div>
+      <div class="row"><span class="k">B编码</span><span class="v">0x${b.code.toString(16).toUpperCase().padStart(2,'0')}</span></div>
+      <div class="row"><span class="k">XOR</span><span class="v">0x${(a.code^b.code).toString(16).toUpperCase().padStart(2,'0')}</span></div>
+      <div class="row"><span class="k">OR</span><span class="v">0x${(a.code|b.code).toString(16).toUpperCase().padStart(2,'0')}</span></div>`;
+  } else if (mode === 'witness') {
+    if (selected.length < 3) {
+      info.innerHTML = `<div class="row"><span class="k">已选</span><span class="v">${selected.length}/3</span></div>` +
+        sel.map(c => `<div class="row"><span class="k">${c.n}</span><span class="v ${c.p==='Yin'?'yin':c.p==='Yang'?'yang':'neutral'}">${c.p}</span></div>`).join('') +
+        (selected.length>0?`<div class="empty">还差${3-selected.length}个</div>`:'');
+      return;
+    }
+    const [a,b2,c] = sel;
+    const wit = triuneWitness(a.p, b2.p, c.p);
+    info.innerHTML = `
+      <h3 style="color:${wit?'var(--green)':'var(--pink)'}">${wit?'✓ 合法见证':'✗ 非法见证'}</h3>
+      <div class="row"><span class="k">${a.n}</span><span class="v ${a.p==='Yin'?'yin':a.p==='Yang'?'yang':'neutral'}">${a.p}</span></div>
+      <div class="row"><span class="k">${b2.n}</span><span class="v ${b2.p==='Yin'?'yin':b2.p==='Yang'?'yang':'neutral'}">${b2.p}</span></div>
+      <div class="row"><span class="k">${c.n}</span><span class="v ${c.p==='Yin'?'yin':c.p==='Yang'?'yang':'neutral'}">${c.p}</span></div>
+      <h2>规则</h2>
+      <div class="row"><span class="k">全同极性</span><span class="v">${a.p===b2.p&&b2.p===c.p?'是(非法)':'否'}</span></div>
+      <div class="row"><span class="k">全不同极性</span><span class="v">${a.p!==b2.p&&b2.p!==c.p&&a.p!==c.p?'是(非法)':'否'}</span></div>
+      <div class="row"><span class="k">结论</span><span class="v">${wit?'两同一异: 合法':'不满足见证律'}</span></div>`;
+  } else if (mode === 'yinyang') {
+    if (selected.length === 1) {
+      const c = sel[0];
+      info.innerHTML = `<div class="row"><span class="k">A</span><span class="v">${c.n} 0x${c.code.toString(16).toUpperCase().padStart(2,'0')}</span></div>
+        <div class="empty">选择B容器</div>`;
+      return;
+    }
+    const a = sel[0], b = sel[1];
+    const sum = (a.code + b.code) & 0x3F;
+    const xor = a.code ^ b.code;
+    const or = a.code | b.code;
+    const carry = (a.code + b.code) > 0x3F;
+    const anchor = (a.code >> 6) & 1;
+    const anchorName = anchor ? '我(lolict)':'刘楚坦';
+    const bAnchor = (b.code >> 6) & 1 ? '我(lolict)':'刘楚坦';
+    info.innerHTML = `
+      <h3>${a.n} &#10132; ${b.n}</h3>
+      <div class="row"><span class="k">主权锚(A)</span><span class="v">${anchor?'1':'0'} (${anchorName})</span></div>
+      <div class="row"><span class="k">B锚</span><span class="v">${bAnchor}</span></div>
+      <h2>加法统摄(absorb)</h2>
+      <div class="row"><span class="k">值相加</span><span class="v">0x${sum.toString(16).toUpperCase().padStart(2,'0')}</span></div>
+      <div class="row"><span class="k">主权</span><span class="v">归我(1)</span></div>
+      <div class="row"><span class="k">进位</span><span class="v">${carry?'⚡溢出':'─'}</span></div>
+      <h2>二进制(对比)</h2>
+      <div class="row"><span class="k">XOR</span><span class="v">0x${xor.toString(16).toUpperCase().padStart(2,'0')}</span></div>
+      <div class="row"><span class="k">OR</span><span class="v">0x${or.toString(16).toUpperCase().padStart(2,'0')}</span></div>
+      <h2>对比</h2>
+      <div class="row"><span class="k">加法&#8800;XOR</span><span class="v">${sum!==xor?'★ 是':'&#8212;'}</span></div>
+      ${carry?'<div class="row"><span class="k">1+1&#8594;进位</span><span class="v">&#9889;夫妻合一</span></div>':''}`;
+  }
+}
+
+function doSearch(q) {
+  q = q.trim();
+  if (!q) return;
+  const idx = CODE.findIndex(c => c.n === q || c.py === q || c.code.toString(16) === q.replace(/^0x/,''));
+  if (idx >= 0) {
+    selected = [idx];
+    mode = 'explore';
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.mode==='explore'));
+    document.querySelectorAll('[id^=panel]').forEach(p => p.style.display = p.id==='panelExplore'?'block':'none');
+    updatePanel();
+    showDetail(idx);
+    draw();
+  }
+}
+
+function showDetail(code) {
+  const c = CODE[code];
+  const co = coord(code);
+  const polClass = c.p==='Yin'?'yin':c.p==='Yang'?'yang':'neutral';
+  document.getElementById('selInfo').innerHTML = `
+    <h3 style="color:${POL_COL[c.p]}">${c.n} <span class="tag" style="background:${FAM_COL[c.f]}">0x${code.toString(16).toUpperCase().padStart(2,'0')}</span></h3>
+    <div class="row"><span class="k">拼音</span><span class="v">${c.py}</span></div>
+    <div class="row"><span class="k">极性</span><span class="v ${polClass}">${c.p}</span></div>
+    <div class="row"><span class="k">家族</span><span class="v">${FAM_NAMES[c.f]}</span></div>
+    <div class="row"><span class="k">二进制</span><span class="v">0b${code.toString(2).padStart(8,'0')}</span></div>
+    <div class="row"><span class="k">坐标</span><span class="v">(${co.x}, ${co.y})</span></div>
+    <div class="row"><span class="k">bit6</span><span class="v">${(code>>6)&1} (Z层)</span></div>
+  `;
+}
+
+// ── 绘制 ──
+let lastT = performance.now();
+
+function draw() {
+  requestAnimationFrame(draw);
+  ctx.clearRect(0, 0, W, H);
+
+  // Draw grid lines (faint)
+  ctx.strokeStyle = 'rgba(40,60,90,0.1)';
+  ctx.lineWidth = 0.5;
+  for (let gx = 0; gx <= 9; gx++) {
+    const x = W/2 + camX + (gx - 4.5) * SCALE * 0.87 * camZ;
+    ctx.beginPath();
+    ctx.moveTo(x, 0); ctx.lineTo(x, H);
+    ctx.stroke();
+  }
+  for (let gy = 0; gy <= 9; gy++) {
+    const y = H/2 + camY + (gy - 4.5) * SCALE * camZ;
+    ctx.beginPath();
+    ctx.moveTo(0, y); ctx.lineTo(W, y);
+    ctx.stroke();
+  }
+
+  // Sort by Z-layer for proper depth
+  const sorted = containersWithPos.slice().sort((a, b) => {
+    const za = (a.code >> 6) & 1;
+    const zb = (b.code >> 6) & 1;
+    return za - zb;
+  });
+
+  // Draw
+  for (const c of sorted) {
+    const sx = W/2 + camX + c.px * camZ;
+    const sy = H/2 + camY + c.py * camZ;
+    const r = 16 * camZ;
+
+    const isIn = selected.includes(c.code);
+    const isHover = hovered === c.code;
+    const isDim = selected.length > 0 && !isIn && mode !== 'explore';
+    const alpha = isDim ? 0.3 : 1;
+
+    const famC = FAM_COL[c.f];
+    const polC = POL_COL[c.p];
+    const color = colorBy === 'family' ? famC : polC;
+
+    ctx.globalAlpha = alpha;
+
+    // Glow for selected
+    if (isIn) {
+      const grad = ctx.createRadialGradient(sx, sy, 0, sx, sy, r*2.5);
+      grad.addColorStop(0, color + '80');
+      grad.addColorStop(1, 'transparent');
+      ctx.fillStyle = grad;
+      ctx.beginPath(); ctx.arc(sx, sy, r*2.5, 0, Math.PI*2); ctx.fill();
+    }
+
+    // Main circle
+    ctx.fillStyle = isIn ? '#fff' : color;
+    ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI*2); ctx.fill();
+
+    // Border
+    ctx.strokeStyle = isHover ? '#fff' : (isIn ? color : 'rgba(0,0,0,0.4)');
+    ctx.lineWidth = isHover ? 2 : (isIn ? 2.5 : 1);
+    ctx.stroke();
+
+    // Inner polarity dot
+    ctx.fillStyle = polC;
+    ctx.beginPath(); ctx.arc(sx, sy, r*0.35, 0, Math.PI*2); ctx.fill();
+
+    // Chinese name
+    ctx.fillStyle = isHover || isIn ? '#fff' : 'rgba(255,255,255,0.9)';
+    ctx.font = `bold ${Math.round(11*camZ)}px "JetBrains Mono","Noto Sans Mono CJK SC",monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    if (camZ > 0.6) {
+      ctx.fillText(c.n, sx, sy);
+    }
+
+    // Code hex
+    if (camZ > 0.8) {
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.font = `${Math.round(8*camZ)}px "JetBrains Mono",monospace`;
+      ctx.fillText('0x' + c.code.toString(16).toUpperCase().padStart(2, '0'), sx, sy + r + 10*camZ);
+    }
+
+    // Selection number
+    if (isIn) {
+      const idx = selected.indexOf(c.code);
+      ctx.fillStyle = '#000';
+      ctx.font = `bold ${Math.round(9*camZ)}px "JetBrains Mono",monospace`;
+      ctx.fillText(idx+1, sx, sy - r - 8*camZ);
+    }
+
+    ctx.globalAlpha = 1;
+  }
+}
+
+// Enable explore panel
+setMode(document.querySelector('.tab'));
+draw();
+</script>
+</body>
+</html>
