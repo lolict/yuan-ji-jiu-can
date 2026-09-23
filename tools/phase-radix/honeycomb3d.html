@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>容器空间 · Honeycomb 3D</title>
+<style>
+:root{--bg:#060a10;--panel:#0e1420;--border:#1a2840;--text:#c0cce0;--muted:#405070;--green:#35d07f;--cyan:#3baded;--violet:#8b5cf6;--yellow:#e5a148;--pink:#ec4899}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'JetBrains Mono','Noto Sans Mono CJK SC',monospace;background:var(--bg);color:var(--text);overflow:hidden;user-select:none}
+canvas{display:block}
+#ui{position:fixed;top:12px;left:12px;background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:14px;font-size:11px;width:260px;backdrop-filter:blur(6px);z-index:10;transition:transform .2s}
+#ui.hidden{transform:translateX(-270px)}
+#ui h1{font-size:13px;color:var(--violet);margin-bottom:10px;letter-spacing:0.02em}
+#ui h2{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin:10px 0 5px}
+.row{display:flex;justify-content:space-between;padding:3px 0}
+.k{color:var(--muted)}.v{color:var(--cyan);font-weight:600}
+.legend{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px}
+.lg{display:flex;align-items:center;gap:3px;font-size:10px}
+.dot{width:9px;height:9px;border-radius:50%}
+.btn{background:var(--border);border:none;color:var(--text);padding:4px 9px;border-radius:3px;cursor:pointer;font-family:inherit;font-size:10px;margin:2px;transition:all .15s}
+.btn:hover{background:var(--violet);color:#fff}
+.btn.active{background:var(--green);color:#000;font-weight:600}
+.hint{color:var(--muted);font-size:9px;margin-top:8px;line-height:1.6}
+#selInfo{position:fixed;bottom:12px;left:12px;background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:12px;font-size:11px;min-width:220px;display:none;z-index:10}
+#selInfo h3{font-size:12px;margin-bottom:6px;font-weight:600}
+.tag{display:inline-block;padding:1px 5px;border-radius:2px;font-size:9px;margin-left:5px}
+.hamburger{position:fixed;top:12px;left:12px;background:var(--panel);border:1px solid var(--border);color:var(--text);width:32px;height:32px;border-radius:4px;cursor:pointer;font-size:16px;display:none;z-index:11}
+#search{position:fixed;top:12px;right:12px;background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:8px;z-index:10}
+#search input{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:3px;font-family:inherit;font-size:11px;width:120px;outline:none}
+#search input:focus{border-color:var(--cyan)}
+#search button{background:var(--border);border:none;color:var(--text);padding:3px 7px;border-radius:3px;cursor:pointer;font-family:inherit;font-size:10px;margin-left:4px}
+#search button:hover{background:var(--violet)}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<button class="hamburger" id="ham" onclick="document.getElementById('ui').classList.toggle('hidden')">&#9776;</button>
+<div id="ui">
+  <h1>&#9677; Honeycomb 3D</h1>
+  <div class="row"><span class="k">容器</span><span class="v">64</span></div>
+  <div class="row"><span class="k">选中</span><span class="v" id="selName">—</span></div>
+  <div class="row"><span class="k">FPS</span><span class="v" id="fps">—</span></div>
+  <h2>显示</h2>
+  <div>
+    <button class="btn active" onclick="toggleVal(this,'labels')">名称</button>
+    <button class="btn active" onclick="toggleVal(this,'neigh')">六边连接</button>
+    <button class="btn" onclick="toggleVal(this,'axes')">XYZ轴</button>
+    <button class="btn" onclick="toggleVal(this,'tracks')">经纬</button>
+    <button class="btn" onclick="spin()" id="btnSpin">&#9654; 自转</button>
+    <button class="btn" onclick="centerView()">复位</button>
+  </div>
+  <h2>配色</h2>
+  <select id="mode" onchange="redraw()" style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-size:10px;padding:3px 6px;border-radius:3px;font-family:inherit;width:100%">
+    <option value="family">四族</option>
+    <option value="polarity">三元极性(阴/阳/元)</option>
+  </select>
+  <h2>极性</h2>
+  <div class="legend">
+    <div class="lg"><div class="dot" style="background:#ec4899"></div>阴</div>
+    <div class="lg"><div class="dot" style="background:#60a5fa"></div>阳</div>
+    <div class="lg"><div class="dot" style="background:#35d07f"></div>元</div>
+  </div>
+  <h2>四族</h2>
+  <div class="legend">
+    <div class="lg"><div class="dot" style="background:#8b5cf6"></div>容器</div>
+    <div class="lg"><div class="dot" style="background:#e5a148"></div>操作族</div>
+    <div class="lg"><div class="dot" style="background:#3baded"></div>声母</div>
+    <div class="lg"><div class="dot" style="background:#ef4444"></div>韵母</div>
+  </div>
+  <div class="hint">拖拽旋转 &#8901; 滚轮缩放 &#8901; 右键平移<br>三维进制: bit0/2/4&#8594;Y &#8901; bit1/3/5&#8594;X &#8901; 权&times;1,&times;3,&times;9</div>
+</div>
+<div id="search">
+  <input id="q" placeholder="搜索容器名&#8230;" onkeydown="if(event.key==='Enter')go(this.value)">
+  <button onclick="go(document.getElementById('q').value)">定位</button>
+</div>
+<div id="selInfo"><h3 id="siName"></h3><div id="siBody"></div></div>
+
+<script>
+// ============================================================
+// Honeycomb 3D — 64容器纯3D渲染
+// ============================================================
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let W, H, DPR = window.devicePixelRatio || 1;
+function resize() {
+  W = window.innerWidth; H = window.innerHeight;
+  canvas.width = W * DPR; canvas.height = H * DPR;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ── 容器数据 ──
+const CONTAINERS = [
+  // 0x00-0x0F 容器族
+  {code:0x00,name:'袋',py:'dai',pol:'Yin'},
+  {code:0x01,name:'照',py:'zhao',pol:'Yang'},
+  {code:0x02,name:'见',py:'jian',pol:'Neutral'},
+  {code:0x03,name:'阴',py:'yin',pol:'Yin'},
+  {code:0x04,name:'加',py:'jia',pol:'Yang'},
+  {code:0x05,name:'分',py:'fen',pol:'Neutral'},
+  {code:0x06,name:'元',py:'yuan',pol:'Neutral'},
+  {code:0x07,name:'裁',py:'cai',pol:'Yang'},
+  {code:0x08,name:'产',py:'chan',pol:'Yin'},
+  {code:0x09,name:'公',py:'gong',pol:'Yang'},
+  {code:0x0A,name:'声',py:'sheng',pol:'Yang'},
+  {code:0x0B,name:'折',py:'zhe',pol:'Neutral'},
+  {code:0x0C,name:'负',py:'fu',pol:'Yin'},
+  {code:0x0D,name:'福',py:'fu',pol:'Yang'},
+  {code:0x0E,name:'凤',py:'feng',pol:'Yang'},
+  {code:0x0F,name:'栖',py:'qi',pol:'Yin'},
+  // 0x10-0x1F 操作族
+  {code:0x10,name:'融',py:'rong',pol:'Neutral'},
+  {code:0x11,name:'鼓',py:'gu',pol:'Yang'},
+  {code:0x12,name:'蚕',py:'can',pol:'Yin'},
+  {code:0x13,name:'民',py:'min',pol:'Neutral'},
+  {code:0x14,name:'盟',py:'meng',pol:'Yang'},
+  {code:0x15,name:'满',py:'man',pol:'Yang'},
+  {code:0x16,name:'囡',py:'nan',pol:'Yin'},
+  {code:0x17,name:'夕',py:'xi',pol:'Yin'},
+  {code:0x18,name:'三',py:'san',pol:'Neutral'},
+  {code:0x19,name:'六',py:'liu',pol:'Neutral'},
+  {code:0x1A,name:'八',py:'ba',pol:'Neutral'},
+  {code:0x1B,name:'九',py:'jiu',pol:'Yang'},
+  {code:0x1C,name:'零',py:'ling',pol:'Neutral'},
+  {code:0x1D,name:'一',py:'yi',pol:'Yang'},
+  {code:0x1E,name:'二',py:'er',pol:'Yin'},
+  {code:0x1F,name:'四',py:'si',pol:'Yang'},
+  // 0x20-0x2F 声母容器
+  {code:0x20,name:'桶',py:'tong',pol:'Yang'},
+  {code:0x21,name:'罐',py:'guan',pol:'Yang'},
+  {code:0x22,name:'盆',py:'pen',pol:'Neutral'},
+  {code:0x23,name:'盂',py:'yu',pol:'Yin'},
+  {code:0x24,name:'壶',py:'hu',pol:'Yang'},
+  {code:0x25,name:'盒',py:'he',pol:'Neutral'},
+  {code:0x26,name:'瓶',py:'ping',pol:'Neutral'},
+  {code:0x27,name:'盏',py:'zhan',pol:'Yang'},
+  {code:0x28,name:'盎',py:'ang',pol:'Yang'},
+  {code:0x29,name:'篓',py:'lou',pol:'Yin'},
+  {code:0x2A,name:'筐',py:'kuang',pol:'Yang'},
+  {code:0x2B,name:'篮',py:'lan',pol:'Neutral'},
+  {code:0x2C,name:'箩',py:'luo',pol:'Yang'},
+  {code:0x2D,name:'箕',py:'ji',pol:'Neutral'},
+  {code:0x2E,name:'笼',py:'long',pol:'Yang'},
+  {code:0x2F,name:'海',py:'hai',pol:'Yin'},
+  // 0x30-0x3F 韵母容器
+  {code:0x30,name:'帮',py:'bang',pol:'Yang'},
+  {code:0x31,name:'端',py:'duan',pol:'Neutral'},
+  {code:0x32,name:'精',py:'jing',pol:'Yang'},
+  {code:0x33,name:'见2',py:'jian2',pol:'Neutral'},
+  {code:0x34,name:'来',py:'lai',pol:'Yang'},
+  {code:0x35,name:'齿',py:'chi',pol:'Yin'},
+  {code:0x36,name:'喉',py:'hou',pol:'Yang'},
+  {code:0x37,name:'呼',py:'hu',pol:'Yin'},
+  {code:0x38,name:'开',py:'kai',pol:'Yang'},
+  {code:0x39,name:'清',py:'qing',pol:'Neutral'},
+  {code:0x3A,name:'平',py:'ping',pol:'Neutral'},
+  {code:0x3B,name:'上',py:'shang',pol:'Yang'},
+  {code:0x3C,name:'前',py:'qian',pol:'Neutral'},
+  {code:0x3D,name:'内',py:'nei',pol:'Yin'},
+  {code:0x3E,name:'单',py:'dan',pol:'Neutral'},
+  {code:0x3F,name:'长',py:'chang',pol:'Yang'},
+];
+
+// ── 三维进制坐标: bit0/2/4→Y; bit1/3/5→X; bit6→Z层 ──
+function coord3(code) {
+  const yBits = ((code>>0)&1)*1 + ((code>>2)&1)*3 + ((code>>4)&1)*9;
+  const xBits = ((code>>1)&1)*1 + ((code>>3)&1)*3 + ((code>>5)&1)*9;
+  const zBit  = (code>>6)&1;
+  return {x:xBits, y:yBits, z:zBit, code};
+}
+
+// 预计算中心坐标和4层偏移
+const SCALE = 14;
+const Z_SPACING = 12;
+const containers = CONTAINERS.map(c => {
+  const co = coord3(c.code);
+  return Object.assign({}, c, {
+    px: (co.x - 4.5) * SCALE,
+    py: (co.y - 4.5) * SCALE,
+    pz: co.z * Z_SPACING - Z_SPACING * 0.5,
+    cx: co.x, cy: co.y, cz: co.z
+  });
+});
+
+// 相机 & 交互
+let camRX = -0.5, camRY = 0.6, camZOOM = 1, camTX = 0, camTY = 0;
+let dragging = false, rightDrag = false, lastX = 0, lastY = 0;
+let spinning = false, autoSpin = 0.003;
+let showLabels = true, showNeigh = true, showAxes = false, showTracks = false;
+let colorMode = 'family';
+let hovered = -1, selected = -1;
+
+canvas.addEventListener('mousedown', e => {
+  if (e.button === 2) { rightDrag = true; } else { dragging = true; }
+  lastX = e.clientX; lastY = e.clientY; spinning = false;
+});
+canvas.addEventListener('mousemove', e => {
+  if (dragging) {
+    camRY += (e.clientX - lastX) * 0.007;
+    camRX += (e.clientY - lastY) * 0.006;
+    camRX = Math.max(-1.4, Math.min(1.4, camRX));
+    lastX = e.clientX; lastY = e.clientY;
+  } else if (rightDrag) {
+    camTX -= (e.clientX - lastX) * 0.5;
+    camTY -= (e.clientY - lastY) * 0.5;
+    lastX = e.clientX; lastY = e.clientY;
+  } else {
+    // hover
+    const mx = e.clientX - W/2 - camTX;
+    const my = e.clientY - H/2 - camTY;
+    let best = -1, bestD = 22;
+    for (let i = 0; i < containers.length; i++) {
+      const sp = project(containers[i]);
+      if (!sp.vis) continue;
+      const dx = mx - sp.sx, dy = my - sp.sy;
+      const d = Math.sqrt(dx*dx + dy*dy);
+      if (d < bestD && d < 22) { bestD = d; best = i; }
+    }
+    hovered = best;
+    canvas.style.cursor = best >= 0 ? 'pointer' : 'default';
+  }
+});
+canvas.addEventListener('mouseup', () => { dragging = false; rightDrag = false; });
+canvas.addEventListener('mouseleave', () => { dragging = false; rightDrag = false; hovered = -1; });
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+canvas.addEventListener('wheel', e => {
+  camZOOM *= e.deltaY > 0 ? 0.92 : 1.08;
+  camZOOM = Math.max(0.3, Math.min(3.5, camZOOM));
+});
+canvas.addEventListener('click', () => { if (hovered >= 0) select(hovered); });
+
+function select(i) {
+  selected = i;
+  const c = containers[i];
+  document.getElementById('selName').textContent = c.name;
+  const fam = c.code < 0x10 ? '容器族' : c.code < 0x20 ? '操作族' : c.code < 0x30 ? '声母容器' : '韵母容器';
+  const fcol = c.code < 0x10 ? 'background:#8b5cf6' : c.code < 0x20 ? 'background:#e5a148' : c.code < 0x30 ? 'background:#3baded' : 'background:#ef4444';
+  const pcol = c.pol === 'Yin' ? 'background:#ec4899' : c.pol === 'Yang' ? 'background:#60a5fa' : 'background:#35d07f';
+  document.getElementById('siName').innerHTML = c.name + ' <span class="tag" style="'+fcol+'">0x'+c.code.toString(16).toUpperCase().padStart(2,'0')+'</span> <span class="tag" style="'+pcol+'">'+c.pol+'</span>';
+  document.getElementById('siBody').innerHTML =
+    '<div class="row" style="padding:2px 0"><span class="k">拼音</span><span class="v">'+c.py+'</span></div>' +
+    '<div class="row" style="padding:2px 0"><span class="k">三维进制</span><span class="v">('+c.cx+','+c.cy+','+c.cz+')</span></div>' +
+    '<div class="row" style="padding:2px 0"><span class="k">二进制</span><span class="v">0b'+c.code.toString(2).padStart(8,'0')+'</span></div>' +
+    '<div class="row" style="padding:2px 0"><span class="k">家族</span><span class="v">'+fam+'</span></div>';
+  document.getElementById('selInfo').style.display = 'block';
+}
+
+// ── 3D → 2D 投影 ──
+function project(c) {
+  const cosX = Math.cos(camRX), sinX = Math.sin(camRX);
+  const cosY = Math.cos(camRY), sinY = Math.sin(camRY);
+  // 绕X轴
+  let y1 = c.py * cosX - c.pz * sinX;
+  let z1 = c.py * sinX + c.pz * cosX;
+  // 绕Y轴
+  let x2 = c.px * cosY + z1 * sinY;
+  let z2 = -c.px * sinY + z1 * cosY;
+  // 透视
+  const fov = 400;
+  const d = fov + z2;
+  const scale = (fov / Math.max(d, 50)) * camZOOM;
+  return {
+    sx: W/2 + camTX + x2 * scale,
+    sy: H/2 + camTY + y1 * scale,
+    z: z2,
+    scale: scale,
+    vis: d > 50
+  };
+}
+
+// ── 六边形邻居 ──
+function hexDist(a, b) {
+  const dq = b.cx - a.cx, dr = b.cy - a.cy;
+  return (Math.abs(dq) + Math.abs(dr) + Math.abs(dq + dr)) / 2;
+}
+
+function getNeighbors(idx) {
+  const c = containers[idx];
+  return containers.filter((o, i) => i !== idx && hexDist(c, o) === 1 && o.cz === c.cz);
+}
+
+// ── 颜色 ──
+const POL_COLORS = {Yin:'#ec4899',Yang:'#60a5fa',Neutral:'#35d07f'};
+const FAM_COLORS = ['#8b5cf6','#e5a148','#3baded','#ef4444'];
+
+function getColor(c) {
+  if (colorMode === 'polarity') return POL_COLORS[c.pol] || '#556';
+  return FAM_COLORS[Math.floor(c.code / 0x10)] || '#556';
+}
+
+// ── 绘制 ──
+let frameCount = 0, lastT = performance.now(), fpsVal = 0;
+function draw() {
+  const now = performance.now();
+  frameCount++;
+  if (now - lastT > 500) { fpsVal = Math.round(frameCount / ((now - lastT) / 1000)); frameCount = 0; lastT = now; document.getElementById('fps').textContent = fpsVal; }
+  if (spinning) camRY += autoSpin;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // 背景辐射渐变
+  const bg = ctx.createRadialGradient(W/2 + camTX, H/2 + camTY, 0, W/2, H/2, Math.max(W, H)*0.7);
+  bg.addColorStop(0, '#101828');
+  bg.addColorStop(1, '#060a10');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // 网格地面 (z=0 层下的参考面)
+  drawGroundGrid();
+
+  // 经纬线
+  if (showTracks) drawTracks();
+
+  // 排序(远→近)
+  const proj = containers.map(c => project(c));
+  const sorted = proj.map((p, i) => ({p, i})).sort((a, b) => b.p.z - a.p.z);
+
+  // 连接线
+  if (showNeigh) drawEdges(proj);
+
+  // XYZ轴
+  if (showAxes) drawAxes();
+
+  // 容器 + 标签
+  for (const {p, i} of sorted) {
+    drawContainer(p, i);
+  }
+
+  document.getElementById('cCount').textContent = containers.length;
+  requestAnimationFrame(draw);
+}
+
+function drawGroundGrid() {
+  ctx.strokeStyle = 'rgba(40,60,90,0.15)';
+  ctx.lineWidth = 0.5;
+  const step = SCALE * camZOOM;
+  const ox = W/2 + camTX;
+  const oy = H/2 + camTY;
+  for (let gx = -5; gx <= 13; gx++) {
+    const x = ox + gx * step * 0.92;
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+  }
+  for (let gy = -5; gy <= 13; gy++) {
+    const y = oy + gy * step * 0.92;
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+}
+
+function drawTracks() {
+  // 经度线: 沿X轴
+  ctx.strokeStyle = 'rgba(80,140,210,0.12)';
+  ctx.lineWidth = 0.5;
+  for (let cy = 0; cy <= 9; cy++) {
+    for (let cz = 0; cz <= 1; cz++) {
+      const pts = [];
+      for (let cx = 0; cx <= 9; cx++) {
+        const px = (cx - 4.5) * SCALE;
+        const py = (cy - 4.5) * SCALE;
+        const pz = cz * Z_SPACING - Z_SPACING * 0.5;
+        pts.push(project({px, py, pz}));
+      }
+      ctx.beginPath();
+      pts.forEach((p, i) => { if (i === 0) ctx.moveTo(p.sx, p.sy); else ctx.lineTo(p.sx, p.sy); });
+      ctx.stroke();
+    }
+  }
+}
+
+function drawEdges(proj) {
+  for (let i = 0; i < containers.length; i++) {
+    const c = containers[i];
+    const neighbors = containers.filter((o, j) => j > i && hexDist(c, o) === 1 && o.cz === c.cz);
+    for (const o of neighbors) {
+      const oi = containers.indexOf(o);
+      const a = proj[i], b = proj[oi];
+      if (!a.vis || !b.vis) continue;
+      const isHov = hovered === i || hovered === oi;
+      const isSel = selected === i || selected === oi;
+      ctx.strokeStyle = isSel ? 'rgba(255,255,255,0.5)' : isHov ? 'rgba(120,200,255,0.35)' : 'rgba(60,90,130,0.18)';
+      ctx.lineWidth = isSel ? 1.5 : isHov ? 1.2 : 0.6;
+      ctx.beginPath(); ctx.moveTo(a.sx, a.sy); ctx.lineTo(b.sx, b.sy); ctx.stroke();
+    }
+  }
+}
+
+function drawAxes() {
+  const origin = project({px: 0, py: 0, pz: 0});
+  const ax = project({px: 120, py: 0, pz: 0});
+  const ay = project({px: 0, py: 120, pz: 0});
+  const az = project({px: 0, py: 0, pz: 120});
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = '#ef4444';
+  ctx.beginPath(); ctx.moveTo(origin.sx, origin.sy); ctx.lineTo(ax.sx, ax.sy); ctx.stroke();
+  ctx.strokeStyle = '#35d07f'
+  ctx.beginPath(); ctx.moveTo(origin.sx, origin.sy); ctx.lineTo(ay.sx, ay.sy); ctx.stroke();
+  ctx.strokeStyle = '#3baded';
+  ctx.beginPath(); ctx.moveTo(origin.sx, origin.sy); ctx.lineTo(az.sx, az.sy); ctx.stroke();
+  ctx.font = 'bold 11px JetBrains Mono, monospace';
+  ctx.fillStyle = '#ef4444'; ctx.fillText('X', ax.sx + 4, ax.sy - 2);
+  ctx.fillStyle = '#35d07f'; ctx.fillText('Y', ay.sx + 4, ay.sy - 2);
+  ctx.fillStyle = '#3baded'; ctx.fillText('Z', az.sx + 4, az.sy - 2);
+}
+
+function drawContainer(p, i) {
+  if (!p.vis) return;
+  const c = containers[i];
+  const color = getColor(c);
+  const r = 6.5 * p.scale;
+  const isHov = hovered === i;
+  const isSel = selected === i;
+
+  // 光晕
+  if (isSel || isHov) {
+    const grad = ctx.createRadialGradient(p.sx, p.sy, 0, p.sx, p.sy, r * 3);
+    grad.addColorStop(0, isSel ? 'rgba(255,255,255,0.3)' : 'rgba(150,210,255,0.2)');
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.arc(p.sx, p.sy, r * 3, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // 圆形容器
+  ctx.fillStyle = isHov || isSel ? '#fff' : color;
+  ctx.beginPath(); ctx.arc(p.sx, p.sy, r, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = isSel ? '#fff' : isHov ? 'rgba(200,230,255,0.7)' : 'rgba(0,0,0,0.3)';
+  ctx.lineWidth = isSel ? 1.5 : 0.6;
+  ctx.stroke();
+
+  // 名称标签
+  if (showLabels && p.scale > 0.4) {
+    ctx.font = `bold ${Math.round(9 * p.scale)}px "JetBrains Mono", monospace`;
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'center';
+    ctx.fillText(c.name, p.sx, p.sy - r - 4);
+    // 拼音/编码小字
+    if (p.scale > 0.7) {
+      ctx.font = `${Math.round(7 * p.scale)}px "JetBrains Mono", monospace`;
+      ctx.fillStyle = '#8899bb';
+      ctx.fillText('0x' + c.code.toString(16).toUpperCase().padStart(2, '0'), p.sx, p.sy + r + 10);
+    }
+  }
+}
+
+function toggleVal(btn, key) {
+  btn.classList.toggle('active');
+  const on = btn.classList.contains('active');
+  if (key === 'labels') showLabels = on;
+  else if (key === 'neigh') showNeigh = on;
+  else if (key === 'axes') showAxes = on;
+  else if (key === 'tracks') showTracks = on;
+}
+
+function spin() {
+  spinning = !spinning;
+  document.getElementById('btnSpin').classList.toggle('active', spinning);
+}
+
+function centerView() {
+  camRY = 0.6; camRX = -0.5; camZOOM = 1; camTX = 0; camTY = 0;
+  spinning = false;
+  document.getElementById('btnSpin').classList.remove('active');
+}
+
+function go(name) {
+  const idx = containers.findIndex(c => c.name === name);
+  if (idx >= 0) {
+    selected = idx;
+    document.getElementById('selName').textContent = containers[idx].name;
+    select(idx);
+  }
+}
+
+function redraw() {
+  colorMode = document.getElementById('mode').value;
+}
+
+// 启动
+draw();
+centerView();
+</script>
+</body>
+</html>
