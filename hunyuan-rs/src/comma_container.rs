@@ -9345,3 +9345,239 @@ mod judgment_tests {
         assert_eq!(e.anchor_count(), 1);
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器评价引擎 · ContainerEvaluationEngine (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   评价之力 = 带有价值倾向的判断 (囡囝感知四阶 · 阶段四)
+//   「哪种因果模式值得强化、哪种应该抑制」
+//
+//   输入: ContainerJudgmentEngine 产生的 JudgmentAnchor 流
+//   输出: Evaluation — 分级评价 (Weak / Moderate / Strong / Critical)
+//
+//   评价不是硬编码规则, 而是涌现:
+//     - 同对 (cause→effect) 多次出现 → 累积 (加法)
+//     - 累计超过阈值 → 升级 (仅加法比较)
+//     - 评价等级对应系统的逻辑组织方向
+//
+//   仅加法范式: 分级全靠累加/比较, 无乘除
+
+/// 评价等级 — 因果对的价值倾向
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum EvaluationLevel {
+    Weak,       // 弱 — 偶然, 不值得强化
+    Moderate,   // 中等 — 有一定规律
+    Strong,     // 强 — 显著因果, 值得强化
+    Critical,   // 临界 — 系统级因果, 需响应
+}
+
+/// 评价 — 因果锚点的分级产物
+#[derive(Clone, Debug)]
+pub struct Evaluation {
+    pub cause_id: u64,
+    pub effect_id: u64,
+    pub level: EvaluationLevel,
+    pub accumulated: u64,   // 累计出现次数 (加法累积)
+}
+
+impl Evaluation {
+    pub fn new(cause_id: u64, effect_id: u64) -> Self {
+        Self { cause_id, effect_id, level: EvaluationLevel::Weak, accumulated: 0 }
+    }
+}
+
+/// 容器评价引擎
+#[derive(Clone, Debug)]
+pub struct ContainerEvaluationEngine {
+    /// 按 (cause_id, effect_id) 索引的评价
+    pub evaluations: HashMap<(u64, u64), Evaluation>,
+    /// 升级阈值 (仅加法比较: accumulated > threshold → 升级)
+    pub threshold_moderate: u64,
+    pub threshold_strong: u64,
+    pub threshold_critical: u64,
+    /// 累计接受的锚点总数
+    pub total_anchors: u64,
+}
+
+impl ContainerEvaluationEngine {
+    pub fn new() -> Self {
+        Self {
+            evaluations: HashMap::new(),
+            threshold_moderate: 3,
+            threshold_strong: 6,
+            threshold_critical: 10,
+            total_anchors: 0,
+        }
+    }
+
+    /// 接收一批 JudgmentAnchor, 累积评价 (返回克隆副本避免借用冲突)
+    pub fn evaluate(&mut self, anchors: &[JudgmentAnchor]) -> Vec<Evaluation> {
+        let mut updated: Vec<Evaluation> = Vec::new();
+        for anchor in anchors {
+            let key = (anchor.cause_id, anchor.effect_id);
+            let entry = self.evaluations.entry(key).or_insert_with(|| {
+                Evaluation::new(anchor.cause_id, anchor.effect_id)
+            });
+            // 加法累积
+            entry.accumulated = entry.accumulated + 1;
+            // 重新计算等级 (仅加法比较)
+            entry.level = if entry.accumulated >= self.threshold_critical {
+                EvaluationLevel::Critical
+            } else if entry.accumulated >= self.threshold_strong {
+                EvaluationLevel::Strong
+            } else if entry.accumulated >= self.threshold_moderate {
+                EvaluationLevel::Moderate
+            } else {
+                EvaluationLevel::Weak
+            };
+            self.total_anchors = self.total_anchors + 1;
+            updated.push(entry.clone());
+        }
+        updated
+    }
+
+    /// 获取评价
+    pub fn get(&self, cause_id: u64, effect_id: u64) -> Option<&Evaluation> {
+        self.evaluations.get(&(cause_id, effect_id))
+    }
+
+    /// 最强评价 (等级最高, 同等级按 accumulated)
+    pub fn strongest(&self) -> Option<&Evaluation> {
+        self.evaluations.values().max_by_key(|e| {
+            let level_val: u64 = match e.level {
+                EvaluationLevel::Weak => 0,
+                EvaluationLevel::Moderate => 1,
+                EvaluationLevel::Strong => 2,
+                EvaluationLevel::Critical => 3,
+            };
+            // 组合: level_val * 2^32 + accumulated (仅加法/位移)
+            level_val.wrapping_shl(32).wrapping_add(e.accumulated)
+        })
+    }
+
+    /// 按等级筛选
+    pub fn by_level(&self, level: EvaluationLevel) -> Vec<&Evaluation> {
+        self.evaluations.values()
+            .filter(|e| e.level == level)
+            .collect()
+    }
+
+    /// 评价对数
+    pub fn pair_count(&self) -> usize { self.evaluations.len() }
+
+    /// 重置全部
+    pub fn clear(&mut self) {
+        self.evaluations.clear();
+        self.total_anchors = 0;
+    }
+}
+
+impl Default for ContainerEvaluationEngine {
+    fn default() -> Self { Self::new() }
+}
+
+#[cfg(test)]
+mod evaluation_tests {
+    use super::*;
+
+    fn anchor(cause: u64, effect: u64, strength: u64) -> JudgmentAnchor {
+        JudgmentAnchor::new(cause, effect, 0, strength)
+    }
+
+    #[test]
+    fn test_evaluate_first_time() {
+        let mut e = ContainerEvaluationEngine::new();
+        let a = e.evaluate(&[anchor(1, 2, 50)]);
+        assert_eq!(a.len(), 1);
+        assert_eq!(a[0].level, EvaluationLevel::Weak);  // 首次 = 弱
+        assert_eq!(a[0].accumulated, 1);
+    }
+
+    #[test]
+    fn test_evaluate_accumulate() {
+        let mut e = ContainerEvaluationEngine::new();
+        for _ in 0..5 { e.evaluate(&[anchor(1, 2, 50)]); }
+        let ev = e.get(1, 2).unwrap();
+        assert_eq!(ev.accumulated, 5);
+        assert_eq!(ev.level, EvaluationLevel::Moderate);  // ≥3 → 中等
+    }
+
+    #[test]
+    fn test_evaluate_upgrade_to_strong() {
+        let mut e = ContainerEvaluationEngine::new();
+        for _ in 0..8 { e.evaluate(&[anchor(1, 2, 50)]); }
+        let ev = e.get(1, 2).unwrap();
+        assert_eq!(ev.level, EvaluationLevel::Strong);  // ≥6 → 强
+    }
+
+    #[test]
+    fn test_evaluate_upgrade_to_critical() {
+        let mut e = ContainerEvaluationEngine::new();
+        for _ in 0..12 { e.evaluate(&[anchor(1, 2, 50)]); }
+        let ev = e.get(1, 2).unwrap();
+        assert_eq!(ev.level, EvaluationLevel::Critical);  // ≥10 → 临界
+    }
+
+    #[test]
+    fn test_multiple_pairs() {
+        let mut e = ContainerEvaluationEngine::new();
+        e.evaluate(&[anchor(1, 2, 50), anchor(1, 3, 40), anchor(2, 4, 30)]);
+        e.evaluate(&[anchor(1, 2, 50), anchor(1, 3, 40)]);
+        // (1,2) 累积 2, (1,3) 累积 2, (2,4) 累积 1
+        assert_eq!(e.pair_count(), 3);
+        assert_eq!(e.get(1, 2).unwrap().accumulated, 2);
+        assert_eq!(e.get(2, 4).unwrap().accumulated, 1);
+    }
+
+    #[test]
+    fn test_strongest() {
+        let mut e = ContainerEvaluationEngine::new();
+        for _ in 0..7 { e.evaluate(&[anchor(1, 2, 50)]); }  // 强
+        for _ in 0..11 { e.evaluate(&[anchor(3, 4, 30)]); } // 临界
+        let s = e.strongest().unwrap();
+        // (3,4) 是临界级, 比 (1,2) 强级更高
+        assert_eq!(s.cause_id, 3);
+        assert_eq!(s.effect_id, 4);
+    }
+
+    #[test]
+    fn test_by_level() {
+        let mut e = ContainerEvaluationEngine::new();
+        for _ in 0..5 { e.evaluate(&[anchor(1, 2, 10)]); }   // Moderate
+        for _ in 0..1 { e.evaluate(&[anchor(3, 4, 10)]); }     // Weak
+        let moderate = e.by_level(EvaluationLevel::Moderate);
+        assert_eq!(moderate.len(), 1);
+    }
+
+    #[test]
+    fn test_get_unknown() {
+        let e = ContainerEvaluationEngine::new();
+        assert!(e.get(99, 100).is_none());
+    }
+
+    #[test]
+    fn test_clear() {
+        let mut e = ContainerEvaluationEngine::new();
+        e.evaluate(&[anchor(1, 2, 50)]);
+        assert_eq!(e.pair_count(), 1);
+        e.clear();
+        assert_eq!(e.pair_count(), 0);
+        assert_eq!(e.total_anchors, 0);
+    }
+
+    #[test]
+    fn test_default() {
+        let e = ContainerEvaluationEngine::default();
+        assert_eq!(e.pair_count(), 0);
+        assert_eq!(e.total_anchors, 0);
+    }
+
+    #[test]
+    fn test_total_anchors_counter() {
+        let mut e = ContainerEvaluationEngine::new();
+        e.evaluate(&[anchor(1, 2, 10), anchor(2, 3, 20)]);
+        e.evaluate(&[anchor(1, 2, 10)]);
+        assert_eq!(e.total_anchors, 3);
+    }
+}
