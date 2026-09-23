@@ -193,6 +193,19 @@ pub struct ExistenceDriveEngine {
     pub tick: u64,
 }
 
+impl Clone for ExistenceDriveEngine {
+    fn clone(&self) -> Self {
+        Self {
+            fear: self.fear.clone(),
+            drive: self.drive.clone(),
+            reward: self.reward.clone(),
+            frequency: self.frequency,
+            target_frequency: self.target_frequency,
+            tick: self.tick,
+        }
+    }
+}
+
 impl ExistenceDriveEngine {
     pub fn new() -> Self {
         Self {
