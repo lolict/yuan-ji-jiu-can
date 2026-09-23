@@ -32,7 +32,7 @@
 
 use crate::logic_organizer::{CausalGraph, CausalNode, CausalPath, InvocationStrategy, LogicOrganizer};
 use crate::container_interact::{ContainerPort, InteractionEngine, RoutingDirection};
-use crate::container_font_unify::Trinity;
+use crate::encoding::container_font_unify::Trinity;
 use crate::consciousness_router::ConsciFlowType;
 use crate::resonance_discovery::is_resonant;
 

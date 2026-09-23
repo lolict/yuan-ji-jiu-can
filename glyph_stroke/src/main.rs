@@ -463,6 +463,8 @@ fn main() {
         eprintln!("      glyph_stroke --smrl <汉字>      # SMRL 64-bit 单元格");
         eprintln!("      glyph_stroke --json <汉字>      # JSON 编码输出");
         eprintln!("      glyph_stroke --fold <字1> <字2>  # 容器叠加运算");
+        eprintln!("      glyph_stroke --state <汉字>       # 容器状态演化");
+        eprintln!("      glyph_stroke --verify <汉字>      # 编码一致性校验");
         eprintln!("      glyph_stroke --reverse 袋");
         process::exit(1);
     }
@@ -475,6 +477,8 @@ fn main() {
     let mut smrl_mode = false;
     let mut json_mode = false;
     let mut fold_mode = false;
+    let mut state_mode = false;
+    let mut verify_mode = false;
     let mut output_file: Option<&str> = None;
     let mut input = "";
 
@@ -489,6 +493,8 @@ fn main() {
             "--atlas" | "-a" => { atlas_mode = true; i += 1; }
             "--smrl" | "-s" => { smrl_mode = true; i += 1; }
             "--json" | "-j" => { json_mode = true; i += 1; }
+            "--state" | "-t" => { state_mode = true; i += 1; }
+            "--verify" | "-v" => { verify_mode = true; i += 1; }
             "--fold" | "-f" => {
                 fold_mode = true;
                 i += 1;
@@ -518,6 +524,10 @@ fn main() {
         encode_smrl(input)
     } else if json_mode {
         encode_json(input)
+    } else if state_mode {
+        encode_state(input)
+    } else if verify_mode {
+        encode_verify(input)
     } else if fold_mode {
         let combined = if let Some(ref a2) = fold_arg2 {
             format!("{} {}", input, a2)
@@ -552,6 +562,240 @@ fn main() {
     } else {
         println!("{}", out);
     }
+}
+
+// ════════════════════════════════════════════════════════════════
+// 容器代数 — 容器状态机与纯函数运算
+// ════════════════════════════════════════════════════════════════
+
+/// 容器运算状态：追踪容器组合的历史
+#[derive(Clone)]
+struct ContainerState {
+    cell: u64,           // 当前 64-bit SMRL 容器单元
+    depth: u32,          // 当前嵌套深度
+    shell_path: Vec<u8>, // 当前的壳路径（嵌套链）
+}
+
+impl ContainerState {
+    fn new() -> Self { Self { cell: 0, depth: 0, shell_path: Vec::new() } }
+
+    /// 合并：将新容器的位 OR 进当前状态
+    fn merge(&mut self, other_cell: u64) {
+        self.cell |= other_cell & 0xFFFF;
+    }
+
+    /// 嵌套：将新容器壳套在当前最外层内
+    fn nest(&mut self, container_idx: u8) {
+        self.cell |= 1u64 << container_idx;
+        self.shell_path.push(container_idx);
+        self.depth += 1;
+    }
+
+    /// 排除：移除冲突的容器（双方共有的容器融合，非共有保留）
+    fn exclude_conflict(&mut self, other_cell: u64) -> u64 {
+        let common = self.cell & other_cell;
+        // 返回非冲突部分
+        other_cell & !common
+    }
+
+    /// 共鸣：共享容器增强（bit shift 标记强度）
+    fn resonate(&mut self, other_cell: u64) -> u64 {
+        let shared = self.cell & other_cell;
+        // 共鸣位 = 共享的容器（bit40-45标记强度）
+        shared << 40
+    }
+
+    /// 容器串联：前一字的套壳 = 后一字的内容入口
+    fn chain(&mut self, prev_cell: u64, next_cell: u64) -> (u64, u64) {
+        // 前一字的外壳（最高位容器）成为后一字的入口
+        let prev_outer = (prev_cell).trailing_zeros() as u8;
+        // 后一字的入口（最低位容器）
+        let next_inner = (next_cell).trailing_zeros() as u8;
+        self.cell |= prev_cell | next_cell;
+        (prev_outer as u64, next_inner as u64)
+    }
+
+    /// SMRL 64-bit 编码：容器掩码 + 极性 + 在场 + 紧凑码
+    fn to_smrl(&self) -> u64 {
+        let mut smrl = self.cell & 0xFFFF; // 容器掩码
+        if self.depth >= 2 { smrl |= 1u64 << 38; } // 深度>=2 → 妻子在场
+        if self.depth >= 4 { smrl |= 1u64 << 39; } // 深度>=4 → 丈夫在场
+        if let Some(&max_cont) = self.shell_path.iter().max() {
+            smrl |= (max_cont as u64) << 54;
+        }
+        smrl
+    }
+}
+
+fn encode_state(input: &str) -> String {
+    let mut buf = String::new();
+    buf.push_str("═══ 容器状态演化 ═══
+");
+    buf.push_str("规则: 前一字的套壳 = 后一字的内容入口
+
+");
+
+    let mut state = ContainerState::new();
+    let mut prev_cell: u64 = 0;
+    let mut step = 0;
+
+    for ch in input.chars() {
+        if let Ok(gc) = encode_char(ch) {
+            step += 1;
+            let mut cur_cell: u64 = 0;
+            for &s in &gc.strokes { cur_cell |= 1u64 << s; }
+
+            buf.push_str(&format!("步骤 {}: [{}]
+", step, ch));
+            buf.push_str(&format!("  输入容器集: [{}] (0x{:04X})
+",
+                gc.container_set.join(", "), cur_cell & 0xFFFF));
+
+            // 如果有前一字，执行容器串联
+            if prev_cell != 0 {
+                let (prev_outer, next_inner) = state.chain(prev_cell, cur_cell);
+                let outer_name = CONTAINER_NAMES.get(prev_outer as usize).unwrap_or(&"?");
+                let inner_name = CONTAINER_NAMES.get(next_inner as usize).unwrap_or(&"?");
+                buf.push_str(&format!("  串联 → 前字壳[{}] → 后字入口[{}]
+", outer_name, inner_name));
+
+                // 共鸣检测
+                let shared = prev_cell & cur_cell;
+                if shared != 0 {
+                    let mut shared_set: Vec<&str> = Vec::new();
+                    for i in 0..16u8 { if (shared >> i) & 1 == 1 { shared_set.push(CONTAINER_NAMES[i as usize]); } }
+                    buf.push_str(&format!("  共鸣: {} 共享
+", shared_set.join(", ")));
+                    let _res = state.resonate(cur_cell);
+                }
+            }
+
+            state.merge(cur_cell);
+            if let Some(&outer) = gc.container_set.first() {
+                let outer_idx = gc.strokes[0];
+                state.nest(outer_idx);
+            }
+
+            buf.push_str(&format!("  状态累积: 深度={} 壳路径=[{}] 掩码=0x{:04X}
+",
+                state.depth,
+                state.shell_path.iter().map(|&i| CONTAINER_NAMES[i as usize]).collect::<Vec<_>>().join("→"),
+                state.cell & 0xFFFF));
+            buf.push_str(&format!("  SMRL Cell: 0x{:016X}
+
+", state.to_smrl()));
+
+            prev_cell = cur_cell;
+        } else {
+            buf.push_str(&format!("步骤 {}: [{}] → 未收录
+
+", step + 1, ch));
+        }
+    }
+
+    // 最终状态
+    buf.push_str("═══════════════════════════════════
+");
+    buf.push_str(&format!("最终 SMRL Cell: 0x{:016X}
+", state.to_smrl()));
+    buf.push_str(&format!("最终嵌套深度: {}
+", state.depth));
+    buf.push_str(&format!("激活容器: [{}]
+",
+        (0..16u8).filter(|&i| (state.cell >> i) & 1 == 1)
+            .map(|i| CONTAINER_NAMES[i as usize]).collect::<Vec<_>>().join(", ")));
+    buf
+}
+
+fn encode_verify(input: &str) -> String {
+    let mut buf = String::new();
+    buf.push_str("═══ 编码一致性校验 ═══
+
+");
+
+    let mut all_ok = true;
+    let mut prev_mask: u64 = 0;
+    let mut prev_ch = '-';
+
+    for ch in input.chars() {
+        match encode_char(ch) {
+            Ok(gc) => {
+                let mut cur_mask: u64 = 0;
+                for &s in &gc.strokes { cur_mask |= 1u64 << s; }
+
+                // 校验 1: 容器集与笔画数一致性
+                let stroke_count = gc.strokes.len();
+                let container_count = gc.container_set.len();
+                let dedup_count = {
+                    let mut m = cur_mask;
+                    let mut cnt = 0;
+                    while m != 0 { cnt += m & 1; m >>= 1; }
+                    cnt as usize
+                };
+
+                let check1 = stroke_count == container_count;
+                // 校验 2: 极性判定与笔画数奇偶一致
+                let expected_polarity = if stroke_count % 2 == 0 { "阴" } else { "阳" };
+                let check2 = gc.polarity == expected_polarity;
+
+                // 校验 3: 容器集是笔画集按笔画→容器映射的结果（保持顺序，允许重复）
+                let mut mapped_containers = Vec::new();
+                for &s in &gc.strokes {
+                    mapped_containers.push(CONTAINER_NAMES[s as usize]);
+                }
+                // 去重后的唯一容器集
+                use std::collections::HashSet;
+                let unique_from_strokes: HashSet<&str> = mapped_containers.iter().copied().collect();
+                let unique_from_set: HashSet<&str> = gc.container_set.iter().copied().collect();
+                // container_set 应该保持顺序，但去重后应与唯一容器一致
+                let check3 = unique_from_set.len() <= gc.strokes.len()
+                    && unique_from_set == unique_from_strokes;
+
+                // 校验 4: 与前字的容器连续性（可串联性）
+                let check4 = if prev_mask != 0 {
+                    let shared = prev_mask & cur_mask;
+                    shared != 0  // 至少有一个共享容器才能串联
+                } else {
+ true
+                };
+
+                let all_pass = check1 && check2 && check3 && check4;
+                if !all_pass { all_ok = false; }
+
+                let status = if all_pass { "OK" } else { "FAIL" };
+                buf.push_str(&format!("[{}] {} ({}画→{}容器, {}去重)
+",
+                    status, ch, stroke_count, container_count, dedup_count));
+
+                if !check1 { buf.push_str("  ✗ 笔画数≠容器数
+"); }
+                if !check2 { buf.push_str(&format!("  ✗ 极性错误: 期望{} 实际{}
+", expected_polarity, gc.polarity)); }
+                if !check3 { buf.push_str("  ✗ 容器集未正确去重
+"); }
+                if !check4 && prev_mask != 0 {
+                    buf.push_str(&format!("  ✗ 与前字[{}]无共享容器,不可串联
+", prev_ch));
+                }
+
+                prev_mask = cur_mask;
+                prev_ch = ch;
+            }
+            Err(e) => {
+                buf.push_str(&format!("[ERR] {} → {}
+", ch, e));
+                all_ok = false;
+            }
+        }
+    }
+
+    buf.push_str("
+─────────────────────────────
+");
+    buf.push_str(&format!("校验结果: {}
+", if all_ok { "全部通过 ✓" } else { "存在异常 ✗" }));
+    buf.push_str(&format!("输入: \"{}\" ({} 字)\n", input, input.chars().count()));
+    buf
 }
 
 fn encode_atlas() -> String {

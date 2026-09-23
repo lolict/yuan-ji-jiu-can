@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>容器编码 · Honeycomb 坐标网格</title>
+<style>
+:root {
+  --bg: #070b10; --panel: #0f1620; --border: #1a2838;
+  --text: #c8d4e0; --muted: #4a5c70;
+  --yin: #60a5fa; --yang: #f472b6; --neutral: #a78bfa;
+  --container: #35d07f; --operation: #e5a148;
+  --initial: #22d3ee; --final: #c084fc;
+  --center: #facc15; --neighbor: #fb923c; --compatible: #4ade80;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, 'Noto Sans SC', sans-serif;
+  background: var(--bg); color: var(--text); overflow-x: hidden;
+  min-height: 100vh; padding: 20px;
+}
+h1 { font-size: 1.2rem; color: var(--container); margin-bottom: 4px; }
+.subtitle { font-size: 0.75rem; color: var(--muted); margin-bottom: 16px; }
+#grid {
+  display: grid; gap: 6px; margin-bottom: 24px;
+  overflow-x: auto; padding: 12px;
+  background: linear-gradient(135deg, #0a1018 0%, #0d1520 100%);
+  border: 1px solid var(--border); border-radius: 8px;
+}
+.hex {
+  width: 72px; height: 64px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; cursor: pointer;
+  position: relative; transition: transform 0.15s, box-shadow 0.15s;
+  user-select: none;
+}
+.hex:hover { transform: scale(1.1); z-index: 10; }
+.hex.center { box-shadow: 0 0 0 2px var(--center), 0 0 12px rgba(250,204,21,0.4); }
+.hex.neighbor { box-shadow: 0 0 0 2px var(--neighbor), 0 0 8px rgba(251,146,60,0.3); }
+.hex.compatible::after { content: '✓'; position: absolute; top: -4px; right: -2px; color: var(--compatible); font-size: 10px; }
+.hex .name { font-size: 14px; font-weight: 600; line-height: 1; }
+.hex .code { font-size: 8px; color: var(--muted); margin-top: 2px; }
+.hex .polarity { font-size: 9px; margin-top: 1px; }
+.hex.yin { background: rgba(96,165,250,0.12); border: 1px solid rgba(96,165,250,0.2); border-radius: 8px; }
+.hex.yang { background: rgba(244,114,182,0.12); border: 1px solid rgba(244,114,182,0.2); border-radius: 8px; }
+.hex.neutral { background: rgba(167,139,250,0.12); border: 1px solid rgba(167,139,250,0.2); border-radius: 8px; }
+#info {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+  padding: 16px; min-height: 120px;
+}
+#info h2 { font-size: 1rem; color: var(--accent); margin-bottom: 8px; }
+.row { display: flex; gap: 12px; margin: 4px 0; flex-wrap: wrap; }
+.k { color: var(--muted); font-size: 0.8rem; min-width: 60px; }
+.v { color: var(--container); font-size: 0.8rem; font-weight: 500; }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; margin: 8px 0; font-size: 0.7rem; }
+.lg { display: flex; align-items: center; gap: 3px; }
+.dot { width: 10px; height: 10px; border-radius: 2px; }
+.tip { font-size: 0.7rem; color: var(--muted); margin-top: 8px; line-height: 1.5; }
+.controls { margin: 12px 0; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+select, input, button {
+  background: var(--panel); border: 1px solid var(--border); color: var(--text);
+  padding: 4px 10px; border-radius: 4px; font-size: 0.75rem; font-family: inherit;
+}
+button:hover { background: var(--container); color: #000; cursor: pointer; }
+</style>
+</head>
+<body>
+<h1>◈ 容器编码 Honeycomb 坐标网格</h1>
+<div class="subtitle">三维进制 · bit0/2/4→Y轴 · bit1/3/5→X轴 · 权×1,×3,×9 · 64容器</div>
+
+<div class="legend">
+  <div class="lg"><div class="dot" style="background:var(--container)"></div>容器族 (0x00-0x0F)</div>
+  <div class="lg"><div class="dot" style="background:var(--operation)"></div>操作族 (0x10-0x1F)</div>
+  <div class="lg"><div class="dot" style="background:var(--initial)"></div>声母容器 (0x20-0x2F)</div>
+  <div class="lg"><div class="dot" style="background:var(--final)"></div>韵母容器 (0x30-0x3F)</div>
+  <div class="lg"><div class="dot" style="background:var(--yin)"></div>阴 (Yin)</div>
+  <div class="lg"><div class="dot" style="background:var(--yang)"></div>阳 (Yang)</div>
+  <div class="lg"><div class="dot" style="background:var(--neutral)"></div>元 (Neutral)</div>
+</div>
+
+<div class="controls">
+  <label>容器: <input id="containerInput" value="裁" placeholder="容器名" style="width:50px"/></label>
+  <label>距离: <input id="distInput" value="2" type="number" min="0" max="13" style="width:40px"/></label>
+  <button onclick="showNeighbors()">显示邻居</button>
+  <button onclick="showAll()">全量网格</button>
+  <button onclick="clearHighlight()">清除高亮</button>
+</div>
+
+<div id="grid"></div>
+<div id="info">
+  <h2>编码详解</h2>
+  <div class="row"><span class="k">容器:</span><span class="v" id="infoName">点击网格容器查看详情</span></div>
+  <div class="row"><span class="k">编码:</span><span class="v" id="infoCode">-</span></div>
+  <div class="row"><span class="k">坐标:</span><span class="v" id="infoCoord">-</span></div>
+  <div class="row"><span class="k">比特:</span><span class="v" id="infoBits">-</span></div>
+  <div class="row"><span class="k">极性:</span><span class="v" id="infoPolarity">-</span></div>
+  <div class="row"><span class="k">主权:</span><span class="v" id="infoSovereignty">-</span></div>
+  <div class="row"><span class="k">族:</span><span class="v" id="infoFamily">-</span></div>
+  <div class="tip">
+  64 容器 = 4 族 × 16 容器, 由 6 bit 编码位置。三维进制: 每个 bit 位 (0/1) × 权值 (1/3/9) 得出坐标。
+  c-bit 分布: c0(×1)+c2(×3)+c4(×9) = Y轴; c1(×1)+c3(×3)+c5(×9) = X轴。
+  坐标范围 0-13 (当 bit 组合取 {0,1,3,9} 的和)。
+  </div>
+</div>
+
+<script>
+// ── 容器名 → 极性 (来自 hunyuan-rs/src/encoding/container_radix.rs) ──
+// 极性: 0=阴(Yin), 1=阳(Yang), 0.5=元(Neutral)
+const CONTAINERS = [
+  // 容器族 0x00-0x0F (极性基调: 混合)
+  { code: 0x00, name: '袋', pol: 0,   family: '容器族' },
+  { code: 0x01, name: '照', pol: 1,   family: '容器族' },
+  { code: 0x02, name: '见', pol: 0.5, family: '容器族' },
+  { code: 0x03, name: '阴', pol: 0,   family: '容器族' },
+  { code: 0x04, name: '加', pol: 1,   family: '容器族' },
+  { code: 0x05, name: '分', pol: 0.5, family: '容器族' },
+  { code: 0x06, name: '元', pol: 0.5, family: '容器族' },
+  { code: 0x07, name: '裁', pol: 0.5, family: '容器族' },
+  { code: 0x08, name: '产', pol: 0,   family: '容器族' },
+  { code: 0x09, name: '公', pol: 0.5, family: '容器族' },
+  { code: 0x0A, name: '声', pol: 1,   family: '容器族' },
+  { code: 0x0B, name: '折', pol: 0.5, family: '容器族' },
+  { code: 0x0C, name: '负', pol: 0,   family: '容器族' },
+  { code: 0x0D, name: '福', pol: 0,   family: '容器族' },
+  { code: 0x0E, name: '凤', pol: 1,   family: '容器族' },
+  { code: 0x0F, name: '栖', pol: 0.5, family: '容器族' },
+  // 操作族 0x10-0x1F (极性基调: 0.5=元 为主)
+  { code: 0x10, name: '融', pol: 0.5, family: '操作族' },
+  { code: 0x11, name: '鼓', pol: 1,   family: '操作族' },
+  { code: 0x12, name: '蚕', pol: 0.5, family: '操作族' },
+  { code: 0x13, name: '民', pol: 0,   family: '操作族' },
+  { code: 0x14, name: '盟', pol: 0.5, family: '操作族' },
+  { code: 0x15, name: '满', pol: 0.5, family: '操作族' },
+  { code: 0x16, name: '囡', pol: 0.5, family: '操作族' },
+  { code: 0x17, name: '夕', pol: 0.5, family: '操作族' },
+  { code: 0x18, name: '三', pol: 0.5, family: '操作族' },
+  { code: 0x19, name: '六', pol: 0,   family: '操作族' },
+  { code: 0x1A, name: '八', pol: 0,   family: '操作族' },
+  { code: 0x1B, name: '九', pol: 1,   family: '操作族' },
+  { code: 0x1C, name: '零', pol: 0,   family: '操作族' },
+  { code: 0x1D, name: '一', pol: 1,   family: '操作族' },
+  { code: 0x1E, name: '二', pol: 0.5, family: '操作族' },
+  { code: 0x1F, name: '四', pol: 1,   family: '操作族' },
+  // 声母容器 0x20-0x2F (极性基调: 1=阳)
+  { code: 0x20, name: '帮', pol: 1,   family: '声母族' },
+  { code: 0x21, name: '端', pol: 1,   family: '声母族' },
+  { code: 0x22, name: '精', pol: 1,   family: '声母族' },
+  { code: 0x23, name: '见', pol: 1,   family: '声母族' },
+  { code: 0x24, name: '来', pol: 1,   family: '声母族' },
+  { code: 0x25, name: '齿', pol: 1,   family: '声母族' },
+  { code: 0x26, name: '喉', pol: 1,   family: '声母族' },
+  { code: 0x27, name: '呼', pol: 1,   family: '声母族' },
+  { code: 0x28, name: '开', pol: 0.5, family: '声母族' },
+  { code: 0x29, name: '清', pol: 0.5, family: '声母族' },
+  { code: 0x2A, name: '平', pol: 0.5, family: '声母族' },
+  { code: 0x2B, name: '上', pol: 0.5, family: '声母族' },
+  { code: 0x2C, name: '前', pol: 0.5, family: '声母族' },
+  { code: 0x2D, name: '内', pol: 0.5, family: '声母族' },
+  { code: 0x2E, name: '单', pol: 0.5, family: '声母族' },
+  { code: 0x2F, name: '长', pol: 0.5, family: '声母族' },
+  // 韵母容器 0x30-0x3F (极性基调: 0=阴)
+  { code: 0x30, name: '麻', pol: 0,   family: '韵母族' },
+  { code: 0x31, name: '支', pol: 0,   family: '韵母族' },
+  { code: 0x32, name: '寒', pol: 0,   family: '韵母族' },
+  { code: 0x33, name: '歌', pol: 0,   family: '韵母族' },
+  { code: 0x34, name: '阳', pol: 0,   family: '韵母族' },
+  { code: 0x35, name: '尤', pol: 0,   family: '韵母族' },
+  { code: 0x36, name: '止', pol: 0.5, family: '韵母族' },
+  { code: 0x37, name: '转', pol: 0.5, family: '韵母族' },
+  { code: 0x38, name: '高', pol: 0.5, family: '韵母族' },
+  { code: 0x39, name: '低', pol: 0.5, family: '韵母族' },
+  { code: 0x3A, name: '圆', pol: 0.5, family: '韵母族' },
+  { code: 0x3B, name: '扁', pol: 0.5, family: '韵母族' },
+  { code: 0x3C, name: '响', pol: 0.5, family: '韵母族' },
+  { code: 0x3D, name: '静', pol: 0,   family: '韵母族' },
+  { code: 0x3E, name: '急', pol: 1,   family: '韵母族' },
+  { code: 0x3F, name: '缓', pol: 0,   family: '韵母族' },
+];
+
+// ── 编码计算 (与 Rust hex_coord 一致) ──
+function hexCoord(code) {
+  const y = ((code >> 0) & 1) + ((code >> 2) & 1) * 3 + ((code >> 4) & 1) * 9;
+  const x = ((code >> 1) & 1) + ((code >> 3) & 1) * 3 + ((code >> 5) & 1) * 9;
+  return { x, y };
+}
+
+function hexDistance(a, b) {
+  const dq = b.x - a.x;
+  const dr = b.y - a.y;
+  return (Math.abs(dq) + Math.abs(dr) + Math.abs(dq + dr)) / 2;
+}
+
+function polarityName(p) {
+  if (p === 0) return '阴 Yin';
+  if (p === 1) return '阳 Yang';
+  return '元 Neutral';
+}
+
+function polarityClass(p) {
+  if (p === 0) return 'yin';
+  if (p === 1) return 'yang';
+  return 'neutral';
+}
+
+// ── 主权值计算 (bit 16-17 来自高 bit) ──
+function sovereigntyName(code) {
+  // Active, Passive, ActiveSub, PassiveSub
+  const low = code & 0x0F;
+  const hi = (code >> 4) & 0x03;
+  if (hi === 0) return low < 8 ? 'Active' : 'Passive';
+  return hi < 3 ? 'ActiveSub' : 'PassiveSub';
+}
+
+// ── 渲染全量网格 ──
+let currentHighlight = null;
+let currentNeighbors = [];
+
+function renderGrid(highlightCode = null, neighborCodes = []) {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+
+  // 找到坐标范围
+  let minX = 99, maxX = -99, minY = 99, maxY = -99;
+  for (const c of CONTAINERS) {
+    const { x, y } = hexCoord(c.code);
+    if (x < minX) minX = x;
+    if (x > maxX) maxX = x;
+    if (y < minY) minY = y;
+    if (y > maxY) maxY = y;
+  }
+
+  const rangeX = maxX - minX + 1;
+  const rangeY = maxY - minY + 1;
+
+  grid.style.gridTemplateColumns = `repeat(${rangeX * 2 + 1}, 72px)`;
+
+  // 按坐标放置
+  const cells = new Map();
+  for (const c of CONTAINERS) {
+    const { x, y } = hexCoord(c.code);
+    const gx = (x - minX) * 2 + 1;
+    const gy = (y - minY);
+    cells.set(`${gx},${gy}`, c);
+  }
+
+  for (let row = 0; row < rangeY; row++) {
+    for (let col = 0; col < rangeX * 2 + 1; col++) {
+      const key = `${col},${row}`;
+      const c = cells.get(key);
+      const div = document.createElement('div');
+      div.className = 'hex';
+
+      if (c) {
+        div.classList.add(polarityClass(c.pol));
+        if (c.code === highlightCode) div.classList.add('center');
+        if (neighborCodes.includes(c.code)) {
+          div.classList.add('neighbor');
+          const center = CONTAINERS.find(x => x.code === highlightCode);
+          if (center && !hasResidual(center, c)) div.classList.add('compatible');
+        }
+        div.innerHTML = `
+          <div class="name">${c.name}</div>
+          <div class="code">0x${c.code.toString(16).padStart(2,'0').toUpperCase()}</div>
+          <div class="polarity">${polarityName(c.pol)}</div>
+        `;
+        div.onclick = () => showDetail(c.code);
+      }
+
+      grid.appendChild(div);
+    }
+  }
+}
+
+function hasResidual(a, b) {
+  // 互斥: Yin(0) vs Yang(1)
+  return (a.pol === 0 && b.pol === 1) || (a.pol === 1 && b.pol === 0);
+}
+
+function showDetail(code) {
+  const c = CONTAINERS.find(x => x.code === code);
+  if (!c) return;
+  const { x, y } = hexCoord(code);
+  const bits = code.toString(2).padStart(8, '0');
+  document.getElementById('infoName').textContent = c.name;
+  document.getElementById('infoCode').textContent = `0x${code.toString(16).padStart(2,'0').toUpperCase()} (${code})`;
+  document.getElementById('infoCoord').textContent = `(${x}, ${y})`;
+  document.getElementById('infoBits').textContent = `c7=${bits[1]} c6=${bits[2]} c5=${bits[3]}×9 c4=${bits[4]}×3 c3=${bits[5]}×1 → Y=${y}; c2=${bits[6]}×9 c1=${bits[7]}×3 c0=${bits[8]}×1 → X=${x}`;
+  document.getElementById('infoPolarity').textContent = polarityName(c.pol);
+  document.getElementById('infoSovereignty').textContent = sovereigntyName(code);
+  document.getElementById('infoFamily').textContent = c.family;
+}
+
+function showNeighbors() {
+  const name = document.getElementById('containerInput').value.trim();
+  const maxDist = parseInt(document.getElementById('distInput').value) || 2;
+  const c = CONTAINERS.find(x => x.name === name);
+  if (!c) { alert('容器名未识别: ' + name); return; }
+
+  currentHighlight = c.code;
+  currentNeighbors = CONTAINERS
+    .filter(x => x.code !== c.code && hexDistance(hexCoord(c.code), hexCoord(x.code)) <= maxDist)
+    .map(x => x.code);
+
+  renderGrid(c.code, currentNeighbors);
+  showDetail(c.code);
+}
+
+function showAll() { renderGrid(); }
+
+function clearHighlight() {
+  renderGrid();
+  currentHighlight = null;
+  currentNeighbors = [];
+  document.getElementById('infoName').textContent = '点击网格容器查看详情';
+  document.getElementById('infoCode').textContent = '-';
+  document.getElementById('infoCoord').textContent = '-';
+  document.getElementById('infoBits').textContent = '-';
+  document.getElementById('infoPolarity').textContent = '-';
+  document.getElementById('infoSovereignty').textContent = '-';
+  document.getElementById('infoFamily').textContent = '-';
+}
+
+// 初始化
+showAll();
+</script>
+</body>
+</html>
