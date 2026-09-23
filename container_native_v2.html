@@ -1,0 +1,95 @@
+<!DOCTYPE html><html lang="zh">
+<head><meta charset="UTF-8"><title>囡囝共生 — 64容器投影</title>
+<style>
+body{background:#0a0a14;color:#eee;font-family:'Segoe UI',sans-serif;margin:0;padding:20px;}
+h1{text-align:center;font-size:22px;color:#7B68EE;margin:8px 0 4px;}
+p.sub{text-align:center;color:#888;font-size:12px;margin-top:0;}
+#canvas{margin:10px auto;width:800px;height:800px;background:radial-gradient(circle,#101025 0%,#05050f 100%);border-radius:12px;box-shadow:0 0 40px #1a1a3a80;overflow:hidden;}
+.node{position:absolute;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold;color:#fff;text-shadow:0 0 4px #000;transition:all .3s;cursor:pointer;}
+.node:hover{transform:scale(1.4);z-index:10;box-shadow:0 0 16px #fff6;}
+.core{box-shadow:0 0 20px #FFD70080;border:2px solid #FFD700;}
+.link{position:absolute;background:linear-gradient(90deg,#3A7BD5,#16A085);height:1px;opacity:0.3;transform-origin:left center;}
+#legend{display:flex;gap:16px;justify-content:center;margin:12px 0;flex-wrap:wrap;}
+.leg{display:flex;align-items:center;gap:4px;font-size:11px;}
+.leg b{display:inline-block;width:14px;height:14px;border-radius:50%;}
+#info{margin-top:20px;text-align:center;font-size:11px;color:#666;}
+</style></head><body>
+<h1>囡囝共生 · 64容器投影</h1>
+<p class="sub">容器即机器码 · 坐标即程序 · 字体即时间</p>
+<div id="legend"><div class="leg" style="color:#3A7BD5"><b style="background:#3A7BD5"></b>运算族</div><div class="leg" style="color:#7B2D8E"><b style="background:#7B2D8E"></b>满全族</div><div class="leg" style="color:#16A085"><b style="background:#16A085"></b>声母族</div>
+<div class="leg" style="color:#D98C4A"><b style="background:#D98C4A"></b>韵母族</div>
+</div>
+<div id="canvas">
+<div class="link" style="left:359.43555616930047px;top:497.9312304461964px;width:32.077495150607895px;transform:rotate(-157.0389978715811deg);"></div>
+<div class="link" style="left:329.8995420999172px;top:485.41765509658245px;width:71.6011101916968px;transform:rotate(11.75111929362689deg);"></div>
+<div class="link" style="left:400px;top:500px;width:141.4213562373095px;transform:rotate(-45deg);"></div>
+<div class="link" style="left:500px;top:400px;width:200px;transform:rotate(180deg);"></div>
+<div class="link" style="left:300px;top:400px;width:141.4213562373095px;transform:rotate(-45deg);"></div>
+<div class="node" style="left:488px;top:388px;width:24px;height:24px;background:#3A7BD5;opacity:0.7;" title="00|0A00|00">元</div>
+<div class="node" style="left:489.011249757228px;top:397.9487397434504px;width:24px;height:24px;background:#3A7BD5;opacity:0.72;" title="01|0A01|01">加</div>
+<div class="node" style="left:489.02088388153277px;top:408.0943031676612px;width:24px;height:24px;background:#3A7BD5;opacity:0.74;" title="02|0A02|02">减</div>
+<div class="node" style="left:488.00026508401584px;top:418.3347487730913px;width:24px;height:24px;background:#3A7BD5;opacity:0.76;" title="03|0A03|03">与</div>
+<div class="node" style="left:485.9312304461964px;top:428.56444383069953px;width:24px;height:24px;background:#3A7BD5;opacity:0.78;" title="04|0A04|04">或</div>
+<div class="node" style="left:482.8065359174482px;top:438.6751492087948px;width:24px;height:24px;background:#3A7BD5;opacity:0.8;" title="05|0A05|05">非</div>
+<div class="node" style="left:478.6301877409774px;top:448.55715539913666px;width:24px;height:24px;background:#3A7BD5;opacity:0.8200000000000001;" title="06|0A06|06">异或</div>
+<div class="node" style="left:473.41765509658245px;top:458.1004579000828px;width:24px;height:24px;background:#3A7BD5;opacity:0.84;" title="07|0A07|07">传送</div>
+<div class="node" style="left:467.19595949289334px;top:467.1959594928933px;width:24px;height:24px;background:#3A7BD5;opacity:0.86;" title="08|0A08|08">跳转</div>
+<div class="node" style="left:460.0036377525738px;top:475.73668645667067px;width:24px;height:24px;background:#3A7BD5;opacity:0.88;" title="09|0A09|09">调用</div>
+<div class="node" style="left:451.89057679725425px;top:483.6190054147927px;width:24px;height:24px;background:#3A7BD5;opacity:0.9;" title="0A|0A0A|0A">返回</div>
+<div class="node" style="left:442.9177198402287px;top:490.7438272965834px;width:24px;height:24px;background:#3A7BD5;opacity:0.9199999999999999;" title="0B|0A0B|0B">比较</div>
+<div class="node" style="left:433.1566450190806px;top:497.0177848363318px;width:24px;height:24px;background:#3A7BD5;opacity:0.94;" title="0C|0A0C|0C">加载</div>
+<div class="node" style="left:422.68901893190827px;top:502.354370119999px;width:24px;height:24px;background:#3A7BD5;opacity:0.96;" title="0D|0A0D|0D">存储</div>
+<div class="node" style="left:411.60592896395156px;top:506.6750189287909px;width:24px;height:24px;background:#3A7BD5;opacity:0.98;" title="0E|0A0E|0E">移位</div>
+<div class="node" style="left:400.00709969037115px;top:509.91012901734416px;width:24px;height:24px;background:#3A7BD5;opacity:1;" title="0F|0A0F|0F">置位</div>
+<div class="node" style="left:388px;top:488px;width:24px;height:24px;background:#7B2D8E;opacity:0.7;" title="10|0B00|10">满</div>
+<div class="node" style="left:378.0512602565496px;top:489.011249757228px;width:24px;height:24px;background:#7B2D8E;opacity:0.72;" title="11|0B01|11">全</div>
+<div class="node" style="left:367.90569683233883px;top:489.02088388153277px;width:24px;height:24px;background:#7B2D8E;opacity:0.74;" title="12|0B02|12">法</div>
+<div class="node" style="left:357.6652512269087px;top:488.00026508401584px;width:24px;height:24px;background:#7B2D8E;opacity:0.76;" title="13|0B03|13">囡</div>
+<div class="node core" style="left:339.31094437180235px;top:477.8066186486983px;width:40.24922359499622px;height:40.24922359499622px;background:#7B2D8E;opacity:0.78;" title="14|0B04|14">丱</div>
+<div class="node" style="left:337.3248507912053px;top:482.8065359174482px;width:24px;height:24px;background:#7B2D8E;opacity:0.8;" title="15|0B05|15">共</div>
+<div class="node" style="left:327.44284460086334px;top:478.6301877409774px;width:24px;height:24px;background:#7B2D8E;opacity:0.8200000000000001;" title="16|0B06|16">生</div>
+<div class="node core" style="left:309.7749303024191px;top:465.29304329908433px;width:40.24922359499622px;height:40.24922359499622px;background:#7B2D8E;opacity:0.84;" title="17|0B07|17">伴</div>
+<div class="node" style="left:308.8040405071067px;top:467.19595949289334px;width:24px;height:24px;background:#7B2D8E;opacity:0.86;" title="18|0B08|18">侣</div>
+<div class="node" style="left:300.26331354332933px;top:460.00363775257375px;width:24px;height:24px;background:#7B2D8E;opacity:0.88;" title="19|0B09|19">赔</div>
+<div class="node" style="left:292.3809945852073px;top:451.89057679725425px;width:24px;height:24px;background:#7B2D8E;opacity:0.9;" title="1A|0B0A|1A">偿</div>
+<div class="node" style="left:285.25617270341667px;top:442.91771984022876px;width:24px;height:24px;background:#7B2D8E;opacity:0.9199999999999999;" title="1B|0B0B|1B">合</div>
+<div class="node" style="left:278.9822151636682px;top:433.1566450190806px;width:24px;height:24px;background:#7B2D8E;opacity:0.94;" title="1C|0B0C|1C">离</div>
+<div class="node" style="left:273.645629880001px;top:422.68901893190827px;width:24px;height:24px;background:#7B2D8E;opacity:0.96;" title="1D|0B0D|1D">聚</div>
+<div class="node" style="left:269.3249810712091px;top:411.6059289639515px;width:24px;height:24px;background:#7B2D8E;opacity:0.98;" title="1E|0B0E|1E">散</div>
+<div class="node" style="left:266.0898709826559px;top:400.0070996903712px;width:24px;height:24px;background:#7B2D8E;opacity:1;" title="1F|0B0F|1F">归</div>
+<div class="node" style="left:288px;top:388px;width:24px;height:24px;background:#16A085;opacity:0.7;" title="20|0C00|20">帮</div>
+<div class="node" style="left:286.988750242772px;top:378.0512602565496px;width:24px;height:24px;background:#16A085;opacity:0.72;" title="21|0C01|21">滂</div>
+<div class="node" style="left:286.97911611846723px;top:367.90569683233883px;width:24px;height:24px;background:#16A085;opacity:0.74;" title="22|0C02|22">并</div>
+<div class="node" style="left:287.99973491598416px;top:357.6652512269087px;width:24px;height:24px;background:#16A085;opacity:0.76;" title="23|0C03|23">明</div>
+<div class="node" style="left:290.0687695538036px;top:347.4355561693005px;width:24px;height:24px;background:#16A085;opacity:0.78;" title="24|0C04|24">端</div>
+<div class="node" style="left:293.1934640825518px;top:337.3248507912052px;width:24px;height:24px;background:#16A085;opacity:0.8;" title="25|0C05|25">透</div>
+<div class="node" style="left:297.3698122590226px;top:327.44284460086334px;width:24px;height:24px;background:#16A085;opacity:0.8200000000000001;" title="26|0C06|26">定</div>
+<div class="node" style="left:302.58234490341755px;top:317.8995420999172px;width:24px;height:24px;background:#16A085;opacity:0.84;" title="27|0C07|27">泥</div>
+<div class="node" style="left:308.80404050710666px;top:308.8040405071067px;width:24px;height:24px;background:#16A085;opacity:0.86;" title="28|0C08|28">知</div>
+<div class="node" style="left:315.9963622474263px;top:300.26331354332933px;width:24px;height:24px;background:#16A085;opacity:0.88;" title="29|0C09|29">彻</div>
+<div class="node" style="left:324.1094232027457px;top:292.38099458520736px;width:24px;height:24px;background:#16A085;opacity:0.9;" title="2A|0C0A|2A">澄</div>
+<div class="node" style="left:333.08228015977124px;top:285.25617270341667px;width:24px;height:24px;background:#16A085;opacity:0.9199999999999999;" title="2B|0C0B|2B">娘</div>
+<div class="node" style="left:342.84335498091946px;top:278.9822151636682px;width:24px;height:24px;background:#16A085;opacity:0.94;" title="2C|0C0C|2C">见</div>
+<div class="node" style="left:353.31098106809173px;top:273.645629880001px;width:24px;height:24px;background:#16A085;opacity:0.96;" title="2D|0C0D|2D">溪</div>
+<div class="node" style="left:364.39407103604844px;top:269.32498107120915px;width:24px;height:24px;background:#16A085;opacity:0.98;" title="2E|0C0E|2E">群</div>
+<div class="node" style="left:375.99290030962885px;top:266.0898709826559px;width:24px;height:24px;background:#16A085;opacity:1;" title="2F|0C0F|2F">疑</div>
+<div class="node" style="left:388px;top:288px;width:24px;height:24px;background:#D98C4A;opacity:0.7;" title="30|0D00|30">东</div>
+<div class="node" style="left:397.94873974345035px;top:286.988750242772px;width:24px;height:24px;background:#D98C4A;opacity:0.72;" title="31|0D01|31">冬</div>
+<div class="node" style="left:408.0943031676612px;top:286.97911611846723px;width:24px;height:24px;background:#D98C4A;opacity:0.74;" title="32|0D02|32">钟</div>
+<div class="node" style="left:418.3347487730913px;top:287.99973491598416px;width:24px;height:24px;background:#D98C4A;opacity:0.76;" title="33|0D03|33">江</div>
+<div class="node" style="left:428.56444383069953px;top:290.06876955380363px;width:24px;height:24px;background:#D98C4A;opacity:0.78;" title="34|0D04|34">支</div>
+<div class="node" style="left:438.6751492087947px;top:293.1934640825518px;width:24px;height:24px;background:#D98C4A;opacity:0.8;" title="35|0D05|35">脂</div>
+<div class="node" style="left:448.5571553991366px;top:297.3698122590225px;width:24px;height:24px;background:#D98C4A;opacity:0.8200000000000001;" title="36|0D06|36">之</div>
+<div class="node" style="left:458.10045790008286px;top:302.5823449034176px;width:24px;height:24px;background:#D98C4A;opacity:0.84;" title="37|0D07|37">微</div>
+<div class="node" style="left:467.1959594928933px;top:308.80404050710666px;width:24px;height:24px;background:#D98C4A;opacity:0.86;" title="38|0D08|38">鱼</div>
+<div class="node" style="left:475.7366864566706px;top:315.9963622474262px;width:24px;height:24px;background:#D98C4A;opacity:0.88;" title="39|0D09|39">虞</div>
+<div class="node" style="left:483.6190054147927px;top:324.10942320274575px;width:24px;height:24px;background:#D98C4A;opacity:0.9;" title="3A|0D0A|3A">模</div>
+<div class="node" style="left:490.74382729658333px;top:333.08228015977124px;width:24px;height:24px;background:#D98C4A;opacity:0.9199999999999999;" title="3B|0D0B|3B">齐</div>
+<div class="node" style="left:497.0177848363318px;top:342.84335498091946px;width:24px;height:24px;background:#D98C4A;opacity:0.94;" title="3C|0D0C|3C">佳</div>
+<div class="node" style="left:502.354370119999px;top:353.3109810680916px;width:24px;height:24px;background:#D98C4A;opacity:0.96;" title="3D|0D0D|3D">皆</div>
+<div class="node" style="left:506.6750189287909px;top:364.39407103604844px;width:24px;height:24px;background:#D98C4A;opacity:0.98;" title="3E|0D0E|3E">灰</div>
+<div class="node" style="left:509.91012901734416px;top:375.99290030962885px;width:24px;height:24px;background:#D98C4A;opacity:1;" title="3F|0D0F|3F">咍</div>
+</div>
+<div id="info">容器来源: hunyuan-rs/src/cross_isa/vocabulary.rs | 族名来源: hunyuan-rs/src/cross_isa/vocabulary.rs | 坐标系统: hunyuan-rs/src/cross_isa/coordinate.rs | 计数: 64 容器 × 4 族
+</div>
+</body></html>
