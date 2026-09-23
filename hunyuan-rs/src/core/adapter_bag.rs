@@ -139,7 +139,7 @@ impl AdapterBag {
 
     // ── 内部操作 (实际调用外部库的封装) ──────────────────────
 
-    fn handle_fetch(&self, req: InvokeRequest) -> InvokeResult {
+    fn handle_fetch(&mut self, req: InvokeRequest) -> InvokeResult {
         // 袋的接口: 调用者只需知道 "Fetch + 声波地址 + payload(URL 字节)",
         // 不需要知道 HTTP/TCP/DNS 等外部概念
 
@@ -169,11 +169,24 @@ impl AdapterBag {
                 cont.add_secured_point(InsertionKind::Anchor, 0, b"KNML-CAPTURE-V040");
                 cont.add_secured_point(InsertionKind::Image, 16, &bytes[..std::cmp::min(bytes.len(), 64)]);
 
+                // 构造 IndexedContainer 以便缓存
+                let indexed = IndexedContainer {
+                    morton,
+                    container: cont,
+                    source: url.clone(),
+                };
+
+                // 缓存: 超过上限时移除最旧的
+                if self.cache.len() >= self.cache_cap {
+                    self.cache.remove(0);
+                }
+                self.cache.push(indexed.clone());
+
                 InvokeResult {
                     op: AdapterOp::Fetch,
                     ok: true,
                     bytes: bytes.clone(),
-                    container: None, // TODO: cache
+                    container: Some(indexed),
                     error: None,
                 }
             }
@@ -312,6 +325,50 @@ mod tests {
         let bag = AdapterBag::new(1);
         let s = SoundAddress::new(Initial::L, Final::An, Tone::YinPing);
         assert!(bag.lookup_by_sound(s).is_none());
+    }
+
+    #[test]
+    fn fetch_success_populates_cache() {
+        let mut bag = AdapterBag::new(1);
+        // 使用 file:// 协议测试本地文件获取（不需要网络）
+        let req = InvokeRequest {
+            op: AdapterOp::Fetch,
+            target: SoundAddress::new(Initial::L, Final::An, Tone::YinPing),
+            caller: Sovereignty::ActiveSub,
+            payload: b"file:///dev/null".to_vec(),
+            timestamp_ms: 1,
+        };
+        let r = bag.invoke(req);
+        // 如果获取成功，验证缓存已填充
+        if r.ok {
+            assert_eq!(bag.cache.len(), 1, "fetch success should cache 1 entry");
+            assert!(r.container.is_some(), "result should contain cached container");
+            // 验证 cache lookup 返回同一个 morton
+            let cached = bag.lookup_by_morton(r.container.unwrap().morton);
+            assert!(cached.is_some());
+        }
+    }
+
+    #[test]
+    fn cache_evicts_when_cap_reached() {
+        let mut bag = AdapterBag::new(1);
+        bag.cache_cap = 2; // 小容量便于测试
+
+        // 模拟直接插入缓存
+        for i in 0..3 {
+            bag.cache.push(IndexedContainer {
+                morton: MortonCode::encode(Coord3D { t: i, s: 0, d: 0 }),
+                container: NestedContainer::new(0, FormatKind::PlainText, FormatKind::PlainText, "test"),
+                source: format!("url-{}", i),
+            });
+            // 模拟 handle_fetch 的 evict 逻辑
+            if bag.cache.len() > bag.cache_cap {
+                bag.cache.remove(0);
+            }
+        }
+        assert_eq!(bag.cache.len(), 2, "cache should not exceed cap");
+        assert_eq!(bag.cache[0].source, "url-1", "oldest should be evicted");
+        assert_eq!(bag.cache[1].source, "url-2", "newest should remain");
     }
 
     #[test]

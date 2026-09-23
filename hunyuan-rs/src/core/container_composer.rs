@@ -76,10 +76,13 @@ impl Composer {
     /// 添加因果链链接
     pub fn link_causal(&mut self, pred: ContainerRef, succ: ContainerRef, causal_key: u64) -> usize {
         let rule = CompositionRule::CausalLink {
-            predecessor: pred,
-            successor: succ,
+            predecessor: pred.clone(),
+            successor: succ.clone(),
             causal_key,
         };
+        // 确保两个节点都在加法表中
+        self.additive_weight.entry(pred.raw()).or_insert(1);
+        self.additive_weight.entry(succ.raw()).or_insert(1);
         self.rules.push(rule);
         self.rules.len() - 1
     }
@@ -148,36 +151,77 @@ impl Composer {
         true
     }
 
-    /// 获取完整的串联顺序 (拓扑排序)
+    /// 获取完整的串联顺序 (DFS 拓扑排序 — 保证壳在入口前)
     pub fn composition_order(&self) -> Vec<u128> {
         let mut visited = std::collections::HashSet::new();
         let mut order = Vec::new();
+        let mut temp = std::collections::HashSet::new();
 
-        // 从每个壳的入口开始深度优先
-        for (shell_raw, entries) in &self.shell_map {
-            if visited.insert(*shell_raw) {
-                order.push(*shell_raw);
-            }
-            for entry_raw in entries {
-                if visited.insert(*entry_raw) {
-                    order.push(*entry_raw);
+        // 收集所有节点
+        let mut all_nodes: Vec<u128> = self.shell_map.keys().copied().collect();
+        for entries in self.shell_map.values() {
+            for e in entries {
+                if !all_nodes.contains(e) {
+                    all_nodes.push(*e);
                 }
             }
         }
-
-        // 追加剩余未访问的因果链接
         for rule in &self.rules {
             if let CompositionRule::CausalLink { predecessor, successor, .. } = rule {
-                if visited.insert(predecessor.raw()) {
-                    order.push(predecessor.raw());
+                if !all_nodes.contains(&predecessor.raw()) {
+                    all_nodes.push(predecessor.raw());
                 }
-                if visited.insert(successor.raw()) {
-                    order.push(successor.raw());
+                if !all_nodes.contains(&successor.raw()) {
+                    all_nodes.push(successor.raw());
                 }
             }
         }
 
+        // DFS topological sort (reverse postorder — 壳在入口前)
+        for node in &all_nodes {
+            if !visited.contains(node) {
+                self.dfs_topo(*node, &mut visited, &mut temp, &mut order);
+            }
+        }
+
+        // 反向 = 壳在前
+        order.reverse();
         order
+    }
+
+    fn dfs_topo(
+        &self,
+        node: u128,
+        visited: &mut std::collections::HashSet<u128>,
+        temp: &mut std::collections::HashSet<u128>,
+        order: &mut Vec<u128>,
+    ) {
+        if visited.contains(&node) {
+            return;
+        }
+        temp.insert(node);
+
+        // 遍历壳的入口 (壳 → 入口的关系意味着壳必须在前)
+        if let Some(entries) = self.shell_map.get(&node) {
+            for entry in entries {
+                if !visited.contains(entry) {
+                    self.dfs_topo(*entry, visited, temp, order);
+                }
+            }
+        }
+
+        // 遍历因果链接的后继
+        for rule in &self.rules {
+            if let CompositionRule::CausalLink { predecessor, successor, .. } = rule {
+                if predecessor.raw() == node && !visited.contains(&successor.raw()) {
+                    self.dfs_topo(successor.raw(), visited, temp, order);
+                }
+            }
+        }
+
+        temp.remove(&node);
+        visited.insert(node);
+        order.push(node);
     }
 
     /// 将串联规则同步到容器图集
@@ -273,14 +317,13 @@ mod tests {
     }
 
     #[test]
-    fn causal_chain_broken_if_unknown() {
+    fn causal_chain_always_complete_after_link() {
         let mut c = Composer::new();
         let a = mk_ref(70);
         let b = mk_ref(80);
         c.link_causal(a.clone(), b.clone(), 0xBEEF);
-        // 此时 a 和 b 未被 compose 注册到 weight 表中
-        // verify 会检查 weight 表中是否存在
-        assert!(!c.verify_causal_chain());
+        // link_causal 自动注册节点到加法表, 因果链始终完整
+        assert!(c.verify_causal_chain());
     }
 
     #[test]
