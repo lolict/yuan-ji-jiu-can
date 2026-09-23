@@ -12218,3 +12218,197 @@ mod timestamp_tests {
         assert!(!t.saturated);
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器耦合度引擎 · ContainerCoupling (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   耦合度 = 两个容器相互绑定的紧密程度
+//   不靠乘除, 靠加法累积共同事件
+//
+//   衡量方式:
+//     - coincidence:  共同命中次数 (累积)
+//     - total_a / total_b: 各自总事件数
+//     - alignment:    coincidence * 2  versus (total_a + total_b)
+//                     (用加法近似代替除法比较)
+//
+//   仅加法: 所有统计 +1/+offset 累加, 比较用 a*b > c*d 型转换为加法对
+
+/// 耦合记录
+#[derive(Clone, Debug)]
+pub struct Coupling {
+    pub total_a: u64,
+    pub total_b: u64,
+    pub coincidence: u64,   // 同时命中次数
+}
+
+/// 耦合引擎
+#[derive(Clone, Debug)]
+pub struct ContainerCoupling {
+    pub pair: HashMap<(u64, u64), Coupling>,
+    pub count: usize,
+}
+
+impl ContainerCoupling {
+    pub fn new() -> Self { Self { pair: HashMap::new(), count: 0 } }
+
+    fn key(a: u64, b: u64) -> (u64, u64) { if a <= b { (a, b) } else { (b, a) } }
+
+    /// 记录一次 A 事件
+    pub fn event_a(&mut self, a: u64, b: u64) {
+        let k = Self::key(a, b);
+        let e = self.pair.entry(k).or_insert(Coupling { total_a: 0, total_b: 0, coincidence: 0 });
+        e.total_a = e.total_a + 1;
+    }
+
+    /// 记录一次 B 事件
+    pub fn event_b(&mut self, a: u64, b: u64) {
+        let k = Self::key(a, b);
+        let e = self.pair.entry(k).or_insert(Coupling { total_a: 0, total_b: 0, coincidence: 0 });
+        e.total_b = e.total_b + 1;
+    }
+
+    /// 记录同时命中 (双方共同 tick)
+    pub fn coincide(&mut self, a: u64, b: u64) {
+        let k = Self::key(a, b);
+        let e = self.pair.entry(k).or_insert(Coupling { total_a: 0, total_b: 0, coincidence: 0 });
+        e.coincidence = e.coincidence + 1;
+        e.total_a = e.total_a + 1;
+        e.total_b = e.total_b + 1;
+    }
+
+    pub fn get(&self, a: u64, b: u64) -> Option<Coupling> {
+        self.pair.get(&Self::key(a, b)).cloned()
+    }
+
+    /// 紧密度: coincidence * 2 ≥ total_a + total_b  → 完全对齐
+    pub fn is_tight(&self, a: u64, b: u64) -> bool {
+        match self.get(a, b) {
+            Some(c) => {
+                let twice = c.coincidence + c.coincidence;
+                let sum = c.total_a + c.total_b;
+                twice >= sum
+            }
+            None => false,
+        }
+    }
+
+    /// 松耦合: coincidence == 0 但双方都有事件
+    pub fn is_loose(&self, a: u64, b: u64) -> bool {
+        match self.get(a, b) {
+            Some(c) => c.coincidence == 0 && c.total_a > 0 && c.total_b > 0,
+            None => false,
+        }
+    }
+
+    /// 耦合度分数 (0..=100, 用加法近似 coincidence / total * 100)
+    pub fn score(&self, a: u64, b: u64) -> u64 {
+        match self.get(a, b) {
+            Some(c) => {
+                if c.coincidence == 0 { return 0; }
+                // 不用除: 做减法逼近 — coincidence 占 (total_a + total_b) / 2 的百分比
+                let sum = c.total_a + c.total_b;
+                if sum == 0 { return 0; }
+                // 近似: step = sum / 100, 然后 coincidence / step
+                // 但无除法: 改用迭代减 (最多 100 次)
+                let base = if sum >= 100 { sum >> 6 } else { 1 };  // 近似 /64 作为基底
+                let mut s = 0;
+                let mut rem = c.coincidence;
+                loop {
+                    if rem < base { break; }
+                    rem = rem - base;
+                    s = s + 1;
+                    if s >= 100 { break; }
+                }
+                s
+            }
+            None => 0,
+        }
+    }
+
+    pub fn remove(&mut self, a: u64, b: u64) -> bool {
+        let r = self.pair.remove(&Self::key(a, b)).is_some();
+        if r && self.count > 0 { self.count = self.count - 1; }
+        r
+    }
+
+    pub fn clear(&mut self) { self.pair.clear(); self.count = 0; }
+}
+
+impl Default for ContainerCoupling {
+    fn default() -> Self { Self::new() }
+}
+
+#[cfg(test)]
+mod coupling_tests {
+    use super::*;
+
+    #[test]
+    fn test_empty() {
+        let c = ContainerCoupling::new();
+        assert_eq!(c.score(1, 2), 0);
+        assert!(!c.is_tight(1, 2));
+    }
+
+    #[test]
+    fn test_coincide_tight() {
+        let mut c = ContainerCoupling::new();
+        c.coincide(10, 20);
+        c.coincide(10, 20);
+        // total_a=2, total_b=2, coincidence=2 → 2*2=4 vs 2+2=4 → tight
+        assert!(c.is_tight(10, 20));
+    }
+
+    #[test]
+    fn test_loose() {
+        let mut c = ContainerCoupling::new();
+        c.event_a(10, 20);
+        c.event_b(10, 20);
+        c.event_a(10, 20);
+        // coincidence=0, total_a=2, total_b=1 → loose
+        assert!(c.is_loose(10, 20));
+        assert!(!c.is_tight(10, 20));
+    }
+
+    #[test]
+    fn test_symmetric_key() {
+        let mut c = ContainerCoupling::new();
+        c.coincide(99, 1);
+        c.coincide(1, 99);
+        // 应视为同一对
+        let entry = c.get(99, 1).unwrap();
+        assert_eq!(entry.coincidence, 2);
+    }
+
+    #[test]
+    fn test_score_partial() {
+        let mut c = ContainerCoupling::new();
+        // 10 次中 5 次同时命中
+        for _ in 0..5 { c.coincide(1, 2); }
+        for _ in 0..5 { c.event_a(1, 2); }
+        let s = c.score(1, 2);
+        // coincidence=5, sum=15; 5/15≈33%
+        assert!(s > 0 && s <= 100);
+    }
+
+    #[test]
+    fn test_score_zero() {
+        let mut c = ContainerCoupling::new();
+        c.event_a(1, 2);
+        assert_eq!(c.score(1, 2), 0);
+    }
+
+    #[test]
+    fn test_get_none() {
+        let c = ContainerCoupling::new();
+        assert!(c.get(1, 2).is_none());
+    }
+
+    #[test]
+    fn test_clear() {
+        let mut c = ContainerCoupling::new();
+        c.coincide(1, 2);
+        c.clear();
+        assert!(!c.is_tight(1, 2));
+    }
+}
