@@ -11202,3 +11202,183 @@ mod orchestrator_tests {
         assert!(o.agency.directives.len() > 0 || o.evaluation.pair_count() > 0);
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 合一引擎 · ContainerSynthesisEngine (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   合一驱力 = 双向强因果的容器趋向合并
+//   「当你强烈影响我、我也强烈影响你, 我们合一」
+//
+//   机制:
+//     - 查找互为因果的配对 (a→b 且 b→a)
+//     - 双方的强度都 >= 合并阈值 → 合并候选
+//     - 合并: 产生新容器 id, 继承双方累积和
+//
+//   仅加法: 合并强度 = 双方之和, 无乘除
+
+/// 合并结果
+#[derive(Clone, Debug)]
+pub struct MergeResult {
+    pub merged_id: u64,
+    pub parent_a: u64,
+    pub parent_b: u64,
+    pub combined_accumulation: u64,
+}
+
+/// 合一引擎
+#[derive(Clone, Debug)]
+pub struct ContainerSynthesisEngine {
+    /// 合并结果记录
+    pub merges: Vec<MergeResult>,
+    /// 合并阈值 (加法比较)
+    pub merge_threshold: u64,
+    /// 下一个可用 merged id
+    pub next_id: u64,
+}
+
+impl ContainerSynthesisEngine {
+    pub fn new() -> Self {
+        Self {
+            merges: Vec::new(),
+            merge_threshold: 3,
+            next_id: 1,
+        }
+    }
+
+    /// 从评价中寻找可合并的对 (双向且均强)
+    pub fn find_merge_candidates(&self, evals: &[(u64, u64, u64)]) -> Vec<(u64, u64, u64)> {
+        // evals: Vec<(cause_id, effect_id, accumulated)>
+        let mut candidates = Vec::new();
+        for &(a, b, acc_ab) in evals {
+            if acc_ab < self.merge_threshold { continue; }
+            // 检查反向
+            for &(c, d, acc_cd) in evals {
+                if c == b && d == a && acc_cd >= self.merge_threshold {
+                    // 双向都强 → 合并候选 (避免重复: 保留 a < b 的)
+                    if a < b {
+                        candidates.push((a, b, acc_ab + acc_cd));
+                    }
+                }
+            }
+        }
+        candidates
+    }
+
+    /// 尝试合并 (返回 merged id, 或 0 表示无合并)
+    pub fn try_merge(&mut self, evals: &[(u64, u64, u64)]) -> u64 {
+        let candidates = self.find_merge_candidates(evals);
+        if candidates.is_empty() { return 0; }
+        // 取累积最大的一对 (一次只合一)
+        let mut best = &candidates[0];
+        for c in &candidates {
+            if c.2 > best.2 { best = c; }
+        }
+        let mid = self.next_id;
+        self.next_id = self.next_id + 1;
+        self.merges.push(MergeResult {
+            merged_id: mid,
+            parent_a: best.0,
+            parent_b: best.1,
+            combined_accumulation: best.2,
+        });
+        mid
+    }
+
+    /// 合并对数
+    pub fn merge_count(&self) -> usize { self.merges.len() }
+
+    /// 重置
+    pub fn clear(&mut self) {
+        self.merges.clear();
+        self.next_id = 1;
+    }
+}
+
+impl Default for ContainerSynthesisEngine {
+    fn default() -> Self { Self::new() }
+}
+
+#[cfg(test)]
+mod synthesis_tests {
+    use super::*;
+
+    #[test]
+    fn test_no_candidates() {
+        let e = ContainerSynthesisEngine::new();
+        let c = e.find_merge_candidates(&[(1, 2, 1), (2, 3, 1)]);
+        assert!(c.is_empty());
+    }
+
+    #[test]
+    fn test_candidates_found() {
+        let e = ContainerSynthesisEngine::new();
+        let c = e.find_merge_candidates(&[
+            (1, 2, 5),  // 强 (≥3)
+            (2, 1, 4),  // 反向也强
+        ]);
+        assert_eq!(c.len(), 1);
+        assert_eq!(c[0].2, 9);  // 5+4
+    }
+
+    #[test]
+    fn test_threshold_filters() {
+        let e = ContainerSynthesisEngine::new();
+        let c = e.find_merge_candidates(&[
+            (1, 2, 2),  // 弱 (<3)
+            (2, 1, 5),  // 反向强但正向不强
+        ]);
+        assert!(c.is_empty());
+    }
+
+    #[test]
+    fn test_try_merge() {
+        let mut e = ContainerSynthesisEngine::new();
+        let mid = e.try_merge(&[
+            (1, 2, 5),
+            (2, 1, 4),
+        ]);
+        assert_ne!(mid, 0);
+        assert_eq!(e.merge_count(), 1);
+    }
+
+    #[test]
+    fn test_try_merge_none() {
+        let mut e = ContainerSynthesisEngine::new();
+        let mid = e.try_merge(&[(1, 2, 1)]);
+        assert_eq!(mid, 0);
+    }
+
+    #[test]
+    fn test_merge_id_sequence() {
+        let mut e = ContainerSynthesisEngine::new();
+        let id1 = e.try_merge(&[(1, 2, 5), (2, 1, 4)]);
+        let id2 = e.try_merge(&[(3, 4, 6), (4, 3, 7)]);
+        assert_eq!(id1, 1);
+        assert_eq!(id2, 2);
+    }
+
+    #[test]
+    fn test_combined_accum() {
+        let mut e = ContainerSynthesisEngine::new();
+        e.try_merge(&[(1, 2, 5), (2, 1, 4)]);
+        assert_eq!(e.merges[0].combined_accumulation, 9);
+    }
+
+    #[test]
+    fn test_clear() {
+        let mut e = ContainerSynthesisEngine::new();
+        e.try_merge(&[(1, 2, 5), (2, 1, 4)]);
+        assert_eq!(e.merge_count(), 1);
+        e.clear();
+        assert_eq!(e.merge_count(), 0);
+        assert_eq!(e.next_id, 1);
+    }
+
+    #[test]
+    fn test_default() {
+        let e = ContainerSynthesisEngine::default();
+        assert_eq!(e.merge_count(), 0);
+        assert_eq!(e.next_id, 1);
+    }
+}
