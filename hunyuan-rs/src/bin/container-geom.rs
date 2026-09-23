@@ -111,39 +111,49 @@ fn polarity_ch(c: &Container) -> char {
 }
 
 fn draw_hex_grid(highlight_code: Option<u8>, highlight2: &[u8]) {
-    // 坐标范围: 3位三进制 ∈ {0,1,3,9} → 坐标范围 0..13
-    const W: usize = 60;
-    const H: usize = 30;
+    const W: usize = 76;
+    const H: usize = 36;
     let mut grid = vec![vec![' '; W]; H];
     let mut max_py = 0usize;
 
     for code in 0u8..=0x3F {
         let (cx, cy) = hex_coord(code);
-        let px = (cx * 4 + 2) as usize;
-        let py = (cy * 2) as usize;
-        if py >= H || px + 3 >= W { continue; }
+        let px = (cx * 4 + 4) as usize;
+        let py = (cy * 3 + 2) as usize;
+        if py >= H || px + 5 >= W { continue; }
 
         let c = Container::decode(code);
         let name = cname(&c);
         let is_center = highlight_code == Some(code);
         let is_hl = highlight2.contains(&code);
 
-        let (left, right) = if is_center { ('【', '】') } else if is_hl { ('(', ')') } else { (' ', ' ') };
-        grid[py][px] = left;
+        // 六边形边线
+        if py > 0 && px > 1 && px + 3 < W {
+            grid[py - 1][px - 1] = '╱';
+            grid[py - 1][px + 1] = '╲';
+            grid[py][px - 1] = if is_center { '┃' } else if is_hl { '│' } else { '│' };
+        }
+        if py + 1 < H && px > 1 && px + 3 < W {
+            grid[py + 1][px - 1] = '╲';
+            grid[py + 1][px + 1] = '╱';
+        }
+
+        grid[py][px] = if is_center { '【' } else if is_hl { '(' } else { '│' };
         grid[py][px + 1] = name.chars().next().unwrap_or('？');
         grid[py][px + 2] = polarity_ch(&c);
-        grid[py][px + 3] = right;
-        if py + 1 > max_py { max_py = py + 1; }
+        grid[py][px + 3] = if is_center { '】' } else if is_hl { ')' } else { '│' };
+
+        if py + 2 > max_py { max_py = py + 2; }
     }
 
-    println!("┌─ Honeycomb 容器坐标网格 (X→ Y↓) ─┐");
+    println!("┌───── Honeycomb 容器六边形坐标网格 ─────┐");
     for y in 0..max_py {
         let line: String = grid[y].iter().collect();
         println!("│ {}", line.trim_end());
     }
-    println!("└────────────────────────────────────┘");
-    println!("  符号: 【中心】 (邻居)  极性: 阴/阳/元");
-    println!("  坐标: 三维进制 (bit0/2/4→Y; bit1/3/5→X; 权×1,×3,×9)");
+    println!("└─────────────────────────────────────────┘");
+    println!("  ⬢【容器】= 中心  ⬢(容器) = 邻居  阴/阳/元 = 极性");
+    println!("  三维进制: bit0/2/4→Y; bit1/3/5→X; 权×1,×3,×9");
 }
 
 fn main() -> ExitCode {
