@@ -870,6 +870,23 @@ fn do_yunmu_mirror() {
 // ------------------------------------------------------------------
 // 声母 × 韵母 全量叉乘: 每音节 = 声母字母 + 韵母拼音, 按 64 进址落 64 格/页
 // ------------------------------------------------------------------
+// 把音节各母字几何按 Zone 叠加进一个格 (只画几何, 不写文字)
+fn sigil_cell_svg(syllable: &str, ox: f64, oy: f64, cell: f64) -> String {
+    let palette = ["#7df", "#fd9", "#9f9", "#f9c", "#c9f", "#9cf"];
+    let mut s = String::new();
+    for (ci, ch) in syllable.chars().enumerate() {
+        if let Some(prims) = glyph_geo(ch) {
+            for (t, z) in prims.iter() {
+                let (lx, ly) = zone_pt(z);
+                let sh = geo_shape(t, ox + cell * 0.09 + lx * 0.72, oy + cell * 0.06 + ly * 0.72, palette[ci % palette.len()]);
+                s.push_str(&sh);
+                s.push('\n');
+            }
+        }
+    }
+    s
+}
+
 fn do_sigil_cross(page_arg: &str, out: &str) {
     let sm = load_shengmu(&rules_file("shengmu.chain"));
     let ym = load_yunmu(&rules_file("yunmu.chain"));
@@ -891,7 +908,6 @@ fn do_sigil_cross(page_arg: &str, out: &str) {
         println!("未读到 64 进制数字表 (缺 {})", canvas_path());
         return;
     }
-    let palette = ["#7df", "#fd9", "#9f9", "#f9c", "#c9f", "#9cf"];
     let cols = 8usize;
     let rows = 8usize;
     let cell = 66.0_f64;
@@ -927,17 +943,7 @@ fn do_sigil_cross(page_arg: &str, out: &str) {
         let y = &ym[yi];
         let syllable = format!("{}{}", s.letter, y.pinyin);
         let addr = radix64_of(&alpha, k as u64);
-        let letters: Vec<char> = syllable.chars().collect();
-        for (ci, ch) in letters.iter().enumerate() {
-            if let Some(prims) = glyph_geo(*ch) {
-                for (t, z) in prims.iter() {
-                    let (lx, ly) = zone_pt(z);
-                    let sh = geo_shape(t, ox + 6.0 + lx * 0.72, oy + 4.0 + ly * 0.72, palette[ci % palette.len()]);
-                    svg.push_str(&sh);
-                    svg.push('\n');
-                }
-            }
-        }
+        svg.push_str(&sigil_cell_svg(&syllable, ox, oy, cell));
         svg.push_str(&format!(
             "<text x=\"{:.1}\" y=\"{:.1}\" fill=\"#cfe\" font-size=\"10\" text-anchor=\"middle\">{}</text>\n",
             ox + cell / 2.0, oy + cell - 16.0, syllable
@@ -958,6 +964,62 @@ fn do_sigil_cross(page_arg: &str, out: &str) {
     match fs::write(&out, svg) {
         Ok(_) => println!("音节叉乘: 第 {}/{} 页 · 落 {} 格 → {} (地址 #{}..#{} 区间)", page + 1, pages, drawn, out, radix64_of(&alpha, (page * per) as u64), radix64_of(&alpha, (page * per + drawn - 1) as u64)),
         Err(e) => println!("写入失败: {}", e),
+    }
+}
+
+// 按地址呼唤单个音节: 用「声韵」注册基数集 (低位韵母 Σ=32, 高位声母=20) 解出
+fn do_sigil(addr_arg: &str, out: &str) {
+    let sm = load_shengmu(&rules_file("shengmu.chain"));
+    let ym = load_yunmu(&rules_file("yunmu.chain"));
+    if sm.is_empty() || ym.is_empty() {
+        println!("需先登记声母 (rules/shengmu.chain) 与韵母 (rules/yunmu.chain)");
+        return;
+    }
+    let addr: u64 = match addr_arg.trim().parse() {
+        Ok(v) => v,
+        Err(_) => {
+            println!("用法: sigil <地址> [输出.svg] · 地址 = 声母序×{} + 韵母序", ym.len());
+            return;
+        }
+    };
+    let total = (sm.len() * ym.len()) as u64;
+    if addr >= total {
+        println!("地址 {} 超出 · 当前声母 {}×韵母 {} = {} 个音节 (有效 0..{})", addr, sm.len(), ym.len(), total, total - 1);
+        return;
+    }
+    let si = (addr / ym.len() as u64) as usize;
+    let yi = (addr % ym.len() as u64) as usize;
+    let s = &sm[si];
+    let y = &ym[yi];
+    let syllable = format!("{}{}", s.letter, y.pinyin);
+    let alpha: Vec<char> = radix64_alphabet().chars().collect();
+    println!("地址 {} (#{}) → 音节 {}", addr, radix64_of(&alpha, addr), syllable);
+    println!("  声母 {} · 集合 {} · 序 {}", s.letter, s.set, s.idx);
+    println!("  韵母 {} · 集合 {} · 序 {}", y.pinyin, y.set, y.idx);
+    let missing: Vec<char> = syllable.chars().filter(|c| glyph_geo(*c).is_none()).collect();
+    if missing.is_empty() {
+        println!("  几何: 全母字齐备");
+    } else {
+        println!("  几何: 表外母字 {:?} · 该母字跳过", missing);
+    }
+    println!("  镜像判定 {}", mirror_flags(&syllable));
+    if !out.is_empty() {
+        let cell = 140.0_f64;
+        let mut svg = String::new();
+        svg.push_str(&format!(
+            "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{:.0}\" height=\"{:.0}\" viewBox=\"0 0 {:.0} {:.0}\">\n",
+            cell, cell, cell, cell
+        ));
+        svg.push_str(&format!("<rect width=\"100%\" height=\"100%\" fill=\"#0b0b0f\" stroke=\"#243\"/>\n{}", sigil_cell_svg(&syllable, 0.0, 0.0, cell)));
+        svg.push_str(&format!(
+            "<text x=\"{:.1}\" y=\"{:.1}\" fill=\"#cfe\" font-size=\"16\" text-anchor=\"middle\">{}</text>\n",
+            cell / 2.0, cell - 10.0, syllable
+        ));
+        svg.push_str("</svg>\n");
+        match fs::write(out, svg) {
+            Ok(_) => println!("  已输出单格 → {}", out),
+            Err(e) => println!("  写入失败: {}", e),
+        }
     }
 }
 
@@ -1614,6 +1676,10 @@ fn main() {
         "shengmu" => do_shengmu(args.get(1).map(|s| s.as_str()).unwrap_or("")),
         "shengmu-list" => do_shengmu_list(),
         "sigil-cross" => do_sigil_cross(
+            args.get(1).map(|s| s.as_str()).unwrap_or(""),
+            args.get(2).map(|s| s.as_str()).unwrap_or(""),
+        ),
+        "sigil" => do_sigil(
             args.get(1).map(|s| s.as_str()).unwrap_or(""),
             args.get(2).map(|s| s.as_str()).unwrap_or(""),
         ),

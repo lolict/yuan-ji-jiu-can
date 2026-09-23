@@ -25,7 +25,7 @@
 | 对齐 | align / align-end / unify | 混合进制自动进位·一个数代表几何位置 |
 | 征用 | zheng / zhengs / yuan / sontuo | 动态编号·松弛编号插入自己·可松脱·原绑定可选 |
 | 韵母 | yunmu / yunmu-list / yunmu-svg / yunmu-merge / yunmu-canvas / yunmu-mirror | 呼唤已注册韵母·圆环·母字几何合并·64 格画布·镜像裁判 |
-| 声母 | shengmu / shengmu-list / sigil-cross | 呼唤已注册声母·声母×韵母全量叉乘落 64 格 |
+| 声母 | shengmu / shengmu-list / sigil-cross / sigil | 呼唤已注册声母·声母×韵母全量叉乘落 64 格·按地址呼唤单音节 |
 
 ## 膜圈缚（蛹膜圈妃家族）
 
@@ -108,7 +108,7 @@ cmdenv jian 机器码字体 字形,码位
 # 列出可选基数集
 cmdenv bases
 
-# 按命名的集合解码（满全法 / 串联容器 / 220全集）
+# 按命名的集合解码（满全法 / 串联容器 / 220全集 / 声韵）
 cmdenv align 100 满全法
 
 # 按显式基数列表解码
@@ -203,6 +203,21 @@ cmdenv sigil-cross 0 sigil_cross_0.svg
 
 每格 = 该音节各母字几何按 Zone 叠加，格内标 `#地址 · 声母序·韵母序`，右上角标镜像判定。
 第 0 页地址 `#0..#Ŋ`，末页 `#90..#9Ŋ`（= 576..639）。
+
+**按地址呼唤单个音节**（与叉乘同一套编号，低位韵母 Σ=32、高位声母=20）：
+
+```bash
+# 解码地址 → 声母/韵母/音节/几何有无/镜像判定
+cmdenv sigil 100
+# 地址 100 (#1A) → 音节 qou · 声母 q(序4) · 韵母 ou(序5) · 镜像判定 横
+
+# 地址也可交给对齐层: 同一编号在 bases.chain 登记为「声韵 | 32,20」
+cmdenv align 640 声韵
+# 640 = 20×32 → 低位消耗 [0,0] · 纵向层进位 1
+
+# 输出单个音节的一格 SVG
+cmdenv sigil 100 sigil_100.svg
+```
 
 ## 64 进制格画布（读 64-1.txt）
 

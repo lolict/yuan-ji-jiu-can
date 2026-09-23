@@ -4,3 +4,4 @@
 满全法 | 23,64,4 | 来自 mqf-hanzi/nim_parser/满全法系统.nim 的乘法位置进制
 串联容器 | 10,23,48,21 | 来自 mqf-hanzi/nim_parser/串联容器.nim 的加法串联
 220全集 | 50,60,110 | 来自 mqf-hanzi/nim_parser/mqfs_220进制全集.nim
+声韵 | 32,20 | 声母×韵母 注册表 · 低位韵母(32) 高位声母(20), 来自 rules/shengmu.chain × rules/yunmu.chain

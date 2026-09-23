@@ -28,7 +28,7 @@ bin/
 .bin/
 tools/gtxone/
 zig-linux-x86_64-0.13.0/
-sigil_cross_*.svg
+sigil_*.svg
 wasi_cross*.svg
 __pycache__/
 *.pyc
