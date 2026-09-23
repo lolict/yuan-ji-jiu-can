@@ -10568,3 +10568,462 @@ mod logic_tests {
         assert_eq!(id2, 2);
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 心跳引擎 · ContainerHeartbeatEngine (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+//   心跳 = 容器的生命节律与恢复机制
+//   「时钟动作 · 以意志驱动时间和继承方式 · 结束即开始 · 记忆跟随结束而继续」
+//
+//   机制:
+//     - 每个容器维护自己的心跳计数器
+//     - 周期性 tick (仅加法 +1)
+//     - 长时间未跳 → 触发恢复
+//     - 心跳历史形成容器的生命曲线
+//
+//   恢复策略 (仅加法范式):
+//     - 死亡判定: missed_ticks > recover_threshold
+//     - 恢复后 tick 重置为 parent_tick (若有 parent)
+//     - 无 parent → 从 0 重启
+//
+//   仅加法: 计数器 tick++ 用加法, 阈值比较用减法
+
+/// 心跳状态
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum HeartbeatState {
+    Alive,      // 存活
+    Dormant,    // 休眠 (长期未跳但不超过阈值)
+    Recovering, // 恢复中
+    Dead,       // 死亡 (超过阈值)
+}
+
+/// 心跳事件
+#[derive(Clone, Debug)]
+pub struct HeartbeatEvent {
+    pub container_id: u64,
+    pub tick: u64,
+    pub state: HeartbeatState,
+}
+
+/// 心跳引擎
+#[derive(Clone, Debug)]
+pub struct ContainerHeartbeatEngine {
+    /// 容器当前 tick
+    pub ticks: HashMap<u64, u64>,
+    /// 容器状态
+    pub states: HashMap<u64, HeartbeatState>,
+    /// 未跳 tick 计数
+    pub missed: HashMap<u64, u64>,
+    /// 历史 (容器id -> 事件列表)
+    pub log: HashMap<u64, Vec<HeartbeatEvent>>,
+    /// 恢复阈值 (加法比较)
+    pub recover_threshold: u64,
+    /// 累计心跳总数
+    pub total_heartbeats: u64,
+}
+
+impl ContainerHeartbeatEngine {
+    pub fn new() -> Self {
+        Self {
+            ticks: HashMap::new(),
+            states: HashMap::new(),
+            missed: HashMap::new(),
+            log: HashMap::new(),
+            recover_threshold: 10,
+            total_heartbeats: 0,
+        }
+    }
+
+    /// 注册容器
+    pub fn register(&mut self, container_id: u64, start_tick: u64) {
+        self.ticks.insert(container_id, start_tick);
+        self.states.insert(container_id, HeartbeatState::Alive);
+        self.missed.insert(container_id, 0);
+    }
+
+    /// 心跳一次: tick + 1
+    pub fn beat(&mut self, container_id: u64) -> Option<u64> {
+        let t = self.ticks.get(&container_id)?;
+        let new_tick = *t + 1;
+        self.ticks.insert(container_id, new_tick);
+        self.states.insert(container_id, HeartbeatState::Alive);
+        self.missed.insert(container_id, 0);
+        self.total_heartbeats = self.total_heartbeats + 1;
+        let ev = HeartbeatEvent { container_id, tick: new_tick, state: HeartbeatState::Alive };
+        self.log.entry(container_id).or_default().push(ev);
+        Some(new_tick)
+    }
+
+    /// 推进全局时钟: 所有存活的容器 missed +1
+    pub fn advance(&mut self, delta: u64) -> Vec<u64> {
+        let ids: Vec<u64> = self.ticks.keys().copied().collect();
+        let mut dead = Vec::new();
+        for id in ids {
+            let m = self.missed.get(&id).copied().unwrap_or(0) + delta;
+            self.missed.insert(id, m);
+            let state = if m == 0 { HeartbeatState::Alive }
+                        else if m < self.recover_threshold { HeartbeatState::Dormant }
+                        else { HeartbeatState::Dead };
+            if state == HeartbeatState::Dead { dead.push(id); }
+            self.states.insert(id, state);
+        }
+        dead
+    }
+
+    /// 恢复容器: tick 重置为 0 或 parent_tick
+    pub fn recover(&mut self, container_id: u64) -> Option<u64> {
+        if !self.ticks.contains_key(&container_id) { return None; }
+        let new_tick = 0u64;
+        self.ticks.insert(container_id, new_tick);
+        self.missed.insert(container_id, 0);
+        self.states.insert(container_id, HeartbeatState::Recovering);
+        let ev = HeartbeatEvent { container_id, tick: new_tick, state: HeartbeatState::Recovering };
+        self.log.entry(container_id).or_default().push(ev);
+        Some(new_tick)
+    }
+
+    /// 查询状态
+    pub fn state_of(&self, container_id: u64) -> Option<HeartbeatState> {
+        self.states.get(&container_id).copied()
+    }
+
+    /// 查询 tick
+    pub fn tick_of(&self, container_id: u64) -> Option<u64> {
+        self.ticks.get(&container_id).copied()
+    }
+
+    /// 存活容器数
+    pub fn alive_count(&self) -> usize {
+        self.states.values().filter(|s| **s == HeartbeatState::Alive).count()
+    }
+
+    /// 死亡容器数
+    pub fn dead_count(&self) -> usize {
+        self.states.values().filter(|s| **s == HeartbeatState::Dead).count()
+    }
+
+    /// 重置
+    pub fn clear(&mut self) {
+        self.ticks.clear();
+        self.states.clear();
+        self.missed.clear();
+        self.log.clear();
+        self.total_heartbeats = 0;
+    }
+}
+
+impl Default for ContainerHeartbeatEngine {
+    fn default() -> Self { Self::new() }
+}
+
+#[cfg(test)]
+mod heartbeat_tests {
+    use super::*;
+
+    #[test]
+    fn test_register() {
+        let mut e = ContainerHeartbeatEngine::new();
+        e.register(1, 0);
+        assert_eq!(e.tick_of(1), Some(0));
+        assert_eq!(e.state_of(1), Some(HeartbeatState::Alive));
+    }
+
+    #[test]
+    fn test_beat_once() {
+        let mut e = ContainerHeartbeatEngine::new();
+        e.register(1, 0);
+        let t = e.beat(1);
+        assert_eq!(t, Some(1));
+        assert_eq!(e.state_of(1), Some(HeartbeatState::Alive));
+    }
+
+    #[test]
+    fn test_beat_multiple() {
+        let mut e = ContainerHeartbeatEngine::new();
+        e.register(1, 0);
+        e.beat(1);
+        e.beat(1);
+        let t = e.beat(1);
+        assert_eq!(t, Some(3));
+    }
+
+    #[test]
+    fn test_beat_unregistered() {
+        let mut e = ContainerHeartbeatEngine::new();
+        assert_eq!(e.beat(1), None);
+    }
+
+    #[test]
+    fn test_advance_alive() {
+        let mut e = ContainerHeartbeatEngine::new();
+        e.register(1, 0);
+        let dead = e.advance(3);  // missed=3, threshold=10
+        assert!(dead.is_empty());
+        assert_eq!(e.state_of(1), Some(HeartbeatState::Dormant));
+    }
+
+    #[test]
+    fn test_advance_to_dead() {
+        let mut e = ContainerHeartbeatEngine::new();
+        e.register(1, 0);
+        let dead = e.advance(11);  // missed=11 >= 10
+        assert!(dead.contains(&1));
+        assert_eq!(e.state_of(1), Some(HeartbeatState::Dead));
+    }
+
+    #[test]
+    fn test_recover() {
+        let mut e = ContainerHeartbeatEngine::new();
+        e.register(1, 0);
+        e.advance(15);
+        assert_eq!(e.state_of(1), Some(HeartbeatState::Dead));
+        let t = e.recover(1);
+        assert_eq!(t, Some(0));
+        assert_eq!(e.state_of(1), Some(HeartbeatState::Recovering));
+    }
+
+    #[test]
+    fn test_recover_unregistered() {
+        let mut e = ContainerHeartbeatEngine::new();
+        assert_eq!(e.recover(1), None);
+    }
+
+    #[test]
+    fn test_alive_dead_count() {
+        let mut e = ContainerHeartbeatEngine::new();
+        e.register(1, 0);
+        e.register(2, 0);
+        e.register(3, 0);
+        e.advance(15);  // 全体死亡
+        assert_eq!(e.dead_count(), 3);
+        assert_eq!(e.alive_count(), 0);
+        e.beat(1);  // 容器 1 复活
+        assert_eq!(e.alive_count(), 1);
+    }
+
+    #[test]
+    fn test_clear() {
+        let mut e = ContainerHeartbeatEngine::new();
+        e.register(1, 0);
+        e.beat(1);
+        assert_eq!(e.total_heartbeats, 1);
+        e.clear();
+        assert_eq!(e.total_heartbeats, 0);
+        assert_eq!(e.tick_of(1), None);
+    }
+
+    #[test]
+    fn test_default() {
+        let e = ContainerHeartbeatEngine::default();
+        assert_eq!(e.total_heartbeats, 0);
+        assert_eq!(e.alive_count(), 0);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 扩散引擎 · ContainerPropagateEngine (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+//   扩散 = 信号在容器图中的传播
+//   当一个容器更新自己的涟漪印记时, 相邻容器按权重感知到变化
+//
+//   机制:
+//     - 构建邻接图 (从 ContainerCallEngine 的呼唤关系)
+//     - 信号从源节点向外扩散, 每步衰减 -1 (仅加法)
+//     - 衰减触底 (level = 0) 时停止
+//
+//   输入: 源容器 id + 初始强度
+//   输出: 所有感应到的容器及其强度 (BFS 扩散)
+//
+//   仅加法范式: 衰减 = 加法, 层级 = 加法, 无乘除
+
+/// 扩散波前节点
+#[derive(Clone, Debug)]
+pub struct WavefrontNode {
+    pub container_id: u64,
+    pub level: u64,        // 距离源的距离 (加法)
+    pub strength: u64,     // 到达此容器时的剩余强度
+}
+
+/// 扩散引擎
+#[derive(Clone, Debug)]
+pub struct ContainerPropagateEngine {
+    /// 邻接表: 容器 -> 直接邻居列表
+    pub adjacency: HashMap<u64, Vec<u64>>,
+    /// 累计扩散波次数
+    pub total_waves: u64,
+}
+
+impl ContainerPropagateEngine {
+    pub fn new() -> Self {
+        Self { adjacency: HashMap::new(), total_waves: 0 }
+    }
+
+    /// 添加有向边 (neighbor 表示 caller 呼叫过的 callee)
+    pub fn add_edge(&mut self, from: u64, to: u64) {
+        let v = self.adjacency.entry(from).or_default();
+        if !v.contains(&to) { v.push(to); }
+    }
+
+    /// 从一组 CallEntry 中构建邻接
+    pub fn build_from_calls(&mut self, calls: &[CallEntry]) {
+        for c in calls {
+            self.add_edge(c.caller_id, c.callee_id);
+        }
+    }
+
+    /// 从源容器向外 BFS 扩散, 返回所有感应到的节点 (仅加法)
+    pub fn propagate(&mut self, source: u64, initial_strength: u64, max_hops: u64) -> Vec<WavefrontNode> {
+        if initial_strength == 0 || !self.adjacency.contains_key(&source) { return Vec::new(); }
+        let mut result = Vec::new();
+        let mut visited = HashMap::<u64, u64>::new();  // id → level (最浅)
+        let mut queue = Vec::new();
+        queue.push((source, 0u64, initial_strength));
+        self.total_waves = self.total_waves + 1;
+
+        while let Some((id, level, strength)) = queue.pop() {
+            // 已访问过且 level 更浅 → 跳过
+            if let Some(&prev_level) = visited.get(&id) {
+                if prev_level <= level { continue; }
+            }
+            visited.insert(id, level);
+
+            if level > 0 {
+                result.push(WavefrontNode { container_id: id, level, strength });
+            }
+
+            // hop 数未到上限 且 强度可衰减
+            if level < max_hops && strength > 0 {
+                let next_strength = strength - 1;  // 衰减 -1 (加法)
+                if let Some(neighbors) = self.adjacency.get(&id) {
+                    for &nb in neighbors {
+                        queue.push((nb, level + 1, next_strength));
+                    }
+                }
+            }
+        }
+        result
+    }
+
+    /// 某容器的邻接数
+    pub fn neighbor_count(&self, id: u64) -> usize {
+        self.adjacency.get(&id).map(|v| v.len()).unwrap_or(0)
+    }
+
+    /// 总边数 (有向)
+    pub fn edge_count(&self) -> usize {
+        self.adjacency.values().map(|v| v.len()).fold(0, |a, b| a + b)
+    }
+
+    /// 重置
+    pub fn clear(&mut self) {
+        self.adjacency.clear();
+        self.total_waves = 0;
+    }
+}
+
+impl Default for ContainerPropagateEngine {
+    fn default() -> Self { Self::new() }
+}
+
+#[cfg(test)]
+mod propagate_tests {
+    use super::*;
+
+    #[test]
+    fn test_add_edge() {
+        let mut e = ContainerPropagateEngine::new();
+        e.add_edge(1, 2);
+        assert_eq!(e.neighbor_count(1), 1);
+        assert_eq!(e.edge_count(), 1);
+    }
+
+    #[test]
+    fn test_add_edge_no_dup() {
+        let mut e = ContainerPropagateEngine::new();
+        e.add_edge(1, 2);
+        e.add_edge(1, 2);
+        assert_eq!(e.neighbor_count(1), 1);
+    }
+
+    #[test]
+    fn test_propagate_one_hop() {
+        let mut e = ContainerPropagateEngine::new();
+        e.add_edge(1, 2);
+        e.add_edge(1, 3);
+        let wave = e.propagate(1, 5, 3);
+        assert_eq!(wave.len(), 2);
+    }
+
+    #[test]
+    fn test_propagate_decay() {
+        let mut e = ContainerPropagateEngine::new();
+        e.add_edge(1, 2);
+        e.add_edge(2, 3);
+        e.add_edge(3, 4);
+        // strength=2: 能到达 2 (level=1, str=1) 和 3 (level=2, str=0)
+        // 4 需要 level=3, 但 strength 已衰减为 0
+        let wave = e.propagate(1, 2, 5);
+        let ids: Vec<u64> = wave.iter().map(|n| n.container_id).collect();
+        assert!(ids.contains(&2));
+        assert!(ids.contains(&3));
+        assert!(!ids.contains(&4));  // strength 已衰减到 0
+    }
+
+    #[test]
+    fn test_propagate_max_hops() {
+        let mut e = ContainerPropagateEngine::new();
+        e.add_edge(1, 2);
+        e.add_edge(2, 3);
+        e.add_edge(3, 4);
+        // max_hops=1, 只能到第一跳
+        let wave = e.propagate(1, 100, 1);
+        assert_eq!(wave.len(), 1);
+        assert_eq!(wave[0].container_id, 2);
+    }
+
+    #[test]
+    fn test_propagate_zero_strength() {
+        let mut e = ContainerPropagateEngine::new();
+        e.add_edge(1, 2);
+        let wave = e.propagate(1, 0, 3);
+        assert!(wave.is_empty());
+    }
+
+    #[test]
+    fn test_propagate_unknown_source() {
+        let mut e = ContainerPropagateEngine::new();
+        let wave = e.propagate(99, 10, 3);
+        assert!(wave.is_empty());
+    }
+
+    #[test]
+    fn test_build_from_calls() {
+        let mut e = ContainerPropagateEngine::new();
+        let calls = vec![
+            CallEntry::new(1, 2, 10, 1),
+            CallEntry::new(2, 3, 20, 2),
+        ];
+        e.build_from_calls(&calls);
+        assert_eq!(e.edge_count(), 2);
+    }
+
+    #[test]
+    fn test_clear() {
+        let mut e = ContainerPropagateEngine::new();
+        e.add_edge(1, 2);
+        e.propagate(1, 5, 3);
+        assert_eq!(e.total_waves, 1);
+        e.clear();
+        assert_eq!(e.total_waves, 0);
+        assert_eq!(e.edge_count(), 0);
+    }
+
+    #[test]
+    fn test_default() {
+        let e = ContainerPropagateEngine::default();
+        assert_eq!(e.total_waves, 0);
+        assert_eq!(e.edge_count(), 0);
+    }
+}
