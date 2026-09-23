@@ -89,10 +89,12 @@
   - 或显式求值：`cmdenv eval tf 目标`
   - 改规则后 `cmdenv reload` 重读规则表
 - 膜层状态持久化于 `rules/membrane.state`，中心锚点为 `gtxone 工藤新一`
-- **十一类指令**：协议/感知/角色/执行/时间/关系/进制/膜圈/容器/对齐/征用/韵母
+- **十三类指令**：协议/感知/角色/执行/时间/关系/进制/膜圈/容器/对齐/征用/韵母/声母
   - 对齐层：`align <值> [集合] [from_end]` / `unify <值,值> [集合]` / `bases`，基数集合登记在 `rules/bases.chain`
   - 征用层：`zheng` / `zhengs` / `yuan` / `sontuo`，绑定表 `rules/bindings.chain`（可松脱归还）
   - 韵母层：`yunmu <拼音>` / `yunmu-list` / `yunmu-svg` / `yunmu-merge [全量]` / `yunmu-canvas` / `yunmu-mirror`，注册表 `rules/yunmu.chain`
+  - 声母层：`shengmu <字母>` / `shengmu-list` / `sigil-cross [页码] [输出]`，注册表 `rules/shengmu.chain`（集合「几何20」来自 `tools/metaime/nim/glyph.nim`）
+  - 音节叉乘：20 声母×32 韵母=640 音节，每页 64 格按 64 进址落格，地址 `#0..#Ŋ`…`#90..#9Ŋ`
   - 64 进制画布：`canvas-info` / `canvas-cell <地址>`，读 `mqf-hanzi/nim_parser/64-1.txt`（数字表 64 位 `0-9a-zA-ZŋŊ`）
   - 镜像裁判：取合并字形 (GeoType, Zone落点) 集合，用 `encoding/mirror_engine.h` 的水平/垂直/对角反射自比（实测 17/32 自镜像）
 

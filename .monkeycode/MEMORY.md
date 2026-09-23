@@ -85,3 +85,12 @@ Entries discovered by the Agent during task execution should follow this format:
   - 仓库体积已超 Gitee 告警阈值（>819MB，约 890MB），提交时避免纳入构建产物。
   - 仓库根 `Cargo.toml` 是 workspace（members=hunyuan-rs,mqf-isa）；放在 `tools/` 下的独立 Rust 工具需在自己 `Cargo.toml` 加空 `[workspace]` 表，否则 cargo 报 workspace.members 校验错误。
   - cmdenv/radixdoc 构建：`CARGO_TARGET_DIR=/workspace/main/target /root/.cargo/bin/cargo build --release --manifest-path <工具>/Cargo.toml`；`cargo` 不在 PATH，WASI 加 `--target wasm32-wasip1`。
+
+[Project Knowledge Summary]
+- Date: 2026-09-23
+- Context: Discovered by Agent while smoke-testing cmdenv WASI build via wasmtime
+- Category: Environment Configuration
+- Instructions:
+  - cmdenv 的规则表候选路径含 `rules/` 与 `tools/cmdenv-rs/rules/`；64 格画布候选含 `mqf-hanzi/nim_parser/64-1.txt` 与 `../../mqf-hanzi/...`。
+  - 因此 WASI 版可在仓库根运行：`cd /workspace/main && wasmtime --dir=. target/wasm32-wasip1/release/cmdenv.wasm <指令>`，输出必须用仓库内相对路径（`/tmp` 未预开放会报 os error 44）。
+  - 原生版在 `tools/cmdenv-rs` 下运行即可，画布/规则路径均能解析。

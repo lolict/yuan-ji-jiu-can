@@ -24,7 +24,7 @@ struct Cmd {
 }
 
 fn rules_path() -> String {
-    for c in ["cmdenv/rules/cmd.chain", "rules/cmd.chain"] {
+    for c in ["cmdenv/rules/cmd.chain", "rules/cmd.chain", "tools/cmdenv-rs/rules/cmd.chain"] {
         if std::path::Path::new(c).exists() {
             return c.to_string();
         }
@@ -157,7 +157,7 @@ fn membrane_html(list: &[String], layer_n: u64) -> String {
 // 声明即用: 公路修到哪个容器, 容器内的符号就热可用 (非锁死)
 // 清点各容器符号后生成"乘法口诀表", 覆盖当前最大功率能到达的范畴
 fn rules_file(name: &str) -> String {
-    for base in ["cmdenv/rules", "rules"] {
+    for base in ["cmdenv/rules", "rules", "tools/cmdenv-rs/rules"] {
         let p = format!("{}/{}", base, name);
         if let Some(dir) = std::path::Path::new(&p).parent() {
             if dir.exists() {
@@ -271,6 +271,67 @@ fn load_yunmu(path: &str) -> Vec<Yunmu> {
             })
         })
         .collect()
+}
+
+struct Shengmu {
+    set: String,
+    idx: String,
+    letter: String,
+    origin: String,
+}
+
+fn load_shengmu(path: &str) -> Vec<Shengmu> {
+    fs::read_to_string(path)
+        .unwrap_or_default()
+        .lines()
+        .filter_map(|l| {
+            let l = l.trim();
+            if l.is_empty() || l.starts_with('#') {
+                return None;
+            }
+            let p: Vec<&str> = l.split('|').map(|x| x.trim()).collect();
+            if p.len() < 3 {
+                return None;
+            }
+            Some(Shengmu {
+                set: p[0].to_string(),
+                idx: p[1].to_string(),
+                letter: p[2].to_string(),
+                origin: p.get(3).copied().unwrap_or("").to_string(),
+            })
+        })
+        .collect()
+}
+
+fn do_shengmu(query: &str) {
+    if query.is_empty() {
+        println!("用法: shengmu <字母> · 呼唤已注册声母 (如 shengmu b)");
+        return;
+    }
+    let list = load_shengmu(&rules_file("shengmu.chain"));
+    let hits: Vec<&Shengmu> = list.iter().filter(|s| s.letter == query).collect();
+    if hits.is_empty() {
+        println!("未注册声母「{}」· 先登记到 rules/shengmu.chain 再呼唤", query);
+        return;
+    }
+    for s in hits {
+        let geo = if glyph_geo(s.letter.chars().next().unwrap_or(' ')).is_some() { "有几何" } else { "无几何" };
+        println!("声母 {} · 集合 {} · 序 {} · {} · 来源 {}", s.letter, s.set, s.idx, geo, if s.origin.is_empty() { "未标" } else { &s.origin });
+    }
+    println!("  只用已注册符号 · 不用数字代表符号");
+}
+
+fn do_shengmu_list() {
+    let list = load_shengmu(&rules_file("shengmu.chain"));
+    if list.is_empty() {
+        println!("尚无注册声母 · 在 rules/shengmu.chain 登记");
+        return;
+    }
+    println!("声母注册表 (集合 | 序 | 字母 | 来源)");
+    for s in &list {
+        println!("  {} | {} | {} | {}", s.set, s.idx, s.letter, if s.origin.is_empty() { "未标" } else { &s.origin });
+    }
+    println!("  合计 {} 个 · 选择哪个集合就用哪个", list.len());
 }
 
 fn do_yunmu(query: &str) {
@@ -806,8 +867,103 @@ fn do_yunmu_mirror() {
     println!("  自镜像成立 {} / {} · 其余不对称 (按选择取舍, 非缺陷)", self_cnt, list.len());
 }
 
+// ------------------------------------------------------------------
+// 声母 × 韵母 全量叉乘: 每音节 = 声母字母 + 韵母拼音, 按 64 进址落 64 格/页
+// ------------------------------------------------------------------
+fn do_sigil_cross(page_arg: &str, out: &str) {
+    let sm = load_shengmu(&rules_file("shengmu.chain"));
+    let ym = load_yunmu(&rules_file("yunmu.chain"));
+    if sm.is_empty() || ym.is_empty() {
+        println!("需先登记声母 (rules/shengmu.chain) 与韵母 (rules/yunmu.chain)");
+        return;
+    }
+    let total = sm.len() * ym.len();
+    let per = 64usize;
+    let pages = (total + per - 1) / per;
+    let page: usize = page_arg.parse().unwrap_or(0);
+    if page >= pages {
+        println!("声母 {} × 韵母 {} = {} 音节 · 共 {} 页 (0..{})", sm.len(), ym.len(), total, pages, pages - 1);
+        return;
+    }
+    let out = if out.is_empty() { format!("sigil_cross_{}.svg", page) } else { out.to_string() };
+    let alpha: Vec<char> = radix64_alphabet().chars().collect();
+    if alpha.is_empty() {
+        println!("未读到 64 进制数字表 (缺 {})", canvas_path());
+        return;
+    }
+    let palette = ["#7df", "#fd9", "#9f9", "#f9c", "#c9f", "#9cf"];
+    let cols = 8usize;
+    let rows = 8usize;
+    let cell = 66.0_f64;
+    let pad = 24.0_f64;
+    let header = 34.0_f64;
+    let w = pad * 2.0 + cell * cols as f64;
+    let h = header + pad * 2.0 + cell * rows as f64;
+    let mut svg = String::new();
+    svg.push_str(&format!(
+        "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{:.0}\" height=\"{:.0}\" viewBox=\"0 0 {:.0} {:.0}\">\n",
+        w, h, w, h
+    ));
+    svg.push_str("<rect width=\"100%\" height=\"100%\" fill=\"#0b0b0f\"/>\n");
+    svg.push_str(&format!(
+        "<text x=\"12\" y=\"20\" fill=\"#8fe\" font-size=\"12\">声母×韵母 全量叉乘 · {}×{}={} 音节 · 第 {}/{} 页 (每页 64 格 · 64 进址)</text>\n",
+        sm.len(), ym.len(), total, page + 1, pages
+    ));
+    let mut drawn = 0usize;
+    for slot in 0..per {
+        let k = page * per + slot;
+        let ox = pad + cell * (slot % cols) as f64;
+        let oy = header + pad + cell * (slot / cols) as f64;
+        svg.push_str(&format!(
+            "<rect x=\"{:.1}\" y=\"{:.1}\" width=\"{:.1}\" height=\"{:.1}\" fill=\"#0e141b\" stroke=\"#243\" stroke-width=\"1\"/>\n",
+            ox, oy, cell, cell
+        ));
+        if k >= total {
+            continue;
+        }
+        let si = k / ym.len();
+        let yi = k % ym.len();
+        let s = &sm[si];
+        let y = &ym[yi];
+        let syllable = format!("{}{}", s.letter, y.pinyin);
+        let addr = radix64_of(&alpha, k as u64);
+        let letters: Vec<char> = syllable.chars().collect();
+        for (ci, ch) in letters.iter().enumerate() {
+            if let Some(prims) = glyph_geo(*ch) {
+                for (t, z) in prims.iter() {
+                    let (lx, ly) = zone_pt(z);
+                    let sh = geo_shape(t, ox + 6.0 + lx * 0.72, oy + 4.0 + ly * 0.72, palette[ci % palette.len()]);
+                    svg.push_str(&sh);
+                    svg.push('\n');
+                }
+            }
+        }
+        svg.push_str(&format!(
+            "<text x=\"{:.1}\" y=\"{:.1}\" fill=\"#cfe\" font-size=\"10\" text-anchor=\"middle\">{}</text>\n",
+            ox + cell / 2.0, oy + cell - 16.0, syllable
+        ));
+        svg.push_str(&format!(
+            "<text x=\"{:.1}\" y=\"{:.1}\" fill=\"#6a9\" font-size=\"9\" text-anchor=\"middle\">#{} · {}·{}</text>\n",
+            ox + cell / 2.0, oy + cell - 4.0, addr, s.idx, y.idx
+        ));
+        let f = mirror_flags(&syllable);
+        let mark = if f == "—" || f == "空" { "-" } else { f.as_str() };
+        svg.push_str(&format!(
+            "<text x=\"{:.1}\" y=\"{:.1}\" fill=\"#fd9\" font-size=\"9\" text-anchor=\"end\">{}</text>\n",
+            ox + cell - 3.0, oy + 11.0, mark
+        ));
+        drawn += 1;
+    }
+    svg.push_str("</svg>\n");
+    match fs::write(&out, svg) {
+        Ok(_) => println!("音节叉乘: 第 {}/{} 页 · 落 {} 格 → {} (地址 #{}..#{} 区间)", page + 1, pages, drawn, out, radix64_of(&alpha, (page * per) as u64), radix64_of(&alpha, (page * per + drawn - 1) as u64)),
+        Err(e) => println!("写入失败: {}", e),
+    }
+}
+
 fn do_ctn(name: &str, phase: &str) {
-    if name.is_empty() {        println!("用法: ctn <名称> [相位] · 声明一个容器(插件) → 分配加法地址");
+    if name.is_empty() {
+        println!("用法: ctn <名称> [相位] · 声明一个容器(插件) → 分配加法地址");
         return;
     }
     let path = rules_file("containers.chain");
@@ -1282,8 +1438,14 @@ fn main() {
 
     match cmd {
         "list" | "-l" => {
-            println!("沙箱模拟指令环境 · 六类指令 (规则即数据)\n");
-            for cat in ["协议", "感知", "角色", "执行", "时间", "关系", "进制", "膜圈", "容器", "对齐", "征用", "韵母"] {
+            let mut cats: Vec<&str> = Vec::new();
+            for c in &cmds {
+                if !cats.contains(&c.cat.as_str()) {
+                    cats.push(c.cat.as_str());
+                }
+            }
+            println!("沙箱模拟指令环境 · {} 类指令 (规则即数据)\n", cats.len());
+            for cat in cats {
                 let list: Vec<&Cmd> = cmds.iter().filter(|c| c.cat == cat).collect();
                 if list.is_empty() {
                     continue;
@@ -1449,6 +1611,12 @@ fn main() {
         "addr" => do_addr(),
         "yunmu" => do_yunmu(args.get(1).map(|s| s.as_str()).unwrap_or("")),
         "yunmu-list" => do_yunmu_list(),
+        "shengmu" => do_shengmu(args.get(1).map(|s| s.as_str()).unwrap_or("")),
+        "shengmu-list" => do_shengmu_list(),
+        "sigil-cross" => do_sigil_cross(
+            args.get(1).map(|s| s.as_str()).unwrap_or(""),
+            args.get(2).map(|s| s.as_str()).unwrap_or(""),
+        ),
         "yunmu-svg" => do_yunmu_svg(
             args.get(1).map(|s| s.as_str()).unwrap_or(""),
             args.get(2).map(|s| s.as_str()).unwrap_or(""),

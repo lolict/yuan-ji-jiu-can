@@ -1,0 +1,25 @@
+# 声母注册表 · 呼唤已注册的声母 (与韵母层同构, 可多集合并存)
+# 格式: 集合 | 序号 | 字母 | 来源
+# 来源文件: tools/metaime/nim/glyph.nim 的 glyphTable
+# 集合「几何20」= glyphTable 25 条中除去纯元音 a/e/i/o/u 后的 20 条 (按表内声明序)
+# 另有其它可选集合待登记 (INITIALS_48 / 音韵48 等), 选择哪个就用哪个
+几何20 | 1 | b | tools/metaime/nim/glyph.nim
+几何20 | 2 | p | tools/metaime/nim/glyph.nim
+几何20 | 3 | d | tools/metaime/nim/glyph.nim
+几何20 | 4 | q | tools/metaime/nim/glyph.nim
+几何20 | 5 | g | tools/metaime/nim/glyph.nim
+几何20 | 6 | j | tools/metaime/nim/glyph.nim
+几何20 | 7 | m | tools/metaime/nim/glyph.nim
+几何20 | 8 | n | tools/metaime/nim/glyph.nim
+几何20 | 9 | l | tools/metaime/nim/glyph.nim
+几何20 | 10 | t | tools/metaime/nim/glyph.nim
+几何20 | 11 | f | tools/metaime/nim/glyph.nim
+几何20 | 12 | r | tools/metaime/nim/glyph.nim
+几何20 | 13 | k | tools/metaime/nim/glyph.nim
+几何20 | 14 | v | tools/metaime/nim/glyph.nim
+几何20 | 15 | w | tools/metaime/nim/glyph.nim
+几何20 | 16 | x | tools/metaime/nim/glyph.nim
+几何20 | 17 | z | tools/metaime/nim/glyph.nim
+几何20 | 18 | c | tools/metaime/nim/glyph.nim
+几何20 | 19 | h | tools/metaime/nim/glyph.nim
+几何20 | 20 | s | tools/metaime/nim/glyph.nim

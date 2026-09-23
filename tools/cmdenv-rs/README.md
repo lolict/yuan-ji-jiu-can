@@ -1,6 +1,6 @@
 # cmdenv - 沙箱模拟指令环境
 
-**为仓库提供完整指令环境**：协议/感知/角色/执行/时间/关系/进制/膜圈/容器/对齐/征用 十一类指令。
+**为仓库提供完整指令环境**：协议/感知/角色/执行/时间/关系/进制/膜圈/容器/对齐/征用/韵母/声母 十三类指令。
 不依赖任何外部系统，自身就是一个"最小指令系统"。
 
 ## 核心原则
@@ -9,7 +9,7 @@
 - **缺什么补什么**：新增指令只加一行，程序本体不动
 - **静态符号化执行**：沙箱模式，无需外部工具，模拟完整指令环境
 
-## 十一类指令（膜圈层 + 容器层 + 对齐层 + 征用层）
+## 十三类指令（膜圈层 + 容器层 + 对齐层 + 征用层 + 韵母层 + 声母层）
 
 | 层 | 指令示例 | 功能 |
 |---|---|---|
@@ -24,7 +24,8 @@
 | 容器 | ctn / sym / addr / tongji / phase / reg / reglist / link / links | 插件容器·加法索引·注册清单 |
 | 对齐 | align / align-end / unify | 混合进制自动进位·一个数代表几何位置 |
 | 征用 | zheng / zhengs / yuan / sontuo | 动态编号·松弛编号插入自己·可松脱·原绑定可选 |
-| 韵母 | yunmu / yunmu-list / yunmu-svg / yunmu-merge / yunmu-canvas | 呼唤已注册韵母·圆环·母字几何合并·64 格画布 |
+| 韵母 | yunmu / yunmu-list / yunmu-svg / yunmu-merge / yunmu-canvas / yunmu-mirror | 呼唤已注册韵母·圆环·母字几何合并·64 格画布·镜像裁判 |
+| 声母 | shengmu / shengmu-list / sigil-cross | 呼唤已注册声母·声母×韵母全量叉乘落 64 格 |
 
 ## 膜圈缚（蛹膜圈妃家族）
 
@@ -180,6 +181,28 @@ cmdenv yunmu-canvas yunmu_canvas.svg
 # 镜像裁判: 取 (GeoType, Zone落点) 集合, 用 mirror_engine 的水平/垂直/对角反射自比
 cmdenv yunmu-mirror
 ```
+
+## 声母层（呼唤已注册声母）
+
+声母与韵母同构：**只呼唤已注册的**，不用数字代表符号。当前登记 `几何20`，
+来自 `tools/metaime/nim/glyph.nim` 的 `glyphTable`（25 条去纯元音 a/e/i/o/u）。
+其它集合（INITIALS_48 / 音韵48 等）可另起一行并存。
+
+```bash
+# 列出声母注册表
+cmdenv shengmu-list
+
+# 呼唤一个已注册声母（字母 → 集合/序/几何有无/来源）
+cmdenv shengmu b
+
+# 声母×韵母 全量叉乘: 20×32=640 音节, 每页 64 格, 地址用 64 进址
+# 不传页码只报总页数; 页码 0..9, 输出第几页的 64 格 SVG
+cmdenv sigil-cross
+cmdenv sigil-cross 0 sigil_cross_0.svg
+```
+
+每格 = 该音节各母字几何按 Zone 叠加，格内标 `#地址 · 声母序·韵母序`，右上角标镜像判定。
+第 0 页地址 `#0..#Ŋ`，末页 `#90..#9Ŋ`（= 576..639）。
 
 ## 64 进制格画布（读 64-1.txt）
 
