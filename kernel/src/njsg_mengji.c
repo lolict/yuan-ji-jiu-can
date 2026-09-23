@@ -1464,3 +1464,108 @@ void njsg_mengji_demo(void) {
     printf("[盟机合] 里程碑二: 分布式三元见证 + 冲突裁决\n");
     printf("[盟机合] 里程碑三: 跨袋子合并拆分 + 增量日志 + 验证协议 = 合伙人协议 v1.4-v1.6 完整落地\n\n");
 }
+
+/* ============================================================
+ * 独立场景入口 (不依赖 demo() 全量,可单独验证)
+ * 用于容器环境变量 MENGJI_SCENARIO 控制验证范围
+ * ============================================================ */
+
+/* 里程碑二 · 独立三元见证验证(自给初始化,独立节点上下文) */
+void njsg_mengji_scenario_M16_triune_only(void) {
+    printf("\n━━━ 独立验证 ▸ 里程碑二: 分布式三元见证 ━━━\n");
+    njsg_mengji_init();
+
+    int na = njsg_mengji_register_node("farm_alpha",  NODE_FARM, ANCHOR_LIUTIANTIAN);
+    int nb = njsg_mengji_register_node("farm_beta",   NODE_FARM, ANCHOR_LOLICT);
+    int nc = njsg_mengji_register_node("farm_gamma",  NODE_FARM, ANCHOR_LOLICT);
+    njsg_mengji_bind_neighbor(na, nb);
+    njsg_mengji_bind_neighbor(nb, nc);
+
+    const char* bh = "cafebabe12345678";
+    njsg_mengji_triune_register(na, 0, bh);
+    njsg_mengji_triune_register(nb, 0, bh);
+    njsg_mengji_triune_register(nc, 0, bh);
+
+    int r = njsg_mengji_triune_verify(0);
+    printf("[里程碑二·独立] 三元见证验证: %s\n", r == 0 ? "★★★ PASS ★★★" : "失败");
+
+    /* 冲突拒绝 */
+    njsg_mengji_triune_register(na, 1, "1111111111111111");
+    njsg_mengji_triune_register(nb, 1, "2222222222222222");
+    r = njsg_mengji_triune_verify(1);
+    printf("[里程碑二·独立] 冲突拒绝验证: %s (r=%d)\n", r != 0 ? "★★★ 预期拒绝 PASS ★★★" : "意外通过", r);
+
+    njsg_mengji_print();
+}
+
+/* 里程碑三 · 独立袋子合并拆分验证(自给初始化,独立袋子上下文) */
+void njsg_mengji_scenario_M17_bag_only(void) {
+    printf("\n━━━ 独立验证 ▸ 里程碑三: 跨袋子合并拆分 ━━━\n");
+    njsg_mengji_init();
+
+    pthread_mutex_lock(&MJ.lock);
+    int ba = MJ.bag_count++;
+    memset(&MJ.bags[ba], 0, sizeof(MJ.bags[ba]));
+    MJ.bags[ba].bag_id = 201;
+    MJ.bags[ba].weight = 6;
+    strncpy(MJ.bags[ba].witness_hash, "cccccccccccccccc", 17);
+    MJ.bags[ba].parent_id = -1;
+    MJ.bags[ba].anchor = ANCHOR_LIUTIANTIAN;
+    MJ.bags[ba].created_at = time(NULL);
+
+    int bb = MJ.bag_count++;
+    memset(&MJ.bags[bb], 0, sizeof(MJ.bags[bb]));
+    MJ.bags[bb].bag_id = 202;
+    MJ.bags[bb].weight = 4;
+    strncpy(MJ.bags[bb].witness_hash, "dddddddddddddddd", 17);
+    MJ.bags[bb].parent_id = -1;
+    MJ.bags[bb].anchor = ANCHOR_LOLICT;
+    MJ.bags[bb].created_at = time(NULL);
+    MJ.bag_total_weight = 10;
+    pthread_mutex_unlock(&MJ.lock);
+
+    njsg_mengji_bag_validate(201);
+    njsg_mengji_bag_validate(202);
+
+    int merged = njsg_mengji_bag_merge(201, 202, "独立M17合并");
+    printf("[里程碑三·独立] 合并 袋#201 + 袋#202 → 袋#%d\n", merged);
+
+    int child = njsg_mengji_bag_split(merged, 3, "独立M17拆分");
+    printf("[里程碑三·独立] 拆分 袋#%d → 子袋#%d\n", merged, child);
+
+    int ok = njsg_mengji_bag_validate_all();
+    printf("[里程碑三·独立] 全集权值守恒: %s\n", ok == 0 ? "★★★ PASS ★★★" : "失败");
+
+    njsg_mengji_print();
+}
+
+/* 里程碑一 · 独立离线恢复(与 M15 等价但独立初始化) */
+void njsg_mengji_scenario_M18_offline_only(void) {
+    printf("\n━━━ 独立验证 ▸ 里程碑一: 离线恢复 ━━━\n");
+    njsg_mengji_init();
+    njsg_mengji_scenario_M15_offline_recovery();
+}
+
+/* 调度入口: 按名称运行独立场景 */
+int njsg_mengji_run_scenario(const char* name) {
+    if (!name) return -1;
+    if (strcmp(name, "triune") == 0) {
+        njsg_mengji_scenario_M16_triune_only();
+        return 0;
+    }
+    if (strcmp(name, "bag") == 0) {
+        njsg_mengji_scenario_M17_bag_only();
+        return 0;
+    }
+    if (strcmp(name, "offline") == 0) {
+        njsg_mengji_scenario_M18_offline_only();
+        return 0;
+    }
+    if (strcmp(name, "all") == 0 || strcmp(name, "full") == 0) {
+        njsg_mengji_demo();
+        return 0;
+    }
+    fprintf(stderr, "[盟机合] 未知场景: %s\n", name);
+    fprintf(stderr, "[盟机合] 可用: triune / bag / offline / all\n");
+    return -1;
+}

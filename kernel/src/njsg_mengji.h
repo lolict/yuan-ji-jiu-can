@@ -242,6 +242,20 @@ int  njsg_mengji_bag_validate_all(void);
 void njsg_mengji_print_bag(int bag_id);
 void njsg_mengji_print_bag_log(int log_id);
 
+/* ---- 独立场景入口 (容器环境变量 MENGJI_SCENARIO 控制) ---- */
+
+/* 按名称调度独立场景: triune / bag / offline / all */
+int  njsg_mengji_run_scenario(const char* name);
+
+/* 里程碑二 · 独立三元见证验证 */
+void njsg_mengji_scenario_M16_triune_only(void);
+
+/* 里程碑三 · 独立袋子合并拆分验证 */
+void njsg_mengji_scenario_M17_bag_only(void);
+
+/* 里程碑一 · 独立离线恢复验证 */
+void njsg_mengji_scenario_M18_offline_only(void);
+
 /* Demo */
 void njsg_mengji_demo(void);
 

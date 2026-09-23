@@ -25,6 +25,7 @@ services:
       - NJSG_NODE_TYPE=PHONG
       - NJSG_ANCHOR=1
       - NJSG_SEEDS=farm-b:9000,farm-c:9000
+      - MENGJI_SCENARIO=offline
     restart: unless-stopped
 
   farm-b:
@@ -39,6 +40,7 @@ services:
       - NJSG_NODE_ID=farm-b
       - NJSG_NODE_TYPE=FARM
       - NJSG_SEEDS=farm-a:9000
+      - MENGJI_SCENARIO=triune
     restart: unless-stopped
 
   farm-c:
@@ -53,6 +55,7 @@ services:
       - NJSG_NODE_ID=farm-c
       - NJSG_NODE_TYPE=FARM
       - NJSG_SEEDS=farm-a:9000,farm-b:9000
+      - MENGJI_SCENARIO=bag
     restart: unless-stopped
 
 volumes:

@@ -62,6 +62,17 @@ RUN stdbuf -oL /usr/local/bin/njsg-mengji-demo 2>&1 | tee /tmp/mengji-build-veri
     echo "[容器构建验证] 盟机合里程碑 PASS ✓" || \
     (echo "[容器构建验证] 盟机合里程碑失败 ✗"; exit 1)
 
+# 构建时独立验证 — 分别验证三个里程碑(任一失败则退出)
+# 使用 MENGJI_SCENARIO 环境变量控制,回归防线更精细
+RUN for sc in triune bag offline; do \
+        echo "[容器构建验证] 独立场景: $sc"; \
+        stdbuf -oL env MENGJI_SCENARIO=$sc /usr/local/bin/njsg-mengji-demo 2>&1 \
+        | tee /tmp/mengji-$sc-verify.log; \
+        grep -q "PASS" /tmp/mengji-$sc-verify.log && \
+        echo "[容器构建验证] $sc PASS ✓" || \
+        (echo "[容器构建验证] $sc 失败 ✗"; exit 1); \
+    done && echo "[容器构建验证] 三个里程碑独立验证全部通过"
+
 # 编译自举编译器工具链
 RUN cd tools && \
     for dir in mccp_core full-mapping eight-flows; do \
