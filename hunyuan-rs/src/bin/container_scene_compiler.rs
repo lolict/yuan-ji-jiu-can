@@ -336,6 +336,13 @@ fn build_html(scenes: &[ContainerScene], names: &[String]) -> String {
     s(&mut out, ".label{position:absolute;font-size:11px;color:#ddd;text-shadow:0 0 4px #000;pointer-events:none;transform:translate(-50%,-50%);}\n");
     s(&mut out, ".core{filter:drop-shadow(0 0 8px #FFD70080);}\n");
     s(&mut out, "#data{margin-top:18px;text-align:center;font-size:10px;color:#444;}\n");
+    // 嵌入容器字体 (容器=字体=时间 三位一体)
+    // font_data.txt 由编译脚本生成: base64 -w 0 han_yuan64.ttf > font_data.txt
+    let font_b64 = include_str!("font_data.txt");
+    s(&mut out, "@font-face{font-family:'HanYuan64';src:url(data:font/ttf;base64,");
+    s(&mut out, font_b64.trim());
+    s(&mut out, ") format('truetype');}\n");
+    s(&mut out, ".cf{font-family:'HanYuan64','Noto Sans SC',sans-serif;}\n");
     s(&mut out, "</style></head><body>\n");
 
     s(&mut out, "<h1>容器场景编译器</h1>\n");
@@ -386,9 +393,9 @@ fn build_html(scenes: &[ContainerScene], names: &[String]) -> String {
             s(&mut out, &glyph);
         }
 
-        // 名称文字
+        // 名称文字 (使用 HanYuan64 容器字体)
         let font_size = if is_core { 14.0 } else { 9.0 };
-        let _ = write!(out, "<text x=\"{:.1}\" y=\"{:.1}\" fill=\"{}\" font-size=\"{}\" text-anchor=\"middle\">{}</text>\n",
+        let _ = write!(out, "<text x=\"{:.1}\" y=\"{:.1}\" fill=\"{}\" font-size=\"{}\" text-anchor=\"middle\" class=\"cf\">{}</text>\n",
             px, py + r + 14.0, color, font_size, name);
 
         s(&mut out, "</g>\n");
