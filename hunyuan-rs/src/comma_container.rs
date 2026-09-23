@@ -11561,3 +11561,155 @@ mod echo_tests {
         assert_eq!(e.echo_count(), 0);
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 熵值引擎 · ContainerEntropyEngine (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   熵 = 容器系统的混乱度/不确定度
+//   高熵 = 容器状态多样, 低熵 = 容器趋于一致
+//
+//   仅加法范式:
+//     - 计算各状态的计数 (加法)
+//     - 熵 = 状态值域的跨度 (max - min) 作为近似
+//     - 无香农熵公式 (需要乘除和 log), 只用加法/减法/比较
+//
+//   用途: 判断系统是否需要干预 (高熵 → 需要收敛)
+
+/// 熵值引擎
+#[derive(Clone, Debug)]
+pub struct ContainerEntropyEngine {
+    /// 累计熵计算次数
+    pub measurements: u64,
+}
+
+impl ContainerEntropyEngine {
+    pub fn new() -> Self {
+        Self { measurements: 0 }
+    }
+
+    /// 计算容器状态数组的熵近似 (max - min, 仅加法/减法)
+    pub fn measure(&mut self, states: &[u64]) -> u64 {
+        if states.is_empty() { return 0; }
+        let mut min = states[0];
+        let mut max = states[0];
+        for &s in &states[1..] {
+            if s < min { min = s; }
+            if s > max { max = s; }
+        }
+        self.measurements = self.measurements + 1;
+        max - min
+    }
+
+    /// 计算两容器状态相关度 (用差值和近似)
+    /// 返回值越小越相关 (0 = 完全相关)
+    pub fn divergence(&self, states_a: &[u64], states_b: &[u64]) -> u64 {
+        let n = states_a.len().min(states_b.len());
+        if n == 0 { return 0; }
+        let mut total = 0u64;
+        for i in 0..n {
+            total = total + if states_a[i] >= states_b[i] {
+                states_a[i] - states_b[i]
+            } else {
+                states_b[i] - states_a[i]
+            };
+        }
+        total
+    }
+
+    /// 二值状态频率 (如 Alive/Dead 各多少)
+    pub fn count_matching(&self, states: &[u64], target: u64) -> u64 {
+        let mut c = 0u64;
+        for &s in states {
+            if s == target { c = c + 1; }
+        }
+        c
+    }
+
+    /// 是否高熵 (跨度 >= threshold)
+    pub fn is_high_entropy(&mut self, states: &[u64], threshold: u64) -> bool {
+        self.measure(states) >= threshold
+    }
+
+    pub fn measurement_count(&self) -> u64 { self.measurements }
+
+    pub fn clear(&mut self) { self.measurements = 0; }
+}
+
+impl Default for ContainerEntropyEngine {
+    fn default() -> Self { Self::new() }
+}
+
+#[cfg(test)]
+mod entropy_tests {
+    use super::*;
+
+    #[test]
+    fn test_measure_empty() {
+        let mut e = ContainerEntropyEngine::new();
+        assert_eq!(e.measure(&[]), 0);
+    }
+
+    #[test]
+    fn test_measure_uniform() {
+        let mut e = ContainerEntropyEngine::new();
+        // 所有状态相同 → 跨度 = 0
+        assert_eq!(e.measure(&[5, 5, 5]), 0);
+    }
+
+    #[test]
+    fn test_measure_span() {
+        let mut e = ContainerEntropyEngine::new();
+        assert_eq!(e.measure(&[1, 3, 7, 2, 9]), 8);  // 9 - 1
+    }
+
+    #[test]
+    fn test_divergence() {
+        let e = ContainerEntropyEngine::new();
+        // |3-1| + |5-5| + |8-2| = 2+0+6 = 8
+        assert_eq!(e.divergence(&[3, 5, 8], &[1, 5, 2]), 8);
+    }
+
+    #[test]
+    fn test_divergence_empty() {
+        let e = ContainerEntropyEngine::new();
+        assert_eq!(e.divergence(&[], &[]), 0);
+    }
+
+    #[test]
+    fn test_count_matching() {
+        let e = ContainerEntropyEngine::new();
+        assert_eq!(e.count_matching(&[1, 2, 3, 2, 2], 2), 3);
+    }
+
+    #[test]
+    fn test_is_high_entropy() {
+        let mut e = ContainerEntropyEngine::new();
+        let high = vec![0, 100];
+        let low = vec![50, 51, 52];
+        assert!(e.is_high_entropy(&high, 50));   // 100-0=100 >= 50
+        assert!(!e.is_high_entropy(&low, 50));   // 52-50=2 < 50
+    }
+
+    #[test]
+    fn test_measurement_count() {
+        let mut e = ContainerEntropyEngine::new();
+        e.measure(&[1, 2, 3]);
+        e.measure(&[4, 5, 6]);
+        assert_eq!(e.measurement_count(), 2);
+    }
+
+    #[test]
+    fn test_clear() {
+        let mut e = ContainerEntropyEngine::new();
+        e.measure(&[1, 2, 3]);
+        e.clear();
+        assert_eq!(e.measurement_count(), 0);
+    }
+
+    #[test]
+    fn test_default() {
+        let e = ContainerEntropyEngine::default();
+        assert_eq!(e.measurement_count(), 0);
+    }
+}
