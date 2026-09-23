@@ -6834,417 +6834,6 @@ mod container_negotiation_tests {
     }
 }
 
-// ══════════════════════════════════════════════════════════════════════
-// 活码编译器 · LiveCodeCompiler (v0.8)
-// ══════════════════════════════════════════════════════════════════════
-//
-//   活码 = 未被固定前可活动的位置编码
-//   起点钥匙 + 固定动作 → 码按排列顺序确定权限和数值 (加法统计法)
-//
-//   核心哲学:
-//     "未编译前就能用" — 码在浮动状态下任意活动
-//     "固定后按排列顺序确定权限和数值" — 单一确定性的丧失换取可控性
-//     "加法统计法" — 替代幂次二进制扩张, 以加法收敛统摄
-//
-//   七层编码体系:
-//     0 声母层 · 1 韵母层 · 2 声调层 · 3 壳层
-//     4 纤维层 · 5 流层 · 6 仲裁层 · [7 预留]
-//
-//   64 位活码字: [value:16][position:16][permission:8][layer:3][state:2][reserved:17]
-
-/// 活码状态
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum LiveCodeState {
-    Floating,  // 浮动: 位置任意活动
-    Activated, // 激活: 起点钥匙已插入
-    Fixed,     // 固定: 位置锁定, 权限数值确定
-    Compiled,  // 编译: 最终生成容器指令
-}
-
-impl LiveCodeState {
-    /// 状态能否推进到下一阶段
-    pub fn can_advance(&self) -> bool {
-        matches!(self, LiveCodeState::Floating | LiveCodeState::Activated | LiveCodeState::Fixed)
-    }
-
-    /// 是否已确定 (不再变动)
-    pub fn is_deterministic(&self) -> bool {
-        matches!(self, LiveCodeState::Fixed | LiveCodeState::Compiled)
-    }
-}
-
-impl Default for LiveCodeState { fn default() -> Self { LiveCodeState::Floating } }
-
-/// 七层编码
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum EncodingLayer {
-    Consonant = 0, // 声母
-    Vowel = 1,     // 韵母
-    Tone = 2,      // 声调
-    Shell = 3,     // 壳
-    Fiber = 4,     // 纤维
-    Flow = 5,      // 流
-    Arbitration = 6, // 仲裁
-    _Reserved = 7, // 预留
-}
-
-impl EncodingLayer {
-    pub const COUNT: usize = 7; // 不含预留
-    pub fn from_u8(v: u8) -> Option<Self> {
-        use EncodingLayer::*;
-        match v {
-            0 => Some(Consonant),
-            1 => Some(Vowel),
-            2 => Some(Tone),
-            3 => Some(Shell),
-            4 => Some(Fiber),
-            5 => Some(Flow),
-            6 => Some(Arbitration),
-            _ => None,
-        }
-    }
-}
-
-/// 起点钥匙 — 激活浮动码的触发条件
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct StartingPoint {
-    pub layer: u8,
-    pub index: u16,
-    pub checksum: u8,
-}
-
-impl StartingPoint {
-    pub fn new(layer: EncodingLayer, index: u16) -> Self {
-        let mut checksum = (layer as u8) ^ (index as u8) ^ ((index >> 8) as u8);
-        checksum = checksum.wrapping_mul(0x9E as u8);
-        Self { layer: layer as u8, index, checksum }
-    }
-
-    pub fn verify(&self) -> bool {
-        let mut expected = self.layer ^ (self.index as u8) ^ ((self.index >> 8) as u8);
-        expected = expected.wrapping_mul(0x9E as u8);
-        expected == self.checksum
-    }
-}
-
-/// 活码表项 — 单个可活动编码单元
-#[derive(Clone, Debug)]
-pub struct LiveCodeEntry {
-    pub id: u32,
-    pub value: u16,           // 编码值
-    pub position: u16,        // 当前位置 (编译后固定的排列位置)
-    pub permission: u8,       // 权限级别 (0-255, 加法统计)
-    pub layer: EncodingLayer, // 所属编码层
-    pub state: LiveCodeState,
-}
-
-impl LiveCodeEntry {
-    pub fn new(id: u32, value: u16, layer: EncodingLayer) -> Self {
-        Self { id, value, position: 0, permission: 0, layer, state: LiveCodeState::Floating }
-    }
-
-    /// 是否处于浮动状态
-    pub fn is_floating(&self) -> bool { self.state == LiveCodeState::Floating }
-
-    /// 推进到下一状态
-    pub fn advance(&mut self) -> bool {
-        use LiveCodeState::*;
-        let next = match self.state {
-            Floating => Activated,
-            Activated => Fixed,
-            Fixed => Compiled,
-            Compiled => return false,
-        };
-        // 每次推进, 权限按加法累积 (当前值 + 层权重)
-        self.permission = self.permission.wrapping_add(self.layer as u8 + 1);
-        self.state = next;
-        true
-    }
-}
-
-/// 活码编译器 — 核心编译引擎
-#[derive(Clone, Debug)]
-pub struct LiveCodeCompiler {
-    pub codes: Vec<LiveCodeEntry>,
-    pub starting_point: Option<StartingPoint>,
-    pub next_id: u32,
-    pub total_compiled: u64,
-}
-
-impl LiveCodeCompiler {
-    pub fn new() -> Self {
-        Self { codes: Vec::new(), starting_point: None, next_id: 1, total_compiled: 0 }
-    }
-
-    /// 插入一个新的活码 (初始为浮动状态)
-    pub fn insert(&mut self, value: u16, layer: EncodingLayer) -> u32 {
-        let id = self.next_id;
-        self.next_id += 1;
-        self.codes.push(LiveCodeEntry::new(id, value, layer));
-        id
-    }
-
-    /// 设置起点钥匙
-    pub fn set_starting_point(&mut self, sp: StartingPoint) {
-        self.starting_point = Some(sp);
-    }
-
-    /// 激活所有浮动码 (起点钥匙验证通过后)
-    pub fn activate_all(&mut self) -> usize {
-        let sp = match &self.starting_point {
-            Some(sp) if sp.verify() => sp,
-            _ => return 0,
-        };
-        let mut count = 0;
-        for code in self.codes.iter_mut() {
-            if code.is_floating() && code.layer as u8 == sp.layer {
-                let _ = code.advance();  // Floating → Activated
-                count += 1;
-            }
-        }
-        count
-    }
-
-    /// 编译单个活码 (从当前状态推进到 Fixed/Compiled)
-    pub fn compile_one(&mut self, id: u32) -> bool {
-        if let Some(code) = self.codes.iter_mut().find(|c| c.id == id) {
-            if code.advance() {
-                if code.state == LiveCodeState::Compiled {
-                    self.total_compiled += 1;
-                }
-                return true;
-            }
-        }
-        false
-    }
-
-    /// 编译全部 — 逐码推进, 每码可能需要多步 (Activated→Fixed→Compiled)
-    pub fn compile_all(&mut self) -> usize {
-        let mut total = 0;
-        loop {
-            let ids: Vec<u32> = self.codes.iter()
-                .filter(|c| c.state != LiveCodeState::Compiled)
-                .map(|c| c.id).collect();
-            if ids.is_empty() { break; }
-            let mut progressed = false;
-            for id in ids {
-                if self.compile_one(id) { total += 1; progressed = true; }
-            }
-            if !progressed { break; }
-        }
-        total
-    }
-
-    /// 加法统计 — 所有已编译码的权限累加 (替代幂次二进制扩张)
-    pub fn additive_total(&self) -> u64 {
-        self.codes.iter()
-            .filter(|c| c.state == LiveCodeState::Compiled)
-            .fold(0u64, |acc, c| acc.wrapping_add(c.value as u64))
-    }
-
-    /// 按层分别加法统计
-    pub fn layer_total(&self, layer: EncodingLayer) -> u64 {
-        self.codes.iter()
-            .filter(|c| c.state == LiveCodeState::Compiled && c.layer as u8 == layer as u8)
-            .fold(0u64, |acc, c| acc.wrapping_add(c.value as u64))
-    }
-
-    /// 排列码 — 按位置排序 (编译后位置确定权限顺序)
-    pub fn arrange(&mut self) {
-        self.codes.sort_by_key(|c| c.position);
-        for (i, code) in self.codes.iter_mut().enumerate() {
-            if code.state == LiveCodeState::Fixed || code.state == LiveCodeState::Compiled {
-                code.position = i as u16;
-            }
-        }
-    }
-
-    /// 定位码位置 (编译过程中)
-    pub fn position_code(&mut self, id: u32, new_pos: u16) -> bool {
-        if let Some(code) = self.codes.iter_mut().find(|c| c.id == id) {
-            if !code.state.is_deterministic() {
-                code.position = new_pos;
-                return true;
-            }
-        }
-        false
-    }
-
-    /// 已编译码数量
-    pub fn compiled_count(&self) -> usize {
-        self.codes.iter().filter(|c| c.state == LiveCodeState::Compiled).count()
-    }
-
-    /// 浮动码数量
-    pub fn floating_count(&self) -> usize {
-        self.codes.iter().filter(|c| c.state == LiveCodeState::Floating).count()
-    }
-
-    /// 全部编译完成?
-    pub fn is_fully_compiled(&self) -> bool {
-        !self.codes.is_empty() && self.codes.iter().all(|c| c.state == LiveCodeState::Compiled)
-    }
-
-    /// 重置 (全部回浮动)
-    pub fn reset(&mut self) {
-        for code in self.codes.iter_mut() {
-            code.state = LiveCodeState::Floating;
-            code.position = 0;
-            code.permission = 0;
-        }
-        self.total_compiled = 0;
-    }
-}
-
-impl Default for LiveCodeCompiler { fn default() -> Self { Self::new() } }
-
-#[cfg(test)]
-mod livecode_tests {
-    use super::*;
-    #[test] fn test_live_state_default() {
-        let s = LiveCodeState::default();
-        assert_eq!(s, LiveCodeState::Floating);
-    }
-    #[test] fn test_live_state_can_advance() {
-        assert!(LiveCodeState::Floating.can_advance());
-        assert!(LiveCodeState::Activated.can_advance());
-        assert!(LiveCodeState::Fixed.can_advance());
-        assert!(!LiveCodeState::Compiled.can_advance());
-    }
-    #[test] fn test_live_state_is_deterministic() {
-        assert!(!LiveCodeState::Floating.is_deterministic());
-        assert!(!LiveCodeState::Activated.is_deterministic());
-        assert!(LiveCodeState::Fixed.is_deterministic());
-        assert!(LiveCodeState::Compiled.is_deterministic());
-    }
-    #[test] fn test_layer_from_u8() {
-        assert_eq!(EncodingLayer::from_u8(0), Some(EncodingLayer::Consonant));
-        assert_eq!(EncodingLayer::from_u8(6), Some(EncodingLayer::Arbitration));
-        assert_eq!(EncodingLayer::from_u8(7), None);
-    }
-    #[test] fn test_starting_point_verify() {
-        let sp = StartingPoint::new(EncodingLayer::Vowel, 42);
-        assert!(sp.verify());
-    }
-    #[test] fn test_entry_new() {
-        let e = LiveCodeEntry::new(100, 0xABCD, EncodingLayer::Tone);
-        assert_eq!(e.id, 100);
-        assert_eq!(e.value, 0xABCD);
-        assert_eq!(e.state, LiveCodeState::Floating);
-    }
-    #[test] fn test_entry_advance() {
-        let mut e = LiveCodeEntry::new(1, 10, EncodingLayer::Consonant);
-        assert!(e.advance());  // Floating → Activated
-        assert_eq!(e.state, LiveCodeState::Activated);
-        assert!(e.advance());  // Activated → Fixed
-        assert_eq!(e.state, LiveCodeState::Fixed);
-        assert!(e.advance());  // Fixed → Compiled
-        assert_eq!(e.state, LiveCodeState::Compiled);
-        assert!(!e.advance()); // 已到顶
-    }
-    #[test] fn test_compiler_new() {
-        let c = LiveCodeCompiler::new();
-        assert_eq!(c.codes.len(), 0);
-        assert!(c.starting_point.is_none());
-    }
-    #[test] fn test_compiler_insert() {
-        let mut c = LiveCodeCompiler::new();
-        let id = c.insert(0xFF, EncodingLayer::Consonant);
-        assert_eq!(id, 1);
-        assert_eq!(c.codes.len(), 1);
-    }
-    #[test] fn test_activate_all() {
-        let mut c = LiveCodeCompiler::new();
-        c.insert(100, EncodingLayer::Vowel);
-        c.insert(200, EncodingLayer::Vowel);
-        c.insert(300, EncodingLayer::Consonant);
-        c.set_starting_point(StartingPoint::new(EncodingLayer::Vowel, 0));
-        let activated = c.activate_all();
-        assert_eq!(activated, 2);
-        assert_eq!(c.floating_count(), 1); // Consonant 未被激活
-    }
-    #[test] fn test_compile_all() {
-        let mut c = LiveCodeCompiler::new();
-        let id1 = c.insert(10, EncodingLayer::Fiber);
-        c.set_starting_point(StartingPoint::new(EncodingLayer::Fiber, 0));
-        c.activate_all();
-        let compiled = c.compile_all();
-        assert!(compiled > 0);
-        assert_eq!(c.compiled_count(), 1);
-    }
-    #[test] fn test_additive_total() {
-        let mut c = LiveCodeCompiler::new();
-        c.insert(100, EncodingLayer::Flow);
-        c.insert(200, EncodingLayer::Flow);
-        c.insert(50, EncodingLayer::Flow);
-        c.set_starting_point(StartingPoint::new(EncodingLayer::Flow, 0));
-        c.activate_all();
-        c.compile_all();
-        assert_eq!(c.additive_total(), 350);
-    }
-    #[test] fn test_layer_total() {
-        let mut c = LiveCodeCompiler::new();
-        c.insert(100, EncodingLayer::Consonant);
-        c.insert(200, EncodingLayer::Vowel);
-        for layer in [EncodingLayer::Consonant, EncodingLayer::Vowel] {
-            c.set_starting_point(StartingPoint::new(layer, 0));
-            c.activate_all();
-            c.compile_all();
-        }
-        assert_eq!(c.layer_total(EncodingLayer::Consonant), 100);
-        assert_eq!(c.layer_total(EncodingLayer::Vowel), 200);
-    }
-    #[test] fn test_arrange() {
-        let mut c = LiveCodeCompiler::new();
-        let id1 = c.insert(30, EncodingLayer::Shell);
-        let id2 = c.insert(10, EncodingLayer::Shell);
-        let id3 = c.insert(20, EncodingLayer::Shell);
-        c.set_starting_point(StartingPoint::new(EncodingLayer::Shell, 0));
-        c.activate_all();
-        // 在 Fixed 状态 (非确定性) 时定位
-        c.position_code(id1, 2);
-        c.position_code(id2, 0);
-        c.position_code(id3, 1);
-        c.compile_all();  // 进一步编译, 位置在 Fixed 时已设置
-        c.arrange();
-        // arrange 按 position 排序 (id2=0, id3=1, id1=2)
-        assert_eq!(c.codes[0].id, id2);
-        assert_eq!(c.codes[1].id, id3);
-        assert_eq!(c.codes[2].id, id1);
-    }
-    #[test] fn test_is_fully_compiled() {
-        let mut c = LiveCodeCompiler::new();
-        assert!(!c.is_fully_compiled()); // 空 = 未完成
-        c.insert(1, EncodingLayer::Arbitration);
-        c.set_starting_point(StartingPoint::new(EncodingLayer::Arbitration, 0));
-        c.activate_all();
-        c.compile_all();
-        assert!(c.is_fully_compiled());
-    }
-    #[test] fn test_reset() {
-        let mut c = LiveCodeCompiler::new();
-        c.insert(1, EncodingLayer::Consonant);
-        c.set_starting_point(StartingPoint::new(EncodingLayer::Consonant, 0));
-        c.activate_all();
-        c.compile_all();
-        assert_eq!(c.compiled_count(), 1);
-        c.reset();
-        assert_eq!(c.floating_count(), 1);
-        assert_eq!(c.compiled_count(), 0);
-    }
-    #[test] fn test_compiler_default() {
-        let c = LiveCodeCompiler::default();
-        assert_eq!(c.next_id, 1);
-    }
-    #[test] fn test_no_starting_point() {
-        let mut c = LiveCodeCompiler::new();
-        c.insert(1, EncodingLayer::Consonant);
-        // 不设起点钥匙 → 无法激活
-        let activated = c.activate_all();
-        assert_eq!(activated, 0);
-        assert_eq!(c.floating_count(), 1);
-    }
-}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 容器演化引擎 · ContainerEvolutionEngine
@@ -12410,5 +11999,210 @@ mod coupling_tests {
         c.coincide(1, 2);
         c.clear();
         assert!(!c.is_tight(1, 2));
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 活码编译器 · LiveCodeCompiler (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   「活码」= 可活动的编码; 未锁定时位置任意滑动, 固定后按排列定权限/数值
+//   起点 = 钥匙 (entry-point), 激活一条可活动编码
+//
+//   1. 活动位 (slots): 一组空位, 可插入/移除符号 (u64)
+//   2. 锁定 (seal): 锁定后当前排列即为最终编码
+//   3. 数值 = 各 slot 值 × 排列序 (用加法累加代替乘法)
+//   4. 排列序 = slot_index + 1 (第0位=1, 第1位=2, ...)
+//      严格避免乘法: value × order 用 value 自加 order 次
+//
+//   核心: 锁定前 order 任意(活), 锁定后 order 固定(死码)
+
+#[derive(Clone, Debug)]
+pub struct LiveCodeCompiler {
+    pub slots: Vec<u64>,       // 活动位
+    pub locked: bool,           // 是否锁定
+    pub entry: u64,             // 起点 (激活钥匙)
+    pub total_ops: u64,         // 操作计数
+}
+
+impl LiveCodeCompiler {
+    pub fn new(entry: u64) -> Self {
+        Self { slots: Vec::new(), locked: false, entry, total_ops: 0 }
+    }
+
+    /// 追加一个活动位
+    pub fn push(&mut self, value: u64) {
+        self.slots.push(value);
+        self.total_ops = self.total_ops + 1;
+    }
+
+    /// 移除末尾活动位
+    pub fn pop(&mut self) -> Option<u64> {
+        let r = self.slots.pop();
+        if r.is_some() { self.total_ops = self.total_ops + 1; }
+        r
+    }
+
+    /// 锁定 (之后排列固定)
+    pub fn seal(&mut self) { self.locked = true; }
+
+    /// 计算当前排列的数值 (用加法累加 slot 值 × 序)
+    /// 仅加法: order(n) = (index + 1), value × order = value 自加 order 次
+    pub fn compile_value(&self) -> u64 {
+        let mut total: u64 = 0;
+        let mut idx: u64 = 0;
+        for &val in &self.slots {
+            let order = idx + 1;  // 第0位=1
+            // val × order 用自加
+            let mut i = 0;
+            loop {
+                if i >= order { break; }
+                total = total + val;
+                i = i + 1;
+            }
+            idx = idx + 1;
+        }
+        total
+    }
+
+    /// 解锁 (仅未锁定时返回 true)
+    pub fn unseal(&mut self) -> bool {
+        if self.locked { return false; }
+        true
+    }
+
+    /// 在 index 处插入 (模拟活码 — 锁定前可任意活动)
+    pub fn insert(&mut self, index: usize, value: u64) -> bool {
+        if self.locked { return false; }
+        if index > self.slots.len() { return false; }
+        // 无 insert_at: 用 split + 拼
+        let mut new_slots = Vec::with_capacity(self.slots.len() + 1);
+        for i in 0..index { new_slots.push(self.slots[i]); }
+        new_slots.push(value);
+        for i in index..self.slots.len() { new_slots.push(self.slots[i]); }
+        self.slots = new_slots;
+        self.total_ops = self.total_ops + 1;
+        true
+    }
+
+    /// 删除 index (活码删除)
+    pub fn erase(&mut self, index: usize) -> bool {
+        if self.locked { return false; }
+        if index >= self.slots.len() { return false; }
+        let mut new_slots = Vec::with_capacity(self.slots.len() - 1);
+        for i in 0..index { new_slots.push(self.slots[i]); }
+        for i in (index + 1)..self.slots.len() { new_slots.push(self.slots[i]); }
+        self.slots = new_slots;
+        self.total_ops = self.total_ops + 1;
+        true
+    }
+
+    pub fn is_locked(&self) -> bool { self.locked }
+    pub fn slot_count(&self) -> usize { self.slots.len() }
+
+    pub fn clear(&mut self) {
+        self.slots.clear();
+        self.locked = false;
+        self.total_ops = 0;
+    }
+}
+
+impl Default for LiveCodeCompiler {
+    fn default() -> Self { Self::new(0) }
+}
+
+#[cfg(test)]
+mod live_code_tests {
+    use super::*;
+
+    #[test]
+    fn test_empty_compile() {
+        let lc = LiveCodeCompiler::new(7);
+        assert_eq!(lc.compile_value(), 0);
+    }
+
+    #[test]
+    fn test_single_slot() {
+        let mut lc = LiveCodeCompiler::new(1);
+        lc.push(5);  // 第0位: 5×1=5
+        assert_eq!(lc.compile_value(), 5);
+    }
+
+    #[test]
+    fn test_multi_slots() {
+        let mut lc = LiveCodeCompiler::new(1);
+        lc.push(3);   // 第0位: 3×1=3
+        lc.push(4);   // 第1位: 4×2=8
+        lc.push(1);   // 第2位: 1×3=3
+        // total = 3+8+3=14
+        assert_eq!(lc.compile_value(), 14);
+    }
+
+    #[test]
+    fn test_seal_prevents_modify() {
+        let mut lc = LiveCodeCompiler::new(1);
+        lc.push(10);
+        lc.push(20);
+        lc.seal();
+        assert!(lc.is_locked());
+        // 锁定后不可插入
+        assert!(!lc.insert(0, 99));
+        assert!(!lc.erase(0));
+        assert_eq!(lc.slot_count(), 2);
+    }
+
+    #[test]
+    fn test_insert_while_live() {
+        let mut lc = LiveCodeCompiler::new(0);
+        lc.push(1);
+        lc.push(3);
+        assert!(lc.insert(1, 2));
+        assert_eq!(lc.slots, vec![1, 2, 3]);
+        // 数值: 1×1 + 2×2 + 3×3 = 1+4+9=14
+        assert_eq!(lc.compile_value(), 14);
+    }
+
+    #[test]
+    fn test_erase_while_live() {
+        let mut lc = LiveCodeCompiler::new(0);
+        lc.push(1);
+        lc.push(2);
+        lc.push(3);
+        assert!(lc.erase(1));
+        assert_eq!(lc.slots, vec![1, 3]);
+    }
+
+    #[test]
+    fn test_pop() {
+        let mut lc = LiveCodeCompiler::new(0);
+        lc.push(5);
+        lc.push(10);
+        assert_eq!(lc.pop(), Some(10));
+        assert_eq!(lc.slot_count(), 1);
+    }
+
+    #[test]
+    fn test_pop_empty() {
+        let mut lc = LiveCodeCompiler::new(0);
+        assert!(lc.pop().is_none());
+    }
+
+    #[test]
+    fn test_unseal_returns_true_when_unlocked() {
+        let mut lc = LiveCodeCompiler::new(0);
+        assert!(lc.unseal());
+        lc.seal();
+        assert!(!lc.unseal());
+    }
+
+    #[test]
+    fn test_clear() {
+        let mut lc = LiveCodeCompiler::new(0);
+        lc.push(1);
+        lc.seal();
+        lc.clear();
+        assert!(!lc.is_locked());
+        assert_eq!(lc.slot_count(), 0);
+        assert_eq!(lc.total_ops, 0);
     }
 }
