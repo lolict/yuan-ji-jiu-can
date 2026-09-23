@@ -230,6 +230,18 @@ fn expand_address(code: u8) -> u32 {
 }
 
 /// 柱面投影 (中心原点)
+fn time_slot(code: u8) -> u8 {
+    let base = code & 0x0F;
+    let family = code >> 4;
+    let divisors = (1u8..=code.max(1)).filter(|d| code % d == 0).count() as u8;
+    (base + (family * 16) + divisors * 2) % 64
+}
+
+fn yinyang(code: u8) -> &'static str {
+    if code % 2 == 0 { "○" } else { "●" }
+}
+
+/// 柱面投影 (中心原点)
 fn project(addr: u32) -> (f64, f64, f64) {
     let x = ((addr >> 24) & 0xFF) as u8;
     let _y = ((addr >> 8) & 0xFFFF) as u16;
@@ -343,6 +355,9 @@ fn build_html(scenes: &[ContainerScene], names: &[String]) -> String {
     s(&mut out, font_b64.trim());
     s(&mut out, ") format('truetype');}\n");
     s(&mut out, ".cf{font-family:'HanYuan64','Noto Sans SC',sans-serif;}\n");
+    // 时间脉冲动画: 64 拍循环, 每拍一个容器点亮
+    s(&mut out, "@keyframes tick{0%{opacity:0.5;transform:scale(1)}8%{opacity:1;transform:scale(1.3)}16%{opacity:0.5;transform:scale(1)}100%{opacity:0.5;transform:scale(1)}}\n");
+    s(&mut out, ".tick{animation:tick 64s infinite ease-in-out;}\n");
     s(&mut out, "</style></head><body>\n");
 
     s(&mut out, "<h1>容器场景编译器</h1>\n");
@@ -380,9 +395,10 @@ fn build_html(scenes: &[ContainerScene], names: &[String]) -> String {
         let name = &names[i];
         let r = 18.0 + depth * 8.0;
         let is_core = sc.code == 0x14 || sc.code == 0x17;
+        let t_slot = time_slot(sc.code);
 
-        // 组 (透明度 = 深度)
-        let _ = write!(out, "<g opacity=\"{:.2}\">\n", depth);
+        // 组 (时间脉冲动画, 偏移量 = -time_slot 秒)
+        let _ = write!(out, "<g class=\"tick\" style=\"animation-delay:{}s;transform-origin:{:.1}px {:.1}px\">\n", -(t_slot as i32), px, py);
 
         // 拓扑符号 + 笔画字形
         let sym = topology_symbol(sc.topology, px, py, r);
