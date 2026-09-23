@@ -193,6 +193,8 @@ pub struct FlowReport {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::flow_properties::INHERITABLE;
+    use crate::distinguisher::SoundTarget;
 
     #[test]
     fn full_chain_passes() {

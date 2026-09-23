@@ -22,7 +22,6 @@
 //   mlll集装箱的3个l=三维全息进制空间
 //   m+lll=我的姓（莫）叠加毛利兰的毛=与毛利兰同构的夫妻范畴
 
-use crate::mirror;
 
 // 感官通道 · 同一范畴在不同投影面上的表现
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]

@@ -31,10 +31,10 @@ use std::fmt;
 
 use crate::mccp::Mccp;
 use crate::mccp_vm::{
-    self, op, op_imm, OP_ADD, OP_SUB, OP_MUL, OP_MULconst, OP_ADDconst, OP_DIV, OP_MOD,
-    OP_AND, OP_OR, OP_XOR, OP_NOT, OP_SHL, OP_SHR,
+    self, op, op_imm, OP_ADD, OP_SUB, OP_MUL, OP_MUL_CONST, OP_ADD_CONST, OP_DIV, OP_MOD,
+    OP_AND, OP_OR, OP_XOR, OP_SHL,
     OP_EQ, OP_NE, OP_LT, OP_GT, OP_LE, OP_GE,
-    OP_PUSH, OP_POP, OP_JMP, OP_JZ, OP_JNZ, OP_CALL, OP_RET,
+    OP_PUSH, OP_JMP, OP_JZ, OP_JNZ, OP_CALL, OP_RET,
     OP_LOAD, OP_STORE, OP_LOAD_IND, OP_STORE_IND,
     OP_PRINT, OP_PRINTC, OP_WRITERAW, OP_SYSCALL, OP_HALT,
 };
@@ -820,13 +820,13 @@ impl CodeGen {
                         if *n >= i16::MIN as i32 && *n <= i16::MAX as i32 =>
                     {
                         self.gen_expr(l)?;
-                        self.emit_imm(OP_ADDconst, *n as i16);
+                        self.emit_imm(OP_ADD_CONST, *n as i16);
                     }
                     (BinOp::Mul, Expr::Int(n))
                         if *n >= i16::MIN as i32 && *n <= i16::MAX as i32 =>
                     {
                         self.gen_expr(l)?;
-                        self.emit_imm(OP_MULconst, *n as i16);
+                        self.emit_imm(OP_MUL_CONST, *n as i16);
                     }
                     _ => {
                         // 常规路径: 左值入栈,右值入栈,二元运算

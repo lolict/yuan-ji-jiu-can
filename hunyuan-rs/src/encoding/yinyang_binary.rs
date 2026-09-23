@@ -330,8 +330,8 @@ impl YinYang32 {
 impl std::fmt::Display for YinYang32 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let anchor_marker = match self.anchor() {
-            AnchorBit::LoLict => "我",
-            AnchorBit::ChuTao => "刘楚坦",
+            AnchorBit::LoLict => "我锚",
+            AnchorBit::ChuTao => "刘楚坦锚",
         };
         let pol = if self.polarity() { "+" } else { "-" };
         let cry = if self.carry() { " [进位]" } else { "" };
@@ -488,14 +488,14 @@ mod tests {
     }
 
     #[test]
-    fn yinyang32_overflow() {
+    fn yinyang32_carry() {
         let a = YinYang32::new(AnchorBit::LoLict, true, false, YinYang32::VALUE_MASK);
         let b = YinYang32::new(AnchorBit::ChuTao, true, false, 1);
-        let (c, overflow) = a.absorb(b);
+        let (c, _overflow) = a.absorb(b);
 
-        assert!(overflow);
+        // 进位标记触发 (不使用 u32 溢出, 因为 0x1FFFFFFF+1 不溢出 u32)
         assert!(c.carry());
-        assert_eq!(c.value(), 0); // 环绕
+        assert_eq!(c.value(), 0); // 回绕到 0
     }
 
     #[test]

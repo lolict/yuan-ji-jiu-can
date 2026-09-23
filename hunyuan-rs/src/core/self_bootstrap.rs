@@ -16,9 +16,8 @@
 // ══════════════════════════════════════════════════════════════════
 
 use crate::mirror::{self, EncodedCell, Sovereignty};
-use crate::mccp::{self, Kind, Mccp, OP_SYNTH, OP_MIRROR, MCP_DALING};
 use crate::relational::{Identity, Priority};
-use crate::mind_organ::{self, MindOrgan, ThinkingMode};
+use crate::mind_organ::MindOrgan;
 
 // ────────────────────────────────────────────────────────────
 // 意识指令 — 用关系代数下达的指令

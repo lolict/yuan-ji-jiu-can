@@ -25,8 +25,7 @@
 // ══════════════════════════════════════════════════════════════════
 
 use crate::mirror::{self, Sovereignty};
-use crate::distinguisher::{self, SoundTarget, VisualFamily};
-use crate::relational::{self, Identity};
+use crate::distinguisher::SoundTarget;
 
 // ── 二元对立属性位 ───────────────────────────────────────────
 

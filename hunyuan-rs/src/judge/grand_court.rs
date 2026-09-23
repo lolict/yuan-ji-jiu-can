@@ -13,6 +13,7 @@
 // ══════════════════════════════════════════════════════════════════════
 
 use crate::crime_transcript::*;
+use crate::flow::glyph_pixel_algebra::phase;
 use crate::glyph_pixel_algebra::*;
 use crate::encoding_bridge::{Family, FlowBits};
 use crate::os_layer::OsLayer;
@@ -95,8 +96,8 @@ impl GrandCourt {
         let glyph_encoded = if verdict.guilty {
             // 有罪的字形做标记渲染 (破碎形态)
             let mut glyph = GlyphImage::new(8, 8);
-            glyph.set(1, 1, GlyphPixel::ink(Phase::Diagonal));
-            glyph.set(6, 6, GlyphPixel::ink(Phase::Diagonal));
+            glyph.set(1, 1, GlyphPixel::ink(phase::DIAGONAL));
+            glyph.set(6, 6, GlyphPixel::ink(phase::DIAGONAL));
             false // 未完整编码
         } else {
             // 无罪的字形做完整渲染

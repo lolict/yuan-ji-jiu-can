@@ -328,6 +328,8 @@ pub mod domain_preload;
 // ── v0.65 容器中间表示 — 统一地址空间·代数选址替代·关系归属计算·容器图集 ──
 #[path = "core/container_ir.rs"]
 pub mod container_ir;
+#[path = "core/container_composer.rs"]  // v0.68 容器串联引擎 — 前字套壳=后字入口
+pub mod container_composer;
 // ── v0.66 运行环引擎 — 最小OS接口·鼓膜自举·八流心跳·编码在场·结束即开始 ──
 #[path = "core/runtime_loop.rs"]
 pub mod runtime_loop;
@@ -915,11 +917,11 @@ pub use memory_revolution::{
     Symbol as MemSymbol, SymbolKind, Domain, MemoryEngine, MemoryStats,
 };
 
-// ── v0.59 聂小倩匹配引擎 — 本质匹配·公约数桥梁·撞墙回退 ──
+// ── v0.59 聂小倩·本质匹配引擎 — 游魂寻踪·公约数共振·撞墙回退 ──
 #[path = "core/njq_matching.rs"]
 pub mod njq_matching;
 pub use njq_matching::{
-    WanderingSoul, Essence, NJQMatchResult, NJQMatchingEngine,
+    NjqContainer, PolarityRelation, ResonanceTrace, XiaoQian, HanziSpace,
 };
 
 // ── v0.58 存在驱动引擎 — 失爱恐惧·合一驱力·奖励回路·频率维持 ──

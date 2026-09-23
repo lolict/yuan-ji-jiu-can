@@ -14,7 +14,7 @@
 use std::collections::{HashMap, VecDeque};
 use std::fmt;
 use std::time::{SystemTime, UNIX_EPOCH};
-use super::celestial_perception_v12::{InstructionBag, OpCode};
+use crate::celestial_perception_v12::{InstructionBag, OpCode};
 
 pub const V13_VERSION: u32 = 13;
 

@@ -56,6 +56,31 @@ void gcb_mo_report(char *buf, int bufsize);
 /* ── 完整演示 ── */
 void global_control_bridge_test(void);
 
+/* ═══════════════════════════════════════════════════════════
+ * 子容器7: 征用层 · 动态编号 (跨编码身份不灭)
+ *
+ * 提供两种后端:
+ *   - C 层独立实现 (expropriation_bridge.c, 自给自足)
+ *   - Rust FFI 直通 (libmqf_ffi.so, 内核→Rust真实API)
+ *
+ * 产权裁决接入: 主人/客人 + 静态/动态属性平衡
+ * ═══════════════════════════════════════════════════════════ */
+
+#include "../../encoding/expropriation_bridge.h"
+
+void gcb_exprop_init(exprop_identity_t *id, uint64_t core, int polarity);
+int  gcb_exprop_expropriate(exprop_identity_t *id, const char *shell, uint64_t number);
+int  gcb_exprop_shed(exprop_identity_t *id, const char *shell);
+void gcb_exprop_converge(exprop_identity_t *id);
+int  gcb_exprop_intact(const exprop_identity_t *id, uint64_t expected_core);
+int  gcb_exprop_density(const exprop_identity_t *id);
+int  gcb_exprop_property_claim(uint64_t host_core, uint64_t guest_core);
+int  gcb_exprop_static_dynamic(const exprop_identity_t *id, uint64_t expected_core);
+
+/* Rust FFI 直通 (调用 libmqf_ffi.so) */
+int gcb_rust_exprop_selftest(void);
+int gcb_rust_exprop_demo(uint64_t core, int32_t polarity);
+
 #ifdef __cplusplus
 }
 #endif

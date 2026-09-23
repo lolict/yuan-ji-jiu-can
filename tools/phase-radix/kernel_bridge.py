@@ -167,6 +167,10 @@ class KernelBridgeHandler(BaseHTTPRequestHandler):
             '/viewer': self._handle_viewer_get,
             '/simulator': self._handle_simulator_get,
             '/dashboard': self._handle_dashboard_get,
+            '/zig/wasm64.wasm': self._handle_wasm64,
+            '/zig/wasm32.wasm': self._handle_wasm32,
+            '/container_3d': self._try_serve_static,
+            '/3d': self._try_serve_static,
             '/api/kernel/state': self._handle_kernel_state,
             '/api/kernel/stats': self._handle_kernel_stats,
             '/api/kernel/cells': self._handle_kernel_cells,
@@ -187,7 +191,56 @@ class KernelBridgeHandler(BaseHTTPRequestHandler):
             except Exception as e:
                 _json_error(self, str(e), 500)
         else:
+            # 尝试静态文件服务 (HTML/JS/CSS/WASM)
+            if self._try_serve_static():
+                return
             _json_error(self, f"未知路径: {self.path}", 404)
+
+    def _try_serve_static(self) -> bool:
+        """尝试作为静态文件服务 (.html .js .css .wasm .json .png)"""
+        import os
+        allowed_ext = {'.html', '.js', '.css', '.wasm', '.json', '.png', '.jpg', '.svg'}
+        basename = self.path.split('?')[0].lstrip('/')
+        if not basename or '.' not in basename:
+            return False
+        ext = '.' + basename.rsplit('.', 1)[-1].lower()
+        if ext not in allowed_ext:
+            return False
+        if '..' in basename or basename.startswith('/'):
+            return False
+        # 搜索路径: 当前目录 + zig-stem 目录 (WASM 在那里)
+        search_dirs = [
+            os.path.dirname(os.path.abspath(__file__)),
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'zig-stem'),
+        ]
+        filepath = None
+        for d in search_dirs:
+            candidate = os.path.join(d, basename)
+            if os.path.isfile(candidate):
+                filepath = candidate
+                break
+        if not filepath:
+            return False
+        content_types = {
+            '.html': 'text/html; charset=utf-8',
+            '.js': 'application/javascript; charset=utf-8',
+            '.css': 'text/css; charset=utf-8',
+            '.wasm': 'application/wasm',
+            '.json': 'application/json',
+            '.png': 'image/png',
+        }
+        try:
+            with open(filepath, 'rb') as f:
+                data = f.read()
+            self.send_response(200)
+            self.send_header('Content-Type', content_types.get(ext, 'application/octet-stream'))
+            self.send_header('Content-Length', str(len(data)))
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(data)
+            return True
+        except Exception:
+            return False
 
     def do_POST(self):
         POST_ROUTES = {
@@ -421,6 +474,28 @@ class KernelBridgeHandler(BaseHTTPRequestHandler):
             self.wfile.write(content.encode('utf-8'))
         except FileNotFoundError:
             _json_error(self, "仪表盘页面未找到", 404)
+
+    def _handle_wasm64(self):
+        self._serve_wasm_file('zig-out/wasm64/release/mqf64.wasm')
+
+    def _handle_wasm32(self):
+        self._serve_wasm_file('zig-out/wasm32/release/mqf32.wasm')
+
+    def _serve_wasm_file(self, rel_path):
+        import os
+        zig_stem = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'zig-stem')
+        filepath = os.path.join(zig_stem, rel_path)
+        if not os.path.isfile(filepath):
+            _json_error(self, f'WASM 文件不存在: {rel_path}', 404)
+            return
+        with open(filepath, 'rb') as f:
+            data = f.read()
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/wasm')
+        self.send_header('Content-Length', str(len(data)))
+        self.send_header('Cache-Control', 'public, max-age=3600')
+        self.end_headers()
+        self.wfile.write(data)
 
     def _handle_viewer_get(self):
         """提供旧版内核浏览器 HTML 页面"""

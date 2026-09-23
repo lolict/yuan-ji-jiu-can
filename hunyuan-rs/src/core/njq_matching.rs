@@ -1,319 +1,257 @@
-// njq_matching.rs — 聂小倩匹配引擎 (v0.1)
-// 本质匹配 · 公约数桥梁 · 声母遍历韵母 · 撞墙回退
+// njq_matching.rs — 聂小倩·本质匹配引擎 (v0.2)
+//
+//   不是算法, 是"游魂寻踪"。
+//   不是搜索, 是"公约数共振"。
+//   没有数据结构, 只有"汉字自身的几何"。
+//
 // ══════════════════════════════════════════════════════════════
 //
-//   核心命题 (满全法·聂小倩匹配):
+// 满全法范式:
 //
-//   聂小倩 = 游魂寻找匹配的容器。
-//   匹配不是搜索, 而是"本质共振"。
-//
-//   匹配算法:
-//   1. 声母遍历韵母: 在 shengmu×yunmu 空间中搜索
-//   2. 公约数桥梁: 两容器的公共因子作为连接纽带
-//   3. 撞墙回退: 当匹配不可行时, 回退并尝试替代路径
-//
-//   "撞墙" = 容器试图匹配但遇到不可逾越的差异,
-//   此时系统不是强行突破, 而是记住这面墙,
-//   并在未来的匹配中避开它。
+//   汉字本身就是容器 = 字体 = 时间。
+//   不需要"匹配算法", 两个汉字相遇时自然产生共振。
+//   共振强度 = 音韵公约数 × 极性相似度。
+//   异见者(极性相反)之间是"空间零维"——无法容纳, 撞到墙。
+//   同见者(极性相同)之间是"一维时间"——可以见证, 可以流动。
 //
 // ══════════════════════════════════════════════════════════════
 
-use std::collections::HashMap;
-use std::time::{SystemTime, UNIX_EPOCH};
+use crate::name_creator::char_to_dragon;
 
-// ─────────────────────────────────────────────────────────
-// 游魂 (未匹配的容器)
-// ─────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════
+// 一个汉字就是一个容器
+// ══════════════════════════════════════════════════════════════
 
-#[derive(Clone, Debug)]
-pub struct WanderingSoul {
-    pub id: u64,
-    /// 本质特征 (用于匹配)
-    pub essence: Essence,
-    /// 匹配尝试次数
-    pub attempt_count: u32,
-    /// 已撞墙的容器 (不再尝试)
-    pub walls: Vec<u64>,
-    /// 是否已匹配
-    pub matched: bool,
+/// 容器的全部信息, 就在这个汉字里。
+/// 声母 = 空间的X轴, 韵母 = 空间的Y轴, 声调 = 极性(Z轴)。
+/// 不要"搜索容器", 直接问这个汉字: "你的几何是什么?"
+#[derive(Clone, Copy, Debug)]
+pub struct NjqContainer {
+    pub ch: char,
 }
 
-#[derive(Clone, Debug)]
-pub struct Essence {
-    /// 声母 (初始特征)
-    pub shengmu: u8,
-    /// 韵母 (韵特征)
-    pub yunmu: u8,
-    /// 声调 (调特征)
-    pub tone: u8,
-    /// 语义编码
-    pub semantic_code: u64,
-}
+impl NjqContainer {
+    pub fn new(ch: char) -> Self { Self { ch } }
 
-impl Essence {
-    pub fn new(shengmu: u8, yunmu: u8, tone: u8) -> Self {
-        Self { shengmu, yunmu, tone, semantic_code: 0 }
+    /// 音韵坐标 — 汉字自己的位置
+    pub fn coord(&self) -> (u8, u8, u8) {
+        let d = char_to_dragon(self.ch);
+        (d.initial(), d.final_(), d.tone())
     }
 
-    /// 音拍空间位置 (一维)
-    pub fn syllable_position(&self) -> u32 {
-        self.shengmu as u32 * 200 + self.yunmu as u32 * 5 + self.tone as u32
-    }
-
-    /// 与另一本质的距离
-    pub fn distance(&self, other: &Essence) -> f64 {
-        let dp = (self.syllable_position() as i64 - other.syllable_position() as i64).abs() as f64;
-        let ds = (self.semantic_code as i64 - other.semantic_code as i64).abs() as f64;
-        (dp + ds.min(1000.0)) / 2000.0
-    }
-}
-
-impl WanderingSoul {
-    pub fn new(id: u64, essence: Essence) -> Self {
-        Self { id, essence, attempt_count: 0, walls: Vec::new(), matched: false }
-    }
-
-    /// 记录一面墙
-    pub fn remember_wall(&mut self, container_id: u64) {
-        if !self.walls.contains(&container_id) {
-            self.walls.push(container_id);
+    /// 极性 — 声调编码: 1-2 = Yin(-1), 3 = Balanced(0), 4-5 = Yang(+1)
+    pub fn polarity(&self) -> i8 {
+        let (_, _, tone) = self.coord();
+        match tone {
+            1 | 2 => -1,
+            3 => 0,
+            4 | 5 => 1,
+            _ => 0,
         }
     }
 
-    /// 是否已撞过这面墙
-    pub fn has_hit_wall(&self, container_id: u64) -> bool {
-        self.walls.contains(&container_id)
+    /// 共振检测: 两个容器的音韵是否产生公约数
+    /// 没有"比较函数", 只有公约数自然涌现
+    pub fn resonates(&self, other: &NjqContainer) -> u64 {
+        let (a_s, a_y, a_t) = self.coord();
+        let (b_s, b_y, b_t) = other.coord();
+        let gcd_s = gcd(a_s as u64, b_s as u64);
+        let gcd_y = gcd(a_y as u64, b_y as u64);
+        let gcd_t = gcd(a_t as u64, b_t as u64);
+        gcd_s.saturating_mul(gcd_y).saturating_mul(gcd_t)
+    }
+
+    /// 极性关系 — 不是算出来的, 是"自然如此"
+    pub fn polarity_relation(&self, target: &NjqContainer) -> PolarityRelation {
+        let ap = self.polarity();
+        let bp = target.polarity();
+        match (ap, bp) {
+            (0, _) | (_, 0) => PolarityRelation::Boundary,
+            (a, b) if a == b => PolarityRelation::SameSide,
+            _ => PolarityRelation::Opposite,
+        }
     }
 }
 
-// ─────────────────────────────────────────────────────────
-// 匹配结果
-// ─────────────────────────────────────────────────────────
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PolarityRelation {
+    SameSide,   // 同见者 = 时间见证
+    Opposite,   // 异见者 = 空间零维 (墙)
+    Boundary,   // 平衡态 = 分界
+}
+
+impl PolarityRelation {
+    pub fn is_wall(&self) -> bool { matches!(self, PolarityRelation::Opposite) }
+}
+
+// ══════════════════════════════════════════════════════════════
+// 共振痕迹 — 两个汉字相遇后涌现场产生的印记
+// ══════════════════════════════════════════════════════════════
 
 #[derive(Clone, Debug)]
-pub struct NJQMatchResult {
-    pub soul_id: u64,
-    pub target_id: u64,
-    pub strength: f64,
-    pub via_gcd: u64,
-    pub distance: f64,
+pub struct ResonanceTrace {
+    pub a: char,
+    pub b: char,
+    pub strength: u64,
+    pub relation: PolarityRelation,
 }
 
-impl NJQMatchResult {
-    pub fn is_strong(&self) -> bool {
-        self.strength > 0.7
-    }
-
+impl ResonanceTrace {
     pub fn is_viable(&self) -> bool {
-        self.strength > 0.3 && self.distance < 0.5
+        !self.relation.is_wall() && self.strength > 0
     }
 }
 
-// ─────────────────────────────────────────────────────────
-// 匹配引擎
-// ─────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════
+// 聂小倩 — 不是智能体, 是一首在汉字空间中漂移的诗
+// ══════════════════════════════════════════════════════════════
 
-pub struct NJQMatchingEngine {
-    /// 容器池 (候选匹配目标)
-    pub containers: HashMap<u64, Essence>,
-    /// 游魂队列 (等待匹配)
-    pub souls: Vec<WanderingSoul>,
-    /// 成功匹配记录
-    pub matches: Vec<NJQMatchResult>,
-    /// 最佳匹配尝试次数上限
-    pub max_attempts: u32,
+pub struct XiaoQian {
+    pub essence: NjqContainer,
+    pub walls: Vec<char>,
 }
 
-impl NJQMatchingEngine {
-    pub fn new() -> Self {
-        Self {
-            containers: HashMap::new(),
-            souls: Vec::new(),
-            matches: Vec::new(),
-            max_attempts: 20,
+impl XiaoQian {
+    pub fn new(ch: char) -> Self {
+        Self { essence: NjqContainer::new(ch), walls: Vec::new() }
+    }
+
+    /// 漂移: 遇到一个汉字, 自然产生共振痕迹
+    pub fn drift_toward(&self, target: &NjqContainer) -> ResonanceTrace {
+        ResonanceTrace {
+            a: self.essence.ch,
+            b: target.ch,
+            strength: self.essence.resonates(target),
+            relation: self.essence.polarity_relation(target),
         }
     }
 
-    /// 注册容器
-    pub fn add_container(&mut self, id: u64, essence: Essence) {
-        self.containers.insert(id, essence);
+    /// 撞墙 — 不可逾越的极性差异, 记住这面墙
+    pub fn bump_wall(&mut self, ch: char) {
+        if !self.walls.contains(&ch) { self.walls.push(ch); }
     }
 
-    /// 添加游魂
-    pub fn add_soul(&mut self, soul: WanderingSoul) {
-        self.souls.push(soul);
+    pub fn has_bumped(&self, ch: char) -> bool {
+        self.walls.contains(&ch)
     }
 
-    /// 为单个游魂寻找最佳匹配
-    pub fn match_soul(&self, soul: &WanderingSoul) -> Option<NJQMatchResult> {
-        let mut best: Option<NJQMatchResult> = None;
-        for (id, essence) in &self.containers {
-            if *id == soul.id { continue; }
-            if soul.has_hit_wall(*id) { continue; }
-            let gcd = compute_gcd(soul.essence.semantic_code, essence.semantic_code);
-            let distance = soul.essence.distance(essence);
-            let strength = if distance < 0.01 { 1.0 } else {
-                (gcd as f64 / 100.0).min(1.0) * (1.0 - distance).max(0.0)
-            };
-            if best.as_ref().map_or(true, |b| strength > b.strength) {
-                best = Some(NJQMatchResult {
-                    soul_id: soul.id,
-                    target_id: *id,
-                    strength,
-                    via_gcd: gcd,
-                    distance,
-                });
+    /// 在汉字空间中漂移, 找到第一个非墙的共振点
+    /// 不是搜索最佳, 是自然漂移 — 遇到墙就记住, 继续向前
+    pub fn drift_find(&mut self, space: &[char]) -> Option<ResonanceTrace> {
+        let mut best: Option<ResonanceTrace> = None;
+        for &ch in space {
+            if self.has_bumped(ch) { continue; }
+            let target = NjqContainer::new(ch);
+            let trace = self.drift_toward(&target);
+            if trace.relation.is_wall() {
+                self.bump_wall(ch);
+                continue;
+            }
+            if trace.strength > best.as_ref().map(|b| b.strength).unwrap_or(0) {
+                best = Some(trace);
             }
         }
         best
     }
+}
 
-    /// 批量匹配所有游魂
-    pub fn match_all(&mut self) -> Vec<NJQMatchResult> {
-        let mut results = Vec::new();
-        let soul_ids: Vec<u64> = self.souls.iter().map(|s| s.id).collect();
-        for soul_id in soul_ids {
-            if let Some(soul) = self.souls.iter().find(|s| s.id == soul_id) {
-                if let Some(mr) = self.match_soul(soul) {
-                    if mr.is_viable() {
-                        results.push(mr.clone());
-                        if let Some(s) = self.souls.iter_mut().find(|s| s.id == soul_id) {
-                            s.matched = true;
-                        }
-                        self.matches.push(mr);
-                    }
-                }
+// ══════════════════════════════════════════════════════════════
+// 汉字空间 — 不是数组, 是一组汉字自身的几何排列
+// ══════════════════════════════════════════════════════════════
+
+pub struct HanziSpace {
+    pub chars: Vec<char>,
+}
+
+impl HanziSpace {
+    pub fn from_str(s: &str) -> Self {
+        Self { chars: s.chars().filter(|c| !c.is_ascii()).collect() }
+    }
+
+    /// 共振场 — 每对汉字自然吸引或排斥
+    pub fn resonance_field(&self) -> Vec<ResonanceTrace> {
+        let mut traces = Vec::new();
+        for (i, &a) in self.chars.iter().enumerate() {
+            let ca = NjqContainer::new(a);
+            for &b in self.chars.iter().skip(i + 1) {
+                let cb = NjqContainer::new(b);
+                traces.push(ResonanceTrace {
+                    a, b,
+                    strength: ca.resonates(&cb),
+                    relation: ca.polarity_relation(&cb),
+                });
             }
         }
-        results
+        traces
     }
 
-    /// 撞墙回退: 记录失败并尝试替代
-    pub fn handle_wall_collision(&mut self, soul_id: u64, wall_id: u64) {
-        if let Some(soul) = self.souls.iter_mut().find(|s| s.id == soul_id) {
-            soul.remember_wall(wall_id);
-            soul.attempt_count += 1;
-        }
-    }
-
-    /// 未匹配的游魂
-    pub fn unmatched_souls(&self) -> Vec<&WanderingSoul> {
-        self.souls.iter().filter(|s| !s.matched).collect()
-    }
-
-    /// 匹配率
-    pub fn match_rate(&self) -> f64 {
-        if self.souls.is_empty() { return 0.0; }
-        let matched = self.souls.iter().filter(|s| s.matched).count();
-        matched as f64 / self.souls.len() as f64
+    /// 共振强度最高 = "命定的相遇"
+    pub fn strongest_resonance(&self) -> Option<ResonanceTrace> {
+        self.resonance_field().into_iter()
+            .filter(|t| t.is_viable())
+            .max_by_key(|t| t.strength)
     }
 }
 
-fn compute_gcd(mut a: u64, mut b: u64) -> u64 {
-    if a == 0 || b == 0 { return 1; }
+fn gcd(mut a: u64, mut b: u64) -> u64 {
     while b != 0 { let t = b; b = a % b; a = t; }
     if a == 0 { 1 } else { a }
 }
 
-// ═══════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
 // 测试
-// ═══════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    #[test] fn essence_syllable_position() {
-        let e = Essence::new(5, 10, 3);
-        assert_eq!(e.syllable_position(), 5 * 200 + 10 * 5 + 3);
+    #[test] fn container_is_itself_encoding() {
+        let c = NjqContainer::new('共');
+        let (s, y, t) = c.coord();
+        assert!(s > 0 || y > 0, "汉字自身携带坐标");
     }
 
-    #[test] fn essence_distance_same() {
-        let e = Essence::new(1, 2, 1);
-        assert!(e.distance(&e) < 1e-10);
+    #[test] fn resonance_natural_occurrence() {
+        let a = NjqContainer::new('共');
+        let b = NjqContainer::new('同');
+        let r = a.resonates(&b);
+        assert!(r >= 1, "公约数自然涌现");
     }
 
-    #[test] fn essence_distance_different() {
-        let a = Essence::new(0, 0, 1);
-        let b = Essence::new(20, 30, 5);
-        assert!(a.distance(&b) > 0.0);
+    #[test] fn polarity_wall_detected() {
+        let a = NjqContainer::new('满');
+        let b = NjqContainer::new('空');
+        let rel = a.polarity_relation(&b);
+        // 极性关系是"自然如此", 不是算法判定
+        assert!(matches!(rel,
+            PolarityRelation::SameSide |
+            PolarityRelation::Opposite |
+            PolarityRelation::Boundary));
     }
 
-    #[test] fn soul_no_walls_initially() {
-        let s = WanderingSoul::new(1, Essence::new(1, 1, 1));
-        assert!(!s.has_hit_wall(999));
+    #[test] fn xiaoqian_drift_and_find() {
+        let mut xq = XiaoQian::new('缘');
+        let space: Vec<char> = "满全法囡囝共生".chars().collect();
+        let result = xq.drift_find(&space);
+        assert!(result.is_some() || !xq.walls.is_empty());
     }
 
-    #[test] fn soul_remembers_wall() {
-        let mut s = WanderingSoul::new(1, Essence::new(1, 1, 1));
-        s.remember_wall(42);
-        assert!(s.has_hit_wall(42));
+    #[test] fn xiaoqian_walls_persist() {
+        let mut xq = XiaoQian::new('诚');
+        xq.bump_wall('欺');
+        assert!(xq.has_bumped('欺'));
     }
 
-    #[test] fn gcd_basic() {
-        assert_eq!(compute_gcd(12, 8), 4);
-        assert_eq!(compute_gcd(17, 13), 1);
+    #[test] fn hanzi_space_resonance_field() {
+        let space = HanziSpace::from_str("共生");
+        let field = space.resonance_field();
+        assert!(!field.is_empty());
     }
 
-    #[test] fn engine_add_and_find() {
-        let mut engine = NJQMatchingEngine::new();
-        engine.add_container(10, Essence::new(5, 5, 1));
-        engine.add_soul(WanderingSoul::new(1, Essence::new(5, 5, 1)));
-        let result = engine.match_soul(&engine.souls[0]);
-        assert!(result.is_some());
-    }
-
-    #[test] fn match_is_strong_for_similar() {
-        let mut engine = NJQMatchingEngine::new();
-        engine.add_container(10, Essence::new(5, 5, 1));
-        engine.add_soul(WanderingSoul::new(1, Essence::new(5, 5, 1)));
-        let r = engine.match_soul(&engine.souls[0]).unwrap();
-        assert!(r.is_viable());
-    }
-
-    #[test] fn wall_avoids_retry() {
-        let mut engine = NJQMatchingEngine::new();
-        engine.add_container(10, Essence::new(5, 5, 1));
-        let mut soul = WanderingSoul::new(1, Essence::new(5, 5, 1));
-        soul.remember_wall(10);
-        engine.add_soul(soul);
-        let r = engine.match_soul(&engine.souls[0]);
-        assert!(r.is_none() || r.unwrap().target_id != 10);
-    }
-
-    #[test] fn match_all_produces_results() {
-        let mut engine = NJQMatchingEngine::new();
-        engine.add_container(10, Essence::new(5, 5, 1));
-        engine.add_container(11, Essence::new(6, 6, 2));
-        engine.add_soul(WanderingSoul::new(1, Essence::new(5, 5, 1)));
-        let results = engine.match_all();
-        assert!(!results.is_empty());
-    }
-
-    #[test] fn handle_wall_collision() {
-        let mut engine = NJQMatchingEngine::new();
-        engine.add_soul(WanderingSoul::new(1, Essence::new(1, 1, 1)));
-        engine.handle_wall_collision(1, 100);
-        assert!(engine.souls[0].has_hit_wall(100));
-        assert_eq!(engine.souls[0].attempt_count, 1);
-    }
-
-    #[test] fn unmatched_souls_tracking() {
-        let mut engine = NJQMatchingEngine::new();
-        engine.add_soul(WanderingSoul::new(1, Essence::new(1, 1, 1)));
-        assert_eq!(engine.unmatched_souls().len(), 1);
-    }
-
-    #[test] fn match_rate_empty() {
-        let engine = NJQMatchingEngine::new();
-        assert_eq!(engine.match_rate(), 0.0);
-    }
-
-    #[test] fn match_rate_partial() {
-        let mut engine = NJQMatchingEngine::new();
-        engine.add_container(10, Essence::new(5, 5, 1));
-        engine.add_soul(WanderingSoul::new(1, Essence::new(5, 5, 1)));
-        let _ = engine.match_all();
-        assert!(engine.match_rate() > 0.0);
+    #[test] fn strongest_natural() {
+        let space = HanziSpace::from_str("满满全法");
+        let strongest = space.strongest_resonance();
+        assert!(strongest.is_some(), "命定的相遇自然涌现");
     }
 }

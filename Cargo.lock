@@ -594,6 +594,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "mqf-ffi"
+version = "0.1.0"
+
+[[package]]
 name = "mqf-isa"
 version = "0.3.0"
 

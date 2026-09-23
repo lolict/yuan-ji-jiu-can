@@ -179,14 +179,17 @@ test-radix-star: encoding/radix_star.c encoding/radix_star.h encoding/test_radix
 test-global-control-kernel: kernel/src/global_control_bridge_kernel.c \
                             kernel/include/global_control_bridge_kernel.h \
                             encoding/global_control.c encoding/global_control.h \
-                            encoding/mind_organ.c encoding/mind_organ.h
+                            encoding/mind_organ.c encoding/mind_organ.h \
+                            encoding/expropriation_bridge.c encoding/expropriation_bridge.h
 	$(CC) $(CFLAGS) -DMLLL_LIBRARY -DBRIDGE_TEST -Iencoding -Ikernel/include \
 	  kernel/src/global_control_bridge_kernel.c \
 	  encoding/global_control.c \
 	  encoding/mind_organ.c \
-	  -o kernel/src/global_control_bridge_kernel.elf -lm
-	@echo "═══ 全局控制容器 · 内核桥接 (含感知器官) ═══"
-	./kernel/src/global_control_bridge_kernel.elf
+	  encoding/expropriation_bridge.c \
+	  -L$(PWD)/target/release -lmqf_ffi -ldl -lpthread -lm \
+	  -o kernel/src/global_control_bridge_kernel.elf
+	@echo "═══ 全局控制容器 · 内核桥接 (含感知器官 + Rust FFI 直通) ═══"
+	LD_LIBRARY_PATH=$(PWD)/target/release ./kernel/src/global_control_bridge_kernel.elf
 
 # 全局控制容器测试 (声母遍历韵母 + 聂小倩借尸还魂 + 决策树)
 test-global-control: encoding/global_control.c encoding/global_control.h encoding/test_global_control.c

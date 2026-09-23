@@ -1,0 +1,9 @@
+[package]
+name = "mqf-ffi"
+version = "0.1.0"
+edition = "2021"
+authors = ["lolict & 刘楚恬"]
+description = "囡囝共生 · FFI 桥接 — 轻量级 cdylib 接口 (C → Rust 唯一通道)"
+
+[lib]
+crate-type = ["cdylib", "staticlib"]

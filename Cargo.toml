@@ -1,5 +1,5 @@
 [workspace]
-members = ["hunyuan-rs", "mqf-isa"]
+members = ["hunyuan-rs", "mqf-isa", "mqf-ffi"]
 resolver = "2"
 
 [workspace.package]

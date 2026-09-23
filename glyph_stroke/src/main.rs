@@ -460,6 +460,9 @@ fn main() {
         eprintln!("      glyph_stroke --batch <文件路径>    # 文件批处理");
         eprintln!("示例: glyph_stroke 囡囝共生");
         eprintln!("      glyph_stroke --atlas           # 全字库图谱");
+        eprintln!("      glyph_stroke --smrl <汉字>      # SMRL 64-bit 单元格");
+        eprintln!("      glyph_stroke --json <汉字>      # JSON 编码输出");
+        eprintln!("      glyph_stroke --fold <字1> <字2>  # 容器叠加运算");
         eprintln!("      glyph_stroke --reverse 袋");
         process::exit(1);
     }
@@ -470,10 +473,13 @@ fn main() {
     let mut batch_mode = false;
     let mut atlas_mode = false;
     let mut smrl_mode = false;
+    let mut json_mode = false;
+    let mut fold_mode = false;
     let mut output_file: Option<&str> = None;
     let mut input = "";
 
     let mut i = 1;
+    let mut fold_arg2: Option<String> = None;
     while i < args.len() {
         match args[i].as_str() {
             "--export" | "-e" => { export_mode = true; i += 1; }
@@ -482,6 +488,22 @@ fn main() {
             "--batch" | "-b" => { batch_mode = true; i += 1; }
             "--atlas" | "-a" => { atlas_mode = true; i += 1; }
             "--smrl" | "-s" => { smrl_mode = true; i += 1; }
+            "--json" | "-j" => { json_mode = true; i += 1; }
+            "--fold" | "-f" => {
+                fold_mode = true;
+                i += 1;
+                // Try to capture two more args
+                if i + 2 <= args.len() {
+                    fold_arg2 = Some(args[i + 1].clone());
+                    input = &args[i];
+                    i += 2;
+                } else if i + 1 <= args.len() {
+                    input = &args[i];
+                    i += 1;
+                } else {
+                    i += 1;
+                }
+            }
             "--output" | "-o" => {
                 if i + 1 < args.len() { output_file = Some(&args[i + 1]); }
                 i += 2;
@@ -494,6 +516,15 @@ fn main() {
         encode_atlas()
     } else if smrl_mode {
         encode_smrl(input)
+    } else if json_mode {
+        encode_json(input)
+    } else if fold_mode {
+        let combined = if let Some(ref a2) = fold_arg2 {
+            format!("{} {}", input, a2)
+        } else {
+            input.to_string()
+        };
+        encode_fold(&combined)
     } else if reverse_mode {
         encode_reverse(input)
     } else if batch_mode {
@@ -620,17 +651,45 @@ fn encode_smrl(input: &str) -> String {
     let mut buf = String::new();
     buf.push_str("═══ SMRL 64-bit 单元格编码 ═══\n\n");
 
+    // Per-character cell
     for ch in input.chars() {
         if let Ok(gc) = encode_char(ch) {
+            // Build the 64-bit cell:
+            // bits 0-53: container mask
+            // bit 38:   妻子在场
+            // bit 39:   丈夫在场
+            // bits 54-59: 6-bit compact code (first container idx)
+            // bit 62:   极性 (1=阳, 0=阴)
+            // bit 63:   保留(0)
             let mut cell: u64 = 0;
-            for s in &gc.strokes { cell |= 1u64 << *s as u8; }
+
+            // Container mask in bits 0..16 (we only use 16 stroke-container bits)
+            for s in &gc.strokes {
+                cell |= 1u64 << *s as u8;
+            }
+
+            // Occupant bits
             if gc.bit38 != 0 { cell |= 1u64 << 38; }
             if gc.bit39 != 0 { cell |= 1u64 << 39; }
-            if let Some(&max_idx) = gc.strokes.iter().max() { cell |= (max_idx as u64) << 54; }
-            if gc.polarity == "阳" { cell |= 1u64 << 62; }
 
-            let side_text = if gc.bit38 != 0 && gc.bit39 != 0 { "夫妻同在" }
-                else if gc.bit39 != 0 { "丈夫侧" } else { "妻子侧" };
+            // 6-bit compact code = highest container index
+            if let Some(&max_idx) = gc.strokes.iter().max() {
+                cell |= (max_idx as u64) << 54;
+            }
+
+            // Polarity in bit 62
+            if gc.polarity == "阳" {
+                cell |= 1u64 << 62;
+            }
+
+            // Side info text
+            let side_text = if gc.bit38 != 0 && gc.bit39 != 0 {
+                "夫妻同在"
+            } else if gc.bit39 != 0 {
+                "丈夫侧"
+            } else {
+                "妻子侧"
+            };
 
             buf.push_str(&format!("字: {}\n", ch));
             buf.push_str(&format!("  笔画({}画): {} → {}\n",
@@ -642,29 +701,41 @@ fn encode_smrl(input: &str) -> String {
             buf.push_str(&format!("  SMRL Cell: 0x{:016X}\n", cell));
             buf.push_str(&format!("  二进制:  {:#066b}\n", cell));
 
+            // Bit field breakdown
             let container_bits = cell & 0xFFFF;
-            buf.push_str("  位域分解:\n");
-            buf.push_str(&format!("    [15:0   容器掩码] 0x{:04X} = {:#018b}\n", container_bits, container_bits));
+            let wife_bit   = (cell >> 38) & 1;
+            let husband_bit = (cell >> 39) & 1;
+            let code6_bits = (cell >> 54) & 0x3F;
+            let polar_bit  = (cell >> 62) & 1;
+
+            buf.push_str(&format!("  位域分解:\n"));
+            buf.push_str(&format!("    [15:0   容器掩码] 0x{:04X} = {:#018b}\n",
+                container_bits, container_bits));
             buf.push_str(&format!("    [16:37  扩展预留] ——\n"));
-            buf.push_str(&format!("    [38     妻子在场] {}\n", (cell >> 38) & 1));
-            buf.push_str(&format!("    [39     丈夫在场] {}\n", (cell >> 39) & 1));
+            buf.push_str(&format!("    [38     妻子在场] {}\n", wife_bit));
+            buf.push_str(&format!("    [39     丈夫在场] {}\n", husband_bit));
             buf.push_str(&format!("    [40:53 保留   ] ——\n"));
-            buf.push_str(&format!("    [54:59 6-bit编码] 0b{:06b} = {}\n", (cell >> 54) & 0x3F, (cell >> 54) & 0x3F));
+            buf.push_str(&format!("    [54:59 6-bit编码] 0b{:06b} = {}\n", code6_bits, code6_bits));
             buf.push_str(&format!("    [60:61 保留   ] ——\n"));
-            buf.push_str(&format!("    [62     极性(阳=1)] {}\n", (cell >> 62) & 1));
+            buf.push_str(&format!("    [62     极性(阳=1)] {}\n", polar_bit));
             buf.push_str(&format!("    [63     保留   ] 0\n"));
+
+            // Nested form
             buf.push_str(&format!("  容器嵌套: {}\n", gc.nested));
 
+            // Spousal resonance check (bit38/39 both set)
             if gc.bit38 != 0 && gc.bit39 != 0 {
-                buf.push_str("  ◆ bit38=bit39=1 → 夫妻共鸣态\n");
+                let xor = gc.bit38 ^ gc.bit39;
+                buf.push_str(&format!("  ◆ bit38=bit39=1 → 夫妻共鸣态 (XOR={})\n", xor));
             }
+
             buf.push_str("\n");
         } else {
             buf.push_str(&format!("字: {} → (未收录)\n\n", ch));
         }
     }
 
-    // Aggregate cell
+    // Aggregate cell (phrase-level)
     if input.chars().count() > 1 {
         buf.push_str("═══════════════════════════════════\n");
         buf.push_str("聚合单元格（词语级 SMRL）\n\n");
@@ -675,18 +746,21 @@ fn encode_smrl(input: &str) -> String {
 
         for ch in input.chars() {
             if let Ok(gc) = encode_char(ch) {
-                for s in &gc.strokes { agg_cell |= 1u64 << *s as u8; }
+                for s in &gc.strokes {
+                    agg_cell |= 1u64 << *s as u8;
+                }
                 if gc.bit38 != 0 { any_wife = true; }
                 if gc.bit39 != 0 { any_husband = true; }
                 if gc.polarity != "阳" { all_yang = false; }
             }
         }
-        if any_wife { agg_cell |= 1u64 << 38; }
-        if any_husband { agg_cell |= 1u64 << 39; }
-        if all_yang { agg_cell |= 1u64 << 62; }
 
-        let cb = agg_cell & 0xFFFF;
-        buf.push_str(&format!("聚合容器掩码: 0x{:04X}\n", cb));
+        if any_wife   { agg_cell |= 1u64 << 38; }
+        if any_husband { agg_cell |= 1u64 << 39; }
+        if all_yang    { agg_cell |= 1u64 << 62; }
+
+        let container_bits = agg_cell & 0xFFFF;
+        buf.push_str(&format!("聚合容器掩码: 0x{:04X}\n", container_bits));
         buf.push_str(&format!("妻子聚合:    bit38={}\n", any_wife as u8));
         buf.push_str(&format!("丈夫聚合:    bit39={}\n", any_husband as u8));
         let agg_polar = if (agg_cell >> 62) & 1 == 1 { "阳" } else { "阴" };
@@ -694,11 +768,212 @@ fn encode_smrl(input: &str) -> String {
         buf.push_str(&format!("聚合 Cell:   0x{:016X}\n", agg_cell));
         buf.push_str(&format!("  二进制:     {:#066b}\n", agg_cell));
 
+        // Active containers list
         let mut active: Vec<&str> = Vec::new();
-        for i in 0..16u8 { if (cb >> i) & 1 == 1 { active.push(CONTAINER_NAMES[i as usize]); } }
+        for i in 0..16u8 {
+            if (container_bits >> i) & 1 == 1 {
+                active.push(CONTAINER_NAMES[i as usize]);
+            }
+        }
         buf.push_str(&format!("激活容器集: [{}]\n", active.join(", ")));
+
         if any_wife && any_husband {
             buf.push_str("\n◆ bit38+bit39=11 → 夫妻共鸣激活词\n");
+        }
+    }
+
+    buf
+}
+
+fn encode_json(input: &str) -> String {
+    let mut buf = String::new();
+    buf.push_str("{\n");
+    buf.push_str(&format!("  \"version\": \"1.0\",\n"));
+    buf.push_str(&format!("  \"encoder\": \"glyph_stroke/radix-hanzi\",\n"));
+    buf.push_str(&format!("  \"input\": \"{}\",\n", input));
+    buf.push_str("  \"characters\": [\n");
+
+    let mut agg_cell: u64 = 0;
+    let mut any_wife = false;
+    let mut any_husband = false;
+    let char_count = input.chars().count();
+    let mut idx = 0;
+
+    for ch in input.chars() {
+        if let Ok(gc) = encode_char(ch) {
+            let mut cell: u64 = 0;
+            let mut stroke_indices: Vec<u8> = Vec::new();
+            let mut container_names: Vec<&str> = Vec::new();
+
+            for &s in &gc.strokes {
+                cell |= 1u64 << s;
+                stroke_indices.push(s);
+                if (s as usize) < 16 {
+                    container_names.push(CONTAINER_NAMES[s as usize]);
+                }
+            }
+            if gc.bit38 != 0 { cell |= 1u64 << 38; }
+            if gc.bit39 != 0 { cell |= 1u64 << 39; }
+            if let Some(&max_idx) = gc.strokes.iter().max() { cell |= (max_idx as u64) << 54; }
+            if gc.polarity == "阳" { cell |= 1u64 << 62; }
+
+            agg_cell |= cell & 0xFFFF;
+            if gc.bit38 != 0 { any_wife = true; }
+            if gc.bit39 != 0 { any_husband = true; }
+
+            let side = if gc.bit38 != 0 && gc.bit39 != 0 { "夫妻同在" } else if gc.bit39 != 0 { "丈夫侧" } else { "妻子侧" };
+            let strokes_str = stroke_indices.iter().map(|n| n.to_string()).collect::<Vec<_>>().join(", ");
+            let containers_str = container_names.iter().map(|c| format!("\"{}\"", c)).collect::<Vec<_>>().join(", ");
+
+            buf.push_str("    {\n");
+            buf.push_str(&format!("      \"char\": \"{}\",\n", ch));
+            buf.push_str(&format!("      \"strokes\": [{}],\n", strokes_str));
+            buf.push_str(&format!("      \"containers\": [{}],\n", containers_str));
+            buf.push_str(&format!("      \"polarity\": \"{}\",\n", gc.polarity));
+            buf.push_str(&format!("      \"side\": \"{}\",\n", side));
+            buf.push_str(&format!("      \"display_container\": \"{}\",\n", gc.display_container));
+            buf.push_str(&format!("      \"bit38\": {},\n", gc.bit38));
+            buf.push_str(&format!("      \"bit39\": {},\n", gc.bit39));
+            buf.push_str(&format!("      \"cell_u64\": {},\n", cell));
+            buf.push_str(&format!("      \"cell_hex\": \"0x{:016X}\",\n", cell));
+            buf.push_str(&format!("      \"code6\": {}\n", gc.code6));
+            idx += 1;
+            if idx < char_count {
+                buf.push_str("    },\n");
+            } else {
+                buf.push_str("    }\n");
+            }
+        }
+    }
+
+    buf.push_str("  ],\n");
+
+    if any_wife { agg_cell |= 1u64 << 38; }
+    if any_husband { agg_cell |= 1u64 << 39; }
+    let agg_polar = if (agg_cell >> 62) & 1 == 1 { "阳" } else { "阴" };
+
+    buf.push_str("  \"aggregate\": {\n");
+    buf.push_str(&format!("    \"cell_hex\": \"0x{:016X}\",\n", agg_cell));
+    buf.push_str(&format!("    \"cell_u64\": {},\n", agg_cell));
+    buf.push_str(&format!("    \"container_mask\": \"0x{:04X}\",\n", agg_cell & 0xFFFF));
+    buf.push_str(&format!("    \"bit38_wife\": {},\n", any_wife));
+    buf.push_str(&format!("    \"bit39_husband\": {},\n", any_husband));
+    buf.push_str(&format!("    \"polarity\": \"{}\"\n", agg_polar));
+    buf.push_str("  }\n");
+    buf.push_str("}\n");
+
+    buf
+}
+
+fn encode_fold(input: &str) -> String {
+    // Split input into two parts for container fold operation
+    let parts: Vec<&str> = input.split_whitespace().collect();
+    if parts.len() < 2 {
+        // Try splitting by common delimiters
+        let chars: Vec<char> = input.chars().filter(|c| !c.is_whitespace()).collect();
+        if chars.len() >= 2 {
+            let mut buf = String::new();
+            buf.push_str("═══ 容器叠加运算 ═══\n\n");
+            // Pairwise fold
+            for window in chars.windows(2) {
+                let c1 = window[0];
+                let c2 = window[1];
+                if let (Ok(gc1), Ok(gc2)) = (encode_char(c1), encode_char(c2)) {
+                    buf.push_str(&fold_two(c1, &gc1, c2, &gc2));
+                    buf.push_str("\n");
+                }
+            }
+            return buf;
+        }
+        return "用法: --fold <字1> <字2>\n  或: --折 <字串>（逐对叠加）\n".to_string();
+    }
+
+    // Two explicit characters/words
+    let word1 = parts[0];
+    let word2 = parts[1];
+
+    let mut buf = String::new();
+    buf.push_str("═══ 容器叠加运算 ═══\n\n");
+    buf.push_str(&format!("前字组: {}\n", word1));
+    buf.push_str(&format!("后字组: {}\n\n", word2));
+
+    // Aggregate containers for each word
+    let mut cell1: u64 = 0;
+    let mut cell2: u64 = 0;
+    let mut set1: Vec<&str> = Vec::new();
+    let mut set2: Vec<&str> = Vec::new();
+
+    for ch in word1.chars() {
+        if let Ok(gc) = encode_char(ch) {
+            for &s in &gc.strokes {
+                cell1 |= 1u64 << s;
+                let name = CONTAINER_NAMES[s as usize];
+                if !set1.contains(&name) { set1.push(name); }
+            }
+        }
+    }
+    for ch in word2.chars() {
+        if let Ok(gc) = encode_char(ch) {
+            for &s in &gc.strokes {
+                cell2 |= 1u64 << s;
+                let name = CONTAINER_NAMES[s as usize];
+                if !set2.contains(&name) { set2.push(name); }
+            }
+        }
+    }
+
+    buf.push_str(&format!("前字容器: [{}] (0x{:04X})\n", set1.join(", "), cell1 & 0xFFFF));
+    buf.push_str(&format!("后字容器: [{}] (0x{:04X})\n\n", set2.join(", "), cell2 & 0xFFFF));
+
+    // Intersection = 公约数 (shared containers)
+    let common = cell1 & cell2;
+    // Union after fold: 前字容器装后字容器 (前字壳 = 后字入口)
+    let folded = cell1 | cell2;
+
+    let mut common_set: Vec<&str> = Vec::new();
+    for i in 0..16u8 {
+        if (common >> i) & 1 == 1 { common_set.push(CONTAINER_NAMES[i as usize]); }
+    }
+    let mut result_set: Vec<&str> = Vec::new();
+    for i in 0..16u8 {
+        if (folded >> i) & 1 == 1 { result_set.push(CONTAINER_NAMES[i as usize]); }
+    }
+
+    buf.push_str(&format!("公约数（共享）: [{}] (0x{:04X})\n", common_set.join(", "), common & 0xFFFF));
+    buf.push_str(&format!("叠加结果: [{}] (0x{:04X})\n", result_set.join(", "), folded & 0xFFFF));
+
+    if !common_set.is_empty() {
+        buf.push_str(&format!("\n◆ 容器融合: {} 在前字和后字中都存在，可直接共鸣\n", common_set.join("、")));
+    }
+
+    // Nested form: 前字最外层装后字最内层
+    if let (Some(first), Some(last)) = (set1.first(), set2.last()) {
+        buf.push_str(&format!("◆ 容器串联: {}（前字壳） → {}（后字入口）\n", first, last));
+    }
+
+    buf
+}
+
+fn fold_two(c1: char, gc1: &GlyphCode, c2: char, gc2: &GlyphCode) -> String {
+    let mut buf = String::new();
+    buf.push_str(&format!("{} + {}: ", c1, c2));
+    buf.push_str(&format!("[{}] + [{}] = ", gc1.container_set.join("+"), gc2.container_set.join("+")));
+
+    // Compute combined container mask
+    let mut combined: u64 = 0;
+    for &s in &gc1.strokes { combined |= 1u64 << s; }
+    for &s in &gc2.strokes { combined |= 1u64 << s; }
+
+    let mut result: Vec<&str> = Vec::new();
+    for i in 0..16u8 {
+        if (combined >> i) & 1 == 1 { result.push(CONTAINER_NAMES[i as usize]); }
+    }
+    buf.push_str(&format!("[{}] (0x{:04X})", result.join("+"), combined & 0xFFFF));
+
+    // Nesting: first of c1 + last of c2
+    if let (Some(first), Some(last)) = (gc1.container_set.first(), gc2.container_set.last()) {
+        if first != last {
+            buf.push_str(& format!(" → {}装{}", first, last));
         }
     }
     buf

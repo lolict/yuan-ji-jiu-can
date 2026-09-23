@@ -494,18 +494,18 @@ impl GlyphTemplates {
         let mut g = GlyphImage::new(8, 8);
         // 横 (第2行)
         for x in 1..7 {
-            g.set(x, 2, GlyphPixel::ink(Phase::Horizontal));
+            g.set(x, 2, GlyphPixel::ink(phase::HORIZONTAL));
         }
         // 竖 (第4列)
         for y in 1..7 {
-            g.set(4, y, GlyphPixel::ink(Phase::Vertical));
+            g.set(4, y, GlyphPixel::ink(phase::VERTICAL));
         }
         // 撇 (左上到中)
-        g.set(2, 1, GlyphPixel::ink(Phase::Diagonal));
-        g.set(3, 2, GlyphPixel::ink(Phase::Diagonal));
+        g.set(2, 1, GlyphPixel::ink(phase::DIAGONAL));
+        g.set(3, 2, GlyphPixel::ink(phase::DIAGONAL));
         // 捺 (右上到中)
-        g.set(6, 1, GlyphPixel::ink(Phase::Diagonal));
-        g.set(5, 2, GlyphPixel::ink(Phase::Diagonal));
+        g.set(6, 1, GlyphPixel::ink(phase::DIAGONAL));
+        g.set(5, 2, GlyphPixel::ink(phase::DIAGONAL));
         g
     }
 
@@ -522,13 +522,13 @@ impl GlyphTemplates {
     pub fn kou() -> GlyphImage {
         let mut g = GlyphImage::new(6, 6);
         // 上横
-        for x in 1..5 { g.set(x, 1, GlyphPixel::ink(Phase::Horizontal)); }
+        for x in 1..5 { g.set(x, 1, GlyphPixel::ink(phase::HORIZONTAL)); }
         // 下横
-        for x in 1..5 { g.set(x, 4, GlyphPixel::ink(Phase::Horizontal)); }
+        for x in 1..5 { g.set(x, 4, GlyphPixel::ink(phase::HORIZONTAL)); }
         // 左竖
-        for y in 1..5 { g.set(1, y, GlyphPixel::ink(Phase::Vertical)); }
+        for y in 1..5 { g.set(1, y, GlyphPixel::ink(phase::VERTICAL)); }
         // 右竖
-        for y in 1..5 { g.set(4, y, GlyphPixel::ink(Phase::Vertical)); }
+        for y in 1..5 { g.set(4, y, GlyphPixel::ink(phase::VERTICAL)); }
         g
     }
 
@@ -536,10 +536,10 @@ impl GlyphTemplates {
     pub fn ri() -> GlyphImage {
         let mut g = Self::kou();
         // 中间一横
-        for x in 1..5 { g.set(x, 2, GlyphPixel::ink(Phase::Horizontal)); }
+        for x in 1..5 { g.set(x, 2, GlyphPixel::ink(phase::HORIZONTAL)); }
         // 中间一横的相位设为中间
         for x in 1..5 {
-            g.set(x, 2, GlyphPixel::ink(Phase::Middle));
+            g.set(x, 2, GlyphPixel::ink(phase::MIDDLE));
         }
         g
     }
@@ -548,33 +548,33 @@ impl GlyphTemplates {
     pub fn tian() -> GlyphImage {
         let mut g = Self::kou();
         // 中间十字
-        for x in 1..5 { g.set(x, 2, GlyphPixel::ink(Phase::Middle)); }
-        for y in 1..5 { g.set(2, y, GlyphPixel::ink(Phase::Middle)); }
+        for x in 1..5 { g.set(x, 2, GlyphPixel::ink(phase::MIDDLE)); }
+        for y in 1..5 { g.set(2, y, GlyphPixel::ink(phase::MIDDLE)); }
         g
     }
 
     /// "一"字 — 一条横线
     pub fn yi() -> GlyphImage {
         let mut g = GlyphImage::new(8, 3);
-        for x in 1..7 { g.set(x, 1, GlyphPixel::ink(Phase::Horizontal)); }
+        for x in 1..7 { g.set(x, 1, GlyphPixel::ink(phase::HORIZONTAL)); }
         g
     }
 
     /// "丨"字 — 一条竖线
     pub fn shu() -> GlyphImage {
         let mut g = GlyphImage::new(3, 8);
-        for y in 1..7 { g.set(1, y, GlyphPixel::ink(Phase::Vertical)); }
+        for y in 1..7 { g.set(1, y, GlyphPixel::ink(phase::VERTICAL)); }
         g
     }
 }
 
 // 相位常量
-pub mod Phase {
-    pub const Horizontal: u8 = 0;    // 横
-    pub const Vertical: u8 = 64;     // 竖 (384°/4 ≈ 96°, 映射到64)
-    pub const Diagonal: u8 = 128;    // 撇捺 (斜)
-    pub const Middle: u8 = 192;      // 中间
-    pub const Unknown: u8 = 255;     // 未知
+pub mod phase {
+    pub const HORIZONTAL: u8 = 0;    // 横
+    pub const VERTICAL: u8 = 64;     // 竖 (384°/4 ≈ 96°, 映射到64)
+    pub const DIAGONAL: u8 = 128;    // 撇捺 (斜)
+    pub const MIDDLE: u8 = 192;      // 中间
+    pub const UNKNOWN: u8 = 255;     // 未知
 }
 
 // ────────────────────────────────────────────────────────────────────

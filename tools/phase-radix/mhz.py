@@ -74,6 +74,12 @@ from phase_radix._native import (
     WK_FLOW_PRELOAD, WK_FLOW_CATEGORY, WK_FLOW_CLUSTER, WK_FLOW_DISTINGUISH,
     WK_FLOW_PROPERTY, WK_FLOW_INTERPRET, WK_FLOW_RELATION, WK_FLOW_CONCEPT,
 )
+from container_relations import (
+    ContainerRelationEngine,
+    build_cell as _cr_build_cell,
+    parse_cell as _cr_parse_cell,
+    FOLD_NONE, FOLD_A_IN_B, FOLD_B_IN_A, FOLD_MUTUAL,
+)
 
 # 容器标识 (与 global_interlock.h 一致)
 CONT_COLOR_SYSTEM = 0x01
@@ -1054,34 +1060,63 @@ def cmd_repl():
     court = CourtEngine()
     court.set_state(COURT_STATE_NJSG)
     ime = MetaImeEngine()
+    from live_code import LiveCodePipeline, LiveCodeVM, LiveCodeCompiler
+    pipeline = LiveCodePipeline()
+    rel_engine = ContainerRelationEngine(state=COURT_STATE_NJSG)
     
     # 工作空间: id → cell
     cells = {}
+    # 细胞代际: id → generation (第几轮外部命令产生的)
+    cell_gen = {}
     # 裁决历史: (id_a, id_b, verdict, conf, tick)
     history = []
     _next_id = [0]
     _tick = [0]  # 时间戳计数器
+    _gen = [0]   # 当前代际 (外部命令+1)
     
-    def _add_cell(mccp, sov, pol, wit, flow=0):
-        """添加细胞 + 自动触发对所有已有细胞的裁决 (鼓膜自举)"""
+    def _add_cell(mccp, sov, pol, wit, flow=0, auto_judge=True):
+        """添加细胞 + 可选的鼓膜自举裁决
+        
+        代际隔离: 只对"上一代及更早"的细胞做裁决
+        → 本轮产生的融合细胞不参与本轮裁决
+        → 空间线性增长而非指数
+        """
         cell = ((pol & 0xF) << 60) | ((wit & 0xF) << 56) | ((flow & 0xF) << 52) | ((sov & 0x1FFFFF) << 32) | (mccp & 0xFFFFFFFF)
         cid = _next_id[0]
         cells[cid] = cell
         _next_id[0] += 1
-        _tick[0] += 1
+        
+        # 代际标记: 外部添加=当前代, 内部融合=当前代但不参与本轮裁决
+        cell_gen[cid] = _gen[0] if auto_judge else -_gen[0]  # 负数=本轮融合产出
         
         pn = ['妻','夫','系统','观察','裁决','秘'][pol] if pol < 6 else f'?'
         header = f"  ✓ #{cid} 0x{cell:012X} [{pn} w{wit} s0x{sov:X}]"
         
-        # ── 鼓膜自举: 自动与所有已有细胞裁决 ──
+        # ── 鼓膜自举: 仅对"严格上一代"的细胞做裁决 (代际隔离) ──
         auto_results = []
-        if len(cells) > 1:
-            for prev_id, prev_cell in sorted(cells.items()):
-                if prev_id == cid:
-                    continue
-                r = court.judge(cell, prev_cell, 0)
-                auto_results.append((prev_id, r))
-                history.append((prev_id, cid, r['verdict'], r['confidence'], _tick[0]))
+        if auto_judge:
+            _tick[0] += 1
+            # 筛选: 只裁决 gen < 当前gen 的细胞 (即上代及更早, 不含本轮产出)
+            prev_cells = {k: v for k, v in cells.items()
+                         if cell_gen.get(k, 0) >= 0 and cell_gen.get(k, 0) < _gen[0]}
+            if prev_cells:
+                for prev_id, prev_cell in sorted(prev_cells.items()):
+                    r = rel_engine.compute_relationship(cell, prev_cell)
+                    mapped = {
+                        'verdict': COURT_MERGE if r['verdict'] == 'MERGE' else
+                                   COURT_REPEL if r['verdict'] == 'REPEL' else
+                                   COURT_WITNESS if r['verdict'] == 'WITNESS' else
+                                   COURT_TRANSFORM if r['verdict'] == 'TRANSFORM' else
+                                   COURT_DEFER if r['verdict'] == 'DEFER' else
+                                   COURT_ESCALATE,
+                        'confidence': r['confidence'],
+                        'output_cell': r.get('output_cell'),
+                        'reason_str': r['metrics'].get('geometry', ''),
+                        'verdict_str': r['verdict'],
+                        'metrics': r.get('metrics', {}),
+                    }
+                    auto_results.append((prev_id, mapped))
+                    history.append((prev_id, cid, mapped['verdict'], mapped['confidence'], _tick[0]))
         
         return cid, cell, header, auto_results
     
@@ -1113,6 +1148,7 @@ def cmd_repl():
             
             # ── 添加细胞 (自动触发裁决) ──
             if cmd == 'add' and len(parts) >= 5:
+                _gen[0] += 1  # 新的一代
                 mccp = int(parts[1], 0)
                 sov = int(parts[2], 0)
                 pol = int(parts[3], 0)
@@ -1122,7 +1158,7 @@ def cmd_repl():
                 # 显示自动裁决结果
                 for prev_id, r in auto_results:
                     print(f"    ×#{prev_id} → {_format_verdict(r)}")
-                # 如果有融合 → 自动生成新细胞
+                # 如果有融合 → 生成新细胞 (但不参与本轮裁决，防止膨胀)
                 for prev_id, r in auto_results:
                     if r['output_cell'] and r['verdict'] == COURT_MERGE:
                         new_cid, _, _, _ = _add_cell(
@@ -1130,11 +1166,13 @@ def cmd_repl():
                             (r['output_cell'] >> 32) & 0x1FFFFF,
                             (r['output_cell'] >> 60) & 0xF,
                             (r['output_cell'] >> 56) & 0xF,
+                            auto_judge=False,  # 折叠约束：融合细胞不参与本轮自举
                         )
                         print(f"    ⚡ 融合 → #{new_cid}")
             
             # ── MetaIME 编码 (也自动触发裁决) ──
             elif cmd == 'encode' and len(parts) >= 5:
+                _gen[0] += 1  # 新的一代
                 sm = int(parts[1], 0)
                 ym = int(parts[2], 0)
                 tone = int(parts[3], 0)
@@ -1148,14 +1186,24 @@ def cmd_repl():
                 d = ime.decode(cell)
                 pn = ['妻','夫','系统'][d['polarity']] if d['polarity'] < 3 else '?'
                 print(f"  → #{cid} 0x{cell:012X} [{pn} w{d['wit']} s0x{d['sovereignty']:X}]")
-                # 自动裁决
+                # 自动裁决 (GCD几何引擎)
                 auto_results = []
                 for prev_id, prev_cell in sorted(cells.items()):
                     if prev_id == cid:
                         continue
-                    r = court.judge(cell, prev_cell, 0)
-                    auto_results.append((prev_id, r))
-                    history.append((prev_id, cid, r['verdict'], r['confidence'], _tick[0]))
+                    r = rel_engine.compute_relationship(cell, prev_cell)
+                    mapped = {
+                        'verdict': COURT_MERGE if r['verdict'] == 'MERGE' else
+                                   COURT_REPEL if r['verdict'] == 'REPEL' else
+                                   COURT_WITNESS if r['verdict'] == 'WITNESS' else
+                                   COURT_TRANSFORM if r['verdict'] == 'TRANSFORM' else
+                                   COURT_DEFER if r['verdict'] == 'DEFER' else COURT_ESCALATE,
+                        'confidence': r['confidence'],
+                        'output_cell': r.get('output_cell'),
+                        'verdict_str': r['verdict'],
+                    }
+                    auto_results.append((prev_id, mapped))
+                    history.append((prev_id, cid, mapped['verdict'], mapped['confidence'], _tick[0]))
                 for prev_id, r in auto_results:
                     print(f"    ×#{prev_id} → {_format_verdict(r)}")
             
@@ -1172,6 +1220,40 @@ def cmd_repl():
                     pn = ['妻','夫','系统','观察','裁决','秘'][pol] if pol < 6 else '?'
                     print(f"  #{cid} MCCP=0x{mccp:08X} SOV=0x{sov:05X} POL={pn} WIT={wit} FLOW={flow}")
             
+            # ── 几何关系查询 (GCD距离 · 折叠 · 相位) ──
+            elif cmd == 'geom':
+                if not cells:
+                    print("  (无细胞)")
+                    continue
+                if len(parts) >= 3:
+                    # geom <id_a> <id_b> — 查询特定对
+                    ia = int(parts[1])
+                    ib = int(parts[2])
+                    if ia not in cells or ib not in cells:
+                        print(f"  无效 id")
+                        continue
+                    r = rel_engine.compute_relationship(cells[ia], cells[ib])
+                    m = r['metrics']
+                    pa = _cr_parse_cell(cells[ia])
+                    pb = _cr_parse_cell(cells[ib])
+                    print(f"  #{ia}(sov={pa['sovereignty']},pol={pa['polarity']}) × #{ib}(sov={pb['sovereignty']},pol={pb['polarity']})")
+                    print(f"  裁决: {r['verdict']} ({r['confidence']:.2f})")
+                    print(f"  GCD距离: {m['gcd_dist']}  主权距离: {m['sov_dist']}  相位距离: {m['phase_dist']}")
+                    print(f"  折叠: {m['fold_str']}  几何类型: {m['geometry']}  见证: {m['witness_str']}")
+                    print(f"  六裁决得分: {r['scores']}")
+                else:
+                    # geom — 全对查询
+                    if len(cells) < 2:
+                        print("  仅 1 个细胞 · 无数对关系")
+                        continue
+                    cell_list = list(cells.values())
+                    batch = rel_engine.batch_relationships(cell_list)
+                    for r in batch:
+                        i, j = r['pair']
+                        m = r['metrics']
+                        print(f"  #{i}×#{j} → {r['verdict']:8} conf={r['confidence']:.2f} "
+                              f"gcd={m['gcd_dist']:.3f} fold={m['fold_str']:4} {m['geometry']}")
+
             # ── 裁决历史 (时间线) ──
             elif cmd == 'history' or cmd == 'log':
                 if not history:
@@ -1182,22 +1264,28 @@ def cmd_repl():
                     for a, b, v, conf, t in history[-20:]:  # 最近 20 条
                         print(f"  t={t:3d}  #{a}×#{b} → {vnames.get(v,'?')} ({conf:.2f})")
             
-            # ── 手动裁决 (仍然可用) ──
+            # ── 手动裁决 (GCD几何引擎) ──
             elif cmd == 'judge' and len(parts) >= 3:
                 ia = int(parts[1])
                 ib = int(parts[2])
                 if ia not in cells or ib not in cells:
                     print(f"  无效 id · 现有: {list(cells.keys())}")
                     continue
-                r = court.judge(cells[ia], cells[ib], 0)
-                print(f"  [{ia}]×[{ib}] → {_format_verdict(r)}")
-                history.append((ia, ib, r['verdict'], r['confidence'], _tick[0]))
-                if r['output_cell'] and r['verdict'] == COURT_MERGE:
+                r = rel_engine.compute_relationship(cells[ia], cells[ib])
+                v_const = (COURT_MERGE if r['verdict'] == 'MERGE' else
+                           COURT_REPEL if r['verdict'] == 'REPEL' else
+                           COURT_WITNESS if r['verdict'] == 'WITNESS' else
+                           COURT_TRANSFORM if r['verdict'] == 'TRANSFORM' else
+                           COURT_DEFER if r['verdict'] == 'DEFER' else COURT_ESCALATE)
+                print(f"  [{ia}]×[{ib}] → {r['verdict']}({r['confidence']:.2f}) [{r['metrics']['geometry']}]")
+                print(f"    gcd={r['metrics']['gcd_dist']} fold={r['metrics']['fold_str']} phase={r['metrics']['phase_dist']}")
+                history.append((ia, ib, v_const, r['confidence'], _tick[0]))
+                oc = r.get('output_cell')
+                if oc and r['verdict'] == 'MERGE':
                     new_cid, _, _, _ = _add_cell(
-                        r['output_cell'] & 0xFFFFFFFF,
-                        (r['output_cell'] >> 32) & 0x1FFFFF,
-                        (r['output_cell'] >> 60) & 0xF,
-                        (r['output_cell'] >> 56) & 0xF,
+                        oc & 0xFFFFFFFF, (oc >> 32) & 0x1FFFFF,
+                        (oc >> 60) & 0xF, (oc >> 56) & 0xF,
+                        auto_judge=False,  # 折叠约束
                     )
                     print(f"      → 融合为新细胞 #{new_cid}")
             
@@ -1210,7 +1298,8 @@ def cmd_repl():
                     print(f"  无效态 nn|njsg|jj|jn")
                     continue
                 court.set_state(s)
-                print(f"  → 态: {['NN','NJSG','JJ','JN'][s]}")
+                rel_engine.state = s
+                print(f"  → 态: {['NN','NJSG','JJ','JN'][s]} (几何引擎已同步)")
             
             # ── 流激活 ──
             elif cmd == 'flow' and len(parts) >= 2:
@@ -1247,10 +1336,97 @@ def cmd_repl():
             # ── 清空工作空间 ──
             elif cmd == 'reset':
                 cells.clear()
+                cell_gen.clear()
                 history.clear()
                 _next_id[0] = 0
                 _tick[0] = 0
+                _gen[0] = 0
                 print("  ✓ 工作空间已清空")
+
+            # ── 活码编译: L0 表达式 → 字节码 ──
+            elif cmd == 'compile':
+                print("  [活码编译 · 输入 L0 空行结束]")
+                src_lines = []
+                while True:
+                    try:
+                        sl = input("  ... ").rstrip()
+                    except (EOFError, KeyboardInterrupt):
+                        break
+                    if not sl.strip():
+                        break
+                    src_lines.append(sl)
+                source = '\n'.join(src_lines)
+                if not source.strip():
+                    print("  (无输入)")
+                    continue
+                ok = pipeline.compile_expr(source)
+                if ok:
+                    bc_hex = pipeline.compiler.get_bytecode_hex()
+                    ir_list = pipeline.compiler.disassemble()
+                    print(f"  ✓ 编译成功 · {len(ir_list)} 条指令")
+                    for ir_line in ir_list[:8]:
+                        print(ir_line)
+                    if len(ir_list) > 8:
+                        print(f"  ... 共 {len(ir_list)} 条")
+                    print(f"  字节码: {bc_hex[:60]}{'...' if len(bc_hex) > 60 else ''}")
+                else:
+                    print(f"  ✗ 编译失败 (标签未定义)")
+
+            # ── 活码执行: 执行上次编译好的字节码 ──
+            elif cmd == 'exec' or cmd == 'ex':
+                if not pipeline.compiler.bytecode:
+                    print("  (无已编译代码 · 先 compile)")
+                    continue
+                result = pipeline.execute()
+                out = result['output'].strip()
+                vars_active = result['vars']
+                print(f"  ✓ 执行 {result['cycles']} 周期")
+                if out:
+                    print(f"  OUT: {out}")
+                if vars_active:
+                    v_str = ' '.join(f"{k}={v}" for k, v in list(vars_active.items())[:6])
+                    print(f"  VAR: {v_str}")
+                print(f"  STACK_TOP: {result['stack'][-1] if result['stack'] else 0}")
+
+            # ── 一键: compile + exec ──
+            elif cmd == 'ce':
+                print("  [写L0 → 空行 → 自动编译执行]")
+                src_lines = []
+                while True:
+                    try:
+                        sl = input("  ... ").rstrip()
+                    except (EOFError, KeyboardInterrupt):
+                        break
+                    if not sl.strip():
+                        break
+                    src_lines.append(sl)
+                source = '\n'.join(src_lines)
+                if not source.strip():
+                    print("  (无输入)")
+                    continue
+                result = pipeline.run(source)
+                if not result.get('ok'):
+                    print(f"  ✗ 编译失败")
+                    continue
+                out = result['output'].strip()
+                print(f"  ✓ {result['ir_count']} 指令 · {result['cycles']} 周期")
+                if out:
+                    print(f"  OUT: {out}")
+                vars_active = result['vars']
+                if vars_active:
+                    v_str = ' '.join(f"{k}={v}" for k, v in list(vars_active.items())[:6])
+                    print(f"  VAR: {v_str}")
+                # 自动将结果注入细胞空间 (累加器值 → 新细胞)
+                acc_val = result['vars'].get('z', result['vars'].get('acc', 0))
+                stack_top = result['stack'][-1] if result['stack'] else 0
+                result_val = acc_val if acc_val != 0 else stack_top
+                if result_val > 0:
+                    pol_val = 2  # 系统极性 (运算结果)
+                    new_cid, _, _, _ = _add_cell(
+                        result_val & 0xFFFFFFFF, result_val & 0x1FFFFF, pol_val, 1,
+                        auto_judge=False,  # 活码结果只注入不参与本轮裁决
+                    )
+                    print(f"  → 结果({result_val})入细胞空间 #{new_cid}")
             
             else:
                 print(f"  未知: {cmd} · help 查看")
@@ -1268,9 +1444,15 @@ def _repl_help():
     print("  flow <0-7>                         — 激活流")
     print("  show · del <id> · count · reset    — 显示/删除/统计/清空")
     print("  history                            — 裁决时间线")
+    print("  geom [id_a id_b]                   — 几何关系(GCD/折叠/相位)")
     print("  ime · clear · help · quit          — 统计/清屏/帮助/退出")
+    print("── 活码编译 ──")
+    print("  compile          — L0 源码 → 字节码 (逐行输入,空行结束)")
+    print("  exec             — 执行上次编译的字节码")
+    print("  ce               — 写码 + 编译 + 执行 + 结果入细胞空间")
     print("── 极性: 0=妻 1=夫 2=系统 3=观察 4=裁决 5=秘 ──")
     print("── 流: 0预加载 1分类 2聚类 3辨别 4产权 5解释 6关系 7概念 ──")
+    print("── L0指令: ADD/SUB/MUL/DIV/MOD/GT/LT/EQ/JMP/JZ/JNZ/LOAD/STORE/LOADI/PRINT ──")
     print("")
 
 

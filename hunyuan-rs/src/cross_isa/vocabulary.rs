@@ -878,10 +878,14 @@ mod tests {
     fn mips_m_ext_all_nonempty() {
         let ops3 = vec![Operand::Reg(1), Operand::Reg(2), Operand::Reg(3)];
         for &id in &[SemanticId::Mul, SemanticId::Mulh, SemanticId::Div, SemanticId::Divu,
-                     SemanticId::Rem, SemanticId::Remu, SemanticId::Addw, SemanticId::Addiw] {
+                     SemanticId::Rem, SemanticId::Remu, SemanticId::Addw] {
             let w = VocabWord::new(id, ops3.clone(), Platform::MIPS32);
             assert!(!w.native_encoding.is_empty(), "M ext {:?} empty on MIPS32", id);
         }
+        // Addiw 用 [rs, imm] 操作数形状
+        let ops_iw = vec![Operand::Reg(1), Operand::Imm(42)];
+        let w = VocabWord::new(SemanticId::Addiw, ops_iw, Platform::MIPS32);
+        assert!(!w.native_encoding.is_empty(), "Addiw empty on MIPS32");
     }
 
     #[test]

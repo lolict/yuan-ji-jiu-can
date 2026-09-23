@@ -36,6 +36,8 @@
   ipa-lower | 路径: tools/kungguan-container/ipa_lower.nim | 已完成
   ipa-upper | 路径: tools/kungguan-container/ipa_upper.nim | 已完成
   symbol-integration-map | 路径: tools/doc-registry/SYMBOL_INTEGRATION_MAP.md | 已完成
+  repo-inventory | 路径: docs/repo-inventory.md | 已完成
+  push-all | 路径: tools/push-all.sh | 已完成
 }
 
 # ======================================================
@@ -52,6 +54,8 @@
   @ipa-lower -> 直接拿到 IPA 小写表（含行7的 ɏ =ü解）
   @ipa-upper -> 直接拿到 IPA 大写表（含行7的 Ɏ =ü解）
   @symbol-integration-map -> 拿到 IPA × yunmu64 × tone60 复用关系图
+  @repo-inventory -> 拿到 9 仓库清单 + 备份层级
+  @push-all -> bash tools/push-all.sh 全平台推送
 }
 
 # ======================================================

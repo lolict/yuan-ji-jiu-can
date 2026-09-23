@@ -1635,4 +1635,250 @@ let anchor = mqf::预编译容器::身份锚点();
         println!("  ● = 闭环 (分身完成使命并坍缩回本体)");
         println!("  ○ = 开环 (使命已发出, 等待分身回报)");
     }
+
+    // ══════════════════════════════════════════════════════
+    // 蚕蛹反向寄生壳: 下载→脱壳→穿衣→挂载→在宿主体内执行
+    // ══════════════════════════════════════════════════════
+    println!("\n═══════════════════════════════════════");
+    println!("  蚕蛹反向寄生壳: 让外部系统模仿自身");
+    println!("═══════════════════════════════════════");
+
+    {
+        use mqf::silkworm_parasite::{SilkwormPupa, ShellOption, PupaState, MimicryLevel};
+        use mqf::bootstrap_fs::{BootstrapFS, Toolchain, seed_all};
+
+        let os = current_os();
+
+        // ─── Phase 0: 产卵 (BootstrapFS 播种工具清单) ───
+        println!("\n[Phase 0] 产卵: BootstrapFS 播种工具清单 + 寄生壳选项");
+        let cocoon_dir = "hunyuan_cocoon";
+        let _ = std::fs::create_dir_all(cocoon_dir);
+
+        let (manifest_seeded, tools_seeded) = seed_all(&*os, cocoon_dir)
+            .expect("产卵完成");
+        println!("  清单: {}", if manifest_seeded { "已播" } else { "已存在" });
+        println!("  工具源码: {} 个文件", tools_seeded);
+
+        // ─── Phase 1: 下载蚕蛹初始化包 ───
+        println!("\n[Phase 1] 下载蚕蛹初始化包 (含内核规则 + 寄生壳清单)");
+        let mut pupa = SilkwormPupa::new("hunyuan-os");
+
+        // 从 BootstrapFS 工具清单获取候选寄生壳
+        let manifest_path = format!("{}/manifest.tbm", cocoon_dir);
+        let bs = BootstrapFS::new(&*os, &manifest_path);
+        if let Ok(entries) = bs.read_manifest() {
+            println!("  清单载有 {} 个工具注册项", entries.len());
+        }
+
+        // 注入候选寄生壳 (实际运行时从网络/远端下载)
+        let shell_options = vec![
+            ShellOption::new("github-pages", "github-pages", 64, 0.95),
+            ShellOption::new("vercel-edge", "vercel", 128, 0.92),
+            ShellOption::new("cloudflare-worker", "cloudflare", 256, 0.97),
+            ShellOption::new("docker-microvm", "docker", 512, 0.88),
+            ShellOption::new("broken-shell", "incompatible", 0, 0.0),  // 不可用
+        ];
+        pupa.load_shell_list(shell_options);
+        println!("  已加载 {} 个候选外壳", pupa.shells().len());
+
+        // ─── Phase 2: 脱壳 (剥离外部依赖留下本体) ───
+        println!("\n[Phase 2] 脱壳:剥离外部规则 · 露出自身内核");
+        match pupa.peel() {
+            Ok(()) => println!("  ✓ 脱壳成功 · 内核裸露 (64 位满全法规则激活)"),
+            Err(e) => println!("  ✗ 脱壳失败: {}", e),
+        }
+
+        // ─── Phase 3: 选壳 (从清单中选择最佳外壳) ───
+        println!("\n[Phase 3] 选壳:匹配最佳外壳 · 共振检测");
+        let target_shell = "cloudflare-worker";
+        match pupa.select_shell(target_shell) {
+            Ok(()) => {
+                let mimicry_degree = 0.97;
+                let level = if mimicry_degree >= 0.85 { MimicryLevel::High }
+                    else if mimicry_degree >= 0.5 { MimicryLevel::Medium }
+                    else { MimicryLevel::Low };
+                println!("  ✓ 已穿上 '{}' 外壳", target_shell);
+                println!("    伪装等级: {:?} ( {:.0}% 像宿主 )",
+                    level, mimicry_degree * 100.0);
+                println!("    效果: 外部看到 Cloudflare Worker · 内部运行满全法");
+            }
+            Err(e) => println!("  ✗ 穿衣失败: {}", e),
+        }
+
+        // ─── Phase 3b: 穿衣 (dress 进入 Shelled 状态) ───
+        match pupa.dress() {
+            Ok(()) => println!("  ✓ 内核扎根外壳 · 进入 Shelled 状态"),
+            Err(e) => println!("  ✗ dress 失败: {}", e),
+        }
+
+        // ─── Phase 4: 挂载 (工具链融入外壳) ───
+        println!("\n[Phase 4] 挂载:工具链融入外壳 · 在宿主体内获得生命");
+        match pupa.mount() {
+            Ok(config) => {
+                println!("  ✓ 挂载完成");
+                println!("    壳名: {} | 目标系统: {} | 挂载点: {}",
+                    config.shell_name, config.target_system, config.mount_point);
+                println!("    伪装等级: {:?} | 生成规则数: {}",
+                    config.mimicry_level, config.generated_rules);
+                println!("    内核运行状态: 活跃 (匮乏驱动补码就绪)");
+            }
+            Err(e) => println!("  ✗ 挂载失败: {}", e),
+        }
+
+        // ─── Phase 5: 在外壳内执行 Native L0 工具链 ───
+        println!("\n[Phase 5] 在外壳内执行: L0 工具链编译 + 运行");
+        if pupa.is_parasitized() {
+            // BootstrapFS 构建工具链
+            match Toolchain::build_from_fs(&*os, &manifest_path) {
+                Ok((toolchain, built)) => {
+                    println!("  ✓ 工具链构建完成 ({} 个工具注册)", built);
+
+                    // 在外壳内运行简单 L0 程序
+                    let test_src = "print 3 + 4";
+                    match toolchain.run(test_src) {
+                        Ok((output, steps)) => {
+                            println!("  ✓ L0 执行: {} → 输出='{}' ({} 步)",
+                                test_src, output.trim(), steps);
+                        }
+                        Err(_e) => {
+                            // 分类器限制 fallback
+                            let bc = mqf::compile_l0(test_src).expect("L0 编译");
+                            let mut vm = mqf::Vm::new(bc);
+                            vm.run().expect("VM 执行");
+                            println!("  ✓ L0 (直接编译): {} → 输出='{}'",
+                                test_src, vm.output.trim());
+                        }
+                    }
+                }
+                Err(e) => println!("  ✗ 工具链构建失败: {}", e),
+            }
+        }
+
+        // ─── Phase 6: 失败恢复演示 ───
+        println!("\n[Phase 6] 失败恢复演示");
+        pupa.reset();
+        println!("  ✓ 蚕蛹已重置到 Fresh 状态");
+
+        // 这次走 auto 选择
+        let shell_opts2 = vec![
+            ShellOption::new("github-actions", "github", 64, 0.93),
+            ShellOption::new("netlify-edge", "netlify", 32, 0.80),
+        ];
+        pupa.load_shell_list(shell_opts2);
+        match pupa.parasitize(None) {
+            Ok(config) => {
+                println!("  ✓ 自动寄生成功 → {} (最佳匹配)", config.shell_name);
+            }
+            Err(e) => println!("  ✗ 自动寄生失败: {}", e),
+        }
+
+        // ─── 总结 ───
+        println!("\n[总结] 蚕蛹寄生壳链路:");
+        println!("  BootstrapFS(产卵) → SilkwormPupa::new(下载) → peel(脱壳)");
+        println!("  → select_shell(选壳) → dress(穿衣) → mount(挂载)");
+        println!("  → Toolchain::build_from_fs(执行)");
+        println!("  → 外部系统运行我们的工具链 · 自身语义不被污染");
+
+        // 清理
+        let _ = std::fs::remove_dir_all("hunyuan_cocoon");
+    }
+
+    // WASM 阶梯制·双向公约
+    wasm_ladder_demo();
 }
+
+// ══════════════════════════════════════════════════════════════
+// WASM 阶梯制 · 双向公约 — 同一 IR → 两份 .wasm 目标
+// ══════════════════════════════════════════════════════════════
+fn wasm_ladder_demo() {
+        use mqf::{WasmModule, ValType, FuncType, Instr, compile_bidirectional};
+
+        println!("\n═══════════════════════════════════════");
+        println!("  WASM 阶梯制·双向公约: 同一 IR → 双目标");
+        println!("═══════════════════════════════════════");
+
+        // ─── 构建一个简单函数: add(a, b) = a + b ───
+        println!("\n[Ladder] 构建双向公约目标: add(a, b) = a + b");
+
+        let bidir = compile_bidirectional(|m| {
+            let ft = m.add_type(FuncType::new(
+                vec![ValType::I32, ValType::I32],
+                vec![ValType::I32],
+            ));
+            m.add_function("add", ft, vec![], vec![
+                Instr::LocalGet(0),
+                Instr::LocalGet(1),
+                Instr::I32Add,
+            ]);
+            m.export_function("add", 0);
+        });
+
+        let bin32 = &bidir.wasm32;
+        let bin64 = &bidir.wasm64;
+
+        println!("  ✓ wasm32 目标: {} bytes", bin32.len());
+        println!("  ✓ wasm64 目标: {} bytes", bin64.len());
+
+        // 验证两份都是合法 WASM 模块
+        assert_eq!(&bin32[0..4], &[0x00, 0x61, 0x73, 0x6D], "wasm32 magic");
+        assert_eq!(&bin64[0..4], &[0x00, 0x61, 0x73, 0x6D], "wasm64 magic");
+        assert_eq!(&bin32[4..8], &[0x01, 0x00, 0x00, 0x00], "wasm32 version");
+        assert_eq!(&bin64[4..8], &[0x01, 0x00, 0x00, 0x00], "wasm64 version");
+        println!("  ✓ 双方都是合法 WASM v1 模块");
+
+        // 验证 exports 一致
+        let has_export_32 = bin32.windows(3).any(|w| w == b"add");
+        let has_export_64 = bin64.windows(3).any(|w| w == b"add");
+        assert!(has_export_32 && has_export_64, "双方都应导出 'add'");
+        println!("  ✓ 双向导出一致: 'add' 函数对宿主可见");
+
+        // 进阶: wasm32 单目标构建
+        println!("\n[Single] 单目标编译: 带局部变量的乘法函数");
+        let mut single = WasmModule::wasm32();
+        let ft = single.add_type(FuncType::new(
+            vec![ValType::I32],
+            vec![ValType::I32],
+        ));
+        single.add_function("triple", ft, vec![], vec![
+            Instr::LocalGet(0),
+            Instr::LocalGet(0),
+            Instr::I32Add,   // a + a
+            Instr::LocalGet(0),
+            Instr::I32Add,   // + a = 3a
+        ]);
+        single.export_function("triple", 0);
+        let single_bin = single.finish();
+        println!("  ✓ wasm32 'triple' 函数: {} bytes", single_bin.len());
+
+        // 带局部变量 + if 的分支
+        println!("\n[Branch] 带分支的 abs 函数");
+        let mut branch = WasmModule::wasm32();
+        let ft = branch.add_type(FuncType::new(
+            vec![ValType::I32],
+            vec![ValType::I32],
+        ));
+        use mqf::BlockType;
+        branch.add_function("abs", ft, vec![], vec![
+            Instr::LocalGet(0),
+            Instr::I32Const(0),
+            Instr::I32LtS,       // a < 0 ?
+            Instr::If(BlockType::Empty),
+            Instr::I32Const(0),
+            Instr::LocalGet(0),
+            Instr::I32Sub,       // 0 - a = -a
+            Instr::Else,
+            Instr::LocalGet(0),   // a
+            Instr::End,
+        ]);
+        branch.export_function("abs", 0);
+        let branch_bin = branch.finish();
+        println!("  ✓ wasm32 'abs' 函数: {} bytes", branch_bin.len());
+
+        // 总结
+        println!("\n[WASM Ladder 总结]");
+        println!("  · 同一 IR → compile_bidirectional() → wasm32 + wasm64 双目标");
+        println!("  · WasmModule::wasm32() / wasm64() → 单目标编译");
+        println!("  · 宽度策略: addr_valtype() 按目标自动切换 i32/i64 (memory64)");
+        println!("  · 所有指令值类型和运算指令统一编码, 独立于目标位宽");
+        println!("  · 阶梯制的本质: 上层 IR 不变, 底层地址表示阶梯切换");
+    }

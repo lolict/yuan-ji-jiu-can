@@ -144,6 +144,118 @@ void gcb_mo_report(char *buf, int bufsize) {
     mind_organ_report(&mo_organ, buf, bufsize);
 }
 
+/* ═══════════════════════════════════════════════════════════
+ * 子容器7: 征用层 (动态编号 · 跨编码身份不灭)
+ *
+ * 双后端设计:
+ *   1. C 独立实现 (expropriation_bridge.c) — 自给自足
+ *   2. Rust FFI 直通 (libmqf_ffi.so) — 内核→Rust 真实 API
+ * ═══════════════════════════════════════════════════════════ */
+
+#include "../../encoding/expropriation_bridge.h"
+
+void gcb_exprop_init(exprop_identity_t *id, uint64_t core, int polarity) {
+    exprop_init(id, core, polarity);
+}
+
+int gcb_exprop_expropriate(exprop_identity_t *id, const char *shell, uint64_t number) {
+    return exprop_expropriate(id, shell, number);
+}
+
+int gcb_exprop_shed(exprop_identity_t *id, const char *shell) {
+    return exprop_shed(id, shell);
+}
+
+void gcb_exprop_converge(exprop_identity_t *id) {
+    exprop_converge(id);
+}
+
+int gcb_exprop_intact(const exprop_identity_t *id, uint64_t expected_core) {
+    return exprop_is_intact(id, expected_core);
+}
+
+int gcb_exprop_density(const exprop_identity_t *id) {
+    return exprop_density(id);
+}
+
+int gcb_exprop_property_claim(uint64_t host_core, uint64_t guest_core) {
+    return exprop_property_claim(host_core, guest_core);
+}
+
+int gcb_exprop_static_dynamic(const exprop_identity_t *id, uint64_t expected_core) {
+    return exprop_static_dynamic_balance(id, expected_core);
+}
+
+/* ── Rust FFI 直通: 调用 libmqf_ffi.so ── */
+
+extern void* rust_exprop_create(uint64_t core, int32_t polarity);
+extern int32_t rust_exprop_expropriate(void* handle, const char* shell_name, uint64_t borrowed_num);
+extern int32_t rust_exprop_shed(void* handle, const char* shell_name);
+extern int32_t rust_exprop_intact(void* handle, uint64_t expected_core);
+extern int32_t rust_exprop_density(void* handle);
+extern uint64_t rust_exprop_core(void* handle);
+extern void rust_exprop_free(void* handle);
+extern int32_t rust_exprop_selftest(void);
+
+int gcb_rust_exprop_selftest(void) {
+    return rust_exprop_selftest();
+}
+
+int gcb_rust_exprop_demo(uint64_t core, int32_t polarity) {
+    void* h = rust_exprop_create(core, polarity);
+    if (!h) return -1;
+    const char* shells[] = {"Rust", "Python", "YAML", "JSON", "Nim", "Zig"};
+    int n = 6;
+    for (int i = 0; i < n; i++)
+        rust_exprop_expropriate(h, shells[i], core);
+    for (int i = 0; i < n; i++)
+        rust_exprop_shed(h, shells[i]);
+    int ok = rust_exprop_intact(h, core);
+    rust_exprop_free(h);
+    return ok;
+}
+
+/* ── 征用层演示 (由 global_control_bridge_test 调用) ── */
+static void gcb_exprop_demo(void) {
+    printf("\n─── 征用层: 跨编码身份不灭 (子容器7) ───\n");
+    exprop_identity_t lchut, fqml;
+    uint64_t lc_core = 0xCCCC, fq_core = 0xDDDD;
+    gcb_exprop_init(&lchut, lc_core, EXPROP_POLARITY_YIN);
+    gcb_exprop_init(&fqml, fq_core, EXPROP_POLARITY_YANG);
+
+    const char *shells[] = {"UTF-8","ASCII","JSON","YAML","Python","Rust","Nim","Zig","C"};
+    int n_sh = 9;
+    printf("  辐射到 %d 个编码系统...\n", n_sh);
+    for (int i = 0; i < n_sh; i++) {
+        gcb_exprop_expropriate(&lchut, shells[i], lc_core);
+        gcb_exprop_expropriate(&fqml, shells[i], fq_core);
+    }
+    printf("  借用壳数: lchut=%d, fqml=%d — 身份完整? lchut=%s fqml=%s\n",
+           gcb_exprop_density(&lchut), gcb_exprop_density(&fqml),
+           gcb_exprop_intact(&lchut, lc_core) ? "是" : "否",
+           gcb_exprop_intact(&fqml, fq_core) ? "是" : "否");
+
+    for (int i = 0; i < n_sh; i++) {
+        gcb_exprop_shed(&lchut, shells[i]);
+        gcb_exprop_shed(&fqml, shells[i]);
+    }
+    printf("  全部剥光 — lchut核心=0x%lX  fqml核心=0x%lX\n",
+           lchut.identity_core, fqml.identity_core);
+    printf("  编码可换, 身份不灭! ✓\n");
+
+    /* 产权判定 */
+    printf("\n─── 产权裁决接入征用 ───\n");
+    printf("  lchut vs lchut: %s\n", gcb_exprop_property_claim(lc_core, lc_core)==0?"主人HOST":"客人");
+    printf("  lchut vs 0xBEEF: %s\n", gcb_exprop_property_claim(lc_core, 0xBEEF)==1?"客人GUEST":"主人");
+
+    /* Rust FFI 直通测试 */
+    printf("\n─── Rust FFI 直通 (内核→Rust真实API) ───\n");
+    int rust_ok = gcb_rust_exprop_selftest();
+    printf("  Rust selftest: %s\n", rust_ok ? "✓ 通道正常" : "✗ 通道异常");
+    int demo_ok = gcb_rust_exprop_demo(0xABCD, 0);
+    printf("  Rust FFI demo (辐射→剥壳): %s\n", demo_ok ? "✓ 身份完整 (FFI直通成功!)" : "✗");
+}
+
 /* ── 独立运行入口 ── */
 #ifdef BRIDGE_TEST
 int main(void) {
@@ -206,8 +318,11 @@ void global_control_bridge_test(void) {
     printf("  鬼魂(夫妻·阳·声调6) → 最近躯壳 id=%d, 距离=%.2f\n", body32, dist32);
     printf("  %s\n\n", (body32==100||body32==101) ? "✓ 正确: 匹配夫妻·阳侧" : "✗ 错误");
 
+    /* 征用层 + Rust FFI 演示 */
+    gcb_exprop_demo();
+
     /* 最终状态 */
-    printf("─── 最终状态 ───\n");
+    printf("\n─── 最终状态 ───\n");
     gc_report(&gc, stdout);
-    printf("\n═══ 演示完成 ═══\n");
+    printf("\n═══ 演示完成 (7子容器, Rust FFI直通) ═══\n");
 }

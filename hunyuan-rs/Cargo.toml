@@ -72,6 +72,10 @@ name = "fq-radix"
 path = "src/bin/fq-radix.rs"
 
 [[bin]]
+name = "fq-var"
+path = "src/bin/fq-var.rs"
+
+[[bin]]
 name = "njsg-server"
 path = "src/bin/njsg-server.rs"
 
@@ -181,3 +185,11 @@ path = "src/bin/yinyang_binary.rs"
 [[bin]]
 name = "presence-snapshot"
 path = "src/bin/presence-snapshot.rs"
+
+[[bin]]
+name = "drum-bootstrap"
+path = "src/bin/drum-bootstrap.rs"
+
+[[bin]]
+name = "kunpeng-compiler"
+path = "src/bin/kunpeng-compiler.rs"

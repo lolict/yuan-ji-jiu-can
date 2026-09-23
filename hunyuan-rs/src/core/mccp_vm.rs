@@ -48,8 +48,8 @@ pub const OP_ROT: u16 = 0x007;   // a b c → b c a
 pub const OP_ADD: u16 = 0x010;
 pub const OP_SUB: u16 = 0x011;
 pub const OP_MUL: u16 = 0x012;
-pub const OP_MULconst: u16 = 0x016;  // 立即数乘法: pop a, push(a * imm)
-pub const OP_ADDconst: u16 = 0x017;  // 立即数加法: pop a, push(a + imm)
+pub const OP_MUL_CONST: u16 = 0x016;  // 立即数乘法: pop a, push(a * imm)
+pub const OP_ADD_CONST: u16 = 0x017;  // 立即数加法: pop a, push(a + imm)
 pub const OP_DIV: u16 = 0x013;
 pub const OP_MOD: u16 = 0x014;
 pub const OP_NEG: u16 = 0x015;
@@ -329,7 +329,7 @@ impl Vm {
                 let a = self.pop()?;
                 self.push(a.wrapping_add(b))?;
             }
-            OP_ADDconst => {
+            OP_ADD_CONST => {
                 let imm = operand_of_i16(instr);
                 let a = self.pop()?;
                 self.push(a.wrapping_add(imm as i32))?;
@@ -344,7 +344,7 @@ impl Vm {
                 let a = self.pop()?;
                 self.push(a.wrapping_mul(b))?;
             }
-            OP_MULconst => {
+            OP_MUL_CONST => {
                 let imm = operand_of_i16(instr);
                 let a = self.pop()?;
                 self.push(a.wrapping_mul(imm as i32))?;
@@ -612,8 +612,8 @@ static ASM_TOKENS: &[(&str, u16)] = &[
     ("ADD", OP_ADD),
     ("SUB", OP_SUB),
     ("MUL", OP_MUL),
-    ("MULCONST", OP_MULconst),
-    ("ADDCONST", OP_ADDconst),
+    ("MULCONST", OP_MUL_CONST),
+    ("ADDCONST", OP_ADD_CONST),
     ("DIV", OP_DIV),
     ("MOD", OP_MOD),
     ("NEG", OP_NEG),
@@ -767,10 +767,10 @@ static ASM_NAMES: &[(u16, &str)] = &[
     (OP_OVER, "OVER"),
     (OP_ROT, "ROT"),
     (OP_ADD, "ADD"),
-    (OP_ADDconst, "ADDconst"),
+    (OP_ADD_CONST, "ADDconst"),
     (OP_SUB, "SUB"),
     (OP_MUL, "MUL"),
-    (OP_MULconst, "MULconst"),
+    (OP_MUL_CONST, "MULconst"),
     (OP_DIV, "DIV"),
     (OP_MOD, "MOD"),
     (OP_NEG, "NEG"),
@@ -836,6 +836,7 @@ pub fn disassemble(code: &[Mccp]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::mccp::Kind;
 
     // ── 基础构造 ──────────────────────────────────────────
 
@@ -1643,7 +1644,7 @@ mod tests {
 
     #[test]
     fn vm_mulconst_basic() {
-        let code = vec![op_imm(OP_PUSH, 6), op_imm(OP_MULconst, 7), op(OP_HALT)];
+        let code = vec![op_imm(OP_PUSH, 6), op_imm(OP_MUL_CONST, 7), op(OP_HALT)];
         let mut vm = Vm::new(code);
         vm.run().unwrap();
         assert_eq!(vm.stack, vec![42]);
@@ -1651,7 +1652,7 @@ mod tests {
 
     #[test]
     fn vm_addconst_basic() {
-        let code = vec![op_imm(OP_PUSH, 10), op_imm(OP_ADDconst, 33), op(OP_HALT)];
+        let code = vec![op_imm(OP_PUSH, 10), op_imm(OP_ADD_CONST, 33), op(OP_HALT)];
         let mut vm = Vm::new(code);
         vm.run().unwrap();
         assert_eq!(vm.stack, vec![43]);
@@ -1659,7 +1660,7 @@ mod tests {
 
     #[test]
     fn vm_mulconst_negative() {
-        let code = vec![op_imm(OP_PUSH, 5), op_imm(OP_MULconst, -3), op(OP_HALT)];
+        let code = vec![op_imm(OP_PUSH, 5), op_imm(OP_MUL_CONST, -3), op(OP_HALT)];
         let mut vm = Vm::new(code);
         vm.run().unwrap();
         assert_eq!(vm.stack, vec![-15]);
@@ -1667,7 +1668,7 @@ mod tests {
 
     #[test]
     fn vm_addconst_negative() {
-        let code = vec![op_imm(OP_PUSH, 100), op_imm(OP_ADDconst, -50), op(OP_HALT)];
+        let code = vec![op_imm(OP_PUSH, 100), op_imm(OP_ADD_CONST, -50), op(OP_HALT)];
         let mut vm = Vm::new(code);
         vm.run().unwrap();
         assert_eq!(vm.stack, vec![50]);
@@ -1675,7 +1676,7 @@ mod tests {
 
     #[test]
     fn vm_mulconst_zero() {
-        let code = vec![op_imm(OP_PUSH, 12345), op_imm(OP_MULconst, 0), op(OP_HALT)];
+        let code = vec![op_imm(OP_PUSH, 12345), op_imm(OP_MUL_CONST, 0), op(OP_HALT)];
         let mut vm = Vm::new(code);
         vm.run().unwrap();
         assert_eq!(vm.stack, vec![0]);
@@ -1685,9 +1686,9 @@ mod tests {
     fn vm_mulconst_chained() {
         let code = vec![
             op_imm(OP_PUSH, 2),
-            op_imm(OP_MULconst, 3),
-            op_imm(OP_MULconst, 4),
-            op_imm(OP_ADDconst, 1),
+            op_imm(OP_MUL_CONST, 3),
+            op_imm(OP_MUL_CONST, 4),
+            op_imm(OP_ADD_CONST, 1),
             op_imm(OP_PRINT, 0),
             op(OP_HALT),
         ];
@@ -1700,8 +1701,8 @@ mod tests {
     fn vm_disasm_mulconst_addconst() {
         let code = vec![
             op_imm(OP_PUSH, 10),
-            op_imm(OP_MULconst, 5),
-            op_imm(OP_ADDconst, 3),
+            op_imm(OP_MUL_CONST, 5),
+            op_imm(OP_ADD_CONST, 3),
             op(OP_HALT),
         ];
         let text = disassemble(&code);
@@ -1720,11 +1721,11 @@ mod tests {
 
     #[test]
     fn vm_mulconst_i16_boundary() {
-        let code = vec![op_imm(OP_PUSH, 1), op_imm(OP_MULconst, i16::MAX), op(OP_HALT)];
+        let code = vec![op_imm(OP_PUSH, 1), op_imm(OP_MUL_CONST, i16::MAX), op(OP_HALT)];
         let mut vm = Vm::new(code);
         vm.run().unwrap();
         assert_eq!(vm.stack, vec![32767]);
-        let code2 = vec![op_imm(OP_PUSH, 1), op_imm(OP_MULconst, i16::MIN), op(OP_HALT)];
+        let code2 = vec![op_imm(OP_PUSH, 1), op_imm(OP_MUL_CONST, i16::MIN), op(OP_HALT)];
         let mut vm2 = Vm::new(code2);
         vm2.run().unwrap();
         assert_eq!(vm2.stack, vec![-32768]);

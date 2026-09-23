@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>WASM 双向鸿约 · 囡囝共生</title>
+<style>
+:root {
+  --bg: #0a0e14; --panel: #131820; --border: #1e2836;
+  --text: #c8d0dc; --muted: #566578; --green: #35d07f;
+  --cyan: #3baded; --accent: #8b5cf6; --yellow: #e5a148;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'JetBrains Mono', monospace; background: var(--bg); color: --text; padding: 20px; }
+h1 { font-size: 14px; color: var(--accent); margin-bottom: 12px; letter-spacing: 0.05em; }
+h2 { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+.panel { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 14px; margin-bottom: 14px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.btn { background: var(--border); border: none; color: var(--text); padding: 5px 10px; border-radius: 3px; cursor: pointer; font-family: inherit; font-size: 11px; }
+.btn:hover { background: var(--accent); color: #fff; }
+.btn-success { background: var(--green); color: #000; }
+pre { font-size: 10px; line-height: 1.6; color: var(--muted); white-space: pre-wrap; max-height: 300px; overflow-y: auto; }
+.status { font-size: 10px; padding: 4px 8px; border-radius: 3px; }
+.ok { background: #1a3a2a; color: var(--green); }
+.err { background: #3a1a1a; color: var(--red); }
+.cell-input { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 4px 8px; font-size: 11px; border-radius: 3px; width: 200px; font-family: inherit; }
+table { font-size: 10px; width: 100%; border-collapse: collapse; }
+th { color: var(--muted); text-align: left; padding: 3px 6px; border-bottom: 1px solid var(--border); }
+td { padding: 3px 6px; border-bottom: 1px solid var(--border); color: var(--text); }
+</style>
+</head>
+<body>
+
+<h1>◈ WASM 双向鸿约 · 囡囝共生内核直接执行</h1>
+
+<div class="panel">
+  <h2>加载状态</h2>
+  <span id="status" class="status">未加载</span>
+  <button class="btn btn-success" id="loadBtn" onclick="loadWasm()">加载 mqf64.wasm</button>
+  <span id="target" style="margin-left: 10px; font-size: 10px; color: var(--muted);"></span>
+</div>
+
+<div id="demoArea" style="display:none;">
+
+  <div class="grid">
+    <div class="panel">
+      <h2>1. 符号角度 (进制约)</h2>
+      <label style="font-size:10px;color:var(--muted);">符号值 (0-63):</label>
+      <input type="number" class="cell-input" id="symInput" value="24" min="0" max="63">
+      <button class="btn" onclick="calcAngle()" style="margin-left:6px;">计算</button>
+      <pre id="angleOut"></pre>
+    </div>
+
+    <div class="panel">
+      <h2>2. 弧度距离 (几何距离)</h2>
+      <label style="font-size:10px;color:var(--muted);">角度A, B:</label>
+      <input type="number" class="cell-input" id="arcA" value="48" style="width:80px;">
+      <input type="number" class="cell-input" id="arcB" value="192" style="width:80px;">
+      <button class="btn" onclick="calcArc()" style="margin-left:6px;">计算</button>
+      <pre id="arcOut"></pre>
+    </div>
+
+    <div class="panel">
+      <h2>3. 因数深度 (质因数分解)</h2>
+      <label style="font-size:10px;color:var(--muted);">数值 N:</label>
+      <input type="number" class="cell-input" id="depthInput" value="2520" min="0" max="255">
+      <button class="btn" onclick="calcDepth()" style="margin-left:6px;">计算</button>
+      <pre id="depthOut"></pre>
+    </div>
+
+    <div class="panel">
+      <h2>4. 三维邻接检测</h2>
+      <label style="font-size:10px;color:var(--muted);">坐标 A 和 B (各3值):</label>
+      <div style="display:flex;gap:3px;margin:4px 0;">
+        <input type="number" class="cell-input" id="ax" value="1" style="width:50px;">
+        <input type="number" class="cell-input" id="ay" value="2" style="width:50px;">
+        <input type="number" class="cell-input" id="az" value="3" style="width:50px;">
+        <span style="color:var(--muted);line-height:24px;">vs</span>
+        <input type="number" class="cell-input" id="bx" value="1" style="width:50px;">
+        <input type="number" class="cell-input" id="by" value="3" style="width:50px;">
+        <input type="number" class="cell-input" id="bz" value="3" style="width:50px;">
+      </div>
+      <button class="btn" onclick="calcAdj()">检测</button>
+      <pre id="adjOut"></pre>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>5. 细胞间几何距离</h2>
+    <p style="font-size:10px;color:var(--muted);margin-bottom:6px;">两个囡囝共生细胞编码 (64进制) → WASM 内核计算几何距离</p>
+    <input type="text" class="cell-input" id="cellA" value="0x20009D800001000" style="width:260px;">
+    <input type="text" class="cell-input" id="cellB" value="0x1200003C00002000" style="width:260px;">
+    <button class="btn btn-success" onclick="calcCellDist()" style="margin-left:6px;">计算细胞距离</button>
+    <pre id="cellOut" style="margin-top:8px;"></pre>
+  </div>
+
+  <div class="panel">
+    <h2>6. 批量 64 符号几何表</h2>
+    <button class="btn" onclick="generateTable()">生成</button>
+    <div id="tableArea" style="margin-top:8px;"></div>
+  </div>
+
+</div>
+
+<script src="wasm_bridge.js"></script>
+<script>
+async function loadWasm() {
+  const ok = await WasmBridge.init('wasm64');
+  const st = document.getElementById('status');
+  if (ok) {
+    st.textContent = '✓ 已加载';
+    st.className = 'status ok';
+    document.getElementById('target').textContent = `[${WasmBridge.target()}]`;
+    document.getElementById('demoArea').style.display = 'block';
+    WasmBridge.boot();
+    document.getElementById('loadBtn').disabled = true;
+    document.getElementById('loadBtn').textContent = '已加载';
+  } else {
+    st.textContent = '✗ 加载失败';
+    st.className = 'status err';
+  }
+}
+
+function calcAngle() {
+  const sym = parseInt(document.getElementById('symInput').value);
+  const angle = WasmBridge.symbolAngle(sym);
+  document.getElementById('angleOut').textContent =
+    `符号: ${sym}\n角度: ${angle} (0-384)\n约化: ${(angle / 6).toFixed(1)} 符号单位`;
+}
+
+function calcArc() {
+  const a = parseInt(document.getElementById('arcA').value);
+  const b = parseInt(document.getElementById('arcB').value);
+  const dist = WasmBridge.arcDistance(a, b);
+  document.getElementById('arcOut').textContent =
+    `角度A: ${a}\n角度B: ${b}\n弧距离: ${dist}\n归一化: ${(dist / 192).toFixed(4)}`;
+}
+
+function calcDepth() {
+  const n = parseInt(document.getElementById('depthInput').value) & 0xFF;
+  const depth = WasmBridge.timeStageDepth(n);
+  // JS 端分解展示
+  let steps = [];
+  let cur = n, spf = 2;
+  if (n > 0) {
+    while (cur > 1 && steps.length < 8) {
+      while (cur % spf !== 0 && spf <= cur) spf++;
+      if (spf > cur) break;
+      steps.push(spf);
+      cur /= spf;
+      spf = 2;
+    }
+  }
+  document.getElementById('depthOut').textContent =
+    `数值: ${n}\n分解深度: ${depth}\n分解: ${n} = ${steps.join(' × ') || '(质数/0)'}`;
+}
+
+function calcAdj() {
+  const ax = +document.getElementById('ax').value;
+  const ay = +document.getElementById('ay').value;
+  const az = +document.getElementById('az').value;
+  const bx = +document.getElementById('bx').value;
+  const by = +document.getElementById('by').value;
+  const bz = +document.getElementById('bz').value;
+  const adj = WasmBridge.isAdjacent(ax, ay, az, bx, by, bz);
+  document.getElementById('adjOut').textContent =
+    `A(${ax},${ay},${az}) vs B(${bx},${by},${bz})\n邻接: ${adj ? '✓ 是' : '✗ 否'} (${adj})`;
+}
+
+function calcCellDist() {
+  const a = parseInt(document.getElementById('cellA').value, 16) || 0;
+  const b = parseInt(document.getElementById('cellB').value, 16) || 0;
+  try {
+    const angleA = WasmBridge.cellToAngle(a);
+    const angleB = WasmBridge.cellToAngle(b);
+    const arc = WasmBridge.cellsArcDistance(a, b);
+    const dist = WasmBridge.cellsGeometricDistance(a, b);
+    const depthA = WasmBridge.cellMccpDepth(a);
+    const depthB = WasmBridge.cellMccpDepth(b);
+    document.getElementById('cellOut').textContent =
+      `细胞A: 0x${a.toString(16).padStart(12, '0')}\n`+
+      `细胞B: 0x${b.toString(16).padStart(12, '0')}\n\n`+
+      `符号A: ${(a >> 32) & 0x3F} → 角度 ${angleA}\n`+
+      `符号B: ${(b >> 32) & 0x3F} → 角度 ${angleB}\n`+
+      `弧距离: ${arc} / 192\n`+
+      `几何距离: ${dist.toFixed(4)}\n`+
+      `MCCP深度A: ${depthA}  |  MCCP深度B: ${depthB}`;
+  } catch(e) {
+    document.getElementById('cellOut').textContent = '错误: ' + e.message;
+  }
+}
+
+function generateTable() {
+  let html = '<table><tr><th>符号</th><th>角度</th><th>深度</th>';
+  for (let j = 0; j < 8; j++) html += `<th>${j * 48}°</th>`;
+  html += '</tr>';
+  for (let i = 0; i < 64; i++) {
+    const angle = WasmBridge.symbolAngle(i);
+    const depth = WasmBridge.timeStageDepth(i);
+    html += `<tr><td>${i}</td><td>${angle}</td><td>${depth}</td>`;
+    for (let j = 0; j < 8; j++) {
+      const target = j * 48;
+      const arc = WasmBridge.arcDistance(angle, target);
+      const intensity = Math.max(0, 1 - arc / 192);
+      const bg = `rgba(139,92,246,${intensity.toFixed(2)})`;
+      html += `<td style="background:${bg};color:#000;">${arc}</td>`;
+    }
+    html += '</tr>';
+  }
+  html += '</table>';
+  document.getElementById('tableArea').innerHTML = html;
+}
+
+// 自动尝试加载
+window.addEventListener('load', async () => {
+  const ok = await WasmBridge.init('wasm64');
+  if (ok) {
+    const st = document.getElementById('status');
+    st.textContent = '✓ 已加载';
+    st.className = 'status ok';
+    document.getElementById('target').textContent = `[${WasmBridge.target()}]`;
+    document.getElementById('demoArea').style.display = 'block';
+    WasmBridge.boot();
+    document.getElementById('loadBtn').disabled = true;
+    document.getElementById('loadBtn').textContent = '已加载';
+  }
+});
+</script>
+</body>
+</html>

@@ -16,9 +16,8 @@
 // 即：MetaJudge 是裁判自己，gtt_learn 是裁判的裁判
 
 use crate::mirror::{self, EncodedCell};
-use crate::mind_organ::{DistanceCalculator, DistanceVector, ClusterEngine, EntityCluster, MindOrgan, PerceptionReport, ThinkingMode};
-use crate::gtt_perception::{PerceptionServer, PerceptionEvent, PerceptionSeverity};
-use crate::gtt_category::{CategoryRegistry, CategoryCorrector};
+use crate::mind_organ::{DistanceCalculator, ClusterEngine, EntityCluster};
+use crate::gtt_perception::PerceptionServer;
 
 // ────────────────────────────────────────────────────────────
 // 可调节参数 · 学习的目标

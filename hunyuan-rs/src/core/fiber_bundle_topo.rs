@@ -106,7 +106,7 @@ impl FiberNode {
         // 价值编码：payload 校验和的低 8 位
         let val = (pack.witness.iter().copied().fold(0u8, |a, b| a.wrapping_add(*pack.payload.get(b as usize % pack.payload.len().max(1)).unwrap_or(&0))));
         // 见证有效
-        let witnessOK = pack.witness != [0xFF, 0xFF, 0xFF] && pack.witness != [0xFF, 0xFE, 0xFD];
+        let witness_ok = pack.witness != [0xFF, 0xFF, 0xFF] && pack.witness != [0xFF, 0xFE, 0xFD];
 
         Self {
             pack_id: pack.pack_id,
@@ -114,7 +114,7 @@ impl FiberNode {
             polarity_yin: yin,
             sovereignty_level: sov,
             value_code: val,
-            witness_valid: witnessOK,
+            witness_valid: witness_ok,
             out_edges: Vec::new(),
             in_edges: Vec::new(),
         }

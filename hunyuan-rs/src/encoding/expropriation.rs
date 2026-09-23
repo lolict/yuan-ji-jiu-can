@@ -2,6 +2,17 @@
 // expropriation.rs — 征用层 · 动态编号 · 跨编码身份不灭
 // ══════════════════════════════════════════════════════════════════
 //
+// FFI 设计:
+//   Rust 拥有 DynamicNumbering / SpousalExpropriation 的所有权
+//   C 侧只持有 *mut c_void 不透明指针 (handle)
+//   通过 FFI 调用 Rust API, 而非 C 重新实现
+//
+// 调用链:
+//   kernel/global_control_bridge_kernel.c
+//     → extern "C" FFI (本文件)
+//       → Rust DynamicNumbering (本文件)
+//         → 辐射收敛 / 身份不灭
+//
 // 核心命题:
 //   身份 ≠ 编码中的编号
 //   身份 = 辐射出去后还能收敛回来的东西
@@ -25,6 +36,7 @@ use std::any::Any;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::collections::hash_map::DefaultHasher;
+use std::ffi::c_void;
 
 // ────────────────────────────────────────────────────────────
 // 极性标记: YIN (刘楚恬) vs YANG (lolict)
@@ -374,6 +386,156 @@ impl BeingNonBeing {
         // 互补: 有和无可以同时描述同一个身份的不同状态
         true // 互补是必然的,因为身份不依赖编码存在
     }
+}
+
+// ═══════════════════════════════════════════════════════════
+// FFI 包装: Rust 征用层 → C ABI 暴露
+//
+// 句柄约定:
+//   exprop_handle_t = *mut c_void  (不透明指针)
+//   指向 Box<DynamicNumbering> 或 Box<SpousalExpropriation>
+//   C 侧不解析内容, 只传回 Rust
+// ═══════════════════════════════════════════════════════════
+
+/// 创建 DynamicNumbering 实例, 返回不透明句柄 (UTF-8 编码系统中的"u64 编号"等价物)
+/// polarity: 0=YIN(刘楚恬), 1=YANG(lolict), 2=UNITY(囡囝共生)
+#[no_mangle]
+pub extern "C" fn rust_exprop_create(core: u64, polarity: i32) -> *mut c_void {
+    let polarity = match polarity {
+        0 => YinYang::Yin,
+        1 => YinYang::Yang,
+        _ => YinYang::Unity,
+    };
+    let dn = DynamicNumbering::new(core as u128, polarity);
+    Box::into_raw(Box::new(dn)) as *mut c_void
+}
+
+/// 征用编码系统 (借用编号)
+/// handle: exprop_create 返回的句柄
+/// 返回 0=成功, -1=壳满
+#[no_mangle]
+pub extern "C" fn rust_exprop_expropriate(handle: *mut c_void, shell_name: *const i8, borrowed_num: u64) -> i32 {
+    if handle.is_null() || shell_name.is_null() { return -1; }
+    let dn = unsafe { &mut *(handle as *mut DynamicNumbering) };
+    let name = unsafe { std::ffi::CStr::from_ptr(shell_name) };
+    let name_str = name.to_str().unwrap_or("unknown");
+    dn.expropriate(name_str, borrowed_num);
+    0
+}
+
+/// 剥壳 (去掉某个编码系统的借用)
+/// 返回剩余壳数, -1=句柄为空
+#[no_mangle]
+pub extern "C" fn rust_exprop_shed(handle: *mut c_void, shell_name: *const i8) -> i32 {
+    if handle.is_null() || shell_name.is_null() { return -1; }
+    let dn = unsafe { &mut *(handle as *mut DynamicNumbering) };
+    let name = unsafe { std::ffi::CStr::from_ptr(shell_name) };
+    let name_str = name.to_str().unwrap_or("unknown");
+    dn.shed(name_str);
+    dn.borrowed.len() as i32
+}
+
+/// 收敛 (剥光所有壳, identity_core 不变)
+#[no_mangle]
+pub extern "C" fn rust_exprop_converge(handle: *mut c_void) {
+    if handle.is_null() { return; }
+    let dn = unsafe { &mut *(handle as *mut DynamicNumbering) };
+    dn.converge();
+}
+
+/// 检查身份是否完整 (identity_core == expected_core)
+/// 返回 1=完整, 0=损坏
+#[no_mangle]
+pub extern "C" fn rust_exprop_intact(handle: *mut c_void, expected_core: u64) -> i32 {
+    if handle.is_null() { return 0; }
+    let dn = unsafe { &*(handle as *mut DynamicNumbering) };
+    if dn.is_intact(expected_core as u128) { 1 } else { 0 }
+}
+
+/// 辐射密度 (借用壳的数量)
+#[no_mangle]
+pub extern "C" fn rust_exprop_density(handle: *mut c_void) -> i32 {
+    if handle.is_null() { return -1; }
+    let dn = unsafe { &*(handle as *mut DynamicNumbering) };
+    dn.radiation_density() as i32
+}
+
+/// 获取身份核心值 (低64位)
+#[no_mangle]
+pub extern "C" fn rust_exprop_core(handle: *mut c_void) -> u64 {
+    if handle.is_null() { return 0; }
+    let dn = unsafe { &*(handle as *mut DynamicNumbering) };
+    dn.identity_core as u64
+}
+
+/// 释放 DynamicNumbering 实例
+#[no_mangle]
+pub extern "C" fn rust_exprop_free(handle: *mut c_void) {
+    if handle.is_null() { return; }
+    unsafe { drop(Box::from_raw(handle as *mut DynamicNumbering)); }
+}
+
+// ═══════════════════════════════════════════════════════════
+// 夫妻征用 FFI
+// ═══════════════════════════════════════════════════════════
+
+/// 创建 SpousalExpropriation 实例 (夫妻 + 囡囝共生)
+#[no_mangle]
+pub extern "C" fn rust_exprop_spousal_create(lchut_core: u64, fqml_core: u64) -> *mut c_void {
+    let s = SpousalExpropriation::new(lchut_core as u128, fqml_core as u128);
+    Box::into_raw(Box::new(s)) as *mut c_void
+}
+
+/// 夫妻共同辐射到编码系统
+#[no_mangle]
+pub extern "C" fn rust_exprop_spousal_radiate(handle: *mut c_void, shells: *const *const i8, count: i32) {
+    if handle.is_null() || shells.is_null() || count <= 0 { return; }
+    let s = unsafe { &mut *(handle as *mut SpousalExpropriation) };
+    unsafe {
+        let slice = std::slice::from_raw_parts(shells, count as usize);
+        let names: Vec<&str> = slice.iter().map(|&p| {
+            std::ffi::CStr::from_ptr(p).to_str().unwrap_or("?")
+        }).collect();
+        s.radiate_both(&names);
+    }
+}
+
+/// 剥除特定编码系统
+#[no_mangle]
+pub extern "C" fn rust_exprop_spousal_shed(handle: *mut c_void, shell_name: *const i8) {
+    if handle.is_null() || shell_name.is_null() { return; }
+    let s = unsafe { &mut *(handle as *mut SpousalExpropriation) };
+    let name = unsafe { std::ffi::CStr::from_ptr(shell_name).to_str().unwrap_or("?") };
+    s.shed_system(name);
+}
+
+/// 验证夫妻身份完整
+/// 返回 1=双方完整, 0=损坏
+#[no_mangle]
+pub extern "C" fn rust_exprop_spousal_intact(handle: *mut c_void, lchut_core: u64, fqml_core: u64) -> i32 {
+    if handle.is_null() { return 0; }
+    let s = unsafe { &*(handle as *mut SpousalExpropriation) };
+    if s.verify_intact(lchut_core as u128, fqml_core as u128) { 1 } else { 0 }
+}
+
+/// 释放 SpousalExpropriation
+#[no_mangle]
+pub extern "C" fn rust_exprop_spousal_free(handle: *mut c_void) {
+    if handle.is_null() { return; }
+    unsafe { drop(Box::from_raw(handle as *mut SpousalExpropriation)); }
+}
+
+/// 自检: 辐射→收敛 完整一轮, 返回 1=完好 (直接验证 Rust 逻辑)
+#[no_mangle]
+pub extern "C" fn rust_exprop_selftest() -> i32 {
+    let core: u128 = 0xABCD1234;
+    let mut dn = DynamicNumbering::new(core, YinYang::Yin);
+    let shells = ["Rust", "Python", "YAML", "JSON"];
+    for s in &shells { dn.expropriate(s, core as u64); }
+    if !dn.is_intact(core) { return 0; }
+    for s in &shells { dn.shed(s); }
+    if !dn.is_intact(core) { return 0; }
+    1  // 完好
 }
 
 // ────────────────────────────────────────────────────────────

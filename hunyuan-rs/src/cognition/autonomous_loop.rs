@@ -19,11 +19,11 @@
 //
 // 这就是「活」的感知器官——不只是工具，是自主体。
 
-use crate::mirror::{self, EncodedCell};
-use crate::mind_organ::{MindOrgan, EntityCluster, ClusterEngine, ThinkingMode};
+use crate::mirror::EncodedCell;
+use crate::mind_organ::{MindOrgan, ClusterEngine, ThinkingMode};
 use crate::gtt_perception::PerceptionServer;
 use crate::gtt_category::{CategoryRegistry, CategoryCorrector};
-use crate::gtt_learn::{LearningEngine, Feedback};
+use crate::gtt_learn::LearningEngine;
 use crate::pleasure::Pleasure;
 
 // ────────────────────────────────────────────────────────────
