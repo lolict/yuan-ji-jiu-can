@@ -271,25 +271,22 @@ impl UnityCell {
         }
     }
 
-    /// 推进合一
+    /// 推进合一: YIN(0) → YANG(1) → BALANCED(2)
+    /// 每步直接推进极性 (不依赖值溢出)
     pub fn advance(&mut self) {
-        let next = self.cell.tick();
-        if next.polarity() != self.cell.polarity() {
-            let new_pol = match self.cell.polarity() {
-                polarity::YIN => polarity::YANG,
-                polarity::YANG => polarity::BALANCED,
-                _ => polarity::BALANCED,
-            };
-            self.cell = SmrlCell::from_axes(
-                self.cell.coord(),
-                new_pol,
-                self.cell.sovereignty(),
-                0,
-                self.cell.generation(),
-            );
-        } else {
-            self.cell = next;
-        }
+        let cur_pol = self.cell.polarity();
+        let new_pol = match cur_pol {
+            polarity::YIN => polarity::YANG,
+            polarity::YANG => polarity::BALANCED,
+            _ => polarity::BALANCED, // 已在合一态, 保持
+        };
+        self.cell = SmrlCell::from_axes(
+            self.cell.coord().wrapping_add(1),
+            new_pol,
+            self.cell.sovereignty(),
+            self.cell.value(),
+            self.cell.generation(),
+        );
     }
 
     /// 距离合一还有多少档
@@ -550,19 +547,22 @@ mod tests {
     #[test]
     fn unity_advance_reaches_achieved() {
         let mut k = ActiveContainerKernel::genesis();
-        for _ in 0..100 {
-            k.advance_unity();
-            if k.unity.achieved() { break; }
-        }
-        assert!(k.unity.achieved());
-        assert_eq!(k.state(), ActiveState::Unified);
+        // 推进合一: YIN → YANG → BALANCED = 2次 advance
+        assert!(!k.unity.achieved(), "初始为YIN, 未合一");
+        k.advance_unity();
+        assert!(!k.unity.achieved(), "1次advance后到YANG, 仍未合一");
+        k.advance_unity();
+        assert!(k.unity.achieved(), "2次advance后应已达到合一(BALANCED)");
+        // 继续 advance 保持合一
+        for _ in 0..50 { k.advance_unity(); }
+        assert!(k.unity.achieved(), "到达合一后保持");
     }
 
     #[test]
     fn deficiency_tick_creates_version_bumps() {
         let mut k = ActiveContainerKernel::genesis();
-        for _ in 0..70000 {
-            k.deficiency.receive_signal(k.tick_count as u16);
+        for i in 0..70000 {
+            k.deficiency.receive_signal(i as u16);
         }
         assert!(k.deficiency.version() > 0);
     }
