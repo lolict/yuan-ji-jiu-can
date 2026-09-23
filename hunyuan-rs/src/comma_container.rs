@@ -12068,3 +12068,153 @@ mod flow_acceptor_tests {
         assert_eq!(f.total_accept, 0);
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器时间戳引擎 · ContainerTimestamp (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   时间戳不是绝对时刻, 而是容器的拓扑序位置
+//   在仅加法范式下: 事实变化 = 加上一个 frame
+//
+//   tick = 递增整数, 每个事件推进一步
+//   compare(t1,t2) 不依赖时钟, 依赖先后
+//
+//   仅加法: tick+1, 偏移量用加法累加, 比较用 == < >
+
+/// 时间戳引擎
+#[derive(Clone, Debug)]
+pub struct ContainerTimestamp {
+    pub tick: u64,            // 当前拓扑 tick
+    pub max_frame: u64,       // 最大支持帧 (溢出即饱和)
+    pub events: u64,          // 事件计数
+    pub saturated: bool,      // 是否饱和
+}
+
+impl ContainerTimestamp {
+    pub fn new(max_frame: u64) -> Self {
+        Self { tick: 0, max_frame, events: 0, saturated: false }
+    }
+
+    /// 事件驱动 +1 tick (饱和则不变)
+    pub fn step(&mut self) {
+        if self.tick >= self.max_frame {
+            self.saturated = true;
+            return;
+        }
+        self.tick = self.tick + 1;
+        self.events = self.events + 1;
+        if self.tick >= self.max_frame {
+            self.saturated = true;
+        }
+    }
+
+    /// 多帧步进
+    pub fn step_n(&mut self, n: u64) {
+        // 无乘法: 最多走 (max - tick) 步
+        let remaining = self.max_frame - self.tick;
+        let actual = if n <= remaining { n } else { remaining };
+        self.tick = self.tick + actual;
+        self.events = self.events + actual;
+        if self.tick >= self.max_frame {
+            self.saturated = true;
+        }
+    }
+
+    /// 计算两帧之间的距离 (用循环减法近似)
+    pub fn distance(&self, other: &ContainerTimestamp) -> u64 {
+        if self.tick >= other.tick { self.tick - other.tick }
+        else { other.tick - self.tick }
+    }
+
+    /// 发生在 before 之后 (严格 >)
+    pub fn after(&self, other: &ContainerTimestamp) -> bool { self.tick > other.tick }
+    pub fn at_or_after(&self, other: &ContainerTimestamp) -> bool { self.tick >= other.tick }
+    pub fn simultaneous(&self, other: &ContainerTimestamp) -> bool { self.tick == other.tick }
+
+    /// 复制当前 tick 为快照 (用于因果记录)
+    pub fn snapshot(&self) -> u64 { self.tick }
+
+    pub fn reset(&mut self) {
+        self.tick = 0;
+        self.events = 0;
+        self.saturated = false;
+    }
+}
+
+impl Default for ContainerTimestamp {
+    fn default() -> Self { Self::new(u64::MAX) }
+}
+
+#[cfg(test)]
+mod timestamp_tests {
+    use super::*;
+
+    #[test]
+    fn test_step_once() {
+        let mut t = ContainerTimestamp::new(100);
+        t.step();
+        assert_eq!(t.tick, 1);
+        assert_eq!(t.events, 1);
+        assert!(!t.saturated);
+    }
+
+    #[test]
+    fn test_step_n() {
+        let mut t = ContainerTimestamp::new(100);
+        t.step_n(5);
+        assert_eq!(t.tick, 5);
+    }
+
+    #[test]
+    fn test_saturate() {
+        let mut t = ContainerTimestamp::new(3);
+        t.step();
+        t.step();
+        t.step();
+        assert_eq!(t.tick, 3);
+        assert!(t.saturated);
+        t.step();  // 不再增加
+        assert_eq!(t.tick, 3);
+    }
+
+    #[test]
+    fn test_distance() {
+        let mut a = ContainerTimestamp::new(100);
+        let mut b = ContainerTimestamp::new(100);
+        a.step_n(10);
+        b.step_n(3);
+        assert_eq!(a.distance(&b), 7);
+    }
+
+    #[test]
+    fn test_after() {
+        let mut a = ContainerTimestamp::new(100);
+        a.step_n(5);
+        let mut b = ContainerTimestamp::new(100);
+        b.step_n(3);
+        assert!(a.after(&b));
+        assert!(b.after(&a) == false);
+        assert!(a.at_or_after(&a));  // 自己 >= 自己
+    }
+
+    #[test]
+    fn test_simultaneous() {
+        let a = ContainerTimestamp::new(100);
+        let b = ContainerTimestamp::new(100);
+        assert!(a.simultaneous(&b)); // tick 均为 0
+    }
+
+    #[test]
+    fn test_snapshot() {
+        let mut t = ContainerTimestamp::new(100);
+        t.step_n(7);
+        assert_eq!(t.snapshot(), 7);
+    }
+
+    #[test]
+    fn test_default_max() {
+        let mut t = ContainerTimestamp::default();
+        t.step_n(1_000_000);
+        assert!(!t.saturated);
+    }
+}
