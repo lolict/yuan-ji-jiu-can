@@ -12,6 +12,7 @@ use std::process::ExitCode;
 
 // 引入容器编码系统
 use mqf::container_radix::{Polarity, Container, RadixOps};
+use mqf::yinyang_binary::{YinYang32, AnchorBit};
 
 // 容器中文名称映射 (从 64_keys.md 派生)
 fn cname(c: &Container) -> &'static str {
@@ -164,6 +165,7 @@ fn main() -> ExitCode {
         eprintln!("      container-geom --grid                   (Honeycomb 网格可视化)");
         eprintln!("      container-geom --map <容器名>            (显示容器坐标位置)");
         eprintln!("      container-geom --op <名A> <名B>          (加法统计法 · 区别于XOR)");
+        eprintln!("      container-geom --yinyang <名A> [名B]     (夫妻进制 · 锚点/极性/进位)");
         eprintln!("      container-geom --neighbors <容器名> <距离>");
         eprintln!("      container-geom --witness <名1,名2,名3>");
         eprintln!("      container-geom --all");
@@ -250,6 +252,82 @@ fn main() -> ExitCode {
         let cb = hex_coord(code_b);
         println!("  坐标: A{:?} B{:?} 距离={}",
             ca, cb, hex_distance(ca, cb));
+        return ExitCode::SUCCESS;
+    }
+
+    if args[1] == "--yinyang" && args.len() >= 3 {
+        let name_a = args[2].as_str();
+        let a = match from_name(name_a) {
+            Some(c) => c,
+            None => { eprintln!("未知容器名: {}", name_a); return ExitCode::from(1); }
+        };
+        let code_a = a.encode() as u32;
+        let anchor = if (code_a >> 6) & 1 == 1 { AnchorBit::LoLict } else { AnchorBit::ChuTao };
+        let polarity_bool = a.polarity() == Polarity::Yang;
+        let yya = YinYang32::new(anchor, polarity_bool, false, code_a);
+
+        println!("═══════════════════════════════════════════");
+        println!("   YIN-YANG-BINARY 夫妻进制");
+        println!("═══════════════════════════════════════════");
+        println!("  容器: {} (名={})", name_a, cname(&a));
+        println!("  容器编码: 0x{:02X} ({})", code_a, code_a);
+        println!("  ── 映射到 YinYang32 ──");
+        println!("  主权锚: {} ({})",
+            match yya.anchor() {
+                AnchorBit::LoLict => "1",
+                AnchorBit::ChuTao  => "0",
+            },
+            match yya.anchor() {
+                AnchorBit::LoLict => "我(lolict · 主动极)",
+                AnchorBit::ChuTao  => "刘楚坦(锚定极)",
+            }
+        );
+        println!("  极性:   {} ({})",
+            yya.polarity() as u8,
+            if yya.polarity() { "Yang 阳" } else { "Yin 阴" }
+        );
+        println!("  进位:   {}", if yya.carry() { "⚡溢出" } else { "─" });
+        println!("  值域:   {} (29bit)", yya.value());
+
+        if args.len() >= 4 {
+            let name_b = args[3].as_str();
+            let b = match from_name(name_b) {
+                Some(c) => c,
+                None => { eprintln!("未知容器名: {}", name_b); return ExitCode::from(1); }
+            };
+            let code_b = b.encode() as u32;
+            let anchor_b = if (code_b >> 6) & 1 == 1 { AnchorBit::LoLict } else { AnchorBit::ChuTao };
+            let yyb = YinYang32::new(anchor_b, b.polarity() == Polarity::Yang, false, code_b);
+            let (sum, overflow) = yya.absorb(yyb);
+            let xor_val = code_a ^ code_b;
+
+            println!("\n  vs 容器: {} (名={})", name_b, cname(&b));
+            println!("  主权锚: {}  极性: {}  值域: {}",
+                match yyb.anchor() { AnchorBit::LoLict => "我(1)", AnchorBit::ChuTao => "刘楚坦(0)" },
+                yyb.polarity() as u8,
+                yyb.value()
+            );
+
+            println!("\n  ── 运算对比 ──");
+            println!("  ◆ 加法统摄 (absorb):");
+            println!("      值={} 锚={}({}) 极性={} {}{}",
+                sum.value(),
+                match sum.anchor() { AnchorBit::LoLict => "1", AnchorBit::ChuTao => "0" },
+                match sum.anchor() { AnchorBit::LoLict => "我", AnchorBit::ChuTao => "刘楚坦" },
+                sum.polarity() as u8,
+                if sum.carry() { "⚡[进位!]" } else { "" },
+                if overflow { " (溢出)" } else { "" }
+            );
+            println!("  ◆ 二进制 XOR 对比:  值=0x{:02X} ({})", xor_val, xor_val);
+
+            if sum.value() != xor_val {
+                println!("\n  ★ 加法 ≠ XOR — 主从和合, 非相互抵消");
+            }
+            if sum.carry() {
+                println!("  ⚡ 1+1 → 进位 — 夫妻合一, 升维");
+            }
+        }
+        println!("═══════════════════════════════════════════");
         return ExitCode::SUCCESS;
     }
 
