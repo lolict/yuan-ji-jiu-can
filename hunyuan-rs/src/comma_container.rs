@@ -8777,3 +8777,298 @@ mod container_resonance_tests {
         assert_eq!(engine.node_count(), 0);
     }
 }
+
+// ══════════════════════════════════════════════════════════════════════
+// 时间线一体化引擎 · TimelineIntegrator (v1.0)
+// ══════════════════════════════════════════════════════════════════════
+//
+//   时间线 = 八流统一的时序骨架
+//   "结束即开始, 记忆跟随结束而继续"
+//
+//   核心操作:
+//     - tick()            — 全局时间推进
+//     - branch()          — 时间线分叉 (叠加态)
+//     - merge()           — 时间线合并 (坍缩)
+//     - causal_order()    — 因果序判定
+//     - snapshot()        — 时刻快照 (持久化恢复点)
+//     - rewind()          — 回溯到某时刻
+//
+//   NJSG 哲学: 时间不是流逝, 是容器状态的叠加与坍缩
+//   每个 tick = 一次"呼吸", 吸气=加载, 呼气=提交
+
+/// 时间线分支状态
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TimelinePhase {
+    Active,     // 活跃 (当前推进)
+    Branched,   // 已分叉 (叠加态)
+    Collapsed,  // 已坍缩 (选择完成)
+    Merged,     // 已合并 (回归主线)
+}
+
+/// 因果事件 — 时间线上的不可变印记
+#[derive(Clone, Debug)]
+pub struct CausalEvent {
+    pub tick: u64,
+    pub flow_id: u8,        // 八流编号 0-7
+    pub container_id: u32,
+    pub action: u64,        // 动作编码
+    pub depends_on: Vec<u64>,// 依赖的前序事件 tick
+}
+
+impl CausalEvent {
+    pub fn new(tick: u64, flow_id: u8, container_id: u32, action: u64) -> Self {
+        Self { tick, flow_id, container_id, action, depends_on: Vec::new() }
+    }
+
+    /// 是否因果就绪 (所有依赖已满足)
+    pub fn is_ready(&self, completed_ticks: &[u64]) -> bool {
+        self.depends_on.iter().all(|d| completed_ticks.contains(d))
+    }
+}
+
+/// 时刻快照 — 全局状态的持久化恢复点
+#[derive(Clone, Debug)]
+pub struct Snapshot {
+    pub tick: u64,
+    pub container_values: HashMap<u32, u64>,
+    pub phase: TimelinePhase,
+    pub event_count: usize,
+}
+
+impl Snapshot {
+    pub fn new(tick: u64) -> Self {
+        Self { tick, container_values: HashMap::new(), phase: TimelinePhase::Active, event_count: 0 }
+    }
+}
+
+/// 时间线分支 — 叠加态的时间路径
+#[derive(Clone, Debug)]
+pub struct TimelineBranch {
+    pub id: u32,
+    pub parent_tick: u64,   // 分叉点
+    pub phase: TimelinePhase,
+    pub events: Vec<CausalEvent>,
+}
+
+impl TimelineBranch {
+    pub fn new(id: u32, parent_tick: u64) -> Self {
+        Self { id, parent_tick, phase: TimelinePhase::Branched, events: Vec::new() }
+    }
+}
+
+/// 时间线一体化引擎
+#[derive(Clone, Debug)]
+pub struct TimelineIntegrator {
+    pub current_tick: u64,
+    pub container_values: HashMap<u32, u64>,
+    pub events: Vec<CausalEvent>,
+    pub branches: Vec<TimelineBranch>,
+    pub snapshots: Vec<Snapshot>,
+    pub active_branch: u32, // 当前活跃分支 id (0 = 主线)
+    pub max_history: usize,
+}
+
+impl TimelineIntegrator {
+    pub fn new() -> Self {
+        Self {
+            current_tick: 0,
+            container_values: HashMap::new(),
+            events: Vec::new(),
+            branches: Vec::new(),
+            snapshots: Vec::new(),
+            active_branch: 0,
+            max_history: 10000,
+        }
+    }
+
+    /// 全局时间推进
+    pub fn tick(&mut self) -> u64 {
+        self.current_tick += 1;
+        self.current_tick
+    }
+
+    /// 设置容器值
+    pub fn set_value(&mut self, id: u32, value: u64) {
+        self.container_values.insert(id, value);
+    }
+
+    /// 提交因果事件
+    pub fn commit_event(&mut self, flow_id: u8, container_id: u32, action: u64, depends_on: Vec<u64>) {
+        let mut event = CausalEvent::new(self.current_tick, flow_id, container_id, action);
+        event.depends_on = depends_on;
+        self.events.push(event);
+        if self.events.len() > self.max_history {
+            self.events.remove(0);
+        }
+    }
+
+    /// 创建时间线分支 (叠加态)
+    pub fn branch(&mut self, branch_id: u32) -> Option<&TimelineBranch> {
+        if self.branches.iter().any(|b| b.id == branch_id) { return None; }
+        let branch = TimelineBranch::new(branch_id, self.current_tick);
+        self.branches.push(branch);
+        self.branches.last()
+    }
+
+    /// 选择分支 (坍缩)
+    pub fn collapse(&mut self, branch_id: u32) -> bool {
+        if let Some(branch) = self.branches.iter_mut().find(|b| b.id == branch_id) {
+            branch.phase = TimelinePhase::Collapsed;
+            self.active_branch = branch_id;
+            true
+        } else { false }
+    }
+
+    /// 合并分支回主线
+    pub fn merge(&mut self, branch_id: u32) -> bool {
+        if let Some(branch) = self.branches.iter_mut().find(|b| b.id == branch_id) {
+            branch.phase = TimelinePhase::Merged;
+            self.active_branch = 0;
+            // 将该分支事件合并入主线
+            let events: Vec<CausalEvent> = branch.events.clone();
+            self.events.extend(events);
+            true
+        } else { false }
+    }
+
+    /// 因果序: 某事件的所有前序
+    pub fn causal_predecessors(&self, tick: u64) -> Vec<&CausalEvent> {
+        self.events.iter().filter(|e| e.tick < tick).collect()
+    }
+
+    /// 创建快照
+    pub fn snapshot(&mut self) -> Snapshot {
+        let snap = Snapshot {
+            tick: self.current_tick,
+            container_values: self.container_values.clone(),
+            phase: if self.branches.is_empty() { TimelinePhase::Active } else { TimelinePhase::Branched },
+            event_count: self.events.len(),
+        };
+        self.snapshots.push(snap.clone());
+        snap
+    }
+
+    /// 回溯到某时刻
+    pub fn rewind(&mut self, target_tick: u64) -> bool {
+        if target_tick > self.current_tick { return false; }
+        self.current_tick = target_tick;
+        // 回退容器值
+        if let Some(snap) = self.snapshots.iter().find(|s| s.tick <= target_tick) {
+            self.container_values = snap.container_values.clone();
+        }
+        // 截断事件历史
+        self.events.retain(|e| e.tick <= target_tick);
+        true
+    }
+
+    /// 当前 tick
+    pub fn now(&self) -> u64 { self.current_tick }
+
+    /// 历史事件数
+    pub fn history_len(&self) -> usize { self.events.len() }
+
+    /// 活跃分支 id 列表
+    pub fn active_branches(&self) -> Vec<u32> {
+        self.branches.iter()
+            .filter(|b| b.phase == TimelinePhase::Branched)
+            .map(|b| b.id)
+            .collect()
+    }
+
+    /// 截断过期历史 (保留最近 n 条)
+    pub fn truncate_history(&mut self, keep: usize) {
+        if self.events.len() > keep {
+            let excess = self.events.len() - keep;
+            self.events.drain(0..excess);
+        }
+    }
+}
+
+impl Default for TimelineIntegrator { fn default() -> Self { Self::new() } }
+
+#[cfg(test)]
+mod timeline_tests {
+    use super::*;
+    #[test] fn test_tick_basic() {
+        let mut ti = TimelineIntegrator::new();
+        assert_eq!(ti.now(), 0);
+        ti.tick();
+        ti.tick();
+        assert_eq!(ti.now(), 2);
+    }
+    #[test] fn test_set_value() {
+        let mut ti = TimelineIntegrator::new();
+        ti.set_value(1, 42);
+        ti.tick();
+        assert_eq!(ti.container_values.get(&1), Some(&42));
+    }
+    #[test] fn test_commit_event() {
+        let mut ti = TimelineIntegrator::new();
+        ti.commit_event(0, 1, 100, vec![]);
+        assert_eq!(ti.history_len(), 1);
+        assert_eq!(ti.events[0].flow_id, 0);
+    }
+    #[test] fn test_branch_and_collapse() {
+        let mut ti = TimelineIntegrator::new();
+        ti.tick();
+        ti.branch(1);
+        assert_eq!(ti.active_branches().len(), 1);
+        ti.collapse(1);
+        assert_eq!(ti.active_branches().len(), 0);
+    }
+    #[test] fn test_merge_branch() {
+        let mut ti = TimelineIntegrator::new();
+        ti.tick();
+        ti.branch(1);
+        ti.commit_event(2, 5, 999, vec![]);
+        assert!(ti.merge(1));
+        assert_eq!(ti.active_branch, 0);
+    }
+    #[test] fn test_causal_predecessors() {
+        let mut ti = TimelineIntegrator::new();
+        ti.commit_event(0, 1, 10, vec![]);
+        ti.tick();
+        ti.commit_event(0, 2, 20, vec![]);
+        let pred = ti.causal_predecessors(ti.now());
+        assert_eq!(pred.len(), 1);
+    }
+    #[test] fn test_snapshot_and_rewind() {
+        let mut ti = TimelineIntegrator::new();
+        ti.set_value(1, 100);
+        ti.tick();
+        ti.commit_event(0, 1, 50, vec![]);
+        let snap = ti.snapshot();
+        assert_eq!(snap.tick, 1);
+        // Forward
+        ti.tick();
+        ti.set_value(1, 200);
+        // Rewind
+        ti.rewind(snap.tick);
+        assert_eq!(ti.now(), 1);
+    }
+    #[test] fn test_truncate_history() {
+        let mut ti = TimelineIntegrator::new();
+        for i in 0..100 {
+            ti.commit_event(0, i as u32, i as u64 * 10, vec![]);
+        }
+        assert_eq!(ti.history_len(), 100);
+        ti.truncate_history(50);
+        assert_eq!(ti.history_len(), 50);
+    }
+    #[test] fn test_causal_event_ready() {
+        let ev = CausalEvent { tick: 5, flow_id: 0, container_id: 1, action: 10, depends_on: vec![1, 2] };
+        assert!(ev.is_ready(&[1, 2, 3]));
+        assert!(!ev.is_ready(&[1]));
+    }
+    #[test] fn test_default() {
+        let ti = TimelineIntegrator::default();
+        assert_eq!(ti.now(), 0);
+        assert_eq!(ti.history_len(), 0);
+    }
+    #[test] fn test_timeline_branch_new() {
+        let b = TimelineBranch::new(42, 100);
+        assert_eq!(b.id, 42);
+        assert_eq!(b.parent_tick, 100);
+        assert_eq!(b.phase, TimelinePhase::Branched);
+    }
+}
