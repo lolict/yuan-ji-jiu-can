@@ -168,6 +168,9 @@ cmdenv yunmu-svg ang,ou,un yunmu.svg
 # 复韵母合并字形: 拆 ang>a+n+g, 呼 glyph.nim 母字几何, 按 Zone 叠成一格, 输出 SVG
 cmdenv yunmu-merge ang,ou,un,er,ai yunmu_merge.svg
 
+# 也可合并声母/整音节 (几何表已含 glyph.nim 全部 25 条)：bang / qing / zhuang
+cmdenv yunmu-merge bang,qing,zhuang sigil_merge.svg
+
 # 全量叉乘: 把注册表 32 母全部合并成 32 格
 cmdenv yunmu-merge 全量 yunmu_all.svg
 

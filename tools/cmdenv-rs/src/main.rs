@@ -373,14 +373,30 @@ fn do_yunmu_svg(spec: &str, out: &str) {
 fn glyph_geo(c: char) -> Option<[(&'static str, &'static str); 4]> {
     Some(match c {
         'a' => [("curve", "middle"), ("straight", "bottom"), ("open", "middle"), ("cross", "junction")],
+        'b' => [("straight", "bottom"), ("curve", "middle"), ("cross", "junction"), ("closed", "inside")],
+        'c' => [("curve", "middle"), ("open", "middle"), ("closed", "middle"), ("curve", "middle")],
+        'd' => [("curve", "middle"), ("straight", "middle"), ("point", "top"), ("point", "bottom")],
         'e' => [("straight", "top"), ("straight", "bottom"), ("open", "middle"), ("closed", "middle")],
+        'f' => [("straight", "top"), ("straight", "middle"), ("straight", "bottom"), ("bend", "bottom")],
+        'g' => [("curve", "inside"), ("spiral", "spiralBoundary"), ("curve", "outside"), ("bend", "bottom")],
+        'h' => [("straight", "middle"), ("curve", "top"), ("straight", "middle"), ("bend", "junction")],
         'i' => [("straight", "middle"), ("point", "top"), ("open", "bottom"), ("point", "endpoint")],
+        'j' => [("straight", "top"), ("curve", "bottom"), ("point", "top"), ("bend", "fineTransition")],
+        'k' => [("straight", "middle"), ("straight", "middle"), ("straight", "middle"), ("cross", "junction")],
+        'l' => [("straight", "middle"), ("open", "top"), ("open", "bottom"), ("point", "endpoint")],
+        'm' => [("curve", "top"), ("curve", "middle"), ("curve", "top"), ("straight", "bottom")],
+        'n' => [("curve", "top"), ("curve", "bottom"), ("straight", "middle"), ("straight", "middle")],
         'o' => [("curve", "inside"), ("closed", "inside"), ("curve", "outside"), ("spiral", "middle")],
+        'p' => [("straight", "top"), ("curve", "bottom"), ("cross", "junction"), ("closed", "inside")],
+        'q' => [("straight", "top"), ("curve", "bottom"), ("bend", "fineTransition"), ("curve", "inside")],
+        'r' => [("straight", "top"), ("curve", "top"), ("bend", "junction"), ("open", "bottom")],
+        's' => [("curve", "top"), ("curve", "inflection"), ("curve", "bottom"), ("bend", "inflection")],
+        't' => [("straight", "top"), ("straight", "middle"), ("cross", "junction"), ("bend", "bottom")],
         'u' => [("straight", "middle"), ("straight", "middle"), ("curve", "bottom"), ("open", "top")],
         'v' => [("straight", "top"), ("straight", "top"), ("open", "top"), ("cross", "bottom")],
-        'n' => [("curve", "top"), ("curve", "bottom"), ("straight", "middle"), ("straight", "middle")],
-        'g' => [("curve", "inside"), ("spiral", "spiralBoundary"), ("curve", "outside"), ("bend", "bottom")],
-        'r' => [("straight", "top"), ("curve", "top"), ("bend", "junction"), ("open", "bottom")],
+        'w' => [("straight", "top"), ("straight", "bottom"), ("straight", "top"), ("straight", "bottom")],
+        'x' => [("straight", "middle"), ("straight", "middle"), ("cross", "junction"), ("open", "endpoint")],
+        'z' => [("straight", "top"), ("straight", "middle"), ("straight", "bottom"), ("bend", "junction")],
         _ => return None,
     })
 }
@@ -524,8 +540,9 @@ fn do_yunmu_merge(spec: &str, out: &str) {
             "<text x=\"{:.1}\" y=\"{:.1}\" fill=\"#9ab\" font-size=\"11\">{}</text>\n",
             ox + 6.0, oy + cell + 30.0, n
         ));
-        if !list.iter().any(|y| &y.pinyin == n) {
-            println!("未注册韵母「{}」· 仍按母字几何合并 (可先 yunmu 登记)", n);
+        let unknown: Vec<char> = n.chars().filter(|c| glyph_geo(*c).is_none()).collect();
+        if !unknown.is_empty() {
+            println!("「{}」含几何表外的母字 {:?} · 跳过 (源 glyph.nim 无此项)", n, unknown);
         }
         drawn += 1;
     }
