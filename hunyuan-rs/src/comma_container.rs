@@ -11907,3 +11907,164 @@ mod state_machine_tests {
         assert_eq!(sm.rule_count, 0);
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 流容器入口引擎 · ContainerFlowAcceptor (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   容器入口本身就是一种操作: 接纳信号/排出信号
+//   入口有容量限制, 溢出的信号被丢弃或重定向
+//
+//   核心操作:
+//     - accept(signal)        — 尝试写入入口, 返回成功/溢出
+//     - drain(vol)            — 取出 vol 个信号
+//     - peek()                — 查看入口当前水位
+//     - capacity / remaining  — 容量与余量
+//
+//   仅加法: 水位+信号量, 溢出判断用 == 或 <
+//
+//   容量为 0 的空壳入口: 接收即丢弃
+
+/// 入口溢出策略
+#[derive(Clone, Debug, PartialEq)]
+pub enum OverflowPolicy { Drop, Redirect(u64), Reject }
+
+/// 流入口引擎
+#[derive(Clone, Debug)]
+pub struct ContainerFlowAcceptor {
+    pub capacity: u64,        // 入口容量上限
+    pub level: u64,           // 当前水位
+    pub policy: OverflowPolicy,
+    pub total_accept: u64,    // 累计接单量
+    pub total_drain: u64,     // 累计排出量
+    pub total_drop: u64,      // 累计丢弃量
+}
+
+impl ContainerFlowAcceptor {
+    pub fn new(capacity: u64, policy: OverflowPolicy) -> Self {
+        Self { capacity, level: 0, policy, total_accept: 0, total_drain: 0, total_drop: 0 }
+    }
+
+    /// 尝试写入; 返回实际存入量 (0 表示丢弃)
+    pub fn accept(&mut self, vol: u64) -> u64 {
+        let space = self.remaining();
+        if vol <= space {
+            self.level = self.level + vol;
+            self.total_accept = self.total_accept + vol;
+            vol
+        } else {
+            self.total_drop = self.total_drop + vol;
+            0
+        }
+    }
+
+    /// 强制写入 (超出容量即塞满)
+    pub fn accept_force(&mut self, vol: u64) -> u64 {
+        let space = self.remaining();
+        let fit = if vol <= space { vol } else { space };
+        self.level = self.level + fit;
+        self.total_accept = self.total_accept + fit;
+        self.total_drop = self.total_drop + (vol - fit);
+        fit
+    }
+
+    /// 取出 vol; 返回实际取到量
+    pub fn drain(&mut self, vol: u64) -> u64 {
+        let got = if vol <= self.level { vol } else { self.level };
+        self.level = self.level - got;
+        self.total_drain = self.total_drain + got;
+        got
+    }
+
+    pub fn is_empty(&self) -> bool { self.level == 0 }
+    pub fn is_full(&self) -> bool { self.level >= self.capacity }
+    pub fn remaining(&self) -> u64 { self.capacity - self.level }
+    pub fn peek(&self) -> u64 { self.level }
+
+    pub fn clear(&mut self) {
+        self.level = 0;
+        self.total_accept = 0;
+        self.total_drain = 0;
+        self.total_drop = 0;
+    }
+}
+
+impl Default for ContainerFlowAcceptor {
+    fn default() -> Self { Self::new(64, OverflowPolicy::Drop) }
+}
+
+#[cfg(test)]
+mod flow_acceptor_tests {
+    use super::*;
+
+    #[test]
+    fn test_accept_basic() {
+        let mut f = ContainerFlowAcceptor::new(10, OverflowPolicy::Drop);
+        assert_eq!(f.accept(3), 3);
+        assert_eq!(f.peek(), 3);
+        assert_eq!(f.total_accept, 3);
+    }
+
+    #[test]
+    fn test_accept_overflow_drop() {
+        let mut f = ContainerFlowAcceptor::new(5, OverflowPolicy::Drop);
+        assert_eq!(f.accept(6), 0);  // 溢出丢弃
+        assert_eq!(f.level, 0);
+        assert_eq!(f.total_drop, 6);
+    }
+
+    #[test]
+    fn test_accept_force_partial() {
+        let mut f = ContainerFlowAcceptor::new(5, OverflowPolicy::Drop);
+        assert_eq!(f.accept_force(8), 5);  // 只存满容量
+        assert_eq!(f.peek(), 5);
+        assert_eq!(f.total_drop, 3);
+    }
+
+    #[test]
+    fn test_drain() {
+        let mut f = ContainerFlowAcceptor::new(100, OverflowPolicy::Drop);
+        f.accept(10);
+        assert_eq!(f.drain(3), 3);
+        assert_eq!(f.peek(), 7);
+        assert_eq!(f.drain(20), 7);  // 超出水位, 有多少取多少
+        assert!(f.is_empty());
+    }
+
+    #[test]
+    fn test_capacity_full() {
+        let mut f = ContainerFlowAcceptor::new(4, OverflowPolicy::Drop);
+        assert!(f.is_empty());
+        f.accept(4);
+        assert!(f.is_full());
+        assert_eq!(f.remaining(), 0);
+    }
+
+    #[test]
+    fn test_consume_cycle() {
+        let mut f = ContainerFlowAcceptor::new(10, OverflowPolicy::Drop);
+        f.accept(8);
+        f.drain(3);
+        f.accept(4);
+        assert_eq!(f.peek(), 9);
+        f.drain(9);
+        assert!(f.is_empty());
+    }
+
+    #[test]
+    fn test_default() {
+        let f = ContainerFlowAcceptor::default();
+        assert_eq!(f.capacity, 64);
+        assert_eq!(f.policy, OverflowPolicy::Drop);
+    }
+
+    #[test]
+    fn test_clear() {
+        let mut f = ContainerFlowAcceptor::new(10, OverflowPolicy::Drop);
+        f.accept(5);
+        f.drain(3);
+        f.clear();
+        assert!(f.is_empty());
+        assert_eq!(f.total_accept, 0);
+    }
+}
