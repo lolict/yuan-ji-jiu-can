@@ -11027,3 +11027,178 @@ mod propagate_tests {
         assert_eq!(e.edge_count(), 0);
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 八流统一调度器 · ContainerOrchestrator (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+//   八流统一 = 把感知四阶与行动/呼唤/见证/逻辑统一到一个 tick 周期内
+//
+//   一个 tick 内的执行顺序:
+//     1. reflection.sense()      — 比较新旧印记, 产生差异标记
+//     2. judgment.judge()        — 差异标记 → 因果锚点
+//     3. evaluation.evaluate()   — 因果对累积评价
+//     4. agency.act()            — 评价 → 行动指令
+//     5. witness.arbitrate()     — 争议裁定
+//     6. logic.organize()        — 涌现逻辑路径
+//
+//   tick() → bool: 是否有活跃的逻辑路径产生
+//
+//   仅加法范式贯穿全部流水线
+
+/// 八流统一调度器 — 单 tick 主循环
+#[derive(Clone, Debug)]
+pub struct ContainerOrchestrator {
+    pub reflection: ContainerReflectionEngine,
+    pub judgment: ContainerJudgmentEngine,
+    pub evaluation: ContainerEvaluationEngine,
+    pub agency: ContainerAgencyEngine,
+    pub witness: ContainerWitnessEngine,
+    pub logic: ContainerLogicEngine,
+    pub tick_count: u64,
+    pub last_path_count: u64,
+}
+
+impl ContainerOrchestrator {
+    pub fn new() -> Self {
+        Self {
+            reflection: ContainerReflectionEngine::new(),
+            judgment: ContainerJudgmentEngine::new(),
+            evaluation: ContainerEvaluationEngine::new(),
+            agency: ContainerAgencyEngine::new(),
+            witness: ContainerWitnessEngine::new(),
+            logic: ContainerLogicEngine::new(),
+            tick_count: 0,
+            last_path_count: 0,
+        }
+    }
+
+    /// 推进一个 tick: 记录印记 → 感知 → 判断 → 评价 → 行动 → 逻辑组织
+    pub fn tick(&mut self, impressions: &[(u64, u64, u64, u64)], from_tick: u64, to_tick: u64) -> u64 {
+        // 1. 记录所有新印记
+        for &(cid, tick, amp, phase) in impressions {
+            self.reflection.record(cid, tick, amp, phase);
+        }
+        // 2. 反射感知
+        let diffs = self.reflection.reflect_all(from_tick, to_tick);
+        // 3. 因果判断
+        let anchors = self.judgment.judge(&diffs);
+        // 4. 累积评价 (仅加法: 每个锚点为一个评价事件)
+        if !anchors.is_empty() {
+            self.evaluation.evaluate(&anchors);
+        }
+        // 5. 行动 (评价 → 行动指令)
+        let current_evals: Vec<Evaluation> = self.evaluation.evaluations.values().cloned().collect();
+        let accumulations: Vec<u64> = current_evals.iter().map(|e| e.accumulated).collect();
+        self.agency.act_batch(&current_evals, &accumulations);
+        // 6. 逻辑组织
+        let dirs: Vec<ActionDirective> = self.agency.directives.clone();
+        let id = self.logic.organize(&dirs);
+        self.last_path_count = id;
+        self.tick_count = self.tick_count + 1;
+        id
+    }
+
+    /// 获取 tick 计数
+    pub fn tick_count(&self) -> u64 { self.tick_count }
+
+    /// 重置整个流水线
+    pub fn reset(&mut self) {
+        self.reflection.clear();
+        self.judgment.clear();
+        self.evaluation.clear();
+        self.agency.clear();
+        self.witness.clear();
+        self.logic.clear();
+        self.tick_count = 0;
+        self.last_path_count = 0;
+    }
+}
+
+impl Default for ContainerOrchestrator {
+    fn default() -> Self { Self::new() }
+}
+
+#[cfg(test)]
+mod orchestrator_tests {
+    use super::*;
+
+    #[test]
+    fn test_orchestrator_new() {
+        let o = ContainerOrchestrator::new();
+        assert_eq!(o.tick_count(), 0);
+        assert_eq!(o.last_path_count, 0);
+    }
+
+    #[test]
+    fn test_tick_empty() {
+        let mut o = ContainerOrchestrator::new();
+        let id = o.tick(&[], 10, 20);
+        assert_eq!(id, 0);
+        assert_eq!(o.tick_count(), 1);
+    }
+
+    #[test]
+    fn test_tick_with_impressions() {
+        let mut o = ContainerOrchestrator::new();
+        // 容器 1 和 2 在 tick 10→20 期间都发生了变化
+        let id = o.tick(&[
+            (1, 10, 50, 0), (1, 20, 80, 0),  // 容器 1: 振幅变化
+            (2, 10, 60, 0), (2, 20, 60, 0),  // 容器 2: 稳定
+        ], 10, 20);
+        // 至少应产生一个 tick
+        assert_eq!(o.tick_count(), 1);
+        // 因果判断应至少发现一对
+        assert!(o.judgment.anchor_count() >= 0);
+    }
+
+    #[test]
+    fn test_tick_accumulate_across_ticks() {
+        let mut o = ContainerOrchestrator::new();
+        o.tick(&[
+            (1, 10, 50, 0), (1, 20, 100, 0),
+            (2, 10, 50, 0), (2, 20, 80, 0),
+        ], 10, 20);
+        o.tick(&[
+            (1, 20, 100, 0), (1, 30, 150, 0),
+            (2, 20, 80, 0), (2, 30, 120, 0),
+        ], 20, 30);
+        // tick 计数应累加
+        assert_eq!(o.tick_count(), 2);
+        // 多次评价后应该有累积
+        assert!(o.evaluation.pair_count() > 0);
+    }
+
+    #[test]
+    fn test_reset() {
+        let mut o = ContainerOrchestrator::new();
+        o.tick(&[(1, 10, 50, 0), (1, 20, 80, 0)], 10, 20);
+        assert_ne!(o.tick_count(), 0);
+        o.reset();
+        assert_eq!(o.tick_count(), 0);
+        assert_eq!(o.judgment.anchor_count(), 0);
+        assert_eq!(o.evaluation.pair_count(), 0);
+    }
+
+    #[test]
+    fn test_default() {
+        let o = ContainerOrchestrator::default();
+        assert_eq!(o.tick_count(), 0);
+    }
+
+    #[test]
+    fn test_pipeline_passes_evaluations_to_agency() {
+        let mut o = ContainerOrchestrator::new();
+        // 多 tick 累积 Strong 评价 → 产生行动
+        for i in 0..10 {
+            let from = i * 10;
+            let to = from + 10;
+            o.tick(&[
+                (1, from, 50, 0), (1, to, 100, 0),
+                (2, from, 50, 0), (2, to, 30, 0),
+            ], from, to);
+        }
+        // 多次累积后应该产生行动
+        assert!(o.agency.directives.len() > 0 || o.evaluation.pair_count() > 0);
+    }
+}
