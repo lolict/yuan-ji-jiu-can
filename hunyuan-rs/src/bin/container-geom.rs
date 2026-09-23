@@ -153,6 +153,7 @@ fn main() -> ExitCode {
         eprintln!("      container-geom <容器名1> <容器名2> <容器名3>  (三元见证)");
         eprintln!("      container-geom --grid                   (Honeycomb 网格可视化)");
         eprintln!("      container-geom --map <容器名>            (显示容器坐标位置)");
+        eprintln!("      container-geom --op <名A> <名B>          (加法统计法 · 区别于XOR)");
         eprintln!("      container-geom --neighbors <容器名> <距离>");
         eprintln!("      container-geom --witness <名1,名2,名3>");
         eprintln!("      container-geom --all");
@@ -179,6 +180,66 @@ fn main() -> ExitCode {
             c.polarity(), c.sovereignty());
         println!();
         draw_hex_grid(Some(code), &[]);
+        return ExitCode::SUCCESS;
+    }
+
+    if args[1] == "--op" && args.len() >= 4 {
+        // container-geom --op <名A> <名B>  加法统计 (区别于二进制XOR)
+        let name_a = args[2].as_str();
+        let name_b = args[3].as_str();
+        let a = match from_name(name_a) {
+            Some(c) => c,
+            None => { eprintln!("未知容器名: {}", name_a); return ExitCode::from(1); }
+        };
+        let b = match from_name(name_b) {
+            Some(c) => c,
+            None => { eprintln!("未知容器名: {}", name_b); return ExitCode::from(1); }
+        };
+        let code_a = a.encode();
+        let code_b = b.encode();
+        let sum = code_a.wrapping_add(code_b);
+        let diff = code_a.wrapping_sub(code_b);
+        let xor = code_a ^ code_b;
+        let or = code_a | code_b;
+        let and = code_a & code_b;
+
+        // 极性组合
+        let pol_sum = match (a.polarity(), b.polarity()) {
+            (Polarity::Yin, Polarity::Yang) | (Polarity::Yang, Polarity::Yin) => "元(中和)",
+            (Polarity::Neutral, _) | (_, Polarity::Neutral) => "元(保持)",
+            (Polarity::Yin, Polarity::Yin) => "阴",
+            (Polarity::Yang, Polarity::Yang) => "阳",
+        };
+
+        println!("容器加法统计 (加法统计法 · 非幂次二进制)");
+        println!("────────────────────────────────────");
+        println!("  A = {:>2} code=0x{:02X} ({:?})", cname(&a), code_a, a.polarity());
+        println!("  B = {:>2} code=0x{:02X} ({:?})", cname(&b), code_b, b.polarity());
+        println!("────────────────────────────────────");
+        println!("  加法 (wrapping_add):");
+        println!("    A + B = 0x{:02X} ({})", sum, sum);
+        println!("    A - B = 0x{:02X} ({})", diff, diff);
+        println!("  二进制 (对比):");
+        println!("    XOR   = 0x{:02X} ({})", xor, xor);
+        println!("    OR    = 0x{:02X} ({})", or, or);
+        println!("    AND   = 0x{:02X} ({})", and, and);
+        println!("  极性组合: {} + {} => {}", cname(&a), cname(&b), pol_sum);
+
+        if sum <= 0x3F {
+            let c = Container::decode(sum);
+            println!("  加法结果容器: {} code=0x{:02X} ({:?}) 坐标=({}, {})",
+                cname(&c), sum, c.polarity(), hex_coord(sum).0, hex_coord(sum).1);
+        } else {
+            println!("  加法结果 0x{:02X} 超出 0x3F — 回绕到 0x{:02X}", sum, sum & 0x3F);
+            let wrapped = Container::decode(sum & 0x3F);
+            println!("    回绕结果: {} code=0x{:02X}", cname(&wrapped), sum & 0x3F);
+        }
+
+        // 坐标关系
+        let ca = hex_coord(code_a);
+        let cb = hex_coord(code_b);
+        println!("  坐标: A{:?} B{:?} 距离={}",
+            ca, cb, hex_distance(ca, cb));
         return ExitCode::SUCCESS;
     }
 
