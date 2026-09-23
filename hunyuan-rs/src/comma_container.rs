@@ -11713,3 +11713,197 @@ mod entropy_tests {
         assert_eq!(e.measurement_count(), 0);
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 状态机引擎 · ContainerStateMachine (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   状态机 = 容器的离散状态转换
+//   每个容器可在一组状态之间按规则迁移
+//
+//   规则: (current_state, event) → next_state
+//   用 (当前状态 × 事件) 做加法索引查表, 避免复杂 if-else 链
+//
+//   核心操作:
+//     - add_transition(s1, ev, s2)  — 注册转换规则
+//     - trigger(state, ev)          — 触发转换, 返回新状态
+//     - validate(state, ev)         — 检查转换是否允许
+//
+//   仅加法: 状态/事件均为 u64, 索引 = 加法组合
+//
+//   兜底: 无规则 → 返回原状态 (吸收态)
+
+/// 状态机引擎
+#[derive(Clone, Debug)]
+pub struct ContainerStateMachine {
+    /// 转换规则: (current, event) → next
+    pub transitions: HashMap<(u64, u64), u64>,
+    /// 注册规则数
+    pub rule_count: usize,
+    /// 累计触发次数
+    pub total_triggers: u64,
+    /// 累计成功转换次数
+    pub total_transitions: u64,
+}
+
+impl ContainerStateMachine {
+    pub fn new() -> Self {
+        Self {
+            transitions: HashMap::new(),
+            rule_count: 0,
+            total_triggers: 0,
+            total_transitions: 0,
+        }
+    }
+
+    /// 注册转换规则: (from_state, event) → to_state
+    pub fn add_transition(&mut self, from: u64, event: u64, to: u64) {
+        let key = (from, event);
+        if !self.transitions.contains_key(&key) {
+            self.rule_count = self.rule_count + 1;
+        }
+        self.transitions.insert(key, to);
+    }
+
+    /// 查找下一状态 (无规则 → 返回当前状态)
+    pub fn next_state(&self, current: u64, event: u64) -> u64 {
+        self.transitions.get(&(current, event)).copied().unwrap_or(current)
+    }
+
+    /// 触发转换并统计
+    pub fn trigger(&mut self, current: u64, event: u64) -> u64 {
+        let next = self.next_state(current, event);
+        self.total_triggers = self.total_triggers + 1;
+        if next != current {
+            self.total_transitions = self.total_transitions + 1;
+        }
+        next
+    }
+
+    /// 验证转换是否合法
+    pub fn validate(&self, current: u64, event: u64) -> bool {
+        self.transitions.contains_key(&(current, event))
+    }
+
+    /// 删除规则
+    pub fn remove_rule(&mut self, from: u64, event: u64) -> bool {
+        let r = self.transitions.remove(&(from, event)).is_some();
+        if r { self.rule_count = self.rule_count - 1; }
+        r
+    }
+
+    /// 所有涉及某状态的规则 (作为 from)
+    pub fn rules_from(&self, state: u64) -> Vec<((u64, u64), u64)> {
+        self.transitions.iter()
+            .filter(|((s, _), _)| *s == state)
+            .map(|(k, v)| (*k, *v))
+            .collect()
+    }
+
+    pub fn clear(&mut self) {
+        self.transitions.clear();
+        self.rule_count = 0;
+        self.total_triggers = 0;
+        self.total_transitions = 0;
+    }
+}
+
+impl Default for ContainerStateMachine {
+    fn default() -> Self { Self::new() }
+}
+
+#[cfg(test)]
+mod state_machine_tests {
+    use super::*;
+
+    #[test]
+    fn test_new() {
+        let sm = ContainerStateMachine::new();
+        assert_eq!(sm.rule_count, 0);
+        assert_eq!(sm.total_triggers, 0);
+    }
+
+    #[test]
+    fn test_add_and_trigger() {
+        let mut sm = ContainerStateMachine::new();
+        sm.add_transition(0, 1, 10);  // (状态0, 事件1) → 状态10
+        let next = sm.trigger(0, 1);
+        assert_eq!(next, 10);
+        assert_eq!(sm.total_transitions, 1);
+    }
+
+    #[test]
+    fn test_no_rule_absorbing() {
+        let mut sm = ContainerStateMachine::new();
+        // 没有注册任何规则 → 状态不变
+        let next = sm.trigger(5, 100);
+        assert_eq!(next, 5);
+        assert_eq!(sm.total_transitions, 0);  // 不算转换
+    }
+
+    #[test]
+    fn test_validate() {
+        let mut sm = ContainerStateMachine::new();
+        sm.add_transition(1, 2, 3);
+        assert!(sm.validate(1, 2));
+        assert!(!sm.validate(1, 99));  // 不存在
+        assert!(!sm.validate(99, 2));
+    }
+
+    #[test]
+    fn test_multiple_rules() {
+        let mut sm = ContainerStateMachine::new();
+        sm.add_transition(0, 10, 100);
+        sm.add_transition(0, 20, 200);
+        sm.add_transition(100, 30, 300);
+        assert_eq!(sm.next_state(0, 10), 100);
+        assert_eq!(sm.next_state(0, 20), 200);
+        assert_eq!(sm.next_state(100, 30), 300);
+    }
+
+    #[test]
+    fn test_overwrite_rule() {
+        let mut sm = ContainerStateMachine::new();
+        sm.add_transition(1, 2, 10);
+        sm.add_transition(1, 2, 99);  // 覆盖
+        assert_eq!(sm.next_state(1, 2), 99);
+        assert_eq!(sm.rule_count, 1);
+    }
+
+    #[test]
+    fn test_remove_rule() {
+        let mut sm = ContainerStateMachine::new();
+        sm.add_transition(1, 2, 3);
+        assert!(sm.remove_rule(1, 2));
+        assert!(!sm.validate(1, 2));
+        assert_eq!(sm.rule_count, 0);
+    }
+
+    #[test]
+    fn test_rules_from() {
+        let mut sm = ContainerStateMachine::new();
+        sm.add_transition(5, 1, 50);
+        sm.add_transition(5, 2, 51);
+        sm.add_transition(5, 3, 52);
+        sm.add_transition(9, 1, 90);
+        let r = sm.rules_from(5);
+        assert_eq!(r.len(), 3);
+    }
+
+    #[test]
+    fn test_clear() {
+        let mut sm = ContainerStateMachine::new();
+        sm.add_transition(1, 2, 3);
+        sm.trigger(1, 2);
+        sm.clear();
+        assert_eq!(sm.rule_count, 0);
+        assert_eq!(sm.total_triggers, 0);
+        assert!(!sm.validate(1, 2));
+    }
+
+    #[test]
+    fn test_default() {
+        let sm = ContainerStateMachine::default();
+        assert_eq!(sm.rule_count, 0);
+    }
+}
