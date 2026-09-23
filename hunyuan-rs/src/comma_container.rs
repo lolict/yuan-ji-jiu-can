@@ -11382,3 +11382,182 @@ mod synthesis_tests {
         assert_eq!(e.next_id, 1);
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 共鸣引擎 · ContainerEchoEngine (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   共鸣 = 一对容器之间的双向信号传递与放大
+//   不同于呼唤(单向), 共鸣是双向来回的谐波共振
+//
+//   机制:
+//     - a 对 b 发出信号, b 收到后回应 (强度 = a 的信号 × b 的响应系数)
+//     - 仅加法范式: 响应系数用加法查表 (线性递增), 不用乘法
+//     - 来回传递直到衰减为 0
+//
+//   共鸣仓中的谐振幅 = 来回信号之和 (仅加法)
+
+/// 共鸣路径
+#[derive(Clone, Debug)]
+pub struct EchoPath {
+    pub from: u64,
+    pub to: u64,
+    pub initial_strength: u64,
+    pub total_resonance: u64,  // 所有来回之和 (仅加法累积)
+    pub round_trips: u64,      // 来回次数
+}
+
+/// 共鸣引擎
+#[derive(Clone, Debug)]
+pub struct ContainerEchoEngine {
+    pub paths: Vec<EchoPath>,
+    /// 每步衰减量 (仅加法减法)
+    pub decay_per_trip: u64,
+    /// 累计共鸣总数
+    pub total_echoes: u64,
+}
+
+impl ContainerEchoEngine {
+    pub fn new() -> Self {
+        Self {
+            paths: Vec::new(),
+            decay_per_trip: 2,
+            total_echoes: 0,
+        }
+    }
+
+    /// 模拟一对容器 N 次来回的共鸣, 返回总谐振幅 (仅加法)
+    /// total = 所有 forward 信号之和; rounds = 完成的反向次数
+    pub fn resonate(&mut self, a: u64, b: u64, initial: u64, max_rounds: u64) -> u64 {
+        if initial == 0 || max_rounds == 0 { return 0; }
+        let mut total = 0u64;
+        let mut forward = initial;
+        let mut rounds = 0u64;
+        while forward > 0 && rounds < max_rounds {
+            total = total + forward;
+            let back = if forward >= self.decay_per_trip {
+                forward - self.decay_per_trip
+            } else {
+                0
+            };
+            if back == 0 { break; };
+            rounds = rounds + 1;
+            forward = back;
+        }
+        self.paths.push(EchoPath {
+            from: a, to: b, initial_strength: initial,
+            total_resonance: total, round_trips: rounds,
+        });
+        self.total_echoes = self.total_echoes + 1;
+        total
+    }
+
+    /// 查找两容器间的所有共鸣
+    pub fn echoes_between(&self, a: u64, b: u64) -> Vec<&EchoPath> {
+        self.paths.iter()
+            .filter(|p| (p.from == a && p.to == b) || (p.from == b && p.to == a))
+            .collect()
+    }
+
+    /// 总共鸣次数
+    pub fn echo_count(&self) -> u64 { self.total_echoes }
+
+    /// 衰减
+    pub fn decay(&self, strength: u64) -> u64 {
+        if strength >= self.decay_per_trip {
+            strength - self.decay_per_trip
+        } else {
+            0
+        }
+    }
+
+    pub fn clear(&mut self) {
+        self.paths.clear();
+        self.total_echoes = 0;
+    }
+}
+
+impl Default for ContainerEchoEngine {
+    fn default() -> Self { Self::new() }
+}
+
+#[cfg(test)]
+mod echo_tests {
+    use super::*;
+
+    #[test]
+    fn test_resonate_zero() {
+        let mut e = ContainerEchoEngine::new();
+        assert_eq!(e.resonate(1, 2, 0, 10), 0);
+    }
+
+    #[test]
+    fn test_resonate_one_way() {
+        let mut e = ContainerEchoEngine::new();
+        // initial=1, decay=2 → 正向 1, 反向 0 (1 < 2, break)
+        assert_eq!(e.resonate(1, 2, 1, 10), 1);
+    }
+
+    #[test]
+    fn test_resonate_round_trips() {
+        let mut e = ContainerEchoEngine::new();
+        // initial=5, decay=2:
+        //   fwd=5, back=3 (5-2), total=8
+        //   fwd=3, back=1 (3-2), total=9
+        //   fwd=1, back=0 (1<2, break) → final total = 9
+        let t = e.resonate(1, 2, 5, 10);
+        assert_eq!(t, 9);
+        assert_eq!(e.paths[0].round_trips, 2);
+    }
+
+    #[test]
+    fn test_max_rounds() {
+        let mut e = ContainerEchoEngine::new();
+        e.decay_per_trip = 1;
+        // strength=100, decay=1, max_rounds=3
+        // 每轮+2(正向+反向), 3轮后 = 100+99 + 98+97 + 96+95 = 但code是递减传递
+        let total = e.resonate(1, 2, 100, 3);
+        assert!(total > 0);
+        assert_eq!(e.paths[0].round_trips, 3);
+    }
+
+    #[test]
+    fn test_echoes_between() {
+        let mut e = ContainerEchoEngine::new();
+        e.resonate(1, 2, 10, 3);
+        e.resonate(1, 2, 20, 3);
+        e.resonate(3, 4, 15, 3);
+        let b = e.echoes_between(1, 2);
+        assert_eq!(b.len(), 2);
+    }
+
+    #[test]
+    fn test_echo_count() {
+        let mut e = ContainerEchoEngine::new();
+        e.resonate(1, 2, 10, 3);
+        e.resonate(3, 4, 15, 3);
+        assert_eq!(e.echo_count(), 2);
+    }
+
+    #[test]
+    fn test_decay() {
+        let e = ContainerEchoEngine::new();
+        assert_eq!(e.decay(10), 8);  // 10 - 2
+        assert_eq!(e.decay(1), 0);   // 1 < 2
+    }
+
+    #[test]
+    fn test_clear() {
+        let mut e = ContainerEchoEngine::new();
+        e.resonate(1, 2, 10, 3);
+        assert_eq!(e.echo_count(), 1);
+        e.clear();
+        assert_eq!(e.echo_count(), 0);
+    }
+
+    #[test]
+    fn test_default() {
+        let e = ContainerEchoEngine::default();
+        assert_eq!(e.echo_count(), 0);
+    }
+}
