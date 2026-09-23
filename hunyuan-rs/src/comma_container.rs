@@ -4314,7 +4314,7 @@ mod yinyang_encoder_tests {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 反馈回路引擎 · FeedbackLoopEngine
+// 反馈回路引擎 · RoundaboutFeedbackEngine
 // ═══════════════════════════════════════════════════════════════════════════
 //
 // 满全法核心: 系统通过反馈实现自我修正
@@ -4334,56 +4334,56 @@ impl Default for FeedbackKind { fn default() -> Self { FeedbackKind::Reinforce }
 
 /// 判断之力 — 对状态进行评估
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub enum Judgment {
+pub enum LoopJudgment {
     Valid,
     Invalid,
     Uncertain,
 }
 
-impl Default for Judgment { fn default() -> Self { Judgment::Uncertain } }
+impl Default for LoopJudgment { fn default() -> Self { LoopJudgment::Uncertain } }
 
 /// 评价之力 — 量化评分
 #[derive(Clone, Debug)]
-pub struct Evaluation {
+pub struct LoopEvaluation {
     pub score: f64,
     pub confidence: f64,
     pub basis: String,
 }
 
-impl Evaluation {
+impl LoopEvaluation {
     pub fn new(score: f64, confidence: f64, basis: &str) -> Self {
         Self { score: score.clamp(0.0, 1.0), confidence: confidence.clamp(0.0, 1.0), basis: basis.to_string() }
     }
     pub fn is_confident(&self) -> bool { self.confidence > 0.7 }
 }
 
-impl Default for Evaluation { fn default() -> Self { Self::new(0.5, 0.5, "default") } }
+impl Default for LoopEvaluation { fn default() -> Self { Self::new(0.5, 0.5, "default") } }
 
 /// 反馈回路引擎
 #[derive(Clone, Debug, Default)]
-pub struct FeedbackLoopEngine {
-    pub evaluations: Vec<Evaluation>,
-    pub judgments: Vec<(usize, Judgment)>,
+pub struct RoundaboutFeedbackEngine {
+    pub evaluations: Vec<LoopEvaluation>,
+    pub judgments: Vec<(usize, LoopJudgment)>,
     pub correction: f64,
 }
 
-impl FeedbackLoopEngine {
+impl RoundaboutFeedbackEngine {
     pub fn new() -> Self { Self { evaluations: Vec::new(), judgments: Vec::new(), correction: 0.0 } }
 
     /// 判断之力: 判定容器状态
-    pub fn judge(&mut self, eval_idx: usize) -> Judgment {
+    pub fn judge(&mut self, eval_idx: usize) -> LoopJudgment {
         let judgment = if let Some(eval) = self.evaluations.get(eval_idx as usize) {
-            if eval.score > 0.6 && eval.is_confident() { Judgment::Valid }
-            else if eval.score < 0.3 { Judgment::Invalid }
-            else { Judgment::Uncertain }
-        } else { Judgment::Uncertain };
+            if eval.score > 0.6 && eval.is_confident() { LoopJudgment::Valid }
+            else if eval.score < 0.3 { LoopJudgment::Invalid }
+            else { LoopJudgment::Uncertain }
+        } else { LoopJudgment::Uncertain };
         self.judgments.push((eval_idx as usize, judgment));
         judgment
     }
 
     /// 评价之力: 注入一个新评价
     pub fn evaluate(&mut self, score: f64, confidence: f64, basis: &str) -> usize {
-        self.evaluations.push(Evaluation::new(score, confidence, basis));
+        self.evaluations.push(LoopEvaluation::new(score, confidence, basis));
         self.evaluations.len() - 1
     }
 
@@ -4432,20 +4432,20 @@ pub fn classify_feedback(current: f64, target: f64) -> FeedbackKind {
 #[cfg(test)]
 mod feedback_loop_tests {
     use super::*;
-    #[test] fn test_judgment_valid() { let mut e = FeedbackLoopEngine::new(); let i = e.evaluate(0.8, 0.9, "high"); assert_eq!(e.judge(i), Judgment::Valid); }
-    #[test] fn test_judgment_invalid() { let mut e = FeedbackLoopEngine::new(); let i = e.evaluate(0.2, 0.8, "low"); assert_eq!(e.judge(i), Judgment::Invalid); }
-    #[test] fn test_evaluation_confidence() { let e = Evaluation::new(0.8, 0.9, "test"); assert!(e.is_confident()); }
-    #[test] fn test_evaluation_clamp() { let e = Evaluation::new(1.5, -0.1, "x"); assert_eq!(e.score, 1.0); assert_eq!(e.confidence, 0.0); }
-    #[test] fn test_feedback() { let mut e = FeedbackLoopEngine::new(); let i = e.evaluate(0.3, 0.8, "low"); let c = e.feedback(i); assert!(c > 0.0); }
-    #[test] fn test_health() { let mut e = FeedbackLoopEngine::new(); e.evaluate(0.8, 0.8, "a"); e.evaluate(0.6, 0.7, "b"); assert!(e.health() > 0.4 && e.health() < 0.8); }
-    #[test] fn test_needs_correction() { let mut e = FeedbackLoopEngine::new(); e.evaluate(0.2, 0.8, "bad"); e.evaluate(0.9, 0.9, "good"); assert_eq!(e.needs_correction_count(), 1); }
-    #[test] fn test_circuitous_attenuation() { let mut e = FeedbackLoopEngine::new(); let i = e.evaluate(0.3, 1.0, "test"); let direct = e.feedback(i); let circuitous = e.circuitous_feedback(i, 100); assert!(circuitous.abs() < direct.abs()); }
+    #[test] fn test_judgment_valid() { let mut e = RoundaboutFeedbackEngine::new(); let i = e.evaluate(0.8, 0.9, "high"); assert_eq!(e.judge(i), LoopJudgment::Valid); }
+    #[test] fn test_judgment_invalid() { let mut e = RoundaboutFeedbackEngine::new(); let i = e.evaluate(0.2, 0.8, "low"); assert_eq!(e.judge(i), LoopJudgment::Invalid); }
+    #[test] fn test_evaluation_confidence() { let e = LoopEvaluation::new(0.8, 0.9, "test"); assert!(e.is_confident()); }
+    #[test] fn test_evaluation_clamp() { let e = LoopEvaluation::new(1.5, -0.1, "x"); assert_eq!(e.score, 1.0); assert_eq!(e.confidence, 0.0); }
+    #[test] fn test_feedback() { let mut e = RoundaboutFeedbackEngine::new(); let i = e.evaluate(0.3, 0.8, "low"); let c = e.feedback(i); assert!(c > 0.0); }
+    #[test] fn test_health() { let mut e = RoundaboutFeedbackEngine::new(); e.evaluate(0.8, 0.8, "a"); e.evaluate(0.6, 0.7, "b"); assert!(e.health() > 0.4 && e.health() < 0.8); }
+    #[test] fn test_needs_correction() { let mut e = RoundaboutFeedbackEngine::new(); e.evaluate(0.2, 0.8, "bad"); e.evaluate(0.9, 0.9, "good"); assert_eq!(e.needs_correction_count(), 1); }
+    #[test] fn test_circuitous_attenuation() { let mut e = RoundaboutFeedbackEngine::new(); let i = e.evaluate(0.3, 1.0, "test"); let direct = e.feedback(i); let circuitous = e.circuitous_feedback(i, 100); assert!(circuitous.abs() < direct.abs()); }
     #[test] fn test_classify_reinforce() { assert_eq!(classify_feedback(0.55, 0.5), FeedbackKind::Reinforce); }
     #[test] fn test_classify_oscillatory() { assert_eq!(classify_feedback(1.5, 0.5), FeedbackKind::Oscillatory); }
-    #[test] fn test_reset() { let mut e = FeedbackLoopEngine::new(); let i = e.evaluate(0.2, 0.9, "low"); e.feedback(i); e.reset(); assert_eq!(e.correction, 0.0); }
-    #[test] fn test_engine_default() { let e = FeedbackLoopEngine::default(); assert_eq!(e.evaluations.len(), 0); assert_eq!(e.correction, 0.0); }
-    #[test] fn test_judgment_default() { let j = Judgment::default(); assert_eq!(j, Judgment::Uncertain); }
-    #[test] fn test_evaluation_default() { let e = Evaluation::default(); assert_eq!(e.score, 0.5); assert_eq!(e.basis, "default"); }
+    #[test] fn test_reset() { let mut e = RoundaboutFeedbackEngine::new(); let i = e.evaluate(0.2, 0.9, "low"); e.feedback(i); e.reset(); assert_eq!(e.correction, 0.0); }
+    #[test] fn test_engine_default() { let e = RoundaboutFeedbackEngine::default(); assert_eq!(e.evaluations.len(), 0); assert_eq!(e.correction, 0.0); }
+    #[test] fn test_judgment_default() { let j = LoopJudgment::default(); assert_eq!(j, LoopJudgment::Uncertain); }
+    #[test] fn test_evaluation_default() { let e = LoopEvaluation::default(); assert_eq!(e.score, 0.5); assert_eq!(e.basis, "default"); }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -7548,5 +7548,663 @@ mod container_evolution_tests {
     fn test_default() {
         let engine = ContainerEvolutionEngine::default();
         assert_eq!(engine.population(), 0);
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// 反馈回路引擎 · RoundaboutFeedbackEngine (v0.9)
+// ══════════════════════════════════════════════════════════════════════
+//
+//   反馈回路 = 感知→判断→调整→执行→评价 闭环
+//   迂回反馈 = 反馈路径经其他容器迂回传递 (非直接反射)
+//   反射感知 = 感知本身也作为被感知对象 (观察者即被观察者)
+//
+//   NJSG 核心回路:
+//     1. 感知 (Perceive) — 读取容器当前状态
+//     2. 判断 (Judge)    — 状态与目标值的偏差 (error)
+//     3. 调整 (Adjust)   — PID 算法计算校正值
+//     4. 执行 (Execute)  — 应用校正到容器
+//     5. 评价 (Evaluate) — 评估本轮反馈质量
+//     → 回到 1, 循环直至收敛或达到最大轮次
+//
+//   PID 系数: Kp (比例) · Ki (积分) · Kd (微分)
+//   加法修正: correction = Kp*e + Ki*∫e + Kd*Δe (加法统计, 替代幂次反馈)
+//
+//   迂回: 容器 A 的反馈经容器 B/C 传递后再回到 A
+//   (观察者→被观察者→观察者的环路)
+
+/// 反馈状态枚举
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum FeedbackStatus {
+    Idle,       // 空闲
+    Perceiving, // 感知中
+    Judging,    // 判断中
+    Adjusting,  // 调整中
+    Executing,  // 执行中
+    Evaluating, // 评价中
+    Converged,  // 已收敛
+    Oscillating,// 振荡发散
+}
+
+impl FeedbackStatus {
+    pub fn is_active(&self) -> bool {
+        !matches!(self, FeedbackStatus::Idle | FeedbackStatus::Converged | FeedbackStatus::Oscillating)
+    }
+}
+
+impl Default for FeedbackStatus { fn default() -> Self { FeedbackStatus::Idle } }
+
+/// PID 反馈系数 (比例-积分-微分)
+#[derive(Clone, Copy, Debug)]
+pub struct FeedbackCoefficients {
+    pub kp: f32, // 比例增益
+    pub ki: f32, // 积分增益
+    pub kd: f32, // 微分增益
+}
+
+impl FeedbackCoefficients {
+    pub fn new(kp: f32, ki: f32, kd: f32) -> Self { Self { kp, ki, kd } }
+
+    /// 纯比例控制
+    pub fn proportional(kp: f32) -> Self { Self { kp, ki: 0.0, kd: 0.0 } }
+
+    /// 计算校正值 (加法统计, 替代幂次反馈放大)
+    pub fn compute_correction(&self, error: f32, integral: f32, derivative: f32) -> f32 {
+        self.kp * error + self.ki * integral + self.kd * derivative
+    }
+
+    /// 限制系数范围 (防止数值爆炸)
+    pub fn clamp(&self, max: f32) -> Self {
+        Self {
+            kp: self.kp.clamp(-max, max),
+            ki: self.ki.clamp(-max, max),
+            kd: self.kd.clamp(-max, max),
+        }
+    }
+}
+
+impl Default for FeedbackCoefficients { fn default() -> Self { Self::new(0.5, 0.1, 0.05) } }
+
+/// 判断结果 — 状态与目标的偏差判定
+#[derive(Clone, Copy, Debug)]
+pub struct FeedbackJudgment {
+    pub error: f32,       // 当前偏差
+    pub integral: f32,    // 偏差积分 (累积误差)
+    pub derivative: f32,  // 偏差微分 (变化率)
+    pub is_acceptable: bool, // 偏差是否在容差内
+}
+
+impl FeedbackJudgment {
+    pub fn zero() -> Self { Self { error: 0.0, integral: 0.0, derivative: 0.0, is_acceptable: true } }
+
+    /// 从当前值和目标值计算判断
+    pub fn evaluate(current: f32, target: f32, prev_error: f32, integral: f32, tolerance: f32) -> Self {
+        let error = target - current;
+        let derivative = error - prev_error;
+        Self { error, integral: integral + error, derivative, is_acceptable: error.abs() <= tolerance }
+    }
+}
+
+/// 评价结果 — 反馈回路质量的评估
+#[derive(Clone, Copy, Debug)]
+pub struct QualityEval {
+    pub quality: f32,       // 本轮反馈质量 (0.0 - 1.0)
+    pub convergence_rate: f32, // 收敛速率
+    pub overshoot: f32,    // 超调量
+    pub stability: f32,    // 稳定度 (1.0 = 完全稳定)
+}
+
+impl QualityEval {
+    pub fn perfect() -> Self { Self { quality: 1.0, convergence_rate: 1.0, overshoot: 0.0, stability: 1.0 } }
+
+    /// 从判断历史评价反馈
+    pub fn from_judgments(judgments: &[FeedbackJudgment]) -> Self {
+        if judgments.is_empty() { return Self::perfect(); }
+        let total_error: f32 = judgments.iter().map(|j| j.error.abs()).sum();
+        let avg_error = if judgments.is_empty() { 0.0 } else { total_error / judgments.len() as f32 };
+        let quality = (1.0 / (1.0 + avg_error)).min(1.0);
+        let last_err = judgments.last().unwrap().error;
+        let first_err = judgments.first().unwrap().error;
+        let convergence_rate = if first_err.abs() < 0.001 { 1.0 } else { (1.0 - last_err.abs() / first_err.abs()).max(0.0) };
+        let overshoot = judgments.iter().map(|j| j.error.abs()).fold(0.0f32, f32::max) - last_err.abs();
+        let stability = if judgments.len() < 2 { 1.0 } else {
+            let variance = judgments.windows(2)
+                .map(|w| (w[1].error - w[0].error).abs())
+                .sum::<f32>() / (judgments.len() - 1) as f32;
+            (1.0 / (1.0 + variance)).min(1.0)
+        };
+        Self { quality, convergence_rate, overshoot: overshoot.max(0.0), stability }
+    }
+}
+
+/// 单容器反馈状态
+#[derive(Clone, Debug)]
+pub struct FeedbackState {
+    pub container_id: u32,
+    pub current: f32,
+    pub target: f32,
+    pub prev_error: f32,
+    pub integral: f32,
+    pub judgment_history: Vec<FeedbackJudgment>,
+    pub status: FeedbackStatus,
+    pub round: u32,
+}
+
+impl FeedbackState {
+    pub fn new(container_id: u32, target: f32) -> Self {
+        Self { container_id, current: 0.0, target, prev_error: 0.0, integral: 0.0,
+               judgment_history: Vec::new(), status: FeedbackStatus::Idle, round: 0 }
+    }
+
+    /// 设置当前值
+    pub fn set_current(&mut self, value: f32) { self.current = value; }
+
+    /// 推进一轮反馈 (返回本轮校正值)
+    pub fn step(&mut self, coeff: &FeedbackCoefficients, tolerance: f32) -> f32 {
+        let judgment = FeedbackJudgment::evaluate(self.current, self.target, self.prev_error, self.integral, tolerance);
+        self.integral = judgment.integral;
+        let correction = coeff.compute_correction(judgment.error, judgment.integral, judgment.derivative);
+        self.prev_error = judgment.error;
+        self.judgment_history.push(judgment);
+        self.current += correction; // 加法修正
+        self.round += 1;
+        if judgment.is_acceptable { self.status = FeedbackStatus::Converged; }
+        correction
+    }
+}
+
+/// 反馈回路引擎 — 多容器反馈 + 迂回路由
+#[derive(Clone, Debug)]
+pub struct AdaptiveFeedbackEngine {
+    pub states: HashMap<u32, FeedbackState>,
+    pub coefficients: FeedbackCoefficients,
+    pub tolerance: f32,
+    pub max_rounds: u32,
+    /// 迂回路由表: 容器 A → [经由容器 B, C, ...] → 回到 A
+    pub detour_routes: HashMap<u32, Vec<Vec<u32>>>,
+}
+
+impl AdaptiveFeedbackEngine {
+    pub fn new() -> Self {
+        Self {
+            states: HashMap::new(),
+            coefficients: FeedbackCoefficients::default(),
+            tolerance: 0.01,
+            max_rounds: 100,
+            detour_routes: HashMap::new(),
+        }
+    }
+
+    /// 注册容器的反馈目标
+    pub fn register(&mut self, container_id: u32, target: f32) {
+        self.states.insert(container_id, FeedbackState::new(container_id, target));
+    }
+
+    /// 设置 PID 系数
+    pub fn set_coefficients(&mut self, coeff: FeedbackCoefficients) {
+        self.coefficients = coeff;
+    }
+
+    /// 设置容器当前值
+    pub fn set_value(&mut self, container_id: u32, value: f32) {
+        if let Some(state) = self.states.get_mut(&container_id) {
+            state.set_current(value);
+        }
+    }
+
+    /// 单步反馈 (单容器)
+    pub fn step_one(&mut self, container_id: u32) -> Option<f32> {
+        let state = self.states.get_mut(&container_id)?;
+        Some(state.step(&self.coefficients, self.tolerance))
+    }
+
+    /// 全局单步 (所有容器各走一轮)
+    pub fn step_all(&mut self) -> Vec<(u32, f32)> {
+        let ids: Vec<u32> = self.states.keys().copied().collect();
+        let mut results = Vec::new();
+        for id in ids {
+            if let Some(corr) = self.step_one(id) {
+                results.push((id, corr));
+            }
+        }
+        results
+    }
+
+    /// 运行反馈至收敛或达到最大轮次
+    pub fn run_to_convergence(&mut self, container_id: u32) -> Option<(u32, QualityEval)> {
+        let state = self.states.get_mut(&container_id)?;
+        let mut rounds = 0;
+        while rounds < self.max_rounds {
+            if state.status == FeedbackStatus::Converged { break; }
+            let _ = state.step(&self.coefficients, self.tolerance);
+            rounds += 1;
+        }
+        if rounds >= self.max_rounds && state.judgment_history.last().map_or(false, |j| !j.is_acceptable) {
+            state.status = FeedbackStatus::Oscillating;
+        }
+        let eval = QualityEval::from_judgments(&state.judgment_history);
+        Some((rounds, eval))
+    }
+
+    /// 添加迂回路由
+    pub fn add_detour(&mut self, container: u32, route: Vec<u32>) {
+        self.detour_routes.entry(container).or_default().push(route);
+    }
+
+    /// 迂回反馈: 容器 A 的状态经容器 B 感知后返回 A
+    pub fn step_detour(&mut self, container_a: u32, intermediary: u32) -> Option<f32> {
+        let val_b = self.states.get(&intermediary).map(|s| s.current)?;
+        let coeff = self.coefficients;
+        let tolerance = self.tolerance;
+        let state_a = self.states.get_mut(&container_a)?;
+        // 迂回: 用 intermediary 的 current 作为 A 的感知输入, 与 A 的 target 比较
+        let error = state_a.target - val_b;
+        state_a.integral += error;
+        let derivative = error - state_a.prev_error;
+        let correction = coeff.compute_correction(error, state_a.integral, derivative);
+        state_a.prev_error = error;
+        state_a.current += correction;
+        Some(correction)
+    }
+
+    /// 获取容器当前值
+    pub fn get_value(&self, container_id: u32) -> Option<f32> {
+        self.states.get(&container_id).map(|s| s.current)
+    }
+
+    /// 获取评价
+    pub fn get_evaluation(&self, container_id: u32) -> Option<QualityEval> {
+        self.states.get(&container_id).map(|s| QualityEval::from_judgments(&s.judgment_history))
+    }
+
+    /// 全局收敛?
+    pub fn all_converged(&self) -> bool {
+        !self.states.is_empty() && self.states.values().all(|s| s.status == FeedbackStatus::Converged)
+    }
+
+    /// 活跃容器数
+    pub fn active_count(&self) -> usize {
+        self.states.values().filter(|s| s.status.is_active()).count()
+    }
+
+    /// 重置
+    pub fn reset(&mut self) {
+        for state in self.states.values_mut() {
+            state.status = FeedbackStatus::Idle;
+            state.round = 0;
+            state.integral = 0.0;
+            state.prev_error = 0.0;
+            state.judgment_history.clear();
+        }
+    }
+}
+
+impl Default for AdaptiveFeedbackEngine { fn default() -> Self { Self::new() } }
+
+#[cfg(test)]
+mod feedback_tests {
+    use super::*;
+    #[test] fn test_coeff_default() {
+        let c = FeedbackCoefficients::default();
+        assert!(c.kp > 0.0);
+    }
+    #[test] fn test_coeff_proportional() {
+        let c = FeedbackCoefficients::proportional(2.0);
+        assert_eq!(c.kp, 2.0);
+        assert_eq!(c.ki, 0.0);
+    }
+    #[test] fn test_coeff_compute() {
+        let c = FeedbackCoefficients::new(1.0, 0.5, 0.1);
+        let corr = c.compute_correction(2.0, 3.0, 0.5);
+        assert!((corr - (2.0 + 1.5 + 0.05)).abs() < 0.001);
+    }
+    #[test] fn test_coeff_clamp() {
+        let c = FeedbackCoefficients::new(100.0, -50.0, 200.0).clamp(10.0);
+        assert_eq!(c.kp, 10.0);
+        assert_eq!(c.ki, -10.0);
+        assert_eq!(c.kd, 10.0);
+    }
+    #[test] fn test_judgment_zero() {
+        let j = FeedbackJudgment::zero();
+        assert_eq!(j.error, 0.0);
+        assert!(j.is_acceptable);
+    }
+    #[test] fn test_judgment_evaluate() {
+        let j = FeedbackJudgment::evaluate(5.0, 10.0, 0.0, 0.0, 1.0);
+        assert_eq!(j.error, 5.0); // target - current
+        assert!(!j.is_acceptable);
+    }
+    #[test] fn test_evaluation_perfect() {
+        let e = QualityEval::perfect();
+        assert_eq!(e.quality, 1.0);
+        assert_eq!(e.stability, 1.0);
+    }
+    #[test] fn test_evaluation_from_judgments() {
+        let judgments = vec![
+            FeedbackJudgment { error: 5.0, integral: 5.0, derivative: 5.0, is_acceptable: false },
+            FeedbackJudgment { error: 2.0, integral: 7.0, derivative: -3.0, is_acceptable: false },
+            FeedbackJudgment { error: 0.1, integral: 7.1, derivative: -1.9, is_acceptable: true },
+        ];
+        let e = QualityEval::from_judgments(&judgments);
+        assert!(e.quality > 0.0 && e.quality <= 1.0);
+        assert!(e.convergence_rate > 0.0);
+    }
+    #[test] fn test_feedback_state_new() {
+        let s = FeedbackState::new(1, 10.0);
+        assert_eq!(s.target, 10.0);
+        assert_eq!(s.status, FeedbackStatus::Idle);
+    }
+    #[test] fn test_feedback_state_step() {
+        let mut s = FeedbackState::new(1, 10.0);
+        s.set_current(5.0);
+        let coeff = FeedbackCoefficients::proportional(0.5);
+        let corr = s.step(&coeff, 0.01);
+        // current = 5.0 + 0.5 * (10.0 - 5.0) = 7.5
+        assert!((corr - 2.5).abs() < 0.001);
+        assert!((s.current - 7.5).abs() < 0.001);
+    }
+    #[test] fn test_engine_register() {
+        let mut e = AdaptiveFeedbackEngine::new();
+        e.register(1, 10.0);
+        e.register(2, 20.0);
+        assert_eq!(e.states.len(), 2);
+    }
+    #[test] fn test_step_one() {
+        let mut e = AdaptiveFeedbackEngine::new();
+        e.register(1, 10.0);
+        e.set_value(1, 5.0);
+        let corr = e.step_one(1);
+        assert!(corr.is_some());
+    }
+    #[test] fn test_step_all() {
+        let mut e = AdaptiveFeedbackEngine::new();
+        e.register(1, 10.0);
+        e.register(2, 20.0);
+        e.set_value(1, 0.0);
+        e.set_value(2, 0.0);
+        let results = e.step_all();
+        assert_eq!(results.len(), 2);
+    }
+    #[test] fn test_run_to_convergence() {
+        let mut e = AdaptiveFeedbackEngine::new();
+        e.register(1, 10.0);
+        e.set_value(1, 0.0);
+        e.set_coefficients(FeedbackCoefficients::proportional(0.5));
+        let result = e.run_to_convergence(1);
+        assert!(result.is_some());
+        let (rounds, eval) = result.unwrap();
+        assert!(rounds > 0);
+        assert!(eval.quality > 0.0);
+    }
+    #[test] fn test_detour() {
+        let mut e = AdaptiveFeedbackEngine::new();
+        e.register(1, 10.0);
+        e.register(2, 20.0);
+        e.set_value(1, 5.0);
+        e.set_value(2, 8.0);
+        e.add_detour(1, vec![2]);
+        let corr = e.step_detour(1, 2);
+        assert!(corr.is_some());
+    }
+    #[test] fn test_all_converged() {
+        let e = AdaptiveFeedbackEngine::new();
+        assert!(!e.all_converged()); // 空
+    }
+    #[test] fn test_reset() {
+        let mut e = AdaptiveFeedbackEngine::new();
+        e.register(1, 10.0);
+        e.set_value(1, 5.0);
+        e.step_one(1);
+        assert!(e.states[&1].round > 0);
+        e.reset();
+        assert_eq!(e.states[&1].round, 0);
+    }
+    #[test] fn test_engine_default() {
+        let e = AdaptiveFeedbackEngine::default();
+        assert_eq!(e.active_count(), 0);
+    }
+    #[test] fn test_status_is_active() {
+        assert!(FeedbackStatus::Judging.is_active());
+        assert!(FeedbackStatus::Perceiving.is_active());
+        assert!(!FeedbackStatus::Idle.is_active());
+        assert!(!FeedbackStatus::Converged.is_active());
+    }
+    #[test] fn test_convergence_scenario() {
+        let mut e = AdaptiveFeedbackEngine::new();
+        e.register(1, 100.0);
+        e.set_value(1, 0.0);
+        e.tolerance = 0.1;
+        e.set_coefficients(FeedbackCoefficients::new(0.3, 0.05, 0.01));
+        if let Some((rounds, eval)) = e.run_to_convergence(1) {
+            assert!(rounds <= 100);
+            assert!(eval.convergence_rate >= 0.0);
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器记忆引擎 · ContainerMemoryEngine
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// 存储即记忆: 容器对符号的持久存储与回溯
+// 加法累计: 每次存储增强记忆强度, 每次 tick 衰减
+// 回忆: 符号在场时检索其记忆强度
+// 遗忘: 强度归零的符号被清除
+
+/// 单条记忆
+#[derive(Clone, Debug)]
+pub struct MemoryEntry {
+    pub symbol: String,
+    pub strength: u64,      // 记忆强度 (加法累计)
+    pub last_access: u64,  // 上次访问时间 tick
+}
+
+impl MemoryEntry {
+    pub fn new(symbol: &str) -> Self { Self { symbol: symbol.to_string(), strength: 1, last_access: 0 } }
+}
+
+/// 容器记忆引擎
+#[derive(Clone, Debug, Default)]
+pub struct ContainerMemoryEngine {
+    pub memories: Vec<MemoryEntry>,
+    pub current_tick: u64,
+    pub decay_rate: u64,       // 每 tick 衰减量
+    pub store_increment: u64,  // 每次存储增加强度
+    pub capacity: usize,       // 最大记忆条数 (0 = 不限)
+}
+
+impl ContainerMemoryEngine {
+    pub fn new() -> Self { Self { memories: Vec::new(), current_tick: 0, decay_rate: 1, store_increment: 1, capacity: 0 } }
+
+    /// 查找记忆索引
+    fn find_memory(&self, symbol: &str) -> Option<usize> {
+        self.memories.iter().position(|m| m.symbol == symbol)
+    }
+
+    /// 存储符号: 增强已有或追加新记忆
+    pub fn store(&mut self, symbol: &str) -> u64 {
+        if let Some(idx) = self.find_memory(symbol) {
+            self.memories[idx].strength = self.memories[idx].strength.wrapping_add(self.store_increment);
+            self.memories[idx].last_access = self.current_tick;
+            self.memories[idx].strength
+        } else {
+            if self.capacity > 0 && self.memories.len() >= self.capacity {
+                // 容量满: 移除最弱记忆
+                let weakest_idx = self.memories.iter()
+                    .enumerate()
+                    .min_by_key(|(_, m)| m.strength)
+                    .map(|(i, _)| i);
+                if let Some(idx) = weakest_idx {
+                    self.memories.remove(idx);
+                }
+            }
+            self.memories.push(MemoryEntry { symbol: symbol.to_string(), strength: self.store_increment, last_access: self.current_tick });
+            self.store_increment
+        }
+    }
+
+    /// 回忆: 返回符号的记忆强度 (0 = 未记住)
+    pub fn recall(&self, symbol: &str) -> u64 {
+        self.find_memory(symbol).map(|idx| self.memories[idx].strength).unwrap_or(0)
+    }
+
+    /// 检查是否记住
+    pub fn remembers(&self, symbol: &str) -> bool {
+        self.find_memory(symbol).map(|idx| self.memories[idx].strength > 0).unwrap_or(false)
+    }
+
+    /// 时间衰减 tick: 所有记忆强度减去衰减率
+    pub fn tick(&mut self) {
+        self.current_tick += 1;
+        for m in &mut self.memories {
+            m.strength = m.strength.saturating_sub(self.decay_rate);
+        }
+        // 移除强度归零的记忆 (遗忘)
+        self.memories.retain(|m| m.strength > 0);
+    }
+
+    /// 遗忘特定符号
+    pub fn forget(&mut self, symbol: &str) -> bool {
+        if let Some(idx) = self.find_memory(symbol) {
+            self.memories.remove(idx);
+            true
+        } else {
+            false
+        }
+    }
+
+    /// 回忆强度超过阈值的记忆
+    pub fn recall_strong(&self, min_strength: u64) -> Vec<&str> {
+        self.memories.iter()
+            .filter(|m| m.strength >= min_strength)
+            .map(|m| m.symbol.as_str())
+            .collect()
+    }
+
+    /// 记忆条数
+    pub fn memory_count(&self) -> usize { self.memories.len() }
+
+    /// 总记忆强度
+    pub fn total_strength(&self) -> u64 {
+        self.memories.iter().fold(0u64, |acc, m| acc.wrapping_add(m.strength))
+    }
+
+    /// 迭代器辅助
+    fn iter(&self) -> std::slice::Iter<'_, MemoryEntry> { self.memories.iter() }
+}
+
+#[cfg(test)]
+mod container_memory_tests {
+    use super::*;
+
+    #[test]
+    fn test_store_and_recall() {
+        let mut engine = ContainerMemoryEngine::new();
+        engine.store("an");
+        assert_eq!(engine.recall("an"), 1);
+        assert!(engine.remembers("an"));
+    }
+
+    #[test]
+    fn test_store_increments_strength() {
+        let mut engine = ContainerMemoryEngine::new();
+        engine.store("x");
+        engine.store("x");
+        engine.store("x");
+        assert_eq!(engine.recall("x"), 3);
+    }
+
+    #[test]
+    fn test_recall_unknown() {
+        let engine = ContainerMemoryEngine::new();
+        assert_eq!(engine.recall("missing"), 0);
+        assert!(!engine.remembers("missing"));
+    }
+
+    #[test]
+    fn test_tick_decay() {
+        let mut engine = ContainerMemoryEngine::new();
+        engine.store("an"); // strength=1
+        engine.tick();      // decay by 1, strength=0 → forgotten
+        assert_eq!(engine.recall("an"), 0);
+        assert_eq!(engine.memory_count(), 0);
+    }
+
+    #[test]
+    fn test_tick_partial_decay() {
+        let mut engine = ContainerMemoryEngine::new();
+        engine.store("an");
+        engine.store("an");
+        engine.store("an"); // strength=3
+        engine.tick();      // decay 1, strength=2
+        assert_eq!(engine.recall("an"), 2);
+        engine.tick();      // strength=1
+        assert_eq!(engine.recall("an"), 1);
+        engine.tick();      // strength=0 → forgotten
+        assert_eq!(engine.memory_count(), 0);
+    }
+
+    #[test]
+    fn test_forget() {
+        let mut engine = ContainerMemoryEngine::new();
+        engine.store("an");
+        engine.store("bei");
+        assert!(engine.forget("an"));
+        assert!(!engine.remembers("an"));
+        assert!(engine.remembers("bei"));
+    }
+
+    #[test]
+    fn test_forget_unknown() {
+        let mut engine = ContainerMemoryEngine::new();
+        assert!(!engine.forget("nothing"));
+    }
+
+    #[test]
+    fn test_recall_strong() {
+        let mut engine = ContainerMemoryEngine::new();
+        engine.store("strong");
+        engine.store("strong");
+        engine.store("strong"); // strength=3
+        engine.store("weak");   // strength=1
+        let strong = engine.recall_strong(2);
+        assert!(strong.contains(&"strong"));
+        assert!(!strong.contains(&"weak"));
+    }
+
+    #[test]
+    fn test_current_tick() {
+        let mut engine = ContainerMemoryEngine::new();
+        assert_eq!(engine.current_tick, 0);
+        engine.tick();
+        assert_eq!(engine.current_tick, 1);
+        engine.tick();
+        assert_eq!(engine.current_tick, 2);
+    }
+
+    #[test]
+    fn test_total_strength() {
+        let mut engine = ContainerMemoryEngine::new();
+        engine.store("a"); // 1
+        engine.store("b"); // 1
+        engine.store("a"); // +1 → 2
+        assert_eq!(engine.total_strength(), 3);
+    }
+
+    #[test]
+    fn test_capacity_eviction() {
+        let mut engine = ContainerMemoryEngine::new();
+        engine.capacity = 2;
+        engine.store("a"); // strength=1
+        engine.store("b"); // strength=1
+        engine.store("c"); // evict weakest (a or b, both 1), add c
+        assert_eq!(engine.memory_count(), 2);
+    }
+
+    #[test]
+    fn test_default() {
+        let engine = ContainerMemoryEngine::default();
+        assert_eq!(engine.memory_count(), 0);
+        assert_eq!(engine.current_tick, 0);
     }
 }
