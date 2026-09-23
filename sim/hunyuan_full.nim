@@ -5,6 +5,15 @@
 
 import strutils
 
+const LAYERS_VAL* = block:
+  var tmp = 7
+  when defined(LAYERS):
+    let raw = staticExec("echo " & $LAYERS)
+    tmp = parseInt(raw.strip())
+  tmp
+
+const LAYERS* = LAYERS_VAL
+
 # ═══════════════════════════════════════════════════════════════
 # 层一: 声母50 (FQ-SM50)
 # ═══════════════════════════════════════════════════════════════
@@ -273,6 +282,7 @@ when is_main_module:
   echo "  总码元        : ", TOTAL_SYMBOLS
   echo "  容器数        : ", CONTAINER_COUNT
 
+<<<<<<< Updated upstream
   # 14维积木选址
   echo ""
   echo "── 14维积木选址 ──"
@@ -322,3 +332,25 @@ when is_main_module:
          txt_cells[idx[11] mod txt_cells.len], "⟩"
     for k in 0..13: idx[k] += 1
     if idx[0] >= 3: break
+=======
+  # 演示: 七维选址
+  echo "── 积木选址演示 ──"
+  let a = sm_pos("g")
+  let b = ym_pos("ӗ")
+  let c = tn_pos("Í")
+  let d = color_pos("ụ")
+  let e = space_pos("胸")
+  let f = mirror_pos("含")
+  let g = music_pos("动机")
+  var target: int
+  if LAYERS >= 8:
+    target = (a * b * 5 + c + b + d + e + f + g + conscious_pos("y")) mod container_count()
+    echo "八维: (", a, "×", b, "×5+", c, "+", b, "+", d, "+", e, "+", f, "+", g, "+y) mod ", container_count(), " = ", target
+  elif LAYERS >= 7:
+    target = (a * b * 5 + c + b + d + e + f + g) mod container_count()
+    echo "七维: (", a, "×", b, "×5+", c, "+", b, "+", d, "+", e, "+", f, "+", g, ") mod ", container_count(), " = ", target
+  else:
+    target = (a * b * 5 + c + b + d + e) mod container_count()
+    echo "五维: (", a, "×", b, "×5+", c, "+", b, "+", d, "+", e, ") mod ", container_count(), " = ", target
+  echo "选址命中: #", target
+>>>>>>> Stashed changes
