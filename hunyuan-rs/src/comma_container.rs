@@ -9581,3 +9581,292 @@ mod evaluation_tests {
         assert_eq!(e.total_anchors, 3);
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 容器行动引擎 · ContainerAgencyEngine (v1.0) — 产出级
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+//   感知 → 判断 → 评价 → 行动
+//   把 ContainerEvaluationEngine 的评价转化为可执行的 ActionDirective
+//
+//   行动类型:
+//     - Strengthen (强化) — Critical → 主动增强
+//     - Maintain   (维持) — Strong → 保持当前
+//     - Monitor    (观察) — Moderate → 暂时观望
+//     - Weaken     (削弱) — Weak+历史 → 主动消退
+//     - Isolate    (隔离) — Weak+无积累 → 切断
+//
+//   仅加法: 决策全靠累加/比较, 无乘除
+
+/// 行动类型
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum ActionKind {
+    Isolate,       // 0 — 无价值, 切断 (最低)
+    Weaken,        // 1 — 削弱
+    Monitor,       // 2 — 观察
+    Maintain,      // 3 — 维持
+    Strengthen,    // 4 — 强化 (最高)
+}
+
+/// 行动指令 — 容器行动输出单元
+#[derive(Clone, Debug)]
+pub struct ActionDirective {
+    pub cause_id: u64,
+    pub effect_id: u64,
+    pub kind: ActionKind,
+    pub priority: u64,
+}
+
+impl ActionDirective {
+    pub fn new(cause_id: u64, effect_id: u64, kind: ActionKind, priority: u64) -> Self {
+        Self { cause_id, effect_id, kind, priority }
+    }
+}
+
+/// 容器行动引擎
+#[derive(Clone, Debug)]
+pub struct ContainerAgencyEngine {
+    /// 已发出的行动指令
+    pub directives: Vec<ActionDirective>,
+    /// 各行动类型计数: [Isolate, Weaken, Monitor, Maintain, Strengthen]
+    pub counts: [usize; 5],
+    /// 累计行动总数
+    pub total_acted: u64,
+}
+
+impl ContainerAgencyEngine {
+    pub fn new() -> Self {
+        Self {
+            directives: Vec::new(),
+            counts: [0, 0, 0, 0, 0],
+            total_acted: 0,
+        }
+    }
+
+    /// 某 ActionKind 对应的 counts 数组下标
+    fn kind_idx(kind: ActionKind) -> usize {
+        match kind {
+            ActionKind::Isolate    => 0,
+            ActionKind::Weaken     => 1,
+            ActionKind::Monitor    => 2,
+            ActionKind::Maintain   => 3,
+            ActionKind::Strengthen => 4,
+        }
+    }
+
+    /// 把一条评价转化为行动指令 (仅加法)
+    pub fn act(&mut self, ev: &Evaluation, cause_strength: u64) -> ActionDirective {
+        let kind = match ev.level {
+            EvaluationLevel::Critical => ActionKind::Strengthen,
+            EvaluationLevel::Strong   => ActionKind::Maintain,
+            EvaluationLevel::Moderate => ActionKind::Monitor,
+            EvaluationLevel::Weak     => {
+                if ev.accumulated >= 3 { ActionKind::Weaken } else { ActionKind::Isolate }
+            }
+        };
+        // 优先级 = 累积 + 输入强度 (仅加法)
+        let priority = ev.accumulated + cause_strength;
+        self.counts[Self::kind_idx(kind)] = self.counts[Self::kind_idx(kind)] + 1;
+        self.total_acted = self.total_acted + 1;
+        let d = ActionDirective::new(ev.cause_id, ev.effect_id, kind, priority);
+        self.directives.push(d.clone());
+        d
+    }
+
+    /// 批量行动
+    pub fn act_batch(&mut self, evals: &[Evaluation], strengths: &[u64]) -> Vec<ActionDirective> {
+        let mut result = Vec::new();
+        for (i, ev) in evals.iter().enumerate() {
+            let s = if i < strengths.len() { strengths[i] } else { 0 };
+            result.push(self.act(ev, s));
+        }
+        result
+    }
+
+    /// 优先级最高的行动
+    pub fn highest_priority(&self) -> Option<&ActionDirective> {
+        self.directives.iter().max_by_key(|d| {
+            // 综合 = (kind 权重) * 2^32 + priority
+            let kind_weight: u64 = match d.kind {
+                ActionKind::Isolate    => 0,
+                ActionKind::Weaken     => 1,
+                ActionKind::Monitor    => 2,
+                ActionKind::Maintain   => 3,
+                ActionKind::Strengthen => 4,
+            };
+            kind_weight.wrapping_shl(32).wrapping_add(d.priority)
+        })
+    }
+
+    /// 按类型筛选
+    pub fn filter_by(&self, kind: ActionKind) -> Vec<&ActionDirective> {
+        self.directives.iter().filter(|d| d.kind == kind).collect()
+    }
+
+    /// 某类型计数
+    pub fn count_of(&self, kind: ActionKind) -> usize {
+        self.counts[Self::kind_idx(kind)]
+    }
+
+    /// 按优先级排序 (高在前)
+    pub fn by_priority(&self) -> Vec<&ActionDirective> {
+        let mut refs: Vec<&ActionDirective> = self.directives.iter().collect();
+        for i in 0..refs.len() {
+            let mut max = i;
+            for j in (i + 1)..refs.len() {
+                if refs[j].priority > refs[max].priority { max = j; }
+            }
+            if max != i { refs.swap(i, max); }
+        }
+        refs
+    }
+
+    /// 行动总数
+    pub fn total(&self) -> u64 { self.total_acted }
+
+    /// 重置
+    pub fn clear(&mut self) {
+        self.directives.clear();
+        self.counts = [0, 0, 0, 0, 0];
+        self.total_acted = 0;
+    }
+}
+
+impl Default for ContainerAgencyEngine {
+    fn default() -> Self { Self::new() }
+}
+
+#[cfg(test)]
+mod agency_tests {
+    use super::*;
+
+    fn critical(cause: u64, effect: u64) -> Evaluation {
+        Evaluation { cause_id: cause, effect_id: effect, level: EvaluationLevel::Critical, accumulated: 12 }
+    }
+    fn strong(cause: u64, effect: u64) -> Evaluation {
+        Evaluation { cause_id: cause, effect_id: effect, level: EvaluationLevel::Strong, accumulated: 7 }
+    }
+    fn moderate(cause: u64, effect: u64) -> Evaluation {
+        Evaluation { cause_id: cause, effect_id: effect, level: EvaluationLevel::Moderate, accumulated: 4 }
+    }
+    fn weak_old(cause: u64, effect: u64) -> Evaluation {
+        Evaluation { cause_id: cause, effect_id: effect, level: EvaluationLevel::Weak, accumulated: 5 }
+    }
+    fn weak_new(cause: u64, effect: u64) -> Evaluation {
+        Evaluation { cause_id: cause, effect_id: effect, level: EvaluationLevel::Weak, accumulated: 1 }
+    }
+
+    #[test]
+    fn test_act_critical() {
+        let mut e = ContainerAgencyEngine::new();
+        let d = e.act(&critical(1, 2), 80);
+        assert_eq!(d.kind, ActionKind::Strengthen);
+        assert_eq!(d.priority, 12 + 80);
+    }
+
+    #[test]
+    fn test_act_strong() {
+        let mut e = ContainerAgencyEngine::new();
+        let d = e.act(&strong(1, 2), 50);
+        assert_eq!(d.kind, ActionKind::Maintain);
+        assert_eq!(d.priority, 7 + 50);
+    }
+
+    #[test]
+    fn test_act_moderate() {
+        let mut e = ContainerAgencyEngine::new();
+        let d = e.act(&moderate(1, 2), 30);
+        assert_eq!(d.kind, ActionKind::Monitor);
+        assert_eq!(d.priority, 4 + 30);
+    }
+
+    #[test]
+    fn test_act_weak_old() {
+        let mut e = ContainerAgencyEngine::new();
+        let d = e.act(&weak_old(1, 2), 10);
+        assert_eq!(d.kind, ActionKind::Weaken);
+    }
+
+    #[test]
+    fn test_act_weak_new() {
+        let mut e = ContainerAgencyEngine::new();
+        let d = e.act(&weak_new(1, 2), 10);
+        assert_eq!(d.kind, ActionKind::Isolate);
+    }
+
+    #[test]
+    fn test_count_of() {
+        let mut e = ContainerAgencyEngine::new();
+        e.act(&critical(1, 2), 80);
+        e.act(&strong(3, 4), 40);
+        e.act(&moderate(5, 6), 20);
+        assert_eq!(e.count_of(ActionKind::Strengthen), 1);
+        assert_eq!(e.count_of(ActionKind::Maintain), 1);
+        e.act(&critical(7, 8), 70);
+        assert_eq!(e.count_of(ActionKind::Strengthen), 2);
+    }
+
+    #[test]
+    fn test_by_priority() {
+        let mut e = ContainerAgencyEngine::new();
+        e.act(&strong(1, 2), 50);     // 7+50 = 57
+        e.act(&critical(3, 4), 5);    // 12+5 = 17
+        e.act(&moderate(5, 6), 100);  // 4+100 = 104
+        let sorted = e.by_priority();
+        assert_eq!(sorted.len(), 3);
+        assert_eq!(sorted[0].priority, 104);
+        assert_eq!(sorted[1].priority, 57);
+        assert_eq!(sorted[2].priority, 17);
+    }
+
+    #[test]
+    fn test_filter_by() {
+        let mut e = ContainerAgencyEngine::new();
+        e.act(&critical(1, 2), 80);
+        e.act(&strong(3, 4), 50);
+        e.act(&critical(5, 6), 70);
+        let v = e.filter_by(ActionKind::Strengthen);
+        assert_eq!(v.len(), 2);
+    }
+
+    #[test]
+    fn test_highest_priority() {
+        let mut e = ContainerAgencyEngine::new();
+        e.act(&strong(1, 2), 50);     // Strengthen(优先级 57)
+        e.act(&critical(3, 4), 200);  // Critical+200 = 最高
+        e.act(&moderate(5, 6), 10);   // Monitor(弱)
+        let h = e.highest_priority().unwrap();
+        assert_eq!(h.cause_id, 3);
+        assert_eq!(h.effect_id, 4);
+    }
+
+    #[test]
+    fn test_act_batch() {
+        let mut e = ContainerAgencyEngine::new();
+        let evals = vec![critical(1, 2), strong(3, 4), moderate(5, 6)];
+        let dirs = e.act_batch(&evals, &[80, 40, 20]);
+        assert_eq!(dirs.len(), 3);
+        assert_eq!(dirs[0].kind, ActionKind::Strengthen);
+        assert_eq!(dirs[1].kind, ActionKind::Maintain);
+        assert_eq!(dirs[2].kind, ActionKind::Monitor);
+        assert_eq!(e.total(), 3);
+    }
+
+    #[test]
+    fn test_clear() {
+        let mut e = ContainerAgencyEngine::new();
+        e.act(&critical(1, 2), 80);
+        assert!(e.total() > 0);
+        e.clear();
+        assert_eq!(e.total(), 0);
+        assert_eq!(e.directives.len(), 0);
+        assert_eq!(e.count_of(ActionKind::Strengthen), 0);
+    }
+
+    #[test]
+    fn test_default() {
+        let e = ContainerAgencyEngine::default();
+        assert_eq!(e.total(), 0);
+        assert_eq!(e.directives.len(), 0);
+    }
+}
