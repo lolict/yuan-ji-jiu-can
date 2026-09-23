@@ -370,12 +370,15 @@ pub mod bare_metal {
 
     impl OsLayer for BareMetalOs {
         fn alloc(&self, size: usize) -> *mut u8 {
-            // 裸机：从预分配的内存池中分配
+            // 裸机：从预分配的内存池中分配 (thread-safe: Mutex<MemoryPool>)
+            use std::sync::{Mutex, OnceLock};
             unsafe {
-                static mut MEMORY: [u8; 1024 * 1024] = [0; 1024 * 1024]; // 1MB
-                static mut OFFSET: usize = 0;
-                let ptr = MEMORY.as_mut_ptr().add(OFFSET);
-                OFFSET += size;
+                struct Pool { mem: Box<[u8; 1024*1024]>, offset: usize }
+                static POOL: OnceLock<Mutex<Pool>> = OnceLock::new();
+                let pool = POOL.get_or_init(|| Mutex::new(Pool { mem: Box::new([0u8; 1024*1024]), offset: 0 }));
+                let mut g = pool.lock().unwrap();
+                let ptr = g.mem.as_mut_ptr().add(g.offset);
+                g.offset += size;
                 ptr
             }
         }
