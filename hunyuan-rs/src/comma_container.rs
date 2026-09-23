@@ -10085,3 +10085,261 @@ mod call_tests {
         assert_eq!(entry.call_count, 2);
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 见证引擎 · ContainerWitnessEngine (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+//   见证 (Witness) — 囡囝共生的核心仲裁机制
+//   「三元作为见证裁判裁定准入」
+//
+//   机制:
+//     - 任意两个容器之间的争议/合并/交互需要第三方见证
+//     - 三个容器组成见证三角 (a, b, witness)
+//     - 见证裁定 = 三方的加权投票 (仅加法)
+//     - 裁定结果: Admitted(准入) / Rejected(驳回) / Pending(待定)
+//
+//   三元三角:
+//     - 提出方 (claimant) — 发起请求的容器
+//     - 被诉方 (respondent) — 被请求的容器
+//     - 见证方 (witness) — 中立的第三方
+//
+//   仅加法范式: 投票权重 = 各容器强度累加, 无乘除
+
+/// 见证裁定结果
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum WitnessVerdict {
+    Admitted,   // 准入 — 通过见证
+    Rejected,   // 驳回 — 拒绝
+    Pending,    // 待定 — 证据不足, 无法裁定
+}
+
+/// 见证事件 — 一次仲裁的完整记录
+#[derive(Clone, Debug)]
+pub struct WitnessEvent {
+    pub claimant_id: u64,
+    pub respondent_id: u64,
+    pub witness_id: u64,
+    pub tick: u64,
+    pub verdict: WitnessVerdict,
+    pub evidence_strength: u64,  // 提出方证据强度 (加法累计)
+    pub witness_confidence: u64, // 见证方信心 (加法累计)
+}
+
+impl WitnessEvent {
+    pub fn new(c: u64, r: u64, w: u64, tick: u64) -> Self {
+        Self {
+            claimant_id: c, respondent_id: r, witness_id: w,
+            tick, verdict: WitnessVerdict::Pending,
+            evidence_strength: 0, witness_confidence: 0,
+        }
+    }
+}
+
+/// 见证引擎
+#[derive(Clone, Debug)]
+pub struct ContainerWitnessEngine {
+    /// 见证记录
+    pub events: Vec<WitnessEvent>,
+    /// 累计裁定数
+    pub total_admitted: u64,
+    pub total_rejected: u64,
+    pub total_pending: u64,
+    /// 最低证据强度阈值 (加法比较)
+    pub admit_threshold: u64,
+    pub reject_threshold: u64,
+}
+
+impl ContainerWitnessEngine {
+    pub fn new() -> Self {
+        Self {
+            events: Vec::new(),
+            total_admitted: 0, total_rejected: 0, total_pending: 0,
+            admit_threshold: 60,
+            reject_threshold: 80,  // 反向证据 >= 80 → 驳回
+        }
+    }
+
+    /// 发起见证仲裁 (仅加法)
+    pub fn arbitrate(&mut self, claimant: u64, respondent: u64, witness: u64,
+                     evidence_strength: u64, counter_evidence: u64, witness_confidence: u64,
+                     tick: u64) -> WitnessVerdict {
+        // 净正向证据 = evidence - counter (仅加法)
+        let net_strength = if evidence_strength >= counter_evidence {
+            evidence_strength - counter_evidence
+        } else {
+            0
+        };
+        // 裁定
+        let verdict = if net_strength >= self.admit_threshold && witness_confidence >= 30 {
+            WitnessVerdict::Admitted
+        } else if counter_evidence >= self.reject_threshold && witness_confidence >= 30 {
+            WitnessVerdict::Rejected
+        } else if witness_confidence < 30 {
+            WitnessVerdict::Pending  // 见证信心不足
+        } else {
+            // 净证据不够高, 但也无反证 → 待定
+            WitnessVerdict::Pending
+        };
+        // 统计
+        match verdict {
+            WitnessVerdict::Admitted => self.total_admitted = self.total_admitted + 1,
+            WitnessVerdict::Rejected => self.total_rejected = self.total_rejected + 1,
+            WitnessVerdict::Pending  => self.total_pending  = self.total_pending  + 1,
+        };
+        let event = WitnessEvent {
+            claimant_id: claimant, respondent_id: respondent, witness_id: witness,
+            tick, verdict, evidence_strength: net_strength, witness_confidence,
+        };
+        self.events.push(event);
+        verdict
+    }
+
+    /// 最近裁定
+    pub fn latest(&self) -> Option<&WitnessEvent> { self.events.last() }
+
+    /// 涉及某容器的所有事件
+    pub fn involving(&self, container_id: u64) -> Vec<&WitnessEvent> {
+        self.events.iter()
+            .filter(|e| e.claimant_id == container_id
+                     || e.respondent_id == container_id
+                     || e.witness_id == container_id)
+            .collect()
+    }
+
+    /// 某容器作为提出方的通过率 (返回 计数, 总数)
+    pub fn admission_pair(&self, claimant: u64) -> (u64, u64) {
+        let mut admits = 0;
+        let mut total = 0;
+        for e in &self.events {
+            if e.claimant_id == claimant {
+                total = total + 1;
+                if e.verdict == WitnessVerdict::Admitted { admits = admits + 1 };
+            }
+        }
+        (admits, total)
+    }
+
+    /// 某容器作为见证方的活跃次数
+    pub fn witness_activity(&self, witness_id: u64) -> usize {
+        self.events.iter().filter(|e| e.witness_id == witness_id).count()
+    }
+
+    /// 证据净强度
+    pub fn evidence_net(evidence: u64, counter: u64) -> u64 {
+        if evidence >= counter { evidence - counter } else { 0 }
+    }
+
+    pub fn clear(&mut self) {
+        self.events.clear();
+        self.total_admitted = 0;
+        self.total_rejected = 0;
+        self.total_pending = 0;
+    }
+}
+
+impl Default for ContainerWitnessEngine {
+    fn default() -> Self { Self::new() }
+}
+
+#[cfg(test)]
+mod witness_tests {
+    use super::*;
+
+    #[test]
+    fn test_arbitrate_admitted() {
+        let mut e = ContainerWitnessEngine::new();
+        let v = e.arbitrate(1, 2, 3, 100, 20, 50, 100);
+        assert_eq!(v, WitnessVerdict::Admitted);
+    }
+
+    #[test]
+    fn test_arbitrate_rejected() {
+        let mut e = ContainerWitnessEngine::new();
+        // 反向证据 90 >= 80 (reject_threshold), 见证信心 50 >= 30
+        let v = e.arbitrate(1, 2, 3, 10, 90, 50, 100);
+        assert_eq!(v, WitnessVerdict::Rejected);
+    }
+
+    #[test]
+    fn test_arbitrate_pending_low_confidence() {
+        let mut e = ContainerWitnessEngine::new();
+        // 证据 100, 见证信心 < 30 → Pending
+        let v = e.arbitrate(1, 2, 3, 100, 0, 10, 100);
+        assert_eq!(v, WitnessVerdict::Pending);
+    }
+
+    #[test]
+    fn test_arbitrate_insufficient_evidence() {
+        let mut e = ContainerWitnessEngine::new();
+        // 证据 50 < 60 (admit_threshold), 无反证
+        let v = e.arbitrate(1, 2, 3, 50, 0, 50, 100);
+        assert_eq!(v, WitnessVerdict::Pending);
+    }
+
+    #[test]
+    fn test_counters() {
+        let mut e = ContainerWitnessEngine::new();
+        e.arbitrate(1, 2, 3, 100, 20, 50, 1);  // Admitted
+        e.arbitrate(2, 3, 1, 50, 90, 50, 2);   // Rejected
+        e.arbitrate(3, 1, 2, 30, 0, 20, 3);    // Pending (low confidence)
+        assert_eq!(e.total_admitted, 1);
+        assert_eq!(e.total_rejected, 1);
+        assert_eq!(e.total_pending, 1);
+    }
+
+    #[test]
+    fn test_involving() {
+        let mut e = ContainerWitnessEngine::new();
+        e.arbitrate(1, 2, 3, 100, 20, 50, 1);
+        e.arbitrate(4, 5, 6, 100, 20, 50, 2);
+        let inv = e.involving(3);
+        assert_eq!(inv.len(), 1);  // 容器 3 仅在第一个事件中
+    }
+
+    #[test]
+    fn test_admission_pair() {
+        let mut e = ContainerWitnessEngine::new();
+        e.arbitrate(1, 2, 3, 100, 20, 50, 1);  // Admitted
+        e.arbitrate(1, 4, 5, 100, 20, 50, 2);  // Admitted
+        e.arbitrate(1, 6, 7, 10, 90, 50, 3);   // Rejected
+        let (admits, total) = e.admission_pair(1);
+        assert_eq!(admits, 2);
+        assert_eq!(total, 3);
+    }
+
+    #[test]
+    fn test_witness_activity() {
+        let mut e = ContainerWitnessEngine::new();
+        e.arbitrate(1, 2, 3, 100, 20, 50, 1);
+        e.arbitrate(4, 5, 3, 100, 20, 50, 2);
+        e.arbitrate(6, 7, 8, 100, 20, 50, 3);
+        assert_eq!(e.witness_activity(3), 2);
+        assert_eq!(e.witness_activity(8), 1);
+    }
+
+    #[test]
+    fn test_evidence_net() {
+        assert_eq!(ContainerWitnessEngine::evidence_net(100, 30), 70);
+        assert_eq!(ContainerWitnessEngine::evidence_net(30, 100), 0);
+        assert_eq!(ContainerWitnessEngine::evidence_net(50, 50), 0);
+    }
+
+    #[test]
+    fn test_clear() {
+        let mut e = ContainerWitnessEngine::new();
+        e.arbitrate(1, 2, 3, 100, 20, 50, 1);
+        assert!(e.total_admitted > 0);
+        e.clear();
+        assert_eq!(e.total_admitted, 0);
+        assert_eq!(e.total_rejected, 0);
+        assert_eq!(e.events.len(), 0);
+    }
+
+    #[test]
+    fn test_default() {
+        let e = ContainerWitnessEngine::default();
+        assert_eq!(e.total_admitted, 0);
+        assert_eq!(e.events.len(), 0);
+    }
+}
