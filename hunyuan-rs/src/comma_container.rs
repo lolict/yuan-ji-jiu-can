@@ -13238,7 +13238,7 @@ mod checksum_tests {
         let mut c = ContainerChecksum::new();
         c.add(50); c.add(30);
         c.subtract(30);
-        assert_eq!(c.value(), 20);
+        assert_eq!(c.value(), 50);
         assert_eq!(c.count, 1);
     }
 
