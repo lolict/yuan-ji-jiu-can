@@ -483,6 +483,9 @@ fn main() {
     let mut verify_mode = false;
     let mut compose_mode = false;
     let mut tree_mode = false;
+    let mut boot_mode = false;
+    let mut meta_mode = false;
+    let mut load_file: Option<String> = None;
     let mut output_file: Option<&str> = None;
     let mut input = "";
 
@@ -501,6 +504,8 @@ fn main() {
             "--verify" | "-v" => { verify_mode = true; i += 1; }
             "--compose" | "-c" => { compose_mode = true; i += 1; }
             "--tree" | "-T" => { tree_mode = true; i += 1; }
+            "--boot" | "-b" => { boot_mode = true; i += 1; }
+            "--meta" | "-m" => { meta_mode = true; i += 1; }
             "--fold" | "-f" => {
                 fold_mode = true;
                 i += 1;
@@ -520,9 +525,30 @@ fn main() {
                 if i + 1 < args.len() { output_file = Some(&args[i + 1]); }
                 i += 2;
             }
+            "--persist" | "-p" => {
+                if i + 1 < args.len() { output_file = Some(&args[i + 1]); }
+                i += 2;
+            }
+            "--resume" | "-r" => {
+                if i + 1 < args.len() { load_file = Some(args[i + 1].clone()); }
+                i += 2;
+            }
             _ => { input = &args[i]; i += 1; }
         }
     }
+
+    // Handle --resume: load persisted state as initial input context
+    let input = if let Some(ref path) = load_file {
+        match std::fs::read_to_string(path) {
+            Ok(content) => {
+                eprintln!("[resume] 加载持久化状态: {}", path);
+                content.trim().to_string()
+            }
+            Err(_) => input.to_string(),
+        }
+    } else {
+        input.to_string()
+    };
 
     let out = if atlas_mode {
         encode_atlas()
@@ -534,6 +560,10 @@ fn main() {
         encode_state(input)
     } else if verify_mode {
         encode_verify(input)
+    } else if boot_mode {
+        encode_boot(input)
+    } else if meta_mode {
+        encode_meta(input)
     } else if compose_mode {
         encode_compose(input)
     } else if tree_mode {
@@ -998,6 +1028,174 @@ fn encode_tree(input: &str) -> String {
     }
 
     buf
+}
+
+// ════════════════════════════════════════════════════════════════
+// 自举证明 — 从空状态启动，逐字构建并验证系统一致性
+// ════════════════════════════════════════════════════════════════
+
+fn encode_boot(input: &str) -> String {
+    let mut buf = String::new();
+    buf.push_str("═══ 自举证明 ═══\n");
+    buf.push_str("目标: 验证系统能从空状态启动并正确编码自身\n\n");
+
+    let mut state = ContainerState::new();
+    let mut total_strokes = 0;
+    let mut total_containers = 0;
+    let mut self_referential_count = 0;
+
+    buf.push_str("── 启动阶段 ──\n");
+    buf.push_str(&format!("初始状态: 深度={}, 掩码=0x0000, 壳路径=[]\n", state.depth));
+    buf.push_str(&format!("输入序列: {} ({} 字)\n\n", input, input.chars().count()));
+
+    buf.push_str("── 逐字构建 ──\n");
+    for (step, ch) in input.chars().enumerate() {
+        if let Ok(gc) = encode_char(ch) {
+            let mut cur_cell: u64 = 0;
+            for &s in &gc.strokes { cur_cell |= 1u64 << s; }
+            state.merge(cur_cell);
+            state.nest(gc.strokes[0]);
+
+            total_strokes += gc.strokes.len();
+            total_containers += gc.container_set.len();
+
+            // 自举检验: 本字的容器名能否被系统自身编码
+            let mut can_self_encode = true;
+            for cont_name in &gc.container_set {
+                let name_char = cont_name.chars().next().unwrap();
+                if encode_char(name_char).is_err() {
+                    can_self_encode = false;
+                    break;
+                }
+            }
+            if can_self_encode {
+                self_referential_count += 1;
+            }
+
+            buf.push_str(&format!("步骤 {}: {} → 深度{} 掩码{:04X} {}\n",
+                step + 1, ch, state.depth, state.cell & 0xFFFF,
+                if can_self_encode { "✓自举" } else { "✗断裂" }));
+        }
+    }
+
+    buf.push_str("\n── 自举评估 ──\n");
+    buf.push_str(&format!("总笔画数: {}\n", total_strokes));
+    buf.push_str(&format!("总容器条目: {}\n", total_containers));
+    buf.push_str(&format!("自举成功字: {}/{} ({:.0}%)\n",
+        self_referential_count, input.chars().count(),
+        if input.chars().count() > 0 {
+            self_referential_count as f64 / input.chars().count() as f64 * 100.0
+        } else { 0.0 }));
+
+    // 最终 SMRL Cell
+    let final_smrl = state.to_smrl();
+    buf.push_str(&format!("\n最终 SMRL Cell: 0x{:016X}\n", final_smrl));
+    buf.push_str(&format!("最终嵌套深度: {}\n", state.depth));
+    buf.push_str(&format!("壳路径长度: {}\n", state.shell_path.len()));
+
+    // 自举结论
+    buf.push_str("\n── 结论 ──\n");
+    if self_referential_count == input.chars().count() {
+        buf.push_str("✓ 完全自举: 所有字的容器名均可被系统自身编码\n");
+        buf.push_str("→ 系统可以描述自身，形成闭环\n");
+    } else if self_referential_count > 0 {
+        buf.push_str(&format!("△ 部分自举: {}/{} 字的容器可自编码\n",
+            self_referential_count, input.chars().count()));
+        buf.push_str("→ 系统可描述自身的一部分\n");
+    } else {
+        buf.push_str("✗ 自举失败: 容器名不在编码表中\n");
+        buf.push_str("→ 需要扩充 STROKE_TABLE\n");
+    }
+
+    // 涌现性检测: 系统整体是否产生新容器
+    let unique_containers: Vec<&str> = (0..16u8)
+        .filter(|&i| (state.cell >> i) & 1 == 1)
+        .map(|i| CONTAINER_NAMES[i as usize])
+        .collect();
+    buf.push_str(&format!("\n涌现容器集: [{}] ({}个)\n",
+        unique_containers.join(", "), unique_containers.len()));
+
+    // 编码密度
+    if total_strokes > 0 {
+        let density = unique_containers.len() as f64 / total_strokes as f64;
+        buf.push_str(&format!("编码密度: {:.2} (唯一容器/总笔画)\n", density));
+    }
+
+    buf
+}
+
+// ════════════════════════════════════════════════════════════════
+// 元编码 — 对 STROKE_TABLE 自身进行编码
+// ════════════════════════════════════════════════════════════════
+
+fn encode_meta(input: &str) -> String {
+    let mut buf = String::new();
+    buf.push_str("═══ 元编码: STROKE_TABLE 自描述 ═══\n");
+    buf.push_str("将编码表自身的条目用容器系统描述\n\n");
+
+    // 把输入视为 STROKE_TABLE 的一个子集来编码
+    buf.push_str(&format!("待编码条目: \"{}\"\n\n", input));
+
+    let chars: Vec<char> = input.chars().collect();
+    let table_size = chars.len();
+
+    buf.push_str("── 编码表条目序列 ──\n");
+    buf.push_str(&format!("条目数: {}\n", table_size));
+    buf.push_str(&format!("表位址范围: 0x0000 - 0x{:04X}\n\n", table_size - 1));
+
+    // 每条: 字 → 笔画索引 → 容器集 → 唯一容器
+    let mut all_containers: Vec<&str> = Vec::new();
+    for (idx, ch) in chars.iter().enumerate() {
+        if let Ok(gc) = encode_char(*ch) {
+            let unique: Vec<&str> = {
+                let mut seen = std::collections::HashSet::new();
+                gc.container_set.iter().copied().filter(|c| seen.insert(*c)).collect()
+            };
+            for c in &unique {
+                if !all_contains(&all_containers, c) {
+                    all_containers.push(c);
+                }
+            }
+
+            buf.push_str(&format!("[0x{:04X}] {}: 笔画{} → 唯一容器[{}]\n",
+                idx, ch, gc.strokes.len(), unique.join("+")));
+        }
+    }
+
+    buf.push_str("\n── 元统计 ──\n");
+    buf.push_str(&format!("唯一容器种类: {} ({}/16)\n", all_containers.len(), all_containers.len()));
+    buf.push_str(&format!("容器覆盖: [{}]\n", all_containers.join(", ")));
+
+    // 元编码的元编码: 唯一容器列表自身能否被编码?
+    let mut meta_self_count = 0;
+    for cont_name in &all_containers {
+        let name_char = cont_name.chars().next().unwrap();
+        if encode_char(name_char).is_ok() {
+            meta_self_count += 1;
+        }
+    }
+    buf.push_str(&format!("元自举率: {}/{}\n", meta_self_count, all_containers.len()));
+
+    // 如果能自举，打印元编码路径
+    if meta_self_count == all_containers.len() {
+        buf.push_str("\n── 元自举链 ──\n");
+        buf.push_str("袋 → ");
+        let chain: Vec<String> = all_containers.iter().map(|c| {
+            if let Ok(gc) = encode_char(c.chars().next().unwrap()) {
+                format!("{}(→{})", c, gc.container_set.join("+"))
+            } else {
+                format!("{}", c)
+            }
+        }).collect();
+        buf.push_str(&chain.join(" → "));
+        buf.push_str("\n→ 容器编码容器，系统自洽闭环\n");
+    }
+
+    buf
+}
+
+fn all_contains<'a>(vec: &[&'a str], item: &'a str) -> bool {
+    vec.iter().any(|x| **x == item)
 }
 
 fn encode_atlas() -> String {

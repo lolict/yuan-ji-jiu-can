@@ -40,7 +40,7 @@ impl Oscillator {
     pub fn new(ch: char) -> Self {
         let d = char_to_dragon(ch);
         // 音韵坐标 → 频率
-        let freq = (d.initial() as f64 + d.final() as f64 + d.tone() as f64) / 100.0;
+        let freq = (d.initial() as f64 + d.final_() as f64 + d.tone() as f64) / 100.0;
         Self {
             ch,
             amplitude: freq,
