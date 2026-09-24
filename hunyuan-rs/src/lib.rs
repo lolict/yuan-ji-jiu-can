@@ -685,23 +685,25 @@ pub use logic_organizer::{LogicOrganizer, LogicStats, CausalGraph, CausalNode, C
                          PathSuperposition, InvocationStrategy,
                          organize, causal_sort};
 
-// ── v0.47 容器交互 — 满全法: 汉字相遇·公约数共振·极性=墙/共振/分界 ──
+// ── v0.62 汉字容器交互 — 满全法: 汉字相遇·公约数共振·极性=墙/共振/分界 ──
 #[path = "core/container_interact.rs"]
-pub mod container_interact;
-pub use container_interact::{
-    Essence, Polarity, InteractionMark, ContainerInteract,
+pub mod hanzi_interact;
+pub use hanzi_interact::{
+    Essence, Polarity as HanziPolarity, InteractionMark, ContainerInteract,
 };
 #[path = "relation/container_interact.rs"]
-pub mod container_interact;
-pub use container_interact::{ContainerPort, InteractionMatch, InteractionEngine,
-                            RoutingDirection, RouterEntry, InteractionStats,
-                            build_engine, run_cycle};
+pub mod legacy_interact;
+// OJ 的 flow/eight_unify.rs 依赖
+#[allow(unused_imports)]
+pub use legacy_interact::{ContainerPort, InteractionEngine, RoutingDirection,
+                         InteractionMatch, RouterEntry, InteractionStats,
+                         build_engine, run_cycle};
 
 // ── v0.48 容器=字体=时间 — 汉字几何化身 (满全法: 汉字即容器即编码) ──
 #[path = "core/container_font_unify.rs"]
 pub mod container_font_unify;
 pub use container_font_unify::{
-    HanziGlyph, GlyphSpace, GlyphField, HanziPolarity,
+    HanziGlyph, GlyphSpace, GlyphField, HanziPolarity as FontPolarity,
 };
 
 // ── 对外 re-export ──
