@@ -14772,8 +14772,9 @@ impl ContainerStackVM {
                 }
             }
             VInstr::SUB => {
+                // a=top(减数), b=second(被减数) → b - a
                 if let (Some(a), Some(b)) = (self.pop(), self.pop()) {
-                    if a >= b { self.push(a - b); } else { self.push(0); }
+                    if b >= a { self.push(b - a); } else { self.push(0); }
                 }
             }
             VInstr::SHL => {
@@ -14798,7 +14799,8 @@ impl ContainerStackVM {
                 }
             }
             VInstr::STORE => {
-                if let (Some(v), Some(addr)) = (self.pop(), self.pop()) {
+                // stack: [..., value, addr] → pop addr, pop value
+                if let (Some(addr), Some(v)) = (self.pop(), self.pop()) {
                     self.memory.insert(addr, v);
                 }
             }
