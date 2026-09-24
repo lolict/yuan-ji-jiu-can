@@ -13,6 +13,9 @@
 use std::env;
 use std::process;
 
+mod container_runtime;
+use container_runtime::{ContainerOS, ArbitrationResult, OsHeader};
+
 // 笔画 → 容器 (按 SKILL.md 16 基础笔画映射表)
 const STROKE_HENG: u8 = 0;     // 横 一 → 袋
 const STROKE_SHU: u8 = 1;      // 竖 丨 → 桶
@@ -467,6 +470,9 @@ fn main() {
         eprintln!("      glyph_stroke --verify <汉字>      # 编码一致性校验");
         eprintln!("      glyph_stroke --compose <字串>     # 短语级容器组合");
         eprintln!("      glyph_stroke --tree  <汉字>       # 容器层级树");
+        eprintln!("      glyph_stroke --boot  <汉字>       # 自举证明");
+        eprintln!("      glyph_stroke --meta  <汉字>       # 元编码");
+        eprintln!("      glyph_stroke --os    <汉字>       # 容器操作系统运行时");
         eprintln!("      glyph_stroke --reverse 袋");
         process::exit(1);
     }
@@ -485,8 +491,11 @@ fn main() {
     let mut tree_mode = false;
     let mut boot_mode = false;
     let mut meta_mode = false;
+    let mut os_mode = false;
     let mut load_file: Option<String> = None;
     let mut output_file: Option<&str> = None;
+    let mut save_path: Option<String> = None;
+    let mut initial_os: Option<ContainerOS> = None;
     let mut input = "";
 
     let mut i = 1;
@@ -506,6 +515,7 @@ fn main() {
             "--tree" | "-T" => { tree_mode = true; i += 1; }
             "--boot" | "-b" => { boot_mode = true; i += 1; }
             "--meta" | "-m" => { meta_mode = true; i += 1; }
+            "--os" | "-O" => { os_mode = true; i += 1; }
             "--fold" | "-f" => {
                 fold_mode = true;
                 i += 1;
@@ -529,19 +539,37 @@ fn main() {
                 if i + 1 < args.len() { output_file = Some(&args[i + 1]); }
                 i += 2;
             }
+            "--save" | "-S" => {
+                if i + 1 < args.len() { save_path = Some(args[i + 1].clone()); }
+                i += 2;
+            }
             "--resume" | "-r" => {
-                if i + 1 < args.len() { load_file = Some(args[i + 1].clone()); }
+                if i + 1 < args.len() {
+                    let path = args[i + 1].clone();
+                    // 尝试二进制加载 (OsHeader)
+                    if let Ok(bytes) = std::fs::read(&path) {
+                        if bytes.len() > 0 && bytes[0] == container_runtime::OS_FORMAT_VERSION {
+                            if let Some(header) = container_runtime::OsHeader::from_bytes(&bytes) {
+                                eprintln!("[resume] 二进制状态恢复: {} ({} bytes, version {})",
+                                    path, bytes.len(), header.version);
+                                initial_os = Some(header.os);
+                            }
+                        } else {
+                            load_file = Some(path);
+                        }
+                    }
+                }
                 i += 2;
             }
             _ => { input = &args[i]; i += 1; }
         }
     }
 
-    // Handle --resume: load persisted state as initial input context
+    // Handle --resume (text mode): load persisted text as input
     let input = if let Some(ref path) = load_file {
         match std::fs::read_to_string(path) {
             Ok(content) => {
-                eprintln!("[resume] 加载持久化状态: {}", path);
+                eprintln!("[resume] 文本输入恢复: {}", path);
                 content.trim().to_string()
             }
             Err(_) => input.to_string(),
@@ -565,6 +593,25 @@ fn main() {
         encode_boot(input_str)
     } else if meta_mode {
         encode_meta(input_str)
+    } else if os_mode {
+        let (text, final_os) = encode_os(input_str, initial_os.take());
+        // Binary save via --save: write final OsHeader bytes to disk
+        if let Some(path) = save_path.take() {
+            use std::io::Write;
+            let header = OsHeader::new(final_os);
+            match std::fs::File::create(&path) {
+                Ok(mut f) => {
+                    let bytes = header.to_bytes();
+                    let _ = f.write_all(&bytes);
+                    eprintln!("[save] 二进制状态已写入: {} ({} bytes)", path, bytes.len());
+                }
+                Err(e) => {
+                    eprintln!("写入失败 {}: {}", path, e);
+                    process::exit(1);
+                }
+            }
+        }
+        text
     } else if compose_mode {
         encode_compose(input_str)
     } else if tree_mode {
@@ -1197,6 +1244,120 @@ fn encode_meta(input: &str) -> String {
 
 fn all_contains<'a>(vec: &[&'a str], item: &'a str) -> bool {
     vec.iter().any(|x| *x == item)
+}
+
+// ════════════════════════════════════════════════════════════════
+// 容器操作系统运行时 — ContainerOS 状态机驱动
+// ════════════════════════════════════════════════════════════════
+
+fn encode_os(input: &str, initial: Option<ContainerOS>) -> (String, ContainerOS) {
+    let mut buf = String::new();
+    buf.push_str("═══ 容器操作系统运行时 (ContainerOS) ═══\n\n");
+
+    let mut os = initial.unwrap_or_else(ContainerOS::new);
+    let names = CONTAINER_NAMES;
+
+    buf.push_str("── 启动 ──\n");
+    buf.push_str(&format!("初始状态: {}\n\n", os.self_describe()));
+
+    buf.push_str("── 逐字执行 ──\n");
+
+    for (step, ch) in input.chars().enumerate() {
+        if let Ok(gc) = encode_char(ch) {
+            os.ingest(&gc.strokes);
+            os.record_char(ch);
+
+            let active: Vec<&str> = os.active_containers().iter()
+                .map(|&i| names[i as usize]).collect();
+
+            buf.push_str(&format!("步骤 {}: [{}] ({}画)\n", step + 1, ch, gc.strokes.len()));
+            buf.push_str(&format!("  激活容器: [{}] (0x{:04X})\n",
+                active.join("+"), os.cell() & 0xFFFF));
+            buf.push_str(&format!("  壳路径: [{}]\n",
+                os.shell_path().iter().map(|&i| names[i as usize]).collect::<Vec<_>>().join("→")));
+            buf.push_str(&format!("  自描述: {}\n\n", os.self_describe()));
+        }
+    }
+
+    buf.push_str("── 最终状态 ──\n");
+    buf.push_str(&format!("{}\n", os.self_describe()));
+    buf.push_str(&format!("SMRL Cell: 0x{:016X}\n", os.cell()));
+    buf.push_str(&format!("嵌套深度: {}\n", os.depth()));
+    buf.push_str(&format!("历史字符: [{}]\n", os.history().iter().map(|c| c.to_string()).collect::<Vec<_>>().join("→")));
+
+    // 持久化
+    buf.push_str("\n── 持久化 ──\n");
+    let header = build_os_header_from_os(os.clone());
+    let bytes = header.to_bytes();
+    buf.push_str(&format!("版本: {}\n", header.version));
+    buf.push_str(&format!("序列化大小: {} bytes\n", bytes.len()));
+    buf.push_str(&format!("字节(hex): {}\n", bytes.iter().map(|b| format!("{:02X}", b)).collect::<Vec<_>>().join(" ")));
+
+    // 反序列化验证
+    if let Some(loaded) = OsHeader::from_bytes(&bytes) {
+        buf.push_str(&format!("\n反序列化验证:\n"));
+        buf.push_str(&format!("  版本匹配: {}\n", loaded.version == header.version));
+        buf.push_str(&format!("  Cell恢复: 0x{:016X}\n", loaded.os.cell()));
+        buf.push_str(&format!("  深度恢复: {}\n", loaded.os.depth()));
+        buf.push_str(&format!("  壳路径恢复: [{}]\n",
+            loaded.os.shell_path().iter().map(|&i| names[i as usize]).collect::<Vec<_>>().join("→")));
+    }
+
+    // 三元裁决演示
+    if os.history().len() >= 3 {
+        buf.push_str("\n── 三元裁决演示 ──\n");
+        let mut parties: Vec<ContainerOS> = Vec::new();
+
+        for &ch in os.history() {
+            if let Ok(gc) = encode_char(ch) {
+                let mut p = ContainerOS::new();
+                p.ingest(&gc.strokes);
+                p.record_char(ch);
+                parties.push(p);
+            }
+        }
+
+        if parties.len() >= 3 {
+            let a = &parties[0];
+            let b = &parties[1];
+            let c = &parties[2];
+            let result = a.arbitrate(b, c);
+
+            buf.push_str(&format!("甲方: {} → 0x{:04X}\n",
+                os.history()[0], a.cell() & 0xFFFF));
+            buf.push_str(&format!("乙方: {} → 0x{:04X}\n",
+                os.history()[1], b.cell() & 0xFFFF));
+            buf.push_str(&format!("见证: {} → 0x{:04X}\n",
+                os.history()[2], c.cell() & 0xFFFF));
+            buf.push_str(&format!("裁决结果: {}\n", result));
+
+            match result {
+                ArbitrationResult::Symphony => buf.push_str("  → 完全共鸣：双方共享容器完全对称\n"),
+                ArbitrationResult::FavorSelf => buf.push_str("  → 偏向甲方：与见证有更多共享\n"),
+                ArbitrationResult::FavorOther => buf.push_str("  → 偏向乙方：与见证有更多共享\n"),
+                ArbitrationResult::Neutral => buf.push_str("  → 中立：无任何共享容器\n"),
+            }
+        }
+    }
+
+    (buf, os)
+}
+
+/// 从输入构建 OsHeader (供 --save 复用)
+fn build_os_header(input: &str, initial: Option<ContainerOS>) -> OsHeader {
+    let mut os = initial.unwrap_or_else(ContainerOS::new);
+    for ch in input.chars() {
+        if let Ok(gc) = encode_char(ch) {
+            os.ingest(&gc.strokes);
+            os.record_char(ch);
+        }
+    }
+    OsHeader::new(os)
+}
+
+/// 从已有 ContainerOS 构建 OsHeader
+fn build_os_header_from_os(os: ContainerOS) -> OsHeader {
+    OsHeader::new(os)
 }
 
 fn encode_atlas() -> String {

@@ -253,10 +253,15 @@ def _decode_x86_64(code_blob, mappings: dict) -> dict:
     for semantic_id, inst in mappings.get("instructions", {}).items():
         opkey = inst["opkey"]
         op_str = mappings["opcodes"].get(opkey, "")
-        tokens = [p.strip() for p in op_str.split() if not p.strip().startswith("/")]
+        tokens = [p.strip() for p in op_str.split()]
         spec = []
+        # 解析 /digit 标记（附加到固定前缀长度之外的校验条件）
+        digit_check = None
         for t in tokens:
-            spec.append(_decode_op_str(t))
+            if t.startswith("/"):
+                digit_check = int(t[1:])
+            else:
+                spec.append(_decode_op_str(t))
         if len(blob) < len(spec):
             continue
 
@@ -295,6 +300,9 @@ def _decode_x86_64(code_blob, mappings: dict) -> dict:
             if len(blob) < len(spec) + 2:
                 continue
             modrm = blob[len(spec)]
+            # /digit 校验（opcode /0 == ADD, /5 == SUB 等）
+            if digit_check is not None and ((modrm >> 3) & 0x7) != digit_check:
+                continue
             rm = modrm & 0x7
             imm_off = len(spec) + 1
             imm = int.from_bytes(blob[imm_off:imm_off + 4], 'little', signed=True)
