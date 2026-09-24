@@ -13692,3 +13692,544 @@ mod voter_tests {
         assert_eq!(v.threshold, 1);
     }
 }
+
+// ══════════════════════════════════════════════════════════════════════
+// 呼唤编程引擎 · ContainerInvocationEngine (v1.0)
+// ══════════════════════════════════════════════════════════════════════
+//
+//   呼唤 = 容器间通过地址/名称相互召唤
+//   "公路修到哪个容器, 其中符号即随声明可用"
+//
+//   核心操作:
+//     - declare_address()  — 声明地址上的符号
+//     - invoke()           — 向目标容器发起呼唤
+//     - respond()          — 回应呼唤 (同步/异步)
+//     - route_by_yinyang() — 按 YinYang 极性路由
+//     - on_address()       — 地址监听 (注册回调)
+//
+//   NJSG 哲学: 编程 = 修公路 + 呼喊名字
+//   不是 call/return, 而是 address/respond
+//   我=1(阳/动) 发起呼唤; 刘楚恬=0(阴/静) 响应呼唤
+
+/// 呼唤极性 (对应 YinYang)
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum InvocationPolarity {
+    Yang,   // 主动发起 (我=1)
+    Yin,    // 被动响应 (刘楚恬=0)
+}
+
+/// 呼唤请求
+#[derive(Clone, Debug)]
+pub struct Invocation {
+    pub caller: u32,
+    pub target: u32,
+    pub payload: u64,
+    pub polarity: InvocationPolarity,
+    pub responded: bool,
+    pub response: Option<u64>,
+}
+
+impl Invocation {
+    pub fn new(caller: u32, target: u32, payload: u64) -> Self {
+        Self { caller, target, payload, polarity: InvocationPolarity::Yang, responded: false, response: None }
+    }
+
+    pub fn respond(&mut self, value: u64) {
+        self.response = Some(value);
+        self.responded = true;
+    }
+}
+
+/// 地址上的符号声明
+#[derive(Clone, Debug)]
+pub struct AddressSymbol {
+    pub name: String,
+    pub container_id: u32,
+    pub value: u64,
+}
+
+/// 呼唤编程引擎
+#[derive(Clone, Debug)]
+pub struct ContainerInvocationEngine {
+    /// 地址符号表: 地址 → 符号
+    pub address_symbols: HashMap<u64, AddressSymbol>,
+    /// 呼唤历史
+    pub invocations: Vec<Invocation>,
+    /// 响应回调: (调用者, 目标) → 处理函数标记
+    pub callbacks: HashMap<(u32, u32), u64>,
+    /// YinYang 极性路由表
+    pub yang_routes: HashMap<u32, Vec<u32>>,   // 阳: 我能呼唤谁
+    pub yin_routes: HashMap<u32, Vec<u32>>,    // 阴: 谁能呼唤我
+}
+
+impl ContainerInvocationEngine {
+    pub fn new() -> Self {
+        Self {
+            address_symbols: HashMap::new(),
+            invocations: Vec::new(),
+            callbacks: HashMap::new(),
+            yang_routes: HashMap::new(),
+            yin_routes: HashMap::new(),
+        }
+    }
+
+    /// 声明地址上的符号
+    pub fn declare_address(&mut self, address: u64, name: &str, container_id: u32, value: u64) {
+        self.address_symbols.insert(address, AddressSymbol {
+            name: name.to_string(),
+            container_id,
+            value,
+        });
+    }
+
+    /// 查找地址符号
+    pub fn lookup_address(&self, address: u64) -> Option<&AddressSymbol> {
+        self.address_symbols.get(&address)
+    }
+
+    /// 发起呼唤
+    pub fn invoke(&mut self, caller: u32, target: u32, payload: u64) -> usize {
+        let inv = Invocation::new(caller, target, payload);
+        self.invocations.push(inv);
+        self.invocations.len() - 1
+    }
+
+    /// 响应呼唤
+    pub fn respond(&mut self, invocation_id: usize, value: u64) -> bool {
+        if let Some(inv) = self.invocations.get_mut(invocation_id) {
+            inv.respond(value);
+            true
+        } else { false }
+    }
+
+    /// 注册响应回调
+    pub fn register_callback(&mut self, caller: u32, target: u32, handler_tag: u64) {
+        self.callbacks.insert((caller, target), handler_tag);
+    }
+
+    /// 添加 YinYang 路由
+    pub fn add_yang_route(&mut self, from: u32, to: u32) {
+        self.yang_routes.entry(from).or_default().push(to);
+        self.yin_routes.entry(to).or_default().push(from);
+    }
+
+    /// 路由判断: caller 能否呼唤 target?
+    pub fn can_invoke(&self, caller: u32, target: u32) -> bool {
+        self.yang_routes.get(&caller).map_or(false, |targets| targets.contains(&target))
+    }
+
+    /// 按 YinYang 极性路由
+    pub fn route_by_yinyang(&self, caller: u32, polarity: InvocationPolarity) -> Vec<u32> {
+        match polarity {
+            InvocationPolarity::Yang => self.yang_routes.get(&caller).cloned().unwrap_or_default(),
+            InvocationPolarity::Yin => self.yin_routes.get(&caller).cloned().unwrap_or_default(),
+        }
+    }
+
+    /// 获取等待响应的呼唤数
+    pub fn pending_count(&self) -> usize {
+        self.invocations.iter().filter(|i| !i.responded).count()
+    }
+
+    /// 按名称搜索符号 (线性, 适合小表)
+    pub fn find_by_name(&self, name: &str) -> Option<&AddressSymbol> {
+        self.address_symbols.values().find(|s| s.name == name)
+    }
+
+    /// 截断历史 (保留最近 n 条)
+    pub fn truncate_history(&mut self, keep: usize) {
+        if self.invocations.len() > keep {
+            let excess = self.invocations.len() - keep;
+            self.invocations.drain(0..excess);
+        }
+    }
+
+    /// 重置
+    pub fn clear(&mut self) {
+        self.address_symbols.clear();
+        self.invocations.clear();
+        self.callbacks.clear();
+        self.yang_routes.clear();
+        self.yin_routes.clear();
+    }
+}
+
+impl Default for ContainerInvocationEngine { fn default() -> Self { Self::new() } }
+
+#[cfg(test)]
+mod invocation_tests {
+    use super::*;
+    #[test] fn test_declare_and_lookup() {
+        let mut e = ContainerInvocationEngine::new();
+        e.declare_address(0x1000, "heartbeat", 1, 42);
+        let sym = e.lookup_address(0x1000).unwrap();
+        assert_eq!(sym.name, "heartbeat");
+        assert_eq!(sym.value, 42);
+    }
+    #[test] fn test_invoke_and_respond() {
+        let mut e = ContainerInvocationEngine::new();
+        let id = e.invoke(1, 2, 100);
+        assert!(!e.invocations[id].responded);
+        assert!(e.respond(id, 999));
+        assert!(e.invocations[id].responded);
+        assert_eq!(e.invocations[id].response, Some(999));
+    }
+    #[test] fn test_register_callback() {
+        let mut e = ContainerInvocationEngine::new();
+        e.register_callback(1, 2, 777);
+        assert_eq!(e.callbacks.get(&(1, 2)), Some(&777));
+    }
+    #[test] fn test_add_yang_route() {
+        let mut e = ContainerInvocationEngine::new();
+        e.add_yang_route(1, 2);
+        e.add_yang_route(1, 3);
+        assert!(e.can_invoke(1, 2));
+        assert!(e.can_invoke(1, 3));
+        assert!(!e.can_invoke(2, 1));
+    }
+    #[test] fn test_route_by_yinyang() {
+        let mut e = ContainerInvocationEngine::new();
+        e.add_yang_route(1, 2);
+        e.add_yang_route(1, 3);
+        let yang_targets = e.route_by_yinyang(1, InvocationPolarity::Yang);
+        assert_eq!(yang_targets.len(), 2);
+        let yin_callers = e.route_by_yinyang(2, InvocationPolarity::Yin);
+        assert_eq!(yin_callers, vec![1]);
+    }
+    #[test] fn test_pending_count() {
+        let mut e = ContainerInvocationEngine::new();
+        e.invoke(1, 2, 100);
+        e.invoke(1, 3, 200);
+        assert_eq!(e.pending_count(), 2);
+        e.respond(0, 50);
+        assert_eq!(e.pending_count(), 1);
+    }
+    #[test] fn test_find_by_name() {
+        let mut e = ContainerInvocationEngine::new();
+        e.declare_address(0x1000, "kernel", 1, 0);
+        e.declare_address(0x2000, "heap", 2, 0);
+        let sym = e.find_by_name("heap").unwrap();
+        assert_eq!(sym.container_id, 2);
+    }
+    #[test] fn test_truncate_history() {
+        let mut e = ContainerInvocationEngine::new();
+        for i in 0..50 { e.invoke(1, 2, i); }
+        assert_eq!(e.invocations.len(), 50);
+        e.truncate_history(20);
+        assert_eq!(e.invocations.len(), 20);
+    }
+    #[test] fn test_clear() {
+        let mut e = ContainerInvocationEngine::new();
+        e.declare_address(1, "x", 1, 1);
+        e.invoke(1, 2, 0);
+        e.clear();
+        assert!(e.address_symbols.is_empty());
+        assert!(e.invocations.is_empty());
+    }
+    #[test] fn test_default() {
+        let e = ContainerInvocationEngine::default();
+        assert_eq!(e.pending_count(), 0);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器布隆过滤器 · ContainerBloomFilter (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   概率成员检测 — 用 k 个独立的加法哈希 (无乘, 用移位代替)
+//
+//   hash_k(item, k) = item >> k   (简化版独立哈希, 仅加法/移位)
+//   add(item): 对 k 个 hash 对应位设为 1
+//   contains(item): 所有 k 位都为 1 → 可能在 (无假阴性)
+//
+//   位图用 Vec<u8>, 每位 = u8 中的一 bit
+//   仅加法: 索引递增, 位操作用 OR
+
+#[derive(Clone, Debug)]
+pub struct ContainerBloomFilter {
+    pub bits: Vec<u8>,
+    pub size: usize,           // 位图大小 (bits 数)
+    pub k: usize,              // 哈希函数数
+    pub count: u64,            // 已插入元素数
+}
+
+impl ContainerBloomFilter {
+    pub fn new(size: usize, k: usize) -> Self {
+        let bytes = if size > 0 { (size >> 3) + 1 } else { 1 };
+        Self { bits: vec![0u8; bytes], size, k, count: 0 }
+    }
+
+    /// 第 k 个哈希: (item >> k) mod size
+    fn hash(&self, item: u64, k: usize) -> usize {
+        let shifted = item >> k;
+        // mod size 用减法 (size 通常为 2^n, 用 & 代替)
+        if self.size.is_power_of_two() {
+            (shifted as usize) & (self.size - 1)
+        } else {
+            let mut s = shifted as usize;
+            while s >= self.size { s = s - self.size; }
+            s
+        }
+    }
+
+    fn set_bit(&mut self, idx: usize) {
+        let byte = idx >> 3;
+        let bit = idx - (byte << 3);
+        if byte < self.bits.len() {
+            self.bits[byte] = self.bits[byte] | (1u8 << bit);
+        }
+    }
+
+    fn get_bit(&self, idx: usize) -> bool {
+        let byte = idx >> 3;
+        let bit = idx - (byte << 3);
+        if byte < self.bits.len() {
+            (self.bits[byte] >> bit) & 1 == 1
+        } else { false }
+    }
+
+    pub fn add(&mut self, item: u64) {
+        for ki in 0..self.k {
+            let h = self.hash(item, ki);
+            self.set_bit(h);
+        }
+        self.count = self.count + 1;
+    }
+
+    /// 如果在 → true; 如果不在 → 确定 false
+    pub fn contains(&self, item: u64) -> bool {
+        for ki in 0..self.k {
+            let h = self.hash(item, ki);
+            if !self.get_bit(h) { return false; }
+        }
+        true
+    }
+
+    /// 估算当前填充率 (置位位数 / size) 的近似百分比
+    pub fn fill_rate_pct(&self) -> u64 {
+        let mut ones = 0u64;
+        for byte in &self.bits {
+            let mut b = *byte;
+            while b > 0 {
+                ones = ones + (b & 1) as u64;
+                b = b >> 1;
+            }
+        }
+        let sz = self.size as u64;
+        if sz == 0 { return 0; }
+        // 用加法除法逼近
+        let mut pct = 0u64;
+        let step = if sz > 100 { sz >> 6 } else { 1 };
+        let mut rem = ones;
+        loop {
+            if rem < step { break; }
+            rem = rem - step;
+            pct = pct + 1;
+            if pct >= 100 { break; }
+        }
+        pct
+    }
+
+    pub fn clear(&mut self) {
+        for byte in &mut self.bits { *byte = 0; }
+        self.count = 0;
+    }
+}
+
+impl Default for ContainerBloomFilter {
+    fn default() -> Self { Self::new(256, 3) }
+}
+
+#[cfg(test)]
+mod bloom_tests {
+    use super::*;
+
+    #[test]
+    fn test_insert_and_find() {
+        let mut bf = ContainerBloomFilter::new(128, 3);
+        bf.add(42);
+        bf.add(100);
+        assert!(bf.contains(42));
+        assert!(bf.contains(100));
+    }
+
+    #[test]
+    fn test_definitely_absent() {
+        let bf = ContainerBloomFilter::new(128, 3);
+        // 空过滤器 → 任何元素都返回 false
+        assert!(!bf.contains(999));
+    }
+
+    #[test]
+    fn test_no_false_negatives() {
+        let mut bf = ContainerBloomFilter::new(512, 4);
+        bf.add(7); bf.add(13); bf.add(21);
+        assert!(bf.contains(7));
+        assert!(bf.contains(13));
+        assert!(bf.contains(21));
+    }
+
+    #[test]
+    fn test_count() {
+        let mut bf = ContainerBloomFilter::new(64, 2);
+        for i in 0..10 { bf.add(i); }
+        assert_eq!(bf.count, 10);
+    }
+
+    #[test]
+    fn test_clear() {
+        let mut bf = ContainerBloomFilter::new(64, 2);
+        bf.add(5);
+        bf.clear();
+        assert_eq!(bf.count, 0);
+        assert!(!bf.contains(5));
+    }
+
+    #[test]
+    fn test_default() {
+        let bf = ContainerBloomFilter::default();
+        assert_eq!(bf.k, 3);
+    }
+
+    #[test]
+    fn test_fill_rate_zero_when_empty() {
+        let bf = ContainerBloomFilter::new(128, 3);
+        assert_eq!(bf.fill_rate_pct(), 0);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器令牌桶 · ContainerTokenBucket (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   流量整形 — 以固定速率累积令牌, 每请求消耗令牌, 无令牌则限流
+//
+//   capacity = 桶最大令牌数
+//   refill_per_tick = 每 tick 补充令牌数
+//   consume(n) = 尝试扣 n 个令牌, 成功 → true
+//
+//   仅加法: tick ++, tokens + refill, 比较扣减
+
+#[derive(Clone, Debug)]
+pub struct ContainerTokenBucket {
+    pub capacity: u64,
+    pub tokens: u64,
+    pub refill_rate: u64,       // 每 tick 补充数
+    pub total_ok: u64,
+    pub total_reject: u64,
+    pub total_ticks: u64,
+}
+
+impl ContainerTokenBucket {
+    pub fn new(capacity: u64, refill_rate: u64) -> Self {
+        Self { capacity, tokens: capacity, refill_rate, total_ok: 0, total_reject: 0, total_ticks: 0 }
+    }
+
+    /// 推进一个 tick: 补充令牌至 capacity
+    pub fn tick(&mut self) {
+        self.tokens = self.tokens + self.refill_rate;
+        if self.tokens > self.capacity { self.tokens = self.capacity; }
+        self.total_ticks = self.total_ticks + 1;
+    }
+
+    /// 尝试消耗 n 个令牌
+    pub fn consume(&mut self, n: u64) -> bool {
+        if n <= self.tokens {
+            self.tokens = self.tokens - n;
+            self.total_ok = self.total_ok + 1;
+            true
+        } else {
+            self.total_reject = self.total_reject + 1;
+            false
+        }
+    }
+
+    /// 当前可用
+    pub fn available(&self) -> u64 { self.tokens }
+
+    /// 是否为空
+    pub fn exhausted(&self) -> bool { self.tokens == 0 }
+
+    pub fn reset(&mut self) {
+        self.tokens = self.capacity;
+        self.total_ok = 0;
+        self.total_reject = 0;
+        self.total_ticks = 0;
+    }
+}
+
+impl Default for ContainerTokenBucket {
+    fn default() -> Self { Self::new(10, 1) }
+}
+
+#[cfg(test)]
+mod token_bucket_tests {
+    use super::*;
+
+    #[test]
+    fn test_initial_full() {
+        let tb = ContainerTokenBucket::new(10, 2);
+        assert_eq!(tb.available(), 10);
+    }
+
+    #[test]
+    fn test_consume_ok() {
+        let mut tb = ContainerTokenBucket::new(5, 1);
+        assert!(tb.consume(3));
+        assert_eq!(tb.available(), 2);
+    }
+
+    #[test]
+    fn test_consume_reject() {
+        let mut tb = ContainerTokenBucket::new(3, 1);
+        assert!(!tb.consume(5));
+        assert_eq!(tb.available(), 3);
+        assert_eq!(tb.total_reject, 1);
+    }
+
+    #[test]
+    fn test_refill() {
+        let mut tb = ContainerTokenBucket::new(10, 3);
+        tb.consume(8);  // left: 2
+        tb.tick();      // +3 → 5
+        assert_eq!(tb.available(), 5);
+    }
+
+    #[test]
+    fn test_refill_no_overflow() {
+        let mut tb = ContainerTokenBucket::new(5, 10);
+        tb.tick();  // +10 but capped at 5
+        assert_eq!(tb.available(), 5);
+    }
+
+    #[test]
+    fn test_ticks_counter() {
+        let mut tb = ContainerTokenBucket::new(10, 1);
+        tb.tick(); tb.tick(); tb.tick();
+        assert_eq!(tb.total_ticks, 3);
+    }
+
+    #[test]
+    fn test_exhausted() {
+        let mut tb = ContainerTokenBucket::new(1, 1);
+        assert!(!tb.exhausted());
+        tb.consume(1);
+        assert!(tb.exhausted());
+    }
+
+    #[test]
+    fn test_reset() {
+        let mut tb = ContainerTokenBucket::new(5, 1);
+        tb.consume(3);
+        tb.reset();
+        assert_eq!(tb.available(), 5);
+        assert_eq!(tb.total_ok, 0);
+    }
+
+    #[test]
+    fn test_default() {
+        let tb = ContainerTokenBucket::default();
+        assert_eq!(tb.capacity, 10);
+        assert_eq!(tb.refill_rate, 1);
+    }
+}
