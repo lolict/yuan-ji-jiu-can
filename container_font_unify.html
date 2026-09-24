@@ -1,0 +1,275 @@
+<!DOCTYPE html><html lang="zh">
+<head><meta charset="UTF-8">
+<title>容器字体统一架构 v4</title>
+<style>
+body{background:#050508;color:#eee;font-family:'Segoe UI',sans-serif;margin:0;padding:20px;}
+h1{text-align:center;font-size:22px;margin:6px 0 2px;letter-spacing:3px;color:#9b8bff;}
+p.sub{text-align:center;color:#888;font-size:11px;margin:0 0 14px;}
+#stage{width:800px;height:800px;margin:0 auto;background:radial-gradient(ellipse at center,#0c0a1a 0%,#030306 80%);border-radius:16px;position:relative;overflow:hidden;box-shadow:0 0 60px #1a1a2a50;}
+#scene{position:absolute;top:0;left:0;width:800px;height:800px;}
+#legend{display:flex;gap:12px;justify-content:center;margin:10px 0;flex-wrap:wrap;}
+.leg{display:flex;align-items:center;gap:4px;font-size:10px;color:#999;}
+#info{margin-top:16px;text-align:center;font-size:10px;color:#444;font-family:monospace;}
+@keyframes tick{0%,100%{opacity:0.4;transform:scale(1)}5%{opacity:1;transform:scale(1.4)}10%{opacity:0.4;transform:scale(1)}}
+.tick{animation:tick 64s infinite ease-in-out;}
+@font-face{font-family:'HanYuan64';src:url(data:font/ttf;base64,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AAAAAAAAAN6tvgAAAAAAAAAAADUANQAAAAAAAAAAAAAAAADerb4AAAAAAAAAAAA2ADYAAAAAAAAAAAAAAAAA3q2+AAAAAAAAAAAANwA3AAAAAAAAAAAAAAAAAN6tvgAAAAAAAAAAADgAOAAAAAAAAAAAAAAAAADerb4AAAAAAAAAAAA5ADkAAAAAAAAAAAAAAAAA3q2+AAAAAAAAAAAAOgA6AAAAAAAAAAAAAAAAAN6tvgAAAAAAAAAAADsAOwAAAAAAAAAAAAAAAADerb4AAAAAAAAAAAA8ADwAAAAAAAAAAAAAAAAA3q2+AAAAAAAAAAAAPQA9AAAAAAAAAAAAAAAAAN6tvgAAAAAAAAAAAD4APgAAAAAAAAAAAAAAAADerb4AAAAAAAAAAAA/AD8AAAAAAAAAAAAAAAAA3q2+AAAD6AAAA+gAAAPoAAAD6AAAA+gAAAPoAAAD6AAAA+gAAAPoAAAD6AAAA+gAAAPoAAAD6AAAA+gAAAPoAAAD6AAAA+gAAAPoAAAD6AAAA+gAAAPoAAAD6AAAA+gAAAPoAAAD6AAAA+gAAAPoAAAD6AAAA+gAAAPoAAAD6AAAA+gAAAPoAAAD6AAAA+gAAAPoAAAD6AAAA+gAAAPoAAAD6AAAA+gAAAPoAAAD6AAAA+gAAAPoAAAD6AAAA+gAAAPoAAAD6AAAA+gAAAPoAAAD6AAAA+gAAAPoAAAD6AAAA+gAAAPoAAAD6AAAA+gAAAPoAAAD6AAAA+gAAAPoAAAD6AAA)format('truetype');}
+.cf{font-family:'HanYuan64',sans-serif;}
+</style></head><body>
+<h1>容器字体统一架构</h1>
+<p class="sub">容器=字体=时间 · 64 容器 · 阴阳元 三极性 · 八拓扑 · 范畴态射</p>
+<div id="legend"><div class="leg"><b style="background:hsl(220,60%,50%);width:10px;height:10px;border-radius:50%;display:inline-block"></b>容器族 · V-E-F 8-12-6</div><div class="leg"><b style="background:hsl(280,60%,50%);width:10px;height:10px;border-radius:50%;display:inline-block"></b>操作族 · V-E-F 1-0-1</div><div class="leg"><b style="background:hsl(160,60%,50%);width:10px;height:10px;border-radius:50%;display:inline-block"></b>声母 · V-E-F 0-2-1</div><div class="leg"><b style="background:hsl(30,60%,50%);width:10px;height:10px;border-radius:50%;display:inline-block"></b>韵母 · V-E-F 2-1-2</div></div>
+<div id="stage"><svg id="scene" viewBox="0 0 800 800">
+<circle cx="400" cy="400" r="80" fill="none" stroke="#ffffff12" stroke-width="0.6" stroke-dasharray="3,8"/>
+<circle cx="400" cy="400" r="155" fill="none" stroke="#ffffff12" stroke-width="0.6" stroke-dasharray="3,8"/>
+<circle cx="400" cy="400" r="230" fill="none" stroke="#ffffff12" stroke-width="0.6" stroke-dasharray="3,8"/>
+<circle cx="400" cy="400" r="305" fill="none" stroke="#ffffff12" stroke-width="0.6" stroke-dasharray="3,8"/>
+<g class="tick" style="animation-delay:-1s;transform-origin:479.9px 403.9px">
+<circle cx="479.9" cy="403.9" r="2" fill="#ffffff60"/><text x="479.9" y="403.9" fill="hsl(220,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">袋</text>
+</g>
+<g class="tick" style="animation-delay:-2s;transform-origin:479.1px 411.7px">
+<rect x="466.3" y="398.9" width="25.6" height="25.6" fill="none" stroke="#ffffff40" stroke-width="1.2"/><text x="479.1" y="411.7" fill="hsl(220,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">照</text>
+</g>
+<g class="tick" style="animation-delay:-4s;transform-origin:477.6px 419.4px">
+<rect x="464.8" y="406.6" width="25.6" height="25.6" fill="none" stroke="#ffffff40" stroke-width="1.2"/><text x="477.6" y="419.4" fill="hsl(220,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">见</text>
+</g>
+<g class="tick" style="animation-delay:-5s;transform-origin:475.3px 427.0px">
+<circle cx="475.3" cy="427.0" r="16.0" fill="none" stroke="#ffffff40" stroke-width="1.2"/><path d="M 459.3,427.0 A 16.0,5.6 0 0,1 491.3,427.0" fill="none" stroke="#ffffff30" stroke-width="0.7"/><text x="475.3" y="427.0" fill="hsl(220,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">阴</text>
+</g>
+<g class="tick" style="animation-delay:-7s;transform-origin:472.3px 434.2px">
+<circle cx="472.3" cy="434.2" r="16.0" fill="none" stroke="#ffffff40" stroke-width="1.2"/><path d="M 456.3,434.2 A 16.0,5.6 0 0,1 488.3,434.2" fill="none" stroke="#ffffff30" stroke-width="0.7"/><text x="472.3" y="434.2" fill="hsl(220,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">加</text>
+</g>
+<g class="tick" style="animation-delay:-7s;transform-origin:468.6px 441.1px">
+<circle cx="468.6" cy="441.1" r="16.0" fill="none" stroke="#ffffff40" stroke-width="1.2"/><path d="M 452.6,441.1 A 16.0,5.6 0 0,1 484.6,441.1" fill="none" stroke="#ffffff30" stroke-width="0.7"/><text x="468.6" y="441.1" fill="hsl(220,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">分</text>
+</g>
+<g class="tick" style="animation-delay:-10s;transform-origin:464.3px 447.7px">
+<circle cx="464.3" cy="447.7" r="16.0" fill="none" stroke="#ffffff40" stroke-width="1.2"/><path d="M 448.3,447.7 A 16.0,5.6 0 0,1 480.3,447.7" fill="none" stroke="#ffffff30" stroke-width="0.7"/><text x="464.3" y="447.7" fill="hsl(220,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">元</text>
+</g>
+<g class="tick" style="animation-delay:-9s;transform-origin:459.3px 453.7px">
+<circle cx="459.3" cy="453.7" r="16.0" fill="none" stroke="#ffffff40" stroke-width="1.2"/><path d="M 443.3,453.7 A 16.0,5.6 0 0,1 475.3,453.7" fill="none" stroke="#ffffff30" stroke-width="0.7"/><text x="459.3" y="453.7" fill="hsl(220,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">裁</text>
+</g>
+<g class="tick" style="animation-delay:-12s;transform-origin:453.7px 459.3px">
+<circle cx="453.7" cy="459.3" r="16.0" fill="none" stroke="#ffffff40" stroke-width="1.2"/><path d="M 437.7,459.3 A 16.0,5.6 0 0,1 469.7,459.3" fill="none" stroke="#ffffff30" stroke-width="0.7"/><text x="453.7" y="459.3" fill="hsl(220,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">产</text>
+</g>
+<g class="tick" style="animation-delay:-12s;transform-origin:447.7px 464.3px">
+<ellipse cx="447.7" cy="464.3" rx="17.6" ry="17.6" fill="none" stroke="#ffffff40" stroke-width="1.2"/><ellipse cx="447.7" cy="464.3" rx="10.4" ry="10.4" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="447.7" y="464.3" fill="hsl(220,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">公</text>
+</g>
+<g class="tick" style="animation-delay:-14s;transform-origin:441.1px 468.6px">
+<ellipse cx="441.1" cy="468.6" rx="17.6" ry="17.6" fill="none" stroke="#ffffff40" stroke-width="1.2"/><ellipse cx="441.1" cy="468.6" rx="10.4" ry="10.4" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="441.1" y="468.6" fill="hsl(220,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">声</text>
+</g>
+<g class="tick" style="animation-delay:-13s;transform-origin:434.2px 472.3px">
+<path d="M 423.0,464.3 L 445.4,464.3 M 423.0,480.3 L 445.4,480.3" stroke="#ffffff40" stroke-width="1.2" fill="none"/><text x="434.2" y="472.3" fill="hsl(220,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">折</text>
+</g>
+<g class="tick" style="animation-delay:-18s;transform-origin:427.0px 475.3px">
+<path d="M 415.8,467.3 L 438.2,467.3 M 415.8,483.3 L 438.2,483.3" stroke="#ffffff40" stroke-width="1.2" fill="none"/><text x="427.0" y="475.3" fill="hsl(220,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">负</text>
+</g>
+<g class="tick" style="animation-delay:-15s;transform-origin:419.4px 477.6px">
+<polygon points="419.4384143922611,461.60250025556354,432.2384143922611,485.60250025556354,406.6384143922611,485.60250025556354,419.4384143922611,461.60250025556354,432.2384143922611,485.60250025556354,406.6384143922611,485.60250025556354" fill="none" stroke="#ffffff40" stroke-width="1.2"/><text x="419.4" y="477.6" fill="hsl(220,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">福</text>
+</g>
+<g class="tick" style="animation-delay:-18s;transform-origin:411.7px 479.1px">
+<line x1="395.7" y1="479.1" x2="427.7" y2="479.1" stroke="#ffffff40" stroke-width="1.5"/><text x="411.7" y="479.1" fill="hsl(220,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">凤</text>
+</g>
+<g class="tick" style="animation-delay:-19s;transform-origin:403.9px 479.9px">
+<path d="M 394.3,470.3 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="403.9" y="479.9" fill="hsl(220,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">栖</text>
+</g>
+<g class="tick" style="animation-delay:-9s;transform-origin:392.4px 554.8px">
+<path d="M 382.8,545.2 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="392.4" y="554.8" fill="hsl(270,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">融</text>
+</g>
+<g class="tick" style="animation-delay:-7s;transform-origin:377.3px 553.3px">
+<path d="M 367.7,543.7 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="377.3" y="553.3" fill="hsl(270,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">鼓</text>
+</g>
+<g class="tick" style="animation-delay:-12s;transform-origin:362.3px 550.4px">
+<path d="M 352.7,540.8 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="362.3" y="550.4" fill="hsl(270,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">蚕</text>
+</g>
+<g class="tick" style="animation-delay:-9s;transform-origin:347.8px 545.9px">
+<path d="M 338.2,536.3 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="347.8" y="545.9" fill="hsl(270,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">民</text>
+</g>
+<g class="tick" style="animation-delay:-14s;transform-origin:333.7px 540.1px">
+<path d="M 324.1,530.5 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="333.7" y="540.1" fill="hsl(270,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">盟</text>
+</g>
+<g class="tick" style="animation-delay:-13s;transform-origin:320.3px 532.9px">
+<path d="M 310.7,523.3 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="320.3" y="532.9" fill="hsl(270,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">满</text>
+</g>
+<g class="tick" style="animation-delay:-14s;transform-origin:307.7px 524.5px">
+<path d="M 298.1,514.9 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="307.7" y="524.5" fill="hsl(270,60%,50%)" font-size="15.399999999999999" text-anchor="middle" class="cf" dominant-baseline="middle">囡</text>
+</g>
+<g class="tick" style="animation-delay:-13s;transform-origin:295.9px 514.8px">
+<path d="M 286.3,505.2 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="295.9" y="514.8" fill="hsl(270,60%,50%)" font-size="15.399999999999999" text-anchor="middle" class="cf" dominant-baseline="middle">夕</text>
+</g>
+<g class="tick" style="animation-delay:-20s;transform-origin:285.2px 504.1px">
+<path d="M 275.6,494.5 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="285.2" y="504.1" fill="hsl(270,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">三</text>
+</g>
+<g class="tick" style="animation-delay:-16s;transform-origin:275.5px 492.3px">
+<path d="M 265.9,482.7 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="275.5" y="492.3" fill="hsl(270,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">六</text>
+</g>
+<g class="tick" style="animation-delay:-18s;transform-origin:267.1px 479.7px">
+<path d="M 257.5,470.1 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="267.1" y="479.7" fill="hsl(270,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">八</text>
+</g>
+<g class="tick" style="animation-delay:-19s;transform-origin:259.9px 466.3px">
+<path d="M 250.3,456.7 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="259.9" y="466.3" fill="hsl(270,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">九</text>
+</g>
+<g class="tick" style="animation-delay:-22s;transform-origin:254.1px 452.2px">
+<path d="M 244.5,442.6 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="254.1" y="452.2" fill="hsl(270,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">零</text>
+</g>
+<g class="tick" style="animation-delay:-19s;transform-origin:249.6px 437.7px">
+<path d="M 240.0,428.1 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="249.6" y="437.7" fill="hsl(270,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">一</text>
+</g>
+<g class="tick" style="animation-delay:-26s;transform-origin:246.7px 422.7px">
+<path d="M 237.1,413.1 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="246.7" y="422.7" fill="hsl(270,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">二</text>
+</g>
+<g class="tick" style="animation-delay:-21s;transform-origin:245.2px 407.6px">
+<path d="M 235.6,398.0 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="245.2" y="407.6" fill="hsl(270,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">四</text>
+</g>
+<g class="tick" style="animation-delay:-14s;transform-origin:170.3px 388.7px">
+<path d="M 160.7,379.1 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="170.3" y="388.7" fill="hsl(160,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">帮</text>
+</g>
+<g class="tick" style="animation-delay:-13s;transform-origin:172.5px 366.3px">
+<path d="M 162.9,356.7 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="172.5" y="366.3" fill="hsl(160,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">端</text>
+</g>
+<g class="tick" style="animation-delay:-14s;transform-origin:176.9px 344.1px">
+<path d="M 167.3,334.5 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="176.9" y="344.1" fill="hsl(160,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">精</text>
+</g>
+<g class="tick" style="animation-delay:-15s;transform-origin:183.4px 322.5px">
+<path d="M 173.8,312.9 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="183.4" y="322.5" fill="hsl(160,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">见</text>
+</g>
+<g class="tick" style="animation-delay:-21s;transform-origin:192.1px 301.7px">
+<path d="M 182.5,292.1 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="192.1" y="301.7" fill="hsl(160,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">来</text>
+</g>
+<g class="tick" style="animation-delay:-15s;transform-origin:202.7px 281.8px">
+<path d="M 193.1,272.2 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="202.7" y="281.8" fill="hsl(160,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">齿</text>
+</g>
+<g class="tick" style="animation-delay:-18s;transform-origin:215.3px 263.0px">
+<path d="M 205.7,253.4 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="215.3" y="263.0" fill="hsl(160,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">喉</text>
+</g>
+<g class="tick" style="animation-delay:-19s;transform-origin:229.6px 245.5px">
+<path d="M 220.0,235.9 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="229.6" y="245.5" fill="hsl(160,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">呼</text>
+</g>
+<g class="tick" style="animation-delay:-24s;transform-origin:245.5px 229.6px">
+<path d="M 235.9,220.0 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="245.5" y="229.6" fill="hsl(160,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">开</text>
+</g>
+<g class="tick" style="animation-delay:-19s;transform-origin:263.0px 215.3px">
+<path d="M 253.4,205.7 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="263.0" y="215.3" fill="hsl(160,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">清</text>
+</g>
+<g class="tick" style="animation-delay:-26s;transform-origin:281.8px 202.7px">
+<path d="M 272.2,193.1 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="281.8" y="202.7" fill="hsl(160,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">平</text>
+</g>
+<g class="tick" style="animation-delay:-21s;transform-origin:301.7px 192.1px">
+<path d="M 292.1,182.5 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="301.7" y="192.1" fill="hsl(160,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">上</text>
+</g>
+<g class="tick" style="animation-delay:-26s;transform-origin:322.5px 183.4px">
+<path d="M 312.9,173.8 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="322.5" y="183.4" fill="hsl(160,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">前</text>
+</g>
+<g class="tick" style="animation-delay:-27s;transform-origin:344.1px 176.9px">
+<path d="M 334.5,167.3 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="344.1" y="176.9" fill="hsl(160,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">内</text>
+</g>
+<g class="tick" style="animation-delay:-26s;transform-origin:366.3px 172.5px">
+<path d="M 356.7,162.9 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="366.3" y="172.5" fill="hsl(160,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">单</text>
+</g>
+<g class="tick" style="animation-delay:-25s;transform-origin:388.7px 170.3px">
+<path d="M 379.1,160.7 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="388.7" y="170.3" fill="hsl(160,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">长</text>
+</g>
+<g class="tick" style="animation-delay:-22s;transform-origin:415.0px 95.4px">
+<path d="M 405.4,85.8 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="415.0" y="95.4" fill="hsl(35,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">麻</text>
+</g>
+<g class="tick" style="animation-delay:-16s;transform-origin:444.8px 98.3px">
+<path d="M 435.2,88.7 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="444.8" y="98.3" fill="hsl(35,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">支</text>
+</g>
+<g class="tick" style="animation-delay:-20s;transform-origin:474.1px 104.1px">
+<path d="M 464.5,94.5 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="474.1" y="104.1" fill="hsl(35,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">寒</text>
+</g>
+<g class="tick" style="animation-delay:-19s;transform-origin:502.8px 112.8px">
+<path d="M 493.2,103.2 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="502.8" y="112.8" fill="hsl(35,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">歌</text>
+</g>
+<g class="tick" style="animation-delay:-22s;transform-origin:530.4px 124.3px">
+<path d="M 520.8,114.7 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="530.4" y="124.3" fill="hsl(35,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">阳</text>
+</g>
+<g class="tick" style="animation-delay:-19s;transform-origin:556.8px 138.4px">
+<path d="M 547.2,128.8 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="556.8" y="138.4" fill="hsl(35,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">尤</text>
+</g>
+<g class="tick" style="animation-delay:-26s;transform-origin:581.7px 155.0px">
+<path d="M 572.1,145.4 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="581.7" y="155.0" fill="hsl(35,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">止</text>
+</g>
+<g class="tick" style="animation-delay:-23s;transform-origin:604.8px 174.0px">
+<path d="M 595.2,164.4 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="604.8" y="174.0" fill="hsl(35,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">转</text>
+</g>
+<g class="tick" style="animation-delay:-28s;transform-origin:626.0px 195.2px">
+<path d="M 616.4,185.6 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="626.0" y="195.2" fill="hsl(35,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">高</text>
+</g>
+<g class="tick" style="animation-delay:-25s;transform-origin:645.0px 218.3px">
+<path d="M 635.4,208.7 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="645.0" y="218.3" fill="hsl(35,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">低</text>
+</g>
+<g class="tick" style="animation-delay:-26s;transform-origin:661.6px 243.2px">
+<path d="M 652.0,233.6 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="661.6" y="243.2" fill="hsl(35,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">圆</text>
+</g>
+<g class="tick" style="animation-delay:-25s;transform-origin:675.7px 269.6px">
+<path d="M 666.1,260.0 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="675.7" y="269.6" fill="hsl(35,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">扁</text>
+</g>
+<g class="tick" style="animation-delay:-36s;transform-origin:687.2px 297.2px">
+<path d="M 677.6,287.6 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="687.2" y="297.2" fill="hsl(35,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">响</text>
+</g>
+<g class="tick" style="animation-delay:-27s;transform-origin:695.9px 325.9px">
+<path d="M 686.3,316.3 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="695.9" y="325.9" fill="hsl(35,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">静</text>
+</g>
+<g class="tick" style="animation-delay:-30s;transform-origin:701.7px 355.2px">
+<path d="M 692.1,345.6 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="701.7" y="355.2" fill="hsl(35,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">急</text>
+</g>
+<g class="tick" style="animation-delay:-33s;transform-origin:704.6px 385.0px">
+<path d="M 695.0,375.4 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="704.6" y="385.0" fill="hsl(35,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">缓</text>
+</g>
+<g class="tick" style="animation-delay:-23s;transform-origin:779.5px 418.6px">
+<path d="M 769.9,409.0 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="779.5" y="418.6" fill="hsl(0,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">桶</text>
+</g>
+<g class="tick" style="animation-delay:-21s;transform-origin:775.9px 455.8px">
+<path d="M 766.3,446.2 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="775.9" y="455.8" fill="hsl(0,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">罐</text>
+</g>
+<g class="tick" style="animation-delay:-26s;transform-origin:768.6px 492.3px">
+<path d="M 759.0,482.7 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="768.6" y="492.3" fill="hsl(0,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">盆</text>
+</g>
+<g class="tick" style="animation-delay:-21s;transform-origin:757.8px 528.0px">
+<path d="M 748.2,518.4 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="757.8" y="528.0" fill="hsl(0,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">盂</text>
+</g>
+<g class="tick" style="animation-delay:-26s;transform-origin:743.5px 562.5px">
+<path d="M 733.9,552.9 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="743.5" y="562.5" fill="hsl(0,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">壶</text>
+</g>
+<g class="tick" style="animation-delay:-25s;transform-origin:725.9px 595.4px">
+<path d="M 716.3,585.8 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="725.9" y="595.4" fill="hsl(0,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">盒</text>
+</g>
+<g class="tick" style="animation-delay:-30s;transform-origin:705.2px 626.4px">
+<path d="M 695.6,616.8 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="705.2" y="626.4" fill="hsl(0,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">瓶</text>
+</g>
+<g class="tick" style="animation-delay:-25s;transform-origin:681.6px 655.2px">
+<path d="M 672.0,645.6 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="681.6" y="655.2" fill="hsl(0,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">盏</text>
+</g>
+<g class="tick" style="animation-delay:-36s;transform-origin:655.2px 681.6px">
+<path d="M 645.6,672.0 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="655.2" y="681.6" fill="hsl(0,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">盎</text>
+</g>
+<g class="tick" style="animation-delay:-27s;transform-origin:626.4px 705.2px">
+<path d="M 616.8,695.6 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="626.4" y="705.2" fill="hsl(0,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">篓</text>
+</g>
+<g class="tick" style="animation-delay:-30s;transform-origin:595.4px 725.9px">
+<path d="M 585.8,716.3 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="595.4" y="725.9" fill="hsl(0,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">筐</text>
+</g>
+<g class="tick" style="animation-delay:-33s;transform-origin:562.5px 743.5px">
+<path d="M 552.9,733.9 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="562.5" y="743.5" fill="hsl(0,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">篮</text>
+</g>
+<g class="tick" style="animation-delay:-34s;transform-origin:528.0px 757.8px">
+<path d="M 518.4,748.2 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="528.0" y="757.8" fill="hsl(0,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">箩</text>
+</g>
+<g class="tick" style="animation-delay:-33s;transform-origin:492.3px 768.6px">
+<path d="M 482.7,759.0 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="492.3" y="768.6" fill="hsl(0,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">箕</text>
+</g>
+<g class="tick" style="animation-delay:-38s;transform-origin:455.8px 775.9px">
+<path d="M 446.2,766.3 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="455.8" y="775.9" fill="hsl(0,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">笼</text>
+</g>
+<g class="tick" style="animation-delay:-33s;transform-origin:418.6px 779.5px">
+<path d="M 409.0,769.9 l 19.2,0 0 19.2 -19.2,0 0 -19.2 z" fill="none" stroke="#ffffff30" stroke-width="0.8"/><text x="418.6" y="779.5" fill="hsl(0,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">海</text>
+</g>
+<g class="tick" style="animation-delay:-1s;transform-origin:479.9px 403.9px">
+<circle cx="479.9" cy="403.9" r="2" fill="#ffffff60"/><text x="479.9" y="403.9" fill="hsl(220,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">阴</text>
+</g>
+<g class="tick" style="animation-delay:-2s;transform-origin:479.1px 411.7px">
+<rect x="466.3" y="398.9" width="25.6" height="25.6" fill="none" stroke="#ffffff40" stroke-width="1.2"/><text x="479.1" y="411.7" fill="hsl(220,60%,50%)" font-size="10.5" text-anchor="middle" class="cf" dominant-baseline="middle">阳</text>
+</g>
+<line x1="307.7" y1="524.5" x2="295.9" y2="514.8" stroke="#FFD700" stroke-width="1.5" opacity="0.6" stroke-dasharray="3,3"/>
+</svg></div>
+<div id="info">容器码→统一地址→柱面投影 · 极性: 阴(○) 阳(●) 元(◎) · 拓扑: 盒/球/环/管/锥/线/点/格</div>
+</body></html>
