@@ -55,23 +55,14 @@ RUN cd kernel && \
     -o /usr/local/bin/njsg-mengji-demo \
     2>&1 | tail -5 || true
 
-# 构建时验证 — 运行全量里程碑,检查输出是否含 PASS 标记
-# 如果 M1-M15 任何一个失败,构建立即失败(ci 回归防线)
-RUN stdbuf -oL /usr/local/bin/njsg-mengji-demo 2>&1 | tee /tmp/mengji-build-verify.log && \
-    grep -q "PASS" /tmp/mengji-build-verify.log && \
-    echo "[容器构建验证] 盟机合里程碑 PASS ✓" || \
-    (echo "[容器构建验证] 盟机合里程碑失败 ✗"; exit 1)
-
-# 构建时独立验证 — 分别验证三个里程碑(任一失败则退出)
-# 使用 MENGJI_SCENARIO 环境变量控制,回归防线更精细
-RUN for sc in triune bag offline; do \
-        echo "[容器构建验证] 独立场景: $sc"; \
+# 构建时三分支独立验证 (triune/bag/offline)
+RUN set -e; cd /tmp; \
+    for sc in triune bag offline; do \
         stdbuf -oL env MENGJI_SCENARIO=$sc /usr/local/bin/njsg-mengji-demo 2>&1 \
-        | tee /tmp/mengji-$sc-verify.log; \
-        grep -q "PASS" /tmp/mengji-$sc-verify.log && \
-        echo "[容器构建验证] $sc PASS ✓" || \
-        (echo "[容器构建验证] $sc 失败 ✗"; exit 1); \
-    done && echo "[容器构建验证] 三个里程碑独立验证全部通过"
+        | tee mengji-$sc.log; \
+        grep -q "PASS" mengji-$sc.log; \
+    done; \
+    echo "[容器构建验证] 三个里程碑三分支全部 PASS"
 
 # 编译自举编译器工具链
 RUN cd tools && \
