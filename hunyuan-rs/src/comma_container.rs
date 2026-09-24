@@ -14233,3 +14233,204 @@ mod token_bucket_tests {
         assert_eq!(tb.refill_rate, 1);
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器节流器 · ContainerThrottle (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   信号频率限制 — 单位窗口 (N tick) 内最多放行 K 个
+//
+//   check() → bool: 返回当前 tick 是否可放行
+//   tick()         : 时间推进
+//
+//   仅加法: window_count +1, total_ticks +1, tick % N 用减法回绕
+
+#[derive(Clone, Debug)]
+pub struct ContainerThrottle {
+    pub window_ticks: u64,     // 窗口长度 (tick 数)
+    pub max_per_window: u64,   // 窗口内最大放行数
+    pub current_tick: u64,     // 窗口内 tick 计数
+    pub window_count: u64,     // 当前窗口已放行数
+    pub total_allowed: u64,
+    pub total_denied: u64,
+}
+
+impl ContainerThrottle {
+    pub fn new(window_ticks: u64, max_per_window: u64) -> Self {
+        Self { window_ticks, max_per_window, current_tick: 0, window_count: 0, total_allowed: 0, total_denied: 0 }
+    }
+
+    /// 推进一个 tick (自动翻窗)
+    pub fn tick(&mut self) {
+        // current_tick = (current_tick + 1) % window_ticks (无除法)
+        self.current_tick = self.current_tick + 1;
+        if self.current_tick >= self.window_ticks {
+            self.current_tick = 0;
+            self.window_count = 0;
+        }
+    }
+
+    /// 尝试放行
+    pub fn check(&mut self) -> bool {
+        if self.window_count < self.max_per_window {
+            self.window_count = self.window_count + 1;
+            self.total_allowed = self.total_allowed + 1;
+            true
+        } else {
+            self.total_denied = self.total_denied + 1;
+            false
+        }
+    }
+
+    pub fn available(&self) -> u64 {
+        if self.max_per_window > self.window_count { self.max_per_window - self.window_count } else { 0 }
+    }
+}
+
+impl Default for ContainerThrottle {
+    fn default() -> Self { Self::new(10, 3) }
+}
+
+#[cfg(test)]
+mod throttle_tests {
+    use super::*;
+
+    #[test]
+    fn test_within_limit() {
+        let mut t = ContainerThrottle::new(10, 3);
+        assert!(t.check());
+        assert!(t.check());
+        assert!(t.check());
+        assert!(!t.check());  // 超限
+    }
+
+    #[test]
+    fn test_window_rollover() {
+        let mut t = ContainerThrottle::new(3, 1);
+        assert!(t.check());  // window_count=1
+        assert!(!t.check()); // 超限
+        t.tick();  // tick=1
+        t.tick();  // tick=2
+        t.tick();  // tick=3 → 翻窗, window_count=0
+        assert!(t.check());  // 放行
+    }
+
+    #[test]
+    fn test_available() {
+        let mut t = ContainerThrottle::new(10, 5);
+        t.check(); t.check();
+        assert_eq!(t.available(), 3);
+    }
+
+    #[test]
+    fn test_counters() {
+        let mut t = ContainerThrottle::new(100, 2);
+        t.check(); t.check(); t.check();
+        assert_eq!(t.total_allowed, 2);
+        assert_eq!(t.total_denied, 1);
+    }
+
+    #[test]
+    fn test_default() {
+        let t = ContainerThrottle::default();
+        assert_eq!(t.window_ticks, 10);
+        assert_eq!(t.max_per_window, 3);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器冗余分发器 · ContainerRedundancy (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   N 选 K 冗余 — 一条信号写入 N 个副本, 读回时多数一致
+//   仅加法比较一致/不一致计数, 无乘除
+
+#[derive(Clone, Debug)]
+pub struct ContainerRedundancy {
+    pub copies: Vec<Option<u64>>,
+    pub total_writes: u64,
+    pub total_reads: u64,
+}
+
+impl ContainerRedundancy {
+    pub fn new(n: usize) -> Self {
+        let mut v: Vec<Option<u64>> = Vec::with_capacity(n);
+        for _ in 0..n { v.push(None); }
+        Self { copies: v, total_writes: 0, total_reads: 0 }
+    }
+
+    pub fn write(&mut self, value: u64) {
+        for i in 0..self.copies.len() { self.copies[i] = Some(value); }
+        self.total_writes = self.total_writes + 1;
+    }
+
+    /// 多数表决读回
+    pub fn read(&mut self) -> Option<u64> {
+        if self.copies.is_empty() { return None; }
+        // 统计每个值的出现次数 (仅支持小集合)
+        let mut best_val: Option<u64> = None;
+        let mut best_count: u64 = 0;
+        for i in 0..self.copies.len() {
+            if let Some(vi) = self.copies[i] {
+                let mut c: u64 = 0;
+                for j in 0..self.copies.len() {
+                    if self.copies[j] == Some(vi) { c = c + 1; }
+                }
+                if c > best_count { best_count = c; best_val = Some(vi); }
+            }
+        }
+        self.total_reads = self.total_reads + 1;
+        best_val
+    }
+
+    /// 单副本损坏模式: 将 idx 改为错误值后 read 应仍能恢复
+    pub fn corrupt(&mut self, idx: usize, bad_value: u64) {
+        if idx < self.copies.len() { self.copies[idx] = Some(bad_value); }
+    }
+
+    pub fn copy_count(&self) -> usize { self.copies.len() }
+}
+
+impl Default for ContainerRedundancy {
+    fn default() -> Self { Self::new(3) }
+}
+
+#[cfg(test)]
+mod redundancy_tests {
+    use super::*;
+
+    #[test]
+    fn test_write_read() {
+        let mut r = ContainerRedundancy::new(3);
+        r.write(42);
+        assert_eq!(r.read(), Some(42));
+    }
+
+    #[test]
+    fn test_majority_recovery() {
+        let mut r = ContainerRedundancy::new(5);
+        r.write(99);
+        r.corrupt(0, 0);
+        r.corrupt(1, 0);
+        // 3 个副本仍是 99, 2 个是 0 → 99 胜出
+        assert_eq!(r.read(), Some(99));
+    }
+
+    #[test]
+    fn test_empty() {
+        let mut r = ContainerRedundancy::new(0);
+        assert!(r.read().is_none());
+    }
+
+    #[test]
+    fn test_copy_count() {
+        let r = ContainerRedundancy::new(5);
+        assert_eq!(r.copy_count(), 5);
+    }
+
+    #[test]
+    fn test_default() {
+        let r = ContainerRedundancy::default();
+        assert_eq!(r.copy_count(), 3);
+    }
+}
