@@ -1,0 +1,226 @@
+<!DOCTYPE html><html lang="zh">
+<head><meta charset="UTF-8">
+<title>容器 3D 立方体 v6 — 三维操弄</title>
+<style>body{background:#050508;color:#eee;font-family:'Segoe UI',sans-serif;margin:0;padding:16px;overflow:hidden;}
+h1{font-size:18px;margin:4px 0 2px;color:#9b8bff;letter-spacing:2px;text-align:center;}
+p.sub{color:#666;font-size:10px;margin:0 0 8px;text-align:center;}
+#scene{width:90vw;height:85vh;margin:0 auto;position:relative;cursor:grab;touch-action:none;}
+#canvas{width:100%;height:100%;position:absolute;top:0;left:0;}
+.node{position:absolute;border-radius:50%;cursor:pointer;transform-origin:center;transition:none;}
+.node:hover{filter:brightness(1.5);z-index:10000;}
+.label{font-size:9px;color:#fff;text-shadow:0 0 3px #000;pointer-events:none;text-align:center;transform:translate(-50%,-50%);}
+.info{position:fixed;bottom:5px;left:50%;transform:translateX(-50%);font-size:9px;color:#555;}
+@font-face{font-family:'HanYuan64';src:url(data:font/ttf;base64,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AAAAAAAAAN6tvgAAAAAAAAAAADUANQAAAAAAAAAAAAAAAADerb4AAAAAAAAAAAA2ADYAAAAAAAAAAAAAAAAA3q2+AAAAAAAAAAAANwA3AAAAAAAAAAAAAAAAAN6tvgAAAAAAAAAAADgAOAAAAAAAAAAAAAAAAADerb4AAAAAAAAAAAA5ADkAAAAAAAAAAAAAAAAA3q2+AAAAAAAAAAAAOgA6AAAAAAAAAAAAAAAAAN6tvgAAAAAAAAAAADsAOwAAAAAAAAAAAAAAAADerb4AAAAAAAAAAAA8ADwAAAAAAAAAAAAAAAAA3q2+AAAAAAAAAAAAPQA9AAAAAAAAAAAAAAAAAN6tvgAAAAAAAAAAAD4APgAAAAAAAAAAAAAAAADerb4AAAAAAAAAAAA/AD8AAAAAAAAAAAAAAAAA3q2+AAAD6AAAA+gAAAPoAAAD6AAAA+gAAAPoAAAD6AAAA+gAAAPoAAAD6AAAA+gAAAPoAAAD6AAAA+gAAAPoAAAD6AAAA+gAAAPoAAAD6AAAA+gAAAPoAAAD6AAAA+gAAAPoAAAD6AAAA+gAAAPoAAAD6AAAA+gAAAPoAAAD6AAAA+gAAAPoAAAD6AAAA+gAAAPoAAAD6AAAA+gAAAPoAAAD6AAAA+gAAAPoAAAD6AAAA+gAAAPoAAAD6AAAA+gAAAPoAAAD6AAAA+gAAAPoAAAD6AAAA+gAAAPoAAAD6AAAA+gAAAPoAAAD6AAAA+gAAAPoAAAD6AAAA+gAAAPoAAAD6AAA)format('truetype');}
+.cf{font-family:'HanYuan64',sans-serif;}
+</style></head><body>
+<h1>容器 3D 立方体</h1>
+<p class="sub">容器=字体=时间 · 拖动旋转 · 滚轮缩放 · 三维球面拓扑</p>
+<div id="scene"><svg id="canvas" width="100%" height="100%"></svg></div>
+<div class="info">container_scene_data (80 containers) → 3D projection</div>
+<script>
+const SCENE=[
+{c:0,x:24.7,y:0.0,z:-76.1,n:"袋",t:"point",p:"阴",col:"hsl(220,55%,50%)"},
+{c:1,x:22.8,y:9.5,z:-76.1,n:"照",t:"box",p:"元",col:"hsl(50,90%,60%)"},
+{c:2,x:17.5,y:17.5,z:-76.1,n:"见",t:"box",p:"元",col:"hsl(50,90%,60%)"},
+{c:3,x:9.5,y:22.8,z:-76.1,n:"阴",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:4,x:0.0,y:24.7,z:-76.1,n:"加",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:5,x:-9.5,y:22.8,z:-76.1,n:"分",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:6,x:-17.5,y:17.5,z:-76.1,n:"元",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:7,x:-22.8,y:9.5,z:-76.1,n:"裁",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:8,x:-24.7,y:0.0,z:-76.1,n:"产",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:9,x:-22.8,y:-9.5,z:-76.1,n:"公",t:"torus",p:"元",col:"hsl(50,90%,60%)"},
+{c:10,x:-17.5,y:-17.5,z:-76.1,n:"声",t:"torus",p:"元",col:"hsl(50,90%,60%)"},
+{c:11,x:-9.5,y:-22.8,z:-76.1,n:"折",t:"tube",p:"元",col:"hsl(50,90%,60%)"},
+{c:12,x:-0.0,y:-24.7,z:-76.1,n:"负",t:"tube",p:"元",col:"hsl(50,90%,60%)"},
+{c:13,x:9.5,y:-22.8,z:-76.1,n:"福",t:"bicone",p:"元",col:"hsl(50,90%,60%)"},
+{c:14,x:17.5,y:-17.5,z:-76.1,n:"凤",t:"line",p:"元",col:"hsl(50,90%,60%)"},
+{c:15,x:22.8,y:-9.5,z:-76.1,n:"栖",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:16,x:72.2,y:0.0,z:-114.1,n:"融",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:17,x:66.7,y:27.6,z:-114.1,n:"鼓",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:18,x:51.0,y:51.0,z:-114.1,n:"蚕",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:19,x:27.6,y:66.7,z:-114.1,n:"民",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:20,x:0.0,y:72.2,z:-114.1,n:"盟",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:21,x:-27.6,y:66.7,z:-114.1,n:"满",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:22,x:-51.0,y:51.0,z:-114.1,n:"囡",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:23,x:-66.7,y:27.6,z:-114.1,n:"夕",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:24,x:-72.2,y:0.0,z:-114.1,n:"三",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:25,x:-66.7,y:-27.6,z:-114.1,n:"六",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:26,x:-51.0,y:-51.0,z:-114.1,n:"八",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:27,x:-27.6,y:-66.7,z:-114.1,n:"九",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:28,x:-0.0,y:-72.2,z:-114.1,n:"零",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:29,x:27.6,y:-66.7,z:-114.1,n:"一",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:30,x:51.0,y:-51.0,z:-114.1,n:"二",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:31,x:66.7,y:-27.6,z:-114.1,n:"四",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:32,x:138.2,y:0.0,z:-130.4,n:"帮",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:33,x:127.6,y:52.9,z:-130.4,n:"端",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:34,x:97.7,y:97.7,z:-130.4,n:"精",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:35,x:52.9,y:127.6,z:-130.4,n:"见",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:36,x:0.0,y:138.2,z:-130.4,n:"来",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:37,x:-52.9,y:127.6,z:-130.4,n:"齿",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:38,x:-97.7,y:97.7,z:-130.4,n:"喉",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:39,x:-127.6,y:52.9,z:-130.4,n:"呼",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:40,x:-138.2,y:0.0,z:-130.4,n:"开",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:41,x:-127.6,y:-52.9,z:-130.4,n:"清",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:42,x:-97.7,y:-97.7,z:-130.4,n:"平",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:43,x:-52.9,y:-127.6,z:-130.4,n:"上",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:44,x:-0.0,y:-138.2,z:-130.4,n:"前",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:45,x:52.9,y:-127.6,z:-130.4,n:"内",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:46,x:97.7,y:-97.7,z:-130.4,n:"单",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:47,x:127.6,y:-52.9,z:-130.4,n:"长",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:48,x:214.2,y:0.0,z:-118.9,n:"麻",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:49,x:197.9,y:82.0,z:-118.9,n:"支",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:50,x:151.5,y:151.5,z:-118.9,n:"寒",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:51,x:82.0,y:197.9,z:-118.9,n:"歌",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:52,x:0.0,y:214.2,z:-118.9,n:"阳",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:53,x:-82.0,y:197.9,z:-118.9,n:"尤",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:54,x:-151.5,y:151.5,z:-118.9,n:"止",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:55,x:-197.9,y:82.0,z:-118.9,n:"转",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:56,x:-214.2,y:0.0,z:-118.9,n:"高",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:57,x:-197.9,y:-82.0,z:-118.9,n:"低",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:58,x:-151.5,y:-151.5,z:-118.9,n:"圆",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:59,x:-82.0,y:-197.9,z:-118.9,n:"扁",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:60,x:-0.0,y:-214.2,z:-118.9,n:"响",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:61,x:82.0,y:-197.9,z:-118.9,n:"静",t:"sphere",p:"元",col:"hsl(50,90%,60%)"},
+{c:62,x:151.5,y:-151.5,z:-118.9,n:"急",t:"sphere",p:"阳",col:"hsl(55,80%,60%)"},
+{c:63,x:197.9,y:-82.0,z:-118.9,n:"缓",t:"sphere",p:"阴",col:"hsl(40,55%,50%)"},
+{c:64,x:290.2,y:0.0,z:-76.1,n:"桶",t:"grid",p:"元",col:"hsl(50,90%,60%)"},
+{c:65,x:268.1,y:111.0,z:-76.1,n:"罐",t:"grid",p:"元",col:"hsl(50,90%,60%)"},
+{c:66,x:205.2,y:205.2,z:-76.1,n:"盆",t:"grid",p:"元",col:"hsl(50,90%,60%)"},
+{c:67,x:111.0,y:268.1,z:-76.1,n:"盂",t:"grid",p:"元",col:"hsl(50,90%,60%)"},
+{c:68,x:0.0,y:290.2,z:-76.1,n:"壶",t:"grid",p:"元",col:"hsl(50,90%,60%)"},
+{c:69,x:-111.0,y:268.1,z:-76.1,n:"盒",t:"grid",p:"元",col:"hsl(50,90%,60%)"},
+{c:70,x:-205.2,y:205.2,z:-76.1,n:"瓶",t:"grid",p:"元",col:"hsl(50,90%,60%)"},
+{c:71,x:-268.1,y:111.0,z:-76.1,n:"盏",t:"grid",p:"元",col:"hsl(50,90%,60%)"},
+{c:72,x:-290.2,y:0.0,z:-76.1,n:"盎",t:"grid",p:"元",col:"hsl(50,90%,60%)"},
+{c:73,x:-268.1,y:-111.0,z:-76.1,n:"篓",t:"grid",p:"元",col:"hsl(50,90%,60%)"},
+{c:74,x:-205.2,y:-205.2,z:-76.1,n:"筐",t:"grid",p:"元",col:"hsl(50,90%,60%)"},
+{c:75,x:-111.0,y:-268.1,z:-76.1,n:"篮",t:"grid",p:"元",col:"hsl(50,90%,60%)"},
+{c:76,x:-0.0,y:-290.2,z:-76.1,n:"箩",t:"grid",p:"元",col:"hsl(50,90%,60%)"},
+{c:77,x:111.0,y:-268.1,z:-76.1,n:"箕",t:"grid",p:"元",col:"hsl(50,90%,60%)"},
+{c:78,x:205.2,y:-205.2,z:-76.1,n:"笼",t:"grid",p:"元",col:"hsl(50,90%,60%)"},
+{c:79,x:268.1,y:-111.0,z:-76.1,n:"海",t:"grid",p:"元",col:"hsl(50,90%,60%)"},
+{c:0,x:24.7,y:0.0,z:-76.1,n:"阴",t:"point",p:"元",col:"hsl(50,90%,60%)"},
+{c:1,x:22.8,y:9.5,z:-76.1,n:"阳",t:"box",p:"阳",col:"hsl(235,80%,60%)"},
+];
+
+let azimuth = 0.6, elevation = 0.35, dist = 380;
+let dragging = false, lastX = 0, lastY = 0;
+const svg = document.getElementById('canvas');
+
+function rot(p, az, el) {
+  // 绕 Y (azimuth) 和 X (elevation) 旋转
+  let cosA = Math.cos(az), sinA = Math.sin(az);
+  let cosE = Math.cos(el), sinE = Math.sin(el);
+  let x1 = p.x * cosA + p.z * sinA;
+  let z1 = -p.x * sinA + p.z * cosA;
+  let y1 = p.y * cosE - z1 * sinE;
+  let z2 = p.y * sinE + z1 * cosE;
+  return { x: x1, y: y1, z: z2 };
+}
+
+function project(p) {
+  // 弱透视: z 越大 (越近) 显得越大
+  let scale = dist / (dist + p.z);
+  return { x: p.x * scale, y: p.y * scale, s: scale };
+}
+
+function draw() {
+  let W = svg.clientWidth || 800;
+  let H = svg.clientHeight || 600;
+  let cx = W / 2, cy = H / 2;
+
+  // 旋转所有点并按 z 排序
+  let pts = SCENE.map(function(s) {
+    let p = rot({ x: s.x, y: s.y, z: s.z }, azimuth, elevation);
+    let proj = project(p);
+    return {
+      code: s.c, x: cx + proj.x, y: cy + proj.y,
+      z: p.z, s: proj.s,
+      n: s.n, t: s.t, p: s.p, col: s.col
+    };
+  }).sort(function(a, b) { return a.z - b.z }); // 远(z小)的先画
+
+  let html = '';
+  for (let i = 0; i < pts.length; i++) {
+    let pt = pts[i];
+    let r = Math.max(6, 14 * pt.s);
+    let opacity = 0.4 + pt.s * 0.6;
+    // 时间脉冲效果: 基于 code
+    let pulse = Math.sin((Date.now() / 200 + pt.code * 0.5)) * 0.3 + 0.7;
+
+    // 拓扑线框
+    let topo = svg_line(pt, r);
+
+    // 圆形标记
+    html += '<g class="cf">';
+
+    // 拓扑线
+    if (topo) html += topo;
+
+    // 节点圆
+    html += '<circle cx="' + pt.x.toFixed(1) + '" cy="' + pt.y.toFixed(1) +
+            '" r="' + r.toFixed(1) + '" fill="' + pt.col + '" opacity="' + (opacity * pulse).toFixed(2) + '"' +
+            ' stroke="' + pt.col + '" stroke-width="1"/>';
+
+    // 名称
+    html += '<text x="' + pt.x.toFixed(1) + '" y="' + (pt.y + r + 8).toFixed(1) +
+            '" fill="' + pt.col + '" font-size="' + (Math.max(7, r * 0.6)).toFixed(1) +
+            '" text-anchor="middle" class="cf">' + pt.n + '</text>';
+    html += '</g>';
+  }
+
+  svg.innerHTML = html;
+}
+
+function svg_line(pt, r) {
+  let x = pt.x, y = pt.y;
+  let h = r * 0.7;
+  switch(pt.t) {
+    case 'sphere':
+      return '<ellipse cx="' + x + '" cy="' + y + '" rx="' + (r*1.2).toFixed(1) + '" ry="' + (r*1.2).toFixed(1) + '" fill="none" stroke="' + pt.col + '" stroke-width="0.7" opacity="0.4"/>' +
+             '<path d="M ' + (x-h*1.2) + ',' + y + ' A ' + (h*1.2) + ',' + (h*0.45) + ' 0 0 1 ' + (x+h*1.2) + ',' + y + '" fill="none" stroke="' + pt.col + '" stroke-width="0.5" opacity="0.3"/>';
+    case 'torus':
+      return '<ellipse cx="' + x + '" cy="' + y + '" rx="' + (h*1.3).toFixed(1) + '" ry="' + (h*1.3).toFixed(1) + '" fill="none" stroke="' + pt.col + '" stroke-width="0.8" opacity="0.4"/>' +
+             '<ellipse cx="' + x + '" cy="' + y + '" rx="' + (h*0.7).toFixed(1) + '" ry="' + (h*0.7).toFixed(1) + '" fill="none" stroke="' + pt.col + '" stroke-width="0.6" opacity="0.3"/>';
+    case 'box':
+      let s2 = h * 0.9;
+      return '<rect x="' + (x-s2).toFixed(1) + '" y="' + (y-s2).toFixed(1) + '" width="' + (s2*2).toFixed(1) + '" height="' + (s2*2).toFixed(1) + '" fill="none" stroke="' + pt.col + '" stroke-width="0.7" opacity="0.4" transform="rotate(15 ' + x + ' ' + y + ')"/>';
+    case 'bicone':
+      return '<polygon points="' + x + ',' + (y-h) + ',' + (x+h*0.8) + ',' + (y+h*0.5) + ',' + (x-h*0.8) + ',' + (y+h*0.5) + '" fill="none" stroke="' + pt.col + '" stroke-width="0.7" opacity="0.4"/>';
+    case 'line':
+      return '<line x1="' + (x-h) + '" y1="' + y + '" x2="' + (x+h) + '" y2="' + y + '" stroke="' + pt.col + '" stroke-width="1" opacity="0.4"/>';
+    case 'tube':
+      return '<line x1="' + (x-h*0.7) + '" y1="' + (y-h*0.4) + '" x2="' + (x+h*0.7) + '" y2="' + (y-h*0.4) + '" stroke="' + pt.col + '" stroke-width="0.6" opacity="0.4"/>' +
+             '<line x1="' + (x-h*0.7) + '" y1="' + (y+h*0.4) + '" x2="' + (x+h*0.7) + '" y2="' + (y+h*0.4) + '" stroke="' + pt.col + '" stroke-width="0.6" opacity="0.4"/>';
+    case 'grid':
+      let g = h * 0.6;
+      return '<path d="M ' + (x-g) + ',' + (y-g) + ' L ' + (x+g) + ',' + (y-g) + ' L ' + (x+g) + ',' + (y+g) + ' L ' + (x-g) + ',' + (y+g) + ' z" fill="none" stroke="' + pt.col + '" stroke-width="0.5" opacity="0.3"/>' +
+             '<line x1="' + x + '" y1="' + (y-g) + '" x2="' + x + '" y2="' + (y+g) + '" stroke="' + pt.col + '" stroke-width="0.3" opacity="0.3"/>' +
+             '<line x1="' + (x-g) + '" y1="' + y + '" x2="' + (x+g) + '" y2="' + y + '" stroke="' + pt.col + '" stroke-width="0.3" opacity="0.3"/>';
+    default:
+      return '<circle cx="' + x + '" cy="' + y + '" r="2" fill="' + pt.col + '" opacity="0.5"/>';
+  }
+}
+
+// 鼠标拖动
+svg.addEventListener('mousedown', function(e) { dragging = true; lastX = e.clientX; lastY = e.clientY; e.preventDefault(); });
+window.addEventListener('mouseup', function() { dragging = false; });
+window.addEventListener('mousemove', function(e) {
+  if (!dragging) return;
+  azimuth += (e.clientX - lastX) * 0.008;
+  elevation -= (e.clientY - lastY) * 0.006;
+  elevation = Math.max(-1.3, Math.min(1.3, elevation));
+  lastX = e.clientX; lastY = e.clientY;
+});
+
+// 滚轮缩放
+svg.addEventListener('wheel', function(e) {
+  e.preventDefault();
+  dist = Math.max(150, Math.min(800, dist + e.deltaY * 0.5));
+}, { passive: false });
+
+// 时间循环
+setInterval(draw, 50);
+draw();
+</script>
+</body></html>
