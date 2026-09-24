@@ -13146,3 +13146,142 @@ mod ring_buffer_tests {
         assert_eq!(rb.capacity, 16);
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器校验和引擎 · ContainerChecksum (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   仅加法求和校验 — 不做 CRC/乘除
+//   性质: 顺序无关 (加法交换律), 相同数据集校验和相等
+//
+//   扩展:
+//     - rolling: 滑窗校验 (增量更新: 加新减旧)
+//     - pairwise: 交叉累加两两差值
+
+#[derive(Clone, Debug)]
+pub struct ContainerChecksum {
+    pub sum: u64,
+    pub count: u64,
+    pub history: Vec<u64>,
+}
+
+impl ContainerChecksum {
+    pub fn new() -> Self { Self { sum: 0, count: 0, history: Vec::new() } }
+
+    /// 加入一个样本 (求和)
+    pub fn add(&mut self, value: u64) -> u64 {
+        self.sum = self.sum + value;
+        self.count = self.count + 1;
+        self.sum
+    }
+
+    /// 移除一个样本 (反向)
+    pub fn subtract(&mut self, value: u64) -> u64 {
+        self.sum = self.sum - value;
+        if self.count > 0 { self.count = self.count - 1; }
+        self.sum
+    }
+
+    pub fn value(&self) -> u64 { self.sum }
+
+    /// 验证另一份数据是否匹配
+    pub fn verify(&self, expected_sum: u64) -> bool { self.sum == expected_sum }
+
+    /// 比较两份数据集 (仅加法比较)
+    pub fn compare(&self, other: &ContainerChecksum) -> i64 {
+        if self.sum > other.sum { 1 }
+        else if self.sum < other.sum { -1 }
+        else { 0 }
+    }
+
+    /// 快照当前和到历史
+    pub fn snapshot(&mut self) { self.history.push(self.sum); }
+
+    /// 历史快照数
+    pub fn history_len(&self) -> usize { self.history.len() }
+
+    pub fn clear(&mut self) { self.sum = 0; self.count = 0; self.history.clear(); }
+}
+
+impl Default for ContainerChecksum {
+    fn default() -> Self { Self::new() }
+}
+
+/// 从一个 slice 直接计算校验和 (工具函数)
+pub fn checksum_of(slice: &[u64]) -> u64 {
+    let mut s: u64 = 0;
+    for &v in slice { s = s + v; }
+    s
+}
+
+#[cfg(test)]
+mod checksum_tests {
+    use super::*;
+
+    #[test]
+    fn test_empty_sum_zero() {
+        let c = ContainerChecksum::new();
+        assert_eq!(c.value(), 0);
+        assert_eq!(c.count, 0);
+    }
+
+    #[test]
+    fn test_add() {
+        let mut c = ContainerChecksum::new();
+        c.add(5); c.add(10); c.add(15);
+        assert_eq!(c.value(), 30);
+        assert_eq!(c.count, 3);
+    }
+
+    #[test]
+    fn test_subtract() {
+        let mut c = ContainerChecksum::new();
+        c.add(50); c.add(30);
+        c.subtract(30);
+        assert_eq!(c.value(), 20);
+        assert_eq!(c.count, 1);
+    }
+
+    #[test]
+    fn test_verify() {
+        let mut c = ContainerChecksum::new();
+        c.add(7); c.add(14);
+        assert!(c.verify(21));
+        assert!(!c.verify(99));
+    }
+
+    #[test]
+    fn test_compare() {
+        let mut a = ContainerChecksum::new(); a.add(50);
+        let mut b = ContainerChecksum::new(); b.add(30);
+        assert_eq!(a.compare(&b), 1);
+        assert_eq!(b.compare(&a), -1);
+        assert_eq!(a.compare(&a), 0);
+    }
+
+    #[test]
+    fn test_snapshot_history() {
+        let mut c = ContainerChecksum::new();
+        c.add(5);  c.snapshot();
+        c.add(10); c.snapshot();
+        c.add(15); c.snapshot();
+        assert_eq!(c.history_len(), 3);
+        assert_eq!(c.history, vec![5, 15, 30]);
+    }
+
+    #[test]
+    fn test_checksum_of_fn() {
+        let v = vec![1, 2, 3, 4, 5];
+        assert_eq!(checksum_of(&v), 15);
+        assert_eq!(checksum_of(&[]), 0);
+    }
+
+    #[test]
+    fn test_clear() {
+        let mut c = ContainerChecksum::new();
+        c.add(100); c.snapshot();
+        c.clear();
+        assert_eq!(c.value(), 0);
+        assert_eq!(c.history_len(), 0);
+    }
+}
