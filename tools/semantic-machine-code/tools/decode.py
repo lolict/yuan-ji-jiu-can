@@ -25,17 +25,26 @@ def _load_json(relative_path: str) -> dict:
         return json.load(f)
 
 
-def decode(machine_code: int, arch: str = "rv32i", mappings: dict = None) -> dict:
-    """将32位机器码解码为语义ID + 操作数列表。"""
+def decode(machine_code, arch: str = "rv32i", mappings: dict = None) -> dict:
+    """将机器码（32位整型 或 字节串）解码为语义ID + 操作数列表。
+
+    32 位架构（rv32i/rv64i/mips32/arm64）接受 int 或 4 字节 bytes；
+    x86-64 接受 1-15 字节 bytes。
+    """
     if mappings is None:
         mappings = _load_json(f"mappings/{arch}.json")
 
     if arch in ("rv32i", "rv64i"):
-        return _decode_rv32i(machine_code, mappings)
+        code = int.from_bytes(machine_code, 'little') if isinstance(machine_code, (bytes, bytearray)) else machine_code
+        return _decode_rv32i(code, mappings)
     elif arch == "mips32":
-        return _decode_mips32(machine_code, mappings)
+        code = int.from_bytes(machine_code, 'big') if isinstance(machine_code, (bytes, bytearray)) else machine_code
+        return _decode_mips32(code, mappings)
     elif arch == "arm64":
-        return _decode_arm64(machine_code, mappings)
+        code = int.from_bytes(machine_code, 'little') if isinstance(machine_code, (bytes, bytearray)) else machine_code
+        return _decode_arm64(code, mappings)
+    elif arch == "x86_64":
+        return _decode_x86_64(machine_code, mappings)
     raise ValueError(f"暂不支持架构: {arch}")
 
 
@@ -217,6 +226,110 @@ def _rv32i_operands(sid, fmt, code, rd, rs1, rs2, funct7, regs) -> dict:
 def _alias(num: int, regs: dict) -> str:
     """寄存器编号 → 规范名（始终 xN 形式，确保往返一致）。"""
     return f"x{num}"
+
+
+def _decode_x86_64(code_blob, mappings: dict) -> dict:
+    """x86-64 解码：REX + opcode + ModRM + 立即数。"""
+    if isinstance(code_blob, int):
+        raise ValueError("x86-64 需要 bytes 输入，不支持 int")
+    blob = bytes(code_blob)
+
+    def _reg_name(n):
+        for k, v in mappings.get("registers", {}).items():
+            if v.get("num", -1) == n:
+                return v.get("alias", k).lower()
+        return f"r{n}"
+
+    def _decode_op_str(p):
+        """解析单条 opcode 字符串: 返回 (base_int, suffix_type)。
+        suffix_type: None, 'rd'/'rm' (低 3 位编码寄存器), 'reg'
+        """
+        p = p.strip()
+        plus = p.find("+")
+        if plus > 0:
+            return (int(p[:plus], 16), p[plus + 1:])
+        return (int(p, 16), None)
+
+    for semantic_id, inst in mappings.get("instructions", {}).items():
+        opkey = inst["opkey"]
+        op_str = mappings["opcodes"].get(opkey, "")
+        tokens = [p.strip() for p in op_str.split() if not p.strip().startswith("/")]
+        spec = []
+        for t in tokens:
+            spec.append(_decode_op_str(t))
+        if len(blob) < len(spec):
+            continue
+
+        fmt = inst["format"]
+        matched = True
+        for i, (base, suffix) in enumerate(spec):
+            b = blob[i]
+            if suffix in ("rd", "rm", "reg"):
+                # 低 3 位为寄存器编号, 高 5 位应匹配 base_opcode 的高 5 位
+                if (b & 0xF8) != (base & 0xF8):
+                    matched = False
+                    break
+            elif suffix and suffix.startswith("rex"):
+                # REX 前缀: 高 4 位固定 0100, 低 4 位可能含扩展位
+                if (b & 0xF0) != 0x40:
+                    matched = False
+                    break
+            else:
+                if b != base:
+                    matched = False
+                    break
+        if not matched:
+            continue
+
+        if fmt == "R":
+            if len(blob) < len(spec) + 1:
+                continue
+            modrm = blob[len(spec)]
+            reg_f = (modrm >> 3) & 0x7
+            rm = modrm & 0x7
+            return {"semantic": semantic_id, "format": fmt,
+                    "operands": [_reg_name(rm), _reg_name(reg_f)],
+                    "fields": {"modrm": modrm},
+                    "machine_code": "0x" + blob.hex().upper()}
+        elif fmt == "I":
+            if len(blob) < len(spec) + 2:
+                continue
+            modrm = blob[len(spec)]
+            rm = modrm & 0x7
+            imm_off = len(spec) + 1
+            imm = int.from_bytes(blob[imm_off:imm_off + 4], 'little', signed=True)
+            return {"semantic": semantic_id, "format": fmt,
+                    "operands": [_reg_name(rm), str(imm)],
+                    "fields": {"modrm": modrm, "imm32": imm},
+                    "machine_code": "0x" + blob.hex().upper()}
+        elif fmt == "MOV_IMM32":
+            if len(blob) < 6:
+                continue
+            rex = blob[0]
+            opcode = blob[1]
+            rd = opcode & 0x7
+            if rex & 0x01: rd += 8
+            imm = int.from_bytes(blob[2:6], 'little', signed=True)
+            return {"semantic": "MOV_IMM", "format": fmt,
+                    "operands": [_reg_name(rd), str(imm)],
+                    "fields": {"rex": rex, "rd": rd, "imm32": imm},
+                    "machine_code": "0x" + blob.hex().upper()}
+        elif fmt == "J32":
+            if len(blob) < 5: continue
+            rel = int.from_bytes(blob[1:5], 'little', signed=True)
+            return {"semantic": semantic_id, "format": fmt,
+                    "operands": [str(rel)],
+                    "fields": {"rel32": rel},
+                    "machine_code": "0x" + blob.hex().upper()}
+        elif fmt == "B8":
+            if len(blob) < 2: continue
+            rel = int.from_bytes(blob[1:2], 'little', signed=True)
+            return {"semantic": semantic_id, "format": fmt,
+                    "operands": [str(rel)],
+                    "fields": {"rel8": rel},
+                    "machine_code": "0x" + blob.hex().upper()}
+
+    raise ValueError(f"机器码 0x{code_blob[:8].hex().upper()} 在 x86-64 映射中未找到")
 
 
 def _decode_arm64(code: int, mappings: dict) -> dict:

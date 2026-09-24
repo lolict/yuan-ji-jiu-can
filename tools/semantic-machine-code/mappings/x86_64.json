@@ -2,80 +2,72 @@
   "metadata": {
     "architecture": "x86-64",
     "variant": "AMD64/Intel 64",
-    "description": "x86-64架构，复杂指令集，变长指令编码",
+    "description": "x86-64 复杂指令集 · 前缀+ModRM+立即数编码 · 本映射仅覆盖基础运算/控制流",
     "source": "Intel 64 and IA-32 Architectures Software Developer's Manual Vol. 2",
     "endianness": "little",
-    "instruction_width": "可变（1-15字节）",
-    "register_count": 16,
+    "instruction_width": "变长（1-15 字节）",
     "gpr64": ["rax","rcx","rdx","rbx","rsp","rbp","rsi","rdi","r8","r9","r10","r11","r12","r13","r14","r15"],
-    "stored": "2026-09-03",
+    "register_count": 16,
+    "stored": "2026-09-24",
     "verifier": "unverified"
   },
+  "formats": {
+    "R":   {"description": "寄存器-寄存器: REX.W + opcode + ModRM(mod=11, reg=src, rm=dst)", "bytes_prefix": 2, "bytes_modrm": 1},
+    "I":   {"description": "寄存器-立即数: REX.W + opcode + ModRM(mod=11, /digit, rm=dst) + imm", "bytes_prefix": 2, "bytes_modrm": 1, "bytes_imm": 4},
+    "MOV_IMM32": {"description": "MOV reg,imm32: REX.W + B8+rd + imm32", "bytes_prefix": 1, "bytes_op_ext": 1, "bytes_imm": 4},
+    "J32": {"description": "无条件跳转: opcode + rel32", "bytes_prefix": 1, "bytes_imm": 4},
+    "B8":  {"description": "条件跳转: opcode + rel8", "bytes_prefix": 1, "bytes_imm": 1}
+  },
+  "opcodes": {
+    "ADD_REG_REG":      "0x48 0x01",
+    "SUB_REG_REG":      "0x48 0x29",
+    "AND_REG_REG":      "0x48 0x21",
+    "OR_REG_REG":       "0x48 0x09",
+    "XOR_REG_REG":      "0x48 0x31",
+    "MOV_REG_REG":      "0x48 0x89",
+    "CMP_REG_REG":      "0x48 0x39",
+    "ADD_REG_IMM32":    "0x48 0x81 /0",
+    "SUB_REG_IMM32":    "0x48 0x81 /5",
+    "MOV_REG_IMM32":    "0x48 0xB8+rd",
+    "JMP_REL32":         "0xE9",
+    "JE_REL8":           "0x74",
+    "JNE_REL8":          "0x75"
+  },
+  "digit_fields": {
+    "ADD_REG_IMM32": 0,
+    "SUB_REG_IMM32": 5
+  },
   "instructions": {
-    "ADD": {
-      "description": "寄存器加寄存器 / 寄存器加立即数 / 寄存器加内存",
-      "forms": [
-        {"op": "01 /r",   "type": "r32, r/m32",     "encoding": "01 /r"},
-        {"op": "83 /0",   "type": "r/m32, imm8",    "encoding": "83 /0 ib"},
-        {"op": "03 /r",   "type": "r32, r/m32",     "encoding": "03 /r"},
-        {"op": "05",      "type": "eax, imm32",     "encoding": "05 id"},
-        {"op": "81 /0",   "type": "r/m32, imm32",   "encoding": "81 /0 id"}
-      ],
-      "semantic_aligns": "ADD",
-      "notes": "x86 ADD opcode 01是最基本形式，操作码低3位配合ModRM区分"
-    },
-    "SUB": {
-      "description": "寄存器减寄存器 / 寄存器减立即数",
-      "forms": [
-        {"op": "29 /r",   "type": "r/m32, r32",     "encoding": "29 /r"},
-        {"op": "2B /r",   "type": "r32, r/m32",     "encoding": "2B /r"},
-        {"op": "83 /5",   "type": "r/m32, imm8",    "encoding": "83 /5 ib"},
-        {"op": "2D",      "type": "eax, imm32",     "encoding": "2D id"},
-        {"op": "81 /5",   "type": "r/m32, imm32",   "encoding": "81 /5 id"}
-      ],
-      "semantic_aligns": "SUB"
-    },
-    "AND": {
-      "description": "按位与",
-      "forms": [
-        {"op": "21 /r",   "type": "r/m32, r32", "encoding": "21 /r"},
-        {"op": "23 /r",   "type": "r32, r/m32", "encoding": "23 /r"},
-        {"op": "83 /4",   "type": "r/m32, imm8","encoding": "83 /4 ib"},
-        {"op": "25",      "type": "eax, imm32", "encoding": "25 id"},
-        {"op": "81 /4",   "type": "r/m32, imm32","encoding": "81 /4 id"}
-      ],
-      "semantic_aligns": "AND"
-    },
-    "OR": {
-      "description": "按位或",
-      "forms": [
-        {"op": "09 /r",   "type": "r/m32, r32", "encoding": "09 /r"},
-        {"op": "0B /r",   "type": "r32, r/m32", "encoding": "0B /r"},
-        {"op": "83 /1",   "type": "r/m32, imm8","encoding": "83 /1 ib"},
-        {"op": "0D",      "type": "eax, imm32", "encoding": "0D id"},
-        {"op": "81 /1",   "type": "r/m32, imm32","encoding": "81 /1 id"}
-      ],
-      "semantic_aligns": "OR"
-    },
-    "XOR": {
-      "description": "按位异或",
-      "forms": [
-        {"op": "31 /r",   "type": "r/m32, r32", "encoding": "31 /r"},
-        {"op": "33 /r",   "type": "r32, r/m32", "encoding": "33 /r"},
-        {"op": "83 /6",   "type": "r/m32, imm8","encoding": "83 /6 ib"},
-        {"op": "35",      "type": "eax, imm32", "encoding": "35 id"},
-        {"op": "81 /6",   "type": "r/m32, imm32","encoding": "81 /6 id"}
-      ],
-      "semantic_aligns": "XOR"
-    },
-    "JMP": {
-      "description": "无条件跳转",
-      "forms": [
-        {"op": "EB",      "type": "rel8",       "encoding": "EB cb", "near": true},
-        {"op": "E9",      "type": "rel32",      "encoding": "E9 cd", "near": true},
-        {"op": "FF /4",   "type": "r/m32",      "encoding": "FF /4"}
-      ],
-      "semantic_aligns": "JMP"
-    }
+    "ADD":          {"format": "R",        "opkey": "ADD_REG_REG",   "operands": "dst, src"},
+    "SUB":          {"format": "R",        "opkey": "SUB_REG_REG",   "operands": "dst, src"},
+    "AND":          {"format": "R",        "opkey": "AND_REG_REG",   "operands": "dst, src"},
+    "OR":           {"format": "R",        "opkey": "OR_REG_REG",    "operands": "dst, src"},
+    "XOR":          {"format": "R",        "opkey": "XOR_REG_REG",   "operands": "dst, src"},
+    "CMP":          {"format": "R",        "opkey": "CMP_REG_REG",   "operands": "dst, src"},
+    "MOV_REG":      {"format": "R",        "opkey": "MOV_REG_REG",   "operands": "dst, src"},
+    "MOV_IMM":      {"format": "MOV_IMM32","opkey": "MOV_REG_IMM32", "operands": "dst, imm32"},
+    "ADDI":         {"format": "I",        "opkey": "ADD_REG_IMM32", "operands": "dst, imm32"},
+    "SUBI":         {"format": "I",        "opkey": "SUB_REG_IMM32", "operands": "dst, imm32"},
+    "JMP":          {"format": "J32",      "opkey": "JMP_REL32",     "operands": "rel32"},
+    "BEQ":          {"format": "B8",       "opkey": "JE_REL8",       "operands": "rel8"},
+    "BNE":          {"format": "B8",       "opkey": "JNE_REL8",      "operands": "rel8"}
+  },
+  "registers": {
+    "rax": {"num": 0,  "alias": "rax"},
+    "rcx": {"num": 1,  "alias": "rcx"},
+    "rdx": {"num": 2,  "alias": "rdx"},
+    "rbx": {"num": 3,  "alias": "rbx"},
+    "rsp": {"num": 4,  "_alias": "rsp", "note": "栈指针 · 特殊编码需 SIB"},
+    "rbp": {"num": 5,  "alias": "rbp"},
+    "rsi": {"num": 6,  "alias": "rsi"},
+    "rdi": {"num": 7,  "alias": "rdi"},
+    "r8":  {"num": 8,  "alias": "r8",  "rex_b": true},
+    "r9":  {"num": 9,  "alias": "r9",  "rex_b": true},
+    "r10": {"num": 10, "alias": "r10", "rex_b": true},
+    "r11": {"num": 11, "alias": "r11", "rex_b": true},
+    "r12": {"num": 12, "alias": "r12", "rex_b": true},
+    "r13": {"num": 13, "alias": "r13", "rex_b": true},
+    "r14": {"num": 14, "alias": "r14", "rex_b": true},
+    "r15": {"num": 15, "alias": "r15", "rex_b": true}
   }
 }

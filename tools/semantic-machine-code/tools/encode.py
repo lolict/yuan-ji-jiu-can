@@ -57,9 +57,9 @@ def _parse_operand(op, arch_registers: dict):
 
 
 def encode(semantic_id: str, operands: list, arch: str = "rv32i", registers: dict = None,
-           semantic_families: dict = None, mappings: dict = None) -> int:
+           semantic_families: dict = None, mappings: dict = None) -> bytes:
     """
-    将语义ID + 操作数列表编码为指定架构的机器码。
+    将语义ID + 操作数列表编码为指定架构的机器码字节串。
 
     参数：
         semantic_id: 如 "ADD", "JAL"
@@ -70,7 +70,7 @@ def encode(semantic_id: str, operands: list, arch: str = "rv32i", registers: dic
         mappings:    该架构映射表
 
     返回：
-        32位机器码整数
+        bytes（定长 4 字节 · 32 位架构；或变长 · x86_64）
     """
     if mappings is None:
         mappings = _load_json(f"mappings/{arch}.json")
@@ -78,11 +78,13 @@ def encode(semantic_id: str, operands: list, arch: str = "rv32i", registers: dic
         registers = mappings.get("registers", {})
 
     if arch in ("rv32i", "rv64i"):
-        return _encode_rv32i(semantic_id, operands, mappings, registers)
+        return _encode_rv32i(semantic_id, operands, mappings, registers).to_bytes(4, 'little')
     elif arch == "mips32":
-        return _encode_mips32(semantic_id, operands, mappings, registers)
+        return _encode_mips32(semantic_id, operands, mappings, registers).to_bytes(4, 'big')
     elif arch == "arm64":
-        return _encode_arm64(semantic_id, operands, mappings, registers)
+        return _encode_arm64(semantic_id, operands, mappings, registers).to_bytes(4, 'little')
+    elif arch == "x86_64":
+        return _encode_x86_64(semantic_id, operands, mappings, registers)
     else:
         raise ValueError(f"暂不支持架构: {arch}")
 
@@ -295,6 +297,98 @@ def _encode_arm64(semantic_id, operands, mappings, registers):
     else:
         raise ValueError(f"ARM64 格式 {fmt} 尚未实现")
     return code
+
+
+def _encode_x86_64(semantic_id, operands, mappings, registers):
+    """x86-64 编码：REX 前缀 + opcode + ModRM + 立即数。
+
+    支持格式:
+      R        : REX.W + opcode + ModRM(mod=11, reg=src, rm=dst)
+      I        : REX.W + opcode + ModRM(mod=11, /digit, rm) + imm32
+      MOV_IMM32: REX.W + (B8+rd) + imm32
+      J32      : opcode + rel32
+      B8       : opcode + rel8
+    """
+    inst = mappings["instructions"][semantic_id]
+    fmt = inst["format"]
+    opkey_str = mappings["opcodes"][inst["opkey"]]
+
+    # 解析 opkey 中的固定字节序列 (如 "0x48 0x01" 或 "0x48 0x81 /0")
+    fixed_parts = [p.strip() for p in opkey_str.split()]
+
+    def _resolve_reg(name):
+        """解析 x86 寄存器名 → num 和是否需要 REX.B。"""
+        low = str(name).strip().lower()
+        for reg_key, info in registers.items():
+            if info.get("alias", "").lower() == low or reg_key.lower() == low:
+                num = info["num"]
+                rex_b = info.get("rex_b", False)
+                if num >= 8:
+                    rex_b = True
+                return num, rex_b
+        # 纯数字?
+        try:
+            n = int(low)
+            return n, n >= 8
+        except ValueError:
+            raise ValueError(f"无法识别 x86 寄存器 '{name}'")
+
+    def _make_modrm(mod, reg, rm):
+        return ((mod & 0x3) << 6) | ((reg & 0x7) << 3) | (rm & 0x7)
+
+    def _needs_rex_b(reg_num):
+        return reg_num >= 8
+
+    out = bytearray()
+    rex_b = False
+    rex_r = False
+
+    if fmt == "R":
+        dst_num, dst_rex = _resolve_reg(operands[0])
+        src_num, src_rex = _resolve_reg(operands[1])
+        rex_b = dst_rex
+        rex_r = src_rex
+        if rex_b or rex_r:
+            out.append(0x48 | (1 if rex_b else 0))
+        else:
+            out.append(0x48)  # 64-bit 操作始终 REX.W=1
+        # 第一个固定字节是 opcode (如 0x01, 0x29)
+        out.append(int(fixed_parts[1], 16))
+        # mod=11, reg=src, rm=dst
+        out.append(_make_modrm(0b11, src_num, dst_num))
+
+    elif fmt == "I":
+        dst_num, dst_rex = _resolve_reg(operands[0])
+        imm = _parse_operand(operands[1], {})[1]
+        rex_b = dst_rex
+        out.append(0x48 | (1 if rex_b else 0))
+        out.append(int(fixed_parts[1], 16))
+        # 取 /digit 信息
+        digit = mappings.get("digit_fields", {}).get(inst["opkey"], 0)
+        out.append(_make_modrm(0b11, digit, dst_num))
+        out.extend(imm.to_bytes(4, 'little', signed=True))
+
+    elif fmt == "MOV_IMM32":
+        dst_num, dst_rex = _resolve_reg(operands[0])
+        imm = _parse_operand(operands[1], {})[1]
+        out.append(0x48 | (1 if dst_rex else 0))
+        out.append(0xB8 + (dst_num & 0x7))
+        out.extend(imm.to_bytes(4, 'little', signed=True))
+
+    elif fmt == "J32":
+        rel = _parse_operand(operands[0], {})[1]
+        out.append(int(fixed_parts[0], 16))
+        out.extend(rel.to_bytes(4, 'little', signed=True))
+
+    elif fmt == "B8":
+        rel = _parse_operand(operands[0], {})[1]
+        out.append(int(fixed_parts[0], 16))
+        out.extend(rel.to_bytes(1, 'little', signed=True))
+
+    else:
+        raise ValueError(f"x86-64 格式 {fmt} 未实现")
+
+    return bytes(out)
 
 
 # —— CLI 入口（兼容直接运行） ——

@@ -18,22 +18,29 @@ PASS = 0
 FAIL = 0
 
 def check(arch, semantic, ops_orig, expected_hex=None):
-    """单次往返验证。"""
+    """单次往返验证。接受 encode 返回 bytes 或 int。"""
     global PASS, FAIL
     try:
         code = encode(semantic, ops_orig, arch=arch)
-        dec = decode(code, arch=arch)
-        # 规范化操作数（整型转字符串）
+        # 统一为 bytes
+        if isinstance(code, int):
+            code_bytes = code.to_bytes(4, 'little')
+        elif isinstance(code, (bytes, bytearray)):
+            code_bytes = bytes(code)
+        else:
+            raise TypeError(f"encode 返回类型无法识别: {type(code)}")
+        dec = decode(code_bytes, arch=arch)
         ops_round = [str(o) for o in dec["operands"]]
         ops_orig_str = [str(o) for o in ops_orig]
         ok = (dec["semantic"] == semantic) and (ops_round == ops_orig_str)
-        if expected_hex and f"0x{code:08X}" != expected_hex:
+        if expected_hex and dec.get("machine_code") != expected_hex:
             ok = False
         status = "✅" if ok else "❌"
         PASS += ok
         FAIL += not ok
+        hex_display = "0x" + code_bytes.hex().upper()
         print(f"{status} {arch:8s} {semantic:8s}({', '.join(ops_orig_str):20s}) "
-              f"→ 0x{code:08X} → {dec['semantic']:8s}({', '.join(ops_round)})")
+              f"→ {hex_display:20s} → {dec['semantic']:8s}({', '.join(ops_round)})")
     except Exception as e:
         FAIL += 1
         print(f"❌ {arch:8s} {semantic:8s}({', '.join(str(o) for o in ops_orig):20s}) "
@@ -141,6 +148,28 @@ check("arm64", "JMP", [4])
 # BC 型 (条件跳转)
 check("arm64", "BEQ", [8])
 check("arm64", "BNE", [0xF00])
+
+# ── x86-64 ──
+print("\n═══ x86-64 往返测试 ═══")
+# R 型: dst, src (REX.W + opcode + ModRM → 3 bytes)
+check("x86_64", "ADD", ["rax", "rbx"])
+check("x86_64", "SUB", ["rcx", "rdx"])
+check("x86_64", "AND", ["rsi", "rdi"])
+check("x86_64", "XOR", ["rax", "rax"])
+check("x86_64", "MOV_REG", ["rbx", "rax"])
+check("x86_64", "CMP", ["rax", "rbx"])
+# I 型: dst, imm32 (REX.W + opcode + ModRM(/digit) + imm32 → 7 bytes)
+check("x86_64", "ADDI", ["rax", 42])
+check("x86_64", "SUBI", ["rcx", 0xFF])
+# MOV_IMM32: dst, imm32 (REX.W + B8+rd + imm32 → 6 bytes)
+check("x86_64", "MOV_IMM", ["rax", 0x1234])
+check("x86_64", "MOV_IMM", ["rbx", 0])
+# J32 型: rel32 → 5 bytes
+check("x86_64", "JMP", [0])
+check("x86_64", "JMP", [4])
+# B8 型 (条件跳转 rel8 → 2 bytes)
+check("x86_64", "BEQ", [8])
+check("x86_64", "BNE", [0x7F])
 
 # ── 结果 ──
 print(f"\n结果: {PASS} 通过, {FAIL} 失败")

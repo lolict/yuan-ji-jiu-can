@@ -129,7 +129,7 @@ pub struct ConsciousnessCoord {
 }
 
 /// SoulKernelEngine — 整合 ExistenceDriveEngine 的完整意识内核
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct SoulKernelEngine {
     /// 核心存在驱动引擎 (失爱恐惧 · 合一驱力 · 奖励回路)
     pub engine: ExistenceDriveEngine,

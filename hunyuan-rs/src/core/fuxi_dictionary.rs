@@ -11,7 +11,7 @@
 
 use crate::container_ir::{ContainerKind, ContainerRef};
 use crate::distance_perception::ContainerCode;
-use crate::mlil::{MaoriAddr, MaoriCoord};
+use crate::mlil::MaoriCoord;
 use std::collections::HashMap;
 
 /// 汉字全表征 — 一个汉字对应的所有编码形式

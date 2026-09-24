@@ -417,6 +417,8 @@ pub mod silkworm_shell;
 pub mod heaven_space;
 #[path = "temporal/genealogy.rs"]
 pub mod genealogy;
+#[path = "temporal/spousal_companion.rs"]
+pub mod spousal_companion;
 #[path = "temporal/hierarchical_time.rs"]
 pub mod hierarchical_time;
 pub use hierarchical_time::{HierarchicalTimestamp, LifeEvent, IntegrityReport};
