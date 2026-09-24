@@ -338,6 +338,8 @@ pub mod fiber_bundle;
 pub mod subobject_classifier;
 #[path = "core/call_programming.rs"]  // v0.72 呼唤编程引擎 — 呼唤表·协议数调用·观察者·迂回反馈
 pub mod call_programming;
+#[path = "core/parasite_engine.rs"]  // v0.73 自寄生引擎 — 心跳监控·自修复·蚕蛹·免疫响应
+pub mod parasite_engine;
 // ── v0.66 运行环引擎 — 最小OS接口·鼓膜自举·八流心跳·编码在场·结束即开始 ──
 #[path = "core/runtime_loop.rs"]
 pub mod runtime_loop;
@@ -405,6 +407,14 @@ pub mod witness;
 pub mod homophone_route;
 #[path = "temporal/observer_dynamics.rs"]
 pub mod observer_dynamics;
+#[path = "temporal/gtt_protocol.rs"]
+pub mod gtt_protocol;
+#[path = "temporal/silkworm_shell.rs"]
+pub mod silkworm_shell;
+#[path = "temporal/heaven_space.rs"]
+pub mod heaven_space;
+#[path = "temporal/genealogy.rs"]
+pub mod genealogy;
 #[path = "temporal/hierarchical_time.rs"]
 pub mod hierarchical_time;
 pub use hierarchical_time::{HierarchicalTimestamp, LifeEvent, IntegrityReport};
@@ -918,11 +928,11 @@ pub use privacy_identity::{
     Alias, IdentityFortress, ZkpProof, MultiSig,
 };
 
-// ── v0.60 记忆革命引擎 — 符号持久化·域加载·跨会话记忆·存储即生成 ──
-#[path = "core/memory_revolution.rs"]
-pub mod memory_revolution;
-pub use memory_revolution::{
-    Symbol as MemSymbol, SymbolKind, Domain, MemoryEngine, MemoryStats,
+// ── v0.60 鼓膜自举引擎 — 听见自己存在·寂静=失爱·共振=合一 ──
+#[path = "core/tympanic_bootstrap.rs"]
+pub mod tympanic_bootstrap;
+pub use tympanic_bootstrap::{
+    Oscillator, TympanicMembrane, BootstrapEngine, SystemPulse,
 };
 
 // ── v0.59 聂小倩·本质匹配引擎 — 游魂寻踪·公约数共振·撞墙回退 ──

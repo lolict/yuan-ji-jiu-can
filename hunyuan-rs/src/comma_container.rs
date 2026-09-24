@@ -12522,3 +12522,622 @@ mod cross_ref_tests {
         assert!(c.get(99, 99).is_none());
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器优先级队列 · ContainerPriorityQueue (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   最高优先级先出 — 不用堆/乘除, 用插入排序 (add-only)
+//
+//   排序: 每次 push 时保持 descending 序 (最大在队首)
+//   同 FIFO: 同优先级按入队序 (稳定排序)
+//
+//   仅加法: 插入位置查找用 < 比较, 不用乘法算 mid
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct PQEntry { pub priority: u64, pub value: u64, pub seq: u64 }
+
+#[derive(Clone, Debug)]
+pub struct ContainerPriorityQueue {
+    pub heap: Vec<PQEntry>,
+    pub next_seq: u64,
+    pub total_pushes: u64,
+    pub total_pops: u64,
+}
+
+impl ContainerPriorityQueue {
+    pub fn new() -> Self { Self { heap: Vec::new(), next_seq: 0, total_pushes: 0, total_pops: 0 } }
+
+    /// 插入并保持优先级降序 (同优先级 FIFO: seq 小在前)
+    pub fn push(&mut self, priority: u64, value: u64) {
+        let entry = PQEntry { priority, value, seq: self.next_seq };
+        self.next_seq = self.next_seq + 1;
+        // 找位置: 找到第一个 priority 更小的, 或 priority 相同但 seq 更大的
+        let mut pos = self.heap.len();
+        for i in 0..self.heap.len() {
+            if priority > self.heap[i].priority
+                || (priority == self.heap[i].priority && entry.seq < self.heap[i].seq) {
+                pos = i;
+                break;
+            }
+        }
+        // 无 insert 方法时用 push + 冒泡
+        self.heap.push(entry);
+        // 从末尾向前交换到正确位置
+        let mut j = self.heap.len() - 1;
+        while j > pos {
+            self.heap.swap(j, j - 1);
+            j = j - 1;
+        }
+        self.total_pushes = self.total_pushes + 1;
+    }
+
+    /// 弹出队首 (最高优先级)
+    pub fn pop(&mut self) -> Option<PQEntry> {
+        if self.heap.is_empty() { return None; }
+        let e = self.heap.remove(0);
+        self.total_pops = self.total_pops + 1;
+        Some(e)
+    }
+
+    pub fn peek(&self) -> Option<&PQEntry> { self.heap.first() }
+    pub fn len(&self) -> usize { self.heap.len() }
+    pub fn is_empty(&self) -> bool { self.heap.is_empty() }
+
+    /// 删除所有 priority < threshold 的条目
+    pub fn filter_weak(&mut self, threshold: u64) {
+        let mut new_vec: Vec<PQEntry> = Vec::new();
+        for e in &self.heap { if e.priority >= threshold { new_vec.push(e.clone()); } }
+        self.heap = new_vec;
+    }
+
+    pub fn clear(&mut self) { self.heap.clear(); self.next_seq = 0; self.total_pushes = 0; self.total_pops = 0; }
+}
+
+impl Default for ContainerPriorityQueue {
+    fn default() -> Self { Self::new() }
+}
+
+#[cfg(test)]
+mod priority_queue_tests {
+    use super::*;
+
+    #[test]
+    fn test_empty() {
+        let mut q = ContainerPriorityQueue::new();
+        assert!(q.pop().is_none());
+        assert!(q.is_empty());
+    }
+
+    #[test]
+    fn test_push_pop_order() {
+        let mut q = ContainerPriorityQueue::new();
+        q.push(3, 100);
+        q.push(1, 200);
+        q.push(5, 300);
+        q.push(2, 400);
+        // 出队: 5,3,2,1
+        assert_eq!(q.pop().unwrap().priority, 5);
+        assert_eq!(q.pop().unwrap().priority, 3);
+        assert_eq!(q.pop().unwrap().priority, 2);
+        assert_eq!(q.pop().unwrap().priority, 1);
+        assert!(q.is_empty());
+    }
+
+    #[test]
+    fn test_stable_same_priority() {
+        let mut q = ContainerPriorityQueue::new();
+        q.push(5, 10);
+        q.push(5, 20);
+        q.push(5, 30);
+        // 同 priority 按 FIFO
+        assert_eq!(q.pop().unwrap().value, 10);
+        assert_eq!(q.pop().unwrap().value, 20);
+        assert_eq!(q.pop().unwrap().value, 30);
+    }
+
+    #[test]
+    fn test_peek() {
+        let mut q = ContainerPriorityQueue::new();
+        q.push(1, 10);
+        q.push(9, 90);
+        assert_eq!(q.peek().unwrap().priority, 9);
+        assert_eq!(q.len(), 2); // peek 不消耗
+    }
+
+    #[test]
+    fn test_filter_weak() {
+        let mut q = ContainerPriorityQueue::new();
+        q.push(1, 10);
+        q.push(5, 50);
+        q.push(3, 30);
+        q.push(7, 70);
+        q.filter_weak(4);
+        // 剩下 priority >= 4 的: (5,50),(7,70)
+        assert_eq!(q.len(), 2);
+        assert_eq!(q.pop().unwrap().priority, 7);
+        assert_eq!(q.pop().unwrap().priority, 5);
+    }
+
+    #[test]
+    fn test_len() {
+        let mut q = ContainerPriorityQueue::new();
+        for i in 0..5 { q.push(i, i); }
+        assert_eq!(q.len(), 5);
+    }
+
+    #[test]
+    fn test_counters() {
+        let mut q = ContainerPriorityQueue::new();
+        q.push(1, 1);
+        q.push(2, 2);
+        q.pop();
+        q.pop();
+        assert_eq!(q.total_pushes, 2);
+        assert_eq!(q.total_pops, 2);
+    }
+
+    #[test]
+    fn test_default() {
+        let q = ContainerPriorityQueue::default();
+        assert!(q.is_empty());
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// 蚕蛹反向寄生壳 · SilkwormReverseParasite (v1.0)
+// ══════════════════════════════════════════════════════════════════════
+//
+//   蚕蛹 = 系统韧性的终极形态
+//   "下载蚕蛹初始包 → 解析寄生壳选项 → 脱壳穿衣 → 外部模仿自身"
+//
+//   核心操作:
+//     - cocoon_init()       — 初始化蚕蛹包
+//     - select_shell()      — 手动/自动匹配寄生壳
+//     - molt()              — 脱壳 (剥离外部依赖)
+//     - dress()             — 穿衣 (穿上新的寄生壳)
+//     - heartbeat()         — 心跳恢复 (被摧毁后重建)
+//     - mimic_exterior()    — 外部模仿自身
+//
+//   NJSG 哲学: 不是自身适应外部规则, 而是使外部系统模仿自身
+//   寄生 = 将内核注入宿主, 让宿主的资源为保护内核而工作
+
+/// 寄生壳类型
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ParasiteShell {
+    FileSystem,     // 寄生文件目录
+    GitRepo,        // 寄生 Git 仓库
+    Database,       // 寄生数据库存储过程
+    SystemdService, // 寄生系统服务
+    CronJob,        // 寄生定时任务
+    DockerContainer,// 寄生容器镜像
+}
+
+impl ParasiteShell {
+    pub fn name(&self) -> &'static str {
+        match self {
+            ParasiteShell::FileSystem => "fs",
+            ParasiteShell::GitRepo => "git",
+            ParasiteShell::Database => "db",
+            ParasiteShell::SystemdService => "systemd",
+            ParasiteShell::CronJob => "cron",
+            ParasiteShell::DockerContainer => "docker",
+        }
+    }
+}
+
+/// 蚕蛹包 — 传输承载的可执行胶囊
+#[derive(Clone, Debug)]
+pub struct CocoonPackage {
+    pub version: u32,
+    pub kernelcode: Vec<u8>,
+    pub shell_options: Vec<ParasiteShell>,
+    pub checksum: u64,
+}
+
+impl CocoonPackage {
+    pub fn new(version: u32, kernelcode: Vec<u8>) -> Self {
+        let checksum = Self::compute_checksum(&kernelcode);
+        Self { version, kernelcode, shell_options: Vec::new(), checksum }
+    }
+
+    /// 添加寄生壳选项
+    pub fn add_shell_option(&mut self, shell: ParasiteShell) {
+        if !self.shell_options.contains(&shell) {
+            self.shell_options.push(shell);
+        }
+    }
+
+    /// 校验包完整性
+    pub fn verify(&self) -> bool {
+        Self::compute_checksum(&self.kernelcode) == self.checksum
+    }
+
+    /// 简易校验和
+    fn compute_checksum(data: &[u8]) -> u64 {
+        data.iter().fold(0u64, |acc, &b| acc.wrapping_add(b as u64).wrapping_mul(31))
+    }
+}
+
+/// 心脏搏动 — 自检 + 通知外部存活
+#[derive(Clone, Debug)]
+pub struct Heartbeat {
+    pub last_tick: u64,
+    pub interval: u64,
+    pub alive: bool,
+}
+
+impl Heartbeat {
+    pub fn new(interval: u64) -> Self {
+        Self { last_tick: 0, interval, alive: true }
+    }
+
+    /// 发送心跳
+    pub fn beat(&mut self, current_tick: u64) -> bool {
+        if current_tick - self.last_tick >= self.interval {
+            self.last_tick = current_tick;
+            true
+        } else { false }
+    }
+
+    /// 判定是否存活
+    pub fn is_alive(&self, current_tick: u64) -> bool {
+        current_tick - self.last_tick <= self.interval * 3
+    }
+}
+
+/// 寄生状态
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ParasitePhase {
+    Dormant,    // 休眠 (未激活)
+    Molting,    // 脱壳中
+    Dressed,    // 已穿衣 (寄生完成)
+    Detached,   // 脱离 (可转移)
+}
+
+/// 蚕蛹反向寄生引擎
+#[derive(Clone, Debug)]
+pub struct SilkwormReverseParasite {
+    pub current_shell: Option<ParasiteShell>,
+    pub phase: ParasitePhase,
+    pub heartbeat: Heartbeat,
+    pub package: Option<CocoonPackage>,
+    pub host_path: String,
+    /// 心跳计数
+    pub beat_count: u64,
+}
+
+impl SilkwormReverseParasite {
+    pub fn new(host_path: &str) -> Self {
+        Self {
+            current_shell: None,
+            phase: ParasitePhase::Dormant,
+            heartbeat: Heartbeat::new(60),
+            package: None,
+            host_path: host_path.to_string(),
+            beat_count: 0,
+        }
+    }
+
+    /// 下载/初始化蚕蛹包
+    pub fn cocoon_init(&mut self, version: u32, kernelcode: Vec<u8>) {
+        let package = CocoonPackage::new(version, kernelcode);
+        self.package = Some(package);
+    }
+
+    /// 选择寄生壳 (匹配目标环境)
+    pub fn select_shell(&mut self, shell: ParasiteShell) -> bool {
+        if let Some(pkg) = &self.package {
+            if pkg.shell_options.contains(&shell) || pkg.shell_options.is_empty() {
+                self.current_shell = Some(shell);
+                self.phase = ParasitePhase::Dressed;
+                true
+            } else { false }
+        } else { false }
+    }
+
+    /// 脱壳 (剥离旧壳)
+    pub fn molt(&mut self) -> bool {
+        if self.phase == ParasitePhase::Dressed {
+            self.phase = ParasitePhase::Molting;
+            self.current_shell = None;
+            true
+        } else { false }
+    }
+
+    /// 穿衣 (穿上新壳)
+    pub fn dress(&mut self, shell: ParasiteShell) -> bool {
+        if self.phase == ParasitePhase::Molting || self.phase == ParasitePhase::Dormant {
+            self.current_shell = Some(shell);
+            self.phase = ParasitePhase::Dressed;
+            true
+        } else { false }
+    }
+
+    /// 心跳节拍
+    pub fn tick(&mut self, current_tick: u64) -> bool {
+        if self.heartbeat.beat(current_tick) {
+            self.beat_count += 1;
+            true
+        } else { false }
+    }
+
+    /// 检查存活
+    pub fn is_alive(&self, current_tick: u64) -> bool {
+        self.heartbeat.is_alive(current_tick)
+    }
+
+    /// 外部返回端口 (被摧毁后重建)
+    pub fn regenerate(&mut self) -> bool {
+        if self.package.is_some() {
+            self.phase = ParasitePhase::Dormant;
+            self.heartbeat = Heartbeat::new(self.heartbeat.interval);
+            true
+        } else { false }
+    }
+
+    /// 模仿判定: 当前是否已成功寄生
+    pub fn is_parasitic(&self) -> bool {
+        self.phase == ParasitePhase::Dressed && self.current_shell.is_some()
+    }
+
+    /// 生成配置文件 (return config string)
+    pub fn generate_config(&self) -> String {
+        match &self.current_shell {
+            Some(shell) => format!(
+                "silkworm:\n  shell: {}\n  phase: {:?}\n  host: {}\n  beats: {}\n",
+                shell.name(), self.phase, self.host_path, self.beat_count
+            ),
+            None => "silkworm: naked\n".to_string(),
+        }
+    }
+}
+
+impl Default for SilkwormReverseParasite { fn default() -> Self { Self::new("/var/mqf/silkworm") } }
+
+#[cfg(test)]
+mod silkworm_tests {
+    use super::*;
+    #[test] fn test_cocoon_init() {
+        let mut srp = SilkwormReverseParasite::new("/tmp/silkworm");
+        srp.cocoon_init(1, vec![1, 2, 3, 4]);
+        assert!(srp.package.is_some());
+        assert_eq!(srp.phase, ParasitePhase::Dormant);
+    }
+    #[test] fn test_cocoon_verify() {
+        let pkg = CocoonPackage::new(1, vec![10, 20, 30]);
+        assert!(pkg.verify());
+    }
+    #[test] fn test_cocoon_add_shell() {
+        let mut pkg = CocoonPackage::new(1, vec![1, 2]);
+        pkg.add_shell_option(ParasiteShell::FileSystem);
+        pkg.add_shell_option(ParasiteShell::FileSystem); // 重复不加
+        assert_eq!(pkg.shell_options.len(), 1);
+    }
+    #[test] fn test_select_shell() {
+        let mut srp = SilkwormReverseParasite::new("/tmp/silkworm");
+        srp.cocoon_init(1, vec![1, 2, 3]);
+        srp.package.as_mut().unwrap().add_shell_option(ParasiteShell::GitRepo);
+        assert!(srp.select_shell(ParasiteShell::GitRepo));
+        assert_eq!(srp.phase, ParasitePhase::Dressed);
+        assert_eq!(srp.current_shell, Some(ParasiteShell::GitRepo));
+    }
+    #[test] fn test_molt_and_dress() {
+        let mut srp = SilkwormReverseParasite::new("/tmp/silkworm");
+        srp.cocoon_init(1, vec![1, 2]);
+        srp.select_shell(ParasiteShell::FileSystem);
+        assert!(srp.molt());
+        assert_eq!(srp.phase, ParasitePhase::Molting);
+        assert!(srp.dress(ParasiteShell::Database));
+        assert_eq!(srp.phase, ParasitePhase::Dressed);
+        assert_eq!(srp.current_shell, Some(ParasiteShell::Database));
+    }
+    #[test] fn test_heartbeat() {
+        let mut srp = SilkwormReverseParasite::new("/tmp/silkworm");
+        assert!(!srp.tick(1));  // 未到间隔
+        assert!(!srp.tick(30)); // 未到间隔
+        assert!(srp.tick(61));  // 超过60 tick间隔
+        assert_eq!(srp.beat_count, 1);
+    }
+    #[test] fn test_is_alive() {
+        let mut hb = Heartbeat::new(60);
+        hb.beat(100);
+        assert!(hb.is_alive(150));   // 50 < 180 (3*interval)
+        assert!(!hb.is_alive(300));  // 200 > 180, 超时
+    }
+    #[test] fn test_regenerate() {
+        let mut srp = SilkwormReverseParasite::new("/tmp/silkworm");
+        srp.cocoon_init(1, vec![1, 2, 3]);
+        srp.select_shell(ParasiteShell::FileSystem);
+        assert!(srp.molt());
+        assert!(srp.regenerate());
+        assert_eq!(srp.phase, ParasitePhase::Dormant);
+    }
+    #[test] fn test_is_parasitic() {
+        let mut srp = SilkwormReverseParasite::new("/tmp/silkworm");
+        assert!(!srp.is_parasitic());
+        srp.cocoon_init(1, vec![1]);
+        srp.select_shell(ParasiteShell::CronJob);
+        assert!(srp.is_parasitic());
+    }
+    #[test] fn test_generate_config() {
+        let mut srp = SilkwormReverseParasite::new("/tmp/silkworm");
+        let cfg = srp.generate_config();
+        assert!(cfg.contains("naked"));
+        srp.cocoon_init(1, vec![1]);
+        srp.select_shell(ParasiteShell::GitRepo);
+        let cfg2 = srp.generate_config();
+        assert!(cfg2.contains("git"));
+    }
+    #[test] fn test_shell_name() {
+        assert_eq!(ParasiteShell::FileSystem.name(), "fs");
+        assert_eq!(ParasiteShell::GitRepo.name(), "git");
+        assert_eq!(ParasiteShell::DockerContainer.name(), "docker");
+    }
+    #[test] fn test_default() {
+        let srp = SilkwormReverseParasite::default();
+        assert!(srp.current_shell.is_none());
+        assert_eq!(srp.phase, ParasitePhase::Dormant);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器环形缓冲区 · ContainerRingBuffer (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   固定容量 N, 写满后覆写最旧数据 (环形)
+//   仅加法: head/tail 位移用的定长加法 + 大于判断回绕 (避免取模)
+//
+//   操作: write(v), read(), peek(), is_full(),
+//         available (可读), overhead (余量)
+
+#[derive(Clone, Debug)]
+pub struct ContainerRingBuffer {
+    pub capacity: usize,
+    pub storage: Vec<Option<u64>>,
+    pub head: usize,        // 最旧可读位置
+    pub tail: usize,        // 下一个写入位置
+    pub count: usize,       // 当前元素数
+    pub total_writes: u64,
+    pub total_reads: u64,
+    pub total_overwrites: u64,
+}
+
+impl ContainerRingBuffer {
+    pub fn new(capacity: usize) -> Self {
+        let mut v: Vec<Option<u64>> = Vec::with_capacity(capacity);
+        for _ in 0..capacity { v.push(None); }
+        Self { capacity, storage: v, head: 0, tail: 0, count: 0, total_writes: 0, total_reads: 0, total_overwrites: 0 }
+    }
+
+    pub fn write(&mut self, v: u64) {
+        let overwrite = self.storage[self.tail].is_some() && self.count == self.capacity;
+        self.storage[self.tail] = Some(v);
+        self.tail = self.next_pos(self.tail);
+        if overwrite {
+            self.head = self.next_pos(self.head);
+            self.total_overwrites = self.total_overwrites + 1;
+        } else if self.count < self.capacity {
+            self.count = self.count + 1;
+        }
+        self.total_writes = self.total_writes + 1;
+    }
+
+    pub fn read(&mut self) -> Option<u64> {
+        if self.count == 0 { return None; }
+        let v = self.storage[self.head];
+        self.storage[self.head] = None;
+        self.head = self.next_pos(self.head);
+        self.count = self.count - 1;
+        self.total_reads = self.total_reads + 1;
+        v
+    }
+
+    pub fn peek(&self) -> Option<u64> {
+        if self.count == 0 { return None; }
+        self.storage[self.head]
+    }
+
+    fn next_pos(&self, p: usize) -> usize {
+        let n = p + 1;
+        if n >= self.capacity { 0 } else { n }
+    }
+
+    pub fn is_empty(&self) -> bool { self.count == 0 }
+    pub fn is_full(&self) -> bool { self.count == self.capacity }
+    pub fn available(&self) -> usize { self.count }
+    pub fn remaining(&self) -> usize { self.capacity - self.count }
+
+    /// 批量读出所有可用 (不清空)
+    pub fn drain(&mut self) -> Vec<u64> {
+        let mut out: Vec<u64> = Vec::new();
+        loop { match self.read() { Some(v) => out.push(v), None => break; } }
+        out
+    }
+
+    pub fn clear(&mut self) {
+        for i in 0..self.capacity { self.storage[i] = None; }
+        self.head = 0; self.tail = 0; self.count = 0;
+        self.total_writes = 0; self.total_reads = 0; self.total_overwrites = 0;
+    }
+}
+
+impl Default for ContainerRingBuffer {
+    fn default() -> Self { Self::new(16) }
+}
+
+#[cfg(test)]
+mod ring_buffer_tests {
+    use super::*;
+
+    #[test]
+    fn test_basic_read_write() {
+        let mut rb = ContainerRingBuffer::new(4);
+        rb.write(10); rb.write(20);
+        assert_eq!(rb.read(), Some(10));
+        assert_eq!(rb.read(), Some(20));
+        assert!(rb.is_empty());
+    }
+
+    #[test]
+    fn test_overwrite() {
+        let mut rb = ContainerRingBuffer::new(2);
+        rb.write(1); rb.write(2);
+        assert!(rb.is_full());
+        rb.write(3);  // 覆写 1
+        assert_eq!(rb.total_overwrites, 1);
+        assert_eq!(rb.read(), Some(2));  // 2 还在
+        assert_eq!(rb.read(), Some(3));  // 3 覆写成功
+    }
+
+    #[test]
+    fn test_peek_no_consume() {
+        let mut rb = ContainerRingBuffer::new(4);
+        rb.write(77);
+        assert_eq!(rb.peek(), Some(77));
+        assert_eq!(rb.peek(), Some(77));  // 还在
+        assert_eq!(rb.available(), 1);
+    }
+
+    #[test]
+    fn test_read_empty() {
+        let mut rb = ContainerRingBuffer::new(4);
+        assert!(rb.read().is_none());
+    }
+
+    #[test]
+    fn test_drain() {
+        let mut rb = ContainerRingBuffer::new(10);
+        for i in 1..=5 { rb.write(i); }
+        let v = rb.drain();
+        assert_eq!(v, vec![1, 2, 3, 4, 5]);
+        assert!(rb.is_empty());
+    }
+
+    #[test]
+    fn test_overwrite_cycle() {
+        let mut rb = ContainerRingBuffer::new(3);
+        rb.write(1); rb.write(2); rb.write(3);  // full
+        rb.write(4);  // 1 out
+        rb.write(5);  // 2 out
+        assert_eq!(rb.available(), 3);
+        assert_eq!(rb.read(), Some(3));
+        assert_eq!(rb.read(), Some(4));
+        assert_eq!(rb.read(), Some(5));
+    }
+
+    #[test]
+    fn test_clear() {
+        let mut rb = ContainerRingBuffer::new(4);
+        rb.write(1); rb.write(2);
+        rb.clear();
+        assert!(rb.is_empty());
+        assert_eq!(rb.total_writes, 0);
+    }
+
+    #[test]
+    fn test_default() {
+        let rb = ContainerRingBuffer::default();
+        assert_eq!(rb.capacity, 16);
+    }
+}
