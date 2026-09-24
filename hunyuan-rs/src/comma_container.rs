@@ -14434,3 +14434,754 @@ mod redundancy_tests {
         assert_eq!(r.copy_count(), 3);
     }
 }
+
+// ══════════════════════════════════════════════════════════════════════
+// 聂小倩本质匹配引擎 · ContainerNjqMatchingEngine (v1.0)
+// ══════════════════════════════════════════════════════════════════════
+//
+//   聂小倩 = NJSG 本质匹配算法
+//   "本质匹配" = 不按名称/标签, 按本质属性(vA+vB)共振
+//
+//   核心操作:
+//     - register_trait()   — 注册容器的本质特征向量
+//     - match_essence()    — 计算两容器的本质共振度
+//     - cluster_by_trait() — 本质聚类 (距离感知)
+//     - find_soulmate()    — 寻找最大共振容器
+//     - anti_collision()   — 防撞墙 (过载时阻断)
+//
+//   NJSG 哲学: 匹配不是"搜索", 是"共振"
+//   vA+vB = 两者本质向量的叠加, 模长 = 共振强度
+//   频率相近的容器自然共鸣, 无需中心化索引
+
+/// 本质特征向量 (用质数编码代表不可再分的本质属性)
+#[derive(Clone, Debug)]
+pub struct TraitVector {
+    pub container_id: u32,
+    pub traits: Vec<u64>,     // 本质特征 (质数列表)
+    pub amplitude: f64,       // 振幅 (强度)
+}
+
+impl TraitVector {
+    pub fn new(container_id: u32, traits: Vec<u64>) -> Self {
+        Self { container_id, traits, amplitude: 1.0 }
+    }
+
+    /// 计算 vA+vB 叠加 (取共有特质乘积 = 共振)
+    pub fn resonance_with(&self, other: &TraitVector) -> f64 {
+    let common: Vec<_> = self.traits.iter().filter(|t| other.traits.contains(t)).collect();
+    if common.is_empty() { return 0.0; }
+    let sum: f64 = common.iter().map(|&&p| p as f64).sum();
+    (sum * self.amplitude * other.amplitude).sqrt()
+    }
+}
+
+/// 匹配结果
+#[derive(Clone, Debug)]
+pub struct MatchResult {
+    pub source: u32,
+    pub target: u32,
+    pub resonance: f64,       // 共振度 (0.0 - ∞)
+    pub common_traits: Vec<u64>,
+}
+
+impl MatchResult {
+    pub fn strong(&self) -> bool { self.resonance > 10.0 }
+    pub fn weak(&self) -> bool { self.resonance > 0.0 && !self.strong() }
+    pub fn disjoint(&self) -> bool { self.resonance == 0.0 }
+}
+
+/// 聚类成员
+#[derive(Clone, Debug)]
+pub struct ClusterMember {
+    pub container_id: u32,
+    pub distance_to_center: f64,
+}
+
+/// 聂小倩本质匹配引擎
+#[derive(Clone, Debug)]
+pub struct ContainerNjqMatchingEngine {
+    /// 特质向量寄存器
+    pub trait_vectors: HashMap<u32, TraitVector>,
+    /// 已计算的匹配对 (避免重复)
+    pub match_cache: HashMap<(u32, u32), f64>,
+    /// 防撞墙阈值 (超过此共振度判定为过载)
+    pub collision_threshold: f64,
+    /// 聚类表: 聚类中心 → 成员
+    pub clusters: HashMap<u32, Vec<ClusterMember>>,
+}
+
+impl ContainerNjqMatchingEngine {
+    pub fn new() -> Self {
+        Self {
+            trait_vectors: HashMap::new(),
+            match_cache: HashMap::new(),
+            collision_threshold: 100.0,
+            clusters: HashMap::new(),
+        }
+    }
+
+    /// 注册本质特征
+    pub fn register_trait(&mut self, id: u32, traits: Vec<u64>, amplitude: f64) {
+        let mut tv = TraitVector::new(id, traits);
+        tv.amplitude = amplitude;
+        self.trait_vectors.insert(id, tv);
+    }
+
+    /// 计算本质共振度
+    pub fn match_essence(&mut self, id_a: u32, id_b: u32) -> Option<MatchResult> {
+        let a = self.trait_vectors.get(&id_a)?;
+        let b = self.trait_vectors.get(&id_b)?;
+        let resonance = a.resonance_with(b);
+        let key = if id_a < id_b { (id_a, id_b) } else { (id_b, id_a) };
+        self.match_cache.insert(key, resonance);
+        let common: Vec<u64> = a.traits.iter().filter(|t| b.traits.contains(t)).copied().collect();
+        Some(MatchResult { source: id_a, target: id_b, resonance, common_traits: common })
+    }
+
+    /// 寻找最大共振容器
+    pub fn find_soulmate(&mut self, id: u32) -> Option<MatchResult> {
+        if !self.trait_vectors.contains_key(&id) { return None; }
+        let other_ids: Vec<u32> = self.trait_vectors.keys().filter(|&&k| k != id).copied().collect();
+        let mut best: Option<MatchResult> = None;
+        for other_id in other_ids {
+            if let Some(r) = self.match_essence(id, other_id) {
+                if best.as_ref().map_or(true, |b| r.resonance > b.resonance) {
+                    best = Some(r);
+                }
+            }
+        }
+        best
+    }
+
+    /// 距离感知聚类
+    pub fn cluster(&mut self, max_distance: f64) -> HashMap<u32, Vec<ClusterMember>> {
+        let ids: Vec<u32> = self.trait_vectors.keys().copied().collect();
+        let mut result: HashMap<u32, Vec<ClusterMember>> = HashMap::new();
+        let mut assigned: Vec<u32> = Vec::new();
+        // 按振幅排序 (从最强特质开始作为聚类中心)
+        let mut sorted = ids.clone();
+        sorted.sort_by(|a, b| {
+            let amp_a = self.trait_vectors[a].amplitude;
+            let amp_b = self.trait_vectors[b].amplitude;
+            amp_b.partial_cmp(&amp_a).unwrap_or(std::cmp::Ordering::Equal)
+        });
+        for center in &sorted {
+            if assigned.contains(center) { continue; }
+            let mut members: Vec<ClusterMember> = Vec::new();
+            for other in &ids {
+                if other == center || assigned.contains(other) { continue; }
+                if let Some(dist) = self.compute_distance(*center, *other) {
+                    if dist <= max_distance {
+                        members.push(ClusterMember { container_id: *other, distance_to_center: dist });
+                        assigned.push(*other);
+                    }
+                }
+            }
+            // 中心自己
+            members.push(ClusterMember { container_id: *center, distance_to_center: 0.0 });
+            assigned.push(*center);
+            result.insert(*center, members);
+        }
+        self.clusters = result.clone();
+        result
+    }
+
+    /// 计算两容器的本质距离 (1 / (1 + resonance))
+    pub fn compute_distance(&self, id_a: u32, id_b: u32) -> Option<f64> {
+        if id_a == id_b { return Some(0.0); }
+        let a = self.trait_vectors.get(&id_a)?;
+        let b = self.trait_vectors.get(&id_b)?;
+        let r = a.resonance_with(b);
+        Some(1.0 / (1.0 + r))
+    }
+
+    /// 防撞墙判定
+    pub fn anti_collision(&self, id_a: u32, id_b: u32) -> bool {
+        if let (Some(a), Some(b)) = (self.trait_vectors.get(&id_a), self.trait_vectors.get(&id_b)) {
+            let r = a.resonance_with(b);
+            r > self.collision_threshold
+        } else { false }
+    }
+
+    /// 设置防撞墙阈值
+    pub fn set_collision_threshold(&mut self, threshold: f64) {
+        self.collision_threshold = threshold;
+    }
+
+    /// 批量匹配 (返回所有匹配度 > min_resonance 的对)
+    pub fn match_all(&mut self, min_resonance: f64) -> Vec<MatchResult> {
+        let ids: Vec<u32> = self.trait_vectors.keys().copied().collect();
+        let mut results = Vec::new();
+        for i in 0..ids.len() {
+            for j in (i + 1)..ids.len() {
+                if let Some(r) = self.match_essence(ids[i], ids[j]) {
+                    if r.resonance >= min_resonance {
+                        results.push(r);
+                    }
+                }
+            }
+        }
+        results
+    }
+
+    /// 移除注册
+    pub fn remove(&mut self, id: u32) {
+        self.trait_vectors.remove(&id);
+        // 清理缓存
+        self.match_cache.retain(|k, _| k.0 != id && k.1 != id);
+    }
+
+    /// 容器数
+    pub fn trait_count(&self) -> usize { self.trait_vectors.len() }
+
+    /// 重置
+    pub fn clear(&mut self) {
+        self.trait_vectors.clear();
+        self.match_cache.clear();
+        self.clusters.clear();
+    }
+}
+
+impl Default for ContainerNjqMatchingEngine { fn default() -> Self { Self::new() } }
+
+#[cfg(test)]
+mod njq_matching_tests {
+    use super::*;
+    #[test] fn test_register_and_resonance() {
+        let mut e = ContainerNjqMatchingEngine::new();
+        e.register_trait(1, vec![2, 3, 5, 7], 1.0);
+        e.register_trait(2, vec![3, 5, 11, 13], 1.0);
+        let r = e.match_essence(1, 2).unwrap();
+        assert!(r.resonance > 0.0);
+        assert!(r.common_traits.contains(&3));
+        assert!(r.common_traits.contains(&5));
+    }
+    #[test] fn test_disjoint() {
+        let mut e = ContainerNjqMatchingEngine::new();
+        e.register_trait(1, vec![2, 3], 1.0);
+        e.register_trait(2, vec![5, 7], 1.0);
+        let r = e.match_essence(1, 2).unwrap();
+        assert_eq!(r.resonance, 0.0);
+        assert!(r.disjoint());
+    }
+    #[test] fn test_find_soulmate() {
+        let mut e = ContainerNjqMatchingEngine::new();
+        e.register_trait(1, vec![2, 3, 5], 1.0);
+        e.register_trait(2, vec![2], 1.0);
+        e.register_trait(3, vec![2, 3, 5, 7, 11], 2.0);
+        let best = e.find_soulmate(1).unwrap();
+        assert_eq!(best.target, 3);
+    }
+    #[test] fn test_cluster() {
+        let mut e = ContainerNjqMatchingEngine::new();
+        e.register_trait(1, vec![2, 3], 2.0);
+        e.register_trait(2, vec![2, 3], 1.0);
+        e.register_trait(3, vec![5, 7], 1.5);
+        let clusters = e.cluster(0.6);
+        assert!(!clusters.is_empty());
+    }
+    #[test] fn test_collision() {
+        let mut e = ContainerNjqMatchingEngine::new();
+        e.set_collision_threshold(5.0);
+        e.register_trait(1, vec![2, 3, 5, 7, 11], 1.0);
+        e.register_trait(2, vec![2, 3, 5, 7, 11], 1.0);
+        assert!(e.anti_collision(1, 2));
+    }
+    #[test] fn test_compute_distance() {
+        let mut e = ContainerNjqMatchingEngine::new();
+        e.register_trait(1, vec![2, 3], 1.0);
+        e.register_trait(2, vec![2, 3], 1.0);
+        let d = e.compute_distance(1, 2).unwrap();
+        assert!(d >= 0.0 && d <= 1.0);
+    }
+    #[test] fn test_match_all() {
+        let mut e = ContainerNjqMatchingEngine::new();
+        e.register_trait(1, vec![2, 3], 1.0);
+        e.register_trait(2, vec![3, 5], 1.0);
+        e.register_trait(3, vec![3, 7], 1.0);
+        let pairs = e.match_all(1.0);
+        assert!(!pairs.is_empty());
+    }
+    #[test] fn test_remove() {
+        let mut e = ContainerNjqMatchingEngine::new();
+        e.register_trait(1, vec![2], 1.0);
+        e.register_trait(2, vec![2], 1.0);
+        e.match_essence(1, 2);
+        e.remove(1);
+        assert_eq!(e.trait_count(), 1);
+    }
+    #[test] fn test_no_match() {
+        let mut e = ContainerNjqMatchingEngine::new();
+        e.register_trait(1, vec![2], 1.0);
+        assert!(e.find_soulmate(1).is_none());
+    }
+    #[test] fn test_clear() {
+        let mut e = ContainerNjqMatchingEngine::new();
+        e.register_trait(1, vec![2], 1.0);
+        e.clear();
+        assert_eq!(e.trait_count(), 0);
+    }
+    #[test] fn test_default() {
+        let e = ContainerNjqMatchingEngine::default();
+        assert_eq!(e.trait_count(), 0);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器栈虚拟机 · ContainerStackVM (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   精简栈机: 数据栈 + 指令存储器
+//   指令: PUSH, ADD, SUB, SHL, SHR, DUP, DROP, SWAP, LOAD, STORE
+//   仅加法运算, 地址仅递增 (PC mod 用减法回绕)
+
+#[derive(Clone, Debug)]
+pub enum VInstr { PUSH(u64), ADD, SUB, SHL, SHR, DUP, DROP, SWAP, LOAD, STORE, HALT }
+
+#[derive(Clone, Debug)]
+pub struct ContainerStackVM {
+    pub code: Vec<VInstr>,
+    pub stack: Vec<u64>,
+    pub memory: HashMap<u64, u64>,
+    pub pc: usize,
+    pub halted: bool,
+    pub max_stack: usize,
+}
+
+impl ContainerStackVM {
+    pub fn new(code: Vec<VInstr>, max_stack: usize) -> Self {
+        Self { code, stack: Vec::new(), memory: HashMap::new(), pc: 0, halted: false, max_stack }
+    }
+
+    fn pop(&mut self) -> Option<u64> { self.stack.pop() }
+    fn push(&mut self, v: u64) -> bool {
+        if self.stack.len() >= self.max_stack { return false; }
+        self.stack.push(v);
+        true
+    }
+
+    pub fn step(&mut self) -> bool {
+        if self.halted || self.pc >= self.code.len() { self.halted = true; return false; }
+        let instr = self.code[self.pc].clone();
+        self.pc = self.pc + 1;
+        match instr {
+            VInstr::PUSH(v) => { self.push(v); }
+            VInstr::ADD => {
+                if let (Some(a), Some(b)) = (self.pop(), self.pop()) {
+                    self.push(a + b);
+                }
+            }
+            VInstr::SUB => {
+                if let (Some(a), Some(b)) = (self.pop(), self.pop()) {
+                    if a >= b { self.push(a - b); } else { self.push(0); }
+                }
+            }
+            VInstr::SHL => {
+                if let Some(a) = self.pop() { self.push(a << 1); }
+            }
+            VInstr::SHR => {
+                if let Some(a) = self.pop() { self.push(a >> 1); }
+            }
+            VInstr::DUP => {
+                if let Some(a) = self.top() { self.push(a); }
+            }
+            VInstr::DROP => { self.pop(); }
+            VInstr::SWAP => {
+                if let (Some(a), Some(b)) = (self.pop(), self.pop()) {
+                    self.push(a); self.push(b);
+                }
+            }
+            VInstr::LOAD => {
+                if let Some(addr) = self.pop() {
+                    let v = self.memory.get(&addr).copied().unwrap_or(0);
+                    self.push(v);
+                }
+            }
+            VInstr::STORE => {
+                if let (Some(v), Some(addr)) = (self.pop(), self.pop()) {
+                    self.memory.insert(addr, v);
+                }
+            }
+            VInstr::HALT => { self.halted = true; }
+        }
+        true
+    }
+
+    pub fn run(&mut self) {
+        loop {
+            if !self.step() { break; }
+        }
+    }
+
+    pub fn top(&self) -> Option<u64> { self.stack.last().copied() }
+}
+
+impl Default for ContainerStackVM {
+    fn default() -> Self { Self::new(vec![], 256) }
+}
+
+#[cfg(test)]
+mod stack_vm_tests {
+    use super::*;
+
+    #[test]
+    fn test_add() {
+        let mut vm = ContainerStackVM::new(vec![VInstr::PUSH(10), VInstr::PUSH(20), VInstr::ADD, VInstr::HALT], 16);
+        vm.run();
+        assert_eq!(vm.top(), Some(30));
+    }
+
+    #[test]
+    fn test_sub() {
+        let mut vm = ContainerStackVM::new(vec![VInstr::PUSH(50), VInstr::PUSH(20), VInstr::SUB, VInstr::HALT], 16);
+        vm.run();
+        assert_eq!(vm.top(), Some(30));
+    }
+
+    #[test]
+    fn test_shl_shr() {
+        let mut vm = ContainerStackVM::new(vec![VInstr::PUSH(1), VInstr::SHL, VInstr::SHR, VInstr::HALT], 16);
+        vm.run();
+        assert_eq!(vm.top(), Some(1));
+    }
+
+    #[test]
+    fn test_store_load() {
+        let mut vm = ContainerStackVM::new(vec![VInstr::PUSH(77), VInstr::PUSH(0), VInstr::STORE, VInstr::PUSH(0), VInstr::LOAD, VInstr::HALT], 16);
+        vm.run();
+        assert_eq!(vm.top(), Some(77));
+    }
+
+    #[test]
+    fn test_halt() {
+        let mut vm = ContainerStackVM::new(vec![VInstr::HALT], 16);
+        vm.run();
+        assert!(vm.halted);
+    }
+
+    #[test]
+    fn test_swap() {
+        let mut vm = ContainerStackVM::new(vec![VInstr::PUSH(1), VInstr::PUSH(2), VInstr::SWAP, VInstr::HALT], 16);
+        vm.run();
+        assert_eq!(vm.top(), Some(1));  // 2 在 1 下面, SWAP后 top 是 1
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器序列单调性 · ContainerSequence (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   仅加法比较相邻, 判定单调递增/递减/常数/无规律
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum SeqKind { Increasing, Decreasing, Constant, Mixed, Empty, Single }
+
+#[derive(Clone, Debug)]
+pub struct ContainerSequence {
+    pub data: Vec<u64>,
+}
+
+impl ContainerSequence {
+    pub fn new() -> Self { Self { data: Vec::new() } }
+    pub fn push(&mut self, v: u64) { self.data.push(v); }
+    pub fn len(&self) -> usize { self.data.len() }
+
+    pub fn classify(&self) -> SeqKind {
+        if self.data.is_empty() { return SeqKind::Empty; }
+        if self.data.len() == 1 { return SeqKind::Single; }
+        let mut inc = true;
+        let mut dec = true;
+        let mut same = true;
+        for i in 1..self.data.len() {
+            let prev = self.data[i - 1];
+            let cur = self.data[i];
+            if cur > prev { dec = false; same = false; }
+            else if cur < prev { inc = false; same = false; }
+            else { /* cur==prev: decreasing not broken but increasing still possible */ }
+        }
+        if same { SeqKind::Constant }
+        else if inc { SeqKind::Increasing }
+        else if dec { SeqKind::Decreasing }
+        else { SeqKind::Mixed }
+    }
+
+    pub fn sum(&self) -> u64 {
+        let mut s = 0;
+        for &v in &self.data { s = s + v; }
+        s
+    }
+}
+
+impl Default for ContainerSequence {
+    fn default() -> Self { Self::new() }
+}
+
+#[cfg(test)]
+mod sequence_tests {
+    use super::*;
+
+    #[test]
+    fn test_increasing() {
+        let mut s = ContainerSequence::new();
+        s.push(1); s.push(2); s.push(5); s.push(10);
+        assert_eq!(s.classify(), SeqKind::Increasing);
+    }
+
+    #[test]
+    fn test_decreasing() {
+        let mut s = ContainerSequence::new();
+        s.push(10); s.push(5); s.push(2); s.push(1);
+        assert_eq!(s.classify(), SeqKind::Decreasing);
+    }
+
+    #[test]
+    fn test_constant() {
+        let mut s = ContainerSequence::new();
+        s.push(7); s.push(7); s.push(7);
+        assert_eq!(s.classify(), SeqKind::Constant);
+    }
+
+    #[test]
+    fn test_mixed() {
+        let mut s = ContainerSequence::new();
+        s.push(1); s.push(3); s.push(2);
+        assert_eq!(s.classify(), SeqKind::Mixed);
+    }
+
+    #[test]
+    fn test_empty() {
+        let s = ContainerSequence::new();
+        assert_eq!(s.classify(), SeqKind::Empty);
+    }
+
+    #[test]
+    fn test_sum() {
+        let mut s = ContainerSequence::new();
+        s.push(1); s.push(2); s.push(3);
+        assert_eq!(s.sum(), 6);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器相位门 · ContainerPhaseGate (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   信号在指定相位窗口内才被放行
+//   phase_now ∈ [phase_start, phase_end) → allow
+
+#[derive(Clone, Debug)]
+pub struct ContainerPhaseGate {
+    pub phase_start: u64,
+    pub phase_end: u64,
+    pub total_allow: u64,
+    pub total_deny: u64,
+}
+
+impl ContainerPhaseGate {
+    pub fn new(start: u64, end: u64) -> Self {
+        Self { phase_start: start, phase_end: end, total_allow: 0, total_deny: 0 }
+    }
+
+    pub fn allow(&mut self, phase: u64) -> bool {
+        if phase >= self.phase_start && phase < self.phase_end {
+            self.total_allow = self.total_allow + 1;
+            true
+        } else {
+            self.total_deny = self.total_deny + 1;
+            false
+        }
+    }
+}
+
+impl Default for ContainerPhaseGate {
+    fn default() -> Self { Self::new(0, 100) }
+}
+
+#[cfg(test)]
+mod phase_gate_tests {
+    use super::*;
+
+    #[test]
+    fn test_within_window() {
+        let mut g = ContainerPhaseGate::new(10, 20);
+        assert!(g.allow(10));
+        assert!(g.allow(15));
+        assert!(!g.allow(20));  // 半开区间: 20 不算
+        assert!(!g.allow(9));
+    }
+
+    #[test]
+    fn test_boundary() {
+        let mut g = ContainerPhaseGate::new(0, 1);
+        assert!(g.allow(0));
+        assert!(!g.allow(1));
+    }
+
+    #[test]
+    fn test_counters() {
+        let mut g = ContainerPhaseGate::new(5, 10);
+        g.allow(6); g.allow(7); g.allow(20);
+        assert_eq!(g.total_allow, 2);
+        assert_eq!(g.total_deny, 1);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器去重器 · ContainerDeduplicator (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   移除相邻重复信号 (仅加法比较 last == new?)
+//   保留首次出现, 丢弃后续相同
+
+#[derive(Clone, Debug)]
+pub struct ContainerDeduplicator {
+    pub last: Option<u64>,
+    pub total_in: u64,
+    pub total_out: u64,
+    pub total_dup: u64,
+}
+
+impl ContainerDeduplicator {
+    pub fn new() -> Self { Self { last: None, total_in: 0, total_out: 0, total_dup: 0 } }
+
+    pub fn feed(&mut self, v: u64) -> Option<u64> {
+        self.total_in = self.total_in + 1;
+        if self.last == Some(v) {
+            self.total_dup = self.total_dup + 1;
+            None
+        } else {
+            self.last = Some(v);
+            self.total_out = self.total_out + 1;
+            Some(v)
+        }
+    }
+
+    pub fn reset(&mut self) { self.last = None; self.total_in = 0; self.total_out = 0; self.total_dup = 0; }
+}
+
+impl Default for ContainerDeduplicator {
+    fn default() -> Self { Self::new() }
+}
+
+#[cfg(test)]
+mod dedup_tests {
+    use super::*;
+
+    #[test]
+    fn test_consecutive_dup() {
+        let mut d = ContainerDeduplicator::new();
+        assert_eq!(d.feed(1), Some(1));
+        assert_eq!(d.feed(1), None);
+        assert_eq!(d.feed(1), None);
+        assert_eq!(d.feed(2), Some(2));
+    }
+
+    #[test]
+    fn test_non_consecutive_same() {
+        let mut d = ContainerDeduplicator::new();
+        assert_eq!(d.feed(5), Some(5));
+        assert_eq!(d.feed(6), Some(6));
+        assert_eq!(d.feed(5), Some(5));  // 非相邻不丢
+    }
+
+    #[test]
+    fn test_counters() {
+        let mut d = ContainerDeduplicator::new();
+        d.feed(1); d.feed(1); d.feed(2); d.feed(2);
+        assert_eq!(d.total_in, 4);
+        assert_eq!(d.total_out, 2);
+        assert_eq!(d.total_dup, 2);
+    }
+
+    #[test]
+    fn test_first_feed() {
+        let mut d = ContainerDeduplicator::new();
+        assert!(d.feed(0).is_some());
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器累加触发器 · ContainerAccumTrigger (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   累加输入信号, 当 sum ≥ threshold 时触发; 触发后归零 (可重新从 0 累加)
+//   仅加法: sum + input, 比较 ≥, 触发后归零
+
+#[derive(Clone, Debug)]
+pub struct ContainerAccumTrigger {
+    pub threshold: u64,
+    pub accumulator: u64,
+    pub trig_count: u64,
+    pub total_input: u64,
+}
+
+impl ContainerAccumTrigger {
+    pub fn new(threshold: u64) -> Self {
+        Self { threshold, accumulator: 0, trig_count: 0, total_input: 0 }
+    }
+
+    pub fn feed(&mut self, v: u64) -> bool {
+        self.accumulator = self.accumulator + v;
+        self.total_input = self.total_input + v;
+        if self.accumulator >= self.threshold {
+            self.accumulator = 0;
+            self.trig_count = self.trig_count + 1;
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn remainder(&self) -> u64 { self.accumulator }
+
+    pub fn reset(&mut self) { self.accumulator = 0; self.trig_count = 0; self.total_input = 0; }
+}
+
+impl Default for ContainerAccumTrigger {
+    fn default() -> Self { Self::new(100) }
+}
+
+#[cfg(test)]
+mod accum_trigger_tests {
+    use super::*;
+
+    #[test]
+    fn test_trig() {
+        let mut a = ContainerAccumTrigger::new(10);
+        assert!(!a.feed(3));
+        assert!(!a.feed(4));
+        assert!(a.feed(5));  // 3+4+5=12 ≥ 10 → 触发
+    }
+
+    #[test]
+    fn test_remainder_resets() {
+        let mut a = ContainerAccumTrigger::new(10);
+        a.feed(6); a.feed(7);  // 触发, acc 归零
+        assert_eq!(a.remainder(), 0);
+        a.feed(2);
+        assert_eq!(a.remainder(), 2);
+    }
+
+    #[test]
+    fn test_exact_threshold() {
+        let mut a = ContainerAccumTrigger::new(5);
+        assert!(a.feed(5));
+        assert_eq!(a.trig_count, 1);
+    }
+
+    #[test]
+    fn test_total_input() {
+        let mut a = ContainerAccumTrigger::new(100);
+        a.feed(10); a.feed(20); a.feed(70);
+        assert_eq!(a.total_input, 100);
+    }
+
+    #[test]
+    fn test_multi_trig() {
+        let mut a = ContainerAccumTrigger::new(5);
+        a.feed(6);  // 1
+        a.feed(8);  // 2
+        a.feed(2); a.feed(3);  // 2+3=5 → 3
+        assert_eq!(a.trig_count, 3);
+    }
+}
