@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="zh"><head><meta charset="utf-8">
+<title>MQ-OS 容器=字体=时间 · 三系统统一流水线产出</title>
+<style>
+:root{--bg:#0a0e17;--card:#131826;--border:#1e2640;--fg:#c8d2e0;--accent:#5b9cf5;--dim:#5a6480;--blue:#4a90d9;--green:#50b87c;--orange:#d98c4a;--purple:#a064c8}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--fg);margin:0;padding:0;min-height:100vh}
+header{background:linear-gradient(135deg,#0d1530 0%,#1a1040 100%);border-bottom:1px solid var(--border);padding:32px 0 24px;text-align:center}
+h1{font-size:28px;margin:0 0 8px;color:#fff;font-weight:600;letter-spacing:-.5px}
+.subtitle{color:var(--accent);font-size:15px;margin:0}
+.tagline{color:var(--dim);font-size:13px;margin:8px 0 0}
+.stats-bar{display:flex;justify-content:center;gap:32px;margin-top:20px;flex-wrap:wrap}
+.stat{display:flex;flex-direction:column;align-items:center}
+.stat .val{font-size:22px;font-weight:700;color:var(--accent)}
+.stat .lbl{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:1px}
+nav{background:var(--card);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;gap:16px;flex-wrap:wrap;justify-content:center;position:sticky;top:0;z-index:10}
+nav a{color:var(--fg);text-decoration:none;font-size:13px;padding:4px 12px;border-radius:4px;transition:.15s}
+nav a:hover{background:var(--border);color:#fff}
+nav a.active{background:var(--accent);color:#000;font-weight:600}
+section{max-width:1200px;margin:32px auto;padding:0 24px}
+section h2{font-size:18px;color:#fff;margin:0 0 4px;font-weight:600}
+section .desc{color:var(--dim);font-size:13px;margin-bottom:20px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:20px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;transition:.15s}
+.card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 6px 24px rgba(91,156,245,.1)}
+.card .thumb{width:100%;aspect-ratio:4/3;background:#060a12;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.card .thumb img{width:100%;height:100%;object-fit:contain}
+.card .info{padding:12px 16px 16px}
+.card .info h3{margin:0 0 4px;font-size:15px;color:#fff;font-weight:600}
+.card .info p{margin:0;font-size:12px;color:var(--dim);line-height:1.5}
+.card .tags{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.tag{display:inline-block;font-size:10px;padding:2px 7px;border-radius:3px;background:var(--border);color:var(--fg)}
+.tag.blue{background:rgba(74,144,217,.2);color:var(--blue)}
+.tag.green{background:rgba(80,184,108,.2);color:var(--green)}
+.tag.orange{background:rgba(217,140,74,.2);color:var(--orange)}
+.tag.purple{background:rgba(160,100,200,.2);color:var(--purple)}
+.links{display:flex;gap:8px;margin-top:10px}
+.links a{font-size:11px;color:var(--accent);text-decoration:none;padding:3px 8px;border:1px solid var(--border);border-radius:4px}
+.links a:hover{background:var(--border)}
+.pipeline-flow{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:32px}
+.flow-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;margin:8px 0}
+.flow-box{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 14px;font-size:13px;color:var(--fg)}
+.flow-box.phase{border-left:3px solid var(--accent)}
+.flow-box.ok{color:var(--green);border-color:var(--green)}
+.flow-arrow{color:var(--dim);font-size:16px;text-align:center}
+.char-section{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:32px;text-align:center}
+.char-section .hanzi{font-size:48px;color:#fff;letter-spacing:12px;margin:12px 0}
+.char-section .label{font-size:12px;color:var(--dim);margin-top:8px}
+footer{text-align:center;padding:32px;color:var(--dim);font-size:12px}
+</style>
+</head>
+<body>
+
+<header>
+<h1>MQ-OS 容器=字体=时间</h1>
+<p class="subtitle">三系统统一流水线 · 群轨道枚举 → TTF 字体字节 → 时间触发执行</p>
+<p class="tagline">满全法 / 囡囝共生 NJSG · container=font=time</p>
+<div class="stats-bar">
+  <div class="stat"><span class="val">3-8 bit</span><span class="lbl">位宽覆盖</span></div>
+  <div class="stat"><span class="val">std+ext</span><span class="lbl">生成元模式</span></div>
+  <div class="stat"><span class="val">TTF+PNG+GIF+HTML</span><span class="lbl">单命令产出</span></div>
+  <div class="stat"><span class="val">6项</span><span class="lbl">验证全通过</span></div>
+</div>
+</header>
+
+<nav>
+<a href="#pipeline" class="active">流水线产出</a>
+<a href="#flow">执行流程</a>
+<a href="#hanzi">汉字容器编码</a>
+<a href="#verify">验证矩阵</a>
+<a href="https://github.com/njsg-hunyuan/hunyuan-os" target="_blank">仓库</a>
+</nav>
+
+<section id="pipeline">
+<h2>字体视觉样张</h2>
+<p class="desc">每个容器色条标识状态分类。蓝色=轴心容器 / 绿色=闭环态 / 橙色=镜像纠缠 / 紫色=扩展纠缠。</p>
+
+<div class="grid">
+  <div class="card">
+    <div class="thumb"><img src="mqf_pipeline_3bit_std.png" alt="3-bit std"></div>
+    <div class="info">
+      <h3>3-bit 标准模式</h3>
+      <p>8 状态 → 3 代表元 → 轴心容器 + 镜像纠缠</p>
+      <div class="tags"><span class="tag blue">轴心×2</span><span class="tag orange">纠缠×1</span></div>
+      <div class="links">
+        <a href="mqf_pipeline_3bit_std.ttf">TTF</a>
+        <a href="mqf_pipeline_3bit_std.gif">GIF</a>
+        <a href="mqf_stats_3bit.html">HTML</a>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="thumb"><img src="mqf_pipeline_4bit_std.png" alt="4-bit std"></div>
+    <div class="info">
+      <h3>4-bit 标准模式</h3>
+      <p>16 状态 → 6 代表元。首次出现闭环态实例 (0101)</p>
+      <div class="tags"><span class="tag blue">轴心×2</span><span class="tag green">闭环×2</span><span class="tag orange">纠缠×2</span></div>
+      <div class="links">
+        <a href="mqf_pipeline_4bit_std.ttf">TTF</a>
+        <a href="mqf_pipeline_4bit_std.gif">GIF</a>
+        <a href="mqf_stats_4bit.html">HTML</a>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="thumb"><img src="mqf_pipeline_5bit_std.png" alt="5-bit std"></div>
+    <div class="info">
+      <h3>5-bit 标准模式</h3>
+      <p>32 状态 → 10 代表元。轨道分化加速，纠缠态占比增大</p>
+      <div class="tags"><span class="tag blue">轴心×3</span><span class="tag orange">纠缠×7</span></div>
+      <div class="links">
+        <a href="mqf_pipeline_5bit_std.ttf">TTF</a>
+        <a href="mqf_pipeline_5bit_std.gif">GIF</a>
+        <a href="mqf_stats_5bit.html">HTML</a>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="thumb"><img src="mqf_pipeline_6bit_std.png" alt="6-bit std"></div>
+    <div class="info">
+      <h3>6-bit 标准模式</h3>
+      <p>64 状态 → 20 代表元。全四类齐备：轴心+闭环+镜像+扩展</p>
+      <div class="tags"><span class="tag blue">轴心×3</span><span class="tag green">闭环×5</span><span class="tag purple">扩展×6</span></div>
+      <div class="links">
+        <a href="mqf_pipeline_6bit_std.ttf">TTF</a>
+        <a href="mqf_pipeline_6bit_std.gif">GIF</a>
+        <a href="mqf_stats_6bit.html">HTML</a>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="thumb"><img src="mqf_pipeline_6bit_ext.png" alt="6-bit ext"></div>
+    <div class="info">
+      <h3>6-bit 扩展模式 (ROT)</h3>
+      <p>加入循环移位生成元 → 轨道合并 → 仅 8 代表元</p>
+      <div class="tags"><span class="tag purple">扩展×4</span><span class="tag blue">轴心×4</span></div>
+      <div class="links">
+        <a href="mqf_pipeline_6bit_ext.ttf">TTF</a>
+        <a href="mqf_pipeline_6bit_ext.gif">GIF</a>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="thumb"><img src="mqf_pipeline_8bit_std.png" alt="8-bit std"></div>
+    <div class="info">
+      <h3>8-bit 标准模式</h3>
+      <p>256 状态 → 72 代表元。纠缠主导态 (87.5%)，轴向稳定态 16 例</p>
+      <div class="tags"><span class="tag orange">纠缠×58</span><span class="tag blue">轴心×8</span><span class="tag green">闭环×6</span></div>
+      <div class="links">
+        <a href="mqf_pipeline_8bit_std.ttf">TTF</a>
+        <a href="mqf_pipeline_8bit_std.gif">GIF</a>
+        <a href="mqf_stats_8bit.html">HTML</a>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<section id="flow">
+<h2>统一执行流程</h2>
+<p class="desc">单条命令完成 相位1→2→2.5→3→4→5 五阶段闭环</p>
+<div class="pipeline-flow">
+<div class="flow-row">
+  <div class="flow-box phase">Phase 1<br><small>群轨道枚举</small></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-box phase">Phase 2<br><small>TTF 字节生成</small></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-box phase">Phase 2.5<br><small>持久化 + 渲染</small></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-box phase">Phase 3<br><small>时间触发执行</small></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-box phase">Phase 4<br><small>态势感知</small></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-box phase">Phase 5<br><small>HTML 浏览器</small></div>
+</div>
+<div class="flow-arrow">═══════════════════════════════════════════════════════════════════════════════</div>
+<div class="flow-row">
+  <div class="flow-box ok">分类 + 代表元</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-box ok">MCOD 表 + Fridge 装载</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-box ok">TTF·PNG·GIF 三文件</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-box ok">Z 窗口裁决 ADMIT</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-box ok">距离矩阵 + 聚类</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-box ok">自包含 HTML 浏览器</div>
+</div>
+</div>
+</section>
+
+<section id="hanzi">
+<h2>汉字直驱容器编码</h2>
+<p class="desc">bypass UTF-8 · 笔画 → 容器 · 不经数学进制翻译层</p>
+<div class="char-section">
+<div class="hanzi">囡 囝 共 生</div>
+<p class="label">囡囝共生 · 满全法核心</p>
+<div style="margin-top:20px;display:flex;justify-content:center;gap:32px;flex-wrap:wrap;font-size:13px;color:var(--dim)">
+  <div><b style="color:#fff">囡</b> 6画 · 容器: 桶+盒+袋³+罐 · 极性:阴</div>
+  <div><b style="color:#fff">囝</b> 6画 · 容器: 桶²+盒+袋²+盎 · 极性:阴</div>
+  <div><b style="color:#fff">共</b> 6画 · 容器: 袋²+桶+罐+盆+盂 · 极性:阴</div>
+  <div><b style="color:#fff">生</b> 5画 · 容器: 袋³+桶+罐 · 极性:阳</div>
+</div>
+<div style="margin-top:16px">
+  <a href="radix_hanzi_njsg.html" style="color:var(--accent);font-size:13px;text-decoration:none;padding:6px 14px;border:1px solid var(--border);border-radius:6px">查看完整汉字容器编码浏览器 →</a>
+</div>
+</div>
+
+<h2 style="margin-top:32px">状态分类</h2>
+<p class="desc">由群轨道结构分类：生成元 {NOT, REV} 在状态空间 {0,1}^N 上作用，轨道大小决定分类</p>
+<div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr))">
+  <div class="card">
+    <div class="info">
+      <h3 style="color:var(--blue)">轴心容器态</h3>
+      <p>轨道大小=2，稳定子含 REV<br>状态=镜像(自身对称)<br>几何: 轴对称(球体)<br>语义: COUPLE 夫妻共生</p>
+      <div class="tags"><span class="tag blue">字节布局 [16,X,Z,Y]</span></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="info">
+      <h3 style="color:var(--green)">闭环态</h3>
+      <p>轨道大小=2，稳定子含 NOT∘REV<br>状态=反回文<br>几何: 闭环曲面(环面)<br>语义: YIN_YANG 阴阳闭环</p>
+      <div class="tags"><span class="tag green">仅偶数 N 存在</span></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="info">
+      <h3 style="color:var(--orange)">镜像纠缠态</h3>
+      <p>轨道大小=4，{I,NOT,REV,NOT∘REV}<br>四态共生，单一不完整<br>几何: 四方纠缠(四面体)<br>语义: HOMOPHONE 谐音纠缠</p>
+      <div class="tags"><span class="tag orange">占大多数位宽的 ~85%</span></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="info">
+      <h3 style="color:var(--purple)">扩展纠缠态</h3>
+      <p>轨道>4 (加入 ROT 生成元后)<br>更大轨道，混沌展开<br>几何: 多面混沌结构<br>语义: EXTENDED 扩展编码</p>
+      <div class="tags"><span class="tag purple">扩展模式专属</span></div>
+    </div>
+  </div>
+</div>
+</section>
+
+<section id="verify">
+<h2>验证矩阵</h2>
+<p class="desc">每个位宽全部 6 项验证通过</p>
+<div style="overflow-x:auto">
+<table style="width:100%;border-collapse:collapse;font-size:13px;background:var(--card);border-radius:8px;overflow:hidden">
+<thead><tr>
+<th style="padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);color:var(--accent)">验证项</th>
+<th style="padding:10px 14px;border-bottom:1px solid var(--border)">含义</th>
+<th style="padding:10px 14px;border-bottom:1px solid var(--border);color:var(--green)">状态</th>
+</tr></thead>
+<tbody>
+<tr><td style="padding:10px 14px;border-bottom:1px solid var(--border)">[全息性]</td><td style="padding:10px 14px;border-bottom:1px solid var(--border)">Z轴+1 → 地址差=1 · 位级连续</td><td style="padding:10px 14px;border-bottom:1px solid var(--border);color:var(--green)">✓</td></tr>
+<tr><td style="padding:10px 14px;border-bottom:1px solid var(--border)">[编解码]</td><td style="padding:10px 14px;border-bottom:1px solid var(--border)">(x,y,z) → addr → (x,y,z) 互逆</td><td style="padding:10px 14px;border-bottom:1px solid var(--border);color:var(--green)">✓</td></tr>
+<tr><td style="padding:10px 14px;border-bottom:1px solid var(--border)">[完备性]</td><td style="padding:10px 14px;border-bottom:1px solid var(--border)">分类合计 = 总数 · 穷尽</td><td style="padding:10px 14px;border-bottom:1px solid var(--border);color:var(--green)">✓</td></tr>
+<tr><td style="padding:10px 14px;border-bottom:1px solid var(--border)">[字体闭环]</td><td style="padding:10px 14px;border-bottom:1px solid var(--border)">分类代表元 = MCOD 条目</td><td style="padding:10px 14px;border-bottom:1px solid var(--border);color:var(--green)">✓</td></tr>
+<tr><td style="padding:10px 14px;border-bottom:1px solid var(--border)">[字体裁决]</td><td style="padding:10px 14px;border-bottom:1px solid var(--border)">首个容器 TriuneJudge → ADMIT</td><td style="padding:10px 14px;border-bottom:1px solid var(--border);color:var(--green)">✓</td></tr>
+<tr><td style="padding:10px 14px">[空袋]</td><td style="padding:10px 14px">pack_id=0xFFFF → REJECT</td><td style="padding:10px 14px;color:var(--green)">✓</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<section>
+<h2>运行命令</h2>
+<pre style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:20px;font-size:13px;color:var(--fg);overflow-x:auto">
+<span style="color:var(--dim"># 编译</span>
+cargo build --release --bin pipeline
+
+<span style="color:var(--dim"># 运行指定位宽</span>
+./target/release/pipeline 6        <span style="color:var(--dim"># 6-bit 标准模式</span>
+./target/release/pipeline 8        <span style="color:var(--dim"># 8-bit 标准模式</span>
+./target/release/pipeline 4 ext    <span style="color:var(--dim"># 4-bit 扩展模式 (NOT+REV+ROT)</span>
+
+<span style="color:var(--dim"># 产出文件在 docs/ 目录</span>
+<span style="color:var(--dim"># mqf_pipeline_&lt;N&gt;bit_&lt;mode&gt;.ttf    — 真实 TrueType 字体</span>
+<span style="color:var(--dim"># mqf_pipeline_&lt;N&gt;bit_&lt;mode&gt;.png    — 视觉样张</span>
+<span style="color:var(--dim"># mqf_pipeline_&lt;N&gt;bit_&lt;mode&gt;.gif    — 时序动画</span>
+<span style="color:var(--dim"># mqf_stats_&lt;N&gt;bit.html              — 统计浏览器</span>
+</pre>
+</section>
+
+<footer>
+满全法 · 囡囝共生 (NJSG) · container=font=time · lolict + 刘楚恬<br>
+<small>此页面由 pipeline Phase 5 自动生成 · 三系统统一流水线闭环演示</small>
+</footer>
+
+</body></html>
