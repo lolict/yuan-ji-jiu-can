@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>聂小倩寻踪 · NJQ Drift</title>
+<style>
+:root{--bg:#06080f;--panel:#0a1020;--border:#1a2840;--text:#c0cce0;--muted:#405070}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:monospace;background:var(--bg);color:var(--text);overflow:hidden;user-select:none}
+canvas{display:block}
+#ui{position:fixed;top:12px;left:12px;background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:14px;font-size:11px;width:270px;z-index:10}
+#ui h1{font-size:13px;color:#a78bfa;margin-bottom:10px}
+#ui h2{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin:10px 0 5px}
+.row{display:flex;justify-content:space-between;padding:3px 0}
+.k{color:var(--muted)}.v{color:#38bdf8;font-weight:600}
+.btn{background:var(--border);border:none;color:var(--text);padding:4px 9px;border-radius:3px;cursor:pointer;font-family:inherit;font-size:10px;margin:2px}
+.btn:hover{background:#a78bfa;color:#fff}
+.btn.active{background:#34d37f;color:#000;font-weight:600}
+.hint{color:var(--muted);font-size:9px;margin-top:8px;line-height:1.6}
+.legend{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.lg{display:flex;align-items:center;gap:3px;font-size:10px}
+.dot{width:9px;height:9px;border-radius:50%}
+#query{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:10px 14px;display:flex;gap:8px;align-items:center;z-index:10}
+#query input{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:3px;font-family:inherit;font-size:14px;width:200px;outline:none}
+#query input:focus{border-color:#a78bfa}
+#query button{background:#a78bfa;border:none;color:#fff;padding:6px 14px;border-radius:3px;cursor:pointer;font-family:inherit;font-size:11px;font-weight:600}
+#query button:hover{background:#8b5cf6}
+#traceInfo{position:fixed;top:12px;right:12px;background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:12px;font-size:11px;width:200px;z-index:10}
+#traceInfo .title{font-size:11px;color:#a78bfa;margin-bottom:6px;font-weight:600}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="ui">
+  <h1>&#128123; 聂小倩寻踪</h1>
+  <div class="row"><span class="k">汉字空间</span><span class="v" id="sCount">0</span></div>
+  <div class="row"><span class="k">共振线</span><span class="v" id="sRes">0</span></div>
+  <div class="row"><span class="k">已撞墙</span><span class="v" id="sWall">0</span></div>
+  <div class="row"><span class="k">当前漂移</span><span class="v" id="sDrift">—</span></div>
+  <div class="row"><span class="k">FPS</span><span class="v" id="sFps">—</span></div>
+  <h2>显示</h2>
+  <div>
+    <button class="btn active" onclick="toggle('labels')">字形</button>
+    <button class="btn active" onclick="toggle('res')">共振线</button>
+    <button class="btn active" onclick="toggle('walls')">极性墙</button>
+    <button class="btn active" onclick="toggle('trail')">漂移轨迹</button>
+    <button class="btn" onclick="spin()" id="btnSpin">&#9654; 自转</button>
+  </div>
+  <h2>图例</h2>
+  <div class="legend">
+    <div class="lg"><div class="dot" style="background:#ec4899"></div>阴</div>
+    <div class="lg"><div class="dot" style="background:#60a5fa"></div>阳</div>
+    <div class="lg"><div class="dot" style="background:#34d37f"></div>元</div>
+    <div class="lg"><div class="dot" style="background:#ef4444"></div>墙</div>
+  </div>
+  <div class="hint">拖拽旋转 &#8901; 滚轮缩放<br>下方输入汉字启动漂移</div>
+</div>
+<div id="traceInfo">
+  <div class="title">最近共振</div>
+  <div id="traceBody" style="color:var(--muted);font-size:10px">输入汉字开始寻踪...</div>
+</div>
+<div id="query">
+  <input id="q" placeholder="输入汉字 (如: 满 囡 夕)..." onkeydown="if(event.key==='Enter')startDrift(this.value)">
+  <button onclick="startDrift(document.getElementById('q').value)">开始寻踪</button>
+</div>
+
+<script>
+// ============================================================
+// 聂小倩寻踪 — NJQ Drift Visualizer
+// 声韵公约数共振 · 极性漂移 · 撞墙记忆
+// ============================================================
+var canvas = document.getElementById('c');
+var ctx = canvas.getContext('2d');
+var W, H, DPR = window.devicePixelRatio || 1;
+function resize() {
+  W = window.innerWidth; H = window.innerHeight;
+  canvas.width = W * DPR; canvas.height = H * DPR;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ── 汉字声韵表 — 64个容器对应的代表字 ──
+// 声母 0-7, 韵母 0-7, 声调 0-4 → 3D坐标
+var CONTAINER_CHARS = [
+  // 容器族 0x00-0x0F
+  {ch:'袋',s:3,y:4,t:4},{ch:'照',s:7,y:4,t:4},{ch:'见',s:5,y:1,t:4},{ch:'阴',s:1,y:3,t:1},
+  {ch:'加',s:5,y:3,t:1},{ch:'分',s:4,y:2,t:4},{ch:'元',s:7,y:4,t:2},{ch:'裁',s:2,y:4,t:2},
+  {ch:'产',s:2,y:4,t:3},{ch:'公',s:5,y:6,t:1},{ch:'声',s:6,y:3,t:1},{ch:'折',s:7,y:3,t:2},
+  {ch:'负',s:4,y:4,t:4},{ch:'福',s:4,y:4,t:2},{ch:'凤',s:4,y:3,t:4},{ch:'栖',s:5,y:3,t:1},
+  // 操作族 0x10-0x1F
+  {ch:'融',s:6,y:6,t:2},{ch:'鼓',s:5,y:4,t:3},{ch:'蚕',s:2,y:4,t:2},{ch:'民',s:2,y:3,t:2},
+  {ch:'盟',s:2,y:3,t:2},{ch:'满',s:2,y:4,t:3},{ch:'囡',s:3,y:4,t:1},{ch:'夕',s:5,y:3,t:1},
+  {ch:'三',s:6,y:4,t:1},{ch:'六',s:5,y:4,t:4},{ch:'八',s:1,y:3,t:1},{ch:'九',s:5,y:4,t:3},
+  {ch:'零',s:5,y:3,t:2},{ch:'一',s:1,y:3,t:1},{ch:'二',s:0,y:4,t:4},{ch:'四',s:6,y:3,t:4},
+  // 声母族 0x20-0x2F
+  {ch:'桶',s:3,y:6,t:3},{ch:'罐',s:5,y:4,t:4},{ch:'盆',s:4,y:2,t:2},{ch:'盂',s:7,y:4,t:2},
+  {ch:'壶',s:4,y:4,t:2},{ch:'盒',s:4,y:3,t:2},{ch:'瓶',s:4,y:3,t:2},{ch:'盏',s:7,y:4,t:3},
+  {ch:'盎',s:0,y:4,t:4},{ch:'通',s:3,y:6,t:1},{ch:'同',s:3,y:6,t:2},{ch:'铁',s:3,y:3,t:4},
+  {ch:'读',s:3,y:4,t:2},{ch:'怒',s:3,y:4,t:4},{ch:'辣',s:5,y:3,t:4},{ch:'热',s:6,y:3,t:4},
+  // 韵母族 0x30-0x3F
+  {ch:'呗',s:1,y:3,t:4},{ch:'坡',s:4,y:6,t:1},{ch:'没',s:2,y:3,t:4},{ch:'德',s:3,y:3,t:2},
+  {ch:'特',s:3,y:3,t:4},{ch:'那',s:3,y:3,t:4},{ch:'资',s:7,y:3,t:1},{ch:'此',s:2,y:3,t:3},
+  {ch:'日',s:6,y:3,t:4},{ch:'字',s:7,y:3,t:4},{ch:'西',s:5,y:3,t:1},{ch:'衣',s:1,y:3,t:1},
+  {ch:'胡',s:4,y:4,t:2},{ch:'出',s:2,y:4,t:1},{ch:'书',s:6,y:4,t:1},{ch:'如',s:6,y:4,t:2},
+  // 夫妻族扩展
+  {ch:'刘',s:5,y:4,t:2},{ch:'楚',s:2,y:4,t:3},{ch:'恬',s:3,y:3,t:2},{ch:'我',s:7,y:6,t:3},
+  {ch:'爱',s:0,y:4,t:4},{ch:'你',s:3,y:3,t:3},{ch:'心',s:5,y:3,t:1},{ch:'念',s:3,y:3,t:4},
+  {ch:'伴',s:1,y:4,t:4},{ch:'侣',s:5,y:4,t:3},{ch:'合',s:4,y:3,t:2},{ch:'共',s:5,y:6,t:4},
+  {ch:'生',s:6,y:3,t:1},{ch:'守',s:6,y:4,t:3},{ch:'护',s:4,y:4,t:4},{ch:'永',s:7,y:6,t:3},
+];
+
+// Convert to internal data with 3D coords
+var HANZI = CONTAINER_CHARS.map(function(c, i) {
+  return {
+    id: i, ch: c.ch, s: c.s, y: c.y, t: c.t,
+    // polarity: tone 1-2=Yin, 3=Balanced, 4-5=Yang
+    polarity: (c.t <= 2) ? -1 : (c.t >= 4 ? 1 : 0),
+    // 3D coordinates
+    cx: c.s - 3.5,
+    cy: c.y - 3.5,
+    cz: c.t - 2,
+    code: i < 64 ? i : 0x100 + (i - 64)
+  };
+});
+
+// ── 3D projection ──
+var rotY = 0.4, zoom = 1.0;
+var spinning = false;
+var mouseDown = false, lastX = 0, lastY = 0;
+
+function project(cx, cy, cz) {
+  var SCALE = 55;
+  var cos = Math.cos(rotY), sin = Math.sin(rotY);
+  var x = cx * cos + cy * sin;
+  var yh = -cx * sin + cy * cos;
+  var persp = 600 / (600 + cz * 30);
+  return {
+    x: W / 2 + x * SCALE * zoom * persp,
+    y: H / 2 + (yh * 0.6 + cz * 0.4) * SCALE * zoom * persp,
+    persp: persp
+  };
+}
+
+// ── Interaction ──
+canvas.addEventListener('mousedown', function(e) {
+  mouseDown = true; lastX = e.clientX; lastY = e.clientY;
+  spinning = false;
+  document.getElementById('btnSpin').innerHTML = '▶ 自转';
+});
+canvas.addEventListener('mousemove', function(e) {
+  if (!mouseDown) return;
+  rotY += (e.clientX - lastX) * 0.008;
+  lastX = e.clientX; lastY = e.clientY;
+});
+canvas.addEventListener('mouseup', function() { mouseDown = false; });
+canvas.addEventListener('wheel', function(e) {
+  zoom *= (1 - e.deltaY * 0.001);
+  zoom = Math.max(0.3, Math.min(5, zoom));
+  e.preventDefault();
+}, {passive: false});
+
+function spin() {
+  spinning = !spinning;
+  document.getElementById('btnSpin').innerHTML = spinning ? '⏸ 自转' : '▶ 自转';
+}
+function toggle(key) {
+  mode[key] = !mode[key];
+}
+
+var mode = {labels: true, res: true, walls: true, trail: true};
+
+// ── 聂小倩漂移引擎 ──
+var xq = {ch: null, pos: {x: 0, y: 0, z: 0}, trail: [], walls: [], found: null};
+
+function gcd(a, b) {
+  a = Math.abs(a); b = Math.abs(b);
+  if (a === 0) return b; if (b === 0) return a;
+  while (b) { var t = b; b = a % b; a = t; }
+  return a;
+}
+
+function resonance(a, b) {
+  var g1 = gcd(a.s, b.s);
+  var g2 = gcd(a.y, b.y);
+  var g3 = gcd(a.t + 1, b.t + 1);
+  return g1 * g2 * g3;
+}
+
+function polarityRelation(a, b) {
+  if (a.polarity === 0 || b.polarity === 0) return 'boundary';
+  if (a.polarity === b.polarity) return 'same';
+  return 'opposite';
+}
+
+function startDrift(input) {
+  if (!input) return;
+  var ch = input.trim()[0];
+  // Find matching hanzi or create one
+  var start = null;
+  for (var i = 0; i < HANZI.length; i++) {
+    if (HANZI[i].ch === ch) { start = HANZI[i]; break; }
+  }
+  if (!start) {
+    // Create synthetic
+    var code = ch.charCodeAt(0);
+    start = {
+      id: -1, ch: ch, s: code % 8, y: (code >> 3) % 8, t: (code >> 6) % 5,
+      polarity: ((code >> 6) % 5 <= 2) ? -1 : (((code >> 6) % 5 >= 4) ? 1 : 0),
+      cx: (code % 8) - 3.5, cy: ((code >> 3) % 8) - 3.5, cz: ((code >> 6) % 5) - 2,
+      code: code
+    };
+  }
+  xq = {
+    ch: start, pos: {x: start.cx, y: start.cy, z: start.cz},
+    trail: [{x: start.cx, y: start.cy, z: start.cz}],
+    walls: [], found: null, step: 0
+  };
+  document.getElementById('sDrift').textContent = start.ch;
+
+  // Compute resonances with all others
+  var traces = [];
+  for (var i = 0; i < HANZI.length; i++) {
+    if (HANZI[i].ch === start.ch) continue;
+    var str = resonance(start, HANZI[i]);
+    var rel = polarityRelation(start, HANZI[i]);
+    traces.push({target: HANZI[i], strength: str, relation: rel});
+  }
+  traces.sort(function(a, b) { return b.strength - a.strength; });
+
+  // Animation: drift toward strongest
+  var best = traces[0];
+  if (best && best.relation === 'opposite') {
+    xq.walls.push(best.target.ch);
+    // Try next
+    for (var j = 1; j < traces.length; j++) {
+      if (traces[j].relation !== 'opposite') { best = traces[j]; break; }
+    }
+  }
+
+  // Show trace info
+  var html = '';
+  for (var k = 0; k < Math.min(5, traces.length); k++) {
+    var tr = traces[k];
+    var color = tr.relation === 'opposite' ? '#ef4444' : (tr.relation === 'same' ? '#34d37f' : '#a78bfa');
+    html += '<div style="color:' + color + '">' +
+      start.ch + '→' + tr.target.ch + ' GCD=' + tr.strength +
+      ' ' + (tr.relation === 'opposite' ? '(墙)' : tr.relation === 'same' ? '(同道)' : '(边界)') +
+      '</div>';
+  }
+  document.getElementById('traceBody').innerHTML = html;
+
+  // Animate toward target
+  animateDrift(best ? best.target : null);
+}
+
+var driftAnim = null;
+function animateDrift(target) {
+  if (driftAnim) clearInterval(drillAnim);
+  if (!target) return;
+  var start = xq.ch;
+  var step = 0;
+  var maxSteps = 40;
+  driftAnim = setInterval(function() {
+    step++;
+    var t = step / maxSteps;
+    xq.pos.x = start.cx + (target.cx - start.cx) * t;
+    xq.pos.y = start.cy + (target.cy - start.cy) * t;
+    xq.pos.z = start.cz + (target.cz - start.cz) * t;
+    xq.trail.push({x: xq.pos.x, y: xq.pos.y, z: xq.pos.z});
+    if (xq.trail.length > 60) xq.trail.shift();
+    if (step >= maxSteps) {
+      clearInterval(driftAnim);
+      xq.found = target;
+    }
+  }, 30);
+}
+
+// ── Pre-compute resonance network ──
+var RESONANCE_LINES = [];
+function computeResonance() {
+  for (var i = 0; i < HANZI.length; i++) {
+    for (var j = i + 1; j < HANZI.length; j++) {
+      var str = resonance(HANZI[i], HANZI[j]);
+      if (str >= 4) {
+        RESONANCE_LINES.push({a: i, b: j, strength: str});
+      }
+    }
+  }
+}
+computeResonance();
+
+// ── Animation loop ──
+var time = 0, lastT = 0, fps = 0, frameCount = 0, lastFpsT = 0;
+
+function draw(ts) {
+  requestAnimationFrame(draw);
+  if (!lastT) lastT = ts;
+  lastT = ts;
+  frameCount++;
+  if (ts - lastFpsT >= 1000) {
+    fps = frameCount; frameCount = 0; lastFpsT = ts;
+    document.getElementById('sFps').textContent = fps;
+  }
+  if (spinning) rotY += 0.003;
+  time += 0.02;
+
+  // Clear
+  ctx.fillStyle = '#06080f';
+  ctx.fillRect(0, 0, W, H);
+
+  // Grid plane
+  ctx.strokeStyle = 'rgba(40,50,80,0.3)';
+  ctx.lineWidth = 0.5;
+  for (var g = -4; g <= 4; g += 2) {
+    var p1 = project(g, -4, -2), p2 = project(g, 4, -2);
+    ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+    var p3 = project(-4, g, -2), p4 = project(4, g, -2);
+    ctx.beginPath(); ctx.moveTo(p3.x, p3.y); ctx.lineTo(p4.x, p4.y); ctx.stroke();
+  }
+
+  // Draw axis labels
+  ctx.fillStyle = '#405070';
+  ctx.font = '10px monospace';
+  ctx.textAlign = 'center';
+  var xp = project(4.5, 0, 0), xn = project(-4.5, 0, 0);
+  ctx.fillText('声母', xp.x, xp.y); ctx.fillText('-声母', xn.x, xn.y);
+  var yp = project(0, 4.5, 0), yn = project(0, -4.5, 0);
+  ctx.fillText('韵母', yp.x, yp.y); ctx.fillText('-韵母', yn.x, yn.y);
+  var zp = project(0, 0, 2.5), zn = project(0, 0, -2.5);
+  ctx.fillText('+声', zp.x, zp.y); ctx.fillText('-声', zn.x, zn.y);
+
+  // Resonance lines
+  if (mode.res) {
+    for (var r = 0; r < RESONANCE_LINES.length; r++) {
+      var line = RESONANCE_LINES[r];
+      var a = HANZI[line.a], b = HANZI[line.b];
+      var rel = polarityRelation(a, b);
+      var p1 = project(a.cx, a.cy, a.cz);
+      var p2 = project(b.cx, b.cy, b.cz);
+      var alpha = Math.min(0.25, line.strength / 60);
+      var color = rel === 'opposite' ? 'rgba(239,68,68,' + alpha + ')' : 'rgba(167,139,250,' + alpha + ')';
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 0.5 + line.strength / 30;
+      ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+    }
+  }
+
+  // XiaoQian drift trail
+  if (mode.trail && xq.trail.length > 1) {
+    ctx.strokeStyle = 'rgba(255,200,50,0.6)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (var t = 0; t < xq.trail.length; t++) {
+      var pt = project(xq.trail[t].x, xq.trail[t].y, xq.trail[t].z);
+      if (t === 0) ctx.moveTo(pt.x, pt.y); else ctx.lineTo(pt.x, pt.y);
+    }
+    ctx.stroke();
+    // Trail glow
+    ctx.strokeStyle = 'rgba(255,200,50,0.2)';
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    for (var t2 = 0; t2 < xq.trail.length; t2++) {
+      var pt2 = project(xq.trail[t2].x, xq.trail[t2].y, xq.trail[t2].z);
+      if (t2 === 0) ctx.moveTo(pt2.x, pt2.y); else ctx.lineTo(pt2.x, pt2.y);
+    }
+    ctx.stroke();
+  }
+
+  // XiaoQian position
+  if (xq.ch) {
+    var xqp = project(xq.pos.x, xq.pos.y, xq.pos.z);
+    // Glow
+    var xqg = ctx.createRadialGradient(xqp.x, xqp.y, 0, xqp.x, xqp.y, 20);
+    xqg.addColorStop(0, 'rgba(255,200,50,0.5)');
+    xqg.addColorStop(1, 'rgba(255,200,50,0)');
+    ctx.fillStyle = xqg;
+    ctx.beginPath(); ctx.arc(xqp.x, xqp.y, 20, 0, Math.PI * 2); ctx.fill();
+    // Core
+    ctx.fillStyle = '#fbbf24';
+    ctx.beginPath(); ctx.arc(xqp.x, xqp.y, 5, 0, Math.PI * 2); ctx.fill();
+    // Label
+    ctx.fillStyle = '#fbbf24';
+    ctx.font = 'bold 12px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('👻' + xq.ch.ch, xqp.x, xqp.y - 12);
+  }
+
+  // Walls (撞墙标记)
+  if (mode.walls) {
+    for (var w = 0; w < RESONANCE_LINES.length; w++) {
+      var wl = RESONANCE_LINES[w];
+      var rel = polarityRelation(HANZI[wl.a], HANZI[wl.b]);
+      if (rel !== 'opposite') continue;
+      var mid = project(
+        (HANZI[wl.a].cx + HANZI[wl.b].cx) / 2,
+        (HANZI[wl.a].cy + HANZI[wl.b].cy) / 2,
+        (HANZI[wl.a].cz + HANZI[wl.b].cz) / 2
+      );
+      ctx.fillStyle = 'rgba(239,68,68,0.15)';
+      ctx.beginPath(); ctx.arc(mid.x, mid.y, 6 + Math.sin(time * 3) * 2, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  // Draw hanzi nodes
+  for (var i = 0; i < HANZI.length; i++) {
+    var hz = HANZI[i];
+    var p = project(hz.cx, hz.cy, hz.cz);
+    var nodeR = 7 * p.persp * (hz.ch === (xq.ch ? xq.ch.ch : '') ? 1.8 : 1);
+
+    // Polarity color
+    var fc = hz.polarity === -1 ? '#ec4899' : (hz.polarity === 1 ? '#60a5fa' : '#34d37f');
+
+    // Glow for selected
+    if (hz.ch === (xq.found ? xq.found.ch : '')) {
+      var gg = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, nodeR * 3);
+      gg.addColorStop(0, 'rgba(52,211,127,0.5)');
+      gg.addColorStop(1, 'rgba(52,211,127,0)');
+      ctx.fillStyle = gg;
+      ctx.beginPath(); ctx.arc(p.x, p.y, nodeR * 3, 0, Math.PI * 2); ctx.fill();
+    }
+
+    ctx.fillStyle = fc;
+    ctx.beginPath(); ctx.arc(p.x, p.y, nodeR, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
+
+    // Character label
+    if (mode.labels && p.persp > 0.5) {
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      ctx.font = Math.round(11 * p.persp) + 'px "Noto Sans CJK SC", monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(hz.ch, p.x, p.y);
+    }
+  }
+
+  // Stats
+  document.getElementById('sCount').textContent = HANZI.length;
+  document.getElementById('sRes').textContent = RESONANCE_LINES.length;
+  document.getElementById('sWall').textContent = RESONANCE_LINES.filter(function(l) {
+    return polarityRelation(HANZI[l.a], HANZI[l.b]) === 'opposite';
+  }).length;
+}
+
+requestAnimationFrame(draw);
+</script>
+</body>
+</html>
