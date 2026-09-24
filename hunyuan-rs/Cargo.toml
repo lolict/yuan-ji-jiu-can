@@ -112,6 +112,10 @@ name = "ttf-sky"
 path = "src/bin/ttf_sky.rs"
 
 [[bin]]
+name = "lm"
+path = "src/bin/lm.rs"
+
+[[bin]]
 name = "state-enumerate"
 path = "src/bin/state_enumerate.rs"
 

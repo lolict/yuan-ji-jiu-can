@@ -340,6 +340,8 @@ pub mod subobject_classifier;
 pub mod call_programming;
 #[path = "core/parasite_engine.rs"]  // v0.73 自寄生引擎 — 心跳监控·自修复·蚕蛹·免疫响应
 pub mod parasite_engine;
+#[path = "core/fuxi_dictionary.rs"]  // v0.74 伏羲字典 — 汉字↔容器编码全表征查找
+pub mod fuxi_dictionary;
 // ── v0.66 运行环引擎 — 最小OS接口·鼓膜自举·八流心跳·编码在场·结束即开始 ──
 #[path = "core/runtime_loop.rs"]
 pub mod runtime_loop;
@@ -683,7 +685,12 @@ pub use logic_organizer::{LogicOrganizer, LogicStats, CausalGraph, CausalNode, C
                          PathSuperposition, InvocationStrategy,
                          organize, causal_sort};
 
-// ── v0.47 容器交互协议引擎 — 观察者路由·Need/Offer匹配·公约数共振 ──
+// ── v0.47 容器交互 — 满全法: 汉字相遇·公约数共振·极性=墙/共振/分界 ──
+#[path = "core/container_interact.rs"]
+pub mod container_interact;
+pub use container_interact::{
+    Essence, Polarity, InteractionMark, ContainerInteract,
+};
 #[path = "relation/container_interact.rs"]
 pub mod container_interact;
 pub use container_interact::{ContainerPort, InteractionMatch, InteractionEngine,
