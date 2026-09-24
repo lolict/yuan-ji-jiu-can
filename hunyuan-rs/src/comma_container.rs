@@ -13437,3 +13437,141 @@ mod pipeline_engine_tests {
         assert_eq!(p.stage_count(), 0);
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器表决引擎 · ContainerVoter (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   多裁决: 每个投票者对提案给出 0/1 信号, 仅加法计数
+//   裁决方式:
+//     - majority:    > N/2
+//     - unanimous:   == N
+//     - any:         ≥ 1
+//     - threshold(k): ≥ k 即通过
+//
+//   仅加法: yes_count +1, no_count +1, 比较 > <
+//   (N/2 用右移 >> 1)
+
+#[derive(Clone, Debug)]
+pub struct ContainerVoter {
+    pub yes_count: u64,
+    pub no_count: u64,
+    pub abstain: u64,
+    pub total_rounds: u64,
+    pub threshold: u64,     // 一次表决所需最低票数
+}
+
+impl ContainerVoter {
+    pub fn new(threshold: u64) -> Self {
+        Self { yes_count: 0, no_count: 0, abstain: 0, total_rounds: 0, threshold }
+    }
+
+    /// 投一票: true=yes, false=no
+    pub fn vote(&mut self, approve: bool) {
+        if approve { self.yes_count = self.yes_count + 1; }
+        else { self.no_count = self.no_count + 1; }
+    }
+
+    /// 弃权
+    pub fn abstain_vote(&mut self) { self.abstain = self.abstain + 1; }
+
+    /// 一轮表决的最终决议
+    pub fn tally(&self) -> VoterResult {
+        let total = self.yes_count + self.no_count;
+        if total == 0 { return VoterResult::QuorumFailed; }
+        if self.yes_count + self.yes_count > total { VoterResult::Approved }
+        else if self.yes_count >= self.threshold { VoterResult::ThresholdMet }
+        else { VoterResult::Rejected }
+    }
+
+    /// 是否一致通过
+    pub fn unanimous(&self) -> bool {
+        self.no_count == 0 && self.yes_count > 0
+    }
+
+    /// 是否任一通过
+    pub fn any_yes(&self) -> bool { self.yes_count > 0 }
+
+    pub fn total_cast(&self) -> u64 { self.yes_count + self.no_count + self.abstain }
+    pub fn record_round(&mut self) { self.total_rounds = self.total_rounds + 1; }
+
+    pub fn reset(&mut self) {
+        self.yes_count = 0; self.no_count = 0; self.abstain = 0;
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum VoterResult { Approved, Rejected, ThresholdMet, QuorumFailed }
+
+impl Default for ContainerVoter {
+    fn default() -> Self { Self::new(1) }
+}
+
+#[cfg(test)]
+mod voter_tests {
+    use super::*;
+
+    #[test]
+    fn test_unanimous() {
+        let mut v = ContainerVoter::new(1);
+        v.vote(true); v.vote(true);
+        assert!(v.unanimous());
+        assert_eq!(v.tally(), VoterResult::Approved);
+    }
+
+    #[test]
+    fn test_majority_reject() {
+        let mut v = ContainerVoter::new(5);
+        v.vote(false); v.vote(false); v.vote(true);
+        // total=3, yes=1: 1*2=2 ≤ 3 → not majority
+        assert_eq!(v.tally(), VoterResult::Rejected);
+    }
+
+    #[test]
+    fn test_threshold_met() {
+        let mut v = ContainerVoter::new(2);
+        v.vote(true); v.vote(true);
+        assert_eq!(v.tally(), VoterResult::Approved);  // also passes threshold
+    }
+
+    #[test]
+    fn test_quorum_failed() {
+        let v = ContainerVoter::new(3);
+        assert_eq!(v.tally(), VoterResult::QuorumFailed);
+    }
+
+    #[test]
+    fn test_any_yes() {
+        let mut v = ContainerVoter::new(10);
+        v.vote(false); v.vote(true); v.vote(false);
+        assert!(v.any_yes());
+    }
+
+    #[test]
+    fn test_reset() {
+        let mut v = ContainerVoter::new(1);
+        v.vote(true); v.vote(false);
+        v.reset();
+        assert_eq!(v.total_cast(), 0);
+    }
+
+    #[test]
+    fn test_record_round() {
+        let mut v = ContainerVoter::new(1);
+        v.record_round(); v.record_round();
+        assert_eq!(v.total_rounds, 2);
+    }
+
+    #[test]
+    fn test_total_cast() {
+        let mut v = ContainerVoter::new(1);
+        v.vote(true); v.vote(false); v.abstain_vote();
+        assert_eq!(v.total_cast(), 3);
+    }
+
+    #[test]
+    fn test_default() {
+        let v = ContainerVoter::default();
+        assert_eq!(v.threshold, 1);
+    }
+}
