@@ -550,24 +550,25 @@ fn main() {
         input.to_string()
     };
 
+    let input_str: &str = &input;
     let out = if atlas_mode {
         encode_atlas()
     } else if smrl_mode {
-        encode_smrl(input)
+        encode_smrl(input_str)
     } else if json_mode {
-        encode_json(input)
+        encode_json(input_str)
     } else if state_mode {
-        encode_state(input)
+        encode_state(input_str)
     } else if verify_mode {
-        encode_verify(input)
+        encode_verify(input_str)
     } else if boot_mode {
-        encode_boot(input)
+        encode_boot(input_str)
     } else if meta_mode {
-        encode_meta(input)
+        encode_meta(input_str)
     } else if compose_mode {
-        encode_compose(input)
+        encode_compose(input_str)
     } else if tree_mode {
-        encode_tree(input)
+        encode_tree(input_str)
     } else if fold_mode {
         let combined = if let Some(ref a2) = fold_arg2 {
             format!("{} {}", input, a2)
@@ -576,15 +577,15 @@ fn main() {
         };
         encode_fold(&combined)
     } else if reverse_mode {
-        encode_reverse(input)
+        encode_reverse(input_str)
     } else if batch_mode {
-        encode_batch(input)
+        encode_batch(input_str)
     } else if export_mode {
-        encode_export(input)
+        encode_export(input_str)
     } else if html_mode {
-        encode_html(input)
+        encode_html(input_str)
     } else {
-        encode_phrase(input)
+        encode_phrase(input_str)
     };
 
     if let Some(path) = output_file {
@@ -1195,7 +1196,7 @@ fn encode_meta(input: &str) -> String {
 }
 
 fn all_contains<'a>(vec: &[&'a str], item: &'a str) -> bool {
-    vec.iter().any(|x| **x == item)
+    vec.iter().any(|x| *x == item)
 }
 
 fn encode_atlas() -> String {

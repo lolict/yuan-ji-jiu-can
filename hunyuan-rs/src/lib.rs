@@ -935,6 +935,11 @@ pub use tympanic_bootstrap::{
     Oscillator, TympanicMembrane, BootstrapEngine, SystemPulse,
 };
 
+// ── v0.61 汉字星场引擎 — 汉字星空·星路=公约数·孤立星=虚空(满全法) ──
+#[path = "core/radical_star_map.rs"]
+pub mod hanzi_starmap;
+pub use hanzi_starmap::{Radical as HanziRadical, StarMap};
+
 // ── v0.59 聂小倩·本质匹配引擎 — 游魂寻踪·公约数共振·撞墙回退 ──
 #[path = "core/njq_matching.rs"]
 pub mod njq_matching;
