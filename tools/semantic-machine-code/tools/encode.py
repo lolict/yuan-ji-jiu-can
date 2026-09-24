@@ -362,8 +362,16 @@ def _encode_x86_64(semantic_id, operands, mappings, registers):
         imm = _parse_operand(operands[1], {})[1]
         rex_b = dst_rex
         out.append(0x48 | (1 if rex_b else 0))
-        out.append(int(fixed_parts[1], 16))
-        # 取 /digit 信息
+        # 解析固定部分中的真实 opcode（跳过 /digit 后缀）
+        opcode_byte = None
+        for part in fixed_parts:
+            s = part.strip()
+            if "/" in s and s.startswith("0x"):
+                opcode_byte = int(s.split("/")[0], 16)
+                break
+        if opcode_byte is None:
+            opcode_byte = int(fixed_parts[1], 16)
+        out.append(opcode_byte)
         digit = mappings.get("digit_fields", {}).get(inst["opkey"], 0)
         out.append(_make_modrm(0b11, digit, dst_num))
         out.extend(imm.to_bytes(4, 'little', signed=True))
