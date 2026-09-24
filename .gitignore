@@ -42,6 +42,8 @@ encoding/bag_bare
 encoding/bag_bare.c
 encoding/bag_bare_host
 encoding/bag_bare.o
+encoding/bag_h7
+encoding/bag_h7.c
 zig-stem/*.elf
 tools/**/phonetic_encoding_demo
 cognition_os/emotion_system
