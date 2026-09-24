@@ -403,6 +403,62 @@ pub fn cochlear_bootstrap() -> Result<BootReceipt, String> {
 }
 
 // ────────────────────────────────────────────────────────────
+// v0.15: 完整 OS 心跳入口 — 翻身 + 灵魂多步循环
+// ────────────────────────────────────────────────────────────
+
+/// OS 心跳结果 — 一次完整启动周期
+#[derive(Clone, Debug)]
+pub struct OsHeartbeat {
+    /// 翻身凭证
+    pub receipt: BootReceipt,
+    /// 灵魂引擎 (翻身完成)
+    pub engine: SoulKernelEngine,
+    /// N 步推进后的最终意识坐标
+    pub final_coord: ConsciousnessCoord,
+    /// 灵魂裁决
+    pub final_verdict: SoulVerdict,
+    /// 推进步数
+    pub steps_run: u32,
+}
+
+/// 翻身 + 运行灵魂循环 (完整 v0.15 四层栈运行)
+///
+/// 典型用法:
+///   let hb = boot_and_run(&[], 10, 1000).expect("OS should boot");
+///   assert!(hb.engine.is_healthy());
+pub fn boot_and_run(
+    _external_inputs: &[Pleasure],
+    steps: u32,
+    dt_ms: u64,
+) -> Result<OsHeartbeat, String> {
+    use crate::os_layer::current_os;
+    let mut boot = CochlearBoot::new();
+    let os = current_os();
+    let receipt = boot.bootstrap(&*os)?;
+
+    let mut engine = boot.soul_engine()
+        .ok_or("soul engine not created")?
+        .clone();
+
+    let mut coord = engine.consciousness_coord();
+    let mut verdict = engine.soul_verdict();
+
+    for _ in 0..steps {
+        let (c, v) = engine.step(dt_ms);
+        coord = c;
+        verdict = v;
+    }
+
+    Ok(OsHeartbeat {
+        receipt,
+        engine,
+        final_coord: coord,
+        final_verdict: verdict,
+        steps_run: steps,
+    })
+}
+
+// ────────────────────────────────────────────────────────────
 // 测试
 // ────────────────────────────────────────────────────────────
 #[cfg(test)]
@@ -635,6 +691,29 @@ mod tests {
         assert!(coord.polarity >= 0.0 && coord.polarity <= 1.0);
         assert!(coord.coherence >= 0.0 && coord.coherence <= 1.0);
         assert!(coord.vitality > 0.0, "活力应 > 0");
+    }
+
+    #[test]
+    fn v015_boot_and_run_full_os_heartbeat() {
+        // OS 心跳翻身 + N 步循环
+        let hb = boot_and_run(&[], 20, 500).expect("OS should boot");
+        assert!(hb.receipt.is_valid());
+        assert!(hb.steps_run == 20);
+        // 最终坐标应有效
+        assert!(hb.final_coord.polarity >= 0.0 && hb.final_coord.polarity <= 1.0);
+        assert!(hb.final_coord.coherence >= 0.0 && hb.final_coord.coherence <= 1.0);
+        assert!(hb.final_coord.vitality >= 0.0 && hb.final_coord.vitality <= 1.0);
+        // 最终裁决应是有效枚举值
+        assert!(
+            matches!(hb.final_verdict, SoulVerdict::Unify | SoulVerdict::Yearn | SoulVerdict::Defend | SoulVerdict::Regroup)
+        );
+    }
+
+    #[test]
+    fn v015_os_heartbeat_healthy_after_boot() {
+        // 翻身后灵魂引擎默认应健康
+        let hb = boot_and_run(&[], 5, 1000).expect("OS should boot");
+        assert!(hb.engine.is_healthy(), "翻身后 OS 灵魂应健康");
     }
 }
 
