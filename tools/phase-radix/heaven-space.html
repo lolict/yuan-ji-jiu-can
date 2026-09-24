@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>天庭空间 · Heaven Space</title>
+<style>
+:root{--bg:#04060e;--panel:#0a1020;--border:#1a2840;--text:#c0cce0;--muted:#405070}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:monospace;background:var(--bg);color:var(--text);overflow:hidden;user-select:none}
+canvas{display:block}
+#ui{position:fixed;top:12px;left:12px;background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:14px;font-size:11px;width:260px;z-index:10}
+#ui h1{font-size:13px;color:#a78bfa;margin-bottom:10px}
+#ui h2{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin:10px 0 5px}
+.row{display:flex;justify-content:space-between;padding:3px 0}
+.k{color:var(--muted)}.v{color:#38bdf8;font-weight:600}
+.legend{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px}
+.lg{display:flex;align-items:center;gap:3px;font-size:10px}
+.dot{width:9px;height:9px;border-radius:50%}
+.btn{background:var(--border);border:none;color:var(--text);padding:4px 9px;border-radius:3px;cursor:pointer;font-family:inherit;font-size:10px;margin:2px}
+.btn:hover{background:#a78bfa;color:#fff}
+.btn.active{background:#34d37f;color:#000;font-weight:600}
+.hint{color:var(--muted);font-size:9px;margin-top:8px;line-height:1.6}
+#search{position:fixed;top:12px;right:12px;background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:8px;z-index:10}
+#search input{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:3px;font-family:inherit;font-size:11px;width:120px;outline:none}
+#search input:focus{border-color:#38bdf8}
+#search button{background:var(--border);border:none;color:var(--text);padding:3px 7px;border-radius:3px;cursor:pointer;font-family:inherit;font-size:10px;margin-left:4px}
+#selInfo{position:fixed;bottom:12px;left:12px;background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:12px;font-size:11px;min-width:240px;display:none;z-index:10}
+#selInfo h3{font-size:12px;margin-bottom:6px;font-weight:600}
+select{background:var(--bg);border:1px solid var(--border);color:var(--text);font-size:10px;padding:3px;border-radius:3px;font-family:inherit;width:100%}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="ui">
+  <h1>&#9789; 天庭空间</h1>
+  <div class="row"><span class="k">容器</span><span class="v" id="sCount">0</span></div>
+  <div class="row"><span class="k">纤维丛</span><span class="v" id="sFiber">0</span></div>
+  <div class="row"><span class="k">吸引子</span><span class="v" id="sAttr">0</span></div>
+  <div class="row"><span class="k">可见/隐藏</span><span class="v" id="sVis">0/0</span></div>
+  <div class="row"><span class="k">FPS</span><span class="v" id="sFps">—</span></div>
+  <h2>显示</h2>
+  <div>
+    <button class="btn active" onclick="toggle('labels')">名称</button>
+    <button class="btn active" onclick="toggle('fibers')">纤维丛</button>
+    <button class="btn active" onclick="toggle('attr')">吸引子</button>
+    <button class="btn active" onclick="toggle('tier')">天层亮度</button>
+    <button class="btn" onclick="spin()" id="btnSpin">&#9654; 自转</button>
+    <button class="btn" onclick="resetView()">复位</button>
+  </div>
+  <h2>天层过滤</h2>
+  <select id="tierFilter" onchange="redraw()">
+    <option value="all">全部</option>
+    <option value="visible">仅可见 (&gt;128)</option>
+    <option value="hidden">仅隐藏</option>
+    <option value="couple">夫妻族</option>
+  </select>
+  <h2>图例</h2>
+  <div class="legend">
+    <div class="lg"><div class="dot" style="background:#a78bfa"></div>纤维</div>
+    <div class="lg"><div class="dot" style="background:#f59e0b"></div>吸引子</div>
+    <div class="lg"><div class="dot" style="background:#38bdf8"></div>容器</div>
+  </div>
+  <div class="hint">拖拽旋转 &#8901; 滚轮缩放 &#8901; 右键平移<br>天层=垂直轴 &#8901; 纤维=关系连线</div>
+</div>
+<div id="search">
+  <input id="q" placeholder="搜索容器..." onkeydown="if(event.key==='Enter')go(this.value)">
+  <button onclick="go(document.getElementById('q').value)">定位</button>
+</div>
+<div id="selInfo"><h3 id="siName"></h3><div id="siBody"></div></div>
+
+<script>
+// ============================================================
+// 天庭空间 — Heaven Space 3D Visualizer
+// ============================================================
+var canvas = document.getElementById('c');
+var ctx = canvas.getContext('2d');
+var W, H, DPR = window.devicePixelRatio || 1;
+function resize() {
+  W = window.innerWidth; H = window.innerHeight;
+  canvas.width = W * DPR; canvas.height = H * DPR;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ── 天庭数据 ──
+// 64 containers positioned in "heavenly" coordinates
+// Heaven tier: vertical axis (0=hidden, 255=peak heaven)
+var CELESTIAL = [];
+var families = ['容器族', '操作族', '声母族', '韵母族', '夫妻族'];
+var famColors = {'容器族':'#8b5cf6', '操作族':'#f59e0b', '声母族':'#38bdf8', '韵母族':'#ef4444', '夫妻荒':'#ec4899', '夫妻族':'#ec4899'};
+var familyList = ['容器族','操作族','声母族','韵母族','夫妻族'];
+
+// Generate 64 containers with heaven-tier distribution
+for (var i = 0; i < 64; i++) {
+  var family = familyList[Math.floor(i / 16)];
+  // Heaven tier: higher families get higher default tier
+  var tier = (i % 16) + Math.floor(i / 16) * 64; // 0-255 range
+  if (family === '夫妻族') tier = 200 + (i % 56); // couple zone at high heaven
+  CELESTIAL.push({
+    id: i,
+    code: i,
+    family: family,
+    tier: tier,
+    // 3D position from code: use 3D radix for X,Y; tier for Z
+    name: 'C' + i.toString(16).toUpperCase()
+  });
+}
+
+// Fiber bundles: connections between containers of same family
+var FIBERS = [];
+for (var f = 0; f < 4; f++) {
+  var base = f * 16;
+  // Chain within family
+  for (var j = 0; j < 15; j++) {
+    FIBERS.push({from: base + j, to: base + j + 1, strength: 50 + j * 5});
+  }
+  // Cross-links
+  FIBERS.push({from: base, to: base + 8, strength: 80});
+  FIBERS.push({from: base + 7, to: base + 15, strength: 70});
+}
+// Inter-family fibers
+FIBERS.push({from: 0x03, to: 0x20, strength: 90});
+FIBERS.push({from: 0x16, to: 0x3F, strength: 85});
+FIBERS.push({from: 0x17, to: 0x00, strength: 75});
+
+// Attractors: centers of gravity in heaven space
+var ATTRACTORS = [
+  {name: '容器核', center: {x: 0, y: 0, z: 64}, strength: 3, color: '#8b5cf6', members: []},
+  {name: '操作核', center: {x: 0, y: 0, z: 128}, strength: 2, color: '#f59e0b', members: []},
+  {name: '声母核', center: {x: 0, y: 0, z: 192}, strength: 2.5, color: '#38bdf8', members: []},
+  {name: '韵母核', center: {x: 0, y: 0, z: 160}, strength: 2, color: '#ef4444', members: []},
+  {name: '夫妻核心', center: {x: 0, y: 0, z: 230}, strength: 4, color: '#ec4899', members: []},
+];
+
+// ── 3D 坐标计算 ──
+function coord3(code) {
+  var co = {x: code & 0x7, y: (code >> 3) & 0x7, z: (code >> 6) & 0x3};
+  return co;
+}
+
+function project(cx, cy, cz) {
+  var SCALE = 22;
+  var Z_SPACING = 18;
+  // Apply rotation
+  var cos = Math.cos(rotY), sin = Math.sin(rotY);
+  var x = cx * cos - cy * sin;
+  var yh = cx * sin + cy * cos;
+  var z = cz * Z_SPACING;
+  // Slight tilt for Y axis
+  var y = yh * 0.5 + z * 0.5;
+  // Perspective
+  var persp = 800 / (800 + z);
+  return {
+    x: W / 2 + x * SCALE * persp * zoom,
+    y: H / 2 + y * SCALE * persp * zoom,
+    z: z, persp: persp
+  };
+}
+
+// ── View state ──
+var rotY = 0.3, zoom = 1.0, panX = 0, panY = 0;
+var spinning = true;
+var mouseDown = false, lastX = 0, lastY = 0;
+var mode = {labels: true, fibers: true, attr: true, tier: true};
+
+canvas.addEventListener('mousedown', function(e) {
+  mouseDown = true; lastX = e.clientX; lastY = e.clientY;
+  spinning = false;
+  document.getElementById('btnSpin').innerHTML = '▶ 自转';
+});
+canvas.addEventListener('mousemove', function(e) {
+  if (!mouseDown) return;
+  var dx = e.clientX - lastX, dy = e.clientY - lastY;
+  rotY += dx * 0.01;
+  lastX = e.clientX; lastY = e.clientY;
+});
+canvas.addEventListener('mouseup', function() { mouseDown = false; });
+canvas.addEventListener('wheel', function(e) {
+  zoom *= (1 - e.deltaY * 0.001);
+  zoom = Math.max(0.3, Math.min(5, zoom));
+});
+canvas.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+
+function spin() {
+  spinning = !spinning;
+  document.getElementById('btnSpin').innerHTML = spinning ? '⏸ 自转' : '▶ 自转';
+}
+function resetView() {
+  rotY = 0.3; zoom = 1.0; panX = 0; panY = 0;
+}
+function toggle(key) {
+  mode[key] = !mode[key];
+  redraw();
+}
+function redraw() { /* redraw happens in animation loop */ }
+
+// ── Selection ──
+var selected = null;
+canvas.addEventListener('click', function(e) {
+  var rect = canvas.getBoundingClientRect();
+  var mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  selected = null;
+  for (var i = 0; i < CELESTIAL.length; i++) {
+    var c = CELESTIAL[i];
+    var co = coord3(c.code);
+    var p = project(co.x - 3.5, co.y - 3.5, c.tier / 85);
+    var d = Math.hypot(mx - p.x, my - p.y);
+    if (d < 12) { selected = i; break; }
+  }
+  updateSelInfo();
+});
+
+function updateSelInfo() {
+  var info = document.getElementById('selInfo');
+  if (selected === null) { info.style.display = 'none'; return; }
+  var c = CELESTIAL[selected];
+  info.style.display = 'block';
+  document.getElementById('siName').textContent = c.name + ' (' + c.family + ')';
+  document.getElementById('siBody').innerHTML =
+    '编码: 0x' + c.code.toString(16).toUpperCase().padStart(2,'0') + '<br>' +
+    '天层: ' + c.tier + '<br>' +
+    '可见: ' + (c.tier >= 128 ? '是(高天)' : '否(隐藏)') + '<br>' +
+    '夫妻族: ' + (c.family === '夫妻族' ? '是' : '否');
+}
+
+function go(q) {
+  if (!q) return;
+  q = q.toLowerCase();
+  for (var i = 0; i < CELESTIAL.length; i++) {
+    if (CELESTIAL[i].name.toLowerCase() === q || CELESTIAL[i].name === q) {
+      selected = i; rotY = 0; zoom = 1.5;
+      updateSelInfo(); return;
+    }
+  }
+}
+
+// ── Cluster visualization ──
+function assignAttractors() {
+  for (var a = 0; a < ATTRACTORS.length; a++) {
+    ATTRACTORS[a].members = [];
+  }
+  for (var i = 0; i < CELESTIAL.length; i++) {
+    var c = CELESTIAL[i];
+    if (!mode.tier && c.tier < 128) continue;
+    var co = coord3(c.code);
+    var best = -1, bestD = Infinity;
+    for (var a = 0; a < ATTRACTORS.length; a++) {
+      var ax = (ATTRACTORS[a].center.z / 85) * Math.cos(rotY);
+      var ay = (ATTRACTORS[a].center.z / 85) * Math.sin(rotY);
+      var dx = (co.x - 3.5) - ax * 0.1;
+      var dy = c.tier / 85 - ATTRACTORS[a].center.z / 85;
+      var d = Math.hypot(dx, dy);
+      if (d < bestD) { bestD = d; best = a; }
+    }
+    if (best >= 0) ATTRACTORS[best].members.push(i);
+  }
+}
+
+// ── Animation loop ──
+var lastT = 0, fps = 0, frameCount = 0, lastFpsT = 0;
+var time = 0;
+
+function draw(ts) {
+  requestAnimationFrame(draw);
+  if (!lastT) lastT = ts;
+  var dt = ts - lastT; lastT = ts;
+  frameCount++;
+  if (ts - lastFpsT >= 1000) {
+    fps = frameCount; frameCount = 0; lastFpsT = ts;
+    document.getElementById('sFps').textContent = fps;
+  }
+
+  if (spinning) rotY += 0.004;
+  time += 0.02;
+
+  // Clear with space background
+  ctx.fillStyle = '#04060e';
+  ctx.fillRect(0, 0, W, H);
+
+  // Draw stars background
+  ctx.fillStyle = 'rgba(255,255,255,0.3)';
+  for (var s = 0; s < 80; s++) {
+    var sx = (s * 137.5 + time * 2) % W;
+    var sy = (s * 97.3 + Math.sin(time + s) * 5) % H;
+    ctx.fillRect(sx, sy, 1, 1);
+  }
+
+  // Positions
+  var tierFilter = document.getElementById('tierFilter').value;
+  var visibleCount = 0, hiddenCount = 0;
+  var positions = [];
+
+  for (var i = 0; i < CELESTIAL.length; i++) {
+    var c = CELESTIAL[i];
+    var passFilter = true;
+    if (tierFilter === 'visible' && c.tier < 128) passFilter = false;
+    if (tierFilter === 'hidden' && c.tier >= 128) passFilter = false;
+    if (tierFilter === 'couple' && c.family !== '夫妻族') passFilter = false;
+    if (c.tier >= 128) visibleCount++; else hiddenCount++;
+
+    var co = coord3(c.code);
+    var p = project(co.x - 3.5, co.y - 3.5, c.tier / 85);
+    positions.push({p: p, c: c, passFilter: passFilter});
+  }
+
+  // Draw attractor glow
+  if (mode.attr) {
+    assignAttractors();
+    for (var a = 0; a < ATTRACTORS.length; a++) {
+      var attr = ATTRACTORS[a];
+      if (attr.members.length === 0) continue;
+      var pc = project(0, 0, attr.center.z / 85);
+      var radius = 30 + attr.members.length * 4 + Math.sin(time * 2 + a) * 5;
+      // Glow
+      var grad = ctx.createRadialGradient(pc.x, pc.y, 0, pc.x, pc.y, radius);
+      grad.addColorStop(0, attr.color + '40');
+      grad.addColorStop(0.5, attr.color + '18');
+      grad.addColorStop(1, attr.color + '00');
+      ctx.fillStyle = grad;
+      ctx.beginPath(); ctx.arc(pc.x, pc.y, radius, 0, Math.PI * 2); ctx.fill();
+      // Attractor label
+      if (mode.labels) {
+        ctx.fillStyle = attr.color;
+        ctx.font = '9px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(attr.name + ' (' + attr.members.length + ')', pc.x, pc.y - radius - 4);
+      }
+    }
+  }
+
+  // Draw fibers
+  if (mode.fibers) {
+    for (var f = 0; f < FIBERS.length; f++) {
+      var fib = FIBERS[f];
+      var c1 = CELESTIAL[fib.from], c2 = CELESTIAL[fib.to];
+      if (tierFilter === 'visible' && (c1.tier < 128 || c2.tier < 128)) continue;
+      if (tierFilter === 'hidden' && (c1.tier >= 128 || c2.tier >= 128)) continue;
+      if (tierFilter === 'couple' && (c1.family !== '夫妻族' || c2.family !== '夫妻族')) continue;
+      var co1 = coord3(c1.code), co2 = coord3(c2.code);
+      var p1 = project(co1.x - 3.5, co1.y - 3.5, c1.tier / 85);
+      var p2 = project(co2.x - 3.5, co2.y - 3.5, c2.tier / 85);
+      var alpha = Math.min(0.4, fib.strength / 200);
+      ctx.strokeStyle = 'rgba(167,139,250,' + alpha + ')';
+      ctx.lineWidth = 0.8 * p1.persp;
+      ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+    }
+  }
+
+  // Sort by Z for painter's algorithm
+  positions.sort(function(a, b) { return b.p.z - a.p.z; });
+
+  // Draw containers
+  for (var i = 0; i < positions.length; i++) {
+    var item = positions[i];
+    var c = item.c, p = item.p;
+    if (!item.passFilter) continue;
+
+    var baseAlpha = (mode.tier ? (0.3 + c.tier / 255 * 0.7) : 0.85);
+    var isSel = (selected === i);
+    var tierBright = tierFilter === 'hidden' ? 0.4 : baseAlpha;
+    var nodeR = (5 + p.persp * 4) * (c.tier >= 128 ? 1.1 : 0.8) * (isSel ? 1.5 : 1);
+
+    // Family color
+    var fc = famColors[c.family] || '#8b5cf6';
+
+    // Glow
+    if (c.tier >= 128 || isSel) {
+      var glow = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, nodeR * 2.5);
+      glow.addColorStop(0, fc + '50');
+      glow.addColorStop(1, fc + '00');
+      ctx.fillStyle = glow;
+      ctx.beginPath(); ctx.arc(p.x, p.y, nodeR * 2.5, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // Container circle
+    ctx.fillStyle = isSel ? '#ffffff' : fc;
+    ctx.globalAlpha = tierBright;
+    ctx.beginPath(); ctx.arc(p.x, p.y, nodeR, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+
+    ctx.strokeStyle = isSel ? '#fff' : 'rgba(0,0,0,0.4)';
+    ctx.lineWidth = isSel ? 1.5 : 0.5;
+    ctx.stroke();
+
+    // Label
+    if (mode.labels && p.persp > 0.6) {
+      ctx.fillStyle = 'rgba(255,255,255,' + (0.5 + p.persp * 0.3) + ')';
+      ctx.font = Math.round(9 * p.persp) + 'px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(c.name, p.x, p.y - nodeR - 3);
+    }
+  }
+
+  // Update stats
+  document.getElementById('sCount').textContent = CELESTIAL.length;
+  document.getElementById('sFiber').textContent = FIBERS.length;
+  document.getElementById('sAttr').textContent = ATTRACTORS.length;
+  document.getElementById('sVis').textContent = visibleCount + '/' + hiddenCount;
+}
+
+requestAnimationFrame(draw);
+</script>
+</body>
+</html>
