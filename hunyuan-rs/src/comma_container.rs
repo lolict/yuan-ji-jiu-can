@@ -15187,3 +15187,359 @@ mod accum_trigger_tests {
         assert_eq!(a.trig_count, 3);
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器轮询器 · ContainerRoundRobin (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   给定 N 个目标, 每次 select() 轮转返回一个索引
+//   index = (index + 1) % N  用减法回绕
+
+#[derive(Clone, Debug)]
+pub struct ContainerRoundRobin {
+    pub size: u64,
+    pub current: u64,
+    pub total_calls: u64,
+}
+
+impl ContainerRoundRobin {
+    pub fn new(size: u64) -> Self { Self { size, current: 0, total_calls: 0 } }
+
+    pub fn select(&mut self) -> u64 {
+        let idx = self.current;
+        self.current = self.current + 1;
+        if self.current >= self.size { self.current = 0; }
+        self.total_calls = self.total_calls + 1;
+        idx
+    }
+
+    pub fn reset(&mut self) { self.current = 0; self.total_calls = 0; }
+}
+
+impl Default for ContainerRoundRobin {
+    fn default() -> Self { Self::new(3) }
+}
+
+#[cfg(test)]
+mod round_robin_tests {
+    use super::*;
+
+    #[test]
+    fn test_cycle() {
+        let mut r = ContainerRoundRobin::new(3);
+        assert_eq!(r.select(), 0);
+        assert_eq!(r.select(), 1);
+        assert_eq!(r.select(), 2);
+        assert_eq!(r.select(), 0);  // 轮转
+    }
+
+    #[test]
+    fn test_single() {
+        let mut r = ContainerRoundRobin::new(1);
+        assert_eq!(r.select(), 0);
+        assert_eq!(r.select(), 0);
+    }
+
+    #[test]
+    fn test_counter() {
+        let mut r = ContainerRoundRobin::new(5);
+        for _ in 0..10 { r.select(); }
+        assert_eq!(r.total_calls, 10);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器速率估计器 · ContainerRateEstimator (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   单位 tick 内事件数 (抽点计数, 不做除法)
+//   每次 tick 开始清零, count++ 累积; tick() 记录上一周期计数
+
+#[derive(Clone, Debug)]
+pub struct ContainerRateEstimator {
+    pub ticks: u64,
+    pub events_this_tick: u64,
+    pub last_rate: u64,
+    pub total_events: u64,
+}
+
+impl ContainerRateEstimator {
+    pub fn new() -> Self { Self { ticks: 0, events_this_tick: 0, last_rate: 0, total_events: 0 } }
+    pub fn event(&mut self) { self.events_this_tick = self.events_this_tick + 1; self.total_events = self.total_events + 1; }
+    pub fn tick(&mut self) {
+        self.last_rate = self.events_this_tick;
+        self.events_this_tick = 0;
+        self.ticks = self.ticks + 1;
+    }
+    pub fn rate(&self) -> u64 { self.last_rate }
+}
+
+impl Default for ContainerRateEstimator {
+    fn default() -> Self { Self::new() }
+}
+
+#[cfg(test)]
+mod rate_est_tests {
+    use super::*;
+
+    #[test]
+    fn test_basic_rate() {
+        let mut e = ContainerRateEstimator::new();
+        e.event(); e.event(); e.event();
+        e.tick();
+        assert_eq!(e.rate(), 3);
+    }
+
+    #[test]
+    fn test_rate_per_tick() {
+        let mut e = ContainerRateEstimator::new();
+        e.event(); e.tick();
+        e.event(); e.event(); e.tick();
+        assert_eq!(e.rate(), 2);
+    }
+
+    #[test]
+    fn test_total_events() {
+        let mut e = ContainerRateEstimator::new();
+        for _ in 0..5 { e.event(); }
+        assert_eq!(e.total_events, 5);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器标志位组 · ContainerFlags (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   N 个 bool 标志寄存, 每一位是一个独立的 on/off 状态
+//   用 u64 位图, 支持置位/清零/翻转/查询
+
+#[derive(Clone, Debug)]
+pub struct ContainerFlags {
+    pub bits: u64,
+}
+
+impl ContainerFlags {
+    pub fn new() -> Self { Self { bits: 0 } }
+    pub fn set(&mut self, idx: u32) { self.bits = self.bits | (1u64 << idx); }
+    pub fn clear(&mut self, idx: u32) { self.bits = self.bits & !(1u64 << idx); }
+    pub fn toggle(&mut self, idx: u32) { self.bits = self.bits ^ (1u64 << idx); }
+    pub fn get(&self, idx: u32) -> bool { (self.bits >> idx) & 1 == 1 }
+    pub fn any(&self) -> bool { self.bits != 0 }
+    pub fn none(&self) -> bool { self.bits == 0 }
+    pub fn count(&self) -> u32 {
+        let mut c = 0;
+        let mut b = self.bits;
+        while b > 0 { c = c + (b & 1) as u32; b = b >> 1; }
+        c
+    }
+}
+
+impl Default for ContainerFlags {
+    fn default() -> Self { Self::new() }
+}
+
+#[cfg(test)]
+mod flags_tests {
+    use super::*;
+
+    #[test]
+    fn test_set_get() {
+        let mut f = ContainerFlags::new();
+        f.set(0); f.set(3);
+        assert!(f.get(0)); assert!(f.get(3)); assert!(!f.get(1));
+    }
+
+    #[test]
+    fn test_clear() {
+        let mut f = ContainerFlags::new();
+        f.set(5); f.clear(5);
+        assert!(!f.get(5));
+    }
+
+    #[test]
+    fn test_toggle() {
+        let mut f = ContainerFlags::new();
+        f.toggle(2); assert!(f.get(2));
+        f.toggle(2); assert!(!f.get(2));
+    }
+
+    #[test]
+    fn test_count() {
+        let mut f = ContainerFlags::new();
+        f.set(0); f.set(2); f.set(7);
+        assert_eq!(f.count(), 3);
+    }
+
+    #[test]
+    fn test_any_none() {
+        let mut f = ContainerFlags::new();
+        assert!(f.none());
+        f.set(63);
+        assert!(f.any());
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器脉冲延迟线 · ContainerPulseDelay (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   环形移位寄存器, 信号在 N tick 后出现在输出
+//   feed(1) → 经过 N 个 tick() 后 output 返回 1
+
+#[derive(Clone, Debug)]
+pub struct ContainerPulseDelay {
+    pub stages: Vec<u64>,
+    pub total_feeds: u64,
+    pub total_ticks: u64,
+}
+
+impl ContainerPulseDelay {
+    pub fn new(len: usize) -> Self {
+        Self { stages: vec![0u64; len], total_feeds: 0, total_ticks: 0 }
+    }
+    pub fn feed(&mut self, v: u64) {
+        if !self.stages.is_empty() { self.stages[0] = v; }
+        self.total_feeds = self.total_feeds + 1;
+    }
+    pub fn tick(&mut self) -> u64 {
+        let len = self.stages.len();
+        if len == 0 { return 0; }
+        let out = self.stages[len - 1];
+        // 从尾向前移位
+        let mut i = len - 1;
+        while i > 0 { self.stages[i] = self.stages[i - 1]; i = i - 1; }
+        self.stages[0] = 0;
+        self.total_ticks = self.total_ticks + 1;
+        out
+    }
+    pub fn len(&self) -> usize { self.stages.len() }
+}
+
+impl Default for ContainerPulseDelay {
+    fn default() -> Self { Self::new(3) }
+}
+
+#[cfg(test)]
+mod pulse_delay_tests {
+    use super::*;
+
+    #[test]
+    fn test_delay() {
+        let mut p = ContainerPulseDelay::new(3);
+        p.feed(42);
+        // tick 1: [42,0,0] → [0,42,0] out=0
+        assert_eq!(p.tick(), 0);
+        assert_eq!(p.tick(), 0);
+        // tick 3: out=42
+        assert_eq!(p.tick(), 42);
+        assert_eq!(p.tick(), 0);
+    }
+
+    #[test]
+    fn test_zero_len() {
+        let mut p = ContainerPulseDelay::new(0);
+        assert_eq!(p.tick(), 0);
+    }
+
+    #[test]
+    fn test_sequential() {
+        let mut p = ContainerPulseDelay::new(2);
+        p.feed(1);
+        p.tick();
+        p.feed(2);
+        assert_eq!(p.tick(), 1);  // 第一个脉冲到输出
+        assert_eq!(p.tick(), 2);  // 第二个到输出
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器快照机 · ContainerSnapshot (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   保存+恢复容器状态 (全量 save/load, 追加式历史)
+//   entries: Vec<(u64, tick)> — 不丢弃历史
+
+#[derive(Clone, Debug)]
+pub struct ContainerSnapshot<T: Clone> {
+    pub current: T,
+    pub history: Vec<(T, u64)>,
+    pub save_count: u64,
+    pub load_count: u64,
+}
+
+impl<T: Clone> ContainerSnapshot<T> {
+    pub fn new(init: T) -> Self {
+        Self { current: init, history: Vec::new(), save_count: 0, load_count: 0 }
+    }
+    pub fn set(&mut self, val: T) { self.current = val; }
+    pub fn save(&mut self, tick: u64) {
+        self.history.push((self.current.clone(), tick));
+        self.save_count = self.save_count + 1;
+    }
+    pub fn load_latest(&mut self) -> bool {
+        if let Some((val, _)) = self.history.last() {
+            self.current = val.clone();
+            self.load_count = self.load_count + 1;
+            true
+        } else { false }
+    }
+    pub fn load_at(&mut self, idx: usize) -> bool {
+        if idx < self.history.len() {
+            self.current = self.history[idx].0.clone();
+            self.load_count = self.load_count + 1;
+            true
+        } else { false }
+    }
+    pub fn history_len(&self) -> usize { self.history.len() }
+    pub fn clear_history(&mut self) { self.history.clear(); }
+}
+
+impl Default for ContainerSnapshot<u64> {
+    fn default() -> Self { Self::new(0) }
+}
+
+#[cfg(test)]
+mod snapshot_tests {
+    use super::*;
+
+    #[test]
+    fn test_save_load() {
+        let mut s = ContainerSnapshot::new(0u64);
+        s.set(10); s.save(1);
+        s.set(20); s.save(2);
+        s.set(99);
+        assert!(s.load_latest());
+        assert_eq!(s.current, 20);
+    }
+
+    #[test]
+    fn test_load_at() {
+        let mut s = ContainerSnapshot::new(0u64);
+        s.set(5); s.save(1);
+        s.set(10); s.save(2);
+        assert!(s.load_at(0));
+        assert_eq!(s.current, 5);
+    }
+
+    #[test]
+    fn test_history() {
+        let mut s = ContainerSnapshot::new(0u64);
+        for i in 0..5u64 { s.set(i); s.save(i); }
+        assert_eq!(s.history_len(), 5);
+        assert_eq!(s.save_count, 5);
+    }
+
+    #[test]
+    fn test_load_empty() {
+        let mut s = ContainerSnapshot::new(0u64);
+        assert!(!s.load_latest());
+    }
+
+    #[test]
+    fn test_clear_history() {
+        let mut s = ContainerSnapshot::new(0u64);
+        s.save(1); s.save(2);
+        s.clear_history();
+        assert_eq!(s.history_len(), 0);
+    }
+}
