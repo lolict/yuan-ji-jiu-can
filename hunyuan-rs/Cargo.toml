@@ -175,6 +175,10 @@ name = "glyph_stroke"
 path = "src/bin/glyph_stroke.rs"
 
 [[bin]]
+name = "hanzi_render"
+path = "src/bin/hanzi_render.rs"
+
+[[bin]]
 name = "mlil-visual"
 path = "src/bin/mlil-visual.rs"
 
