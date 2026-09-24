@@ -11,34 +11,35 @@ pub enum SemanticId {
     Add   = 0x03,
     Addi  = 0x04,
     Sub   = 0x05,
-    And   = 0x06,
-    Or    = 0x07,
-    Xor   = 0x08,
-    Jmp   = 0x09,
-    Bne   = 0x0A,
-    Beq   = 0x0B,
-    Call  = 0x0C,
-    Ret   = 0x0D,
-    Cmp   = 0x0E,
-    Mov   = 0x0F,
+    Subi  = 0x06,
+    And   = 0x07,
+    Or    = 0x08,
+    Xor   = 0x09,
+    Jmp   = 0x0A,
+    Bne   = 0x0B,
+    Beq   = 0x0C,
+    Call  = 0x0D,
+    Ret   = 0x0E,
+    Cmp   = 0x0F,
+    Mov   = 0x10,
     // ══ M 扩展 · 乘除 (funct7=00000001) ══
-    Mul   = 0x10,
-    Mulh  = 0x11,
-    Div   = 0x12,
-    Divu  = 0x13,
-    Rem   = 0x14,
-    Remu  = 0x15,
+    Mul   = 0x11,
+    Mulh  = 0x12,
+    Div   = 0x13,
+    Divu  = 0x14,
+    Rem   = 0x15,
+    Remu  = 0x16,
     // ══ RV64I · 字宽 (OP-32 / OP-IMM-32) ══
-    Addw  = 0x16,
-    Addiw = 0x17,
-    Mulw  = 0x18,
-    Divw  = 0x19,
-    Remw  = 0x1A,
+    Addw  = 0x17,
+    Addiw = 0x18,
+    Mulw  = 0x19,
+    Divw  = 0x1A,
+    Remw  = 0x1B,
     // ══ A 扩展 · 原子 (opcode=0101111) ══
-    Lrw      = 0x1B,
-    Scw      = 0x1C,
-    AmoSwapw = 0x1D,
-    AmoAddw  = 0x1E,
+    Lrw      = 0x1C,
+    Scw      = 0x1D,
+    AmoSwapw = 0x1E,
+    AmoAddw  = 0x1F,
 }
 
 impl SemanticId {
@@ -49,32 +50,32 @@ impl SemanticId {
             0x03 => Some(Self::Add),
             0x04 => Some(Self::Addi),
             0x05 => Some(Self::Sub),
-            0x06 => Some(Self::And),
-            0x07 => Some(Self::Or),
-            0x08 => Some(Self::Xor),
-            0x09 => Some(Self::Jmp),
-            0x0A => Some(Self::Bne),
-            0x0B => Some(Self::Beq),
-            0x0C => Some(Self::Call),
-            0x0D => Some(Self::Ret),
-            0x0E => Some(Self::Cmp),
-            0x0F => Some(Self::Mov),
-            0x10 => Some(Self::Mul),
-            0x11 => Some(Self::Mulh),
-            0x12 => Some(Self::Div),
-            0x13 => Some(Self::Divu),
-            0x14 => Some(Self::Rem),
-            0x15 => Some(Self::Remu),
-            0x16 => Some(Self::Addw),
-            0x17 => Some(Self::Addiw),
-            0x18 => Some(Self::Mulw),
-            0x19 => Some(Self::Divw),
-            0x1A => Some(Self::Remw),
-            // 0x18-0x1A: Mulw/Divw/Remw (已启用)
-            0x1B => Some(Self::Lrw),
-            0x1C => Some(Self::Scw),
-            0x1D => Some(Self::AmoSwapw),
-            0x1E => Some(Self::AmoAddw),
+            0x06 => Some(Self::Subi),
+            0x07 => Some(Self::And),
+            0x08 => Some(Self::Or),
+            0x09 => Some(Self::Xor),
+            0x0A => Some(Self::Jmp),
+            0x0B => Some(Self::Bne),
+            0x0C => Some(Self::Beq),
+            0x0D => Some(Self::Call),
+            0x0E => Some(Self::Ret),
+            0x0F => Some(Self::Cmp),
+            0x10 => Some(Self::Mov),
+            0x11 => Some(Self::Mul),
+            0x12 => Some(Self::Mulh),
+            0x13 => Some(Self::Div),
+            0x14 => Some(Self::Divu),
+            0x15 => Some(Self::Rem),
+            0x16 => Some(Self::Remu),
+            0x17 => Some(Self::Addw),
+            0x18 => Some(Self::Addiw),
+            0x19 => Some(Self::Mulw),
+            0x1A => Some(Self::Divw),
+            0x1B => Some(Self::Remw),
+            0x1C => Some(Self::Lrw),
+            0x1D => Some(Self::Scw),
+            0x1E => Some(Self::AmoSwapw),
+            0x1F => Some(Self::AmoAddw),
             _ => None,
         }
     }
@@ -82,7 +83,7 @@ impl SemanticId {
     pub fn initial(&self) -> &'static str {
         match self {
             Self::Add | Self::Addi | Self::Addw | Self::Addiw => "加",
-            Self::Sub => "减",
+            Self::Sub | Self::Subi => "减",
             Self::Mul | Self::Mulh | Self::Mulw | Self::Div | Self::Divu | Self::Divw | Self::Rem | Self::Remu | Self::Remw => "乘",
             Self::And | Self::Or | Self::Xor => "合",
             Self::Load | Self::Store | Self::Lrw | Self::Scw | Self::AmoSwapw | Self::AmoAddw => "传",
@@ -407,43 +408,50 @@ impl VocabWord {
 
     fn enc_x86(id: SemanticId, ops: &[Operand]) -> Vec<u8> {
         let mut out = Vec::new();
+
+        #[inline]
+        fn modrm_u8(modbits: u8, reg: u8, rm: u8) -> u8 {
+            ((modbits & 3) << 6) | ((reg & 7) << 3) | (rm & 7)
+        }
+        #[inline]
+        fn rex_w_b(dst: u8, src: u8) -> u8 {
+            // 任一操作数 >=8 → REX.B=1 (0x49); 否则 0x48
+            if dst >= 8 || src >= 8 { 0x49 } else { 0x48 }
+        }
+
         match id {
-            SemanticId::Add => {
-                out.push(0x48); out.push(0x01);
-                let reg = match ops[2].reg() { Some(v) => v, None => return vec![] };
-                let rm  = match ops[0].reg() { Some(v) => v, None => return vec![] };
-                out.push(0xC0 | (reg << 3) | rm);
+            // ── R 型: reg-reg (REX.W + opcode + ModRM mod=11, reg=src, rm=dst) ──
+            // 3 操作数约定: ops[0]=rm/dst, ops[1]=对齐位, ops[2]=reg/src
+            SemanticId::Add | SemanticId::Sub | SemanticId::And |
+            SemanticId::Or   | SemanticId::Xor | SemanticId::Cmp |
+            SemanticId::Mov  => {
+                let opcode = match id {
+                    SemanticId::Add => 0x01u8,
+                    SemanticId::Sub => 0x29,
+                    SemanticId::And => 0x21,
+                    SemanticId::Or  => 0x09,
+                    SemanticId::Xor => 0x31,
+                    SemanticId::Cmp => 0x39,
+                    SemanticId::Mov => 0x89u8,
+                    _ => return vec![],
+                };
+                if ops.len() < 3 { return vec![]; }
+                let dst_n = match ops[0].reg() { Some(v) => v, None => return vec![] };
+                let src_n = match ops[2].reg() { Some(v) => v, None => return vec![] };
+                out.push(rex_w_b(dst_n, src_n));
+                out.push(opcode);
+                out.push(modrm_u8(3, src_n, dst_n));
             }
-            SemanticId::Sub => {
-                out.push(0x48); out.push(0x29);
-                let reg = match ops[2].reg() { Some(v) => v, None => return vec![] };
-                let rm  = match ops[0].reg() { Some(v) => v, None => return vec![] };
-                out.push(0xC0 | (reg << 3) | rm);
-            }
-            SemanticId::And => {
-                out.push(0x48); out.push(0x21);
-                let reg = match ops[2].reg() { Some(v) => v, None => return vec![] };
-                let rm  = match ops[0].reg() { Some(v) => v, None => return vec![] };
-                out.push(0xC0 | (reg << 3) | rm);
-            }
-            SemanticId::Or => {
-                out.push(0x48); out.push(0x09);
-                let reg = match ops[2].reg() { Some(v) => v, None => return vec![] };
-                let rm  = match ops[0].reg() { Some(v) => v, None => return vec![] };
-                out.push(0xC0 | (reg << 3) | rm);
-            }
-            SemanticId::Xor => {
-                out.push(0x48); out.push(0x31);
-                let reg = match ops[2].reg() { Some(v) => v, None => return vec![] };
-                let rm  = match ops[0].reg() { Some(v) => v, None => return vec![] };
-                out.push(0xC0 | (reg << 3) | rm);
-            }
-            SemanticId::Addi => {
-                out.push(0x48); out.push(0x83);
+            // ── I 型: reg-imm32 (REX.W + 0x81 + ModRM + imm32) ──
+            // 2 操作数约定: ops[0]=rm, ops[1]=imm
+            SemanticId::Addi | SemanticId::Subi => {
                 let rm = match ops[0].reg() { Some(v) => v, None => return vec![] };
-                out.push(0xC0 | rm);
-                let imm = match ops[1].imm() { Some(v) => v as u8, None => return vec![] };
-                out.push(imm);
+                let imm = match ops[1].imm() { Some(v) => v as i32, None => return vec![] };
+                let digit = if id == SemanticId::Subi { 5u8 } else { 0u8 };
+                out.push(rex_w_b(rm, 0));
+                out.push(0x81);
+                out.push(modrm_u8(3, digit, rm));
+                out.extend_from_slice(&imm.to_le_bytes());
             }
             // ── M 扩展 · x86 等价 ──
             SemanticId::Mul | SemanticId::Mulh => {
@@ -454,65 +462,70 @@ impl VocabWord {
                 out.push(0xC0 | ((rd & 7) << 3) | (r2 & 7));
             }
             SemanticId::Div | SemanticId::Divu => {
-                // IDIV r (REX.W F7 /7) 或 DIV (REX.W F7 /6)
                 let r = match ops[0].reg() { Some(v) => v, None => return vec![] };
                 let slash = if id == SemanticId::Div { 7u8 } else { 6u8 };
                 out.push(0x48); out.push(0xF7);
-                out.push(0xC0 | ((slash & 7) << 3) | (r & 7));
+                out.push(modrm_u8(3, slash, r));
             }
             SemanticId::Rem | SemanticId::Remu => {
-                // x86 的余数在同一条 IDIV 中产生 (→RDX). 编码为 IDIV + 取 DX 探针
                 let r = match ops[0].reg() { Some(v) => v, None => return vec![] };
                 let slash = if id == SemanticId::Rem { 7u8 } else { 6u8 };
                 out.push(0x48); out.push(0xF7);
-                out.push(0xC0 | ((slash & 7) << 3) | (r & 7));
-                out.push(0x48); out.push(0x89); out.push(0xD0);  // MOV RAX,RDX (提取余数)
+                out.push(modrm_u8(3, slash, r));
+                out.push(0x48); out.push(0x89); out.push(0xD0);
             }
             SemanticId::Addw => {
-                // x86-64 对 32 位操作: MOVSXD + ADD (跳过,直接用 ADD REX.W)
                 out.push(0x48); out.push(0x01);
                 let reg = match ops[2].reg() { Some(v) => v, None => return vec![] };
                 let rm  = match ops[0].reg() { Some(v) => v, None => return vec![] };
-                out.push(0xC0 | (reg << 3) | rm);
+                out.push(modrm_u8(3, reg, rm));
             }
             SemanticId::Addiw => {
                 out.push(0x48); out.push(0x83);
                 let rm = match ops[0].reg() { Some(v) => v, None => return vec![] };
-                out.push(0xC0 | rm);
+                out.push(modrm_u8(3, 0, rm));
                 let imm = match ops[1].imm() { Some(v) => v as u8, None => return vec![] };
                 out.push(imm);
             }
             // ── A 扩展原子 · x86 用 LOCK+XCHG / LOCK+XADD ──
             SemanticId::AmoSwapw => {
-                // LOCK XCHG: F0 87 /r
                 let rd = match ops[0].reg() { Some(v) => v, None => return vec![] };
                 let r2 = match ops[1].reg() { Some(v) => v, None => return vec![] };
                 out.push(0xF0); out.push(0x48); out.push(0x87);
-                out.push(0xC0 | ((rd & 7) << 3) | (r2 & 7));
+                out.push(modrm_u8(3, rd, r2));
             }
             SemanticId::AmoAddw => {
-                // LOCK XADD: F0 0F C1 /r
                 let rd = match ops[0].reg() { Some(v) => v, None => return vec![] };
                 let r2 = (ops.get(1).and_then(|o| o.reg()).unwrap_or(0)) as u8;
                 out.push(0xF0); out.push(0x48); out.push(0x0F); out.push(0xC1);
-                out.push(0xC0 | ((rd & 7) << 3) | (r2 & 7));
+                out.push(modrm_u8(3, rd, r2));
             }
             SemanticId::Lrw => {
-                out.extend_from_slice(&[0x0F, 0xAE, 0xE8]);  // LFENCE (原子读)
+                out.extend_from_slice(&[0x0F, 0xAE, 0xE8]);
             }
             SemanticId::Scw => {
-                out.extend_from_slice(&[0x0F, 0xAE, 0xF8]);  // SFENCE (原子写)
+                out.extend_from_slice(&[0x0F, 0xAE, 0xF8]);
             }
             _ => match id {
                 SemanticId::Load  => out.extend_from_slice(&[0x48, 0x8B, 0x03]),
                 SemanticId::Store => out.extend_from_slice(&[0x48, 0x89, 0x18]),
-                SemanticId::Jmp   => out.extend_from_slice(&[0xFF, 0xE0]),
-                SemanticId::Bne   => out.extend_from_slice(&[0x75, 0x0A]),
-                SemanticId::Beq   => out.extend_from_slice(&[0x74, 0x0A]),
+                SemanticId::Jmp   => {
+                    out.push(0xE9);
+                    let rel = ops.get(2).and_then(|o| o.label()).unwrap_or(0) as i32;
+                    out.extend_from_slice(&rel.to_le_bytes());
+                }
+                SemanticId::Bne   => {
+                    out.push(0x75);
+                    let rel = ops.get(2).and_then(|o| o.label()).unwrap_or(0) as i8;
+                    out.push(rel as u8);
+                }
+                SemanticId::Beq   => {
+                    out.push(0x74);
+                    let rel = ops.get(2).and_then(|o| o.label()).unwrap_or(0) as i8;
+                    out.push(rel as u8);
+                }
                 SemanticId::Call  => out.extend_from_slice(&[0xFF, 0xD0]),
                 SemanticId::Ret   => out.push(0xC3),
-                SemanticId::Cmp   => out.extend_from_slice(&[0x48, 0x39, 0xD8]),
-                SemanticId::Mov   => out.extend_from_slice(&[0xB8, 0x78, 0x56, 0x34, 0x12]),
                 _ => return vec![],
             },
         }
@@ -790,7 +803,19 @@ mod tests {
             vec![Operand::Reg(0), Operand::Imm(5)],
             Platform::X86_64,
         );
-        assert_eq!(w.native_encoding, vec![0x48, 0x83, 0xC0, 0x05]);
+        // REX.W + 81 /0 ModRM + imm32  (= 48 81 C0 05 00 00 00)
+        assert_eq!(w.native_encoding, vec![0x48, 0x81, 0xC0, 0x05, 0x00, 0x00, 0x00]);
+    }
+
+    #[test]
+    fn subi_x86() {
+        let w = VocabWord::new(
+            SemanticId::Subi,
+            vec![Operand::Reg(0), Operand::Imm(100)],
+            Platform::X86_64,
+        );
+        // REX.W + 81 /5 ModRM + imm32  (= 48 81 E8 64 00 00 00)
+        assert_eq!(w.native_encoding, vec![0x48, 0x81, 0xE8, 0x64, 0x00, 0x00, 0x00]);
     }
 
     #[test]
@@ -968,7 +993,19 @@ mod tests {
             vec![Operand::Reg(0), Operand::Reg(1), Operand::Label(4)],
             Platform::X86_64,
         );
-        assert_eq!(w.native_encoding, vec![0x74, 0x0A]);
+        // 74 rel8  →  offset=4 (取 Label)
+        assert_eq!(w.native_encoding, vec![0x74, 0x04]);
+    }
+
+    #[test]
+    fn bne_x86() {
+        let w = VocabWord::new(
+            SemanticId::Bne,
+            vec![Operand::Reg(0), Operand::Reg(1), Operand::Label(8)],
+            Platform::X86_64,
+        );
+        // 75 rel8  →  offset=8
+        assert_eq!(w.native_encoding, vec![0x75, 0x08]);
     }
 
     // ── RV64I/M/A 新指令编码验证 ──

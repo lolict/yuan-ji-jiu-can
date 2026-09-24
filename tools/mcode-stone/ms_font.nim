@@ -26,7 +26,8 @@ type
   McodEntry* = object
     codepoint*: uint32     ## PUA 码点
     semId*: string         ## 跨 ISA 语义 ID（例 "ADD"）
-    isaCode*: seq[uint8]   ## 该 ISA 对应的机器码（RV32I 小端序）
+    isaCode*: seq[uint8]   ## 该 ISA 对应的机器码
+    isaId*: int            ## 指令集标识（用于 isaFlags 字段；1=RV32I, 2=ARM64, 4=x86-64, 8=MIPS）
 
   FontConfig* = object
     familyName*: string
@@ -39,7 +40,12 @@ type
     descender*: int16      ## 通常为负
 
 const
-  DEFAULT_PUA_BASE* = 0xF000'u32    ## 私用区起始码点
+  DEFAULT_PUA_BASE* = 0xF000'u32    ## 私用区起始码点（RV32I 段）
+  PUA_BASE_ARM64*   = 0xF100'u32    ## PUA ARM64 段起始
+  ISA_RV32I*  = 1
+  ISA_ARM64*  = 2
+  ISA_X64*    = 4
+  ISA_MIPS*   = 8
   MCOD_TAG* = [uint8('M'), uint8('C'), uint8('O'), uint8('D')]
   REQUIRED_TABLES* = [
     "cmap", "glyf", "head", "hhea", "hmtx", "loca",
@@ -458,7 +464,7 @@ proc tableMCOD*(entries: seq[McodEntry]): seq[uint8] =
   addBE32(b, codePoolOff)
   for i, e in entries:
     addBE32(b, e.codepoint)
-    addBE32(b, 0x00000001'u32)                    ## isaFlags: bit0=RV32I
+    addBE32(b, uint32(e.isaId))                    ## isaFlags ← ISA 标识值
     addBE16(b, semOffsets[i])
     addBE16(b, semLengths[i])
     addBE16(b, codeOffsets[i])

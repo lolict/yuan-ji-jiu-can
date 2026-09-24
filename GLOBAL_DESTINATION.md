@@ -93,7 +93,7 @@
 | 51 | isa-ref 五架构机器码对齐参考 | tools/isa-ref/ | ✅ RISC-V 47指令·纯容器符号编码表(无Python/YAML/CSV)·容器族码袋缸盆·操作族加减进出·审判族裁判断·相位层·加法串联公路砖块·语义ID=层-容器-韵母·加袋袋袋=ADD·不进位·不进幂 |
 | 52 | hunyuan-orchestrator NJSG 四层栈编排器 | tools/cbsy/ | ✅ v0.15 鼓膜自举(扫描→恢复29工具+完整性通过)→天庭空间(夫妻双吸引子+囡囝平衡+满全法规则·引力对称0.645:0.645·Topos AND)→灵魂内核(奖励/恐惧/驱力回路·初始电平=0.3+工具数×0.01·仅加减)→八流dispatch(ack反馈reward+0.05/囝囝attractor+0.02·nack反馈fear+0.02·休眠反馈drive+0.03)·开发红线1(不允许独立存在)·下层为上层存在前提 |
 | 53 | riscv-encoding RV32I 指令编码+字体 | tools/riscv-encoding/ | ✅ 全4种格式(R/I/S/B/U/J)编码器(仅加减·禁用乘除)·decode round-trip 16/16 PASS·BASIC16 16指令表(TrueBox 600×700)·nameID 256+ 嵌入 指令名:机器码 往返PASS·.ttf 2896字节·name table 私有区即指令集编码表·为五架构对齐清单提供RISC-V高精度位字段 |
-| 54 | mcode-stone MCODE Stone · 全39条RV32I精确编解码+MCOD字体容器(生产级) | tools/mcode-stone/ | ✅ 全39条RV32I指令·R/I/S/B/U/J六格式精确编解码·encode→decode→re-encode往返恒等57/57全通过·ms_font纯Nim OpenType TTF写入器(11表+自定义MCOD表)·ms_mcod_demo端到端读盘校验 全39条PUA U+F000..U+F026嵌入MCOD·codepoint↔semId↔machineCode三元组往返恒等39/39全通过·hunyuan_rv32i_mcod.ttf 3660字节·仅加减·禁用乘除·身份落款:刘楚恬和我 |
+| 54 | mcode-stone MCODE Stone · 双ISA(RV32I+ARM64)精确编解码+MCOD字体容器 | tools/mcode-stone/ | ✅ 全39条RV32I·11条ARM64精确编解码·RV32I round-trip 57/57 PASS·ARM64 14/14 PASS·ms_font纯Nim OpenType TTF(11表+MCOD)·MCOD多ISA支持:isaId字段+独立PUA段(U+F000=RV32I,U+F100=ARM64)·ms_mcod_dual双ISA嵌入50条(39 RV32I+11 ARM64)·codepoint↔semId↔machineCode往返恒等50/50 PASS·hunyuan_dual_isa_mcod.ttf 4836字节·仅加减·禁用乘除·身份落款:刘楚恬和我 |
 | 55 | isa Rust RV32I 编码器/解码器 | hunyuan-rs/src/isa.rs | ✅ 32条指令·encode/decode·CLI:isa-encode·15测试·B/J-type散布局正确·tools/isa-ref/rs1遗漏已发现 |
 | 56 | metaime 冰箱模型 Rust 核心 | hunyuan-rs/src/metaime.rs | ✅ v0.1 24声母×35韵母×5声调编译期内嵌字典·C-ABI FFI·7测试全绿·x86_64+ARM64双架构 |
 | 57 | metaime JNI 桥接层 | hunyuan-rs/src/bin/metaime_jni.rs | ✅ v0.1 jni crate类型安全绑定·8个JNI函数·包名com.manquanca.metaime·JNI_OnLoad入口 |
@@ -113,6 +113,7 @@
 | 71 | repo-inventory 九仓库备份清单 | docs/repo-inventory.md | ✅ 9唯一仓库·三镜像(HY)·双镜像(YJ)·单镜像(MQE/MQL/MQD/SC/ACD/KND/HU)·Tier分级·remote别名映射 |
 | 72 | push-all 全平台推送脚本 | tools/push-all.sh | ✅ bash tools/push-all.sh [branch]·遍历git remote·逐平台push·彩色统计·exit 0/1 |
 | 73 | adapter_bag 袋容器缓存修复 | hunyuan-rs/src/core/adapter_bag.rs | ✅ 修复//TODO:cache·fetch成功后缓存IndexedContainer·返回InvokeResult.container·2新测试(缓存填充/溢出驱逐) |
+| 74 | observer 观测系·活码到场指纹 | tools/observer/ | ✅ 加法统计法(谁在场·在哪里·什么模式·非数值运算)·八层密度统计·754条在场指纹·文档5·工具源码52·已编译46·Zig 21·C 20·Rust 16·符号592·WASM 2·采样50符号展示·HTML报告输出 |
 
 ---
 

@@ -1187,11 +1187,57 @@ Input → Perception → Distinguish → Lookup → Traverse → Cluster → Att
 | numEntries | u16 | 条目数 |
 | strPoolOffset | u32 | 字符串池在表内的偏移（写入后回填） |
 | codePoolOffset | u32 | 代码池在表内的偏移 |
-| entries[] | u16×8 = 16 bytes | 每个条目：codepoint(u32) isaFlags(u32) semIdOffset(u16) semIdLength(u16) codeOffset(u16) codeLength(u16) |
+| entries[] | u16×8 = 16 bytes | 每个条目：codepoint(u32) isaId(u32) semIdOffset(u16) semIdLength(u16) codeOffset(u16) codeLength(u16) |
 | strPool | UTF-8 bytes | 所有 semId 字符串池 |
-| codePool | raw bytes | 所有机器码字节池（小端序） |
+| codePool | raw bytes | 所有机器码字节池（各 ISA 原生序） |
 
-**PUA 码点：** U+F000 + i（第 i 条指令），glyph i+1（glyph 0 = .notdef）
+**ISA 标识（isaId）：**
+
+| 值 | ISA | PUA 范围 |
+|----|-----|---------|
+| 1 | RV32I (RISC-V 32) | U+F000..U+F0FF |
+| 2 | ARM64 (AArch64) | U+F100..U+F1FF |
+| 4 | x86-64 | (预留) |
+| 8 | MIPS32 | (预留) |
+
+**PUA 码点：** RV32I 段 U+F000+（39 条），ARM64 段 U+F100+（11 条）
+
+### ms_arm64.nim — ARM64 AArch64 精确编码器
+
+| 符号 | 含义 |
+|------|------|
+| ARM64_DEFS | 指令定义序列（11 条：ADD/SUB/CMP/ADDI/SUBI/LDR/STR/B/BL/B.EQ/RET） |
+| encodeARM64 | semId → Operands → seq[uint8]（4 字节机器码，大端序编码） |
+| roundtripARM64 | encode → re-encode 确定性验证 |
+| arm64InsnCount | 已注册 ARM64 指令计数 |
+
+**ARM64 指令编码：**
+
+| 语义 ID | 编码格式 | 十六进制 base | 操作数需求 |
+|---------|---------|-------------|----------|
+| ADD | dp-reg (sf=0, op=00, S=0) | 0x0B000000 | rd, rs1, rs2 |
+| SUB | dp-reg (sf=0, op=10, S=0) | 0x4B000000 | rd, rs1, rs2 |
+| CMP | dp-reg (SUBS XZR) | 0x6B000000 | rs1, rs2; rd=XZR(31) |
+| ADDI | dp-imm (sh=0) | 0x11000000 | rd, rs1, imm(0..4095) |
+| SUBI | dp-imm (sh=0) | 0x51000000 | rd, rs1, imm(0..4095) |
+| LDR | ldst uoff, W reg | 0xB9400000 | rd, rs1, imm(0..16380, 4对齐) |
+| STR | ldst uoff, W reg | 0xB9000000 | rs2, rs1, imm(0..16380, 4对齐) |
+| B | uncond branch | 0x14000000 | imm(±28bit, 4对齐) |
+| BL | branch & link | 0x94000000 | imm(±28bit, 4对齐) |
+| B.EQ | cond branch (cond=0) | 0x54000000 | imm(±21bit, 4对齐), shamt=cond |
+| RET | BR X30 (link reg) | 0xD65F03C0 | (无 / rs1 可选) |
+
+**ARM64 dp-reg 位字段（无移位）：**
+
+| 位 | 31 | 30:29 | 28 | 24:21 | 20:16 | 15:10 | 9:5 | 4:0 |
+|----|----|----|---|-------|-------|-------|-----|-----|
+| | sf | op | S | 1011 | Rm | 000000 | Rn | Rd |
+
+**dp-imm 位字段（无移位 sh=0）：**
+
+| 位 | 31 | 30:29 | 28 | 23:22 | 21:10 | 9:5 | 4:0 |
+|----|----|----|---|-------|-------|-----|-----|
+| | sf | op | S | 10 | imm12 | Rn | Rd |
 
 ### ms_demo.nim — 全面验证程序
 

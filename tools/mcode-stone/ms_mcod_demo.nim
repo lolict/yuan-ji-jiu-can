@@ -98,7 +98,7 @@ when isMainModule:
     let cp = DEFAULT_PUA_BASE + uint32(i)       ## PUA 码点
     let gid = uint16(i + 1)                       ## glyph 0 = .notdef
     entries.add(McodEntry(codepoint: cp, semId: enc.encoded.semId,
-                          isaCode: enc.encoded.code))
+                          isaCode: enc.encoded.code, isaId: ISA_RV32I))
     cmapPairs.add((cp: cp, gid: gid))
     let code32 = if enc.encoded.code.len >= 4:
       (uint32(enc.encoded.code[3]) shl 24) or (uint32(enc.encoded.code[2]) shl 16) or

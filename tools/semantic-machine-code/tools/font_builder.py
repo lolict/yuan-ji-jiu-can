@@ -177,32 +177,41 @@ def build_font(output_path: str = None,
 
 def _build_mcod_table(arch_mappings: dict) -> bytes:
     """
-    构建 MCOD 二进制表（v2 格式，灵活位宽，小端序）。
+    构建 MCOD 二进制表（v3 格式，双模式编码支持）。
+
+    v3 新增:
+      - 类型标记 'R' = RISC 位域模式 (opcode/funct3/funct7/shamt)
+      - 类型标记 'C' = CISC opkey 引用模式 (变长前缀 + ModRM)
 
     文件格式：
       [0:4]   magic = b"MCOD"
-      [4:6]   version uint16 = 2
+      [4:6]   version uint16 = 3
       [6:8]   arch_count uint16
       对每个架构（按名称排序）：
         [0]    arch_name_len uint8
         [1:N]  arch_name UTF-8
         [N:N+2] entry_count uint16
         对每个 instruction（按 sid 排序）：
-          [0]    sid_len uint8
-          [1:M]  sid UTF-8
-          [M]    format ASCII (R/I/S/U/B/J/D/X/...)
-          [M+1]  opcode_bits uint8  (实际位宽)
-          [M+2:M+6] opcode_val uint32
-          [M+6]  funct3_bits uint8
-          [M+7:M+11] funct3_val uint32
-          [M+11] funct7_bits uint8
-          [M+12:M+16] funct7_val uint32
-          [M+16] shamt_bits uint8
-          [M+17:M+21] shamt_val uint32
+          [0]           sid_len uint8
+          [1:M]         sid UTF-8
+          [M]           format ASCII (R/I/S/U/B/J/D/X...)
+          [M+1]         type_flag: 'R' 或 'C'
+          --- 若 type_flag = 'R' (RISC 位域) ---
+          [M+2]         opcode_bits uint8
+          [M+3:M+7]     opcode_val uint32
+          [M+7]         funct3_bits uint8
+          [M+8:M+12]    funct3_val uint32
+          [M+12]        funct7_bits uint8
+          [M+13:M+17]   funct7_val uint32
+          [M+17]        shamt_bits uint8
+          [M+18:M+22]   shamt_val uint32
+          --- 若 type_flag = 'C' (CISC opkey 引用) ---
+          [M+2]         opkey_len uint8
+          [M+3:M+K]     opkey UTF-8 (如 "ADD_REG_REG")
     """
     buf = bytearray()
     buf += b"MCOD"
-    buf += struct.pack("<HH", 2, len(arch_mappings))
+    buf += struct.pack("<HH", 3, len(arch_mappings))
 
     for arch_name, mapping in sorted(arch_mappings.items()):
         name_bytes = arch_name.encode("utf-8")
@@ -220,30 +229,38 @@ def _build_mcod_table(arch_mappings: dict) -> bytes:
             fmt_char = inst.get("format", "X")[:1].encode("ascii")
             buf += fmt_char
 
-            op = _op_val(inst, "opcode")
-            op_w = _op_width(inst, "opcode")
-            f3 = _op_val(inst, "funct3")
-            f3_w = _op_width(inst, "funct3")
-            f7 = _op_val(inst, "funct7")
-            f7_w = _op_width(inst, "funct7")
-            sh = _op_val(inst, "shamt")
-            sh_w = _op_width(inst, "shamt")
+            # 判断模式：有 opkey 字段且无 opcode 位域 → CISC 模式
+            if "opkey" in inst and "opcode" not in inst:
+                buf += b"C"
+                opkey_bytes = inst["opkey"].encode("utf-8")
+                buf += struct.pack("<B", len(opkey_bytes))
+                buf += opkey_bytes
+            else:
+                buf += b"R"
+                op = _op_val(inst, "opcode")
+                op_w = _op_width(inst, "opcode")
+                f3 = _op_val(inst, "funct3")
+                f3_w = _op_width(inst, "funct3")
+                f7 = _op_val(inst, "funct7")
+                f7_w = _op_width(inst, "funct7")
+                sh = _op_val(inst, "shamt")
+                sh_w = _op_width(inst, "shamt")
 
-            buf += struct.pack("<BI", op_w, op)
-            buf += struct.pack("<BI", f3_w, f3)
-            buf += struct.pack("<BI", f7_w, f7)
-            buf += struct.pack("<BI", sh_w, sh)
+                buf += struct.pack("<BI", op_w, op)
+                buf += struct.pack("<BI", f3_w, f3)
+                buf += struct.pack("<BI", f7_w, f7)
+                buf += struct.pack("<BI", sh_w, sh)
 
     return bytes(buf)
 
 
 def parse_mcod_table(mcod_data: bytes) -> dict:
-    """从 MCOD 二进制数据反向解析出架构→指令→位域字典。"""
+    """从 MCOD 二进制数据反向解析出架构→指令→位域字典（支持 v2/v3）。"""
     if mcod_data[:4] != b"MCOD":
         raise ValueError("无效 MCOD 数据")
     version, arch_count = struct.unpack_from("<HH", mcod_data, 4)
-    if version != 2:
-        raise ValueError(f"不支持 MCOD 版本: {version}（只支持 v2）")
+    if version not in (2, 3):
+        raise ValueError(f"不支持 MCOD 版本: {version}（只支持 v2/v3）")
 
     arch_mappings = {}
     offset = 8
@@ -258,6 +275,20 @@ def parse_mcod_table(mcod_data: bytes) -> dict:
             sid = mcod_data[offset:offset + sid_len].decode("utf-8"); offset += sid_len
             fmt_char = chr(mcod_data[offset]); offset += 1
 
+            entry = {"format": fmt_char}
+
+            if version >= 3:
+                type_flag = chr(mcod_data[offset]); offset += 1
+                if type_flag == "C":
+                    # CISC opkey 引用模式
+                    ok_len = mcod_data[offset]; offset += 1
+                    entry["opkey"] = mcod_data[offset:offset + ok_len].decode("utf-8")
+                    offset += ok_len
+                    inst_map[sid] = entry
+                    continue
+                # type_flag == "R' 继续下面位域解析
+
+            # RISC 位域模式 (v2 默认 / v3 'R' 标记)
             op_w = mcod_data[offset]; offset += 1
             op = struct.unpack_from("<I", mcod_data, offset)[0]; offset += 4
             f3_w = mcod_data[offset]; offset += 1
@@ -267,7 +298,6 @@ def parse_mcod_table(mcod_data: bytes) -> dict:
             sh_w = mcod_data[offset]; offset += 1
             sh = struct.unpack_from("<I", mcod_data, offset)[0]; offset += 4
 
-            entry = {"format": fmt_char}
             if op_w: entry["opcode"] = op
             if f3_w: entry["funct3"] = f3
             if f7_w: entry["funct7"] = f7
