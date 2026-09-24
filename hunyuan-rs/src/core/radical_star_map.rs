@@ -83,7 +83,7 @@ impl StarMap {
     /// 孤立恒星 (没有星路)
     pub fn isolated_stars(&self) -> Vec<Radical> {
         self.stars.iter()
-            .filter(|s| !self.stars.iter().any(|other| s != other && s.has_path(other)))
+            .filter(|s| !self.stars.iter().any(|other| **s != *other && s.has_path(other)))
             .cloned()
             .collect()
     }

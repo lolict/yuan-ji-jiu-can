@@ -13402,13 +13402,7 @@ impl TernaryWitnessEngine {
 
 impl Default for TernaryWitnessEngine { fn default() -> Self { Self::new() } }
 
-#[cfg(test)]
-mod witness_tests {
-    use super::*;
-    #[test] fn test_new() {
-        let e = TernaryWitnessEngine::new();
-        assert_eq!(e.quorum, 1);
-        assert_eq!(e.admitted_count(), 0);
+// (duplicate witness_tests module removed - kept first at line 9835)
     }
     #[test] fn test_bind_ternary() {
         let mut e = TernaryWitnessEngine::new();
