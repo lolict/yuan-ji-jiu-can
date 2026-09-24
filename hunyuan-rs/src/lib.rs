@@ -288,6 +288,10 @@ pub mod judgment_power;
 #[path = "judge/logical_org.rs"]
 pub mod logical_org;
 
+// ── v0.15 反馈闭环 · 系统自适应 · 感知自修改 ──
+#[path = "judge/feedback_loop.rs"]
+pub mod feedback_loop;
+
 // ── v0.5 许可枢纽 · AI体输出必经的意识表格 (断层检测+中间符号+边界穿越) ──
 #[path = "judge/license_hub.rs"]
 pub mod license_hub;

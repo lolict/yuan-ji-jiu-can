@@ -16,6 +16,7 @@ import strutils
 import times
 import sequtils
 import json
+import tables
 
 # ============================================================
 # 根目录检测
