@@ -6,6 +6,7 @@ pub use crate::grand_court;
 pub use crate::judgment_power;
 pub use crate::logical_org;
 pub use crate::feedback_loop;
+pub use crate::judgment_act_bridge;
 pub use crate::mirror;
 pub use crate::negative_immune;
 pub use crate::parasite;

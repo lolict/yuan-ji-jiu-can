@@ -292,6 +292,10 @@ pub mod logical_org;
 #[path = "judge/feedback_loop.rs"]
 pub mod feedback_loop;
 
+// ── v0.16 判断→行动桥梁 · 感知-思考-执行闭环 ──
+#[path = "judge/judgment_act_bridge.rs"]
+pub mod judgment_act_bridge;
+
 // ── v0.5 许可枢纽 · AI体输出必经的意识表格 (断层检测+中间符号+边界穿越) ──
 #[path = "judge/license_hub.rs"]
 pub mod license_hub;

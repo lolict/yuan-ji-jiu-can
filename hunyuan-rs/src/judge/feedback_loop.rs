@@ -186,7 +186,7 @@ impl FeedbackLoop {
         }
 
         // 策略3: 检查逻辑组织中的规则层级, 决定是否需要升级/降级
-        let resolver = RelationResolver::new(org);
+        let _resolver = RelationResolver::new(org);
         let ranked = org.ranked_rules();
 
         for (i, node) in ranked.iter().enumerate() {
