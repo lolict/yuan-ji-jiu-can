@@ -13051,7 +13051,12 @@ impl ContainerRingBuffer {
     /// 批量读出所有可用 (不清空)
     pub fn drain(&mut self) -> Vec<u64> {
         let mut out: Vec<u64> = Vec::new();
-        loop { match self.read() { Some(v) => out.push(v), None => break; } }
+        loop {
+            match self.read() {
+                Some(v) => { out.push(v); }
+                None => { break; }
+            }
+        }
         out
     }
 
