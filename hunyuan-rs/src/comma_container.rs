@@ -13286,6 +13286,199 @@ mod checksum_tests {
     }
 }
 
+// ══════════════════════════════════════════════════════════════════════
+// 三元见证引擎 · TernaryWitnessEngine (v1.0)
+// ══════════════════════════════════════════════════════════════════════
+//
+//   三元 = 观察者 · 被观察者 · 见证者
+//   "三元作为见证裁判裁定准入"
+//
+//   核心操作:
+//     - bind_ternary()    — 创建三元绑定
+//     - adjudicate()      — 裁定是否准入 (多数决)
+//     - append_proof()    — 追加证明到证明链
+//     - verify_chain()    — 验证证明链完整性
+//     - batch_adjudicate()— 批量准入裁定
+//
+//   NJSG 哲学: 见证不是"证实存在", 而是"裁定准入"
+//   观察者提出, 被观察者提供, 见证者裁定 — 三方缺一不可
+
+/// 三元见证引擎
+#[derive(Clone, Debug)]
+pub struct TernaryWitnessEngine {
+    /// 三元绑定: 容器id → (观察者, 被观察者, 见证者)
+    pub ternary_bindings: HashMap<u32, (u32, u32, u32)>,
+    /// 准入记录: 容器id → 是否被裁定准入
+    pub admission_records: HashMap<u32, bool>,
+    /// 证明链: 容器id → 证明哈希序列
+    pub proof_chains: HashMap<u32, Vec<u64>>,
+    /// 见证阈值: 至少需要多少见证者同意
+    pub quorum: usize,
+}
+
+impl TernaryWitnessEngine {
+    pub fn new() -> Self {
+        Self {
+            ternary_bindings: HashMap::new(),
+            admission_records: HashMap::new(),
+            proof_chains: HashMap::new(),
+            quorum: 1,
+        }
+    }
+
+    /// 设置见证阈值
+    pub fn set_quorum(&mut self, n: usize) { self.quorum = n.max(1); }
+
+    /// 创建三元绑定 (观察者, 被观察者, 见证者)
+    pub fn bind_ternary(&mut self, observer: u32, observed: u32, witness: u32) {
+        self.ternary_bindings.insert(observer, (observer, observed, witness));
+    }
+
+    /// 裁定容器是否准入 (至少 quorum 个见证者同意)
+    pub fn adjudicate(&mut self, container_id: u32, witnesses_agree: &[bool]) -> bool {
+        let agree_count = witnesses_agree.iter().filter(|&&x| x).count();
+        let admitted = agree_count >= self.quorum;
+        self.admission_records.insert(container_id, admitted);
+        admitted
+    }
+
+    /// 判定容器是否已准入
+    pub fn is_admitted(&self, container_id: u32) -> bool {
+        self.admission_records.get(&container_id).copied().unwrap_or(false)
+    }
+
+    /// 追加证明到证明链
+    pub fn append_proof(&mut self, container_id: u32, proof_hash: u64) {
+        self.proof_chains.entry(container_id).or_default().push(proof_hash);
+    }
+
+    /// 获取证明链
+    pub fn proof_chain(&self, container_id: u32) -> Option<&Vec<u64>> {
+        self.proof_chains.get(&container_id)
+    }
+
+    /// 验证证明链完整性 (非递减序列)
+    pub fn verify_chain(&self, container_id: u32) -> bool {
+        if let Some(chain) = self.proof_chains.get(&container_id) {
+            if chain.len() < 2 { return true; }
+            chain.windows(2).all(|w| w[1] >= w[0])
+        } else { false }
+    }
+
+    /// 获取见证者
+    pub fn witness_for(&self, container_id: u32) -> Option<u32> {
+        self.ternary_bindings.get(&container_id).map(|(_, _, w)| *w)
+    }
+
+    /// 移除绑定与记录
+    pub fn remove(&mut self, container_id: u32) {
+        self.ternary_bindings.remove(&container_id);
+        self.admission_records.remove(&container_id);
+        self.proof_chains.remove(&container_id);
+    }
+
+    /// 批量准入裁定
+    pub fn batch_adjudicate(&mut self, judgments: &[(u32, Vec<bool>)]) -> HashMap<u32, bool> {
+        let mut results = HashMap::new();
+        for (id, votes) in judgments {
+            let result = self.adjudicate(*id, votes);
+            results.insert(*id, result);
+        }
+        results
+    }
+
+    /// 已准入容器数
+    pub fn admitted_count(&self) -> usize {
+        self.admission_records.values().filter(|&&v| v).count()
+    }
+
+    /// 重置所有记录
+    pub fn clear(&mut self) {
+        self.ternary_bindings.clear();
+        self.admission_records.clear();
+        self.proof_chains.clear();
+    }
+}
+
+impl Default for TernaryWitnessEngine { fn default() -> Self { Self::new() } }
+
+#[cfg(test)]
+mod witness_tests {
+    use super::*;
+    #[test] fn test_new() {
+        let e = TernaryWitnessEngine::new();
+        assert_eq!(e.quorum, 1);
+        assert_eq!(e.admitted_count(), 0);
+    }
+    #[test] fn test_bind_ternary() {
+        let mut e = TernaryWitnessEngine::new();
+        e.bind_ternary(1, 2, 3);
+        assert_eq!(e.witness_for(1), Some(3));
+    }
+    #[test] fn test_adjudicate_admitted() {
+        let mut e = TernaryWitnessEngine::new();
+        assert!(e.adjudicate(1, &[true, true, false]));
+        assert!(e.is_admitted(1));
+    }
+    #[test] fn test_adjudicate_denied() {
+        let mut e = TernaryWitnessEngine::new();
+        e.set_quorum(2);
+        assert!(!e.adjudicate(1, &[true, false, false]));
+        assert!(!e.is_admitted(1));
+    }
+    #[test] fn test_quorum() {
+        let mut e = TernaryWitnessEngine::new();
+        e.set_quorum(3);
+        assert!(!e.adjudicate(1, &[true, true, false]));
+        assert!(e.adjudicate(2, &[true, true, true]));
+        assert_eq!(e.admitted_count(), 1);
+    }
+    #[test] fn test_proof_chain() {
+        let mut e = TernaryWitnessEngine::new();
+        e.append_proof(1, 100);
+        e.append_proof(1, 200);
+        e.append_proof(1, 300);
+        let chain = e.proof_chain(1).unwrap();
+        assert_eq!(chain.len(), 3);
+        assert!(e.verify_chain(1));
+    }
+    #[test] fn test_verify_chain_fail() {
+        let mut e = TernaryWitnessEngine::new();
+        e.append_proof(1, 300);
+        e.append_proof(1, 100);
+        assert!(!e.verify_chain(1));
+    }
+    #[test] fn test_remove() {
+        let mut e = TernaryWitnessEngine::new();
+        e.bind_ternary(1, 2, 3);
+        e.adjudicate(1, &[true]);
+        e.append_proof(1, 100);
+        e.remove(1);
+        assert!(!e.is_admitted(1));
+        assert_eq!(e.proof_chain(1), None);
+    }
+    #[test] fn test_batch_adjudicate() {
+        let mut e = TernaryWitnessEngine::new();
+        e.set_quorum(1);
+        let judgments = vec![(1, vec![true]), (2, vec![false]), (3, vec![true])];
+        let results = e.batch_adjudicate(&judgments);
+        assert!(results[&1]);
+        assert!(!results[&2]);
+        assert!(results[&3]);
+        assert_eq!(e.admitted_count(), 2);
+    }
+    #[test] fn test_clear() {
+        let mut e = TernaryWitnessEngine::new();
+        e.adjudicate(1, &[true]);
+        e.clear();
+        assert_eq!(e.admitted_count(), 0);
+    }
+    #[test] fn test_default() {
+        let e = TernaryWitnessEngine::default();
+        assert_eq!(e.admitted_count(), 0);
+    }
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // 容器流水线引擎 · ContainerPipelineEngine (v1.0)
 // ═══════════════════════════════════════════════════════════════════════════
