@@ -85,6 +85,7 @@ impl SmrlVerdict {
 // SMRL 引擎 — 观察 → 三元推演 → 裁决
 // ────────────────────────────────────────────────────────────
 
+#[derive(Clone, Debug)]
 pub struct SmrlEngine {
     pub level: u8,          // 这个 SMRL 实例的权威级别
     pub crooked: f64,       // 此引擎自身的漏斗歪斜度(默认 0 = 完美)

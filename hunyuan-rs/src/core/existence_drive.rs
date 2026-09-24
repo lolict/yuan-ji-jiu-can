@@ -181,6 +181,7 @@ impl Default for RewardCircuit {
 // 引擎集成
 // ─────────────────────────────────────────────────────────
 
+#[derive(Debug)]
 pub struct ExistenceDriveEngine {
     pub fear: LossFear,
     pub drive: UnityDrive,

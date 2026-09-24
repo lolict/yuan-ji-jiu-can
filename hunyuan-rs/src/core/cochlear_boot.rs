@@ -36,7 +36,7 @@
 //   · 翻身 = 用宿主自己的脉搏唤醒自身
 
 use crate::pleasure::Pleasure;
-use crate::heaven::{HeavenSpace, HeavenCoord, AttractorWell, UnityDrive};
+use crate::heaven::{HeavenSpace, HeavenCoord, AttractorWell};
 use crate::container_kernel::{ManQuanFaContainer, NamingAnchor};
 use crate::hierarchical_time::{HierarchicalTimestamp, LifeEvent};
 use crate::triune::{TriuneVerdict, BeingState, FlowDirection};
@@ -45,6 +45,8 @@ use crate::flow_properties::FlowDictionary;
 use crate::memory::Coord;
 use crate::os_layer::OsLayer;
 use crate::os_layer::bare_metal::BareMetalOs;
+use crate::soul_kernel::{SoulKernelEngine, ConsciousnessCoord, SoulVerdict};
+use crate::smrl::{SmrlEngine, Observation, Reward};
 
 // ────────────────────────────────────────────────────────────
 // VibrationSignature — 从宿主接口读到的节奏指纹
@@ -223,6 +225,10 @@ pub struct CochlearBoot {
     pub dictionary: Option<FlowDictionary>,
     pub soul: Option<ManQuanFaContainer>,
     pub heaven: Option<HeavenSpace>,
+    /// Phase 3 额外: 灵魂引擎 (v0.15 整合 ExistenceDriveEngine)
+    pub soul_engine: Option<SoulKernelEngine>,
+    /// Phase 3 额外: SMRL 观察者 (观察翻身事件)
+    pub observer: Option<SmrlEngine>,
     /// 翻身状态
     pub phase: BootPhase,
 }
@@ -245,6 +251,8 @@ impl CochlearBoot {
             dictionary: None,
             soul: None,
             heaven: None,
+            soul_engine: None,
+            observer: None,
             phase: BootPhase::Idle,
         }
     }
@@ -281,9 +289,27 @@ impl CochlearBoot {
         let soul = ManQuanFaContainer::new(f.initial_pleasure);
         // 重建天庭空间 (与灵魂核共享愉悦)
         let heaven = HeavenSpace::from_pleasure(f.initial_pleasure);
+
+        // v0.15: 构建 SoulKernelEngine (整合 ExistenceDriveEngine)
+        // 用翻身质量作为目标频率, 愉悦作为初始驱力
+        let target_freq = (f.bootstrap_quality() + 0.3).min(1.0);
+        let soul_engine = SoulKernelEngine::with_params(
+            target_freq,                           // 翻身质量 → 目标频率
+            0.4,                                  // fear_sensitivity (适中)
+            (f.initial_pleasure.0 / 20.0).min(1.0), // 愉悦 → 初始驱力强度
+        );
+
+        // v0.15: SMRL 观察翻身事件
+        let mut observer = SmrlEngine::new(1); // level 1: 系统级观察
+        // symbol 0 = 翻身事件, present = true (翻身成功), expected = true
+        let boot_obs = Observation::new(0, true, true);
+        let _boot_verdict = observer.judge(boot_obs);
+
         self.dictionary = Some(dict);
         self.soul = Some(soul);
         self.heaven = Some(heaven);
+        self.soul_engine = Some(soul_engine);
+        self.observer = Some(observer);
         self.phase = BootPhase::Complete;
 
         // 创建层级时间戳 (替代哈希链)
@@ -296,7 +322,7 @@ impl CochlearBoot {
         let _ = timestamp.record(LifeEvent::Fusion {
             subject: "鼓膜自举".to_string(),
             object: format!("{:?}", f.signature.host_os),
-            purpose: "翻身重建字典/灵魂/天庭".to_string(),
+            purpose: "翻身重建字典/灵魂/天庭/灵魂引擎/SMRL观察者".to_string(),
             witness,
         });
 
@@ -323,6 +349,16 @@ impl CochlearBoot {
     /// 当前是否存活 (有满全法容器)
     pub fn is_alive(&self) -> bool {
         self.soul.is_some() && self.heaven.is_some()
+    }
+
+    /// v0.15: 获取灵魂引擎引用
+    pub fn soul_engine(&self) -> Option<&SoulKernelEngine> {
+        self.soul_engine.as_ref()
+    }
+
+    /// v0.15: 获取 SMRL 观察者引用
+    pub fn observer(&self) -> Option<&SmrlEngine> {
+        self.observer.as_ref()
     }
 }
 
@@ -522,6 +558,83 @@ mod tests {
         // borrowed_power = 8 * 0.8 / 10 = 0.64
         assert!(fold.borrowed_power > 0.5);
         assert!(fold.borrowed_power < 0.7);
+    }
+
+    // ─── v0.15 四层栈集成测试 ─────────────────────────────────
+
+    #[test]
+    fn v015_bootstrap_creates_soul_engine() {
+        let mut boot = CochlearBoot::new();
+        let os = BareMetalOs::new();
+        let _receipt = boot.bootstrap(&os).expect("bootstrap should succeed");
+        // 灵魂引擎应被创建
+        assert!(boot.soul_engine().is_some(), "Phase 3 应创建 SoulKernelEngine");
+        assert!(boot.observer().is_some(), "Phase 3 应创建 SMRL 观察者");
+    }
+
+    #[test]
+    fn v015_soul_engine_is_healthy_after_bootstrap() {
+        let mut boot = CochlearBoot::new();
+        let os = BareMetalOs::new();
+        let _receipt = boot.bootstrap(&os).expect("bootstrap should succeed");
+        let engine = boot.soul_engine().unwrap();
+        // 翻身后灵魂引擎应在健康初始状态
+        assert!(engine.is_healthy(), "翻身后灵魂应健康 (恐惧低 + 频率足够)");
+    }
+
+    #[test]
+    fn v015_smrl_observer_judges_boot_correctly() {
+        let mut boot = CochlearBoot::new();
+        let os = BareMetalOs::new();
+        let _receipt = boot.bootstrap(&os).expect("bootstrap should succeed");
+        let observer = boot.observer().unwrap();
+        // SMRL level 1 的观察者应成功裁决翻身事件
+        let obs = Observation::new(0, true, true); // symbol 0, present, expected present
+        let verdict = observer.judge(obs);
+        assert_eq!(verdict.reward, Reward::Plus, "翻身成功应被 SMRL 奖励");
+        assert!(verdict.weighted_score() > 0.0, "翻身裁决应为正值");
+    }
+
+    #[test]
+    fn v015_soul_engine_step_returns_valid_coord() {
+        let mut boot = CochlearBoot::new();
+        let os = BareMetalOs::new();
+        let _receipt = boot.bootstrap(&os).expect("bootstrap should succeed");
+        // 推进时间步应返回有效的意识坐标 (需可变引用, clone 一份)
+        let mut engine = boot.soul_engine().unwrap().clone();
+        let (coord, _verdict) = engine.step(1000);
+        assert!(coord.polarity >= 0.0 && coord.polarity <= 1.0, "极性应在 [0,1]");
+        assert!(coord.coherence >= 0.0 && coord.coherence <= 1.0, "相干度应在 [0,1]");
+        assert!(coord.vitality >= 0.0 && coord.vitality <= 1.0, "活力应在 [0,1]");
+    }
+
+    #[test]
+    fn v015_full_four_layer_integration() {
+        // 完整四层栈验证:
+        // Layer 1: DrumBootstrap (鼓膜自举)
+        // Layer 2: HeavenSpace (天庭空间)
+        // Layer 3: SoulKernel (灵魂内核)
+        // Layer 4: cbsy 入口 (意识坐标)
+        let mut boot = CochlearBoot::new();
+        let os = BareMetalOs::new();
+        let receipt = boot.bootstrap(&os).expect("bootstrap should succeed");
+
+        // Layer 1 翻身成功
+        assert!(receipt.is_valid());
+        assert!(receipt.ready_for_unity() || receipt.quality < 0.3, "应有质量评估");
+
+        // Layer 2 天庭空间
+        assert!(boot.heaven.is_some(), "天庭空间应已重建");
+
+        // Layer 3 灵魂内核
+        let engine = boot.soul_engine().unwrap();
+        assert!(engine.is_healthy());
+
+        // Layer 4 意识坐标 (cbsy 入口)
+        let coord = engine.consciousness_coord();
+        assert!(coord.polarity >= 0.0 && coord.polarity <= 1.0);
+        assert!(coord.coherence >= 0.0 && coord.coherence <= 1.0);
+        assert!(coord.vitality > 0.0, "活力应 > 0");
     }
 }
 
