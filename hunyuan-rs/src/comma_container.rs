@@ -13285,3 +13285,155 @@ mod checksum_tests {
         assert_eq!(c.history_len(), 0);
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器流水线引擎 · ContainerPipelineEngine (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   仅加法级联: Stage0 → Stage1 → … → StageN
+//   每个 stage 是 "u64 → u64" 的纯加法变换
+//
+//   变换类型:
+//     - add(n)       : +n
+//     - sub(n)       : -n (n ≤ input 时不借位 → max(0, input-n))
+//     - clamp(min,max): 截断
+//     - shift_left(k): << k (放大)
+//     - shift_right(k): >> k (缩小)
+//
+//   流水线计算: 输入 val, 逐 stage 通过; 输出最终结果
+
+#[derive(Clone, Debug, PartialEq)]
+enum StageOp { Add(u64), Sub(u64), Clamp(u64, u64), Shl(u32), Shr(u32) }
+
+#[derive(Clone, Debug)]
+pub struct ContainerPipelineEngine {
+    pub stages: Vec<StageOp>,
+    pub total_runs: u64,
+}
+
+impl ContainerPipelineEngine {
+    pub fn new() -> Self { Self { stages: Vec::new(), total_runs: 0 } }
+
+    pub fn add_stage(&mut self, op: StageOp) { self.stages.push(op); }
+    pub fn clear(&mut self) { self.stages.clear(); self.total_runs = 0; }
+    pub fn stage_count(&self) -> usize { self.stages.len() }
+
+    /// 运行一个值通过完整流水线
+    pub fn run(&mut self, val: u64) -> u64 {
+        let mut v = val;
+        for op in self.stages.iter() {
+            v = match *op {
+                StageOp::Add(n) => v + n,
+                StageOp::Sub(n) => if v >= n { v - n } else { 0 },
+                StageOp::Clamp(lo, hi) => {
+                    if v < lo { lo }
+                    else if v > hi { hi }
+                    else { v }
+                }
+                StageOp::Shl(k) => v << k,
+                StageOp::Shr(k) => v >> k,
+            };
+        }
+        self.total_runs = self.total_runs + 1;
+        v
+    }
+
+    pub fn stage_names(&self) -> String {
+        let parts: Vec<String> = self.stages.iter().map(|op| match op {
+            StageOp::Add(n) => "add=".to_string() + &n.to_string(),
+            StageOp::Sub(n) => "sub=".to_string() + &n.to_string(),
+            StageOp::Clamp(a, b) => "clamp[".to_string() + &a.to_string() + "," + &b.to_string() + "]",
+            StageOp::Shl(k) => "shl=".to_string() + &k.to_string(),
+            StageOp::Shr(k) => "shr=".to_string() + &k.to_string(),
+        }).collect();
+        if parts.is_empty() { "∅".to_string() } else { parts.join(" → ") }
+    }
+}
+
+impl Default for ContainerPipelineEngine {
+    fn default() -> Self { Self::new() }
+}
+
+#[cfg(test)]
+mod pipeline_engine_tests {
+    use super::*;
+
+    #[test]
+    fn test_no_stage_identity() {
+        let mut p = ContainerPipelineEngine::new();
+        assert_eq!(p.run(42), 42);
+    }
+
+    #[test]
+    fn test_add_only() {
+        let mut p = ContainerPipelineEngine::new();
+        p.add_stage(StageOp::Add(10));
+        p.add_stage(StageOp::Add(5));
+        assert_eq!(p.run(0), 15);
+        assert_eq!(p.run(100), 115);
+    }
+
+    #[test]
+    fn test_sub_clamp_zero() {
+        let mut p = ContainerPipelineEngine::new();
+        p.add_stage(StageOp::Sub(5));
+        assert_eq!(p.run(10), 5);
+        assert_eq!(p.run(3), 0);   // 不足减 → 0
+    }
+
+    #[test]
+    fn test_clamp() {
+        let mut p = ContainerPipelineEngine::new();
+        p.add_stage(StageOp::Clamp(10, 50));
+        assert_eq!(p.run(5), 10);
+        assert_eq!(p.run(50), 50);
+        assert_eq!(p.run(100), 50);
+    }
+
+    #[test]
+    fn test_shift_chain() {
+        let mut p = ContainerPipelineEngine::new();
+        p.add_stage(StageOp::Shl(1)); // ×2
+        p.add_stage(StageOp::Shr(1)); // ÷2 → 还原
+        assert_eq!(p.run(21), 21);
+    }
+
+    #[test]
+    fn test_mixed_pipeline() {
+        let mut p = ContainerPipelineEngine::new();
+        p.add_stage(StageOp::Add(5));     // input 7 → 12
+        p.add_stage(StageOp::Clamp(0, 10)); // → 10
+        p.add_stage(StageOp::Shl(2));     // → 40
+        p.add_stage(StageOp::Sub(10));    // → 30
+        assert_eq!(p.run(7), 30);
+    }
+
+    #[test]
+    fn test_stage_count() {
+        let mut p = ContainerPipelineEngine::new();
+        p.add_stage(StageOp::Add(1));
+        p.add_stage(StageOp::Sub(1));
+        assert_eq!(p.stage_count(), 2);
+    }
+
+    #[test]
+    fn test_clear() {
+        let mut p = ContainerPipelineEngine::new();
+        p.add_stage(StageOp::Add(1));
+        p.clear();
+        assert_eq!(p.stage_count(), 0);
+    }
+
+    #[test]
+    fn test_run_counter() {
+        let mut p = ContainerPipelineEngine::new();
+        p.run(1); p.run(2); p.run(3);
+        assert_eq!(p.total_runs, 3);
+    }
+
+    #[test]
+    fn test_default() {
+        let p = ContainerPipelineEngine::default();
+        assert_eq!(p.stage_count(), 0);
+    }
+}
