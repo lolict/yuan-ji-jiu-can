@@ -1,0 +1,33 @@
+# 满全法工具链清单 · 自动维护
+# 格式: [工具名] [来源] [状态] [路径]
+# 状态: MISSING | DOWNLOADING | INSTALLED | BROKEN
+
+[nix]
+source=nixos.org/nix/install
+path=~/.nix-profile/bin/nix
+status=MISSING
+note=包管理+构建引擎, 容器规范的基础
+
+[mlir]
+source=apt/GitHub
+path=/usr/bin/mlir-opt
+status=MISSING
+note=LLVM中间表示, 容器MLIR表示的背后支撑
+
+[wasmtime]
+source=bytecodealliance/wasmtime
+path=~/.local/bin/wasmtime
+status=MISSING
+note=WASM运行时, 容器字节码执行沙箱
+
+[lua]
+source=apt
+path=/usr/bin/lua
+status=MISSING
+note=轻量脚本, 容器脚本的解释层
+
+[cangjie]
+source=Huawei/cangjie
+path=~/.local/bin/cangjie
+status=MISSING
+note=仓颉中文编程语言, 我们的精神图腾参考
