@@ -16843,3 +16843,322 @@ mod quota_tests {
         assert_eq!(q.available(), 12);
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器 LRU 缓存 · ContainerLRUCache (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   最近使用过提升到队首, 容量满时淘汰队尾
+//   仅加法: 无频次计数, 每次命中即移到队首 (access-order)
+
+#[derive(Clone, Debug)]
+pub struct ContainerLRUCache {
+    pub order: Vec<u64>,       // front → back (recent → old)
+    pub capacity: usize,
+    pub hits: u64,
+    pub misses: u64,
+    pub evictions: u64,
+}
+
+impl ContainerLRUCache {
+    pub fn new(capacity: usize) -> Self { Self { order: Vec::new(), capacity, hits: 0, misses: 0, evictions: 0 } }
+    /// 查找 key → 移到队首; Some(key)=hit, None=miss
+    pub fn access(&mut self, key: u64) -> Option<u64> {
+        if let Some(pos) = self.find_pos(key) {
+            self.hits = self.hits + 1;
+            // move to front
+            self.order.remove(pos);
+            self.order.insert(0, key);
+            Some(key)
+        } else {
+            self.misses = self.misses + 1;
+            // insert at front
+            if self.order.len() >= self.capacity {
+                self.order.pop();
+                self.evictions = self.evictions + 1;
+            }
+            self.order.insert(0, key);
+            None
+        }
+    }
+    fn find_pos(&self, key: u64) -> Option<usize> {
+        for i in 0..self.order.len() { if self.order[i] == key { return Some(i); } }
+        None
+    }
+    pub fn contains(&self, key: u64) -> bool { self.find_pos(key).is_some() }
+    pub fn len(&self) -> usize { self.order.len() }
+}
+
+impl Default for ContainerLRUCache {
+    fn default() -> Self { Self::new(4) }
+}
+
+#[cfg(test)]
+mod lru_cache_tests {
+    use super::*;
+    #[test] fn test_hit() {
+        let mut c = ContainerLRUCache::new(2);
+        c.access(1); c.access(2);
+        assert!(c.access(1).is_some());
+        assert_eq!(c.hits, 1);
+    }
+    #[test] fn test_eviction() {
+        let mut c = ContainerLRUCache::new(2);
+        c.access(1); c.access(2); c.access(3);
+        assert!(!c.contains(1));
+        assert!(c.contains(2));
+        assert_eq!(c.evictions, 1);
+    }
+    #[test] fn test_lru_order() {
+        let mut c = ContainerLRUCache::new(3);
+        c.access(1); c.access(2); c.access(3);
+        c.access(1);  // 提升到 front: [1,3,2]
+        c.access(4);  // evict 2 → [4,1,3]
+        assert!(!c.contains(2));
+        assert!(c.contains(1) && c.contains(3) && c.contains(4));
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器分区器 · ContainerPartitioner (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   key → partition index, N 个桶
+//   分区策略: key mod N (用减法回绕)
+
+#[derive(Clone, Debug)]
+pub struct ContainerPartitioner {
+    pub num_buckets: u64,
+}
+
+impl ContainerPartitioner {
+    pub fn new(num_buckets: u64) -> Self { Self { num_buckets } }
+    pub fn partition(&self, key: u64) -> u64 {
+        let mut r = key;
+        loop {
+            if r < self.num_buckets { return r; }
+            r = r - self.num_buckets;
+        }
+    }
+}
+
+impl Default for ContainerPartitioner {
+    fn default() -> Self { Self::new(4) }
+}
+
+#[cfg(test)]
+mod partitioner_tests {
+    use super::*;
+    #[test] fn test_basic() {
+        let p = ContainerPartitioner::new(4);
+        assert_eq!(p.partition(0), 0);
+        assert_eq!(p.partition(3), 3);
+        assert_eq!(p.partition(4), 0);
+        assert_eq!(p.partition(7), 3);
+    }
+    #[test] fn test_single_bucket() {
+        let p = ContainerPartitioner::new(1);
+        assert_eq!(p.partition(999), 0);
+    }
+    #[test] fn test_default() {
+        let p = ContainerPartitioner::default();
+        assert_eq!(p.partition(5), 1);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器归约器 · ContainerReducer (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   流数据累加到单个值 (sum/max/min)
+//   仅加法比较
+
+#[derive(Clone, Debug)]
+pub enum ReduceOp { Sum, Max, Min }
+
+#[derive(Clone, Debug)]
+pub struct ContainerReducer {
+    pub op: ReduceOp,
+    pub acc: u64,
+    pub count: u64,
+}
+
+impl ContainerReducer {
+    pub fn new(op: ReduceOp) -> Self {
+        let init = match op { ReduceOp::Sum => 0, ReduceOp::Max => 0, ReduceOp::Min => u64::MAX };
+        Self { op, acc: init, count: 0 }
+    }
+    pub fn feed(&mut self, v: u64) {
+        self.count = self.count + 1;
+        self.acc = match self.op {
+            ReduceOp::Sum => self.acc + v,
+            ReduceOp::Max => if v > self.acc { v } else { self.acc },
+            ReduceOp::Min => if v < self.acc { v } else { self.acc },
+        };
+    }
+    pub fn result(&self) -> u64 { self.acc }
+}
+
+impl Default for ContainerReducer {
+    fn default() -> Self { Self::new(ReduceOp::Sum) }
+}
+
+#[cfg(test)]
+mod reducer_tests {
+    use super::*;
+    #[test] fn test_sum() {
+        let mut r = ContainerReducer::new(ReduceOp::Sum);
+        r.feed(3); r.feed(7); r.feed(2);
+        assert_eq!(r.result(), 12);
+    }
+    #[test] fn test_max() {
+        let mut r = ContainerReducer::new(ReduceOp::Max);
+        r.feed(3); r.feed(7); r.feed(2);
+        assert_eq!(r.result(), 7);
+    }
+    #[test] fn test_min() {
+        let mut r = ContainerReducer::new(ReduceOp::Min);
+        r.feed(3); r.feed(7); r.feed(2);
+        assert_eq!(r.result(), 2);
+    }
+    #[test] fn test_count() {
+        let mut r = ContainerReducer::new(ReduceOp::Sum);
+        for _ in 0..10 { r.feed(1); }
+        assert_eq!(r.count, 10);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器守卫 · ContainerGuard (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   RAII 守卫: 进入时激活, 退出时自动释放 (手动 leave)
+//   仅加法比较: active 计数
+
+#[derive(Clone, Debug)]
+pub struct ContainerGuard {
+    pub active: bool,
+    pub enter_count: u64,
+    pub leave_count: u64,
+}
+
+impl ContainerGuard {
+    pub fn new() -> Self { Self { active: false, enter_count: 0, leave_count: 0 } }
+    pub fn enter(&mut self) {
+        self.active = true;
+        self.enter_count = self.enter_count + 1;
+    }
+    pub fn leave(&mut self) {
+        if self.active {
+            self.active = false;
+            self.leave_count = self.leave_count + 1;
+        }
+    }
+    pub fn is_active(&self) -> bool { self.active }
+}
+
+impl Default for ContainerGuard {
+    fn default() -> Self { Self::new() }
+}
+
+#[cfg(test)]
+mod guard_tests {
+    use super::*;
+    #[test] fn test_lifecycle() {
+        let mut g = ContainerGuard::new();
+        assert!(!g.is_active());
+        g.enter();
+        assert!(g.is_active());
+        g.leave();
+        assert!(!g.is_active());
+    }
+    #[test] fn test_double_leave() {
+        let mut g = ContainerGuard::new();
+        g.enter(); g.leave(); g.leave();
+        assert_eq!(g.leave_count, 1);
+    }
+    #[test] fn test_counters() {
+        let mut g = ContainerGuard::new();
+        g.enter(); g.leave();
+        g.enter(); g.leave();
+        assert_eq!(g.enter_count, 2);
+        assert_eq!(g.leave_count, 2);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器节流喷口 · ContainerThrottleNozzle (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   连续流量整形: 最多 M 个脉冲/ tick × N tick 窗口 (滑动)
+//   仅加法: 每 tick 计数累加; tick++ 时比较窗口值
+
+#[derive(Clone, Debug)]
+pub struct ContainerThrottleNozzle {
+    pub max_per_window: u64,
+    pub window_ticks: u64,
+    pub ticks: Vec<u64>,
+    pub head: usize,
+    pub sum: u64,
+    pub passed: u64,
+    pub blocked: u64,
+}
+
+impl ContainerThrottleNozzle {
+    pub fn new(max: u64, window: u64) -> Self {
+        Self { max_per_window: max, window_ticks: window, ticks: vec![0u64; window as usize],
+              head: 0, sum: 0, passed: 0, blocked: 0 }
+    }
+    /// 请求发送 n 个脉冲; 返回是否放行
+    pub fn request(&mut self, n: u64) -> bool {
+        if self.sum + n <= self.max_per_window {
+            self.ticks[self.head] = self.ticks[self.head] + n;
+            self.sum = self.sum + n;
+            self.passed = self.passed + 1;
+            true
+        } else {
+            self.blocked = self.blocked + 1;
+            false
+        }
+    }
+    /// 推进到一个新的 tick (把 head 前移)
+    pub fn advance(&mut self) {
+        let len = self.ticks.len();
+        self.head = if self.head + 1 >= len { 0 } else { self.head + 1 };
+        self.sum = self.sum - self.ticks[self.head];
+        self.ticks[self.head] = 0;
+    }
+}
+
+impl Default for ContainerThrottleNozzle {
+    fn default() -> Self { Self::new(5, 3) }
+}
+
+#[cfg(test)]
+mod nozzle_tests {
+    use super::*;
+    #[test] fn test_basic_pass() {
+        let mut n = ContainerThrottleNozzle::new(10, 3);
+        assert!(n.request(3));
+        assert!(n.request(4));
+        assert!(!n.request(4)); // 3+4+4=11 > 10
+    }
+    #[test] fn test_advance_frees() {
+        let mut n = ContainerThrottleNozzle::new(5, 2);
+        assert!(n.request(5));
+        assert!(!n.request(1));
+        n.advance(); // 推进: head=0 的计数清零 (假设原来 tick0=5)
+        // 但注意 advance 是先 head+1 再清零新位置
+        // 初始 head=0, tick[0]=5
+        // advance: head=1; clear tick[1]=0; sum=5
+        // 再 advance: head=0; clear tick[0]=0; sum=0
+        n.advance();
+        assert!(n.request(3)); // sum=0+3 <= 5
+    }
+    #[test] fn test_counters() {
+        let mut n = ContainerThrottleNozzle::new(10, 2);
+        n.request(3); n.request(100);
+        assert_eq!(n.passed, 1);
+        assert_eq!(n.blocked, 1);
+    }
+}
