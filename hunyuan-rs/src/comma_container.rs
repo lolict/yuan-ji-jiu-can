@@ -16210,3 +16210,321 @@ mod diff_tests {
         assert_eq!(d.total_flat, 1);  // 第一次update 输出 Flat
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器范围限定器 · ContainerRange (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   限定数值在 [min, max] 区间内
+//   -99 → 0; 101 → 100; 50 → 50
+
+#[derive(Clone, Debug)]
+pub struct ContainerRange { pub min: u64, pub max: u64 }
+
+impl ContainerRange {
+    pub fn new(min: u64, max: u64) -> Self { Self { min, max } }
+    pub fn clamp(&self, v: u64) -> u64 {
+        if v < self.min { self.min }
+        else if v > self.max { self.max }
+        else { v }
+    }
+    pub fn contains(&self, v: u64) -> bool { v >= self.min && v <= self.max }
+    pub fn span(&self) -> u64 { self.max - self.min }
+    pub fn normalize(&self, v: u64) -> (u64, bool) {
+        if v < self.min { (0, true) }
+        else if v > self.max { (self.span(), true) }
+        else { (v - self.min, false) }
+    }
+}
+
+impl Default for ContainerRange {
+    fn default() -> Self { Self::new(0, 100) }
+}
+
+#[cfg(test)]
+mod range_tests {
+    use super::*;
+    #[test] fn test_clamp() {
+        let r = ContainerRange::new(10, 50);
+        assert_eq!(r.clamp(5), 10);
+        assert_eq!(r.clamp(30), 30);
+        assert_eq!(r.clamp(99), 50);
+    }
+    #[test] fn test_contains() {
+        let r = ContainerRange::new(0, 10);
+        assert!(r.contains(5)); assert!(!r.contains(11));
+    }
+    #[test] fn test_span() {
+        assert_eq!(ContainerRange::new(5, 15).span(), 10);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器质数筛 · ContainerSieve (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   状态化筛子 — 按指定除数标记可被整除的数 (无除法, 仅加法步进)
+//   用途: 周期性触发 / 节奏标记
+
+#[derive(Clone, Debug)]
+pub struct ContainerSieve {
+    pub period: u64,
+    pub offset: u64,
+    pub tick_count: u64,
+}
+
+impl ContainerSieve {
+    pub fn new(period: u64, offset: u64) -> Self {
+        Self { period, offset, tick_count: offset }
+    }
+    /// 每 tick 一次: 到达 period → 触发并重置
+    pub fn tick(&mut self) -> bool {
+        self.tick_count = self.tick_count + 1;
+        if self.tick_count >= self.period {
+            self.tick_count = 0;
+            true
+        } else { false }
+    }
+    /// 连续 tick N 次, 返回触发次数
+    pub fn ticks(&mut self, n: u64) -> u64 {
+        let mut c = 0;
+        let mut i = 0;
+        loop {
+            if i >= n { break; }
+            if self.tick() { c = c + 1; }
+            i = i + 1;
+        }
+        c
+    }
+    pub fn reset(&mut self) { self.tick_count = 0; }
+}
+
+impl Default for ContainerSieve {
+    fn default() -> Self { Self::new(4, 0) }
+}
+
+#[cfg(test)]
+mod sieve_tests {
+    use super::*;
+    #[test] fn test_period() {
+        let mut s = ContainerSieve::new(3, 0);
+        assert!(!s.tick());
+        assert!(!s.tick());
+        assert!(s.tick());
+        assert!(!s.tick());
+    }
+    #[test] fn test_ticks() {
+        let mut s = ContainerSieve::new(2, 0);
+        assert_eq!(s.ticks(5), 2); // tick2, tick4 触发
+    }
+    #[test] fn test_offset() {
+        let mut s = ContainerSieve::new(3, 2);
+        assert!(s.tick()); // tick_count=2+1=3 → 触发
+    }
+    #[test] fn test_reset() {
+        let mut s = ContainerSieve::new(2, 0);
+        s.tick(); s.reset();
+        assert!(!s.tick());
+        assert!(s.tick());
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器通道仲裁 · ContainerArbiter (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   多请求单资源 — 同时只能有一个 owner
+//   acquire(id): 空闲且 id 匹配 → 占用
+//   release(id): owner==id → 释放
+//   仅加法比较 owner
+
+#[derive(Clone, Debug)]
+pub struct ContainerArbiter {
+    pub owner: Option<u64>,
+    pub acquire_count: u64,
+    pub release_count: u64,
+    pub deny_count: u64,
+}
+
+impl ContainerArbiter {
+    pub fn new() -> Self { Self { owner: None, acquire_count: 0, release_count: 0, deny_count: 0 } }
+    pub fn acquire(&mut self, id: u64) -> bool {
+        if self.owner.is_none() {
+            self.owner = Some(id);
+            self.acquire_count = self.acquire_count + 1;
+            true
+        } else {
+            self.deny_count = self.deny_count + 1;
+            false
+        }
+    }
+    pub fn release(&mut self, id: u64) -> bool {
+        if self.owner == Some(id) {
+            self.owner = None;
+            self.release_count = self.release_count + 1;
+            true
+        } else { false }
+    }
+    pub fn owned(&self) -> bool { self.owner.is_some() }
+    pub fn owner(&self) -> Option<u64> { self.owner }
+}
+
+impl Default for ContainerArbiter {
+    fn default() -> Self { Self::new() }
+}
+
+#[cfg(test)]
+mod arbiter_tests {
+    use super::*;
+    #[test] fn test_acquire_release() {
+        let mut a = ContainerArbiter::new();
+        assert!(a.acquire(1));
+        assert!(a.owned());
+        assert!(!a.acquire(2)); // 已被占
+        assert!(a.release(1));
+        assert!(!a.owned());
+    }
+    #[test] fn test_release_mismatch() {
+        let mut a = ContainerArbiter::new();
+        a.acquire(1);
+        assert!(!a.release(2)); // 不是 owner
+        assert!(a.owned());
+    }
+    #[test] fn test_counters() {
+        let mut a = ContainerArbiter::new();
+        a.acquire(1); a.acquire(2); a.release(1);
+        assert_eq!(a.acquire_count, 1);
+        assert_eq!(a.deny_count, 1);
+        assert_eq!(a.release_count, 1);
+    }
+    #[test] fn test_reacquire() {
+        let mut a = ContainerArbiter::new();
+        a.acquire(5); a.release(5);
+        assert!(a.acquire(99)); // 可再次获取
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器周期节拍 · ContainerMetronome (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   多节奏叠加 — N 个不同周期的 beat 同时运行
+//   查询: tick() → 当前有哪些节拍触发了
+
+#[derive(Clone, Debug)]
+pub struct ContainerMetronome {
+    pub periods: Vec<u64>,
+    pub counters: Vec<u64>,
+    pub tick_count: u64,
+}
+
+impl ContainerMetronome {
+    pub fn new(periods: Vec<u64>) -> Self {
+        let len = periods.len();
+        Self { periods, counters: vec![0u64; len], tick_count: 0 }
+    }
+    pub fn tick(&mut self) -> Vec<usize> {
+        let mut triggered: Vec<usize> = Vec::new();
+        let mut i = 0;
+        loop {
+            if i >= self.counters.len() { break; }
+            self.counters[i] = self.counters[i] + 1;
+            if self.counters[i] >= self.periods[i] {
+                self.counters[i] = 0;
+                triggered.push(i);
+            }
+            i = i + 1;
+        }
+        self.tick_count = self.tick_count + 1;
+        triggered
+    }
+    pub fn beat_count(&self) -> usize { self.periods.len() }
+}
+
+impl Default for ContainerMetronome {
+    fn default() -> Self { Self::new(vec![2, 3, 5]) }
+}
+
+#[cfg(test)]
+mod metronome_tests {
+    use super::*;
+    #[test] fn test_tick() {
+        let mut m = ContainerMetronome::new(vec![2]);
+        assert!(m.tick().is_empty());
+        assert_eq!(m.tick(), vec![0]);
+    }
+    #[test] fn test_multi_beat() {
+        let mut m = ContainerMetronome::new(vec![2, 3]);
+        // tick0: counters=[1,1] → none
+        assert!(m.tick().is_empty());
+        // tick1: counters=[2,2] → beat0 触发 (2>=2)
+        assert_eq!(m.tick(), vec![0]);
+        // tick2: counters=[1,3] → beat1 触发 (3>=3)
+        assert_eq!(m.tick(), vec![1]);
+    }
+    #[test] fn test_default() {
+        let m = ContainerMetronome::default();
+        assert_eq!(m.beat_count(), 3);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器滑动窗口计数 · ContainerWindowCounter (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   记录最近 N tick 内的 tick-triggered 事件数
+//   实现: 环形缓冲区[bool; N], sum 递增/递减
+
+#[derive(Clone, Debug)]
+pub struct ContainerWindowCounter {
+    pub window: Vec<Option<u64>>,
+    pub head: usize,
+    pub sum: u64,
+    pub capacity: usize,
+    pub total_events: u64,
+}
+
+impl ContainerWindowCounter {
+    pub fn new(capacity: usize) -> Self {
+        Self { window: vec![None; capacity], head: 0, sum: 0, capacity, total_events: 0 }
+    }
+    /// 记录当前 tick 有多少事件
+    pub fn tick_with(&mut self, count: u64) {
+        if let Some(old) = self.window[self.head] {
+            self.sum = self.sum - old;
+        }
+        self.window[self.head] = Some(count);
+        self.sum = self.sum + count;
+        self.total_events = self.total_events + count;
+        let next = self.head + 1;
+        self.head = if next >= self.capacity { 0 } else { next };
+    }
+    pub fn window_total(&self) -> u64 { self.sum }
+    pub fn event_total(&self) -> u64 { self.total_events }
+}
+
+impl Default for ContainerWindowCounter {
+    fn default() -> Self { Self::new(5) }
+}
+
+#[cfg(test)]
+mod window_count_tests {
+    use super::*;
+    #[test] fn test_sum() {
+        let mut c = ContainerWindowCounter::new(3);
+        c.tick_with(2); c.tick_with(3); c.tick_with(5);
+        assert_eq!(c.window_total(), 10);
+    }
+    #[test] fn test_sliding() {
+        let mut c = ContainerWindowCounter::new(2);
+        c.tick_with(10); c.tick_with(20);
+        assert_eq!(c.window_total(), 30);
+        c.tick_with(5); // 挤出 10
+        assert_eq!(c.window_total(), 25);
+    }
+    #[test] fn test_total_events() {
+        let mut c = ContainerWindowCounter::new(4);
+        c.tick_with(1); c.tick_with(2); c.tick_with(3);
+        assert_eq!(c.event_total(), 6);
+    }
+}
