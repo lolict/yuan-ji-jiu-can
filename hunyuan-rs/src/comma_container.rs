@@ -15985,7 +15985,7 @@ impl ContainerHysteresis {
         self.state.clone()
     }
 
-    pub fn is_on(&self) -> bool { matches\!(self.state, HYState::On) }
+    pub fn is_on(&self) -> bool { matches!(self.state, HYState::On) }
 }
 
 impl Default for ContainerHysteresis {
@@ -15999,8 +15999,8 @@ mod hysteresis_tests {
     #[test]
     fn test_rising() {
         let mut h = ContainerHysteresis::new(3, 7);
-        assert\!(matches\!(h.update(5), HYState::Off));  // 未达高阈值
-        assert\!(matches\!(h.update(7), HYState::On));   // 触发上升
+        assert!(matches!(h.update(5), HYState::Off));  // 未达高阈值
+        assert!(matches!(h.update(7), HYState::On));   // 触发上升
         assert_eq!(h.transitions, 1);
     }
 
@@ -16009,8 +16009,8 @@ mod hysteresis_tests {
         let mut h = ContainerHysteresis::new(3, 7);
         h.update(8);  // On
         h.update(5);  // 未低于 low → 仍 On
-        assert\!(h.is_on());
-        assert\!(matches\!(h.update(2), HYState::Off));  // 低于 low → Off
+        assert!(h.is_on());
+        assert!(matches!(h.update(2), HYState::Off));  // 低于 low → Off
         assert_eq!(h.transitions, 2);
     }
 
@@ -16019,7 +16019,7 @@ mod hysteresis_tests {
         let mut h = ContainerHysteresis::new(3, 7);
         h.update(8);  // On
         h.update(5);  // low < 5 < high → 保持 On
-        assert\!(h.is_on());
+        assert!(h.is_on());
         assert_eq!(h.transitions, 1);  // 无新翻转
     }
 
@@ -16051,7 +16051,7 @@ pub struct ContainerSMA {
 
 impl ContainerSMA {
     pub fn new(capacity: usize) -> Self {
-        Self { window: vec\![None; capacity], head: 0, count: 0, capacity, sum: 0, total_samples: 0 }
+        Self { window: vec![None; capacity], head: 0, count: 0, capacity, sum: 0, total_samples: 0 }
     }
 
     pub fn push(&mut self, v: u64) {
