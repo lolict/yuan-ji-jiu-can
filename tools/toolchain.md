@@ -1,8 +1,8 @@
 # 满全法工具链清单
 
-## 就绪
+## 就绪 (已安装)
 - zig 0.14.0           /mnt/data/catpaw/home/.local/zig/zig
-- Nim 2.2.2            /mnt/data/catpaw/home/local/nim/bin/nim
+- Nim 2.2.2            /mnt/data/catpaw/home/.local/nim/bin/nim
 - Go 1.24.7            /usr/local/go/bin/go
 - Rustc 1.98           $HOME/.cargo/bin/rustc
 - Cargo 1.98           $HOME/.cargo/bin/cargo
@@ -13,20 +13,24 @@
 - mesa swrast (llvmpipe)  OpenGL 4.5 软件渲染已通过 Xvfb 验证
 - pygame + Xvfb       → 真 PNG 渲染管线已跑通
 
-## 安装中
-- nix                 官方 install 脚本下载中 (releases.nixos.org, 需 ~5min)
+## 参考源 (ref-languages/)
+- joy/                 rootmos/silly-joy (concatenative language, Haskell实现, 46 files)
+- forth/               fuzzballcat/milliForth (340字节 FORTH in boot sector, 38 files)
+- nanolang-main/       jordanhubbard/nanolang (629★ 编译语言框架, 174 files)
+- cangjie/             cangjielanguage/cangjie_compiler (华为仓颉编译器, 56 files)
+- nim-atomgit/         Nim 编译器 (从 AtomGit 镜像, 4329 files)
 
 ## 未就绪
-- mlir                apt 阻塞 (需 root); 需从源码编译 LLVM
-- forth/joy/nanolang/cangjie    GitHub 下载被限流或链接失效; Chinese mirrors 搜索中
+- nix                  determinate installer 下载失败(需交互); 官方 install 脚本卡在 13MB/25MB
+- mlir                apt 阻塞 (需 root); 需从源码编译 LLVM (~750MB)
+- glsl/hlsl/vulkan   shader 验证器、编译器未获取
 
-## 镜像源记录
-- GitHub proxy: ghproxy.net (可代理 release tarballs, 偶有限流)
-- Gitee mirror: gitee.com/mirrors/ (LuaJIT 源码已成功)
-- GitCode: gitcode.com (搜索不可用, 需已知 repo path)
-- cnb.cool: 返回空白
-- jihulab.com: 返回空白
-- LuaJIT 官方: github.com/LuaJIT/LuaJIT (v2.1 branch)
+## 中国镜像测试结果
+- gitcode.com          → 重定向到 atomgit.com (AtomGit 是 Codeberg 的中国镜像, Nim 已成功)
+- gitee.com/mirrors/   → LuaJIT 镜像成功, cangjie 不存在
+- cnb.cool            → 全部仓库返回 404
+- jihulab.com         → 401 需认证
+- (合法镜像) ghproxy.net → 代理 GitHub release tarballs, 成功率约 50%
 
 ## 注解
 这些"外部语言"的最终归宿不是直接使用,而是取骨架去错误后按满全法规则重写。

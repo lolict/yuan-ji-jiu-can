@@ -1,0 +1,195 @@
+name: Backend Matrix
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'tests/cross-backend/**'
+      - '.github/workflows/backend-matrix.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'tests/cross-backend/**'
+      - '.github/workflows/backend-matrix.yml'
+  workflow_dispatch:
+
+jobs:
+  backend-matrix:
+    name: Compile tests (${{ matrix.backend }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    strategy:
+      matrix:
+        backend: [riscv, c, ptx]
+      fail-fast: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        timeout-minutes: 10
+        run: |
+          ./scripts/ci-apt-install.sh \
+            build-essential \
+            pkg-config \
+            libncurses-dev \
+            libssl-dev libffi-dev \
+            libutf8proc-dev
+
+      - name: Install backend-specific tools
+        timeout-minutes: 10
+        run: |
+          case "${{ matrix.backend }}" in
+            c)
+              # gcc is already installed via build-essential
+              gcc --version
+              ;;
+            riscv | ptx)
+              # no extra runtime tools required — output is validated via grep
+              true
+              ;;
+          esac
+
+      - name: Build nanoc (stage 1)
+        run: make stage1
+
+      - name: Compile test programs — backend=${{ matrix.backend }}
+        run: |
+          set -euo pipefail
+          BACKEND="${{ matrix.backend }}"
+          NANOC="./bin/nanoc"
+          TMPDIR_TESTS="$(mktemp -d)"
+          trap 'rm -rf "$TMPDIR_TESTS"' EXIT
+          PASS=0
+          FAIL=0
+          XFAIL=0
+          XPASS=0
+
+          compile_nano() {
+            local nano_file="$1"; shift
+            if ! "$NANOC" "$nano_file" "$@" 2>/tmp/nano_err; then
+              echo "    compile stderr:"
+              cat /tmp/nano_err | sed 's/^/      /'
+              return 1
+            fi
+          }
+
+          # is_xfail <backend> <nano_file>: 0 if backend is listed in <test>.xfail.
+          # Mirrors tests/cross-backend/run-all.sh so known-broken backends do not
+          # hard-fail the matrix. Remove the .xfail entry once the backend is fixed.
+          is_xfail() {
+            local backend="$1"
+            local xfail_file="${2%.nano}.xfail"
+            [ -f "$xfail_file" ] || return 1
+            grep -vE '^[[:space:]]*(#|$)' "$xfail_file" | grep -qxF "$backend"
+          }
+
+          # record <pass|fail> <nano_file> <detail>: apply xfail policy and count.
+          record() {
+            local outcome="$1"; local nano_file="$2"; local detail="${3:-}"
+            if is_xfail "$BACKEND" "$nano_file"; then
+              if [ "$outcome" = "pass" ]; then
+                echo "XPASS ($detail) — xfail entry should be removed"
+                XPASS=$((XPASS + 1))
+              else
+                echo "XFAIL ($detail)"
+                XFAIL=$((XFAIL + 1))
+              fi
+            else
+              if [ "$outcome" = "pass" ]; then
+                echo "PASS ($detail)"
+                PASS=$((PASS + 1))
+              else
+                echo "FAIL ($detail)"
+                FAIL=$((FAIL + 1))
+              fi
+            fi
+          }
+
+          for nano_file in tests/cross-backend/*.nano; do
+            name="$(basename "$nano_file" .nano)"
+            printf "  %-30s " "$name"
+
+            case "$BACKEND" in
+              # ── RISC-V ────────────────────────────────────────────────────
+              riscv)
+                out="$TMPDIR_TESTS/${name}.s"
+                if ! compile_nano "$nano_file" --target riscv -o "$out"; then
+                  record fail "$nano_file" "compile error"
+                  continue
+                fi
+                if grep -q "\.text" "$out" 2>/dev/null; then
+                  record pass "$nano_file" ".text section present"
+                else
+                  record fail "$nano_file" "no .text section in assembly output"
+                fi
+                ;;
+
+              # ── C transpiler ──────────────────────────────────────────────
+              c)
+                out_c="$TMPDIR_TESTS/${name}.c"
+                out_exe="$TMPDIR_TESTS/${name}"
+                expected_file="tests/cross-backend/${name}.expected"
+                if ! compile_nano "$nano_file" --target c -o "$out_c"; then
+                  record fail "$nano_file" "compile error"
+                  continue
+                fi
+                if ! gcc -std=gnu11 -o "$out_exe" "$out_c" 2>/tmp/gcc_err; then
+                  cat /tmp/gcc_err | sed 's/^/    /'
+                  record fail "$nano_file" "gcc failed"
+                  continue
+                fi
+                actual="$("$out_exe" 2>/dev/null)" || actual="<runtime error>"
+                if [ -f "$expected_file" ]; then
+                  expected="$(cat "$expected_file")"
+                  # strip trailing newline from expected file for comparison
+                  expected="${expected%$'\n'}"
+                  if [ "$actual" = "$expected" ]; then
+                    record pass "$nano_file" "output: $(echo "$actual" | head -1)..."
+                  else
+                    echo "    expected: $(printf '%q' "$expected")"
+                    echo "    actual:   $(printf '%q' "$actual")"
+                    record fail "$nano_file" "output mismatch"
+                  fi
+                else
+                  record pass "$nano_file" "ran ok, no .expected file"
+                fi
+                ;;
+
+              # ── PTX ───────────────────────────────────────────────────────
+              ptx)
+                out="$TMPDIR_TESTS/${name}.ptx"
+                if ! compile_nano "$nano_file" --target ptx -o "$out"; then
+                  record fail "$nano_file" "compile error"
+                  continue
+                fi
+                if grep -q "\.target sm_" "$out" 2>/dev/null; then
+                  record pass "$nano_file" "PTX header present"
+                else
+                  record fail "$nano_file" "PTX header .target sm_* not found"
+                fi
+                ;;
+            esac
+          done
+
+          echo ""
+          echo "=== backend=$BACKEND results: $PASS passed, $FAIL failed, $XFAIL xfail, $XPASS xpass ==="
+
+          # xfail entries are known-broken and non-blocking. An XPASS means a
+          # backend was fixed but its .xfail entry is stale — treat as failure so
+          # the entry gets cleaned up.
+          [ "$FAIL" -eq 0 ] && [ "$XPASS" -eq 0 ]
+
+      - name: Upload compile artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nanolang-${{ matrix.backend }}-${{ github.sha }}
+          path: |
+            /tmp/nano_cross_backend_*
+          if-no-files-found: ignore
+          retention-days: 7

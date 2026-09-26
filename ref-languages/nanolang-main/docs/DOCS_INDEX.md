@@ -1,0 +1,50 @@
+# My Documentation Index
+
+I provide this page as a stable entrypoint for older links.
+
+My canonical documentation map is located at **[docs/README.md](README.md)**.
+
+## Quick Links
+
+### Getting Started
+- [Getting Started Guide](GETTING_STARTED.md)
+- [Quick Reference](QUICK_REFERENCE.md)
+- [Examples](../examples/README.md)
+
+### Reference
+- [Language Specification](SPECIFICATION.md)
+- [Standard Library](STDLIB.md)
+- [Shadow Tests](SHADOW_TESTS.md)
+- [Async Primitives](ASYNC_PRIMITIVES.md)
+- [Performance Monitoring and LLM Optimization](PERFORMANCE_MONITORING.md)
+
+### Virtual Machine
+- [NanoISA Architecture](NANOISA.md) - I document my complete VM backend here, including my ISA, bytecode format, co-process FFI, and daemon.
+- [5.0 One IR](NANOISA_ONLY.md) - NanoISA-only compilation contract. Not 4.x. I do not delete `transpiler.nano` until this contract has compiled me.
+- [NanoISA frontend contract](NANOISA_FRONTEND.md) - 4.6 shared module gate. NanoLang stays native. Scheme is a bounded laboratory frontend. I do not claim the laboratory languages are product compilers.
+- [Nano Scheme](SCHEME.md) - 4.6 lexical Scheme subset compiled to verified NanoISA. Not a Scheme report.
+- [Nano ML](ML.md) - 4.6 ML-family subset compiled to verified NanoISA. Not Standard ML or OCaml.
+- [Nano Actor](ACTOR.md) - 4.6 actor subset compiled to verified NanoISA handlers. Not Erlang/OTP.
+- [Nano Dataflow](DATAFLOW.md) - 4.6 dataflow subset compiled to verified NanoISA nodes. Not a workflow product.
+- [Nano Object](OBJECT.md) - 4.6 Smalltalk-like subset compiled to verified NanoISA methods. Not Smalltalk.
+- [Nano Shell](SHELL.md) - 4.6 capability-safe typed pipelines compiled to verified NanoISA functions. Not a POSIX shell.
+- [Nano Logic](LOGIC.md) - 4.6 bounded Datalog compiled to verified NanoISA unification. Not Prolog.
+- [Frontend matrix](FRONTEND_MATRIX.md) - 4.6 how each laboratory language exercises NanoISA.
+- [Portable NanoISA vs. Runtime Representations](NANOISA_PORTABLE_ISA.md) - I document the portable ISA contract separately from the verified and optimized runtime representations my VM builds from it.
+- [How I Optimize NanoISA](NANOISA_OPTIMIZATION_POLICY.md) - I record the evidence and acceptance rules that govern changes to the optimized dispatch representation.
+- [Forth 2012 Pins](FORTH_2012.md) - I pin the standard revision, test suites, Gforth differential, licensing, and the environmental contract. The session runtime compiles colon definitions to verified NanoISA. The precise label is [FORTH_STANDARD_SYSTEM.md](FORTH_STANDARD_SYSTEM.md). I do not claim a Standard System.
+
+### Formal Verification
+- [NanoCore Proofs](../formal/README.md) - I use Coq to mechanize my metatheory. These proofs cover my preservation, progress, determinism, and semantic equivalence.
+
+### Modules / FFI
+- [Module System](MODULE_SYSTEM.md)
+- [NSI.md](NSI.md) - v0 contracts, generated stubs, POSIX fabric (`NSI_FABRIC.md`), and 4.5 policy/replay (`NSI_EFFECTS.md`). I do not claim a kernel.
+- [NanoLang 4.5](RELEASE_4.5.md) - Current public cut covering 4.1–4.5. Last public GitHub Release was `v4.0.0`.
+- [NanoLang 4.4](RELEASE_4.4.md) - 4.4 product on `main` before Phase 19; not a public tag.
+- [LinkedIn post for 4.5](LINKEDIN_4.5.md) - Draft covering changes since `v4.0.0`.
+- [Extern FFI](EXTERN_FFI.md)
+
+### Contributing / Maintainers
+- [Contributing](../CONTRIBUTING.md)
+- [Planning / design notes](../planning/README.md)
