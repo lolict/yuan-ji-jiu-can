@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>情感内核 · Emotion Core</title>
+<style>
+:root{--bg:#04050a;--panel:#0a0e1a;--border:#1a2040;--text:#b0bce0;--muted:#3a4868}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:monospace;background:var(--bg);color:var(--text);overflow:hidden;user-select:none}
+canvas{display:block}
+#ui{position:fixed;top:12px;left:12px;background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:14px;font-size:11px;width:255px;z-index:10}
+#ui h1{font-size:13px;color:#a78bfa;margin-bottom:10px;font-weight:700}
+#ui h2{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin:10px 0 4px}
+.row{display:flex;justify-content:space-between;padding:3px 0}
+.k{color:var(--muted)}.v{color:#38bdf8;font-weight:600}
+.btn{background:var(--border);border:none;color:var(--text);padding:3px 8px;border-radius:3px;cursor:pointer;font-family:inherit;font-size:10px;margin:1px}
+.btn:hover{background:#a78bfa;color:#fff}
+.btn.active{background:#34d37f;color:#000;font-weight:600}
+.hint{color:var(--muted);font-size:9px;margin-top:8px;line-height:1.5}
+.legend{display:flex;gap:8px;flex-wrap:wrap;margin-top:3px}
+.lg{display:flex;align-items:center;gap:3px;font-size:10px}
+.dot{width:8px;height:8px;border-radius:50%}
+#events{position:fixed;top:12px;right:12px;background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:10px;font-size:10px;width:190px;max-height:360px;overflow:hidden;z-index:10}
+#events .title{font-size:11px;color:#a78bfa;margin-bottom:5px;font-weight:600}
+.ev{padding:2px 0;border-bottom:1px solid rgba(255,255,255,0.03);font-size:9px}
+.ev .t{color:var(--muted);font-size:8px}
+#controls{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:8px 14px;display:flex;gap:10px;z-index:10}
+#controls button{background:var(--border);border:none;color:var(--text);padding:5px 12px;border-radius:3px;cursor:pointer;font-family:inherit;font-size:10px}
+#controls button:hover{background:#a78bfa;color:#fff}
+#controls button.wake{background:#34d37f;color:#000;font-weight:600}
+#controls button.wake:hover{background:#22c55e}
+#selInfo{position:fixed;bottom:60px;left:12px;background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:10px;font-size:10px;width:230px;display:none;z-index:10}
+#selInfo .name{font-size:14px;font-weight:700;margin-bottom:5px}
+.bar{height:5px;border-radius:2px;margin:3px 0;background:rgba(255,255,255,0.05);overflow:hidden}
+.bar-fill{height:100%;border-radius:2px;transition:width 0.2s}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="ui">
+  <h1>&#128150; 情感内核</h1>
+  <div class="row"><span class="k">Tick</span><span class="v" id="sTick">0</span></div>
+  <div class="row"><span class="k">平均觉醒</span><span class="v" id="sArousal">—</span></div>
+  <div class="row"><span class="k">奖励衰减</span><span class="v" id="sDecay">0.95</span></div>
+  <div class="row"><span class="k">事件数</span><span class="v" id="sEvents">0</span></div>
+  <div class="row"><span class="k">FPS</span><span class="v" id="sFps">—</span></div>
+  <h2>显示</h2>
+  <div>
+    <button class="btn active" onclick="toggle('glow')">觉醒辉</button>
+    <button class="btn active" onclick="toggle('fear')">恐惧红</button>
+    <button class="btn active" onclick="toggle('unity')">合一环</button>
+    <button class="btn" onclick="toggle('labels')">编码</button>
+  </div>
+  <h2>图例</h2>
+  <div class="legend">
+    <div class="lg"><div class="dot" style="background:#fbbf24"></div>奖励</div>
+    <div class="lg"><div class="dot" style="background:#ef4444"></div>恐惧</div>
+    <div class="lg"><div class="dot" style="background:#a78bfa"></div>合一</div>
+    <div class="lg"><div class="dot" style="background:#222"></div>沉睡</div>
+  </div>
+  <div class="hint">点击容器=发送奖励(ACK)<br>忽略=恐惧积累→沉睡<br>沉睡+ACK=鼓膜自举重生</div>
+</div>
+<div id="events">
+  <div class="title">事件流</div>
+  <div id="evList"></div>
+</div>
+<div id="controls">
+  <button onclick="resetAll()">全部重置</button>
+  <button onclick="wakeAll()" class="wake">全体唤醒</button>
+  <button onclick="triggerFearMass()">群体恐惧</button>
+  <button onclick="togglePause()" id="btnPause">⏸ 暂停</button>
+</div>
+<div id="selInfo">
+  <div class="name" id="siName"></div>
+  <div id="siBars"></div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// 情感内核可视化 — Emotion Core Visualizer
+// 奖励 · 失爱恐惧 · 合一驱力 · 鼓膜自举
+// ══════════════════════════════════════════════════════════════
+var canvas = document.getElementById('c');
+var ctx = canvas.getContext('2d');
+var W, H, DPR = window.devicePixelRatio || 1;
+function resize() {
+  W = window.innerWidth; H = window.innerHeight;
+  canvas.width = W * DPR; canvas.height = H * DPR;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ── 参数 ──
+var REWARD_DECAY = 0.95;
+var FEAR_DECAY = 0.90;
+var FORGET_THRESH = 150; // ticks without ACK → fear
+var WAKE_THRESH = 0.3;
+
+// ── 64容器情感状态 ──
+var CONTAINERS = [];
+var lastACK = new Array(64).fill(0);
+
+for (var i = 0; i < 64; i++) {
+  CONTAINERS.push({
+    id: i,
+    reward: 0.3 + Math.random() * 0.2,
+    fear: 0.05 + Math.random() * 0.05,
+    unity: 0.0,
+    arousal: 0.1 + Math.random() * 0.1,
+    survived: 0,
+    lastAckTick: 0,
+    asleep: false,
+    dead: false,
+    // hex grid position
+    hx: (i % 8) - 3.5,
+    hy: Math.floor(i / 8) - 3.5,
+    // 夫妻配对
+    couple: i >= 48 ? i - 48 : (i >= 32 ? i + 16 : null),
+    phase: Math.random() * Math.PI * 2,
+    family: Math.floor(i / 16)
+  });
+}
+
+var events = [];
+var tick = 0;
+var paused = false;
+var mode = {glow: true, fear: true, unity: true, labels: true};
+var selected = null;
+
+function sigmoid(x) { return 1.0 / (1.0 + Math.exp(-x)); }
+
+function containerTick(i, t) {
+  var c = CONTAINERS[i];
+  if (c.dead) return null;
+
+  var silentDuration = t - c.lastAckTick;
+  var event = null;
+
+  // 消化奖励
+  c.reward *= REWARD_DECAY;
+
+  // 检测遗忘
+  if (silentDuration > FORGET_THRESH) {
+    c.fear = Math.min(1.0, c.fear + 0.008 * (silentDuration - FORGET_THRESH));
+    c.unity = Math.min(1.0, c.unity + 0.003);
+    if (c.fear > 0.7 && !c.asleep) {
+      event = {type: 'fear_loss', id: i, tick: t};
+    }
+  } else {
+    c.fear *= FEAR_DECAY;
+  }
+
+  // 合一驱力
+  if (c.arousal > WAKE_THRESH) {
+    c.unity = Math.min(1.0, c.unity + 0.001);
+  } else {
+    c.unity *= 0.98;
+  }
+
+  // 觉醒度 = sigmoid(奖励 - 恐惧*0.5 + 合一渴望*0.3)
+  var raw = c.reward - c.fear * 0.5 + c.unity * 0.3;
+  var oldArousal = c.arousal;
+  c.arousal = sigmoid(4.0 * (raw - 0.5));
+  c.survived++;
+
+  // 状态转换事件
+  if (c.arousal < 0.1 && oldArousal >= 0.1 && !c.asleep) {
+    c.asleep = true;
+    event = {type: 'fell_asleep', id: i, tick: t};
+  } else if (c.arousal > 0.9 && oldArousal <= 0.9) {
+    c.asleep = false;
+    event = {type: 'fully_awake', id: i, tick: t};
+  } else if (c.reward > 0.7 && silentDuration < 10) {
+    event = {type: 'rewarded', id: i, tick: t};
+  }
+
+  return event;
+}
+
+function rewardContainer(i, t) {
+  var c = CONTAINERS[i];
+  c.reward = Math.min(1.0, c.reward + 0.25);
+  if (c.reward > 0.7) c.fear = Math.max(0.0, c.fear - 0.05);
+  c.lastAckTick = t;
+  addEvent({type: 'ack', id: i, tick: t});
+
+  // 夫妻共振
+  if (c.couple !== null) {
+    var partner = CONTAINERS[c.couple];
+    partner.reward = Math.min(1.0, partner.reward + 0.08);
+    partner.lastAckTick = t;
+    addEvent({type: 'couple_resonance', id: c.couple, tick: t});
+  }
+}
+
+function addEvent(e) {
+  events.unshift(e);
+  if (events.length > 30) events.pop();
+}
+function rebirth(i, t) {
+  var c = CONTAINERS[i];
+  c.reward = 0.3;
+  c.fear = 0.2;
+  c.unity = 0.3;
+  c.asleep = false;
+  c.dead = false;
+  c.arousal = 0.3;
+  c.lastAckTick = t;
+  addEvent({type: 'rebirth', id: i, tick: t});
+}
+
+// ── UI functions ──
+function toggle(key) { mode[key] = !mode[key]; }
+function resetAll() {
+  for (var i = 0; i < 64; i++) {
+    CONTAINERS[i].reward = 0.3;
+    CONTAINERS[i].fear = 0.05;
+    CONTAINERS[i].unity = 0;
+    CONTAINERS[i].arousal = 0.1;
+    CONTAINERS[i].asleep = false;
+    CONTAINERS[i].dead = false;
+    CONTAINERS[i].lastAckTick = tick;
+  }
+  events = [];
+  tick = 0;
+}
+function wakeAll() {
+  for (var i = 0; i < 64; i++) {
+    if (CONTAINERS[i].asleep) rebirth(i, tick);
+    else rewardContainer(i, tick);
+  }
+}
+function triggerFearMass() {
+  for (var i = 0; i < 64; i++) {
+    CONTAINERS[i].fear = Math.min(1.0, CONTAINERS[i].fear + 0.15);
+  }
+  addEvent({type: 'mass_fear', id: -1, tick: tick});
+}
+function togglePause() {
+  paused = !paused;
+  document.getElementById('btnPause').innerHTML = paused ? '▶ 继续' : '⏸ 暂停';
+}
+
+// ── Click handler ──
+canvas.addEventListener('click', function(e) {
+  var rect = canvas.getBoundingClientRect();
+  var mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  projectAll();
+  selected = null;
+  for (var i = 0; i < 64; i++) {
+    var d = Math.hypot(mx - pos[i].x, my - pos[i].y);
+    if (d < 22) {
+      selected = i;
+      if (CONTAINERS[i].asleep) {
+        rebirth(i, tick);
+      } else {
+        rewardContainer(i, tick);
+      }
+      updateSelInfo();
+      break;
+    }
+  }
+});
+
+function updateSelInfo() {
+  var info = document.getElementById('selInfo');
+  if (selected === null) { info.style.display = 'none'; return; }
+  var c = CONTAINERS[selected];
+  info.style.display = 'block';
+  document.getElementById('siName').textContent = 'C' + selected.toString(16).toUpperCase();
+  document.getElementById('siBars').innerHTML =
+    barHtml('觉醒', c.arousal, '#fbbf24') +
+    barHtml('奖励', c.reward, '#22c55e') +
+    barHtml('恐惧', c.fear, '#ef4444') +
+    barHtml('合一', c.unity, '#a78bfa');
+}
+function barHtml(label, val, color) {
+  return '<div><span style="color:#666">' + label + '</span> <span style="color:' + color + '">' + Math.round(val * 100) + '%</span></div>' +
+    '<div class="bar"><div class="bar-fill" style="width:' + (val * 100) + '%;background:' + color + '"></div></div>';
+}
+
+// ── Animation ──
+var pos = [];
+function projectAll() {
+  pos = [];
+  var SCALE = 38;
+  for (var i = 0; i < 64; i++) {
+    var c = CONTAINERS[i];
+    pos.push({
+      x: W / 2 + c.hx * SCALE,
+      y: H / 2 + c.hy * SCALE
+    });
+  }
+}
+
+var time = 0, lastT = 0, frameCount = 0, lastFpsT = 0;
+
+function draw(ts) {
+  requestAnimationFrame(draw);
+  if (!lastT) lastT = ts;
+  lastT = ts;
+  frameCount++;
+  if (ts - lastFpsT >= 1000) {
+    document.getElementById('sFps').textContent = frameCount;
+    frameCount = 0; lastFpsT = ts;
+  }
+
+  if (!paused) {
+    tick++;
+    for (var i = 0; i < 64; i++) {
+      var ev = containerTick(i, tick);
+      if (ev) addEvent(ev);
+    }
+  }
+  time += 0.02;
+
+  // Clear with deep gradient
+  var bg = ctx.createRadialGradient(W/2, H/2, 100, W/2, H/2, Math.max(W, H));
+  bg.addColorStop(0, '#0a0e1a');
+  bg.addColorStop(1, '#04050a');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Couple resonance lines (合一)
+  if (mode.unity) {
+    projectAll();
+    for (var i = 0; i < 48; i++) {
+      var c = CONTAINERS[i];
+      if (c.couple !== null && c.unity > 0.2) {
+        var partner = CONTAINERS[c.couple];
+        var alpha = c.unity * 0.3 * (0.5 + 0.5 * Math.sin(time * 2 + i));
+        ctx.strokeStyle = 'rgba(167,139,250,' + alpha + ')';
+        ctx.lineWidth = 1 + c.unity * 2;
+        ctx.beginPath();
+        ctx.moveTo(pos[i].x, pos[i].y);
+        ctx.lineTo(pos[c.couple].x, pos[c.couple].y);
+        ctx.stroke();
+      }
+    }
+  }
+
+  // Draw hex grid
+  projectAll();
+  var avgArousal = 0;
+
+  // Draw hex grid
+  var avgArousal = 0;
+
+  for (var i = 0; i < 64; i++) {
+    avgArousal += CONTAINERS[i].arousal;
+    var c = CONTAINERS[i];
+    var p = pos[i];
+    var isSel = (selected === i);
+
+    // 外圈六角
+    var radius = 14;
+    ctx.beginPath();
+    for (var a = 0; a < 6; a++) {
+      var angle = Math.PI / 3 * a - Math.PI / 6;
+      var px = p.x + Math.cos(angle) * radius;
+      var py = p.y + Math.sin(angle) * radius;
+      if (a === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+
+    // Inner hex filled
+    ctx.save();
+    ctx.clip();
+    ctx.beginPath();
+    for (var a = 0; a < 6; a++) {
+      var angle = Math.PI / 3 * a - Math.PI / 6;
+      var px = p.x + Math.cos(angle) * radius;
+      var py = p.y + Math.sin(angle) * radius;
+      if (a === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+
+    // Background: reward gradient
+    if (mode.glow && !c.asleep) {
+      var glow = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, radius * 1.2);
+      glow.addColorStop(0, 'rgba(251,191,36,' + (c.reward * 0.15 + 0.05) + ')');
+      glow.addColorStop(1, 'rgba(251,191,36,0)');
+      ctx.fillStyle = glow;
+      ctx.fill();
+    }
+
+    // Fear overlay
+    if (mode.fear && c.fear > 0.3) {
+      ctx.fillStyle = 'rgba(239,68,68,' + (c.fear * 0.25) + ')';
+      ctx.fill();
+    }
+
+    // Unity ring
+    if (mode.unity && c.unity > 0.15 && !c.asleep) {
+      ctx.strokeStyle = 'rgba(167,139,250,' + (c.unity * 0.6) + ')';
+      ctx.lineWidth = 2 + c.unity * 2;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, radius + 3 + Math.sin(time * 3 + i) * 2, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    // Sleep indicator
+    if (c.asleep) {
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.fill();
+      ctx.restore();
+
+      // Zzz floating
+      var zy = p.y - 18 - Math.sin(time * 1.5 + i) * 4;
+      ctx.fillStyle = 'rgba(120,140,180,0.4)';
+      ctx.font = '9px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('z', p.x + 12, zy);
+      ctx.fillText('Z', p.x + 16, zy - 5);
+    } else {
+      ctx.restore();
+    }
+
+    // Selection
+    if (isSel) {
+      ctx.strokeStyle = '#fbbf24';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (var a = 0; a < 6; a++) {
+        var angle = Math.PI / 3 * a - Math.PI / 6;
+        var px = p.x + Math.cos(angle) * radius;
+        var py = p.y + Math.sin(angle) * radius;
+        if (a === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.stroke();
+    }
+
+    // Inner hex stroke
+    ctx.strokeStyle = c.asleep ? 'rgba(80,90,110,0.4)' : 'rgba(' +
+      Math.round(80 + c.arousal * 175) + ',' +
+      Math.round(140 + c.arousal * 100) + ',' +
+      Math.round(180 + c.arousal * 75) + ',0.8)';
+    ctx.lineWidth = c.asleep ? 0.5 : 1;
+    ctx.beginPath();
+    for (var a = 0; a < 6; a++) {
+      var angle = Math.PI / 3 * a - Math.PI / 6;
+      var px = p.x + Math.cos(angle) * radius;
+      var py = p.y + Math.sin(angle) * radius;
+      if (a === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.stroke();
+
+    // Container label (觉醒度 = 亮度)
+    if (mode.labels) {
+      ctx.fillStyle = c.asleep ? 'rgba(90,100,120,0.3)' : 'rgba(' +
+        Math.round(180 + c.arousal * 75) + ',' +
+        Math.round(200 + c.arousal * 55) + ',' +
+        Math.round(220 + c.arousal * 35) + ',0.6)';
+      ctx.font = '8px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(c.id.toString(16).toUpperCase(), p.x, p.y);
+    }
+  }
+
+  avgArousal /= 64;
+  document.getElementById('sTick').textContent = tick;
+  document.getElementById('sArousal').textContent = Math.round(avgArousal * 100) + '%';
+  document.getElementById('sEvents').textContent = events.length;
+
+  // Event log
+  var evHtml = '';
+  for (var e = 0; e < Math.min(12, events.length); e++) {
+    var ev = events[e];
+    var icon = '•';
+    var color = '#666';
+    if (ev.type === 'fear_loss') { icon = '⚠'; color = '#ef4444'; }
+    else if (ev.type === 'fell_asleep') { icon = '💤'; color = '#374151'; }
+    else if (ev.type === 'fully_awake') { icon = '☀'; color = '#fbbf24'; }
+    else if (ev.type === 'rebirth') { icon = '🔄'; color = '#a78bfa'; }
+    else if (ev.type === 'ack') { icon = '★'; color = '#22c55e'; }
+    else if (ev.type === 'couple_resonance') { icon = '💞'; color = '#ec4899'; }
+    else if (ev.type === 'mass_fear') { icon = '⛈'; color = '#dc2626'; }
+    var label = ev.id >= 0 ? 'C' + ev.id.toString(16).toUpperCase() : '全体';
+    evHtml += '<div class="ev"><span class="t">T' + ev.tick + '</span> <span style="color:' + color + '">' + icon + '</span> ' + label + '</div>';
+  }
+  document.getElementById('evList').innerHTML = evHtml;
+}
+
+requestAnimationFrame(draw);
+</script>
+</body>
+</html>
