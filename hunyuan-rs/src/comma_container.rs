@@ -17162,3 +17162,312 @@ mod nozzle_tests {
         assert_eq!(n.blocked, 1);
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器流处理器 · ContainerStreamOp (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   流式处理: 对输入元素逐一应用加法变换, 条件通过
+//   op: AddOffset(n) / ShiftLeft(k) / ClampMax(max)
+//   pred: 如果返回 false, 元素被 drop
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum StreamOp { AddOffset(u64), ShiftLeft(u32), ClampMax(u64) }
+
+#[derive(Clone, Debug)]
+pub struct ContainerStreamOp {
+    op: StreamOp,
+    threshold: u64,
+    in_count: u64,
+    out_count: u64,
+}
+
+impl ContainerStreamOp {
+    pub fn new(op: StreamOp, threshold: u64) -> Self { Self { op, threshold, in_count: 0, out_count: 0 } }
+    /// 输入元素 → 变换后通过 or None
+    pub fn process(&mut self, v: u64) -> Option<u64> {
+        self.in_count = self.in_count + 1;
+        let r = match &self.op {
+            StreamOp::AddOffset(n) => v + *n,
+            StreamOp::ShiftLeft(k) => v << *k,
+            StreamOp::ClampMax(m) => if v > *m { *m } else { v },
+        };
+        if r <= self.threshold {
+            self.out_count = self.out_count + 1;
+            Some(r)
+        } else { None }
+    }
+}
+
+impl Default for ContainerStreamOp {
+    fn default() -> Self { Self::new(StreamOp::AddOffset(0), u64::MAX) }
+}
+
+#[cfg(test)]
+mod stream_op_tests {
+    use super::*;
+    #[test] fn test_add_offset() {
+        let mut s = ContainerStreamOp::new(StreamOp::AddOffset(10), 100);
+        assert_eq!(s.process(5), Some(15));
+    }
+    #[test] fn test_clamp_max() {
+        let mut s = ContainerStreamOp::new(StreamOp::ClampMax(50), 100);
+        assert_eq!(s.process(60), Some(50));
+    }
+    #[test] fn test_threshold_filter() {
+        let mut s = ContainerStreamOp::new(StreamOp::AddOffset(0), 10);
+        assert_eq!(s.process(5), Some(5));
+        assert_eq!(s.process(15), None);
+    }
+    #[test] fn test_shift() {
+        let mut s = ContainerStreamOp::new(StreamOp::ShiftLeft(2), 100);
+        assert_eq!(s.process(3), Some(12));
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器波动监视 · ContainerWatcher (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   监视值超过 high 或低于 low → 设置 flag
+//   仅加法比较
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum WatcherState { Normal, OverHigh, UnderLow }
+
+#[derive(Clone, Debug)]
+pub struct ContainerWatcher {
+    pub low: u64,
+    pub high: u64,
+    pub state: WatcherState,
+    pub over_count: u64,
+    pub under_count: u64,
+}
+
+impl ContainerWatcher {
+    pub fn new(low: u64, high: u64) -> Self { Self { low, high, state: WatcherState::Normal, over_count: 0, under_count: 0 } }
+    pub fn check(&mut self, v: u64) -> WatcherState {
+        self.state = if v > self.high { self.over_count = self.over_count + 1; WatcherState::OverHigh }
+                     else if v < self.low { self.under_count = self.under_count + 1; WatcherState::UnderLow }
+                     else { WatcherState::Normal };
+        self.state.clone()
+    }
+}
+
+impl Default for ContainerWatcher {
+    fn default() -> Self { Self::new(10, 90) }
+}
+
+#[cfg(test)]
+mod watcher_tests {
+    use super::*;
+    #[test] fn test_ranges() {
+        let mut w = ContainerWatcher::new(10, 50);
+        assert_eq!(w.check(5), WatcherState::UnderLow);
+        assert_eq!(w.check(30), WatcherState::Normal);
+        assert_eq!(w.check(60), WatcherState::OverHigh);
+    }
+    #[test] fn test_boundaries() {
+        let mut w = ContainerWatcher::new(10, 50);
+        assert_eq!(w.check(10), WatcherState::Normal);  // 边界内
+        assert_eq!(w.check(50), WatcherState::Normal);  // 边界内
+    }
+    #[test] fn test_counters() {
+        let mut w = ContainerWatcher::new(10, 50);
+        w.check(5); w.check(60); w.check(5);
+        assert_eq!(w.under_count, 2);
+        assert_eq!(w.over_count, 1);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器增量缓冲 · ContainerDeltaBuffer (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   只保留最后一次基准 + 自基准以来的累计 delta
+//   set_baseline: 设新基准
+//   update(value): delta = value - baseline
+//   仅加法: 比较减法
+
+#[derive(Clone, Debug)]
+pub struct ContainerDeltaBuffer {
+    pub baseline: u64,
+    pub latest: u64,
+    pub update_count: u64,
+}
+
+impl ContainerDeltaBuffer {
+    pub fn new(baseline: u64) -> Self { Self { baseline, latest: baseline, update_count: 0 } }
+    pub fn set_baseline(&mut self, v: u64) { self.baseline = v; }
+    pub fn update(&mut self, v: u64) { self.latest = v; self.update_count = self.update_count + 1; }
+    pub fn delta_positive(&self) -> u64 { if self.latest >= self.baseline { self.latest - self.baseline } else { 0 } }
+    pub fn delta_negative(&self) -> u64 { if self.baseline >= self.latest { self.baseline - self.latest } else { 0 } }
+    pub fn has_changed(&self) -> bool { self.latest != self.baseline }
+}
+
+impl Default for ContainerDeltaBuffer {
+    fn default() -> Self { Self::new(0) }
+}
+
+#[cfg(test)]
+mod delta_buf_tests {
+    use super::*;
+    #[test] fn test_positive() {
+        let mut d = ContainerDeltaBuffer::new(100);
+        d.update(150);
+        assert_eq!(d.delta_positive(), 50);
+        assert_eq!(d.delta_negative(), 0);
+    }
+    #[test] fn test_negative() {
+        let mut d = ContainerDeltaBuffer::new(100);
+        d.update(70);
+        assert_eq!(d.delta_negative(), 30);
+        assert!(d.has_changed());
+    }
+    #[test] fn test_baseline_reset() {
+        let mut d = ContainerDeltaBuffer::new(50);
+        d.update(80);
+        d.set_baseline(80);
+        assert!(!d.has_changed());
+    }
+    #[test] fn test_counter() {
+        let mut d = ContainerDeltaBuffer::new(0);
+        d.update(1); d.update(2);
+        assert_eq!(d.update_count, 2);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器状态校验 · ContainerValidator (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   对照允许状态集合校验当前状态是否合法
+//   状态集合用 Vec 存储, 查询用比较
+
+#[derive(Clone, Debug)]
+pub struct ContainerValidator {
+    pub allowed: Vec<u64>,
+    pub last_valid: bool,
+    pub total_checks: u64,
+    pub total_valid: u64,
+}
+
+impl ContainerValidator {
+    pub fn new(allowed: Vec<u64>) -> Self { Self { allowed, last_valid: false, total_checks: 0, total_valid: 0 } }
+    pub fn check(&mut self, state: u64) -> bool {
+        self.total_checks = self.total_checks + 1;
+        let mut ok = false;
+        for a in &self.allowed { if *a == state { ok = true; break; } }
+        self.last_valid = ok;
+        if ok { self.total_valid = self.total_valid + 1; }
+        ok
+    }
+    pub fn add_allowed(&mut self, state: u64) { self.allowed.push(state); }
+    pub fn last_valid(&self) -> bool { self.last_valid }
+}
+
+impl Default for ContainerValidator {
+    fn default() -> Self { Self::new(vec![0, 1, 2, 3]) }
+}
+
+#[cfg(test)]
+mod validator_tests {
+    use super::*;
+    #[test] fn test_valid() {
+        let mut v = ContainerValidator::new(vec![10, 20, 30]);
+        assert!(v.check(20));
+        assert!(v.last_valid());
+    }
+    #[test] fn test_invalid() {
+        let mut v = ContainerValidator::new(vec![10, 20]);
+        assert!(!v.check(99));
+        assert!(!v.last_valid());
+    }
+    #[test] fn test_add() {
+        let mut v = ContainerValidator::new(vec![1]);
+        assert!(!v.check(2));
+        v.add_allowed(2);
+        assert!(v.check(2));
+    }
+    #[test] fn test_counters() {
+        let mut v = ContainerValidator::new(vec![1, 2, 3]);
+        v.check(1); v.check(5); v.check(2);
+        assert_eq!(v.total_checks, 3);
+        assert_eq!(v.total_valid, 2);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器任务线 · ContainerTaskLine (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   顺序执行任务列表, 每个任务权重为 u64
+//   每 tick 消耗 weight, 当前 weight 归零 → 下一任务
+//   仅加法: weight +1; 比较 weight
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum TaskState { Running, Done }
+
+#[derive(Clone, Debug)]
+pub struct ContainerTaskLine {
+    pub tasks: Vec<(String, u64)>,  // (name, weight)
+    pub state: TaskState,
+    pub current_idx: u64,
+    pub current_progress: u64,
+    pub completed: u64,
+}
+
+impl ContainerTaskLine {
+    pub fn new() -> Self {
+        let mut tl = Self { tasks: Vec::new(), state: TaskState::Running, current_idx: 0, current_progress: 0, completed: 0 };
+        tl.update_state(); tl
+    }
+    fn update_state(&mut self) { self.state = if self.tasks.is_empty() || self.current_idx as usize >= self.tasks.len() { TaskState::Done } else { TaskState::Running }; }
+    pub fn add_task(&mut self, name: &str, weight: u64) { self.tasks.push((name.to_string(), weight)); self.update_state(); }
+    /// 每 tick 推进 weight 计数
+    pub fn tick(&mut self) -> TaskState {
+        if self.current_idx as usize >= self.tasks.len() { self.state = TaskState::Done; return TaskState::Done; }
+        self.current_progress = self.current_progress + 1;
+        if self.current_progress >= self.tasks[self.current_idx as usize].1 {
+            self.completed = self.completed + 1;
+            self.current_idx = self.current_idx + 1;
+            self.current_progress = 0;
+        }
+        if self.current_idx as usize >= self.tasks.len() { self.state = TaskState::Done; } else { self.state = TaskState::Running; }
+        self.state.clone()
+    }
+    pub fn current_name(&self) -> Option<&str> {
+        if (self.current_idx as usize) < self.tasks.len() { Some(&self.tasks[self.current_idx as usize].0) } else { None }
+    }
+    pub fn is_done(&self) -> bool { self.state == TaskState::Done }
+}
+
+impl Default for ContainerTaskLine {
+    fn default() -> Self { Self::new() }
+}
+
+#[cfg(test)]
+mod task_line_tests {
+    use super::*;
+    #[test] fn test_progression() {
+        let mut t = ContainerTaskLine::new();
+        t.add_task("A", 2);
+        t.add_task("B", 3);
+        assert_eq!(t.current_name(), Some("A"));
+        assert_eq!(t.tick(), TaskState::Running);
+        assert_eq!(t.tick(), TaskState::Running);  // A 完成 (weight=2)
+        assert_eq!(t.current_name(), Some("B"));
+        t.tick(); t.tick();
+        assert_eq!(t.tick(), TaskState::Done);  // B 完成
+    }
+    #[test] fn test_empty() {
+        let mut t = ContainerTaskLine::new();
+        assert!(t.is_done());
+    }
+    #[test] fn test_completed_counter() {
+        let mut t = ContainerTaskLine::new();
+        t.add_task("X", 1); t.add_task("Y", 1);
+        t.tick(); t.tick();
+        assert_eq!(t.completed, 2);
+    }
+}
