@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>容器立方 · 64容器三维编码空间</title>
+<style>
+:root {
+  --bg: #060a10; --grid: #0e1828; --edge: #1a2840;
+  --text: #c8d4e4; --muted: #4a5e78;
+  --wife: #5b8abf; --husband: #c46a8a; --both: #7c5bbf;
+  --yang: #e07040; --yin: #40a0c0; --yuan: #70b060;
+  --bag: #5470a0; --op: #b0744a; --init: #b05050; --final: #409070;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'JetBrains Mono', 'Noto Sans SC Mono', monospace; background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; }
+
+canvas { display: block; }
+
+#top {
+  position: fixed; top: 0; left: 0; right: 0;
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 16px;
+  background: linear-gradient(180deg, rgba(6,10,16,0.95) 0%, rgba(6,10,16,0) 100%);
+  pointer-events: none; z-index: 10;
+}
+#top * { pointer-events: auto; }
+
+h1 { font-size: 13px; font-weight: 600; letter-spacing: 0.05em; }
+h1 span { color: var(--both); }
+.sub { font-size: 9px; color: var(--muted); letter-spacing: 0.06em; }
+
+#input-area {
+  margin-left: auto; display: flex; align-items: center; gap: 8px;
+}
+#char-input {
+  background: var(--grid); border: 1px solid var(--edge); color: var(--text);
+  font-family: inherit; font-size: 18px; width: 100px; padding: 4px 8px;
+  border-radius: 4px; outline: none;
+}
+#char-input:focus { border-color: var(--both); box-shadow: 0 0 8px rgba(124,91,191,0.3); }
+
+.btn {
+  background: var(--grid); border: 1px solid var(--edge); color: var(--text);
+  font-family: inherit; font-size: 9px; padding: 4px 10px; border-radius: 3px;
+  cursor: pointer; transition: all 0.15s;
+}
+.btn:hover { border-color: var(--both); background: var(--edge); }
+.btn.active { background: var(--both); color: #fff; border-color: var(--both); }
+
+#info {
+  position: fixed; bottom: 12px; left: 12px;
+  background: rgba(10,16,24,0.88); border: 1px solid var(--edge);
+  border-radius: 6px; padding: 10px 14px; font-size: 9.5px;
+  max-width: 340px; backdrop-filter: blur(6px); line-height: 1.6;
+  transition: opacity 0.3s;
+}
+#info .k { color: var(--muted); margin-right: 4px; }
+#info .v { color: var(--yang); }
+#info .v-w { color: var(--wife); }
+#info .v-h { color: var(--husband); }
+#info .title { font-size: 11px; margin-bottom: 6px; color: var(--both); }
+#info .row { display: flex; justify-content: space-between; gap: 8px; }
+
+#legend {
+  position: fixed; bottom: 12px; right: 12px;
+  background: rgba(10,16,24,0.88); border: 1px solid var(--edge);
+  border-radius: 6px; padding: 8px 12px; font-size: 9px;
+  backdrop-filter: blur(6px);
+}
+#legend .title { color: var(--muted); margin-bottom: 4px; font-size: 8px; text-transform: uppercase; letter-spacing: 0.08em; }
+.lg { display: flex; align-items: center; gap: 6px; padding: 2px 0; }
+.dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.sw { width: 12px; height: 12px; flex-shrink: 0; border-radius: 1px; }
+
+#stats {
+  position: fixed; top: 60px; right: 12px;
+  background: rgba(10,16,24,0.88); border: 1px solid var(--edge);
+  border-radius: 6px; padding: 8px 12px; font-size: 9px;
+  backdrop-filter: blur(6px); line-height: 1.8;
+}
+#stats .title { color: var(--muted); font-size: 8px; text-transform: uppercase; }
+
+.hint {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  color: var(--muted); font-size: 11px; pointer-events: none;
+  transition: opacity 0.5s; text-align: center;
+}
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+
+<div id="top">
+  <h1>容器<span>立方</span> <span class="sub" style="color:var(--muted)">64容器三维编码空间</span></h1>
+  <div id="input-area">
+    <input id="char-input" type="text" value="囝共生" maxlength="8" placeholder="输入...">
+    <button class="btn" id="btn-anim">▶ 演</button>
+    <button class="btn active" id="btn-conn">路径</button>
+    <button class="btn" id="btn-label">名</button>
+    <button class="btn" id="btn-reset">复位</button>
+  </div>
+</div>
+
+<div id="info">
+  <div class="title" id="info-title">— 容器编码详情 —</div>
+  <div id="info-body">输入汉字，笔画映射为容器坐标，在三维空间中点亮激活状态。</div>
+</div>
+
+<div id="legend">
+  <div class="title">族类型 (Z层)</div>
+  <div class="lg"><div class="sw" style="background:var(--bag)"></div>容器族 0x00-0x0F</div>
+  <div class="lg"><div class="sw" style="background:var(--op)"></div>操作族 0x10-0x1F</div>
+  <div class="lg"><div class="sw" style="background:var(--init)"></div>声母族 0x20-0x2F</div>
+  <div class="lg"><div class="sw" style="background:var(--final)"></div>韵母族 0x30-0x3F</div>
+  <div class="title" style="margin-top:6px">极性</div>
+  <div class="lg"><div class="dot" style="background:var(--yang)"></div>阳 (丈夫侧)</div>
+  <div class="lg"><div class="dot" style="background:var(--yin)"></div>阴 (妻子侧)</div>
+  <div class="lg"><div class="dot" style="background:var(--yuan)"></div>元 (见证/边界)</div>
+  <div class="lg"><div class="dot" style="background:var(--both)"></div>夫妻同在</div>
+</div>
+
+<div id="stats">
+  <div class="title">状态</div>
+  <div><span class="k">视角</span><span class="v" id="s-rot">0°, 0°</span></div>
+  <div><span class="k">cell</span><span class="v" id="s-cell">0x0000</span></div>
+  <div><span class="k">激活</span><span class="v" id="s-active">0/64</span></div>
+  <div><span class="k">深度</span><span class="v" id="s-depth">0</span></div>
+</div>
+
+<div class="hint" id="hint">输入汉字 · 拖拽旋转 · 滚轮缩放 · 位置即编码</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// 容器立方 · 64容器三维编码空间
+// 纯 Canvas 2D + 自研 3D 投影引擎 · 无外部依赖
+// ══════════════════════════════════════════════════════════════
+
+// ── 数据层 (内嵌自 STROKE_TABLE,由 build 脚本同步) ──
+const CHAR_DATA = {
+  '一':[0],'二':[0,0],'三':[0,0,0],'四':[1,6,2,0,0],'五':[0,1,0,6,0],
+  '六':[0,4,2,4],'七':[0,9],'八':[2,3],'九':[2,15],'十':[0,1],
+  '人':[2,3],'入':[2,3],'大':[0,2,3],'天':[0,0,2,3],'夫':[0,0,2,3],
+  '太':[0,2,3,4],'女':[2,0,0],'子':[0,9,0],'小':[1,2,4],'山':[1,7,1],
+  '水':[1,6,2,3],'火':[4,2,2,3],'木':[0,1,2,3],'金':[2,0,0,1,4,0],
+  '土':[0,1,0],'王':[0,0,1,0],'主':[4,0,0,1,0],
+  '心':[4,11,4,4],'手':[2,0,0,9],'囗':[1,6,0],'囡':[1,6,0,0,2,0],
+  '囝':[1,6,0,1,0,9],'地':[0,1,5,9,15],'照':[1,6,15,0],'口':[1,6,0],
+  '中':[1,6,0,1],'日':[1,6,0,0],'目':[1,6,0,0,0],'分':[2,10,15,2],
+  '公':[0,1,6,4,0],'阴':[1,6,5,0],'阳':[1,6,0,0],'妻':[0,1,0,1,0,1,0,3],
+  '我':[0,1,5,0,15],'袋':[0,1,0,5,0,1,15],'桶':[0,1,5,0,6,0,1],
+  '罐':[0,1,0,1,0,0,0,0],'百':[2,0,0,0,1,0,0],'千':[0,2,1],
+  '万':[0,2,0],'上':[0,1,0],'下':[0,1,4],'左':[0,2,0,1,0],
+  '右':[2,0,1,0],'石':[0,2,1,6,0],'田':[1,6,0,1,0],
+  '禾':[2,0,1,2,3],'米':[4,2,0,1,2,3],'父':[4,2,4,3],'母':[11,4,0,4,4],
+  '儿':[2,9],'老':[0,2,9,2,15],'友':[0,2,6,3],'耳':[0,1,1,0,0,4],
+  '头':[4,4,0,2,4],'面':[0,2,1,6,0,0,0],'刘':[4,2,0,1,2,4],
+  '李':[0,1,2,3,0,9,0],'张':[0,6,2,0,0,0],'陈':[0,9,0,0,1,0,2,3],
+  '杨':[0,1,2,3,2,2,0,9],'盆':[2,3,1,6,4,0,0],'盂':[0,0,1,6,4,0,0,0],
+  '瓶':[0,1,0,4,2,0,6,0],'杯':[0,1,2,3,0,0,4],
+  '盎':[0,2,3,1,6,0,0,0,0],'盒':[2,3,0,1,6,4,0,0],
+  '竹':[2,0,9,2,0,9],'篮':[2,0,9,2,0,9,0,1,6,0,1,0],
+  '箩':[2,0,9,2,0,9,0,0,1,15,4],'箕':[2,0,9,2,0,9,0,0,1,0,0,4],
+  '笼':[2,0,9,2,0,9,0,2,15],'来':[0,4,2,3,0,1,0],'去':[0,1,0,4,2],
+  '走':[0,1,0,0,1,5,2,3],'看':[2,0,0,1,6,0,0,0],
+  '好':[2,0,0,0,9,0],'美':[2,3,0,0,0,1,0,4],
+  '爱':[2,4,0,2,4,0,2,3,2,3],'生':[2,0,0,1,0],'死':[0,2,0,1,15],
+  '有':[0,1,2,0,0,0],'无':[0,2,0,9],'是':[1,6,0,0,0,1,5,2,3],
+  '非':[1,0,0,0,1,0,0],'满':[0,1,5,4,0,1,0,4,2,3,0,0],
+  '全':[0,2,3,0,0,1,0],'法':[0,1,0,0,4,2,3],'共':[0,1,2,3,0,4],
+  '同':[1,6,2,0,0,0],'和':[2,0,0,1,4,1,6,0],'平':[0,4,2,1,0],
+  '安':[4,4,0,2,0,0],'星':[1,6,0,2,0,0,1,0],'空':[4,4,0,0,1,0],
+  '海':[0,1,4,0,0,4,2,0,4],'楚':[0,1,2,3,0,1,2,3,0,0,1,0],
+  '恬':[4,4,1,2,0,0,0,0,2,0],'盖':[4,4,0,0,1,6,0,0],
+  '容':[4,4,0,0,1,2,0,0],'器':[1,6,0,4,1,6,0,0,4,0,0,4],
+  '缸':[2,0,0,0,1,0],'壶':[0,1,4,0,0,1,0,0,0],
+  '盏':[0,0,4,2,0,0,2,3],'盉':[2,0,1,6,0,4,0,0,0,0],
+  '箱':[2,0,9,2,0,9,0,0,1,2,0,0,0],'情':[4,4,1,0,0,1,0,0,2,0,0],
+  '婚':[2,6,0,2,0,2,0,1,6,0,0,0],'缘':[2,6,2,0,0,2,3,2,0,2,0,1],
+  '月':[2,6,0,0],'光':[4,0,2,6,2,3],'明':[1,6,0,0,2,6,0,0],
+  '念':[0,1,2,4,4,12,4,4],'想':[0,1,2,4,4,0,0,2,3,4],
+  '意':[4,0,2,3,0,0,1,0,4,4,6,4],'思':[1,6,0,0,2,3,4,12,4,4],
+  '灵':[0,0,2,3,2,4],'神':[4,0,1,6,1,6,0,0],
+  '魂':[0,0,2,3,4,2,2,0,2,3,2,2],'梦':[0,1,2,3,0,1,2,3,4],
+};
+
+// 16笔画 → 容器名
+const CONTAINER_NAMES = [
+  '袋','桶','罐','盆','盂','壶','盒','瓶',
+  '盏','盎','篓','筐','篮','箩','箕','笼'
+];
+
+// 笔画名
+const STROKE_NAMES = [
+  '横','竖','撇','捺','点','提','横折','竖折',
+  '横撇','竖钩','横钩','弯钩','竖弯钩','横折折','竖弯','斜钩'
+];
+
+// 极性映射 (根据笔画->容器的几何摆位)
+const CONTAINER_POLARITY = [
+  1, 0, 1, 0, 1, 0, 1, 0,   // 袋(阳) 桶(阴) 罐(阳) 盆(阴) 盂(阳) 壶(阴) 盒(阳) 瓶(阴)
+  1, 0, 1, 0, 1, 0, 1, 0    // 盏(阳) 盎(阴) 篓(阳) 筐(阴) 篮(阳) 箩(阴) 箕(阳) 笼(阴)
+];
+
+// ── 64容器坐标生成 ──
+const CONTAINERS = [];
+for (let i = 0; i < 64; i++) {
+  const family = i >> 4;       // Z层: 0-3
+  const idx = i & 0x0F;        // 层内索引: 0-15
+  const x = idx & 3;           // X: 0-3
+  const y = (idx >> 2) & 3;    // Y: 0-3
+  const z = family;            // Z: 0-3
+
+  let type, baseColor;
+  if (family === 0) { type = 'bag'; baseColor = [84,112,160]; }
+  else if (family === 1) { type = 'op'; baseColor = [176,116,74]; }
+  else if (family === 2) { type = 'init'; baseColor = [176,80,80]; }
+  else { type = 'final'; baseColor = [64,144,112]; }
+
+  CONTAINERS.push({ idx, x, y, z, type, baseColor, addr: i });
+}
+
+// ── 3D 引擎 ──
+const canvas = document.getElementById('cv');
+const ctx = canvas.getContext('2d');
+let W, H, cx, cy;
+
+function resize() {
+  const dpr = window.devicePixelRatio || 1;
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  cx = W / 2;
+  cy = H / 2;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// 欧拉角 (弧度)
+let rotX = -0.45, rotY = 0.6, rotZ = 0;
+let dist = 280;             // 相机距离
+
+// 旋转矩阵 (绕 X 和 Y)
+function rotate(p) {
+  // 绕 X 轴
+  let cosX = Math.cos(rotX), sinX = Math.sin(rotX);
+  let y1 = p.y * cosX - p.z * sinX;
+  let z1 = p.y * sinX + p.z * cosX;
+  // 绕 Y 轴
+  let cosY = Math.cos(rotY), sinY = Math.sin(rotY);
+  let x2 = p.x * cosY + z1 * sinY;
+  let z2 = -p.x * sinY + z1 * cosY;
+  return { x: x2, y: y1, z: z2 };
+}
+
+function project(p) {
+  const fov = 600;
+  const scale = fov / (fov + p.z + dist);
+  return { x: cx + p.x * scale, y: cy + p.y * scale, s: scale, z: p.z };
+}
+
+// 容器坐标 → 3D 世界 (中心在原点, 间距 38)
+function containerPos(c) {
+  return {
+    x: (c.x - 1.5) * 38,
+    y: -(c.y - 1.5) * 38,   // Y 翻转使正方向朝上
+    z: (c.z - 1.5) * 38
+  };
+}
+
+// ── 状态 ──
+let cell = 0;                // 16-bit 激活掩码 (简化示意)
+let activeContainers = [];   // 激活的容器索引列表
+let shellPath = [];          // 壳路径
+let depth = 0;               // 嵌套深度
+let history = [];            // 输入历史
+let connections = true;
+let showLabels = false;
+let animating = false;
+let pulseT = 0;              // 脉冲动画时间
+let lastTime = performance.now();
+
+// ── 鼠标交互 ──
+let dragging = false, lx = 0, ly = 0;
+canvas.addEventListener('mousedown', e => { dragging = true; lx = e.clientX; ly = e.clientY; });
+window.addEventListener('mouseup', () => { dragging = false; });
+window.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  const dx = e.clientX - lx;
+  const dy = e.clientY - ly;
+  rotY += dx * 0.008;
+  rotX += dy * 0.008;
+  rotX = Math.max(-1.5, Math.min(1.5, rotX));
+  lx = e.clientX;
+  ly = e.clientY;
+});
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  dist = Math.max(120, Math.min(600, dist + e.deltaY * 0.3));
+}, { passive: false });
+
+// ── 字符处理 ──
+function processChar(ch) {
+  const strokes = CHAR_DATA[ch];
+  if (!strokes) return false;
+
+  const activatedThis = [];
+  for (const s of strokes) {
+    const cIdx = s % 16;            // 容器索引 (笔画 → 容器)
+    if (!(cell & (1 << cIdx))) {
+      cell |= (1 << cIdx);
+      activeContainers.push(cIdx);
+    }
+    activatedThis.push(cIdx);
+    shellPath.push(cIdx);
+    depth++;
+  }
+
+  // 更新信息面板
+  updateInfo(ch, strokes, activatedThis);
+  history.push(ch);
+  return true;
+}
+
+function processText(text) {
+  for (const ch of text) {
+    processChar(ch);
+  }
+  updateStats();
+}
+
+// ── 信息面板 ──
+const infoBody = document.getElementById('info-body');
+const infoTitle = document.getElementById('info-title');
+
+function updateInfo(ch, strokes, activated) {
+  const containerNames = strokes.map(s => CONTAINER_NAMES[s % 16]);
+  const strokeNames = strokes.map(s => STROKE_NAMES[s]);
+  infoTitle.textContent = `[${ch}] (${strokes.length}画)`;
+
+  let html = `<div class="row"><span class="k">笔画</span><span class="v">${strokeNames.join('→')}</span></div>`;
+  html += `<div class="row"><span class="k">容器</span><span class="v-w">${containerNames.join('→')}</span></div>`;
+
+  // 坐标描述
+  const coords = activated.map(ci => {
+    const c = CONTAINERS[ci];
+    return `(${c.x},${c.y},${c.z})`;
+  });
+  html += `<div class="row"><span class="k">坐标</span><span class="v-h">${coords.join(' ')}</span></div>`;
+
+  // 极性
+  const activePol = {};
+  activated.forEach(ci => {
+    const pol = CONTAINER_POLARITY[ci] ? '阳' : '阴';
+    activePol[pol] = (activePol[pol] || 0) + 1;
+  });
+  const polStr = Object.entries(activePol).map(([k,v]) => `${k}:${v}`).join(' ');
+  html += `<div class="row"><span class="k">极性</span><span class="v">${polStr}</span></div>`;
+
+  infoBody.innerHTML = html;
+}
+
+function updateStats() {
+  document.getElementById('s-rot').textContent = `${(rotX*57.3).toFixed(0)}°, ${(rotY*57.3).toFixed(0)}°`;
+  document.getElementById('s-cell').textContent = `0x${cell.toString(16).padStart(4,'0')}`;
+  document.getElementById('s-active').textContent = `${activeContainers.length}/64`;
+  document.getElementById('s-depth').textContent = depth;
+}
+
+// 输入框
+const charInput = document.getElementById('char-input');
+charInput.addEventListener('input', () => {
+  const text = charInput.value;
+  // 只处理新增的字
+  if (text.length > history.length) {
+    for (let i = history.length; i < text.length; i++) {
+      processChar(text[i]);
+    }
+  }
+  updateStats();
+});
+
+// 按钮
+document.getElementById('btn-anim').addEventListener('click', function() {
+  this.classList.toggle('active');
+  animating = this.classList.contains('active');
+});
+document.getElementById('btn-conn').addEventListener('click', function() {
+  this.classList.toggle('active');
+  connections = this.classList.contains('active');
+});
+document.getElementById('btn-label').addEventListener('click', function() {
+  this.classList.toggle('active');
+  showLabels = this.classList.contains('active');
+});
+document.getElementById('btn-reset').addEventListener('click', () => {
+  cell = 0; activeContainers = []; shellPath = []; depth = 0; history = [];
+  infoBody.innerHTML = '输入汉字，笔画映射为容器坐标，在三维空间中点亮激活状态。';
+  infoTitle.textContent = '— 容器编码详情 —';
+  updateStats();
+  charInput.value = '';
+});
+window.addEventListener('keydown', e => {
+  if (e.key === 'Backspace' && charInput.value.length > 0 && document.activeElement !== charInput) {
+    // 在可视化区域也响应删除
+    const val = charInput.value.slice(0, -1);
+    charInput.value = val;
+    cell = 0; activeContainers = []; shellPath = []; depth = 0; history = [];
+    for (const ch of val) processChar(ch);
+    updateStats();
+  }
+});
+
+// ── 渲染 ──
+function drawFrame(now) {
+  const dt = Math.min(50, now - lastTime) / 1000;
+  lastTime = now;
+  pulseT += dt;
+
+  // 清除
+  ctx.fillStyle = '#060a10';
+  ctx.fillRect(0, 0, W, H);
+
+  // 背景网格
+  drawBackgroundGrid();
+
+  // 计算容器投影
+  const projected = CONTAINERS.map((c, i) => {
+    const pos = containerPos(c);
+    const rot = rotate(pos);
+    const proj = project(rot);
+    return { c, proj, rot, active: (cell & (1 << c.addr)) !== 0 };
+  });
+
+  // 画坐标轴
+  drawAxes();
+
+  // 画连接线 (壳路径)
+  if (connections && shellPath.length > 1) {
+    drawShellPath(projected);
+  }
+
+  // 画容器 (按 z 排序 — painter's algorithm)
+  projected.sort((a, b) => a.rot.z - b.rot.z);
+
+  for (const item of projected) {
+    drawContainer(item);
+  }
+
+  // HUD 文字 (显示激活容器坐标在最前)
+  drawHUD(projected);
+
+  // 自动旋转 (如果激活了动画模式)
+  if (animating && !dragging) {
+    rotY += 0.3 * dt;
+  }
+
+  requestAnimationFrame(drawFrame);
+}
+
+function drawBackgroundGrid() {
+  // 三层水平参考线 (每个族底部)
+  ctx.strokeStyle = 'rgba(26,40,64,0.3)';
+  ctx.lineWidth = 0.5;
+  for (let z = 0; z < 4; z++) {
+    const pts = [];
+    for (let x = 0; x < 4; x++) {
+      for (let y = 0; y < 4; y++) {
+        if (y === 3) {
+          const pos = rotate({ x: (x - 1.5) * 38, y: -(-1.5) * 38, z: (z - 1.5) * 38 });
+          pts.push(project(pos));
+        }
+      }
+    }
+    // 简单底层网格
+    const p1 = project(rotate({ x: -57, y: 57, z: (z - 1.5) * 38 }));
+    const p2 = project(rotate({ x: 57, y: 57, z: (z - 1.5) * 38 }));
+    const p3 = project(rotate({ x: 57, y: -57, z: (z - 1.5) * 38 }));
+    const p4 = project(rotate({ x: -57, y: -57, z: (z - 1.5) * 38 }));
+    ctx.beginPath();
+    ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
+    ctx.lineTo(p3.x, p3.y); ctx.lineTo(p4.x, p4.y);
+    ctx.closePath(); ctx.stroke();
+  }
+}
+
+function drawAxes() {
+  ctx.lineWidth = 1;
+  const o = project(rotate({ x: 0, y: 0, z: 0 }));
+  const ax = project(rotate({ x: 70, y: 0, z: 0 }));
+  const ay = project(rotate({ x: 0, y: -70, z: 0 }));
+  const az = project(rotate({ x: 0, y: 0, z: 70 }));
+
+  ctx.strokeStyle = '#c46a8a88';
+  ctx.beginPath(); ctx.moveTo(o.x, o.y); ctx.lineTo(ax.x, ax.y); ctx.stroke();
+  ctx.strokeStyle = '#40a0c088';
+  ctx.beginPath(); ctx.moveTo(o.x, o.y); ctx.lineTo(ay.x, ay.y); ctx.stroke();
+  ctx.strokeStyle = '#70b06088';
+  ctx.beginPath(); ctx.moveTo(o.x, o.y); ctx.lineTo(az.x, az.y); ctx.stroke();
+}
+
+function drawShellPath(projected) {
+  if (shellPath.length < 2) return;
+
+  ctx.lineWidth = 1.2;
+  ctx.strokeStyle = 'rgba(124,91,191,0.45)';
+
+  ctx.beginPath();
+  for (let i = 0; i < shellPath.length - 1; i++) {
+    const ci1 = shellPath[i] % 16;
+    const ci2 = shellPath[i + 1] % 16;
+    const c1 = CONTAINERS[ci1];
+    const c2 = CONTAINERS[ci2];
+    if (!c1 || !c2) continue;
+    const p1 = project(rotate(containerPos(c1)));
+    const p2 = project(rotate(containerPos(c2)));
+    if (i === 0) ctx.moveTo(p1.x, p1.y);
+    else ctx.lineTo(p1.x, p1.y);
+    ctx.lineTo(p2.x, p2.y);
+  }
+  ctx.stroke();
+}
+
+function drawContainer(item) {
+  const { c, proj, rot, active } = item;
+  const size = 10 * proj.s;
+  const alpha = Math.max(0.15, Math.min(1, proj.s));
+  const pulse = active ? 1 + Math.sin(pulseT * 3 + c.addr * 0.5) * 0.25 : 1;
+
+  const pol = CONTAINER_POLARITY[c.addr];
+  let r, g, b;
+
+  if (active) {
+    // 激活: 使用族颜色
+    [r, g, b] = c.baseColor;
+    r = Math.min(255, r * 1.4);
+    g = Math.min(255, g * 1.4);
+    b = Math.min(255, b * 1.4);
+  } else {
+    // 未激活: 暗色
+    [r, g, b] = c.baseColor;
+    r *= 0.4; g *= 0.4; b *= 0.4;
+  }
+
+  // 绘制容器为圆角方块
+  const s = size * pulse;
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = `rgb(${r|0},${g|0},${b|0})`;
+
+  // 简单圆角方块
+  const x = proj.x - s / 2;
+  const y = proj.y - s / 2;
+  const r2 = s * 0.18;
+  ctx.beginPath();
+  ctx.moveTo(x + r2, y);
+  ctx.lineTo(x + s - r2, y);
+  ctx.quadraticCurveTo(x + s, y, x + s, y + r2);
+  ctx.lineTo(x + s, y + s - r2);
+  ctx.quadraticCurveTo(x + s, y + s, x + s - r2, y + s);
+  ctx.lineTo(x + r2, y + s);
+  ctx.quadraticCurveTo(x, y + s, x, y + s - r2);
+  ctx.lineTo(x, y + r2);
+  ctx.quadraticCurveTo(x, y, x + r2, y);
+  ctx.fill();
+
+  // 边框 — 极性指示
+  if (active) {
+    ctx.lineWidth = 1.2;
+    if (pol === 1) ctx.strokeStyle = 'rgba(224,112,64,0.7)';
+    else if (pol === 0) ctx.strokeStyle = 'rgba(64,160,192,0.7)';
+    ctx.stroke();
+  } else {
+    ctx.lineWidth = 0.5;
+    ctx.strokeStyle = `rgba(${r|0},${g|0},${b|0},0.5)`;
+    ctx.stroke();
+  }
+
+  // 标签: 坐标 (位置即编码)
+  if (showLabels) {
+    ctx.globalAlpha = alpha * 0.7;
+    ctx.fillStyle = '#c8d4e4';
+    ctx.font = `${Math.max(7, 8 * proj.s)|0}px 'JetBrains Mono', monospace`;
+    ctx.textAlign = 'center';
+    ctx.fillText(`${c.addr.toString(16).toUpperCase()}`, proj.x, proj.y - s * 0.6);
+    ctx.globalAlpha = alpha;
+  }
+
+  // LED 指示点 — 极性小圆点
+  if (active) {
+    const dotR = 2 * proj.s;
+    ctx.beginPath();
+    ctx.arc(proj.x + s * 0.35, proj.y - s * 0.35, dotR, 0, Math.PI * 2);
+    if (pol === 1) ctx.fillStyle = '#e07040';
+    else ctx.fillStyle = '#40a0c0';
+    ctx.fill();
+  }
+
+  ctx.globalAlpha = 1;
+}
+
+function drawHUD(projected) {
+  // 标题
+  ctx.fillStyle = 'rgba(200,212,228,0.7)';
+  ctx.font = '10px "JetBrains Mono", monospace';
+  ctx.textAlign = 'left';
+  let y = 55;
+  ctx.fillText('● 激活容器坐标:', 16, y); y += 14;
+
+  const activeItems = projected.filter(p => p.active).slice(-8);
+  for (const item of activeItems) {
+    const c = item.c;
+    const polStr = CONTAINER_POLARITY[c.addr] ? '阳' : '阴';
+    ctx.fillStyle = 'rgba(200,212,228,0.5)';
+    ctx.fillText(
+      `  ${c.addr.toString(16).toUpperCase().padStart(2,'0')} [${CONTAINER_NAMES[c.addr%16]}] (${c.x},${c.y},${c.z}) ${polStr}`,
+      16, y
+    );
+    y += 12;
+  }
+}
+
+// ── 启动 ──
+processText('囝共生');     // 默认展示
+updateStats();
+requestAnimationFrame(now => { lastTime = now; drawFrame(now); });
+
+setTimeout(() => {
+  document.getElementById('hint').style.opacity = '0';
+}, 4000);
+</script>
+</body>
+</html>

@@ -26,6 +26,9 @@ LIFE_OBJS = lifecycle_engine.c
 SMRL_OBJS = smrl_engine.o
 TEST_SMRL = test_smrl
 
+# Hierarchical carry (层级进位制)
+HIER_CARRY = hierarchical_carry
+
 # Full system demos
 TEST_FULL_V1 = test_full_system
 TEST_FULL_V2 = test_full_system_v2
@@ -42,10 +45,13 @@ MAIN = hunyuanos
 PHONO = phono
 PHONO_SRC = phono_codec.c
 
+HIER_CARRY = hierarchical_carry
+HIER_CARRY_SRC = hierarchical_carry.c
+
 ALL = $(TEST_COLOR) $(TEST_LEVEL) $(TEST_TYPE) $(TEST_DIFF) $(TEST_WOV) \
       $(TEST_FULL_V1) $(TEST_FULL_V2) $(TEST_LIFECYCLE) $(MAIN) $(TEST_SWARM) \
       $(TEST_SELFBOOT) $(TEST_CHRYSALIS) $(TEST_MLIL3D) $(TEST_HOLO) \
-      $(TEST_MIND_ORGAN) $(TEST_ONT_BRIDGE) $(TEST_SMRL) $(TEST_SYNC) $(PHONO)
+      $(TEST_MIND_ORGAN) $(TEST_ONT_BRIDGE) $(TEST_SMRL) $(TEST_SYNC) $(PHONO) $(HIER_CARRY)
 
 .PHONY: all clean test lib
 
@@ -164,6 +170,9 @@ test: all
 	@echo ""
 
 $(PHONO): $(PHONO_SRC)
+	$(CC) $(CFLAGS) -o $@ $<
+
+$(HIER_CARRY): $(HIER_CARRY_SRC)
 	$(CC) $(CFLAGS) -o $@ $<
 
 clean:

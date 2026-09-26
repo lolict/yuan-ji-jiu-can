@@ -505,7 +505,7 @@ pub fn render_hanzi_specimen(text: &str, output_path: &str) {
         // Draw strokes
         if let Some(strokes) = stroke_defs(spec.ch) {
             for s in &strokes {
-                draw_stroke(&mut img, s, char_area_x as i32, char_area_y as i32, (char_size / 100) as i32, white);
+                draw_stroke(&mut img, s, char_area_x as i32, char_area_y as i32, char_size as i32, white);
             }
         } else {
             // fallback: draw box

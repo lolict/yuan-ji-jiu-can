@@ -350,6 +350,9 @@ pub mod call_programming;
 pub mod parasite_engine;
 #[path = "core/fuxi_dictionary.rs"]  // v0.74 伏羲字典 — 汉字↔容器编码全表征查找
 pub mod fuxi_dictionary;
+
+#[path = "core/loss_aversion.rs"]  // v0.75 失爱恐惧引擎 — 情感计算 · 恐惧梯度 · RPE
+pub mod loss_aversion;
 // ── v0.66 运行环引擎 — 最小OS接口·鼓膜自举·八流心跳·编码在场·结束即开始 ──
 #[path = "core/runtime_loop.rs"]
 pub mod runtime_loop;
@@ -958,6 +961,11 @@ pub use tympanic_bootstrap::{
 #[path = "core/radical_star_map.rs"]
 pub mod hanzi_starmap;
 pub use hanzi_starmap::{Radical as HanziRadical, StarMap};
+
+// ── v0.63 音算引擎 — 声韵呼吸·坐标流动·共振=答案 ──
+#[path = "core/phonetic_computing.rs"]
+pub mod phonetic_computing;
+pub use phonetic_computing::PhoneticOps;
 
 // ── v0.59 聂小倩·本质匹配引擎 — 游魂寻踪·公约数共振·撞墙回退 ──
 #[path = "core/njq_matching.rs"]
