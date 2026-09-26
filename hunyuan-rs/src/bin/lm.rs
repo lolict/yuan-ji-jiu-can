@@ -387,9 +387,115 @@ impl LM {
                 self.register(dst, &name, pol, sum);
                 Some(format!("合 {}+{}→{} ({}+{}={})", a, b, dst, val_a, val_b, sum))
             }
-            Op::Zhe | Op::Die | Op::Juan | Op::Shu | Op::Cai | Op::Jue => {
-                // 折叠/展开/卷曲/舒展/裁判/决断 — 在最小实现中暂不展开
-                Some(format!("{} [未在此最小版本中实现]", op.op.name()))
+            Op::Zhe => {
+                // 折：折叠（源 → 目标）—— 目标数值累加源数值的一半，源极性反转
+                let src = *op.params.first()?;
+                let dst = *op.targets.first()?;
+                let (src_val, src_pol, dst_name) = {
+                    let src_c = self.containers.get(&src)?;
+                    let dst_c = self.containers.get(&dst)?;
+                    (src_c.value, src_c.polarity, dst_c.name.clone())
+                };
+                let half = src_val / 2;
+                let folded = src_val - half;
+                let new_dst_val = self.containers[&dst].value + folded;
+                let toggled = match src_pol {
+                    YinYang::Yin => YinYang::Yang,
+                    YinYang::Yang => YinYang::Yin,
+                    YinYang::Xu => YinYang::Shi,
+                    YinYang::Shi => YinYang::Xu,
+                    p => p,
+                };
+                self.write_version(dst, new_dst_val, None);
+                self.write_version(src, half, Some(toggled));
+                Some(format!("折 {}({}/2={}, 留{})→{}, 极性{}→{}", src, src_val, half, folded, dst_name, src_pol, toggled))
+            }
+            Op::Die => {
+                // 叠：展开（源 → 目标1 + 目标2）—— 将源容器分裂为两个新容器
+                let src = *op.params.first()?;
+                let t1 = *op.targets.get(0)?;
+                let t2 = *op.targets.get(1)?;
+                let (half, remainder, pol, name) = {
+                    let src_c = self.containers.get(&src)?;
+                    (src_c.value / 2, src_c.value - src_c.value / 2, src_c.polarity.clone(), src_c.name.clone())
+                };
+                self.register(t1, &name, pol.clone(), half);
+                self.register(t2, &name, pol, remainder);
+                Some(format!("叠 {} → {}({}) {}({})", src, t1, half, t2, remainder))
+            }
+            Op::Juan => {
+                // 卷：卷曲（源 → 目标）—— 源的极性反转，数值裹上一层（加1）
+                let src = *op.params.first()?;
+                let dst = *op.targets.first()?;
+                let (src_val, src_pol, src_name) = {
+                    let src_c = self.containers.get(&src)?;
+                    (src_c.value, src_c.polarity, src_c.name.clone())
+                };
+                let new_pol = match src_pol {
+                    YinYang::Yin => YinYang::Ying,
+                    YinYang::Yang => YinYang::Kui,
+                    p => p,
+                };
+                self.write_version(src, src_val.saturating_add(1), Some(new_pol));
+                Some(format!("卷 {}({}→{}, {}裹+1)", src, src_name, new_pol, src_val))
+            }
+            Op::Shu => {
+                // 舒：舒展（源 → 目标）—— 卷曲的逆操作，数值解（减1），极性还原
+                let src = *op.params.first()?;
+                let (src_val, src_pol) = {
+                    let src_c = self.containers.get(&src)?;
+                    (src_c.value, src_c.polarity)
+                };
+                let (new_pol, new_val) = match src_pol {
+                    YinYang::Ying => (YinYang::Yin, src_val.saturating_sub(1)),
+                    YinYang::Kui => (YinYang::Yang, src_val.saturating_sub(1)),
+                    p => (p, src_val),
+                };
+                self.write_version(src, new_val, Some(new_pol));
+                Some(format!("舒 {}({}→{}, {}解-1)", src, src_pol, new_pol, src_val))
+            }
+            Op::Cai => {
+                // 裁：裁判准入（裁容器 审容器 → 裁定目标）—— 必须两个见证都是阳极性
+                let cai_id = *op.params.get(0)?;
+                let shen_id = *op.params.get(1)?;
+                let target = *op.targets.first()?;
+                let (cai_pol, shen_pol, dst_val) = {
+                    let c = self.containers.get(&cai_id)?;
+                    let s = self.containers.get(&shen_id)?;
+                    let d = self.containers.get(&target)?;
+                    (c.polarity, s.polarity, d.value)
+                };
+                let admitted = cai_pol == YinYang::Yang && shen_pol == YinYang::Yang;
+                if admitted {
+                    let new_val = dst_val.saturating_add(1);
+                    self.write_version(target, new_val, Some(YinYang::Yang));
+                    Some(format!("裁 {} {}→{} 准入({}→阳, 值{}→{})", cai_id, shen_id, target, cai_pol, dst_val, new_val))
+                } else {
+                    self.write_version(target, dst_val, Some(YinYang::Yin));
+                    Some(format!("裁 {} {}→{} 不准入(判={} 审={})", cai_id, shen_id, target, cai_pol, shen_pol))
+                }
+            }
+            Op::Jue => {
+                // 决：断决（源 → 正地址 负地址）—— 将源的正数值给正地址，负数值给负地址
+                let src = *op.params.first()?;
+                let pos_dst = *op.targets.get(0)?;
+                let neg_dst = *op.targets.get(1)?;
+                let (src_val, src_pol) = {
+                    let src_c = self.containers.get(&src)?;
+                    (src_c.value, src_c.polarity)
+                };
+                let (pos_val, neg_val) = match src_pol {
+                    YinYang::Ying | YinYang::Shi | YinYang::Yang => (src_val, 0),
+                    YinYang::Kui | YinYang::Xu | YinYang::Yin => (0, src_val),
+                    _ => (src_val / 2, src_val - src_val / 2),
+                };
+                let pos_pol = match src_pol {
+                    YinYang::Yin => YinYang::Yang,
+                    p => p,
+                };
+                self.write_version(pos_dst, pos_val, Some(pos_pol));
+                self.write_version(neg_dst, neg_val, Some(YinYang::Yin));
+                Some(format!("决 {} → 正{}({}) 负{}({})", src, pos_dst, pos_val, neg_dst, neg_val))
             }
         }
     }
@@ -727,5 +833,162 @@ mod tests {
 
         // 每次写入都生成新版本
         assert!(lm.history.len() > initial_history_len);
+    }
+
+    #[test]
+    fn zhe_fold() {
+        // 折：折叠——源数值分两半，一半累加到目标，源极性翻转
+        let input = r#"=<注册清单>=
+1: 袋 阴 10
+2: 桶 阳 0
+
+=<操作序列>=
+10 折 1 → 2
+20 见 1
+30 见 2
+"#;
+        let (reg, ops) = Parser::parse(input);
+        let mut lm = LM::new();
+        for (id, name, pol, val) in &reg {
+            lm.register(*id, name, *pol, *val);
+        }
+        lm.run(&ops);
+
+        // 袋(10) 折叠后：一半(5)留袋（极性翻转→阳），一半(5)累加到桶
+        let dai = lm.containers.get(&1).expect("袋应存在");
+        assert_eq!(dai.value, 5);
+        assert_eq!(dai.polarity, YinYang::Yang); // 阴→阳
+        let tong = lm.containers.get(&2).expect("桶应存在");
+        assert_eq!(tong.value, 5);
+    }
+
+    #[test]
+    fn die_split_two() {
+        // 叠：展开——将源容器分裂为两个新容器
+        let input = r#"=<注册清单>=
+1: 罐 阴 10
+
+=<操作序列>=
+10 叠 1 → 2 3
+20 见 2
+30 见 3
+"#;
+        let (reg, ops) = Parser::parse(input);
+        let mut lm = LM::new();
+        for (id, name, pol, val) in &reg {
+            lm.register(*id, name, *pol, *val);
+        }
+        lm.run(&ops);
+
+        let c2 = lm.containers.get(&2).expect("容器2应存在");
+        let c3 = lm.containers.get(&3).expect("容器3应存在");
+        assert_eq!(c2.value, 5);
+        assert_eq!(c3.value, 5);
+        assert_eq!(c2.polarity, YinYang::Yin);
+    }
+
+    #[test]
+    fn juan_shu_roundtrip() {
+        // 卷/舒：卷曲后再舒展，应回到原始极性（近似）
+        let input = r#"=<注册清单>=
+1: 袋 阴 5
+
+=<操作序列>=
+10 卷 1 → 1
+20 见 1
+30 舒 1 → 1
+40 见 1
+"#;
+        let (reg, ops) = Parser::parse(input);
+        let mut lm = LM::new();
+        for (id, name, pol, val) in &reg {
+            lm.register(*id, name, *pol, *val);
+        }
+        lm.run(&ops);
+
+        // 卷：阴→盈，数值+1
+        // 舒：盈→阴，数值-1
+        // 最终应回到接近原始值
+        let dai = lm.containers.get(&1).expect("袋应存在");
+        assert_eq!(dai.polarity, YinYang::Yin);
+        assert_eq!(dai.value, 5);
+    }
+
+    #[test]
+    fn cai_admit() {
+        // 裁：两个阳极性容器做见证 → 准入
+        let input = r#"=<注册清单>=
+1: 袋 阳 10
+2: 桶 阳 8
+3: 罐 阴 0
+
+=<操作序列>=
+10 裁 1 2 → 3
+20 见 3
+"#;
+        let (reg, ops) = Parser::parse(input);
+        let mut lm = LM::new();
+        for (id, name, pol, val) in &reg {
+            lm.register(*id, name, *pol, *val);
+        }
+        lm.run(&ops);
+
+        let guan = lm.containers.get(&3).expect("罐应存在");
+        // 准入：两个都是阳 → 准入，极性变阳，数值+1
+        assert_eq!(guan.polarity, YinYang::Yang);
+        assert_eq!(guan.value, 1);
+    }
+
+    #[test]
+    fn cai_reject() {
+        // 裁：一个阴一个阳 → 不准入
+        let input = r#"=<注册清单>=
+1: 袋 阴 10
+2: 桶 阳 8
+3: 罐 阳 5
+
+=<操作序列>=
+10 裁 1 2 → 3
+20 见 3
+"#;
+        let (reg, ops) = Parser::parse(input);
+        let mut lm = LM::new();
+        for (id, name, pol, val) in &reg {
+            lm.register(*id, name, *pol, *val);
+        }
+        lm.run(&ops);
+
+        let guan = lm.containers.get(&3).expect("罐应存在");
+        // 不准入：极性变阴
+        assert_eq!(guan.polarity, YinYang::Yin);
+        assert_eq!(guan.value, 5);
+    }
+
+    #[test]
+    fn jue_split_pos_neg() {
+        // 决：阳容器 → 正地址得数值，负地址得0
+        let input = r#"=<注册清单>=
+1: 瓶 阳 8
+2: 袋 阴 0
+3: 桶 阴 0
+
+=<操作序列>=
+10 决 1 → 2 3
+20 见 2
+30 见 3
+"#;
+        let (reg, ops) = Parser::parse(input);
+        let mut lm = LM::new();
+        for (id, name, pol, val) in &reg {
+            lm.register(*id, name, *pol, *val);
+        }
+        lm.run(&ops);
+
+        let dai = lm.containers.get(&2).expect("袋(正)应存在");
+        let tong = lm.containers.get(&3).expect("桶(负)应存在");
+        assert_eq!(dai.value, 8);  // 正地址得全部
+        assert_eq!(dai.polarity, YinYang::Yang);  // 正极性
+        assert_eq!(tong.value, 0); // 负地址得0
+        assert_eq!(tong.polarity, YinYang::Yin); // 负极性为阴
     }
 }
