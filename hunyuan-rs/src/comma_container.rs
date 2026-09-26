@@ -16528,3 +16528,318 @@ mod window_count_tests {
         assert_eq!(c.event_total(), 6);
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器水印 · ContainerWatermark (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   进度追踪: low (已完成) / high (已分配) / committed (已确认)
+//   仅加法: 推进时 increment
+
+#[derive(Clone, Debug)]
+pub struct ContainerWatermark {
+    pub committed: u64,
+    pub high: u64,
+    pub low: u64,
+}
+
+impl ContainerWatermark {
+    pub fn new(start: u64) -> Self { Self { committed: start, high: start, low: start } }
+    pub fn advance_committed(&mut self, v: u64) { self.committed = v; }
+    pub fn advance_high(&mut self, v: u64) { self.high = v; }
+    pub fn advance_low(&mut self, v: u64) { self.low = v; }
+    pub fn lag(&self) -> u64 { self.high - self.low }
+    pub fn pending(&self) -> u64 { self.committed - self.low }
+}
+
+impl Default for ContainerWatermark {
+    fn default() -> Self { Self::new(0) }
+}
+
+#[cfg(test)]
+mod watermark_tests {
+    use super::*;
+    #[test] fn test_lag() {
+        let mut w = ContainerWatermark::new(0);
+        w.advance_high(10); w.advance_low(6);
+        assert_eq!(w.lag(), 4);
+    }
+    #[test] fn test_pending() {
+        let mut w = ContainerWatermark::new(0);
+        w.advance_committed(8); w.advance_low(5);
+        assert_eq!(w.pending(), 3);
+    }
+    #[test] fn test_default() {
+        let w = ContainerWatermark::default();
+        assert_eq!(w.committed, 0);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器行程压缩 · ContainerRLE (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   Run-Length Encoding: 连续相同的 val → (val, count) 对
+//   仅加法: count +1
+
+#[derive(Clone, Debug)]
+pub struct ContainerRLE {
+    pub encoded: Vec<(u64, u64)>,  // (value, count)
+    pub last: Option<u64>,
+    pub run_length: u64,
+}
+
+impl ContainerRLE {
+    pub fn new() -> Self { Self { encoded: Vec::new(), last: None, run_length: 0 } }
+    pub fn feed(&mut self, v: u64) {
+        if self.last == Some(v) {
+            self.run_length = self.run_length + 1;
+        } else {
+            if let Some(prev) = self.last {
+                self.encoded.push((prev, self.run_length));
+            }
+            self.last = Some(v);
+            self.run_length = 1;
+        }
+    }
+    pub fn flush(&mut self) {
+        if let Some(prev) = self.last {
+            self.encoded.push((prev, self.run_length));
+            self.last = None;
+        }
+    }
+    pub fn len(&self) -> usize { self.encoded.len() }
+    pub fn total(&self) -> u64 {
+        let mut s = 0;
+        for &(_, c) in &self.encoded { s = s + c; }
+        if self.last.is_some() { s + self.run_length } else { s }
+    }
+}
+
+impl Default for ContainerRLE {
+    fn default() -> Self { Self::new() }
+}
+
+#[cfg(test)]
+mod rle_tests {
+    use super::*;
+    #[test] fn test_basic() {
+        let mut r = ContainerRLE::new();
+        r.feed(1); r.feed(1); r.feed(1);
+        r.feed(2); r.feed(2);
+        r.feed(3);
+        r.flush();
+        assert_eq!(r.encoded, vec![(1, 3), (2, 2), (3, 1)]);
+    }
+    #[test] fn test_empty() {
+        let r = ContainerRLE::new();
+        assert_eq!(r.len(), 0);
+    }
+    #[test] fn test_total() {
+        let mut r = ContainerRLE::new();
+        r.feed(5); r.feed(5); r.feed(5); r.flush();
+        assert_eq!(r.total(), 3);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器模式匹配 · ContainerPatternMatcher (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   检测最近 N 个输入是否匹配给定 pattern
+//   仅加法比较: data[i] == pattern[i]?
+
+#[derive(Clone, Debug)]
+pub struct ContainerPatternMatcher {
+    pub pattern: Vec<u64>,
+    pub buffer: Vec<u64>,
+    pub match_count: u64,
+    pub check_count: u64,
+}
+
+impl ContainerPatternMatcher {
+    pub fn new(pattern: Vec<u64>) -> Self {
+        Self { pattern, buffer: Vec::new(), match_count: 0, check_count: 0 }
+    }
+    pub fn feed(&mut self, v: u64) -> bool {
+        self.buffer.push(v);
+        if self.buffer.len() > self.pattern.len() {
+            self.buffer.remove(0);
+        }
+        self.check_count = self.check_count + 1;
+        if self.buffer.len() == self.pattern.len() {
+            let mut ok = true;
+            for i in 0..self.pattern.len() {
+                if self.buffer[i] != self.pattern[i] { ok = false; break; }
+            }
+            if ok { self.match_count = self.match_count + 1; }
+            ok
+        } else { false }
+    }
+    pub fn matched(&self) -> u64 { self.match_count }
+}
+
+impl Default for ContainerPatternMatcher {
+    fn default() -> Self { Self::new(vec![1, 2, 3]) }
+}
+
+#[cfg(test)]
+mod pattern_tests {
+    use super::*;
+    #[test] fn test_match() {
+        let mut m = ContainerPatternMatcher::new(vec![10, 20, 30]);
+        assert!(!m.feed(10));
+        assert!(!m.feed(20));
+        assert!(m.feed(30));
+    }
+    #[test] fn test_mismatch() {
+        let mut m = ContainerPatternMatcher::new(vec![1, 2, 3]);
+        m.feed(1); m.feed(2); m.feed(99);
+        assert_eq!(m.matched(), 0);
+    }
+    #[test] fn test_sliding_match() {
+        let mut m = ContainerPatternMatcher::new(vec![5, 5]);
+        m.feed(1); m.feed(5); m.feed(5);
+        assert!(m.matched() >= 1);
+    }
+    #[test] fn test_single_pattern() {
+        let mut m = ContainerPatternMatcher::new(vec![42]);
+        assert!(m.feed(42));
+        assert!(!m.feed(0));
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器屏障 · ContainerBarrier (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   同步屏障: N 个参与者都 arrive 后才能通过
+//   通过 → 所有参与者都必须重新 arrive
+
+#[derive(Clone, Debug)]
+pub struct ContainerBarrier {
+    pub capacity: u64,
+    pub count: u64,
+    pub generation: u64,
+    pub total_releases: u64,
+}
+
+impl ContainerBarrier {
+    pub fn new(capacity: u64) -> Self { Self { capacity, count: 0, generation: 0, total_releases: 0 } }
+    /// 返回 true 表示本轮屏障打开
+    pub fn arrive(&mut self) -> bool {
+        self.count = self.count + 1;
+        if self.count >= self.capacity {
+            self.count = 0;
+            self.generation = self.generation + 1;
+            self.total_releases = self.total_releases + 1;
+            true
+        } else { false }
+    }
+    pub fn is_blocked(&self) -> bool { self.count > 0 && self.count < self.capacity }
+    pub fn reset(&mut self) { self.count = 0; }
+}
+
+impl Default for ContainerBarrier {
+    fn default() -> Self { Self::new(3) }
+}
+
+#[cfg(test)]
+mod barrier_tests {
+    use super::*;
+    #[test] fn test_release() {
+        let mut b = ContainerBarrier::new(2);
+        assert!(!b.arrive());
+        assert!(b.arrive());
+    }
+    #[test] fn test_multi_generation() {
+        let mut b = ContainerBarrier::new(2);
+        b.arrive(); b.arrive(); // gen1
+        b.arrive(); b.arrive(); // gen2
+        assert_eq!(b.generation, 2);
+        assert_eq!(b.total_releases, 2);
+    }
+    #[test] fn test_is_blocked() {
+        let mut b = ContainerBarrier::new(3);
+        b.arrive(); // 1/3
+        assert!(b.is_blocked());
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器配额 · ContainerQuota (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   资源配额: 总量 + 已用量; 拒绝超分配; 周期性重置
+//   仅加法: used +n; 回退 -n; 比较 used + n <= total
+
+#[derive(Clone, Debug)]
+pub struct ContainerQuota {
+    pub total: u64,
+    pub used: u64,
+    pub reserv: u64,        // 已预留 (进行中)
+    pub total_allocs: u64,
+    pub total_frees: u64,
+}
+
+impl ContainerQuota {
+    pub fn new(total: u64) -> Self { Self { total, used: 0, reserv: 0, total_allocs: 0, total_frees: 0 } }
+    pub fn alloc(&mut self, n: u64) -> bool {
+        if self.used + n <= self.total {
+            self.used = self.used + n;
+            self.total_allocs = self.total_allocs + 1;
+            true
+        } else { false }
+    }
+    pub fn try_reserve(&mut self, n: u64) -> bool {
+        if self.used + self.reserv + n <= self.total {
+            self.reserv = self.reserv + n;
+            true
+        } else { false }
+    }
+    pub fn commit(&mut self, n: u64) -> bool {
+        if self.reserv >= n {
+            self.reserv = self.reserv - n;
+            self.used = self.used + n;
+            true
+        } else { false }
+    }
+    pub fn free(&mut self, n: u64) {
+        if n <= self.used { self.used = self.used - n; }
+        else { self.used = 0; }
+        self.total_frees = self.total_frees + 1;
+    }
+    pub fn available(&self) -> u64 { self.total - self.used }
+}
+
+impl Default for ContainerQuota {
+    fn default() -> Self { Self::new(100) }
+}
+
+#[cfg(test)]
+mod quota_tests {
+    use super::*;
+    #[test] fn test_alloc() {
+        let mut q = ContainerQuota::new(10);
+        assert!(q.alloc(5));
+        assert!(q.alloc(3));
+        assert!(!q.alloc(3)); // 剩余 2 < 3
+    }
+    #[test] fn test_free() {
+        let mut q = ContainerQuota::new(10);
+        q.alloc(7); q.free(3);
+        assert_eq!(q.available(), 6);
+    }
+    #[test] fn test_reserve_commit() {
+        let mut q = ContainerQuota::new(10);
+        assert!(q.alloc(5));     // used=5
+        assert!(q.try_reserve(4)); // reserv=4, total_used+reserv=9
+        assert!(!q.try_reserve(2)); // 9+2=11 > 10
+        assert!(q.commit(4));    // used=9, reserv=0
+    }
+    #[test] fn test_available() {
+        let mut q = ContainerQuota::new(20);
+        q.alloc(8);
+        assert_eq!(q.available(), 12);
+    }
+}
