@@ -34,3 +34,55 @@
 满全32 | 30 | iong | ѻ | Ѻ | 西里尔大写
 满全32 | 31 | iai | ɛ | ɝ | 拉丁扩展
 满全32 | 32 | oi | ɵ | Ɵ | 拉丁大写
+
+# ------------------------------------------------------------------
+# 第二套可选集合「音韵45」: 45 名称 = 45 对 (大写/小写) = 90 符号
+# 来源文件: tools/phonetic-encoding/phonetic_encoding/symbols.nim
+#   FINAL_ENCODING_STRING (真值串, 格式 大写}小写...) × YUNMU_NAMES
+# 多套并存: 选择哪个就用哪个; 选择哪个集合就用哪个集合
+# ------------------------------------------------------------------
+音韵45 | 1 | o | ȍ | Ȍ | symbols.nim
+音韵45 | 2 | i | ꙙ | Ꙙ | symbols.nim
+音韵45 | 3 | r | ȑ | Ȑ | symbols.nim
+音韵45 | 4 | ü | ӱ | Ӱ | symbols.nim
+音韵45 | 5 | ü2 | ü | Ü | symbols.nim
+音韵45 | 6 | ai | ѧ | Ѧ | symbols.nim
+音韵45 | 7 | ei | ӗ | Ӗ | symbols.nim
+音韵45 | 8 | ei2 | ə | Ə | symbols.nim
+音韵45 | 9 | ui | ѽ | Ѽ | symbols.nim
+音韵45 | 10 | ui2 | ѱ | Ѱ | symbols.nim
+音韵45 | 11 | ao | ꜵ | Ꜵ | symbols.nim
+音韵45 | 12 | ou | ȣ | Ȣ | symbols.nim
+音韵45 | 13 | ou2 | ꙍ | Ꙍ | symbols.nim
+音韵45 | 14 | y | Ⴏ | Ⴘ | symbols.nim
+音韵45 | 15 | iu2 | Ѥ | Ⴎ | symbols.nim
+音韵45 | 16 | iu | Ё | ѥ | symbols.nim
+音韵45 | 17 | ie | ᵫ | ё | symbols.nim
+音韵45 | 18 | üe | Є | ꭂ | symbols.nim
+音韵45 | 19 | üe2 | Ꙗ | є | symbols.nim
+音韵45 | 20 | er | ⱄ | ꙗ | symbols.nim
+音韵45 | 21 | ia | ѩ | ⱅ | symbols.nim
+音韵45 | 22 | en | ǟ | Ǟ | symbols.nim
+音韵45 | 23 | iao | ꬱ | ꬰ | symbols.nim
+音韵45 | 24 | ua | ꜻ | Ꜻ | symbols.nim
+音韵45 | 25 | ai2 | ȫ | Ȫ | symbols.nim
+音韵45 | 26 | ai3 | Ⴆ | Ⴊ | symbols.nim
+音韵45 | 27 | uai | ѿ | Ѿ | symbols.nim
+音韵45 | 28 | uo | ꭄ | ꭃ | symbols.nim
+音韵45 | 29 | ang | ꙙ | Ꙙ | symbols.nim
+音韵45 | 30 | ui3 | ɣ | ɤ | symbols.nim
+音韵45 | 31 | uo2 | Ꙝ | ꙝ | symbols.nim
+音韵45 | 32 | an | Ⴂ | Ⴄ | symbols.nim
+音韵45 | 33 | ie2 | ѫ | Ѫ | symbols.nim
+音韵45 | 34 | ian | Ⴋ | ꭌ | symbols.nim
+音韵45 | 35 | uan | ӫ | Ⴉ | symbols.nim
+音韵45 | 36 | üan | Ꙟ | Ӭ | symbols.nim
+音韵45 | 37 | uan2 | Ȏ | ꙟ | symbols.nim
+音韵45 | 38 | duang | Ⴓ | ȏ | symbols.nim
+音韵45 | 39 | üan2 | ꭀ | Ⴍ | symbols.nim
+音韵45 | 40 | eng | ѭ | ꭁ | symbols.nim
+音韵45 | 41 | ing | ꙛ | Ѭ | symbols.nim
+音韵45 | 42 | ong | Ⴔ | Ꙛ | symbols.nim
+音韵45 | 43 | ong2 | Ȱ | Ⴇ | symbols.nim
+音韵45 | 44 | ong3 | ☁ | ȱ | symbols.nim
+音韵45 | 45 | iang | ѻ | Ѻ | symbols.nim

@@ -92,7 +92,7 @@
 - **十三类指令**：协议/感知/角色/执行/时间/关系/进制/膜圈/容器/对齐/征用/韵母/声母
   - 对齐层：`align <值> [集合] [from_end]` / `unify <值,值> [集合]` / `bases`，基数集合登记在 `rules/bases.chain`
   - 征用层：`zheng` / `zhengs` / `yuan` / `sontuo`，绑定表 `rules/bindings.chain`（可松脱归还）
-  - 韵母层：`yunmu <拼音>` / `yunmu-list` / `yunmu-svg` / `yunmu-merge [全量]` / `yunmu-canvas` / `yunmu-mirror`，注册表 `rules/yunmu.chain`
+  - 韵母层：`yunmu <拼音>` / `yunmu-list` / `yunmu-svg` / `yunmu-merge [全量]` / `yunmu-canvas` / `yunmu-mirror`，注册表 `rules/yunmu.chain`（两套并存：满全32 主集合 + 音韵45，后者来自 `tools/phonetic-encoding/phonetic_encoding/symbols.nim` 的 `FINAL_ENCODING_STRING`×`YUNMU_NAMES`，45 名称=90 符号；几何/寻址工具用主集合，编号不变）
   - 声母层：`shengmu <字母>` / `shengmu-list` / `sigil-cross [页码] [输出]` / `sigil <地址> [输出]`，注册表 `rules/shengmu.chain`（集合「几何20」来自 `tools/metaime/nim/glyph.nim`）
   - 音节叉乘：20 声母×32 韵母=640 音节，每页 64 格按 64 进址落格，地址 `#0..#Ŋ`…`#90..#9Ŋ`；`sigil <地址>` 按同一编号呼唤单音节（低位韵母 Σ=32、高位声母=20，登记为 `bases.chain` 的「声韵 | 32,20」）
   - 64 进制画布：`canvas-info` / `canvas-cell <地址>`，读 `mqf-hanzi/nim_parser/64-1.txt`（数字表 64 位 `0-9a-zA-ZŋŊ`）

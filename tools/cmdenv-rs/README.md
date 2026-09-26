@@ -156,9 +156,15 @@ cmdenv sontuo demo
 
 韵母符号**只能呼唤已注册的**，不用数字代表符号。多套集合可选并存，选择哪个就用哪个。
 
+`rules/yunmu.chain` 现登记两套：
+
+- **满全32**：32 母，来自 `mqf-hanzi/nim_parser/韵母容器注册器.nim`；是几何/寻址工具（`yunmu-merge`、`yunmu-canvas`、`yunmu-mirror`、`sigil`、`sigil-cross`）的**主集合**，编号保持不变。
+- **音韵45**：45 名称 = 45 对（大写/小写）= 90 符号，来自 `tools/phonetic-encoding/phonetic_encoding/symbols.nim` 的 `FINAL_ENCODING_STRING` × `YUNMU_NAMES`（真值源 `tools/build_final_yunmu.py`）。同拼音可有多个符号（如 `ai`/`ai2`/`ai3`），用名称精确呼唤。
+
 ```bash
-# 呼唤一个已注册韵母（拼音 → 小写/大写/来源）
+# 呼唤一个已注册韵母（拼音/名称 → 集合/序/小写/大写/来源）
 cmdenv yunmu ang
+cmdenv yunmu ai2   # → 音韵45 · 序 25 · 小写 ȫ · 大写 Ȫ
 
 # 列出韵母注册表
 cmdenv yunmu-list

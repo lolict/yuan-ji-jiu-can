@@ -334,6 +334,17 @@ fn do_shengmu_list() {
     println!("  合计 {} 个 · 选择哪个集合就用哪个", list.len());
 }
 
+fn primary_yunmu() -> Vec<Yunmu> {
+    let all = load_yunmu(&rules_file("yunmu.chain"));
+    match all.first() {
+        Some(first) => {
+            let set = first.set.clone();
+            all.into_iter().filter(|y| y.set == set).collect()
+        }
+        None => all,
+    }
+}
+
 fn do_yunmu(query: &str) {
     if query.is_empty() {
         println!("用法: yunmu <拼音> · 呼唤已注册韵母 (如 yunmu ang)");
@@ -522,7 +533,7 @@ fn do_yunmu_merge(spec: &str, out: &str) {
         return;
     }
     let out = if out.is_empty() { "yunmu_merge.svg" } else { out };
-    let list = load_yunmu(&rules_file("yunmu.chain"));
+    let list = primary_yunmu();
     let names: Vec<String> = if spec == "全量" || spec == "all" {
         list.iter().map(|y| y.pinyin.clone()).collect()
     } else {
@@ -721,7 +732,7 @@ fn do_canvas_cell(addr: &str) {
 
 fn do_yunmu_canvas(out: &str) {
     let out = if out.is_empty() { "yunmu_canvas.svg" } else { out };
-    let list = load_yunmu(&rules_file("yunmu.chain"));
+    let list = primary_yunmu();
     let alpha: Vec<char> = radix64_alphabet().chars().collect();
     if alpha.is_empty() {
         println!("未读到 64 进制数字表 (缺 {})", canvas_path());
@@ -850,7 +861,7 @@ fn mirror_flags(pinyin: &str) -> String {
 }
 
 fn do_yunmu_mirror() {
-    let list = load_yunmu(&rules_file("yunmu.chain"));
+    let list = primary_yunmu();
     if list.is_empty() {
         println!("尚无注册韵母 · 先登记 rules/yunmu.chain");
         return;
@@ -889,7 +900,7 @@ fn sigil_cell_svg(syllable: &str, ox: f64, oy: f64, cell: f64) -> String {
 
 fn do_sigil_cross(page_arg: &str, out: &str) {
     let sm = load_shengmu(&rules_file("shengmu.chain"));
-    let ym = load_yunmu(&rules_file("yunmu.chain"));
+    let ym = primary_yunmu();
     if sm.is_empty() || ym.is_empty() {
         println!("需先登记声母 (rules/shengmu.chain) 与韵母 (rules/yunmu.chain)");
         return;
@@ -970,7 +981,7 @@ fn do_sigil_cross(page_arg: &str, out: &str) {
 // 按地址呼唤单个音节: 用「声韵」注册基数集 (低位韵母 Σ=32, 高位声母=20) 解出
 fn do_sigil(addr_arg: &str, out: &str) {
     let sm = load_shengmu(&rules_file("shengmu.chain"));
-    let ym = load_yunmu(&rules_file("yunmu.chain"));
+    let ym = primary_yunmu();
     if sm.is_empty() || ym.is_empty() {
         println!("需先登记声母 (rules/shengmu.chain) 与韵母 (rules/yunmu.chain)");
         return;
