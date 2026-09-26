@@ -15543,3 +15543,670 @@ mod snapshot_tests {
         assert_eq!(s.history_len(), 0);
     }
 }
+
+// ══════════════════════════════════════════════════════════════════════
+// 叠加态引擎 · ContainerSuperpositionEngine (v1.0)
+// ══════════════════════════════════════════════════════════════════════
+//
+//   叠加态 = 容器在"测量"前同时处于多种状态
+//   "阶和使不同偏移世界叠加态共存"
+//
+//   核心操作:
+//     - superpose()       — 将容器置于叠加态 (多可能状态)
+//     - collapse()        — 测量/坍缩 (选取一个确定状态)
+//     - entangle()        — 纠缠两个容器 (测量一个=测量另一个)
+//     - amplitude()       — 获取状态的概率振幅
+//     - interfere()       — 干涉: 两叠加态相互作用
+//
+//   NJSG 哲学: 确定性只是叠加态的坍缩
+//   容器可以不"存在"于任何确定状态, 而以概率云方式存在
+//   夫妻关系 = 最大纠缠 (一方坍缩, 另一方立即确定)
+
+/// 概率幅 (实数简化版, 省略复数)
+#[derive(Clone, Debug)]
+pub struct Amplitude {
+    pub value: u64,      // 状态值
+    pub probability: f64, // 概率 (0.0-1.0)
+}
+
+/// 叠加态引擎
+#[derive(Clone, Debug)]
+pub struct ContainerSuperpositionEngine {
+    /// 容器 id → 叠加态 (多可能)
+    pub states: HashMap<u32, Vec<Amplitude>>,
+    /// 纠缠对: id_a ↔ id_b (测量一个即坍缩另一个)
+    pub entanglements: HashMap<u32, u32>,
+    /// 已坍缩的确定状态: id → value
+    pub collapsed: HashMap<u32, u64>,
+}
+
+impl ContainerSuperpositionEngine {
+    pub fn new() -> Self {
+        Self { states: HashMap::new(), entanglements: HashMap::new(), collapsed: HashMap::new() }
+    }
+
+    /// 将容器置于叠加态 (多可能状态, 概率和 ≤ 1.0)
+    pub fn superpose(&mut self, id: u32, amplitudes: Vec<Amplitude>) {
+        let total_prob: f64 = amplitudes.iter().map(|a| a.probability).sum();
+        if total_prob > 1.0 {
+            // 归一化
+            let mut normalized = amplitudes;
+            for a in &mut normalized { a.probability /= total_prob; }
+            self.states.insert(id, normalized);
+        } else {
+            self.states.insert(id, amplitudes);
+        }
+        self.collapsed.remove(&id);
+    }
+
+    /// 测量/坍缩 (按概率选取)
+    pub fn collapse(&mut self, id: u32) -> Option<u64> {
+        if let Some(amplitudes) = self.states.get(&id) {
+            if amplitudes.is_empty() { return None; }
+            // 确定性选取: 取最大概率
+            let best = amplitudes.iter().max_by(|a, b| a.probability.partial_cmp(&b.probability).unwrap());
+            if let Some(amp) = best {
+                let value = amp.value;
+                self.collapsed.insert(id, value);
+                self.states.remove(&id);
+                // 纠缠坍缩: 如果此容器有纠缠对, 同步坍缩
+                if let Some(&partner) = self.entanglements.get(&id) {
+                    self.collapsed.insert(partner, value);
+                    self.states.remove(&partner);
+                }
+                return Some(value);
+            }
+        }
+        None
+    }
+
+    /// 纠缠两个容器
+    pub fn entangle(&mut self, id_a: u32, id_b: u32) {
+        self.entanglements.insert(id_a, id_b);
+        self.entanglements.insert(id_b, id_a);
+    }
+
+    /// 解除纠缠
+    pub fn disentangle(&mut self, id: u32) {
+        if let Some(partner) = self.entanglements.remove(&id) {
+            self.entanglements.remove(&partner);
+        }
+    }
+
+    /// 获取振幅
+    pub fn amplitude(&self, id: u32, value: u64) -> f64 {
+        self.states.get(&id)
+            .and_then(|amplitudes| amplitudes.iter().find(|a| a.value == value))
+            .map(|a| a.probability)
+            .unwrap_or(0.0)
+    }
+
+    /// 干涉: 两个叠加态叠加 (返回组合概率表)
+    pub fn interfere(&self, id_a: u32, id_b: u32) -> Vec<(u64, u64, f64)> {
+        let mut result = Vec::new();
+        if let (Some(amps_a), Some(amps_b)) = (self.states.get(&id_a), self.states.get(&id_b)) {
+            for a in amps_a {
+                for b in amps_b {
+                    result.push((a.value, b.value, a.probability * b.probability));
+                }
+            }
+        }
+        result
+    }
+
+    /// 是否已坍缩
+    pub fn is_collapsed(&self, id: u32) -> bool {
+        self.collapsed.contains_key(&id)
+    }
+
+    /// 获取确定值 (仅当已坍缩)
+    pub fn definite_value(&self, id: u32) -> Option<u64> {
+        self.collapsed.get(&id).copied()
+    }
+
+    /// 获取叠加态中的所有可能
+    pub fn possibilities(&self, id: u32) -> Option<&Vec<Amplitude>> {
+        self.states.get(&id)
+    }
+
+    /// 移除
+    pub fn remove(&mut self, id: u32) {
+        self.states.remove(&id);
+        self.collapsed.remove(&id);
+        self.disentangle(id);
+    }
+
+    /// 叠加态容器数
+    pub fn superposition_count(&self) -> usize { self.states.len() }
+
+    /// 已坍缩数
+    pub fn collapsed_count(&self) -> usize { self.collapsed.len() }
+
+    /// 重置
+    pub fn clear(&mut self) {
+        self.states.clear();
+        self.entanglements.clear();
+        self.collapsed.clear();
+    }
+}
+
+impl Default for ContainerSuperpositionEngine { fn default() -> Self { Self::new() } }
+
+#[cfg(test)]
+mod superposition_tests {
+    use super::*;
+    #[test] fn test_superpose() {
+        let mut e = ContainerSuperpositionEngine::new();
+        e.superpose(1, vec![
+            Amplitude { value: 10, probability: 0.5 },
+            Amplitude { value: 20, probability: 0.5 },
+        ]);
+        assert_eq!(e.superposition_count(), 1);
+        assert!(!e.is_collapsed(1));
+    }
+    #[test] fn test_collapse() {
+        let mut e = ContainerSuperpositionEngine::new();
+        e.superpose(1, vec![
+            Amplitude { value: 10, probability: 0.3 },
+            Amplitude { value: 20, probability: 0.7 },
+        ]);
+        let val = e.collapse(1);
+        assert_eq!(val, Some(20)); // 取最大概率
+        assert!(e.is_collapsed(1));
+        assert_eq!(e.definite_value(1), Some(20));
+    }
+    #[test] fn test_entangle_and_collapse() {
+        let mut e = ContainerSuperpositionEngine::new();
+        e.superpose(1, vec![Amplitude { value: 42, probability: 1.0 }]);
+        e.superpose(2, vec![Amplitude { value: 99, probability: 1.0 }]);
+        e.entangle(1, 2);
+        e.collapse(1);
+        // 纠缠坍缩: 2 也应被坍缩
+        assert!(e.is_collapsed(2));
+    }
+    #[test] fn test_amplitude() {
+        let mut e = ContainerSuperpositionEngine::new();
+        e.superpose(1, vec![Amplitude { value: 10, probability: 0.3 }]);
+        assert_eq!(e.amplitude(1, 10), 0.3);
+        assert_eq!(e.amplitude(1, 999), 0.0);
+    }
+    #[test] fn test_interfere() {
+        let mut e = ContainerSuperpositionEngine::new();
+        e.superpose(1, vec![Amplitude { value: 1, probability: 0.5 }, Amplitude { value: 2, probability: 0.5 }]);
+        e.superpose(2, vec![Amplitude { value: 3, probability: 0.5 }, Amplitude { value: 4, probability: 0.5 }]);
+        let interference = e.interfere(1, 2);
+        assert_eq!(interference.len(), 4); // 2x2 组合
+    }
+    #[test] fn test_disentangle() {
+        let mut e = ContainerSuperpositionEngine::new();
+        e.entangle(1, 2);
+        e.disentangle(1);
+        assert_eq!(e.entanglements.get(&1), None);
+        assert_eq!(e.entanglements.get(&2), None);
+    }
+    #[test] fn test_possibilities() {
+        let mut e = ContainerSuperpositionEngine::new();
+        e.superpose(1, vec![Amplitude { value: 1, probability: 1.0 }]);
+        let poss = e.possibilities(1).unwrap();
+        assert_eq!(poss.len(), 1);
+    }
+    #[test] fn test_remove() {
+        let mut e = ContainerSuperpositionEngine::new();
+        e.superpose(1, vec![Amplitude { value: 1, probability: 1.0 }]);
+        e.entangle(1, 2);
+        e.remove(1);
+        assert_eq!(e.superposition_count(), 0);
+        assert_eq!(e.entanglements.len(), 0);
+    }
+    #[test] fn test_normalize() {
+        let mut e = ContainerSuperpositionEngine::new();
+        e.superpose(1, vec![Amplitude { value: 1, probability: 0.6 }, Amplitude { value: 2, probability: 0.6 }]);
+        let poss = e.possibilities(1).unwrap();
+        let sum: f64 = poss.iter().map(|a| a.probability).sum();
+        assert!(sum <= 1.0001); // 归一化后总和 ≤ 1
+    }
+    #[test] fn test_collapsed_count() {
+        let mut e = ContainerSuperpositionEngine::new();
+        e.superpose(1, vec![Amplitude { value: 1, probability: 1.0 }]);
+        assert_eq!(e.collapsed_count(), 0);
+        e.collapse(1);
+        assert_eq!(e.collapsed_count(), 1);
+    }
+    #[test] fn test_default() {
+        let e = ContainerSuperpositionEngine::default();
+        assert_eq!(e.superposition_count(), 0);
+    }
+    #[test] fn test_clear() {
+        let mut e = ContainerSuperpositionEngine::new();
+        e.superpose(1, vec![Amplitude { value: 1, probability: 1.0 }]);
+        e.clear();
+        assert_eq!(e.superposition_count(), 0);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器指数退避 · ContainerExponentialBackoff (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   失败时延时倍增, 成功时重置
+//   仅加法/移位: delay = base << fail_count (无乘法)
+//   cap = 最大延迟上限
+
+#[derive(Clone, Debug)]
+pub struct ContainerExponentialBackoff {
+    pub base: u64,
+    pub cap: u64,
+    pub fail_count: u64,
+    pub total_fails: u64,
+    pub total_success: u64,
+}
+
+impl ContainerExponentialBackoff {
+    pub fn new(base: u64, cap: u64) -> Self { Self { base, cap, fail_count: 0, total_fails: 0, total_success: 0 } }
+    pub fn fail(&mut self) -> u64 {
+        self.fail_count = self.fail_count + 1;
+        self.total_fails = self.total_fails + 1;
+        self.current_delay()
+    }
+    pub fn success(&mut self) {
+        self.fail_count = 0;
+        self.total_success = self.total_success + 1;
+    }
+    pub fn current_delay(&self) -> u64 {
+        // base << fail_count (capped)
+        let mut d = self.base;
+        let mut i = 0;
+        while i < self.fail_count && d < self.cap {
+            d = d << 1;
+            i = i + 1;
+        }
+        if d > self.cap { self.cap } else { d }
+    }
+}
+
+impl Default for ContainerExponentialBackoff {
+    fn default() -> Self { Self::new(1, 1024) }
+}
+
+#[cfg(test)]
+mod backoff_tests {
+    use super::*;
+
+    #[test]
+    fn test_exp_growth() {
+        let mut b = ContainerExponentialBackoff::new(1, 1024);
+        assert_eq!(b.fail(), 2);   // fail_count=1, 1<<1=2
+        assert_eq!(b.fail(), 4);   // fail_count=2, 1<<2=4
+        assert_eq!(b.fail(), 8);   // fail_count=3, 1<<3=8
+    }
+
+    #[test]
+    fn test_reset_on_success() {
+        let mut b = ContainerExponentialBackoff::new(1, 1024);
+        b.fail(); b.fail();
+        b.success();
+        assert_eq!(b.fail_count, 0);
+        assert_eq!(b.current_delay(), 1);
+    }
+
+    #[test]
+    fn test_cap() {
+        let b = ContainerExponentialBackoff::new(1, 4);
+        assert_eq!(b.current_delay(), 1);
+        // simulate high fail_count via test interface
+        let mut b2 = ContainerExponentialBackoff::new(1, 4);
+        for _ in 0..10 { b2.fail(); }
+        assert_eq!(b2.current_delay(), 4);
+    }
+
+    #[test]
+    fn test_counters() {
+        let mut b = ContainerExponentialBackoff::new(1, 64);
+        b.fail(); b.fail(); b.success();
+        assert_eq!(b.total_fails, 2);
+        assert_eq!(b.total_success, 1);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器量化器 · ContainerQuantizer (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   连续值 → 离散级别 (N 个等级, 均匀分割)
+//   level = value / step (无除法: 用循环减法逼近)
+//   输出: level index + 量化后的值
+
+#[derive(Clone, Debug)]
+pub struct ContainerQuantizer {
+    pub levels: u64,
+    pub step: u64,
+    pub total_quants: u64,
+}
+
+impl ContainerQuantizer {
+    pub fn new(levels: u64, step: u64) -> Self { Self { levels, step, total_quants: 0 } }
+
+    /// 返回 (level_index, 量化值)
+    pub fn quantize(&mut self, v: u64) -> (u64, u64) {
+        let mut lvl = 0u64;
+        let mut rem = v;
+        // 估 level = value / step (无除法)
+        loop {
+            if rem < self.step { break; }
+            rem = rem - self.step;
+            lvl = lvl + 1;
+            if lvl >= self.levels { lvl = self.levels - 1; break; }
+        }
+        self.total_quants = self.total_quants + 1;
+        (lvl, lvl * self.step)
+    }
+
+    pub fn level_value(level: u64, step: u64) -> u64 { level * step }
+}
+
+impl Default for ContainerQuantizer {
+    fn default() -> Self { Self::new(8, 16) }
+}
+
+#[cfg(test)]
+mod quantizer_tests {
+    use super::*;
+
+    #[test]
+    fn test_basic_quantize() {
+        let mut q = ContainerQuantizer::new(8, 10);
+        assert_eq!(q.quantize(0), (0, 0));
+        assert_eq!(q.quantize(15), (1, 10));
+        assert_eq!(q.quantize(35), (3, 30));
+    }
+
+    #[test]
+    fn test_max_clamp() {
+        let mut q = ContainerQuantizer::new(4, 10);
+        let (lvl, val) = q.quantize(999);
+        assert_eq!(lvl, 3);
+        assert_eq!(val, 30);
+    }
+
+    #[test]
+    fn test_level_value() {
+        assert_eq!(ContainerQuantizer::level_value(3, 16), 48);
+    }
+
+    #[test]
+    fn test_counter() {
+        let mut q = ContainerQuantizer::new(8, 10);
+        q.quantize(5); q.quantize(15); q.quantize(25);
+        assert_eq!(q.total_quants, 3);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器滞后阈值 · ContainerHysteresis (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   双阈值防抖动:
+//     上升沿 (low → high): 需 ≥ high_threshold 才 ON
+//     下降沿 (high → low): 需 < low_threshold 才 OFF
+//   ON 和 OFF 之间保持原状态 (防止阈值附近的频繁翻转)
+
+#[derive(Clone, Debug)]
+pub enum HYState { Off, On }
+
+#[derive(Clone, Debug)]
+pub struct ContainerHysteresis {
+    pub low_threshold: u64,
+    pub high_threshold: u64,
+    pub state: HYState,
+    pub transitions: u64,
+}
+
+impl ContainerHysteresis {
+    pub fn new(low: u64, high: u64) -> Self {
+        Self { low_threshold: low, high_threshold: high, state: HYState::Off, transitions: 0 }
+    }
+
+    pub fn update(&mut self, v: u64) -> HYState {
+        let prev = self.state.clone();
+        match self.state {
+            HYState::Off => {
+                if v >= self.high_threshold {
+                    self.state = HYState::On;
+                    self.transitions = self.transitions + 1;
+                }
+            }
+            HYState::On => {
+                if v < self.low_threshold {
+                    self.state = HYState::Off;
+                    self.transitions = self.transitions + 1;
+                }
+            }
+        }
+        self.state.clone()
+    }
+
+    pub fn is_on(&self) -> bool { matches\!(self.state, HYState::On) }
+}
+
+impl Default for ContainerHysteresis {
+    fn default() -> Self { Self::new(3, 7) }
+}
+
+#[cfg(test)]
+mod hysteresis_tests {
+    use super::*;
+
+    #[test]
+    fn test_rising() {
+        let mut h = ContainerHysteresis::new(3, 7);
+        assert\!(matches\!(h.update(5), HYState::Off));  // 未达高阈值
+        assert\!(matches\!(h.update(7), HYState::On));   // 触发上升
+        assert_eq!(h.transitions, 1);
+    }
+
+    #[test]
+    fn test_falling() {
+        let mut h = ContainerHysteresis::new(3, 7);
+        h.update(8);  // On
+        h.update(5);  // 未低于 low → 仍 On
+        assert\!(h.is_on());
+        assert\!(matches\!(h.update(2), HYState::Off));  // 低于 low → Off
+        assert_eq!(h.transitions, 2);
+    }
+
+    #[test]
+    fn test_mid_no_change() {
+        let mut h = ContainerHysteresis::new(3, 7);
+        h.update(8);  // On
+        h.update(5);  // low < 5 < high → 保持 On
+        assert\!(h.is_on());
+        assert_eq!(h.transitions, 1);  // 无新翻转
+    }
+
+    #[test]
+    fn test_default() {
+        let h = ContainerHysteresis::default();
+        assert_eq!(h.low_threshold, 3);
+        assert_eq!(h.high_threshold, 7);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器滑动平均 · ContainerSMA (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   简单移动平均: 窗口内 N 个值的平均
+//   用环形缓冲区 + sum 增量更新 (无重复求和)
+//   avg = sum / window (无除法: 仅提供 sum + avg_div 工具)
+
+#[derive(Clone, Debug)]
+pub struct ContainerSMA {
+    pub window: Vec<Option<u64>>,
+    pub head: usize,
+    pub count: usize,
+    pub capacity: usize,
+    pub sum: u64,
+    pub total_samples: u64,
+}
+
+impl ContainerSMA {
+    pub fn new(capacity: usize) -> Self {
+        Self { window: vec\![None; capacity], head: 0, count: 0, capacity, sum: 0, total_samples: 0 }
+    }
+
+    pub fn push(&mut self, v: u64) {
+        // 若该位已有值, 先减
+        if let Some(old) = self.window[self.head] {
+            self.sum = self.sum - old;
+        } else {
+            self.count = self.count + 1;
+        }
+        self.window[self.head] = Some(v);
+        self.sum = self.sum + v;
+        let next = self.head + 1;
+        self.head = if next >= self.capacity { 0 } else { next };
+        self.total_samples = self.total_samples + 1;
+    }
+
+    pub fn sum(&self) -> u64 { self.sum }
+    pub fn count(&self) -> usize { self.count }
+
+    /// 近似 avg = sum / count (无除法用循环减)
+    pub fn avg(&self) -> u64 {
+        if self.count == 0 { return 0; }
+        let mut q = 0u64;
+        let mut rem = self.sum;
+        let divisor = self.count as u64;
+        loop {
+            if rem < divisor { break; }
+            rem = rem - divisor;
+            q = q + 1;
+        }
+        q
+    }
+}
+
+impl Default for ContainerSMA {
+    fn default() -> Self { Self::new(5) }
+}
+
+#[cfg(test)]
+mod sma_tests {
+    use super::*;
+
+    #[test]
+    fn test_simple_avg() {
+        let mut s = ContainerSMA::new(3);
+        s.push(6); s.push(6); s.push(6);
+        assert_eq!(s.sum(), 18);
+        assert_eq!(s.avg(), 6);
+    }
+
+    #[test]
+    fn test_sliding() {
+        let mut s = ContainerSMA::new(2);
+        s.push(10); s.push(20);
+        assert_eq!(s.avg(), 15);
+        s.push(30);  // 挤掉 10, 窗口 [20,30]
+        assert_eq!(s.sum(), 50);
+        assert_eq!(s.avg(), 25);
+    }
+
+    #[test]
+    fn test_empty_avg() {
+        let s = ContainerSMA::new(4);
+        assert_eq!(s.avg(), 0);
+    }
+
+    #[test]
+    fn test_total_samples() {
+        let mut s = ContainerSMA::new(2);
+        for i in 1..=5 { s.push(i); }
+        assert_eq!(s.total_samples, 5);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器差分器 · ContainerDifferentiator (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   离散微分: 相邻两次输入的差 (当前 - 上次)
+//   仅加法: 比较 - 减法 → 上升/下降/不变
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum DiffDir { Rise, Fall, Flat }
+
+#[derive(Clone, Debug)]
+pub struct ContainerDifferentiator {
+    pub last: Option<u64>,
+    pub total_rises: u64,
+    pub total_falls: u64,
+    pub total_flat: u64,
+}
+
+impl ContainerDifferentiator {
+    pub fn new() -> Self { Self { last: None, total_rises: 0, total_falls: 0, total_flat: 0 } }
+
+    pub fn update(&mut self, v: u64) -> (DiffDir, u64) {
+        let r = match self.last {
+            None => (DiffDir::Flat, 0),
+            Some(prev) => {
+                if v > prev {
+                    self.total_rises = self.total_rises + 1;
+                    (DiffDir::Rise, v - prev)
+                } else if v < prev {
+                    self.total_falls = self.total_falls + 1;
+                    (DiffDir::Fall, prev - v)
+                } else {
+                    self.total_flat = self.total_flat + 1;
+                    (DiffDir::Flat, 0)
+                }
+            }
+        };
+        self.last = Some(v);
+        r
+    }
+    pub fn diff(&self) -> Option<u64> { None } // placeholder
+}
+
+impl Default for ContainerDifferentiator {
+    fn default() -> Self { Self::new() }
+}
+
+#[cfg(test)]
+fn diff_update(d: &mut ContainerDifferentiator, v: u64) -> (DiffDir, u64) { d.update(v) }
+
+#[cfg(test)]
+mod diff_tests {
+    use super::*;
+
+    #[test]
+    fn test_rise() {
+        let mut d = ContainerDifferentiator::new();
+        let (dir, mag) = diff_update(&mut d, 10);
+        let (dir2, mag2) = diff_update(&mut d, 15);
+        assert_eq!(dir2, DiffDir::Rise);
+        assert_eq!(mag2, 5);
+    }
+
+    #[test]
+    fn test_fall() {
+        let mut d = ContainerDifferentiator::new();
+        diff_update(&mut d, 20);
+        let (dir, mag) = diff_update(&mut d, 12);
+        assert_eq!(dir, DiffDir::Fall);
+        assert_eq!(mag, 8);
+    }
+
+    #[test]
+    fn test_counters() {
+        let mut d = ContainerDifferentiator::new();
+        diff_update(&mut d, 10);
+        diff_update(&mut d, 20); // rise
+        diff_update(&mut d, 5);  // fall
+        diff_update(&mut d, 5);  // flat
+        assert_eq!(d.total_rises, 1);
+        assert_eq!(d.total_falls, 1);
+        assert_eq!(d.total_flat, 1);  // 第一次update 输出 Flat
+    }
+}
