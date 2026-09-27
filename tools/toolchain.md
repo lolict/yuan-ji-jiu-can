@@ -27,8 +27,20 @@
 - nanolang-main/       jordanhubbard/nanolang (629★ 编译语言框架, 174 files)
 - cangjie/             cangjielanguage/cangjie_compiler (华为仓颉编译器, 56 files)
 
+## 参考骨架 (已提取但未运行)
+- nix 2.10.3           $HOME/nix-2.10.3/ (45 entries, 编译器 GCC 11.3, glibc 2.34)
+- nix 2.35.2           $HOME/nix-2.35.2-backup/ (65 entries, 编译器 GCC 15.2, glibc 2.42)
+  - 两个版本均已 patchelf patch: INTERP→/lib64/ld-linux-x86-64.so.2, RUNPATH→本地 store
+  - 全部 NEEDED 路径已修正 (libnixstore: /nix/store/.../libsqlite3.so → libsqlite3.so)
+  - 所有 .so 的 GLIBC 版本需求 ≤ 2.38, GLIBCXX ≤ 3.4.32, 系统均满足
+  - 所有库的 ELF binding/relocation 已完成 (ldd --list 验证 0 not found)
+  - 仍然 segfault: CRT init 阶段 (system ld-linux + nix ld-linux-2.42 均同)
+  - 根因: 容器环境 (kernel 5.4.241 tlinux, Ubuntu 24.04 user态) 与 ELF TLS/rseq 实现的兼容问题
+  - 保留为参考骨架; 不需特权 — 二进制本身已全修补可用, 仍被环境 SIGSEGV
+- patchelf 0.18.0       /tmp/patchelf/patchelf-0.18.0/patchelf (从源码编译, clang++ -std=c++17)
+- nix 2.35.2 源码      /tmp/nix-src/ (git clone --branch 2.35.2, 用于研究骨架结构)
+
 ## 未就绪
-- nix                  blocked: 无 root, /nix store 路径硬编码 + 用户命名空间不可用 (unshare -rm 无法 mkdir /nix)
 - mlir                 blocked: LLVM ~750MB 源码包 + apt 需 root (dpkg lock-frontend)
 - spirv-tools          独立包下载失败 (main-tot tag 已移除; v2026.x 无 binary assets) — 功能被 glslang 内建覆盖
 
