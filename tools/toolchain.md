@@ -39,9 +39,16 @@
   - 保留为参考骨架; 不需特权 — 二进制本身已全修补可用, 仍被环境 SIGSEGV
 - patchelf 0.18.0       /tmp/patchelf/patchelf-0.18.0/patchelf (从源码编译, clang++ -std=c++17)
 - nix 2.35.2 源码      /tmp/nix-src/ (git clone --branch 2.35.2, 用于研究骨架结构)
+- mlir 18.1.3           $HOME/mlir-18.1.3/ (apt-get download: libmlir-18-dev, libmlir-18, llvm-18-dev, llvm-18-tools)
+  - 来源: Ubuntu 24.04 noble-updates apt 镜像 (mirrors.cloud.tencent.com), apt-get download 无需 root
+  - 8 .so: libMLIR.so.18.1 (主库), libmlir_async_runtime, libmlir_c_runner_utils, libmlir_float16_utils,
+    libmlir_arm_runner_utils, libmlir_arm_sme_abi_stubs, libmlir_runner_utils, libRemarks.so.18.1
+  - 696 个 MLIR 头文件 (IR/Dialects/Transforms/Passes/Conversion/Tools/ExecutionEngine)
+  - ldd 全通过: 系统已有 libLLVM.so.18.1 (libllvm-18 预装); libstdc++/libz/libzstd/libxml2/libedit/libffi 均满足
+  - RUNPATH=$ORIGIN/../lib, 所有 MLIR .so 内部互引通过 soname symlink 自洽
+  - 保留为参考骨架: 研读 MLIR API/IR/Dialect 结构服务满全法容器处理器的改造目标
 
 ## 未就绪
-- mlir                 blocked: LLVM ~750MB 源码包 + apt 需 root (dpkg lock-frontend)
 - spirv-tools          独立包下载失败 (main-tot tag 已移除; v2026.x 无 binary assets) — 功能被 glslang 内建覆盖
 
 ## 中国镜像测试结果
@@ -50,6 +57,7 @@
 - cnb.cool            → 全部仓库返回 404
 - jihulab.com         → 401 需认证
 - ghproxy.net         → 代理 GitHub release tarballs, <10MB 成功率约 50% (大文件 >20MB 易超时)
+- mirrors.cloud.tencent.com/ubuntu → Ubuntu 官方镜像, apt-get download 无需 root 可直接下 .deb (MLIR 即此路径)
 
 ## 注解
 这些"外部语言"的最终归宿不是直接使用,而是取骨架去错误后按满全法规则重写。
