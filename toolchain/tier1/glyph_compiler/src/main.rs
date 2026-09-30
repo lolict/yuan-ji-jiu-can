@@ -3,6 +3,9 @@
 // 每格 4 分域：声母(左上) · 韵母(右上) · 声调(左下) · 微位(右下特征点)
 // 符号 = 几何形态，绝不出现 Latin 字母
 
+mod grid_notation;
+use grid_notation::{Bias, decode, apply};
+
 const W: i32 = 1920;
 const H: i32 = 1080;
 const BG: u32 = 0x141414;
@@ -659,51 +662,48 @@ fn main() {
                        ((s*31+yy*17+t*7)%10) as u32,
                        ((s*13+yy*7+t*11)%10) as u32);
 
-        // 用 grid_notation 解析记号
+        // 用 grid_notation::decode 正式解析记号
         let cx = m + cont_w / 2;
         let cy = m + cont_h / 2;
         let cols: [u32; 6] = [0xFF4444, 0x44FF44, 0x4444FF, 0xFFFF44, 0xFF44FF, 0x44FFFF];
 
+        // 量级 → 像素方向/长度映射（负=左/上，正=右/下）
+        // Fine(±1)：水平微移 ±12px（音节内核微调）
+        // Grid(±66)：水平中移 cont_w/6（偏韵母维）
+        // Row(±3960)：垂直中移 cont_h/6（偏声母维）
+        // Fam(±1)：垂直大跳 cont_h/4（跨族）
         for (idx, nota) in notations.iter().enumerate() {
             let col = cols[idx % 6];
-            // 解析：Fine(d) → 中心微调, Grid(d) → 格间1/3宽, Row(d) → 行间1/3高
+            let biases = decode(nota);
             let mut x = cx;
             let mut y = cy;
 
-            // 拆解 "±1.-2" → ["±1", "-2"]
-            for step in nota.split('.') {
-                let step = step.trim();
-                // 取量级数字
-                let num_s: String = step.chars().filter(|c| c.is_ascii_digit()).collect();
-                let mag: i32 = num_s.parse().unwrap_or(1);
-                // 方向
-                let has_neg = step.contains('-');
-                let sign: i32 = if has_neg { -1 } else { 1 };
-
-                let dx = match mag {
-                    1 => sign * 8,                    // Fine：微调 ±8px
-                    2 => sign * cont_w / 6,           // Grid：格间 1/6 宽度
-                    3 => 0,                           // Row：Y方向
-                    _ => sign * 8,
+            for b in &biases {
+                let (dx, dy) = match b {
+                    Bias::Fine(d) => (d * 12, 0),
+                    Bias::Grid(d) => {
+                        let sign = if *d < 0 { -1 } else { 1 };
+                        (sign * cont_w / 6, 0)
+                    }
+                    Bias::Row(d) => {
+                        let sign = if *d < 0 { -1 } else { 1 };
+                        (0, sign * cont_h / 6)
+                    }
+                    Bias::Fam(d) => {
+                        let sign = if *d < 0 { -1 } else { 1 };
+                        (0, sign * cont_h / 4)
+                    }
                 };
-                let dy = match mag {
-                    3 => sign * cont_h / 6,           // Row：行间 1/6 高度
-                    4 => sign * cont_h / 4,           // Fam：大跳
-                    _ => 0,
-                };
-
                 let nx = x + dx;
                 let ny = y + dy;
-                // 画箭头带（2px 粗条）
                 thick_line(&mut cv, x, y, nx, ny, col, 3);
-                // 画端点方块
+                // 端点方块
                 rect(&mut cv, nx-3, ny-3, nx+3, ny+3, col);
-
                 x = nx;
                 y = ny;
             }
-            // 在最终落点画一个带编号的圆
-            let r = 12;
+            // 最终落点画实心圆
+            let r = 12i32;
             for dy in -r..=r {
                 let w = ((r*r - dy*dy) as f64).sqrt() as i32;
                 rect(&mut cv, x - w, y + dy, x + w, y + dy, col);
