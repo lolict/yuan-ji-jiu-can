@@ -85,3 +85,4 @@ encoding/z-api.txt
 *.svg
 *.tmp
 .__pipe_*
+*.bmp
