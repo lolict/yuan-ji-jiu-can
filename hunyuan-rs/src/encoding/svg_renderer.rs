@@ -11,7 +11,7 @@
 //
 // ═══════════════════════════════════════════════════════════════════════════════
 
-use crate::character_creator::{CharacterCreator, GlyphEncoding, CONTAINER_NAMES, STROKE_NAMES};
+use crate::character_creator::CharacterCreator;
 use crate::character_creator::{
     STROKE_HENG, STROKE_SHU, STROKE_PIE, STROKE_NA, STROKE_DIAN, STROKE_TI,
     STROKE_HENGZHE, STROKE_SHUZHE, STROKE_HENGPIE, STROKE_SHUGOU, STROKE_HENGGOU,
@@ -107,52 +107,75 @@ pub fn render_glyph_svg(ch: char) -> Option<String> {
     Some(svg)
 }
 
-/// 渲染容器单元 bit 图 (显示 16 位笔画空间)
-pub fn render_cell_bitmap(cell: u64) -> String {
+/// 格投影: 槽位名 → 网格 · 空位留 "" (虚无)
+///
+/// 格由槽位名投影得到, 容器只承载名字, 不预置掩码。
+/// 与 tools/kungguan-container/space_phase.nim 的 nine_grid() 同一范式:
+/// 遍历槽位, 按位置落格, 空格留空。
+pub fn project_grid<'a>(slots: &'a [&'a str], cols: usize) -> Vec<Vec<&'a str>> {
+    let cols = cols.max(1);
+    let mut grid: Vec<Vec<&str>> = Vec::new();
+    for row in slots.chunks(cols) {
+        let mut r: Vec<&str> = row.to_vec();
+        while r.len() < cols {
+            r.push("");
+        }
+        grid.push(r);
+    }
+    if grid.is_empty() {
+        grid.push(vec![""; cols]);
+    }
+    grid
+}
+
+/// 依据槽位数选择每行格数: 4 格 = 田字格, 9 格 = 九宫格
+fn grid_cols(n: usize) -> usize {
+    match n {
+        0 | 1 => 1,
+        2..=4 => 2,
+        _ => 3,
+    }
+}
+
+/// 渲染槽位为格 (空位 = 虚无, 不显示掩码位)
+///
+/// 格是投影, 渲染时瞬态产生; 模型只留槽位名。
+pub fn render_grid(slots: &[&str]) -> String {
+    let cols = grid_cols(slots.len());
+    let grid = project_grid(slots, cols);
+    let rows = grid.len();
+    let cell = 100.0;
+    let pad = 10.0;
+    let width = cols as f64 * cell + 2.0 * pad;
+    let height = rows as f64 * cell + 2.0 * pad;
+
     let mut svg = String::new();
-    svg.push_str(r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 210" width="400" height="210">"##);
+    svg.push_str(&format!(
+        r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {:.0} {:.0}" width="{:.0}" height="{:.0}">"##,
+        width, height, width, height
+    ));
+    svg.push_str(&format!(
+        r##"<rect x="0" y="0" width="{:.0}" height="{:.0}" fill="#fafafa" stroke="#ddd"/>"##,
+        width, height
+    ));
 
-    for bit in 0..16u8 {
-        let x = (bit % 4) as f64 * 100.0;
-        let y = (bit / 4) as f64 * 50.0;
-        let set = (cell >> bit) & 1 == 1;
-        let fill = if set { stroke_color(bit) } else { "#eee".to_string() };
-        let stroke_name = STROKE_NAMES.get(bit as usize).unwrap_or(&"?");
-        let container_name = CONTAINER_NAMES.get(bit as usize).unwrap_or(&"?");
-
-        svg.push_str(&format!(
-            r##"<rect x="{}" y="{}" width="95" height="45" fill="{}" stroke="#333" stroke-width="2" rx="4"/>"##,
-            x + 2.0, y + 2.0, fill
-        ));
-        svg.push_str(&format!(
-            r##"<text x="{}" y="{}" text-anchor="middle" font-size="14" fill="white" font-weight="bold">{} {}</text>"##,
-            x + 50.0, y + 25.0, bit, container_name
-        ));
-        svg.push_str(&format!(
-            r##"<text x="{}" y="{}" text-anchor="middle" font-size="8" fill="rgba(255,255,255,0.8)">{}</text>"##,
-            x + 50.0, y + 38.0, stroke_name
-        ));
+    for (r, row) in grid.iter().enumerate() {
+        for (c, name) in row.iter().enumerate() {
+            let x = pad + c as f64 * cell;
+            let y = pad + r as f64 * cell;
+            let fill = if name.is_empty() { "#ffffff" } else { "#eef4ff" };
+            svg.push_str(&format!(
+                r##"<rect x="{:.0}" y="{:.0}" width="{:.0}" height="{:.0}" fill="{}" stroke="#333" stroke-width="1.5" rx="4"/>"##,
+                x, y, cell, cell, fill
+            ));
+            if !name.is_empty() {
+                svg.push_str(&format!(
+                    r##"<text x="{:.0}" y="{:.0}" text-anchor="middle" font-size="20" fill="#333">{}</text>"##,
+                    x + cell / 2.0, y + cell / 2.0 + 7.0, name
+                ));
+            }
+        }
     }
-
-    // bit38/39 标注
-    for bit in [38u8, 39u8] {
-        let x = (bit - 36) as f64 * 100.0;
-        let y = 160.0;
-        let set = (cell >> bit) & 1 == 1;
-        let fill = if set { "#e91e63" } else { "#ddd" };
-        let label = if bit == 38 { "妻子" } else { "丈夫" };
-        svg.push_str(&format!(
-            r##"<rect x="{}" y="{}" width="95" height="35" fill="{}" stroke="#333" stroke-width="2" rx="4"/>"##,
-            x + 2.0, y + 2.0, fill
-        ));
-        svg.push_str(&format!(
-            r##"<text x="{}" y="{}" text-anchor="middle" font-size="12" fill="{}" font-weight="bold">{} bit{}</text>"##,
-            x + 50.0, y + 22.0,
-            if set { "white" } else { "#999" },
-            label, bit
-        ));
-    }
-
     svg.push_str("</svg>");
     svg
 }
@@ -184,11 +207,11 @@ fn stroke_layout_offset(index: usize, total: usize, stroke_type: u8) -> (f64, f6
     }
 }
 
-/// 渲染一个字符 + 其容器单元图为完整文档
+/// 渲染一个字符 + 其容器槽位格为完整文档
 pub fn render_character_sheet(ch: char) -> Option<String> {
     let glyph_svg = render_glyph_svg(ch)?;
     let enc = CharacterCreator::encode(ch)?;
-    let bitmap_svg = render_cell_bitmap(enc.container_cell);
+    let grid_svg = render_grid(&enc.container_names);
 
     Some(format!(
         r##"<?xml version="1.0" encoding="UTF-8"?>
@@ -211,7 +234,7 @@ pub fn render_character_sheet(ch: char) -> Option<String> {
     {}
   </div>
   <div class="card">
-    <div class="info">容器单元 ({}-bit)</div>
+    <div class="info">容器槽位 (格投影)</div>
     {}
   </div>
 </div>
@@ -224,7 +247,7 @@ pub fn render_character_sheet(ch: char) -> Option<String> {
 </html>"##,
         ch, ch,
         glyph_svg,
-        64, bitmap_svg,
+        grid_svg,
         enc.stroke_names.join(" → "),
         enc.container_names.join(" + "),
         enc.display_container,
@@ -271,9 +294,13 @@ mod tests {
     }
 
     #[test]
-    fn test_render_cell_bitmap() {
-        let cell = CharacterCreator::strokes_to_cell(&[STROKE_HENG, STROKE_SHU, STROKE_PIE]);
-        let svg = render_cell_bitmap(cell);
+    fn test_render_grid_projection() {
+        let slots = ["袋", "桶", "罐"];
+        let grid = project_grid(&slots, 2);
+        assert_eq!(grid.len(), 2);
+        assert_eq!(grid[0], vec!["袋", "桶"]);
+        assert_eq!(grid[1], vec!["罐", ""]);
+        let svg = render_grid(&slots);
         assert!(svg.contains("<svg"));
         assert!(svg.contains("袋"));
         assert!(svg.contains("桶"));

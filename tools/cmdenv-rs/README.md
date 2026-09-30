@@ -21,7 +21,7 @@
 | 关系 | gcd / lcm / mirror / add / mul | 公约数·公倍数·镜像对偶 |
 | 进制 | qe / qd / c42 / y42 / kan / trans / canvas-info / canvas-cell | 42进制·音韵·谱系·跨感官·64 位数字表与地址块 |
 | 膜圈 | mqf / yong / mo / ring / tuo / center / serve | 膜圈缚·蛹·圈层结界 |
-| 容器 | ctn / sym / addr / tongji / phase / reg / reglist / link / links | 插件容器·加法索引·注册清单 |
+| 容器 | ctn / sym / ge / addr / tongji / phase / reg / reglist / link / links | 插件容器·加法索引·注册清单·格投影 |
 | 对齐 | align / align-end / unify | 混合进制自动进位·一个数代表几何位置 |
 | 征用 | zheng / zhengs / yuan / sontuo | 动态编号·松弛编号插入自己·可松脱·原绑定可选 |
 | 韵母 | yunmu / yunmu-list / yunmu-svg / yunmu-merge / yunmu-canvas / yunmu-mirror | 呼唤已注册韵母·圆环·母字几何合并·64 格画布·镜像裁判 |
@@ -64,6 +64,7 @@ cmdenv serve web/membrane.html
 - **乘法口诀表**：`tongji` 清点各容器符号数，生成当前最大功率能到达的覆盖范畴
 - **相位进制**：每个容器有一个相位（前/后/左/右/上/下/中/腰/角），间接创造相位进制
 - **注册清单**：`reg` 给文件按名称登记 + 状态/版本/时间，不用数字给符号编门牌号
+- **格投影**：`ge` 把槽位名投影成格（4 格 = 田字格，9 格 = 九宫格）；空位写「空」为虚无，格只承载名字，不预置掩码
 - **总观效应**：`link` 记录文档间依赖连线，只依赖已有的东西，不重造替代品
 
 ```bash
@@ -72,6 +73,10 @@ cmdenv ctn 未来计算机 中
 
 # 往容器修入符号（热可用）
 cmdenv sym 未来计算机 gttx,gkndl,gtxone
+
+# 格投影：槽位名投影成格（空位写「空」为虚无），可输出 SVG
+cmdenv ge 一 二 三 四 田字格.svg
+cmdenv ge 袋 桶 空 罐
 
 # 加法遍历所有容器地址
 cmdenv addr

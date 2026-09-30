@@ -49,6 +49,7 @@ Entries discovered by the Agent during task execution should follow this format:
   - 禁止使用用户没有使用过的符号（外部字符、音标、天使/天堂等其它模块的符号一律不许引入）。
   - 代码中引用符号只能通过"呼唤"清单中已注册的名称、寻址过来；定义过的符号必须能呼唤、能寻址。
   - 不得以任何字面符号或数字字面量代替已注册符号。
+  - 禁止用数字/进制数字代表音调；进制数字不得与韵母搭配（不合逻辑的字形配对一律不许搭配，大小写须成对）。
 
 [User Instruction Summary]
 - Date: 2026-09-18

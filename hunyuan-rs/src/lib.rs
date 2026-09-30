@@ -192,7 +192,7 @@ pub use character_creator::{CharacterCreator, GlyphEncoding, GlyphPolarity, Glyp
 // ── 笔画容器 → SVG 可视字形渲染 ──
 #[path = "encoding/svg_renderer.rs"]
 pub mod svg_renderer;
-pub use svg_renderer::{render_glyph_svg, render_cell_bitmap, render_character_sheet,
+pub use svg_renderer::{render_glyph_svg, render_grid, project_grid, render_character_sheet,
                        stroke_path, stroke_color, GRID_SIZE};
 
 // 在场本体论 (最小存根 — 供 chain_resonance 兼容)

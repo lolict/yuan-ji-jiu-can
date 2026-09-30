@@ -1034,6 +1034,68 @@ fn do_sigil(addr_arg: &str, out: &str) {
     }
 }
 
+fn do_ge(spec: &str, out: &str) {
+    let slots: Vec<&str> = spec
+        .split(|c: char| c.is_whitespace() || c == ',' || c == '|')
+        .filter(|s| !s.is_empty())
+        .collect();
+    if slots.is_empty() {
+        println!("用法: ge <槽位...> [输出.svg] · 空位写「空」· 格是槽位名的投影, 空位为虚无");
+        return;
+    }
+    let n = slots.len();
+    let cols = match n { 0 | 1 => 1, 2..=4 => 2, _ => 3 };
+    let rows = (n + cols - 1) / cols;
+
+    println!("格投影 · {} 槽位 · {}×{} · 空位为虚无", n, cols, rows);
+    for r in 0..rows {
+        let mut line = String::from("  |");
+        for c in 0..cols {
+            let name = slots.get(r * cols + c).copied().unwrap_or("空");
+            line.push_str(&format!(" {:^6}|", name));
+        }
+        println!("{}", line);
+    }
+
+    if out.is_empty() {
+        return;
+    }
+    let cell = 90.0_f64;
+    let pad = 10.0_f64;
+    let width = cols as f64 * cell + 2.0 * pad;
+    let height = rows as f64 * cell + 2.0 * pad;
+    let mut svg = String::new();
+    svg.push_str(&format!(
+        "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{:.0}\" height=\"{:.0}\" viewBox=\"0 0 {:.0} {:.0}\">\n",
+        width, height, width, height
+    ));
+    svg.push_str("<rect width=\"100%\" height=\"100%\" fill=\"#fafafa\" stroke=\"#ddd\"/>\n");
+    for r in 0..rows {
+        for c in 0..cols {
+            let name = slots.get(r * cols + c).copied().unwrap_or("空");
+            let void = name == "空";
+            let x = pad + c as f64 * cell;
+            let y = pad + r as f64 * cell;
+            let fill = if void { "#ffffff" } else { "#eef4ff" };
+            svg.push_str(&format!(
+                "<rect x=\"{:.0}\" y=\"{:.0}\" width=\"{:.0}\" height=\"{:.0}\" fill=\"{}\" stroke=\"#333\" stroke-width=\"1.5\" rx=\"4\"/>\n",
+                x, y, cell, cell, fill
+            ));
+            if !void {
+                svg.push_str(&format!(
+                    "<text x=\"{:.0}\" y=\"{:.0}\" text-anchor=\"middle\" font-size=\"18\" fill=\"#333\">{}</text>\n",
+                    x + cell / 2.0, y + cell / 2.0 + 6.0, name
+                ));
+            }
+        }
+    }
+    svg.push_str("</svg>\n");
+    match fs::write(out, svg) {
+        Ok(_) => println!("  已输出格投影 → {}", out),
+        Err(e) => println!("  写入失败: {}", e),
+    }
+}
+
 fn do_ctn(name: &str, phase: &str) {
     if name.is_empty() {
         println!("用法: ctn <名称> [相位] · 声明一个容器(插件) → 分配加法地址");
@@ -1680,6 +1742,16 @@ fn main() {
         }
         "bases" => do_bases(),
         "ctn" => do_ctn(args.get(1).map(|s| s.as_str()).unwrap_or(""), args.get(2).map(|s| s.as_str()).unwrap_or("中")),
+        "ge" => {
+            let rest: Vec<&str> = args.iter().skip(1).map(|s| s.as_str()).collect();
+            let (out, spec) = match rest.last() {
+                Some(last) if last.ends_with(".svg") => {
+                    (*last, rest[..rest.len().saturating_sub(1)].join(" "))
+                }
+                _ => ("", rest.join(" ")),
+            };
+            do_ge(&spec, out);
+        }
         "sym" => do_sym(args.get(1).map(|s| s.as_str()).unwrap_or(""), args.get(2).map(|s| s.as_str()).unwrap_or("")),
         "addr" => do_addr(),
         "yunmu" => do_yunmu(args.get(1).map(|s| s.as_str()).unwrap_or("")),
