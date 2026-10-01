@@ -217,47 +217,63 @@ const STROKES: [StrokeFn; 8] = [
     stroke_gou,   // 7: 竖钩
 ];
 
-// 声母笔形映射表（48声母 → 笔画序列，用 u8 数对表示：笔画ID + 偏移方向）
-// 偏移方向：0=中, 1=左上, 2=右上, 3=左中, 4=右中, 5=左下, 6=右下, 7=居中上, 8=居中下, 9=居中放大
-// 格式笔画ID*10 + 方向码
-#[inline]
+// 声母发音部位 → 笔画几何（满全法口腔位置编码）
+// 部位决定笔画类型，声母序号决定笔画位置/细节差异
+//  唇音 b p m f     → 横系 (嘴唇开合线)
+//  舌尖 d t n l     → 竖系 (舌-齿接触垂线)
+//  舌根 g k h W     → 折系 (舌根曲折线)
+//  舌面 j q x Y     → 钩弧系 (舌面-腭弧线)
+//  卷舌 z c s r     → 折回系 (舌尖反卷)
+//  喉鼻 ȥ ç ş ŋ    → 复合系 (鼻道气流双通道)
+// 大写 +24           → 右下角白方块附加
 fn shengmu_strokes(sid: u32) -> (u32, u32) {
-    // 声母天然笔画构形（4声母一组，同组声母换笔画/换位置）
     let k = sid % 24;
     match k {
-        // b p m f — 竖+点，横折，两竖，横+竖钩
-        0  => (10, 40),   // b: 竖(中) + 点(中)
-        1  => (10, 60),   // p: 竖(中) + 横折(中)
-        2  => (10, 10),   // m: 竖(中) + 竖(中)
-        3  => (00, 70),   // f: 横(中) + 竖钩(上)
-        // d t n l — 竖+横折，横+竖，竖+横，横
-        4  => (16, 0),    // d: 竖(中)+横折(中)
-        5  => (01, 1),    // t: 横(中)+竖(中)
-        6  => (10, 0),    // n: 竖(中)+横(中)
-        7  => (00, 0),    // l: 横(中)+竖钩(...单笔画)
-        // g k h w — 横+竖，横+撇+竖，竖+横+竖，横+撇+竖（更宽）
-        8  => (00, 10),   // g: 横(中)+竖(中)
-        9  => (02, 10),   // k: 横(中)+撇(中)+竖
-        10 => (10, 0),    // h: 竖(中)+横(中)
-        11 => (32, 0),    // w: 捺(中)+撇(中)
-        // j q x y — 竖钩+点，竖+横折，撇+捺，点+横
-        12 => (74, 0),    // j: 竖钩(中)+点(中)
-        13 => (16, 0),    // q: 竖(中)+横折(中)
-        14 => (23, 0),    // x: 撇(中)+捺(中)
-        15 => (40, 0),    // y: 点(中)+横(中)
-        // z c s r — 横折+横，横折+横，竖+横+横，横+撇
-        16 => (60, 0),    // z: 横折(中)+横(中)
-        17 => (10, 0),    // c: 竖(中)+横折简化
-        18 => (10, 0),    // s: 竖(中)+横折简化
-        19 => (02, 0),    // r: 横(中)+撇(中)
-        // ȥ ç ş ŋ — 折类变体
-        20 => (66, 0),    // ȥ: 双横折
-        21 => (60, 40),   // ç: 横折(中) + 点(中)
-        22 => (20, 0),    // ş: 撇(中)
-        23 => (50, 10),   // ŋ: 提(中) + 竖(中)
+        // 唇音
+        0  => (09, 60),   // b: 横(填满) + 微点(左下 = 唇闭合)
+        1  => (06, 10),   // p: 横+折(左上送气)
+        2  => (00, 01),   // m: 双横(鼻道双线)
+        3  => (04, 10),   // f: 横 + 摩擦点(左上)
+        // 舌尖
+        4  => (10, 70),   // d: 竖(中) + 横(中下 = 弹开)
+        5  => (16, 10),   // t: 竖+折(左上送气)
+        6  => (10, 07),   // n: 竖(中) + 横(中下 = 鼻-触)
+        7  => (10, 74),   // l: 竖(中) + 横(中心 = 舌侧气)
+        // 舌根
+        8  => (60, 40),   // g: 横折(中) + 点(中心 = 腭触)
+        9  => (60, 01),   // k: 横折(中) + 横(中上 = 送气通道)
+        10 => (10, 00),   // h: 竖(中) + 横(左上 = 喉口开)
+        11 => (32, 00),   // W: 捺+撇(圆唇弯弧)
+        // 舌面
+        12 => (74, 10),   // j: 竖钩(中) + 点(左上贴腭)
+        13 => (70, 01),   // q: 竖钩(中) + 横(中上送气)
+        14 => (23, 40),   // x: 撇(中) + 捺(中心 = 舌面展平)
+        15 => (40, 41),   // Y: 点(中) + 横(中上)
+        // 卷舌
+        16 => (60, 05),   // z: 横折(中) + 横(中 + 反卷)
+        17 => (66, 00),   // c: 双横折(中 = 强化反卷)
+        18 => (13, 40),   // s: 竖(中) + 捺(中心 = 缝擦)
+        19 => (02, 40),   // r: 横(中) + 撇(中心)
+        // 喉/鼻
+        20 => (66, 40),   // ȥ: 双横折(中) + 点(中心)
+        21 => (60, 41),   // ç: 横折(中) + 点(中上 = 内爆)
+        22 => (20, 70),   // ş: 撇(中) + 横(中下)
+        23 => (51, 10),   // ŋ: 提(左上 + 根抬起) + 竖(中)
         _  => (00, 0),
     }
 }
+
+// 发音部位 → 色系：唇=蓝、舌尖=绿、舌根=黄、舌面=紫、卷舌=红、喉鼻=灰
+const SHENGMU_PART_COLOR: [u32; 24] = [
+    0x4488FF, 0x4488FF, 0x6699FF, 0x6699FF,  // 0-3 唇音
+    0x44CC88, 0x44CC88, 0x66DD99, 0x66DD99,  // 4-7 舌尖
+    0xDDCC44, 0xDDCC44, 0xEEDD66, 0xEEDD66,  // 8-11 舌根
+    0xCC66FF, 0xCC66FF, 0xDD88FF, 0xDD88FF,  // 12-15 舌面
+    0xFF6644, 0xFF6644, 0xFF8866, 0xFF8866,  // 16-19 卷舌
+    0x888888, 0x888888, 0xAAAAAA, 0xAAAAAA,  // 20-23 喉鼻
+];
+#[inline]
+fn shengmu_color(sid: u32) -> u32 { SHENGMU_PART_COLOR[(sid % 24) as usize] }
 
 fn draw_shengmu(c: &mut Cv, sx: i32, sy: i32, size: i32, sid: u32, col: u32) {
     // 用笔画基元绘制声母
@@ -662,29 +678,29 @@ fn draw_container_mono(canvas:  &mut Cv, ox: i32, oy: i32, cw: i32, ch: i32,
     draw_wz(canvas, ox + half_w + 1, oy + half_h + 1, half_w - 4, sid, yid, tid, fg);
 }
 
-fn draw_container(canvas:  &mut Cv, ox: i32, oy: i32, cw: i32, ch: i32,
-                   sid: u32, yid: u32, tid: u32, mx: u32, my: u32) {
-    let base = sid * 3960 + tid * 66 + yid;
-    let cid = (base % 42) as usize;
-    let (cr, cg, cb) = C_ID[cid];
-    let col = cr as u32 | ((cg as u32) << 8) | ((cb as u32) << 16);
-
-    // 田字格外框 2px
-    thick_line(canvas, ox, oy, ox + cw, oy, col, 2);
-    thick_line(canvas, ox + cw, oy, ox + cw, oy + ch, col, 2);
-    thick_line(canvas, ox + cw, oy + ch, ox, oy + ch, col, 2);
-    thick_line(canvas, ox, oy + ch, ox, oy, col, 2);
-    // 十字分割 1px
-    line(canvas, ox + cw / 2, oy, ox + cw / 2, oy + ch, col);
-    line(canvas, ox, oy + ch / 2, ox + cw, oy + ch / 2, col);
-
+fn draw_container(canvas: &mut Cv, ox: i32, oy: i32, cw: i32, ch: i32,
+                  sid: u32, yid: u32, tid: u32, _dummy_mx: u32, _dummy_my: u32) {
     let half_w = cw / 2;
     let half_h = ch / 2;
+    // 田字格框（固定浅灰）
+    rect(canvas, ox, oy, ox + cw, oy + 1, 0x555555);
+    rect(canvas, ox, oy + ch - 1, ox + cw, oy + ch, 0x555555);
+    rect(canvas, ox, oy, ox + 1, oy + ch, 0x555555);
+    rect(canvas, ox + cw - 1, oy, ox + cw, oy + ch, 0x555555);
+    // 中线
+    let mid_y = oy + half_h;
+    for x in ox..ox + cw { put(canvas, x, mid_y, 0x444444); }
+    let mid_x = ox + half_w;
+    for y in oy..oy + ch { put(canvas, mid_x, y, 0x444444); }
 
-    draw_shengmu(canvas, ox + 2, oy + 2, half_w - 4, sid, col);
-    draw_yunmu(canvas, ox + half_w + 1, oy + 2, (half_w - 4) as u32, yid, col);
-    draw_tone(canvas, ox + 2, oy + half_h + 1, half_w - 4, tid, col);
-    draw_wz(canvas, ox + half_w + 1, oy + half_h + 1, half_w - 4, sid, yid, tid, col);
+    let col_s = shengmu_color(sid);                  // 声母部位色
+    let col_y = shengmu_color(sid).wrapping_add(0x303030) & 0xFFFFFF; // 韵母稍亮
+    let col_t = 0xEEDD66;                             // 声调固定金黄
+
+    draw_shengmu(canvas, ox + 2, oy + 2, half_w - 4, sid, col_s);
+    draw_yunmu(canvas, ox + half_w + 1, oy + 2, (half_w - 4) as u32, yid, col_y);
+    draw_tone(canvas, ox + 2, oy + half_h + 1, half_w - 4, tid, col_t);
+    draw_wz(canvas, ox + half_w + 1, oy + half_h + 1, half_w - 4, sid, yid, tid, 0xFFFFFF);
 }
 
 // ─── 偏置驱动笔画位置 · 造字核心 ───────────────────────
