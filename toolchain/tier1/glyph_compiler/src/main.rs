@@ -919,6 +919,47 @@ fn draw_row(sid: u32, out: &str) {
 fn main() {
     let args: Vec<String> = std::env::args().collect();
 
+    // ── 特殊命令：export-reg（全量导出注册表 JSON）──
+    if args.len() > 1 && args[1] == "export-reg" {
+        let out = args.get(2).map(|s| s.as_str())
+            .unwrap_or("/mnt/data/catpaw/home/workspace/硅碳心源-果套循因/toolchain/tier1/glyph_registry.json");
+        let mut file = std::fs::File::create(out).expect("cannot create file");
+        use std::io::Write;
+        // 行格式：每行 {"base":N,"s":N,"y":N,"t":N,"strokes":[[type,dir,x,y],...]}
+        let mut count = 0;
+        for s in 0..48 {
+            for t in 0..60 {
+                for y in 0..66 {
+                    let base: u64 = (s as u64) * 3960 + (t as u64) * 66 + (y as u64);
+                    let (s0, s1) = shengmu_strokes(s);
+                    let (y0, y1) = yunmu_strokes(y);
+                    let tid = t % 12;
+                    write!(file, "{{\"base\":{},\"s\":{},\"y\":{},\"t\":{},\"bx\":[", base, s, y, t).unwrap();
+                    // 声母笔画
+                    write!(file, "[{},{},{},{}]", s0/10, s0%10,
+                        (s0%10) % 3, (s0%10) / 3).unwrap();
+                    write!(file, ",[{},{},{},{}]", s1/10, s1%10,
+                        (s1%10) % 3, (s1%10) / 3).unwrap();
+                    write!(file, "],\"yx\":[").unwrap();
+                    // 韵母笔画
+                    write!(file, "[{},{},{},{}]", y0/10, y0%10,
+                        (y0%10) % 3, (y0%10) / 3).unwrap();
+                    write!(file, ",[{},{},{},{}]", y1/10, y1%10,
+                        (y1%10) % 3, (y1%10) / 3).unwrap();
+                    write!(file, "],\"tx\":[").unwrap();
+                    // 声调笔画 (调型=笔画ID, 调值=方向, 调型作为type)
+                    let ttype = tid as u32;
+                    let tdir = (t / 12) as u32;
+                    write!(file, "[{},{},0,{}]", ttype, tdir, tdir).unwrap();
+                    write!(file, "]}}\n").unwrap();
+                    count += 1;
+                }
+            }
+        }
+        println!("glyph_registry 导出完成: {} 音节 → {}", count, out);
+        return;
+    }
+
     if args.len() > 1 && args[1] == "one" {
         let s: u32 = args.get(2).and_then(|x| x.parse().ok()).unwrap_or(0);
         let yy: u32 = args.get(3).and_then(|x| x.parse().ok()).unwrap_or(0);
