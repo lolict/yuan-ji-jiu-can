@@ -226,41 +226,64 @@ const STROKES: [StrokeFn; 8] = [
 //  卷舌 z c s r     → 折回系 (舌尖反卷)
 //  喉鼻 ȥ ç ş ŋ    → 复合系 (鼻道气流双通道)
 // 大写 +24           → 右下角白方块附加
-fn shengmu_strokes(sid: u32) -> (u32, u32) {
-    let k = sid % 24;
-    match k {
-        // 唇音
-        0  => (09, 60),   // b: 横(填满) + 微点(左下 = 唇闭合)
-        1  => (06, 10),   // p: 横+折(左上送气)
-        2  => (00, 01),   // m: 双横(鼻道双线)
-        3  => (04, 10),   // f: 横 + 摩擦点(左上)
-        // 舌尖
-        4  => (10, 70),   // d: 竖(中) + 横(中下 = 弹开)
-        5  => (16, 10),   // t: 竖+折(左上送气)
-        6  => (10, 07),   // n: 竖(中) + 横(中下 = 鼻-触)
-        7  => (10, 74),   // l: 竖(中) + 横(中心 = 舌侧气)
-        // 舌根
-        8  => (60, 40),   // g: 横折(中) + 点(中心 = 腭触)
-        9  => (60, 01),   // k: 横折(中) + 横(中上 = 送气通道)
-        10 => (10, 00),   // h: 竖(中) + 横(左上 = 喉口开)
-        11 => (32, 00),   // W: 捺+撇(圆唇弯弧)
-        // 舌面
-        12 => (74, 10),   // j: 竖钩(中) + 点(左上贴腭)
-        13 => (70, 01),   // q: 竖钩(中) + 横(中上送气)
-        14 => (23, 40),   // x: 撇(中) + 捺(中心 = 舌面展平)
-        15 => (40, 41),   // Y: 点(中) + 横(中上)
-        // 卷舌
-        16 => (60, 05),   // z: 横折(中) + 横(中 + 反卷)
-        17 => (66, 00),   // c: 双横折(中 = 强化反卷)
-        18 => (13, 40),   // s: 竖(中) + 捺(中心 = 缝擦)
-        19 => (02, 40),   // r: 横(中) + 撇(中心)
-        // 喉/鼻
-        20 => (66, 40),   // ȥ: 双横折(中) + 点(中心)
-        21 => (60, 41),   // ç: 横折(中) + 点(中上 = 内爆)
-        22 => (20, 70),   // ş: 撇(中) + 横(中下)
-        23 => (51, 10),   // ŋ: 提(左上 + 根抬起) + 竖(中)
-        _  => (00, 0),
-    }
+// 声母变长笔画序列（满全法：笔画数 = 发音复杂度的自然涌现）
+//
+// 笔画数量决定规则：
+//   清塞音 bd g j     → 1 笔（干脆一次爆破）
+//   清塞送气 pt kq    → 2 笔（爆破 + 送气尾）
+//   鼻音 mn ŋ          → 2 笔（口腔爆破 + 鼻道延续）
+//  擦音 f h sx        → 2 笔（摩擦面 + 出口）
+//  塞擦音 zcȥ          → 3 笔（先塞后擦）
+//  边音 r             → 2 笔（舌侧分开气+出气）
+//  半元音WY            → 1 笔（简单气动）
+//
+// 声母 48 = 24 小写 + 24 大写，笔画序列相同，大写右下角加方标记
+
+// 笔画类型常量
+//   0横  1竖  2撇  3捺  4点  5提  6横折  7竖钩
+
+// 声母笔画编码表（24 声母 × 变长序列，用静态展开）
+// 编码：笔画ID*10 + 方向码(0-9)
+// 每声母一个定长三元组 (a, b, c)，0xFFFFFFFF 表示无笔画
+
+const SHENG_MU_STROKES: [(u32, u32, u32); 24] = [
+    // 唇音组（塞擦+擦）
+    (09, 60, 0xFFFF_FFFF),   // 0  b: 横 + 微点
+    (06, 10, 0xFFFF_FFFF),   // 1  p: 横+折 + 送气（多笔画=送气尾）
+    (00, 01, 0xFFFF_FFFF),   // 2  m: 双横（鼻道双线）
+    (04, 10, 0xFFFF_FFFF),   // 3  f: 横 + 摩擦点
+    // 舌尖组（塞+塞+鼻+边）
+    (10, 70, 0xFFFF_FFFF),   // 4  d: 竖 + 横弹
+    (16, 10, 0xFFFF_FFFF),   // 5  t: 竖+折 + 送气
+    (10, 07, 0xFFFF_FFFF),   // 6  n: 竖 + 横鼻
+    (10, 74, 0xFFFF_FFFF),   // 7  l: 竖 + 舌侧
+    // 舌根组（塞+塞擦+擦+圆唇）
+    (60, 40, 0xFFFF_FFFF),   // 8  g: 横折 + 腭触
+    (60, 01, 0xFFFF_FFFF),   // 9  k: 横折 + 送气
+    (10, 00, 0xFFFF_FFFF),   // 10 h: 竖 + 喉开
+    (32, 00, 0xFFFF_FFFF),   // 11 W: 捺 + 撇圆唇
+    // 舌面组（塞擦 × 4）
+    (74, 10, 0xFFFF_FFFF),   // 12 j: 竖钩 + 贴腭
+    (70, 01, 0xFFFF_FFFF),   // 13 q: 竖钩 + 横
+    (23, 40, 0xFFFF_FFFF),   // 14 x: 撇 + 捺
+    (40, 41, 0xFFFF_FFFF),   // 15 Y: 点 + 横
+    // 卷舌组（塞擦+塞擦+擦+边）
+    (60, 05, 0xFFFF_FFFF),   // 16 z: 横折 + 横
+    (66, 00, 0xFFFF_FFFF),   // 17 c: 双横折（强化反卷）
+    (13, 40, 0xFFFF_FFFF),   // 18 s: 竖 + 捺
+    (02, 40, 0xFFFF_FFFF),   // 19 r: 横 + 撇
+    // 喉/鼻组（擦+塞擦+擦+鼻）
+    (66, 40, 0xFFFF_FFFF),   // 20 ȥ: 双横折 + 点
+    (60, 41, 0xFFFF_FFFF),   // 21 ç: 横折 + 点
+    (20, 70, 0xFFFF_FFFF),   // 22 ş: 撇 + 横
+    (51, 10, 0xFFFF_FFFF),   // 23 ŋ: 提 + 竖
+];
+
+/// 声母序列（旧接口兼容 + 新功能兼容）
+/// 返回三元组笔画编码数组
+#[inline]
+fn shengmu_enc(sid: u32) -> (u32, u32, u32) {
+    SHENG_MU_STROKES[(sid % 24) as usize]
 }
 
 // 发音部位 → 色系：唇=蓝、舌尖=绿、舌根=黄、舌面=紫、卷舌=红、喉鼻=灰
@@ -276,28 +299,33 @@ const SHENGMU_PART_COLOR: [u32; 24] = [
 fn shengmu_color(sid: u32) -> u32 { SHENGMU_PART_COLOR[(sid % 24) as usize] }
 
 fn draw_shengmu(c: &mut Cv, sx: i32, sy: i32, size: i32, sid: u32, col: u32) {
-    // 用笔画基元绘制声母
+    // 用笔画基元绘制声母（变长：sentinel = 0xFFFFFFFF）
     let is_upper = sid >= 24;
-    let (s0, s1) = shengmu_strokes(sid);
+    let strokes = shengmu_enc(sid);
 
-    // 编码解析：s = 笔画ID*10 + 方向码
-    let id0 = (s0 / 10) as usize;
-    let dir0 = s0 % 10;
-    let id1 = (s1 / 10) as usize;
-    let dir1 = s1 % 10;
+    // 笔画三元组 → 迭代（跳过 sentinel）
+    let s = [strokes.0, strokes.1, strokes.2];
+    let mut n = 0;
+    while n < 3 && s[n] != 0xFFFF_FFFF { n += 1; }
 
-    // 方向 → 子格锚点
-    let (ox0, oy0) = stroke_anchor(dir0, sx, sy, size);
-    let (ox1, oy1) = stroke_anchor(dir1, sx, sy, size);
-
-    // 绘制笔画（尺寸 = 子格 1/2，确保清晰可见）
+    // 绘制笔画（第一笔占满格，后续笔逐渐缩小偏移）
     let sw = size / 2;
     let sh = size / 2;
-    if id0 < STROKES.len() {
-        STROKES[id0](c, ox0, oy0, sw, sh, col);
-    }
-    if id1 < STROKES.len() && (id1 != id0 || dir1 != dir0) {
-        STROKES[id1](c, ox1, oy1, sw, sh, col);
+    for i in 0..n {
+        let code = s[i];
+        let id = (code / 10) as usize;
+        let dir = code % 10;
+        let (ox, oy) = stroke_anchor(dir, sx, sy, size);
+        let (dx, dy, ww, hh) = if i == 0 {
+            (0i32, 0i32, sw, sh)
+        } else if i == 1 {
+            (sw / 4, sh / 4, sw / 2, sh / 2)
+        } else {
+            (sw / 3, sh / 3, sw / 2, sh / 2)
+        };
+        if id < STROKES.len() {
+            STROKES[id](c, (ox as i32) + dx, (oy as i32) + dy, ww as i32, hh as i32, col);
+        }
     }
 
     // 大写标记：左下角额外小点
@@ -733,11 +761,13 @@ fn draw_container_biased(
         let by = oy + 2 + py;
         // 越界保护
         if bx >= ox && by >= oy && bx + h_w <= ox + half_w && by + h_w <= oy + ch/2 {
-            let (s0, s1) = shengmu_strokes(sid);
-            let id0 = (s0 / 10) as usize;
-            if id0 < STROKES.len() { STROKES[id0](canvas, bx, by, h_w, h_w, bias_col); }
-            let id1 = (s1 / 10) as usize;
-            if id1 < STROKES.len() { STROKES[id1](canvas, bx + h_w/4, by + h_w/4, h_w/2, h_w/2, bias_col); }
+            let strokes = shengmu_enc(sid);
+            let ss = [strokes.0, strokes.1, strokes.2];
+            let mut sn = 0;
+            while sn < 3 && ss[sn] != 0xFFFF_FFFF { sn += 1; }
+            if sn >= 1 { let id0 = (ss[0] / 10) as usize; if id0 < STROKES.len() { STROKES[id0](canvas, bx, by, h_w, h_w, bias_col); } }
+            if sn >= 2 { let id1 = (ss[1] / 10) as usize; if id1 < STROKES.len() { STROKES[id1](canvas, bx + h_w/4, by + h_w/4, h_w/2, h_w/2, bias_col); } }
+            if sn >= 3 { let id2 = (ss[2] / 10) as usize; if id2 < STROKES.len() { STROKES[id2](canvas, bx + h_w/3, by + h_w/3, h_w/2, h_w/2, bias_col); } }
         }
         // 原始中点 → 偏置后中点箭头
         let cx0 = ox + 2 + h_w/2;
@@ -931,15 +961,23 @@ fn main() {
             for t in 0..60 {
                 for y in 0..66 {
                     let base: u64 = (s as u64) * 3960 + (t as u64) * 66 + (y as u64);
-                    let (s0, s1) = shengmu_strokes(s);
+                    let strokes_s = shengmu_enc(s);
                     let (y0, y1) = yunmu_strokes(y);
                     let tid = t % 12;
+                    let ss = [strokes_s.0, strokes_s.1, strokes_s.2];
+                    let mut sn = 0;
+                    while sn < 3 && ss[sn] != 0xFFFF_FFFF { sn += 1; }
                     write!(file, "{{\"base\":{},\"s\":{},\"y\":{},\"t\":{},\"bx\":[", base, s, y, t).unwrap();
-                    // 声母笔画
-                    write!(file, "[{},{},{},{}]", s0/10, s0%10,
-                        (s0%10) % 3, (s0%10) / 3).unwrap();
-                    write!(file, ",[{},{},{},{}]", s1/10, s1%10,
-                        (s1%10) % 3, (s1%10) / 3).unwrap();
+                    // 声母笔画（变长 1-3 笔，不足补零占位）
+                    for i in 0..3 {
+                        if i > 0 { write!(file, ",").unwrap(); }
+                        if i < sn {
+                            write!(file, "[{},{},{},{}]", ss[i]/10, ss[i]%10,
+                                (ss[i]%10) % 3, (ss[i]%10) / 3).unwrap();
+                        } else {
+                            write!(file, "[0,0,0,0]").unwrap();
+                        }
+                    }
                     write!(file, "],\"yx\":[").unwrap();
                     // 韵母笔画
                     write!(file, "[{},{},{},{}]", y0/10, y0%10,
