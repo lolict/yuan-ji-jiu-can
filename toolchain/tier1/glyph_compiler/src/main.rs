@@ -518,6 +518,31 @@ fn dot_lattice(c:  &mut Cv, cx: i32, cy: i32, n: i32, col: u32) {
 // 五维地址: base = s*3960 + t*66 + y (最大 = 47*3960+59*66+65 = 186120+3894+65 = 190079)
 // 微位区右侧画地址末两位（声调行末位 + 韵母末位），左侧画一个红点作为方位锚
 
+// ─── 偏置 → 像素偏移（连接记号系统与笔画位置） ─────────
+// 把偏置解码后用像素移动笔画位置：
+//   Fine(±1) → 水平微调 ±cell   (格内笔画微偏)
+//   Grid(±66) → 竖直微调 ±cell  (韵母维 = 竖直方向)
+//   Row(±3960) → 水平大跨 ±2cell (声母维 = 水平方向)
+//   Fam(±1) → 对角大跳 ±2cell    (跨族对角)
+#[inline]
+fn bias_to_pixel(b: &Bias, cell: i32) -> (i32, i32) {
+    match b {
+        Bias::Fine(d) => (d * cell, 0),
+        Bias::Grid(d) => {
+            let sign = if *d < 0 { -1 } else { 1 };
+            (0, sign * cell)
+        }
+        Bias::Row(d) => {
+            let sign = if *d < 0 { -1 } else { 1 };
+            (sign * cell * 2, 0)
+        }
+        Bias::Fam(d) => {
+            let sign = if *d < 0 { -1 } else { 1 };
+            (sign * cell * 2, sign * cell * 2)
+        }
+    }
+}
+
 // 3×5 数字点阵字体 (0~9) — 用 7 段简化映射
 // 每数字用 (dx,dy) 偏移集合表示哪些格点亮
 const DIGITS: [[[bool; 3]; 5]; 10] = [
@@ -662,7 +687,95 @@ fn draw_container(canvas:  &mut Cv, ox: i32, oy: i32, cw: i32, ch: i32,
     draw_wz(canvas, ox + half_w + 1, oy + half_h + 1, half_w - 4, sid, yid, tid, col);
 }
 
-// ─── BMP 输出 ───────────────────────────────────────────
+// ─── 偏置驱动笔画位置 · 造字核心 ───────────────────────
+// 偏置链解码后叠加到对应笔画区：作用于三区（声母/韵母/声调），
+// 偏置后相应笔画偏移 ±cell、±2cell，实现"同一个声符偏置出多个字形"。
+// 效果：标准笔画 + 蓝色偏置笔画 + 红色连接箭头。
+fn draw_container_biased(
+    canvas: &mut Cv, ox: i32, oy: i32, cw: i32, ch: i32,
+    sid: u32, yid: u32, tid: u32,
+    biases_s: &[Bias], biases_y: &[Bias], biases_t: &[Bias],
+    col: u32,
+) {
+    let half_w = cw / 2;
+    let h_w = half_w - 4;
+
+    // 无条件画标准容器（标准笔画 + 田字格框 + 微位地址）
+    draw_container(canvas, ox, oy, cw, ch, sid, yid, tid, 0, 0);
+
+    // 偏置像素（以 h_w/8 为单位 cell，让 ±1cell ~ 清晰且不溢出子格）
+    let cell = (h_w / 8).max(2);
+
+    let bias_col = 0x4488FF;  // 蓝色偏置笔画
+    let arrow_col = 0xFF4444; // 红色箭头
+
+    // ─── 偏置声母笔画 ───
+    if !biases_s.is_empty() {
+        let (mut px, mut py) = (0i32, 0i32);
+        for b in biases_s { let (dx, dy) = bias_to_pixel(b, cell); px += dx; py += dy; }
+        let bx = ox + 2 + px;
+        let by = oy + 2 + py;
+        // 越界保护
+        if bx >= ox && by >= oy && bx + h_w <= ox + half_w && by + h_w <= oy + ch/2 {
+            let (s0, s1) = shengmu_strokes(sid);
+            let id0 = (s0 / 10) as usize;
+            if id0 < STROKES.len() { STROKES[id0](canvas, bx, by, h_w, h_w, bias_col); }
+            let id1 = (s1 / 10) as usize;
+            if id1 < STROKES.len() { STROKES[id1](canvas, bx + h_w/4, by + h_w/4, h_w/2, h_w/2, bias_col); }
+        }
+        // 原始中点 → 偏置后中点箭头
+        let cx0 = ox + 2 + h_w/2;
+        let cy0 = oy + 2 + h_w/2;
+        let cx1 = cx0 + px;
+        let cy1 = cy0 + py;
+        thick_line(canvas, cx0, cy0, cx1, cy1, arrow_col, 2);
+    }
+
+    // ─── 偏置韵母笔画 ───
+    if !biases_y.is_empty() {
+        let (mut px, mut py) = (0i32, 0i32);
+        for b in biases_y { let (dx, dy) = bias_to_pixel(b, cell); px += dx; py += dy; }
+        let bx = ox + half_w + 1 + px;
+        let by = oy + 2 + py;
+        if bx + h_w <= ox + cw && by + h_w <= oy + ch/2 {
+            let (s0, s1) = yunmu_strokes(yid);
+            let id0 = (s0 / 10) as usize;
+            if id0 < STROKES.len() { STROKES[id0](canvas, bx, by, h_w, h_w, bias_col); }
+            let id1 = (s1 / 10) as usize;
+            if id1 < STROKES.len() { STROKES[id1](canvas, bx + h_w/4, by + h_w/4, h_w/2, h_w/2, bias_col); }
+        }
+        let cx0 = ox + half_w + 1 + h_w/2;
+        let cy0 = oy + 2 + h_w/2;
+        thick_line(canvas, cx0, cy0, cx0 + px, cy0 + py, arrow_col, 2);
+    }
+
+    // ─── 偏置声调笔画 ───
+    if !biases_t.is_empty() {
+        let (mut px, mut py) = (0i32, 0i32);
+        for b in biases_t { let (dx, dy) = bias_to_pixel(b, cell); px += dx; py += dy; }
+        let bx = ox + 2 + px;
+        let by = oy + ch/2 + 1 + py;
+        if bx + h_w <= ox + half_w && by + h_w <= oy + ch {
+            // 声调笔画按调型笔画重画
+            let k = (tid % 12) as i32;
+            let sw = h_w;
+            match k {
+                0 => stroke_heng(canvas, bx, by, sw, sw, bias_col),
+                1 => stroke_ti(canvas, bx, by, sw, sw, bias_col),
+                2 => stroke_shu(canvas, bx, by, sw, sw, bias_col),
+                3 => stroke_pie(canvas, bx, by, sw, sw, bias_col),
+                5 => stroke_zhe(canvas, bx, by, sw, sw, bias_col),
+                6 => stroke_dian(canvas, bx, by, sw, sw, bias_col),
+                7 => stroke_na(canvas, bx, by, sw, sw, bias_col),
+                9 => stroke_gou(canvas, bx, by, sw, sw, bias_col),
+                _ => stroke_heng(canvas, bx, by, sw, sw, bias_col),
+            }
+        }
+        let cx0 = ox + 2 + h_w/2;
+        let cy0 = oy + ch/2 + 1 + h_w/2;
+        thick_line(canvas, cx0, cy0, cx0 + px, cy0 + py, arrow_col, 2);
+    }
+}
 
 fn write_bmp_canvas(c: &Cv, out: &str) {
     let w = c.w as usize;
@@ -898,6 +1011,37 @@ fn main() {
         let non_bg = cv.d.iter().filter(|&&c| c != 0x111111).count();
         println!("偏置: s={} y={} t={} 记号:[{}] → {} 像素({:.1}%)",
                  s, yy, t, nota_str, out, non_bg as f64 / (big_w * big_h) as f64 * 100.0);
+    } else if args.len() > 2 && args[1] == "biased" {
+        let s: u32 = args.get(2).and_then(|x| x.parse().ok()).unwrap_or(0);
+        let yy: u32 = args.get(3).and_then(|x| x.parse().ok()).unwrap_or(0);
+        let t: u32 = args.get(4).and_then(|x| x.parse().ok()).unwrap_or(0);
+        let mut bs_s: Vec<Bias> = Vec::new();
+        let mut bs_y: Vec<Bias> = Vec::new();
+        let mut bs_t: Vec<Bias> = Vec::new();
+        for i in 5..args.len() {
+            let a = &args[i];
+            let (prefix, nota) = if a.contains(':') {
+                let p: Vec<&str> = a.splitn(2, ':').collect();
+                (p[0], p[1])
+            } else { ("*", a.as_str()) };
+            let decoded = decode(nota);
+            match prefix {
+                "S" => bs_s.extend(decoded),
+                "Y" => bs_y.extend(decoded),
+                "T" => bs_t.extend(decoded),
+                _ => { bs_s.extend(decoded.clone()); bs_y.extend(decoded.clone()); bs_t.extend(decoded); }
+            }
+        }
+        if bs_s.is_empty() && bs_y.is_empty() && bs_t.is_empty() {
+            bs_s = decode("+1"); bs_y = decode("-1"); bs_t = decode("±2");
+        }
+        let big_w = 800i32; let big_h = 800i32; let m = 60;
+        let mut cv = Cv { d: vec![0x111111; (big_w * big_h) as usize], w: big_w, h: big_h };
+        draw_container_biased(&mut cv, m, m, big_w - 2*m, big_h - 2*m, s, yy, t, &bs_s, &bs_y, &bs_t, 0xCCCCCC);
+        let out = format!("/mnt/data/catpaw/home/workspace/硅碳心源-果套循因/toolchain/tier1/mqf_biased_s{}_y{}_t{}.bmp", s, yy, t);
+        write_bmp_canvas(&cv, &out);
+        let non_bg = cv.d.iter().filter(|&&c| c != 0x111111).count();
+        println!("偏置造字 s={} y={} t={} → {} 像素({:.1}%)", s, yy, t, out, non_bg as f64 / (big_w * big_h) as f64 * 100.0);
     } else if args.len() > 1 && args[1] == "big" {
         let s: u32 = args.get(2).and_then(|x| x.parse().ok()).unwrap_or(0);
         let yy: u32 = args.get(3).and_then(|x| x.parse().ok()).unwrap_or(0);
@@ -968,7 +1112,7 @@ fn main() {
         println!("声调视图 s={} y={} t:0-59 画布:{}x{} 像素:{}({:.1}%) → {}",
                  s, yy, canvas_w, canvas_h, non_bg, non_bg as f64 / (canvas_w * canvas_h) as f64 * 100.0, out);
     } else if args.len() > 2 && args[1] == "pipe" {
-        // pipeline：一个音节一键生成 4 张图
+        // pipeline：pipe s y t [S:±1 Y:-2 T: ...]一键生成标准 4 张 + 可选偏置对比
         let s: u32 = args.get(2).and_then(|x| x.parse().ok()).unwrap_or(0);
         let y: u32 = args.get(3).and_then(|x| x.parse().ok()).unwrap_or(0);
         let t: u32 = args.get(4).and_then(|x| x.parse().ok()).unwrap_or(0);
@@ -978,6 +1122,35 @@ fn main() {
         draw_pipe_tones(s, y, &prefix);
         draw_pipe_row(s, &prefix);
         draw_pipe_bias(s, y, t, &prefix);
+
+        // 解析可选偏置参数（第 5 参数起），如果有，额外输出一张"偏置对比图"
+        if args.len() > 5 {
+            let mut bs_s: Vec<Bias> = Vec::new();
+            let mut bs_y: Vec<Bias> = Vec::new();
+            let mut bs_t: Vec<Bias> = Vec::new();
+            for i in 5..args.len() {
+                let a = &args[i];
+                let (pf, nota) = if a.contains(':') {
+                    let p: Vec<&str> = a.splitn(2, ':').collect();
+                    (p[0], p[1])
+                } else { ("*", a.as_str()) };
+                let decoded = decode(nota);
+                match pf {
+                    "S" => bs_s.extend(decoded),
+                    "Y" => bs_y.extend(decoded),
+                    "T" => bs_t.extend(decoded),
+                    _ => { bs_s.extend(decoded.clone()); bs_y.extend(decoded.clone()); bs_t.extend(decoded); }
+                }
+            }
+            if !bs_s.is_empty() || !bs_y.is_empty() || !bs_t.is_empty() {
+                let big_w = 800i32; let big_h = 800i32; let m = 60;
+                let mut cv = Cv { d: vec![0x111111; (big_w * big_h) as usize], w: big_w, h: big_h };
+                draw_container_biased(&mut cv, m, m, big_w - 2*m, big_h - 2*m, s, y, t, &bs_s, &bs_y, &bs_t, 0xCCCCCC);
+                let out = format!("{}_biased.bmp", prefix);
+                write_bmp_canvas(&cv, &out);
+                println!("  ✓ 偏置对比 → {}", out);
+            }
+        }
 
         println!("pipeline done: s={} y={} t={} → {}_*.bmp", s, y, t, prefix);
     } else {
