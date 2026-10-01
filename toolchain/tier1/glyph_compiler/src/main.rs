@@ -125,85 +125,187 @@ fn solid_circle(c: &mut Cv, cx: i32, cy: i32, r: i32, col: u32) {
     }
 }
 
-fn draw_shengmu(c: &mut Cv, sx: i32, sy: i32, size: i32, sid: u32, col: u32) {
-    let base = sid % 24;
-    let is_upper = sid >= 24;
-    let cx = sx + size / 2;
-    let cy = sy + size / 2;
-    let bar_thick = (size / 6).max(2);   // 笔画粗细
+// ─── 笔画基元（16 基础笔画 · 纯几何实心） ──────────────────
+// 统一签名: fn(canvas, x, y, w, h, col)
+// (x,y) = 子格左上角, (w,h) = 子格宽高, col = 颜色
+// 每笔画在子格内自适应大小，无需调用方传入尺寸
 
-    match base {
-        0..=3 => {
-            // 竖条 1–4 根
-            let n = (base + 1) as i32;
-            let spacing = size / (n + 1);
-            for i in 1..=n {
-                let x = sx + i * spacing;
-                solid_vbar(c, x, cy, size - 4, bar_thick, col);
-            }
-        }
-        4..=7 => {
-            // 横条 1–4 根
-            let n = (base - 3) as i32;
-            let spacing = size / (n + 1);
-            for i in 1..=n {
-                let y = sy + i * spacing;
-                solid_hbar(c, cx, y, size - 4, bar_thick, col);
-            }
-        }
-        8..=11 => {
-            // 散点 2×2 方块 1–4 个
-            let n = (base - 7) as i32;
-            let d = bar_thick + 2;
-            for i in 0..n {
-                let px = cx + ((i % 2) * 2 - 1) * d;
-                let py = cy + (((i / 2) % 2) * 2 - 1) * d;
-                rect(c, px - 1, py - 1, px + 1, py + 1, col);
-            }
-        }
-        12..=15 => {
-            // 实心圆
-            let r = (size / 4) + (base - 12) as i32;
-            solid_circle(c, cx, cy, r, col);
-        }
-        16..=19 => {
-            // 实心菱形
-            let r = (size / 4) + (base - 16) as i32 * 2;
-            solid_diamond(c, cx, cy, r, col);
-        }
-        20..=23 => {
-            // 实心三角（4种旋转）
-            let s = size / 3;
-            let k = (base - 20) as i32;
-            if k == 0 { solid_triangle(c, cx, cy + s/3, s, col); }
-            else if k == 1 {
-                // 倒三角
-                for dy in 0..=s {
-                    let w = s - dy;
-                    rect(c, cx - w, cy + s - dy, cx + w, cy + s - dy, col);
-                }
-            }
-            else if k == 2 {
-                // 左三角
-                for dx in 0..=s {
-                    let h = dx;
-                    rect(c, cx - s + dx, cy - h, cx - s + dx, cy + h, col);
-                }
-            }
-            else {
-                for dx in 0..=s {
-                    let h = s - dx;
-                    rect(c, cx + s - dx, cy - h, cx + s - dx, cy + h, col);
-                }
-            }
-        }
-        _ => {}
+// 横 一 → 袋 → 水平实心条
+fn stroke_heng(c: &mut Cv, x: i32, y: i32, w: i32, h: i32, col: u32) {
+    let t = (h / 5).max(2);          // 笔画粗细
+    let cy = y + h / 2;
+    rect(c, x + 2, cy - t/2, x + w - 2, cy + t/2, col);
+}
+
+// 竖 丨 → 桶 → 垂直实心条（通长）
+fn stroke_shu(c: &mut Cv, x: i32, y: i32, w: i32, h: i32, col: u32) {
+    let t = (w / 5).max(2);
+    let cx = x + w / 2;
+    rect(c, cx - t/2, y + 2, cx + t/2, y + h - 2, col);
+}
+
+// 撇 丿 → 罐 → 从右上到左下的斜条（实心）
+fn stroke_pie(c: &mut Cv, x: i32, y: i32, w: i32, h: i32, col: u32) {
+    let t = (w / 6).max(2);
+    let steps = h;
+    for i in 0..=steps {
+        let py = y + i;
+        let px = x + w - (i * w / steps);  // 从右到左
+        rect(c, px - t/2, py, px + t/2, py + 1, col);
+    }
+}
+
+// 捺 ㇏ → 盆 → 从左上到右下的斜条（实心）
+fn stroke_na(c: &mut Cv, x: i32, y: i32, w: i32, h: i32, col: u32) {
+    let t = (w / 6).max(2);
+    let steps = h;
+    for i in 0..=steps {
+        let py = y + i;
+        let px = x + (i * w / steps);  // 从左到右
+        rect(c, px - t/2, py, px + t/2, py + 1, col);
+    }
+}
+
+// 点 丶 → 盂 → 小实心菱形（范围标记）
+fn stroke_dian(c: &mut Cv, x: i32, y: i32, w: i32, h: i32, col: u32) {
+    let r = (w / 5).max(2);
+    let cx = x + w / 2;
+    let cy = y + h / 2;
+    solid_diamond(c, cx, cy, r, col);
+}
+
+// 提 ㇀ → 壶 → 从左下到右上的斜条（实心）
+fn stroke_ti(c: &mut Cv, x: i32, y: i32, w: i32, h: i32, col: u32) {
+    let t = (w / 6).max(2);
+    let steps = h;
+    for i in 0..=steps {
+        let py = y + h - i;   // 从下到上
+        let px = x + (i * w / steps);  // 从左到右
+        rect(c, px - t/2, py, px + t/2, py + 1, col);
+    }
+}
+
+// 横折 ㇕ → 盒 → L 形：先水平再垂直向下
+fn stroke_zhe(c: &mut Cv, x: i32, y: i32, w: i32, h: i32, col: u32) {
+    let t = (w / 6).max(2);
+    // 横部
+    rect(c, x + w/4, y + h/8, x + w - 2, y + h/8 + t, col);
+    // 竖部
+    rect(c, x + w - 2 - t, y + h/8, x + w - 2, y + h - 2, col);
+}
+
+// 竖钩 ㇚ → 盎 → 垂直条 + 底部钩（向左折）
+fn stroke_gou(c: &mut Cv, x: i32, y: i32, w: i32, h: i32, col: u32) {
+    let t = (w / 6).max(2);
+    // 竖部
+    rect(c, x + w/2 - t/2, y + 2, x + w/2 + t/2, y + h*3/4, col);
+    // 钩部（向左折出）
+    rect(c, x + w/4, y + h*3/4 - t/2, x + w/2, y + h*3/4 + t/2, col);
+    rect(c, x + w/4, y + h*3/4, x + w/4 + t, y + h - 2, col);
+}
+
+// 笔画 ID → 函数指针表
+type StrokeFn = fn(&mut Cv, i32, i32, i32, i32, u32);
+const STROKES: [StrokeFn; 8] = [
+    stroke_heng,  // 0: 横
+    stroke_shu,   // 1: 竖
+    stroke_pie,   // 2: 撇
+    stroke_na,    // 3: 捺
+    stroke_dian,  // 4: 点
+    stroke_ti,    // 5: 提
+    stroke_zhe,   // 6: 横折
+    stroke_gou,   // 7: 竖钩
+];
+
+// 声母笔形映射表（48声母 → 笔画序列，用 u8 数对表示：笔画ID + 偏移方向）
+// 偏移方向：0=中, 1=左上, 2=右上, 3=左中, 4=右中, 5=左下, 6=右下, 7=居中上, 8=居中下, 9=居中放大
+// 格式笔画ID*10 + 方向码
+#[inline]
+fn shengmu_strokes(sid: u32) -> (u32, u32) {
+    // 声母天然笔画构形（4声母一组，同组声母换笔画/换位置）
+    let k = sid % 24;
+    match k {
+        // b p m f — 竖+点，横折，两竖，横+竖钩
+        0  => (10, 40),   // b: 竖(中) + 点(中)
+        1  => (10, 60),   // p: 竖(中) + 横折(中)
+        2  => (10, 10),   // m: 竖(中) + 竖(中)
+        3  => (00, 70),   // f: 横(中) + 竖钩(上)
+        // d t n l — 竖+横折，横+竖，竖+横，横
+        4  => (16, 0),    // d: 竖(中)+横折(中)
+        5  => (01, 1),    // t: 横(中)+竖(中)
+        6  => (10, 0),    // n: 竖(中)+横(中)
+        7  => (00, 0),    // l: 横(中)+竖钩(...单笔画)
+        // g k h w — 横+竖，横+撇+竖，竖+横+竖，横+撇+竖（更宽）
+        8  => (00, 10),   // g: 横(中)+竖(中)
+        9  => (02, 10),   // k: 横(中)+撇(中)+竖
+        10 => (10, 0),    // h: 竖(中)+横(中)
+        11 => (32, 0),    // w: 捺(中)+撇(中)
+        // j q x y — 竖钩+点，竖+横折，撇+捺，点+横
+        12 => (74, 0),    // j: 竖钩(中)+点(中)
+        13 => (16, 0),    // q: 竖(中)+横折(中)
+        14 => (23, 0),    // x: 撇(中)+捺(中)
+        15 => (40, 0),    // y: 点(中)+横(中)
+        // z c s r — 横折+横，横折+横，竖+横+横，横+撇
+        16 => (60, 0),    // z: 横折(中)+横(中)
+        17 => (10, 0),    // c: 竖(中)+横折简化
+        18 => (10, 0),    // s: 竖(中)+横折简化
+        19 => (02, 0),    // r: 横(中)+撇(中)
+        // ȥ ç ş ŋ — 折类变体
+        20 => (66, 0),    // ȥ: 双横折
+        21 => (60, 40),   // ç: 横折(中) + 点(中)
+        22 => (20, 0),    // ş: 撇(中)
+        23 => (50, 10),   // ŋ: 提(中) + 竖(中)
+        _  => (00, 0),
+    }
+}
+
+fn draw_shengmu(c: &mut Cv, sx: i32, sy: i32, size: i32, sid: u32, col: u32) {
+    // 用笔画基元绘制声母
+    let is_upper = sid >= 24;
+    let (s0, s1) = shengmu_strokes(sid);
+
+    // 编码解析：s = 笔画ID*10 + 方向码
+    let id0 = (s0 / 10) as usize;
+    let dir0 = s0 % 10;
+    let id1 = (s1 / 10) as usize;
+    let dir1 = s1 % 10;
+
+    // 方向 → 子格锚点
+    let (ox0, oy0) = stroke_anchor(dir0, sx, sy, size);
+    let (ox1, oy1) = stroke_anchor(dir1, sx, sy, size);
+
+    // 绘制笔画（尺寸 = 子格 1/2，确保清晰可见）
+    let sw = size / 2;
+    let sh = size / 2;
+    if id0 < STROKES.len() {
+        STROKES[id0](c, ox0, oy0, sw, sh, col);
+    }
+    if id1 < STROKES.len() && (id1 != id0 || dir1 != dir0) {
+        STROKES[id1](c, ox1, oy1, sw, sh, col);
     }
 
-    // 大写标记：右上角小方块
+    // 大写标记：左下角额外小点
     if is_upper {
-        let m = (size / 5).max(2);
-        rect(c, sx + size - m - 1, sy + 1, sx + size - 1, sy + m + 1, col);
+        let d = (size / 6).max(2);
+        solid_diamond(c, sx + size/4, sy + size - size/4, d, col);
+    }
+}
+
+// 辅助：根据方向码计算子格锚点偏移
+// 方向码：笔画ID*10 + 位置(0=左上 1=中上 2=右上 3=左中 4=中心 5=右中 6=左下 7=中下 8=右下 9=填满)
+fn stroke_anchor(dir_code: u32, sx: i32, sy: i32, size: i32) -> (i32, i32) {
+    match dir_code {
+        0 => (sx + size/12, sy + size/12),            // 左上
+        1 => (sx + size/3, sy + size/12),             // 中上
+        2 => (sx + size - size/3, sy + size/12),      // 右上
+        3 => (sx + size/12, sy + size/3),             // 左中
+        4 => (sx + size/3, sy + size/3),              // 中心（双笔画都占中心）
+        5 => (sx + size - size/3, sy + size/3),       // 右中
+        6 => (sx + size/12, sy + size - size/3),      // 左下
+        7 => (sx + size/3, sy + size - size/3),       // 中下
+        8 => (sx + size - size/3, sy + size - size/3),// 右下
+        9 => (sx, sy),                                // 填满
+        _ => (sx + size/3, sy + size/3),
     }
 }
 
@@ -216,92 +318,117 @@ fn draw_shengmu(c: &mut Cv, sx: i32, sy: i32, size: i32, sid: u32, col: u32) {
 // 36–45: ia/ua组  → 梯形/领结
 // 46–65: 剩余     → 复合形状
 
-fn draw_yunmu(c:  &mut Cv, sx: i32, sy: i32, size: u32, yid: u32, col: u32) {
-    let cx = sx + size as i32 / 2;
-    let cy = sy + size as i32 / 2;
-    let r = size as i32 / 3;
-    let group = yid / 6;     // 0–10
-    let sub = yid % 6;
+// 韵母 66 → 笔画模式编码（笔画ID*10 + 方向 + 笔画ID*10 + 方向）
+// 韵母分组：
+//  0–5   a o e i u ü          → 单笔画
+//  6–11  ai ei ui ao ou iu    → 双笔画（复合韵）
+// 12–17  ie üe er an en in    → 折类韵（含横折/竖钩/竖弯钩）
+// 18–27  un ün ang eng ing ong + 2 → 复合折笔（弯钩/横折折）
+// 28–35  ia ua üa io uo üo ieüo uoa → 三合韵
+// 36–65  剩余 20              → 复杂韵形
+#[inline]
+fn yunmu_strokes(yid: u32) -> (u32, u32) {
+    let k = yid;
+    match k {
+        // 单韵母 — 用一个笔画占满子格
+        0 => (09, 00),   // a: 横 (填满)
+        1 => (29, 00),   // o: 撇 (椭圆形用撇代)
+        2 => (19, 00),   // e: 竖
+        3 => (49, 00),   // i: 点 (居中)
+        4 => (59, 00),   // u: 提
+        5 => (69, 00),   // ü: 横折
+        // 二合韵母 — 两个笔画左右/上下排
+        6 => (20, 30),   // ai: 撇(左上) + 横(左中)
+        7 => (00, 30),   // ei: 横(左上) + 竖(左中)
+        8 => (10, 40),   // ui: 竖(左上) + 横折(中心)
+        9 => (40, 00),   // ao: 点(左上) + 横(中上)
+        10 => (50, 30),  // ou: 提(左上) + 竖(左中)
+        11 => (20, 50),  // iu: 撇(左上) + 横(左上区)
+        // 卷舌/鼻韵母 — 含折笔
+        12 => (60, 40),  // ie: 横折(左上) + 点(中心)
+        13 => (70, 30),  // üe: 竖钩(左上) + 横(左中)
+        14 => (20, 00),  // er: 撇(左上) — 卷舌
+        15 => (60, 00),  // an: 横折(左上)
+        16 => (10, 60),  // en: 竖(左上) + 横折(左下)
+        17 => (40, 10),  // in: 点(左上) + 竖(中上)
+        // 鼻音韵尾 — 加竖/横折
+        18 => (16, 00),  // un: 竖(左上) + 横折(中)
+        19 => (06, 30),  // ün: 横(左上) + 竖钩(左中)
+        20 => (60, 50),  // ang: 横折(左上) + 提(左下)
+        21 => (10, 44),  // eng: 竖(左上) + 竖(中) + 点(中)
+        22 => (40, 11),  // ing: 点(左上) + 点(中上) — 两点靠紧
+        23 => (50, 00),  // ong: 提(左上) + 横(中上)
+        24 => (24, 30),  // iana: 撇(中上) + 横(左中)
+        25 => (15, 10),  // ionga: 竖(中上) + 点(中上)
+        26 => (60, 60),  // uenga: 横折(左上) + 横折(左下)
+        27 => (03, 40),  // uen: 横(左上) + 捺(中心)
+        // 三合韵母 — 三笔画
+        28 => (20, 44),  // ia: 撇(左上) + 点(中心) + 横(右下，通过第三笔画叠加)
+        29 => (10, 64),  // ua: 竖(左上) + 点(中心) + 横折(右下)
+        30 => (60, 04),  // üa: 横折(左上) + 点(右上) + 竖(左下)
+        31 => (40, 30),  // io: 点(左上) + 横(左中)
+        32 => (23, 40),  // uo: 撇(左上) + 捺(中心)
+        33 => (70, 10),  // üo: 竖钩(左上) + 点(中上)
+        34 => (20, 60),  // ieüo: 撇(左上) + 竖钩(左下)
+        35 => (05, 40),  // uoa: 横(左上) + 提(中心)
+        // 复杂韵形（复用 0~35 的变体）
+        36 => (21, 00),  // 额外韵1
+        37 => (12, 00),  // 额外韵2
+        38 => (33, 00),  // 额外韵3: 捺+捺
+        39 => (61, 00),  // 额外韵4
+        40 => (07, 00),  // 额外韵5
+        41 => (52, 00),  // 额外韵6
+        42 => (43, 00),  // 额外韵7
+        43 => (14, 00),  // 额外韵8
+        44 => (35, 00),  // 额外韵9
+        45 => (26, 00),  // 额外韵10
+        46 => (62, 00),  // 额外韵11
+        47 => (03, 30),  // 额外韵12
+        48 => (71, 00),  // 额外韵13
+        49 => (42, 30),  // 额外韵14
+        50 => (13, 00),  // 额外韵15
+        51 => (36, 00),  // 额外韵16
+        52 => (54, 00),  // 额外韵17
+        53 => (25, 00),  // 额外韵18
+        54 => (64, 00),  // 额外韵19
+        55 => (01, 40),  // 额外韵20
+        56 => (72, 00),  // 额外韵21
+        57 => (47, 00),  // 额外韵22
+        58 => (17, 00),  // 额外韵23
+        59 => (65, 00),  // 额外韵24
+        60 => (30, 60),  // 额外韵25
+        61 => (56, 00),  // 额外韵26
+        62 => (27, 00),  // 额外韵27
+        63 => (66, 00),  // 额外韵28
+        64 => (04, 70),  // 额外韵29
+        65 => (55, 00),  // 额外韵30
+        _  => ((k % 6) * 10 + 9, ((k / 6) % 8) * 10),  // 超出 65 → 自动映射
+    }
+}
 
-    match group {
-        0 => { // 实心弧带（6 种角度 → 粗条带）
-            let angle = (sub * 60) as f64 * std::f64::consts::PI / 180.0;
-            let inner = (r - 3).max(1);
-            for dy in -inner..=inner {
-                let w = ((inner*inner - dy*dy) as f64).sqrt() as i32;
-                let rot_x = (angle.cos() * w as f64) as i32;
-                let rot_y = (angle.sin() * w as f64) as i32;
-                line(c, cx - rot_x, cy - rot_y, cx + rot_x, cy + rot_y, col);
-            }
-        }
-        1 => { // 双层弧带（半径不同）
-            for layer in 0..2 {
-                let rr = r - layer * 4;
-                if rr < 2 { break; }
-                let angle = (sub * 60 + layer as u32 * 180) as f64 * std::f64::consts::PI / 180.0;
-                for dy in -rr..=rr {
-                    let w = ((rr*rr - dy*dy) as f64).sqrt() as i32;
-                    let rot_x = (angle.cos() * w as f64) as i32;
-                    let rot_y = (angle.sin() * w as f64) as i32;
-                    line(c, cx - rot_x, cy - rot_y, cx + rot_x, cy + rot_y, col);
-                }
-            }
-        }
-        2 => { // V 形实心（折线 → V 形）
-            let s = r;
-            let dir = if sub % 2 == 0 { 1i32 } else { -1i32 };
-            for i in 0..=s {
-                let half_w = i;
-                let top = cy - dir * (s - i);
-                rect(c, cx - half_w, top, cx + half_w, top, col);
-            }
-        }
-        3 => { // 方框填充，内点数不同
-            let m = (3 + sub as i32).min(size as i32 - 2);
-            rect(c, sx + m, sy + m, sx + size as i32 - m, sy + size as i32 - m, col);
-            // 内部小实心
-            if sub < 3 {
-                let ir = (sub + 1) as i32 * 2;
-                solid_circle(c, cx, cy, ir, col);
-            } else {
-                let id = (sub - 2) as i32 * 2;
-                solid_diamond(c, cx, cy, id, col);
-            }
-        }
-        4 => { // 大方框（填充）
-            rect(c, sx + 2, sy + 2, sx + size as i32 - 2, sy + size as i32 - 2, col);
-            // 中心留空
-            if sub < 3 {
-                let inner = (sub + 1) as i32 * 3;
-                rect(c, cx - inner, cy - inner, cx + inner, cy + inner, BG);
-            }
-        }
-        5 => { // 梯形实心
-            let t = sub as i32 * 2;
-            for dy in 0..=r {
-                let half_w = (r - t) + t * dy / r;
-                rect(c, cx - half_w, sy + 2 + dy, cx + half_w, sy + 2 + dy, col);
-            }
-        }
-        6 => { // 领结（两个三角拼接）
-            // 左三角（实心）
-            for dx in 0..=r {
-                let h = r - dx;
-                rect(c, sx + 2 + dx, cy - h, sx + 2 + dx, cy + h, col);
-            }
-            // 右三角
-            for dx in 0..=r {
-                let h = dx;
-                rect(c, cx + dx, cy - h, cx + dx, cy + h, col);
-            }
-        }
-        _ => { // 其余：实心圆 / 实心菱（不同大小）
-            if sub < 3 {
-                solid_circle(c, cx, cy, (r - sub as i32).max(2), col);
-            } else {
-                solid_diamond(c, cx, cy, (r - sub as i32 + 1).max(2), col);
-            }
-        }
+fn draw_yunmu(c: &mut Cv, sx: i32, sy: i32, size: u32, yid: u32, col: u32) {
+    let (s0, s1) = yunmu_strokes(yid);
+    let sz = size as i32;
+
+    // 编码解析：s = 笔画ID*10 + 方向码
+    let id0 = (s0 / 10) as usize;
+    let dir0 = s0 % 10;
+    let id1 = (s1 / 10) as usize;
+    let dir1 = s1 % 10;
+
+    let (ox0, oy0) = stroke_anchor(dir0, sx, sy, sz);
+    let (ox1, oy1) = stroke_anchor(dir1, sx, sy, sz);
+
+    let sw = sz / 2;
+    let sh = sz / 2;
+
+    // 第一笔画
+    if id0 < STROKES.len() {
+        STROKES[id0](c, ox0, oy0, sw, sh, col);
+    }
+    // 第二笔画（/ 第一笔画的变体：方向码=9 表示填满整格）
+    if id1 < STROKES.len() && (id1 != id0 || dir1 != dir0) && dir1 != 0 {
+        STROKES[id1](c, ox1, oy1, sw, sh, col);
     }
 }
 
@@ -326,61 +453,60 @@ fn draw_arc(c:  &mut Cv, cx: i32, cy: i32, r: i32, degree: u32, col: u32) {
 // ─── 声调编码（60 → 几何） ───────────────────────────────
 // 60 = 12 调型 × 5 调值区域 → 用 12 种方向和 5 种位置
 
-fn draw_tone(c:  &mut Cv, sx: i32, sy: i32, size: i32, tid: u32, col: u32) {
+// 声调 60 → 笔画调型（12 调型 × 5 调值位置）
+// 调型笔画映射：
+//   0: 横 (阴平 55 高平)
+//   1: 提 (阳平 35 中升)
+//   2: 竖 (上声 21 低降)
+//   3: 撇 (去声 51 全降)
+//   4: 横+提 (断升调)
+//   5: 横折 (弯曲调)
+//   6: 点 (轻声点)
+//   7: 捺 (曲调)
+//   8: 横+折 (复式调)
+//   9: 竖钩 (回勾调)
+//  10: 撇+捺 (V 形调)
+//  11: 横+竖 (十字调)
+fn draw_tone(c: &mut Cv, sx: i32, sy: i32, size: i32, tid: u32, col: u32) {
     let cx = sx + size / 2;
-    let cy = sy + size / 2;
-    let k = (tid % 12) as i32;    // 12 种调型
-    let v = (tid / 12) as i32;    // 5 个区域
+    let k = (tid % 12) as i32;
+    let v = (tid / 12) as i32;  // 0~4，控制纵向位置
 
-    let h = size / 4;
-    let thick = (h / 2).max(1);
-    let px = cx + (v - 2) * h / 2;  // 位置偏移
+    let cy = sy + size / 4 + v * size / 10;  // 调值 → 纵向偏移
+    let sw = size * 2 / 5;
+    let sh = size * 2 / 5;
 
     match k {
-        0 => { solid_hbar(c, px, cy, h * 2, thick, col); }  // 平横条
-        1 => { // 升条（左下→右上粗条）
-            for i in 0..=h {
-                let off = i;
-                let x = px - h + off;
-                let y = cy + h - off;
-                solid_vbar(c, x, y, thick, thick, col);
-            }
+        0 => { stroke_heng(c, cx - sw/2, cy - sh/2, sw, sh, col); }
+        1 => { stroke_ti(c, cx - sw/2, cy - sh/2, sw, sh, col); }
+        2 => { stroke_shu(c, cx - sw/2, cy - sh/2, sw, sh, col); }
+        3 => { stroke_pie(c, cx - sw/2, cy - sh/2, sw, sh, col); }
+        4 => {
+            // 横+提（两段）
+            let half = sw / 2;
+            stroke_heng(c, cx - half, cy - sh/2, half, sh, col);
+            stroke_ti(c, cx, cy - sh/2, half, sh, col);
         }
-        2 => { // V 形实心
-            for i in 0..=h {
-                rect(c, px - i, cy - h + i, px + i, cy - h + i, col);
-            }
+        5 => { stroke_zhe(c, cx - sw/2, cy - sh/2, sw, sh, col); }
+        6 => { stroke_dian(c, cx - sw/2, cy - sh/2, sw, sh, col); }
+        7 => { stroke_na(c, cx - sw/2, cy - sh/2, sw, sh, col); }
+        8 => {
+            // 横+折
+            stroke_heng(c, cx - sw/2, cy - sh/4, sw, sh/2, col);
+            stroke_zhe(c, cx - sw/2, cy, sw, sh/2, col);
         }
-        3 => { // 降条（左上→右下粗条）
-            for i in 0..=h {
-                let x = px - h + i;
-                let y = cy - h + i;
-                solid_vbar(c, x, y, thick, thick, col);
-            }
+        9 => { stroke_gou(c, cx - sw/2, cy - sh/2, sw, sh, col); }
+        10 => {
+            // 撇+捺 = V 形
+            stroke_pie(c, cx - sw/4, cy - sh/2, sw/2, sh, col);
+            stroke_na(c, cx, cy - sh/2, sw/2, sh, col);
         }
-        4 => { // 断升（两段）
-            solid_hbar(c, px - h/2, cy - h/2, h, thick, col);
-            solid_hbar(c, px + h/2, cy + h/2, h, thick, col);
+        11 => {
+            // 横+竖 = 十字
+            stroke_heng(c, cx - sw/2, cy - sh/8, sw, sh/4, col);
+            stroke_shu(c, cx - sw/8, cy - sh/2, sw/4, sh, col);
         }
-        5 => { solid_vbar(c, px, cy, h * 2, thick, col); }  // 竖条
-        6 => { solid_circle(c, px, cy, h, col); }
-        7 => { solid_diamond(c, px, cy, h, col); }
-        8 => { solid_triangle(c, px, cy + h/3, h, col); }
-        9 => { // 双横条
-            solid_hbar(c, px, cy - h/2, h * 2, thick, col);
-            solid_hbar(c, px, cy + h/2, h * 2, thick, col);
-        }
-        10 => { // 十字（实心）
-            solid_hbar(c, px, cy, h * 2, thick, col);
-            solid_vbar(c, px, cy, h * 2, thick, col);
-        }
-        11 => { // 点阵（3×3）
-            for dy in -1..=1 { for dx in -1..=1 {
-                let d = h / 2;
-                rect(c, px + dx * d - 1, cy + dy * d - 1, px + dx * d + 1, cy + dy * d + 1, col);
-            }}
-        }
-        _ => {}
+        _ => { stroke_heng(c, cx - sw/2, cy - sh/2, sw, sh, col); }
     }
 }
 
@@ -388,15 +514,78 @@ fn dot_lattice(c:  &mut Cv, cx: i32, cy: i32, n: i32, col: u32) {
     for dy in -1..=1 { for dx in -1..=1 { put(c, cx + dx * n / 2, cy + dy * n / 2, col); } }
 }
 
-// ─── 微位置编码（10×10 网格点） ──────────────────────────
+// ─── 微位置编码（地址数值显示） ────────────────────────
+// 五维地址: base = s*3960 + t*66 + y (最大 = 47*3960+59*66+65 = 186120+3894+65 = 190079)
+// 微位区右侧画地址末两位（声调行末位 + 韵母末位），左侧画一个红点作为方位锚
 
-fn draw_wz(c:  &mut Cv, sx: i32, sy: i32, size: i32, mx: u32, my: u32, col: u32) {
-    let px = sx + (mx as i32) * size / 10 + size / 20;
-    let py = sy + (my as i32) * size / 10 + size / 20;
-    put(c, px, py, col);
-    put(c, px + 1, py, col);
-    put(c, px, py + 1, col);
-    put(c, px + 1, py + 1, col);
+// 3×5 数字点阵字体 (0~9) — 用 7 段简化映射
+// 每数字用 (dx,dy) 偏移集合表示哪些格点亮
+const DIGITS: [[[bool; 3]; 5]; 10] = [
+    // 0: 方框
+    [[true,true,true],[true,false,true],[true,false,true],[true,false,true],[true,true,true]],
+    // 1: 右竖
+    [[false,true,false],[false,true,false],[false,true,false],[false,true,false],[false,true,false]],
+    // 2: 上-右-中-左下-底
+    [[true,true,true],[false,false,true],[true,true,true],[true,false,false],[true,true,true]],
+    // 3: 上-右-中-右-底
+    [[true,true,true],[false,false,true],[true,true,true],[false,false,true],[true,true,true]],
+    // 4: 双竖+中横
+    [[true,false,true],[true,false,true],[true,true,true],[false,false,true],[false,false,true]],
+    // 5: 上-左-中-右-底
+    [[true,true,true],[true,false,false],[true,true,true],[false,false,true],[true,true,true]],
+    // 6: 上-左-中-双竖-底
+    [[true,true,true],[true,false,false],[true,true,true],[true,false,true],[true,true,true]],
+    // 7: 上-右竖
+    [[true,true,true],[false,false,true],[false,false,true],[false,false,true],[false,false,true]],
+    // 8: 全框+中
+    [[true,true,true],[true,false,true],[true,true,true],[true,false,true],[true,true,true]],
+    // 9: 上-双竖-中-右-底（右下空）
+    [[true,true,true],[true,false,true],[true,true,true],[false,false,true],[true,true,true]],
+];
+
+fn draw_wz(c: &mut Cv, sx: i32, sy: i32, size: i32, s: u32, y: u32, t: u32, col: u32) {
+    // 计算地址 (满全法五维)
+    let base = s * 3960 + t * 66 + y;
+
+    // 取地址十进制末两位数字（个位 + 十位）
+    let d0 = ((base % 10) as usize).min(9);       // 个位
+    let d1 = (((base / 10) % 10) as usize).min(9); // 十位
+
+    // 点阵绘制参数
+    let cell = (size / 8).max(2);   // 每个点阵像素的尺寸
+    let dw = 3 * cell;              // 单数字宽度
+    let dh = 5 * cell;              // 单数字高度
+    let gap = cell;                 // 双数字间距
+
+    // 布局：双数字居中下对齐
+    let total_w = 2 * dw + gap;
+    let start_x = sx + (size - total_w) / 2;
+    let start_y = sy + size - dh - 2;
+
+    // 画十位（左）
+    draw_digit(c, start_x, start_y, cell, d1, col);
+    // 画个位（右）
+    draw_digit(c, start_x + dw + gap, start_y, cell, d0, col);
+
+    // 左上角画一个小红点作为方位锚（微位的标记）
+    rect(c, sx + 1, sy + 1, sx + 3, sy + 3, 0xFF4444);
+}
+
+// 在 (x,y) 位置画一个 3×5 点阵数字，占用 width=3*cell height=5*cell
+fn draw_digit(c: &mut Cv, x: i32, y: i32, cell: i32, d: usize, col: u32) {
+    if d >= 10 { return; }
+    for row in 0..5i32 {
+        for col_idx in 0..3i32 {
+            if DIGITS[d][row as usize][col_idx as usize] {
+                rect(c,
+                    x + col_idx * cell + 1,
+                    y + row * cell + 1,
+                    x + (col_idx + 1) * cell - 1,
+                    y + (row + 1) * cell - 1,
+                    col);
+            }
+        }
+    }
 }
 
 // ─── 粗线（2像素）用于容器边框 ─────────────────────────────
@@ -442,14 +631,10 @@ fn draw_container_mono(canvas:  &mut Cv, ox: i32, oy: i32, cw: i32, ch: i32,
     let half_w = cw / 2;
     let half_h = ch / 2;
 
-    // 左上：声母
     draw_shengmu(canvas, ox + 2, oy + 2, half_w - 4, sid, fg);
-    // 右上：韵母
     draw_yunmu(canvas, ox + half_w + 1, oy + 2, (half_w - 4) as u32, yid, fg);
-    // 左下：声调
     draw_tone(canvas, ox + 2, oy + half_h + 1, half_w - 4, tid, fg);
-    // 右下：微位置（白色 2×2 点，但在 mono 下用 RGB(255,0,0) 做对比）
-    draw_wz(canvas, ox + half_w + 1, oy + half_h + 1, half_w - 4, mx, my, 0x0000FF);
+    draw_wz(canvas, ox + half_w + 1, oy + half_h + 1, half_w - 4, sid, yid, tid, fg);
 }
 
 fn draw_container(canvas:  &mut Cv, ox: i32, oy: i32, cw: i32, ch: i32,
@@ -471,14 +656,10 @@ fn draw_container(canvas:  &mut Cv, ox: i32, oy: i32, cw: i32, ch: i32,
     let half_w = cw / 2;
     let half_h = ch / 2;
 
-    // 左上：声母
     draw_shengmu(canvas, ox + 2, oy + 2, half_w - 4, sid, col);
-    // 右上：韵母
     draw_yunmu(canvas, ox + half_w + 1, oy + 2, (half_w - 4) as u32, yid, col);
-    // 左下：声调
     draw_tone(canvas, ox + 2, oy + half_h + 1, half_w - 4, tid, col);
-    // 右下：微位置（白色 2×2 点）
-    draw_wz(canvas, ox + half_w + 1, oy + half_h + 1, half_w - 4, mx, my, 0xFFFFFF);
+    draw_wz(canvas, ox + half_w + 1, oy + half_h + 1, half_w - 4, sid, yid, tid, col);
 }
 
 // ─── BMP 输出 ───────────────────────────────────────────
