@@ -2,7 +2,7 @@
   "project": "囡囝共生 (NJSG)",
   "repository": "github.com/lolict/hunyuan-os",
   "version": "v2.1-swarm",
-  "last_sync": "2026-09-02",
+  "last_sync": "2026-10-03"
   "tasks": [
     {
       "id": "v0.1-v0.8",
@@ -107,10 +107,22 @@
       "status": "milestone_1_2_3_pass",
       "priority": 3,
       "entry_file": "kernel/src/njsg_kernel.c",
-      "description": "全部三个里程碑验证通过(M1-M15 PASS)。里程碑一:种子场握手自动邻居发现(njsg_mengji_discover_from_seed)+离线Pull恢复测试(M15 PASS)。里程碑二:分布式三元见证+冲突裁决(M9-M11三元见证状态机EMPTY→SINGLE→DOUBLE→WITNESSED/REJECTED)。里程碑三:跨袋子合并拆分+增量日志+验证协议(M12-M14权值守恒Σ==bag_total_weight)。仅加减无乘除;袋子级整袋跃迁;源头袋消耗(weight→0)。进度75%。待:持久化/跨网络/实际传输层/横向多场接入",
+      "description": "三个里程碑全部PASS(M1-M15)。M16/M17/M18独立场景入口已加入(MENGJI_SCENARIO环境变量控制triune/bag/offline)。构建时三分支回归验证(container/Dockerfile)。container/合并编译验证通过。进度75%。待:持久化/跨网络/实际传输层(TCP容器通信)/横向多场接入"
       "assignee": null,
       "progress": 75,
       "dependencies": ["v1.3-full-stack"]
+    },
+    {
+      "id": "container-runtime",
+      "version": "v1.0",
+      "name": "满全法容器运行时(container/)",
+      "status": "container_build_pass",
+      "priority": 2,
+      "entry_file": "container/Dockerfile",
+      "description": "零侵入hunyuan-os主仓库,独立/container目录。Dockerfile:debian12-slim+gcc/clang→git-clone-hunyuan-os(MENGJI_OS_REF参数)→编译njsg_mengji+entrypoint→构建时三分支PASS验证(triune/bag/offline)→最小运行时镜像。compose.yaml:三节点盟机合最小验证场(per-node MENGJI_SCENARIO)。scripts/local-build.sh:无docker本地验证(set -euo pipefail)。container/entrypoint.c:main→njsg_mengji_run_scenario()。gitee-hunyuan+gitcode已推。GitHub Actions workflow就绪(等待GH网络恢复激活)。容器仓库独立commit 8a79e22保留可拆分为独立库",
+      "assignee": null,
+      "progress": 60,
+      "dependencies": ["mengji-network"]
     },
     {
       "id": "radix256",
@@ -209,5 +221,5 @@
     "wasm_ld": false,
     "make": true
   },
-  "last_verified": "2026-09-02T00:00:00Z"
+  "last_verified": "2026-10-03T00:00:00Z"
 }

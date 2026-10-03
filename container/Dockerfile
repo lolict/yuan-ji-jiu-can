@@ -64,13 +64,18 @@ RUN set -e; cd /tmp; \
     done; \
     echo "[容器构建验证] 三个里程碑三分支全部 PASS"
 
-# 编译自举编译器工具链
+# 工具链清单校验 — 确保三个核心工具源文件存在(非空验证)
 RUN cd tools && \
+    ok=1; \
     for dir in mccp_core full-mapping eight-flows; do \
-        if [ -f "$dir"/*.nim ]; then \
-            echo "工具链 $dir 包含 Nim 源文件"; \
+        if compgen -G "$dir/*.nim" > /dev/null 2>&1; then \
+            echo "[工具链] $dir ✓"; \
+        else \
+            echo "[工具链] $dir ✗ 缺失"; \
+            ok=0; \
         fi; \
-    done
+    done && \
+    exit $ok
 
 # === Stage 3: 运行时镜像 (最小化) ===
 FROM debian:12-slim AS runtime

@@ -42,6 +42,37 @@ docker build -t hunyuan-os:7d00855f \
 
 推送代码到 main 分支或打 `v*` tag 时自动构建并推送到 GHCR。
 
+## 构建时验证
+
+每次 `docker build` 自动运行三个独立里程碑验证，任一失败则镜像不产出：
+
+| 验证场景 | 对应里程碑 | 验证内容 |
+|----------|-----------|----------|
+| `triune` | 里程碑二 | 三元背书 + 冲突拒绝 |
+| `bag` | 里程碑三 | 袋子合并拆分 + 权值守恒 |
+| `offline` | 里程碑一 | 离线 Pull 恢复 |
+
+### 无 Docker 验证
+
+```bash
+./scripts/local-build.sh              # 三场景全部验证
+./scripts/local-build.sh triune       # 只验证三元见证
+./scripts/local-build.sh bag          # 只验证袋子拆分合并
+./scripts/local-build.sh offline      # 只验证离线恢复
+```
+
+### 单独运行容器某场景
+
+```bash
+# 默认运行全量 demo
+docker run --rm -it hunyuan-os:latest
+
+# 指定独立场景
+docker run --rm -it -e MENGJI_SCENARIO=triune hunyuan-os:latest
+docker run --rm -it -e MENGJI_SCENARIO=bag hunyuan-os:latest
+docker run --rm -it -e MENGJI_SCENARIO=offline hunyuan-os:latest
+```
+
 ## 盟机合网络 (里程碑一传输层)
 
 ```bash
