@@ -18195,3 +18195,213 @@ mod token_ring_tests {
         assert_eq!(r.total_passes, 6);
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器消息分片 · ContainerMessageFragmenter (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   把超长消息切分为固定大小的分片, 接收端重新组装
+//   仅加法: offset + fragment_size
+
+#[derive(Clone, Debug)]
+pub struct ContainerMessageFragmenter {
+    pub fragment_size: u64,
+    pub fragments_sent: u64,
+    pub fragments_received: u64,
+    pub reassembly_buffer: Vec<u64>,
+}
+
+impl ContainerMessageFragmenter {
+    pub fn new(fragment_size: u64) -> Self { Self { fragment_size, fragments_sent: 0, fragments_received: 0, reassembly_buffer: Vec::new() } }
+    /// 返回所需分片数 (向上取整: (len + size-1) 逐次逼近)
+    pub fn fragment_count(&self, total_len: u64) -> u64 {
+        if total_len == 0 { return 0; }
+        let mut count = 0u64;
+        let mut remaining = total_len;
+        loop {
+            if remaining == 0 { break; }
+            remaining = if remaining > self.fragment_size { remaining - self.fragment_size } else { 0 };
+            count = count + 1;
+        }
+        count
+    }
+    pub fn send_fragment(&mut self, data: u64) {
+        self.fragments_sent = self.fragments_sent + 1;
+        self.reassembly_buffer.push(data);
+    }
+    pub fn receive_fragment(&mut self, data: u64) {
+        self.fragments_received = self.fragments_received + 1;
+        self.reassembly_buffer.push(data);
+    }
+    pub fn is_complete(&self, expected_total: u64) -> bool {
+        self.reassembly_buffer.len() as u64 >= expected_total
+    }
+    pub fn clear(&mut self) { self.reassembly_buffer.clear(); }
+}
+
+impl Default for ContainerMessageFragmenter {
+    fn default() -> Self { Self::new(64) }
+}
+
+#[cfg(test)]
+mod msg_fragment_tests {
+    use super::*;
+    #[test] fn test_count_exact() {
+        let f = ContainerMessageFragmenter::new(10);
+        assert_eq!(f.fragment_count(30), 3);
+    }
+    #[test] fn test_count_remainder() {
+        let f = ContainerMessageFragmenter::new(10);
+        assert_eq!(f.fragment_count(25), 3); // ceil(25/10)=3
+    }
+    #[test] fn test_count_zero() {
+        let f = ContainerMessageFragmenter::new(10);
+        assert_eq!(f.fragment_count(0), 0);
+    }
+    #[test] fn test_send_recv() {
+        let mut f = ContainerMessageFragmenter::new(8);
+        f.send_fragment(1); f.send_fragment(2);
+        f.receive_fragment(3);
+        assert_eq!(f.fragments_sent, 2);
+        assert_eq!(f.fragments_received, 1);
+    }
+    #[test] fn test_complete() {
+        let mut f = ContainerMessageFragmenter::new(8);
+        f.send_fragment(1); f.send_fragment(2); f.send_fragment(3);
+        assert!(f.is_complete(3));
+        assert!(!f.is_complete(5));
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器心跳回退 · ContainerHeartbeatBackoff (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   心跳失败时逐步增加等待间隔, 成功时重置
+//   间隔翻倍: interval << 1 (仅加法/移位)
+//   达到上限后不再增长
+
+#[derive(Clone, Debug)]
+pub struct ContainerHeartbeatBackoff {
+    pub base_interval: u64,
+    pub max_interval: u64,
+    pub current_interval: u64,
+    pub failures: u64,
+    pub successes: u64,
+}
+
+impl ContainerHeartbeatBackoff {
+    pub fn new(base: u64, max: u64) -> Self { Self { base_interval: base, max_interval: max, current_interval: base, failures: 0, successes: 0 } }
+    pub fn fail(&mut self) {
+        self.failures = self.failures + 1;
+        let doubled = self.current_interval << 1;
+        self.current_interval = if doubled <= self.max_interval && doubled > 0 { doubled } else { self.max_interval };
+    }
+    pub fn succeed(&mut self) {
+        self.successes = self.successes + 1;
+        self.current_interval = self.base_interval;
+    }
+    pub fn interval(&self) -> u64 { self.current_interval }
+    pub fn should_reconnect(&self) -> bool { self.failures > 0 }
+}
+
+impl Default for ContainerHeartbeatBackoff {
+    fn default() -> Self { Self::new(1, 64) }
+}
+
+#[cfg(test)]
+mod heartbeat_backoff_tests {
+    use super::*;
+    #[test] fn test_growth() {
+        let mut b = ContainerHeartbeatBackoff::new(1, 64);
+        assert_eq!(b.interval(), 1);
+        b.fail(); assert_eq!(b.interval(), 2);
+        b.fail(); assert_eq!(b.interval(), 4);
+        b.fail(); assert_eq!(b.interval(), 8);
+    }
+    #[test] fn test_max_cap() {
+        let mut b = ContainerHeartbeatBackoff::new(1, 8);
+        b.fail(); b.fail(); b.fail(); // 1→2→4→8
+        b.fail(); // should stay at 8
+        assert_eq!(b.interval(), 8);
+    }
+    #[test] fn test_reset() {
+        let mut b = ContainerHeartbeatBackoff::new(1, 64);
+        b.fail(); b.fail();
+        b.succeed();
+        assert_eq!(b.interval(), 1);
+    }
+    #[test] fn test_default() {
+        let b = ContainerHeartbeatBackoff::default();
+        assert_eq!(b.base_interval, 1);
+        assert_eq!(b.max_interval, 64);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器相位寄存器 · ContainerPhaseRegister (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   存储当前相位值 (0..N-1), 仅 advance() 移动相位
+//   相位到达最大值后回绕 — 象征生命周期/循环
+//   仅加法: phase +1
+
+#[derive(Clone, Debug)]
+pub struct ContainerPhaseRegister {
+    pub phases: u64,
+    pub current: u64,
+    pub total_advances: u64,
+}
+
+impl ContainerPhaseRegister {
+    pub fn new(phases: u64) -> Self { Self { phases, current: 0, total_advances: 0 } }
+    pub fn advance(&mut self) -> u64 {
+        let prev = self.current;
+        self.current = self.current + 1;
+        if self.current >= self.phases { self.current = 0; }
+        self.total_advances = self.total_advances + 1;
+        prev
+    }
+    pub fn is(&self, phase: u64) -> bool { self.current == phase }
+    pub fn at_start(&self) -> bool { self.current == 0 }
+    pub fn wrap_count(&self) -> u64 {
+        let mut count = 0u64;
+        let mut n = self.total_advances;
+        loop {
+            if n < self.phases { break; }
+            n = n - self.phases;
+            count = count + 1;
+        }
+        count
+    }
+}
+
+impl Default for ContainerPhaseRegister {
+    fn default() -> Self { Self::new(8) }
+}
+
+#[cfg(test)]
+mod phase_register_tests {
+    use super::*;
+    #[test] fn test_advance() {
+        let mut p = ContainerPhaseRegister::new(4);
+        assert_eq!(p.advance(), 0);
+        assert_eq!(p.advance(), 1);
+        assert!(p.is(2));
+    }
+    #[test] fn test_wrap() {
+        let mut p = ContainerPhaseRegister::new(3);
+        p.advance(); p.advance(); p.advance(); // 0→1→2→0
+        assert!(p.is(0));
+        assert!(p.at_start());
+    }
+    #[test] fn test_wrap_count() {
+        let mut p = ContainerPhaseRegister::new(4);
+        for _ in 0..10 { p.advance(); }
+        assert_eq!(p.wrap_count(), 2); // 10/4 = 2 wraps
+    }
+    #[test] fn test_default() {
+        let p = ContainerPhaseRegister::default();
+        assert_eq!(p.phases, 8);
+    }
+}
