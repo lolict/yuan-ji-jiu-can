@@ -18405,3 +18405,212 @@ mod phase_register_tests {
         assert_eq!(p.phases, 8);
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器会话票据 · ContainerSessionTicket (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   单调递增的会话标识, 新会话碾压旧会话
+//   仅加法: counter +1, 无回退
+
+#[derive(Clone, Debug)]
+pub struct ContainerSessionTicket {
+    pub counter: u64,
+    pub epoch: u64,
+    pub total_issued: u64,
+}
+
+impl ContainerSessionTicket {
+    pub fn new(epoch: u64) -> Self { Self { counter: 0, epoch, total_issued: 0 } }
+    pub fn issue(&mut self) -> (u64, u64) {
+        self.counter = self.counter + 1;
+        self.total_issued = self.total_issued + 1;
+        (self.epoch, self.counter)
+    }
+    pub fn is_newer_than(&self, other_epoch: u64, other_counter: u64) -> bool {
+        if self.epoch > other_epoch { return true; }
+        if self.epoch == other_epoch { self.counter > other_counter } else { false }
+    }
+    pub fn current(&self) -> (u64, u64) { (self.epoch, self.counter) }
+    pub fn total_issued(&self) -> u64 { self.total_issued }
+}
+
+impl Default for ContainerSessionTicket {
+    fn default() -> Self { Self::new(1) }
+}
+
+#[cfg(test)]
+mod session_ticket_tests {
+    use super::*;
+    #[test] fn test_monotonic() {
+        let mut t = ContainerSessionTicket::new(1);
+        let (e1, c1) = t.issue();
+        let (e2, c2) = t.issue();
+        assert_eq!(e1, 1); assert_eq!(c1, 1);
+        assert_eq!(e2, 1); assert_eq!(c2, 2);
+        assert!(t.is_newer_than(e1, c1));
+    }
+    #[test] fn test_epoch_change() {
+        let t1 = ContainerSessionTicket::new(1);
+        let t2 = ContainerSessionTicket::new(2);
+        assert!(t2.is_newer_than(t1.epoch, t1.counter));
+        assert!(!t1.is_newer_than(t2.epoch, t2.counter));
+    }
+    #[test] fn test_total() {
+        let mut t = ContainerSessionTicket::default();
+        for _ in 0..5 { t.issue(); }
+        assert_eq!(t.total_issued(), 5);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器阀门 · ContainerValve (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   流量控制阀门: 开度 0-100, 按步长增减, 限流通过
+//   仅加法/减法: opening + step, - step
+
+#[derive(Clone, Debug)]
+pub struct ContainerValve {
+    pub opening: u64,   // 0..=100
+    pub step: u64,
+    pub total_flow: u64,
+    pub total_blocked: u64,
+}
+
+impl ContainerValve {
+    pub fn new(step: u64) -> Self { Self { opening: 100, step, total_flow: 0, total_blocked: 0 } }
+    pub fn open(&mut self) { self.opening = 100; }
+    pub fn close(&mut self) { self.opening = 0; }
+    pub fn widen(&mut self) {
+        self.opening = self.opening + self.step;
+        if self.opening > 100 { self.opening = 100; }
+    }
+    pub fn narrow(&mut self) {
+        if self.opening >= self.step { self.opening = self.opening - self.step; } else { self.opening = 0; }
+    }
+    pub fn pass(&mut self, amount: u64) {
+        if self.opening >= 100 {
+            self.total_flow = self.total_flow + amount;
+        } else if self.opening == 0 {
+            self.total_blocked = self.total_blocked + amount;
+        } else {
+            // partially open: flow = full - blocked equivalent
+            self.total_flow = self.total_flow + amount;
+            self.total_blocked = self.total_blocked + 0;
+        }
+    }
+    pub fn is_open(&self) -> bool { self.opening >= 100 }
+    pub fn is_closed(&self) -> bool { self.opening == 0 }
+}
+
+impl Default for ContainerValve {
+    fn default() -> Self { Self::new(5) }
+}
+
+#[cfg(test)]
+mod valve_tests {
+    use super::*;
+    #[test] fn test_widen() {
+        let mut v = ContainerValve::new(20);
+        v.close();
+        assert!(v.is_closed());
+        v.widen();
+        assert_eq!(v.opening, 20);
+        v.widen();
+        assert_eq!(v.opening, 40);
+    }
+    #[test] fn test_cap() {
+        let mut v = ContainerValve::new(60);
+        v.widen(); v.widen(); // 100→100
+        assert_eq!(v.opening, 100);
+    }
+    #[test] fn test_narrow() {
+        let mut v = ContainerValve::new(30);
+        v.narrow(); // 100→70
+        assert_eq!(v.opening, 70);
+        v.narrow(); // 70→40
+        assert_eq!(v.opening, 40);
+        v.narrow(); // 40→10
+        assert_eq!(v.opening, 10);
+        v.narrow(); // 10→0 (underflow guard)
+        assert_eq!(v.opening, 0);
+    }
+    #[test] fn test_full_open() {
+        let mut v = ContainerValve::new(10);
+        v.close();
+        v.open();
+        assert!(v.is_open());
+        assert!(!v.is_closed());
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器交汇点 · ContainerConfluence (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   多输入汇合一处: 统计多少输入到达, 抵达数 ≥ expected 时触发
+//   仅加法: arrived +1
+
+#[derive(Clone, Debug)]
+pub struct ContainerConfluence {
+    pub expected: u64,
+    pub arrived: u64,
+    pub triggered: u64,
+}
+
+impl ContainerConfluence {
+    pub fn new(expected: u64) -> Self { Self { expected, arrived: 0, triggered: 0 } }
+    pub fn arrive(&mut self) -> bool {
+        self.arrived = self.arrived + 1;
+        if self.arrived >= self.expected {
+            self.triggered = self.triggered + 1;
+            self.arrived = 0;
+            true
+        } else {
+            false
+        }
+    }
+    pub fn remaining(&self) -> u64 {
+        if self.expected > self.arrived { self.expected - self.arrived } else { 0 }
+    }
+    pub fn trigger_count(&self) -> u64 { self.triggered }
+    pub fn reset(&mut self) { self.arrived = 0; }
+}
+
+impl Default for ContainerConfluence {
+    fn default() -> Self { Self::new(3) }
+}
+
+#[cfg(test)]
+mod confluence_tests {
+    use super::*;
+    #[test] fn test_trigger() {
+        let mut c = ContainerConfluence::new(3);
+        assert!(!c.arrive());
+        assert!(!c.arrive());
+        assert!(c.arrive()); // 3rd triggers
+        assert_eq!(c.trigger_count(), 1);
+    }
+    #[test] fn test_remaining() {
+        let mut c = ContainerConfluence::new(5);
+        c.arrive(); c.arrive();
+        assert_eq!(c.remaining(), 3);
+    }
+    #[test] fn test_multi_cycle() {
+        let mut c = ContainerConfluence::new(2);
+        c.arrive(); assert!(c.arrive()); // cycle 1
+        c.arrive(); assert!(c.arrive()); // cycle 2
+        assert_eq!(c.trigger_count(), 2);
+    }
+    #[test] fn test_reset() {
+        let mut c = ContainerConfluence::new(4);
+        c.arrive(); c.arrive();
+        c.reset();
+        assert_eq!(c.remaining(), 4);
+    }
+    #[test] fn test_expected_one() {
+        let mut c = ContainerConfluence::new(1);
+        assert!(c.arrive()); // immediately triggers
+    }
+}
