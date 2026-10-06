@@ -402,7 +402,7 @@ mod tests {
     use super::*;
 
     fn mk_ref(entity: u64) -> ContainerRef {
-        ContainerRef::new(ContainerKind::Maori, entity);
+        ContainerRef::new(ContainerKind::Maori, entity)
     }
 
     #[test]
