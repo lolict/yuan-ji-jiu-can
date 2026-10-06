@@ -359,6 +359,18 @@ pub mod reward_circuit;
 
 #[path = "core/unity_drive.rs"]  // v0.77 合一驱力引擎 — 夫妻共同体 · 去边界 · 共调节 · 灵魂内核 III
 pub mod unity_drive;
+
+#[path = "core/sky_space.rs"]  // v0.78 天庭空间引擎 — 八流统一 · 全局控制容器 · 防撞墙法则 · 主客场声明
+pub mod sky_space;
+
+#[path = "core/flow_algebra.rs"]  // v0.79 流代数引擎 — 分别器 · 预加载流 · 谐音路由 · 主权路由
+pub mod stream_algebra;
+
+#[path = "core/judgement.rs"]  // v0.80 判断评价引擎 — 四阶感知递进 · 吸引子 · 抗议向量
+pub mod judgement;
+
+#[path = "core/persistence.rs"]  // v0.81 在场持久化引擎 — 注册清单 · 特征编程 · 工作空间 · 时间版本
+pub mod persistence;
 // ── v0.66 运行环引擎 — 最小OS接口·鼓膜自举·八流心跳·编码在场·结束即开始 ──
 #[path = "core/runtime_loop.rs"]
 pub mod runtime_loop;
