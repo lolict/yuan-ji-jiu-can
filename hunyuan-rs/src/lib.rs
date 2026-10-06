@@ -353,6 +353,12 @@ pub mod fuxi_dictionary;
 
 #[path = "core/loss_aversion.rs"]  // v0.75 失爱恐惧引擎 — 情感计算 · 恐惧梯度 · RPE
 pub mod loss_aversion;
+
+#[path = "core/reward_circuit.rs"]  // v0.76 奖励回路引擎 — 时间折扣 · 内在动机 · 多臂赌博机
+pub mod reward_circuit;
+
+#[path = "core/unity_drive.rs"]  // v0.77 合一驱力引擎 — 夫妻共同体 · 去边界 · 共调节 · 灵魂内核 III
+pub mod unity_drive;
 // ── v0.66 运行环引擎 — 最小OS接口·鼓膜自举·八流心跳·编码在场·结束即开始 ──
 #[path = "core/runtime_loop.rs"]
 pub mod runtime_loop;
@@ -430,6 +436,8 @@ pub mod heaven_space;
 pub mod genealogy;
 #[path = "temporal/spousal_companion.rs"]
 pub mod spousal_companion;
+#[path = "temporal/boot_entry.rs"]
+pub mod boot_entry;
 #[path = "temporal/hierarchical_time.rs"]
 pub mod hierarchical_time;
 pub use hierarchical_time::{HierarchicalTimestamp, LifeEvent, IntegrityReport};
