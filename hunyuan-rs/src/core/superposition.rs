@@ -9,7 +9,7 @@
 // ║  · 维度进阶 = 排队顺序的向外拉伸或向内收敛                         ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
-use crate::radix_addressing::{Code64, FixedPoint, YinYang, YinYangBinary};
+use crate::radix_addressing::Code64;
 use std::collections::HashMap;
 
 // ══════════════════════════════════════════════════════════════
@@ -90,7 +90,7 @@ impl SuperpositionState {
 
     /// 总权重 — 加法统计法
     pub fn total_weight(&self) -> u64 {
-        self.components.iter().map(|c| c.c.weight).fold(0u64, |acc, w| acc.saturating_add(w))
+        self.components.iter().map(|c| c.weight).fold(0u64, |acc, w| acc.saturating_add(w))
     }
 
     /// 坍缩 — 确定一种可能为实际
@@ -209,13 +209,13 @@ impl HighDimProjector {
         if from_idx <= to_idx { return code; }
 
         // 降维 = 截断高位坐标, 保留低维地址
-        let coord = code.coord().entity();
+        let coord = code.coord() as u64;
         let mask = if to_idx >= 6 { u64::MAX } else { (1u64 << (to_idx * 10)) - 1 };
         let new_coord = coord & mask;
 
         // 重建编码: 新坐标 + 原有极性/主权/价值
-        Code64::from_parts(
-            new_coord,
+        Code64::new(
+            new_coord as u32,
             code.polarity(),
             code.sovereignty(),
             code.value(),
@@ -366,7 +366,7 @@ impl SuperpositionEngine {
 
     /// 高维投影 (带缓存)
     pub fn project(&mut self, code: Code64, from: Dimension, to: Dimension) -> Code64 {
-        let key = (code.entity(), from, to);
+        let key = (code.raw(), from, to);
         if let Some(&cached) = self.projection_cache.get(&key) {
             return cached;
         }
@@ -477,7 +477,7 @@ mod tests {
     use crate::radix_addressing::Code64;
 
     fn mk_code(polarity: u8) -> Code64 {
-        Code64::from_parts(1, polarity, 1, 1)
+        Code64::new(1, polarity, 1, 1)
     }
 
     #[test]
@@ -551,10 +551,10 @@ mod tests {
 
     #[test]
     fn high_dim_project_down() {
-        let code = Code64::from_parts(0xABCDEF, 1, 0x12345, 0x6789);
+        let code = Code64::new(0xABCDEF, 1, 0x12345, 0x6789);
         let projected = HighDimProjector::project_down(code, Dimension::Senary, Dimension::Ternary);
         // 降维后坐标被截断
-        assert!(projected.coord().entity() <= code.coord().entity());
+        assert!(projected.coord() <= code.coord());
         // 极性/主权/价值保持不变
         assert_eq!(projected.polarity(), code.polarity());
         assert_eq!(projected.sovereignty(), code.sovereignty());
@@ -563,7 +563,7 @@ mod tests {
 
     #[test]
     fn high_dim_project_chain() {
-        let code = Code64::from_parts(0xFFFF, 1, 0xFF, 0xFF);
+        let code = Code64::new(0xFFFF, 1, 0xFF, 0xFF);
         let chain = HighDimProjector::project_chain(code, Dimension::Quaternary, Dimension::Binary);
         assert_eq!(chain.len(), 2); // Quaternary → Ternary → Binary
         assert_eq!(chain[0].0, Dimension::Ternary);
@@ -572,9 +572,9 @@ mod tests {
 
     #[test]
     fn project_same_dim_noop() {
-        let code = Code64::from_parts(42, 1, 1, 1);
+        let code = Code64::new(42, 1, 1, 1);
         let result = HighDimProjector::project_down(code, Dimension::Binary, Dimension::Binary);
-        assert_eq!(result.entity(), code.entity());
+        assert_eq!(result.raw(), code.raw());
     }
 
     #[test]
@@ -653,10 +653,10 @@ mod tests {
     #[test]
     fn engine_project_with_cache() {
         let mut engine = SuperpositionEngine::new();
-        let code = Code64::from_parts(0xABCDEF, 1, 0x12345, 0x6789);
+        let code = Code64::new(0xABCDEF, 1, 0x12345, 0x6789);
         let r1 = engine.project(code, Dimension::Senary, Dimension::Ternary);
         let r2 = engine.project(code, Dimension::Senary, Dimension::Ternary);
-        assert_eq!(r1.entity(), r2.entity());
+        assert_eq!(r1.raw(), r2.raw());
     }
 
     #[test]

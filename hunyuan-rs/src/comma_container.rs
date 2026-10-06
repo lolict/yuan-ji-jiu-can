@@ -18003,3 +18003,195 @@ mod cell_tests {
         assert_eq!(c.total_recorded, 1);
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器法定数 · ContainerQuorum (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   多数决法定数: N 节点, 读写需 ≥ (N/2 + 1) 节点应答
+//   仅加法: count +1; ≥ N/2+1 判定 (用 >>1 + 1 代替除法)
+
+#[derive(Clone, Debug)]
+pub struct ContainerQuorum {
+    pub total_nodes: u64,
+    pub responses: u64,
+    pub total_queries: u64,
+}
+
+impl ContainerQuorum {
+    pub fn new(total: u64) -> Self { Self { total_nodes: total, responses: 0, total_queries: 0 } }
+    pub fn reset(&mut self) { self.responses = 0; }
+    pub fn respond(&mut self) {
+        self.responses = self.responses + 1;
+        self.total_queries = self.total_queries + 1;
+    }
+    pub fn has_quorum(&self) -> bool {
+        let half = self.total_nodes >> 1;
+        let threshold = half + 1;
+        self.responses >= threshold
+    }
+    pub fn responses_needed(&self) -> u64 {
+        let half = self.total_nodes >> 1;
+        let threshold = half + 1;
+        if self.responses >= threshold { 0 } else { threshold - self.responses }
+    }
+}
+
+impl Default for ContainerQuorum {
+    fn default() -> Self { Self::new(5) }
+}
+
+#[cfg(test)]
+mod quorum_tests {
+    use super::*;
+    #[test] fn test_quorum_met() {
+        let mut q = ContainerQuorum::new(5);
+        q.respond(); q.respond(); q.respond();
+        assert!(q.has_quorum());
+    }
+    #[test] fn test_quorum_not_met() {
+        let q = ContainerQuorum::new(5);
+        assert!(!q.has_quorum());
+    }
+    #[test] fn test_needed() {
+        let mut q = ContainerQuorum::new(5);
+        q.respond();
+        assert_eq!(q.responses_needed(), 2);
+    }
+    #[test] fn test_reset() {
+        let mut q = ContainerQuorum::new(3);
+        q.respond(); q.respond(); q.respond();
+        q.reset();
+        assert!(!q.has_quorum());
+    }
+    #[test] fn test_even_nodes() {
+        let mut q = ContainerQuorum::new(4);
+        q.respond(); q.respond(); q.respond(); // half=2, threshold=3
+        assert!(q.has_quorum());
+    }
+    #[test] fn test_single_node() {
+        let mut q = ContainerQuorum::new(1);
+        q.respond();
+        assert!(q.has_quorum()); // half=0, threshold=1
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器广播 · ContainerBroadcast (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   单源 → 多目标 fan-out: emit(msg) 同时写入所有 inbox
+
+#[derive(Clone, Debug)]
+pub struct ContainerBroadcast {
+    pub inboxes: Vec<Vec<u64>>,
+    pub total_emits: u64,
+}
+
+impl ContainerBroadcast {
+    pub fn new(target_count: usize) -> Self { Self { inboxes: vec![Vec::new(); target_count], total_emits: 0 } }
+    pub fn emit(&mut self, msg: u64) {
+        for inbox in &mut self.inboxes { inbox.push(msg); }
+        self.total_emits = self.total_emits + 1;
+    }
+    pub fn target_count(&self) -> usize { self.inboxes.len() }
+    pub fn inbox(&self, idx: usize) -> Option<&Vec<u64>> { self.inboxes.get(idx) }
+}
+
+impl Default for ContainerBroadcast {
+    fn default() -> Self { Self::new(4) }
+}
+
+#[cfg(test)]
+mod broadcast_tests {
+    use super::*;
+    #[test] fn test_fanout() {
+        let mut b = ContainerBroadcast::new(3);
+        b.emit(42);
+        for i in 0..3 { assert_eq!(b.inbox(i), Some(&vec![42])); }
+    }
+    #[test] fn test_sequential() {
+        let mut b = ContainerBroadcast::new(2);
+        b.emit(1); b.emit(2); b.emit(3);
+        assert_eq!(b.inbox(0), Some(&vec![1, 2, 3]));
+        assert_eq!(b.inbox(1), Some(&vec![1, 2, 3]));
+    }
+    #[test] fn test_no_targets() {
+        let mut b = ContainerBroadcast::new(0);
+        b.emit(1);
+        assert_eq!(b.total_emits, 1);
+    }
+    #[test] fn test_default() {
+        let b = ContainerBroadcast::default();
+        assert_eq!(b.target_count(), 4);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器令牌环 · ContainerTokenRing (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   令牌在环中顺序传递, 持有令牌的节点才能操作
+//   holder_index 每次 tick 移动到下一个
+//   仅加法: idx +1, 用减法回绕
+
+#[derive(Clone, Debug)]
+pub struct ContainerTokenRing {
+    pub size: u64,
+    pub holder: u64,
+    pub total_passes: u64,
+}
+
+impl ContainerTokenRing {
+    pub fn new(size: u64) -> Self { Self { size, holder: 0, total_passes: 0 } }
+    pub fn pass(&mut self) -> u64 {
+        let current = self.holder;
+        self.holder = self.holder + 1;
+        if self.holder >= self.size { self.holder = 0; }
+        self.total_passes = self.total_passes + 1;
+        current
+    }
+    pub fn holder(&self) -> u64 { self.holder }
+    pub fn is_holder(&self, node: u64) -> bool { self.holder == node }
+    pub fn steal(&mut self, node: u64) -> bool {
+        // 强制把令牌给 node (干预)
+        if node < self.size { self.holder = node; true } else { false }
+    }
+}
+
+impl Default for ContainerTokenRing {
+    fn default() -> Self { Self::new(4) }
+}
+
+#[cfg(test)]
+mod token_ring_tests {
+    use super::*;
+    #[test] fn test_pass() {
+        let mut r = ContainerTokenRing::new(3);
+        assert_eq!(r.pass(), 0);
+        assert_eq!(r.pass(), 1);
+        assert_eq!(r.pass(), 2);
+        assert_eq!(r.pass(), 0);  // wrap
+    }
+    #[test] fn test_holder() {
+        let mut r = ContainerTokenRing::new(5);
+        assert!(r.is_holder(0));
+        r.pass();
+        assert!(r.is_holder(1));
+    }
+    #[test] fn test_steal() {
+        let mut r = ContainerTokenRing::new(4);
+        r.pass(); r.pass(); // holder=2
+        assert!(r.steal(0));
+        assert!(r.is_holder(0));
+    }
+    #[test] fn test_steal_invalid() {
+        let mut r = ContainerTokenRing::new(3);
+        assert!(!r.steal(5));
+    }
+    #[test] fn test_counter() {
+        let mut r = ContainerTokenRing::new(2);
+        for _ in 0..6 { r.pass(); }
+        assert_eq!(r.total_passes, 6);
+    }
+}

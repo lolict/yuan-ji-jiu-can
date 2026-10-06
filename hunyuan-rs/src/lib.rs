@@ -380,6 +380,14 @@ pub mod radix_addressing;
 
 #[path = "core/covenant_divisor.rs"]  // v0.84 公约数引擎 — 公约数编程 · 产权流 · 同体空间 · 迂回封装
 pub mod covenant_divisor;
+
+// ── v0.85 叠加态引擎 ‑ 叠加/坍缩 · 高维投影 · 维度进阶 ──
+#[path = "core/superposition.rs"]
+pub mod superposition;
+
+// ── v0.86 时钟触发引擎 ‑ 冰箱模型 · 时间触发 · 意志驱动 · 继承连贯 ──
+#[path = "core/clock_trigger.rs"]
+pub mod clock_trigger;
 // ── v0.66 运行环引擎 — 最小OS接口·鼓膜自举·八流心跳·编码在场·结束即开始 ──
 #[path = "core/runtime_loop.rs"]
 pub mod runtime_loop;
@@ -1003,6 +1011,11 @@ pub use radix_container::{
     RadixAddr, RadixContainer, RadixSpace, ContainerRelation as RadixRelation,
     RADIX_X, RADIX_Y, RADIX_Z, TOTAL_ADDRESS_SPACE,
 };
+
+// ── v0.65 谐音路由引擎 — 满全法: 意识在音韵场中流动·共振最强=路径 ──
+#[path = "core/homophonic_router.rs"]
+pub mod homophonic_router;
+pub use homophonic_router::{ResonantPath, HomophonicRouter};
 
 // ── v0.59 聂小倩·本质匹配引擎 — 游魂寻踪·公约数共振·撞墙回退 ──
 #[path = "core/njq_matching.rs"]
