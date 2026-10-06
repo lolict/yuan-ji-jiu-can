@@ -17471,3 +17471,314 @@ mod task_line_tests {
         assert_eq!(t.completed, 2);
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器信号量 · ContainerSemaphore (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   计数信号量: acquire(dec), release(inc), 资源不足时等待 (用 bool try 表示)
+//   仅加法: count + n / - n
+
+#[derive(Clone, Debug)]
+pub struct ContainerSemaphore {
+    pub capacity: u64,
+    pub available: u64,
+    pub total_acquired: u64,
+    pub total_released: u64,
+    pub total_contention: u64,  // 资源不足次数
+}
+
+impl ContainerSemaphore {
+    pub fn new(capacity: u64) -> Self { Self { capacity, available: capacity, total_acquired: 0, total_released: 0, total_contention: 0 } }
+    /// 尝试获取 n 个资源, 成功返回 true
+    pub fn try_acquire(&mut self, n: u64) -> bool {
+        if self.available >= n {
+            self.available = self.available - n;
+            self.total_acquired = self.total_acquired + 1;
+            true
+        } else {
+            self.total_contention = self.total_contention + 1;
+            false
+        }
+    }
+    pub fn release(&mut self, n: u64) {
+        self.available = self.available + n;
+        if self.available > self.capacity { self.available = self.capacity; }
+        self.total_released = self.total_released + 1;
+    }
+    pub fn available(&self) -> u64 { self.available }
+}
+
+impl Default for ContainerSemaphore {
+    fn default() -> Self { Self::new(4) }
+}
+
+#[cfg(test)]
+mod semaphore_tests {
+    use super::*;
+    #[test] fn test_basic() {
+        let mut s = ContainerSemaphore::new(2);
+        assert!(s.try_acquire(1));
+        assert!(s.try_acquire(1));
+        assert!(!s.try_acquire(1));  // 耗尽
+        s.release(2);
+        assert!(s.try_acquire(1));
+    }
+    #[test] fn test_no_overflow() {
+        let mut s = ContainerSemaphore::new(3);
+        s.release(10);
+        assert_eq!(s.available(), 3);
+    }
+        #[test]
+    fn test_contention() {
+        let mut s = ContainerSemaphore::new(1);
+        s.try_acquire(1);
+        s.try_acquire(1);
+        s.try_acquire(1);
+        assert_eq!(s.total_contention, 2);
+    }
+
+    #[test]
+    fn test_counters() {
+        let mut s = ContainerSemaphore::new(5);
+        s.try_acquire(2); s.release(1);
+        assert_eq!(s.total_acquired, 1);
+        assert_eq!(s.total_released, 1);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器通知总线 · ContainerNotifyBus (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   简单 pub/sub: 订阅者列表 + 广播消息
+//   emit(msg): 所有订阅者收到
+//   仅加法: 消息走 Vec 收集
+
+#[derive(Clone, Debug)]
+pub struct ContainerNotifyBus {
+    pub subscribers: Vec<Vec<u64>>,  // 每个订阅者的收件箱
+    pub total_emits: u64,
+    pub total_subscribers: u64,
+}
+
+impl ContainerNotifyBus {
+    pub fn new() -> Self { Self { subscribers: Vec::new(), total_emits: 0, total_subscribers: 0 } }
+    pub fn subscribe(&mut self) -> usize {
+        self.subscribers.push(Vec::new());
+        self.total_subscribers = self.total_subscribers + 1;
+        self.subscribers.len() - 1
+    }
+    pub fn emit(&mut self, msg: u64) {
+        for inbox in &mut self.subscribers { inbox.push(msg); }
+        self.total_emits = self.total_emits + 1;
+    }
+    pub fn inbox_of(&self, id: usize) -> Option<&Vec<u64>> { self.subscribers.get(id) }
+    pub fn subscriber_count(&self) -> usize { self.subscribers.len() }
+}
+
+impl Default for ContainerNotifyBus {
+    fn default() -> Self { Self::new() }
+}
+
+#[cfg(test)]
+mod notify_bus_tests {
+    use super::*;
+    #[test] fn test_single_sub() {
+        let mut b = ContainerNotifyBus::new();
+        let id = b.subscribe();
+        b.emit(42);
+        assert_eq!(b.inbox_of(id), Some(&vec![42]));
+    }
+    #[test] fn test_multi_broadcast() {
+        let mut b = ContainerNotifyBus::new();
+        let i1 = b.subscribe();
+        let i2 = b.subscribe();
+        b.emit(1); b.emit(2);
+        assert_eq!(b.inbox_of(i1), Some(&vec![1, 2]));
+        assert_eq!(b.inbox_of(i2), Some(&vec![1, 2]));
+    }
+    #[test] fn test_emits_counter() {
+        let mut b = ContainerNotifyBus::new();
+        b.subscribe();
+        b.emit(1); b.emit(2); b.emit(3);
+        assert_eq!(b.total_emits, 3);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器一次性执行 · ContainerOnce (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   闭包/操作只执行一次, 后续调用均返回 false (幂等)
+
+#[derive(Clone, Debug)]
+pub struct ContainerOnce {
+    pub fired: bool,
+    pub call_count: u64,
+}
+
+impl ContainerOnce {
+    pub fn new() -> Self { Self { fired: false, call_count: 0 } }
+    /// 若首次调用 → true; 后续 → false
+    pub fn execute(&mut self) -> bool {
+        self.call_count = self.call_count + 1;
+        if self.fired { return false; }
+        self.fired = true;
+        true
+    }
+    pub fn is_fired(&self) -> bool { self.fired }
+    pub fn reset(&mut self) { self.fired = false; self.call_count = 0; }
+}
+
+impl Default for ContainerOnce {
+    fn default() -> Self { Self::new() }
+}
+
+#[cfg(test)]
+mod once_tests {
+    use super::*;
+    #[test] fn test_first_fires() {
+        let mut o = ContainerOnce::new();
+        assert!(o.execute());
+        assert!(!o.execute());
+        assert!(!o.execute());
+    }
+    #[test] fn test_reset() {
+        let mut o = ContainerOnce::new();
+        o.execute(); o.reset();
+        assert!(o.execute());
+    }
+    #[test] fn test_counters() {
+        let mut o = ContainerOnce::new();
+        o.execute(); o.execute(); o.execute();
+        assert_eq!(o.call_count, 3);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器前瞻窗口 · ContainerLookahead (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   查看后续 k 个元素而不消费 (peek 前方)
+//   仅加法比较索引
+
+#[derive(Clone, Debug)]
+pub struct ContainerLookahead {
+    pub buffer: Vec<Option<u64>>,
+    pub head: usize,
+    pub count: usize,
+    pub capacity: usize,
+}
+
+impl ContainerLookahead {
+    pub fn new(k: usize) -> Self { Self { buffer: vec![None; k], head: 0, count: 0, capacity: k } }
+    pub fn feed(&mut self, v: u64) {
+        self.buffer[self.head] = Some(v);
+        let next = self.head + 1;
+        self.head = if next >= self.capacity { 0 } else { next };
+        if self.count < self.capacity { self.count = self.count + 1; }
+    }
+    /// 查看相对当前位置偏移 i 的元素 (i=0=当前), None=越界
+    pub fn peek(&self, i: usize) -> Option<u64> {
+        if i >= self.count { return None; }
+        // 当前位置 buffer[(head + capacity - count) mod capacity + i]
+        let base = if self.head >= self.count { self.head - self.count } else { self.head + self.capacity - self.count };
+        let idx = if base + i < self.capacity { base + i } else { base + i - self.capacity };
+        self.buffer[idx]
+    }
+    pub fn len(&self) -> usize { self.count }
+}
+
+impl Default for ContainerLookahead {
+    fn default() -> Self { Self::new(4) }
+}
+
+#[cfg(test)]
+mod lookahead_tests {
+    use super::*;
+    #[test] fn test_peek() {
+        let mut l = ContainerLookahead::new(4);
+        l.feed(10); l.feed(20); l.feed(30);
+        assert_eq!(l.peek(0), Some(10));
+        assert_eq!(l.peek(1), Some(20));
+        assert_eq!(l.peek(2), Some(30));
+        assert_eq!(l.peek(3), None);
+    }
+    #[test] fn test_overflow_wrap() {
+        let mut l = ContainerLookahead::new(3);
+        l.feed(1); l.feed(2); l.feed(3); l.feed(4);
+        assert_eq!(l.len(), 3);
+        assert_eq!(l.peek(0), Some(2));
+        assert_eq!(l.peek(2), Some(4));
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器批收集器 · ContainerBatchCollector (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   收集 N 个元素后一次性 flush (微批次)
+//   仅加法: count +1
+
+#[derive(Clone, Debug)]
+pub struct ContainerBatchCollector<T: Clone> {
+    batch_size: u64,
+    buffer: Vec<T>,
+    total_batches: u64,
+}
+
+impl<T: Clone> ContainerBatchCollector<T> {
+    pub fn new(batch_size: u64) -> Self { Self { batch_size, buffer: Vec::new(), total_batches: 0 } }
+    /// 添加元素, 若未满 → None; 满 → Some(batch)
+    pub fn push(&mut self, v: T) -> Option<Vec<T>> {
+        self.buffer.push(v);
+        if self.buffer.len() as u64 >= self.batch_size {
+            let batch = self.buffer.clone();
+            self.buffer.clear();
+            self.total_batches = self.total_batches + 1;
+            Some(batch)
+        } else { None }
+    }
+    /// 强制 flush 不完整批次
+    pub fn flush(&mut self) -> Option<Vec<T>> {
+        if self.buffer.is_empty() { None }
+        else { let batch = self.buffer.clone(); self.buffer.clear(); self.total_batches = self.total_batches + 1; Some(batch) }
+    }
+    pub fn pending_len(&self) -> usize { self.buffer.len() }
+}
+
+impl Default for ContainerBatchCollector<u64> {
+    fn default() -> Self { Self::new(4) }
+}
+
+#[cfg(test)]
+mod batch_collector_tests {
+    use super::*;
+
+    #[test] fn test_full_batch() {
+        let mut c: ContainerBatchCollector<u64> = ContainerBatchCollector::new(3);
+        assert!(c.push(1).is_none());
+        assert!(c.push(2).is_none());
+        assert_eq!(c.push(3), Some(vec![1, 2, 3]));
+    }
+
+    #[test] fn test_pending_len() {
+        let mut c: ContainerBatchCollector<u64> = ContainerBatchCollector::new(5);
+        c.push(1); c.push(2);
+        assert_eq!(c.pending_len(), 2);
+    }
+
+    #[test] fn test_flush_partial() {
+        let mut c: ContainerBatchCollector<u64> = ContainerBatchCollector::new(10);
+        c.push(1); c.push(2);
+        assert_eq!(c.flush(), Some(vec![1, 2]));
+        assert_eq!(c.flush(), None);
+    }
+
+    #[test] fn test_counter() {
+        let mut c: ContainerBatchCollector<u64> = ContainerBatchCollector::new(2);
+        c.push(1); c.push(2); c.push(3); c.push(4);
+        assert_eq!(c.total_batches, 2);
+    }
+}
