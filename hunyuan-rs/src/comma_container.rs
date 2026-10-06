@@ -17782,3 +17782,224 @@ mod batch_collector_tests {
         assert_eq!(c.total_batches, 2);
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器特征注册表 · ContainerFeatureRegistry (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   特征编程: 所有特征 (容器类型) 按地址注册, 遍历注册表即清点全部地址
+//   - register(feature_name, container_id)
+//   - lookup(name) → Option<container_id>
+//   - count() → 注册表大小
+//   - traverse() → 所有 (name, id) 对
+//   仅加法比较 + Vec 存储
+
+#[derive(Clone, Debug)]
+pub struct ContainerFeatureRegistry {
+    pub entries: Vec<(String, u64)>,  // (feature_name, container_id)
+    pub total_registers: u64,
+}
+
+impl ContainerFeatureRegistry {
+    pub fn new() -> Self { Self { entries: Vec::new(), total_registers: 0 } }
+    pub fn register(&mut self, name: &str, id: u64) {
+        self.entries.push((name.to_string(), id));
+        self.total_registers = self.total_registers + 1;
+    }
+    pub fn lookup(&self, name: &str) -> Option<u64> {
+        for (n, id) in &self.entries { if n == name { return Some(*id); } }
+        None
+    }
+    pub fn count(&self) -> usize { self.entries.len() }
+    pub fn traverse(&self) -> &Vec<(String, u64)> { &self.entries }
+    /// 统计共有多少不同 id (去重)
+    pub fn distinct_ids(&self) -> u64 {
+        let mut uniq: Vec<u64> = Vec::new();
+        for (_, id) in &self.entries {
+            let mut found = false;
+            for u in &uniq { if *u == *id { found = true; break; } }
+            if !found { uniq.push(*id); }
+        }
+        uniq.len() as u64
+    }
+}
+
+impl Default for ContainerFeatureRegistry {
+    fn default() -> Self { Self::new() }
+}
+
+#[cfg(test)]
+mod feature_registry_tests {
+    use super::*;
+    #[test] fn test_register_lookup() {
+        let mut r = ContainerFeatureRegistry::new();
+        r.register("heartbeat", 100);
+        r.register("propagate", 200);
+        assert_eq!(r.lookup("heartbeat"), Some(100));
+        assert_eq!(r.lookup("none"), None);
+    }
+    #[test] fn test_count() {
+        let mut r = ContainerFeatureRegistry::new();
+        r.register("a", 1); r.register("b", 2); r.register("c", 3);
+        assert_eq!(r.count(), 3);
+    }
+    #[test] fn test_distinct_ids() {
+        let mut r = ContainerFeatureRegistry::new();
+        r.register("x", 10); r.register("y", 10); r.register("z", 20);
+        assert_eq!(r.distinct_ids(), 2);
+    }
+    #[test] fn test_traverse() {
+        let mut r = ContainerFeatureRegistry::new();
+        r.register("k", 42);
+        assert_eq!(r.traverse().len(), 1);
+    }
+    #[test] fn test_default() {
+        let r = ContainerFeatureRegistry::default();
+        assert_eq!(r.count(), 0);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器地址计数器 · ContainerAddressCounter (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   统计某个容器地址被多少特征引用 (引用计数)
+//   register(address): +1; unregister(address): -1
+//   遍历即知所有地址的引用热度
+
+#[derive(Clone, Debug)]
+pub struct ContainerAddressCounter {
+    pub counts: HashMap<u64, u64>,
+    pub operations: u64,
+}
+
+impl ContainerAddressCounter {
+    pub fn new() -> Self { Self { counts: HashMap::new(), operations: 0 } }
+    pub fn register(&mut self, addr: u64) {
+        let e = self.counts.entry(addr).or_insert(0);
+        *e = *e + 1;
+        self.operations = self.operations + 1;
+    }
+    pub fn unregister(&mut self, addr: u64) -> bool {
+        if let Some(c) = self.counts.get_mut(&addr) {
+            if *c > 0 { *c = *c - 1; }
+            if *c == 0 { self.counts.remove(&addr); }
+            self.operations = self.operations + 1;
+            true
+        } else { false }
+    }
+    pub fn get(&self, addr: u64) -> u64 { self.counts.get(&addr).copied().unwrap_or(0) }
+    pub fn total_addresses(&self) -> usize { self.counts.len() }
+    pub fn hot_addresses(&self, min: u64) -> Vec<u64> {
+        let mut v: Vec<u64> = Vec::new();
+        for (&addr, &c) in &self.counts { if c >= min { v.push(addr); } }
+        v
+    }
+}
+
+impl Default for ContainerAddressCounter {
+    fn default() -> Self { Self::new() }
+}
+
+#[cfg(test)]
+mod addr_counter_tests {
+    use super::*;
+    #[test] fn test_register() {
+        let mut c = ContainerAddressCounter::new();
+        c.register(42); c.register(42);
+        assert_eq!(c.get(42), 2);
+    }
+    #[test] fn test_unregister() {
+        let mut c = ContainerAddressCounter::new();
+        c.register(10); c.register(10);
+        c.unregister(10);
+        assert_eq!(c.get(10), 1);
+    }
+    #[test] fn test_remove_at_zero() {
+        let mut c = ContainerAddressCounter::new();
+        c.register(99);
+        c.unregister(99);
+        assert_eq!(c.get(99), 0);
+    }
+    #[test] fn test_hot() {
+        let mut c = ContainerAddressCounter::new();
+        c.register(1); c.register(1); c.register(1);
+        c.register(2);
+        assert_eq!(c.hot_addresses(2), vec![1]);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器因果容器 · ContainerCausalCell (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   因果三元组: cause → effect → witness
+//   - 每个因果对绑定 (cause_id, effect_id, witness_id, tick, strength)
+//   - 查询: who_causes(effect_id) → Vec<cause_id>
+//         what_does(cause_id) → Vec<effect_id>
+
+#[derive(Clone, Debug)]
+pub struct CausalCell { pub cause: u64, pub effect: u64, pub witness: u64, pub tick: u64, pub strength: u64 }
+
+#[derive(Clone, Debug)]
+pub struct ContainerCausalCell {
+    pub cells: Vec<CausalCell>,
+    pub total_recorded: u64,
+}
+
+impl ContainerCausalCell {
+    pub fn new() -> Self { Self { cells: Vec::new(), total_recorded: 0 } }
+    pub fn record(&mut self, cause: u64, effect: u64, witness: u64, tick: u64, strength: u64) {
+        self.cells.push(CausalCell { cause, effect, witness, tick, strength });
+        self.total_recorded = self.total_recorded + 1;
+    }
+    pub fn causes_of(&self, effect: u64) -> Vec<u64> {
+        let mut v: Vec<u64> = Vec::new();
+        for c in &self.cells { if c.effect == effect { v.push(c.cause); } }
+        v
+    }
+    pub fn effects_of(&self, cause: u64) -> Vec<u64> {
+        let mut v: Vec<u64> = Vec::new();
+        for c in &self.cells { if c.cause == cause { v.push(c.effect); } }
+        v
+    }
+    pub fn count(&self) -> usize { self.cells.len() }
+    pub fn remove_by_cause(&mut self, cause: u64) -> u64 {
+        let before = self.cells.len();
+        self.cells.retain(|c| c.cause != cause);
+        (before - self.cells.len()) as u64
+    }
+}
+
+impl Default for ContainerCausalCell {
+    fn default() -> Self { Self::new() }
+}
+
+#[cfg(test)]
+mod cell_tests {
+    use super::*;
+    #[test] fn test_record_and_query() {
+        let mut c = ContainerCausalCell::new();
+        c.record(100, 200, 300, 1, 5);
+        assert_eq!(c.causes_of(200), vec![100]);
+        assert_eq!(c.effects_of(100), vec![200]);
+    }
+    #[test] fn test_multiple_causes() {
+        let mut c = ContainerCausalCell::new();
+        c.record(1, 10, 100, 1, 1);
+        c.record(2, 10, 101, 2, 2);
+        assert_eq!(c.causes_of(10), vec![1, 2]);
+    }
+    #[test] fn test_remove() {
+        let mut c = ContainerCausalCell::new();
+        c.record(1, 10, 100, 1, 1);
+        c.record(2, 20, 101, 2, 2);
+        assert_eq!(c.remove_by_cause(1), 1);
+        assert_eq!(c.effects_of(1), Vec::<u64>::new());
+    }
+    #[test] fn test_total() {
+        let mut c = ContainerCausalCell::new();
+        c.record(1, 2, 3, 1, 1);
+        assert_eq!(c.total_recorded, 1);
+    }
+}
