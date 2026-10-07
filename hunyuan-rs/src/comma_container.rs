@@ -19099,3 +19099,488 @@ mod container_relation_dynamics_tests {
         assert!(e.is_empty());
     }
 }
+
+// ══════════════════════════════════════════════════════════════════════
+// 认知评分器 · ContainerCognitiveScorer (v1.0)
+// ══════════════════════════════════════════════════════════════════════
+//
+//   认知评分 = 从对话文本实时估计认知坐标, 自动匹配人类认知水平
+//   "评分不等于正确, 规则决定正确性"
+//   "必须要把认知评分器给搞出来. 它要自动匹配人类的智商, 否则无法对话"
+//
+//   核心操作:
+//     - estimate_level()   — 从文本估计认知层级
+//     - match_response()   — 匹配响应策略
+//     - gate_by_rule()     — 规则门控 (先于评分)
+//     - coordinate()       — 计算认知坐标 (抽象度×深度×广度)
+//     - adapt()            — 自适应调节 (根据反馈)
+//
+//   NJSG 哲学: 评分用于调整表达, 不用于判定对错
+//   规则门控 > 评分排序 (规则决定什么是正确的)
+
+/// 认知维度
+#[derive(Clone, Copy, Debug)]
+pub struct CognitiveCoord {
+    pub abstraction: f64,   // 抽象度 (0-1)
+    pub depth: f64,         // 深度 (0-1)
+    pub breadth: f64,       // 广度 (0-1)
+}
+
+impl CognitiveCoord {
+    pub fn new(abstraction: f64, depth: f64, breadth: f64) -> Self {
+        Self { abstraction: abstraction.clamp(0.0, 1.0), depth: depth.clamp(0.0, 1.0), breadth: breadth.clamp(0.0, 1.0) }
+    }
+
+    /// 综合认知水平 (三维均值)
+    pub fn overall(&self) -> f64 {
+        (self.abstraction + self.depth + self.breadth) / 3.0
+    }
+
+    /// 距离 (用于匹配)
+    pub fn distance(&self, other: &CognitiveCoord) -> f64 {
+        let da = self.abstraction - other.abstraction;
+        let dd = self.depth - other.depth;
+        let db = self.breadth - other.breadth;
+        (da * da + dd * dd + db * db).sqrt()
+    }
+}
+
+/// 响应策略
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ResponseStrategy {
+    Simplify,       // 简化
+    Elaborate,      // 详细
+        Match,          // 持平
+    Challenge,      // 挑战 (引导深入)
+    Analogy,        // 类比 (桥接差距)
+}
+
+impl ResponseStrategy {
+    /// 根据认知差距选择策略
+    pub fn select(estimated: f64, actual: f64) -> Self {
+        let gap = actual - estimated;
+        if gap > 0.3 { ResponseStrategy::Simplify }
+        else if gap > 0.1 { ResponseStrategy::Analogy }
+        else if gap < -0.3 { ResponseStrategy::Challenge }
+        else if gap < -0.1 { ResponseStrategy::Elaborate }
+        else { ResponseStrategy::Match }
+    }
+}
+
+/// 认知评分器引擎
+#[derive(Clone, Debug)]
+pub struct ContainerCognitiveScorer {
+    /// 对话历史特征: 会话id → 平均坐标
+    pub session_coords: HashMap<String, CognitiveCoord>,
+    /// 规则门控: 当文本匹配某规则时, 跳过评分直接返回预设策略
+    pub rule_gates: HashMap<String, ResponseStrategy>,
+    /// 自适应学习率
+    pub learning_rate: f64,
+    /// 当前最佳估计
+    pub current_estimate: CognitiveCoord,
+    /// 反馈历史: (预估策略, 是否有效)
+    pub feedback_log: Vec<(ResponseStrategy, bool)>,
+}
+
+impl ContainerCognitiveScorer {
+    pub fn new() -> Self {
+        Self {
+            session_coords: HashMap::new(),
+            rule_gates: HashMap::new(),
+            learning_rate: 0.1,
+            current_estimate: CognitiveCoord::new(0.5, 0.5, 0.5),
+            feedback_log: Vec::new(),
+        }
+    }
+
+    /// 估计认知层级 (从文本特征)
+    pub fn estimate_level(&self, text: &str) -> CognitiveCoord {
+        let len = text.len() as f64;
+        // 抽象度: 符号密度 (非中文字符占比)
+        let non_cjk = text.chars().filter(|c| !('\u{4e00}'..='\u{9fff}').contains(c)).count() as f64;
+        let abstraction = if len > 0.0 { (non_cjk / len).min(1.0) } else { 0.5 };
+        // 深度: 嵌套层级估计 (括号/缩进数量)
+        let depth = ((text.chars().filter(|&c| c == '(' || c == '[' || c == '{').count() as f64) / 10.0).min(1.0);
+        // 广度: 独特词汇/总词汇
+        let words: Vec<&str> = text.split_whitespace().collect();
+        let unique_words: std::collections::HashSet<&str> = words.iter().copied().collect();
+        let breadth = if !words.is_empty() { (unique_words.len() as f64 / words.len() as f64).min(1.0) } else { 0.5 };
+        CognitiveCoord::new(abstraction, depth, breadth)
+    }
+
+    /// 计算认知坐标 (直接)
+    pub fn coordinate(&self, text: &str) -> CognitiveCoord {
+        self.estimate_level(text)
+    }
+
+    /// 规则门控 (先于评分)
+    pub fn gate_by_rule(&self, text: &str) -> Option<ResponseStrategy> {
+        for (pattern, strategy) in &self.rule_gates {
+            if text.contains(pattern) { return Some(*strategy); }
+        }
+        None
+    }
+
+    /// 注册规则门控
+    pub fn add_rule_gate(&mut self, pattern: &str, strategy: ResponseStrategy) {
+        self.rule_gates.insert(pattern.to_string(), strategy);
+    }
+
+    /// 匹配响应策略
+    pub fn match_response(&self, estimated: &CognitiveCoord, target: &CognitiveCoord) -> ResponseStrategy {
+        ResponseStrategy::select(estimated.overall(), target.overall())
+    }
+
+    /// 记录会话坐标
+    pub fn record_session(&mut self, session_id: &str, coord: CognitiveCoord) {
+        self.session_coords.insert(session_id.to_string(), coord);
+    }
+
+    /// 获取会话坐标
+    pub fn session_coord(&self, session_id: &str) -> Option<&CognitiveCoord> {
+        self.session_coords.get(session_id)
+    }
+
+    /// 自适应调节 (根据反馈学习)
+    pub fn adapt(&mut self, strategy: ResponseStrategy, was_effective: bool) {
+        self.feedback_log.push((strategy, was_effective));
+        // 简化: 根据有效/无效调节估计
+        let adjustment = if was_effective { self.learning_rate } else { -self.learning_rate };
+        match strategy {
+            ResponseStrategy::Simplify | ResponseStrategy::Analogy => {
+                self.current_estimate.depth = (self.current_estimate.depth - adjustment).clamp(0.0, 1.0);
+            }
+            ResponseStrategy::Challenge | ResponseStrategy::Elaborate => {
+                self.current_estimate.depth = (self.current_estimate.depth + adjustment).clamp(0.0, 1.0);
+            }
+            ResponseStrategy::Match => {}
+        }
+    }
+
+    /// 有效率统计
+    pub fn effectiveness_rate(&self, strategy: ResponseStrategy) -> f64 {
+        let relevant: Vec<bool> = self.feedback_log.iter()
+            .filter(|(s, _)| *s == strategy)
+            .map(|(_, effective)| *effective)
+            .collect();
+        if relevant.is_empty() { return 0.5; }
+        relevant.iter().filter(|&&e| e).count() as f64 / relevant.len() as f64
+    }
+
+    /// 重置学习
+    pub fn reset_learning(&mut self) {
+        self.feedback_log.clear();
+        self.current_estimate = CognitiveCoord::new(0.5, 0.5, 0.5);
+    }
+
+    /// 会话数
+    pub fn session_count(&self) -> usize { self.session_coords.len() }
+
+    /// 总评分次数
+    pub fn total_feedback(&self) -> usize { self.feedback_log.len() }
+}
+
+impl Default for ContainerCognitiveScorer { fn default() -> Self { Self::new() } }
+
+#[cfg(test)]
+mod cognitive_scorer_tests {
+    use super::*;
+    #[test] fn test_coord_overall() {
+        let c = CognitiveCoord::new(0.6, 0.8, 0.4);
+        assert!((c.overall() - 0.6).abs() < 0.001);
+    }
+    #[test] fn test_estimate_level() {
+        let e = ContainerCognitiveScorer::new();
+        let coord = e.estimate_level("hello world 你好");
+        assert!(coord.abstraction >= 0.0 && coord.abstraction <= 1.0);
+    }
+    #[test] fn test_strategy_select() {
+        assert_eq!(ResponseStrategy::select(0.3, 0.8), ResponseStrategy::Simplify);
+        assert_eq!(ResponseStrategy::select(0.8, 0.3), ResponseStrategy::Challenge);
+        assert_eq!(ResponseStrategy::select(0.5, 0.5), ResponseStrategy::Match);
+    }
+    #[test] fn test_gate_by_rule() {
+        let mut e = ContainerCognitiveScorer::new();
+        e.add_rule_gate("紧急", ResponseStrategy::Simplify);
+        assert_eq!(e.gate_by_rule("这是一个紧急情况"), Some(ResponseStrategy::Simplify));
+        assert!(e.gate_by_rule("普通情况").is_none());
+    }
+    #[test] fn test_match_response() {
+        let e = ContainerCognitiveScorer::new();
+        let low = CognitiveCoord::new(0.2, 0.2, 0.2);
+        let high = CognitiveCoord::new(0.8, 0.8, 0.8);
+        let s = e.match_response(&low, &high);
+        assert_eq!(s, ResponseStrategy::Simplify);
+    }
+    #[test] fn test_record_session() {
+        let mut e = ContainerCognitiveScorer::new();
+        e.record_session("s1", CognitiveCoord::new(0.5, 0.5, 0.5));
+        assert_eq!(e.session_count(), 1);
+        assert!(e.session_coord("s1").is_some());
+    }
+    #[test] fn test_adapt() {
+        let mut e = ContainerCognitiveScorer::new();
+        let before = e.current_estimate.depth;
+        e.adapt(ResponseStrategy::Simplify, true);
+        assert!(e.current_estimate.depth < before);
+    }
+    #[test] fn test_effectiveness_rate() {
+        let mut e = ContainerCognitiveScorer::new();
+        e.adapt(ResponseStrategy::Simplify, true);
+        e.adapt(ResponseStrategy::Simplify, true);
+        e.adapt(ResponseStrategy::Simplify, false);
+        let rate = e.effectiveness_rate(ResponseStrategy::Simplify);
+        assert!((rate - 0.666).abs() < 0.01);
+    }
+    #[test] fn test_distance() {
+        let a = CognitiveCoord::new(0.1, 0.1, 0.1);
+        let b = CognitiveCoord::new(0.9, 0.9, 0.9);
+        let d = a.distance(&b);
+        assert!(d > 1.0);
+    }
+    #[test] fn test_reset_learning() {
+        let mut e = ContainerCognitiveScorer::new();
+        e.adapt(ResponseStrategy::Simplify, true);
+        e.reset_learning();
+        assert_eq!(e.total_feedback(), 0);
+    }
+    #[test] fn test_default() {
+        let e = ContainerCognitiveScorer::default();
+        assert_eq!(e.session_count(), 0);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器压力计 · ContainerPressureGauge (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   监测系统压力: load / capacity, 超阈值告警
+//   仅加法: 负载累加, 减法释放
+
+#[derive(Clone, Debug)]
+pub struct ContainerPressureGauge {
+    pub load: u64,
+    pub capacity: u64,
+    pub alert_threshold: u64,  // 0..=100 (百分比)
+    pub alert_count: u64,
+    pub release_count: u64,
+}
+
+impl ContainerPressureGauge {
+    pub fn new(capacity: u64, alert_pct: u64) -> Self { Self { load: 0, capacity, alert_threshold: alert_pct, alert_count: 0, release_count: 0 } }
+    pub fn add_load(&mut self, amount: u64) {
+        self.load = self.load + amount;
+        if self.is_overloaded() { self.alert_count = self.alert_count + 1; }
+    }
+    pub fn release_load(&mut self, amount: u64) {
+        if self.load >= amount { self.load = self.load - amount; } else { self.load = 0; }
+        self.release_count = self.release_count + 1;
+    }
+    pub fn is_overloaded(&self) -> bool {
+        // load*100 >= capacity*threshold  → avoid div, use cross-addition
+        let threshold_load = self.capacity * self.alert_threshold / 100;
+        self.load >= threshold_load
+    }
+    pub fn utilization(&self) -> u64 {
+        if self.capacity == 0 { return 0; }
+        let mut pct = 0u64;
+        let mut remaining = self.load;
+        loop {
+            if remaining == 0 { break; }
+            // approximate pct = load*100/capacity by counting capacity-sized chunks
+            if remaining >= self.capacity {
+                pct = pct + 100;
+                remaining = remaining - self.capacity;
+            } else {
+                // sub-capacity remainder: add proportional (approximate)
+                pct = pct + 1; // minimal unit
+                remaining = 0;
+            }
+        }
+        if pct > 100 { pct = 100; }
+        pct
+    }
+}
+
+impl Default for ContainerPressureGauge {
+    fn default() -> Self { Self::new(100, 80) }
+}
+
+#[cfg(test)]
+mod pressure_gauge_tests {
+    use super::*;
+    #[test] fn test_normal() {
+        let mut g = ContainerPressureGauge::new(100, 80);
+        g.add_load(50);
+        assert!(!g.is_overloaded());
+        assert_eq!(g.alert_count, 0);
+    }
+    #[test] fn test_overload() {
+        let mut g = ContainerPressureGauge::new(100, 80);
+        g.add_load(90);
+        assert!(g.is_overloaded());
+        assert_eq!(g.alert_count, 1);
+    }
+    #[test] fn test_release() {
+        let mut g = ContainerPressureGauge::new(100, 50);
+        g.add_load(60); // triggers alert
+        g.release_load(20);
+        assert_eq!(g.load, 40);
+        assert!(!g.is_overloaded());
+    }
+    #[test] fn test_utilization() {
+        let mut g = ContainerPressureGauge::new(100, 80);
+        g.add_load(150);
+        assert_eq!(g.utilization(), 100);
+    }
+    #[test] fn test_release_count() {
+        let mut g = ContainerPressureGauge::new(50, 80);
+        g.release_load(10); // load was 0, stays 0
+        assert_eq!(g.release_count, 1);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器日志追加器 · ContainerLogAppender (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   向固定大小日志环追加条目, 达上限后覆盖最旧条目
+//   仅加法: head +1, tail +1
+
+#[derive(Clone, Debug)]
+pub struct ContainerLogAppender {
+    pub entries: Vec<String>,
+    pub capacity: usize,
+    pub head: usize,
+    pub tail: usize,
+    pub size: usize,
+    pub total_appended: u64,
+}
+
+impl ContainerLogAppender {
+    pub fn new(capacity: usize) -> Self {
+        Self { entries: vec![String::new(); capacity], capacity, head: 0, tail: 0, size: 0, total_appended: 0 }
+    }
+    pub fn append(&mut self, msg: &str) {
+        self.entries[self.tail] = msg.to_string();
+        self.tail = self.tail + 1;
+        if self.tail >= self.capacity { self.tail = 0; }
+        if self.size < self.capacity { self.size = self.size + 1; } else {
+            self.head = self.head + 1;
+            if self.head >= self.capacity { self.head = 0; }
+        }
+        self.total_appended = self.total_appended + 1;
+    }
+    pub fn size(&self) -> usize { self.size }
+    pub fn is_empty(&self) -> bool { self.size == 0 }
+    pub fn is_full(&self) -> bool { self.size >= self.capacity }
+    pub fn total_appended(&self) -> u64 { self.total_appended }
+    pub fn newest(&self) -> Option<&str> {
+        if self.size == 0 { return None; }
+        let idx = if self.tail == 0 { self.capacity - 1 } else { self.tail - 1 };
+        Some(&self.entries[idx])
+    }
+    pub fn oldest(&self) -> Option<&str> {
+        if self.size == 0 { return None; }
+        Some(&self.entries[self.head])
+    }
+    pub fn clear(&mut self) { self.head = 0; self.tail = 0; self.size = 0; }
+}
+
+impl Default for ContainerLogAppender {
+    fn default() -> Self { Self::new(8) }
+}
+
+#[cfg(test)]
+mod log_appender_tests {
+    use super::*;
+    #[test] fn test_append_and_wrap() {
+        let mut l = ContainerLogAppender::new(3);
+        l.append("a"); l.append("b"); l.append("c");
+        assert!(l.is_full());
+        l.append("d"); // overwrites a
+        assert_eq!(l.oldest(), Some("b"));
+        assert_eq!(l.newest(), Some("d"));
+    }
+    #[test] fn test_wrap_index() {
+        let mut l = ContainerLogAppender::new(2);
+        l.append("x"); l.append("y"); l.append("z");
+        assert_eq!(l.size(), 2);
+        assert_eq!(l.oldest(), Some("y"));
+        assert_eq!(l.newest(), Some("z"));
+    }
+    #[test] fn test_total() {
+        let mut l = ContainerLogAppender::new(3);
+        l.append("a"); l.append("b"); l.append("c"); l.append("d");
+        assert_eq!(l.total_appended(), 4);
+    }
+    #[test] fn test_empty() {
+        let l = ContainerLogAppender::new(5);
+        assert!(l.is_empty());
+        assert_eq!(l.newest(), None);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器负载均衡器 · ContainerLoadBalancer (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   简单轮询负载均衡: 维护后端列表, 每次 select 返回下一个
+//   仅加法: idx +1, 回绕
+
+#[derive(Clone, Debug)]
+pub struct ContainerLoadBalancer {
+    backends: Vec<u64>,
+    current_idx: usize,
+    selections: u64,
+}
+
+impl ContainerLoadBalancer {
+    pub fn new() -> Self { Self { backends: Vec::new(), current_idx: 0, selections: 0 } }
+    pub fn add_backend(&mut self, id: u64) { self.backends.push(id); }
+    pub fn remove_backend(&mut self, id: u64) { self.backends.retain(|&b| b != id); }
+    pub fn select(&mut self) -> Option<u64> {
+        if self.backends.is_empty() { return None; }
+        let idx = self.current_idx;
+        self.current_idx = self.current_idx + 1;
+        if self.current_idx >= self.backends.len() { self.current_idx = 0; }
+        self.selections = self.selections + 1;
+        Some(self.backends[idx])
+    }
+    pub fn backend_count(&self) -> usize { self.backends.len() }
+    pub fn selections(&self) -> u64 { self.selections }
+}
+
+impl Default for ContainerLoadBalancer {
+    fn default() -> Self { Self::new() }
+}
+
+#[cfg(test)]
+mod load_balancer_tests {
+    use super::*;
+    #[test] fn test_round_robin() {
+        let mut lb = ContainerLoadBalancer::new();
+        lb.add_backend(10); lb.add_backend(20); lb.add_backend(30);
+        assert_eq!(lb.select(), Some(10));
+        assert_eq!(lb.select(), Some(20));
+        assert_eq!(lb.select(), Some(30));
+        assert_eq!(lb.select(), Some(10)); // wrap
+    }
+    #[test] fn test_empty() {
+        let mut lb = ContainerLoadBalancer::default();
+        assert_eq!(lb.select(), None);
+    }
+    #[test] fn test_remove() {
+        let mut lb = ContainerLoadBalancer::new();
+        lb.add_backend(1); lb.add_backend(2);
+        lb.remove_backend(1);
+        assert_eq!(lb.backend_count(), 1);
+        assert_eq!(lb.select(), Some(2));
+    }
+    #[test] fn test_selections() {
+        let mut lb = ContainerLoadBalancer::new();
+        lb.add_backend(1);
+        for _ in 0..5 { lb.select(); }
+        assert_eq!(lb.selections(), 5);
+    }
+}
