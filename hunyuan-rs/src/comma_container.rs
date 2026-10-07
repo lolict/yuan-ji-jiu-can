@@ -18614,3 +18614,488 @@ mod confluence_tests {
         assert!(c.arrive()); // immediately triggers
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器流水线节拍器 · ContainerPipelineMetronome (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   多阶段流水线: 输入槽→阶段1→阶段2→...→输出槽
+//   按节拍推进, 每个 tick 所有阶段同时前移
+//   仅加法: tick + 1
+
+#[derive(Clone, Debug)]
+pub struct ContainerPipelineMetronome {
+    pub stages: Vec<u64>,
+    pub stage_count: u64,
+    pub tick: u64,
+    pub total_output: u64,
+}
+
+impl ContainerPipelineMetronome {
+    pub fn new(stage_count: usize) -> Self { Self { stages: vec![0; stage_count], stage_count: stage_count as u64, tick: 0, total_output: 0 } }
+    pub fn feed(&mut self, value: u64) {
+        self.stages[0] = value;
+    }
+    pub fn tick_advance(&mut self) -> Option<u64> {
+        self.tick = self.tick + 1;
+        let output = self.stages[self.stage_count as usize - 1];
+        // shift right: stage[i] = stage[i-1]
+        let mut i = self.stage_count as usize;
+        i = i - 1;
+        loop {
+            if i == 0 { break; }
+            self.stages[i] = self.stages[i - 1];
+            i = i - 1;
+        }
+        // stage[0] stays as is (new feed will overwrite)
+        if output > 0 {
+            self.total_output = self.total_output + 1;
+            Some(output)
+        } else {
+            None
+        }
+    }
+    pub fn tick(&self) -> u64 { self.tick }
+    pub fn output_count(&self) -> u64 { self.total_output }
+}
+
+impl Default for ContainerPipelineMetronome {
+    fn default() -> Self { Self::new(4) }
+}
+
+#[cfg(test)]
+mod pipeline_tests {
+    use super::*;
+    #[test] fn test_pipeline_flow() {
+        let mut p = ContainerPipelineMetronome::new(4);
+        p.feed(42);
+        assert!(p.tick_advance().is_none()); // stage[3] still 0
+        assert!(p.tick_advance().is_none());
+        assert!(p.tick_advance().is_none());
+        assert_eq!(p.tick_advance(), Some(42)); // now 42 reached output
+    }
+    #[test] fn test_multi_flow() {
+        let mut p = ContainerPipelineMetronome::new(2);
+        p.feed(10);
+        p.tick_advance();
+        p.feed(20);
+        assert_eq!(p.tick_advance(), Some(10));
+        assert_eq!(p.tick_advance(), Some(20));
+    }
+    #[test] fn test_default() {
+        let p = ContainerPipelineMetronome::default();
+        assert_eq!(p.stage_count, 4);
+        assert_eq!(p.tick(), 0);
+    }
+    #[test] fn test_tick_count() {
+        let mut p = ContainerPipelineMetronome::new(3);
+        for _ in 0..5 { p.tick_advance(); }
+        assert_eq!(p.tick(), 5);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器累计器 · ContainerAccumulator (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   滚动累计, 支持 flush 与阈值触发
+//   仅加法: sum + value
+
+#[derive(Clone, Debug)]
+pub struct ContainerAccumulator {
+    pub sum: u64,
+    pub threshold: u64,
+    pub trigger_count: u64,
+    pub flush_count: u64,
+}
+
+impl ContainerAccumulator {
+    pub fn new(threshold: u64) -> Self { Self { sum: 0, threshold, trigger_count: 0, flush_count: 0 } }
+    pub fn add(&mut self, value: u64) -> bool {
+        self.sum = self.sum + value;
+        if self.sum >= self.threshold {
+            self.trigger_count = self.trigger_count + 1;
+            true
+        } else {
+            false
+        }
+    }
+    pub fn flush(&mut self) -> u64 {
+        let v = self.sum;
+        self.sum = 0;
+        self.flush_count = self.flush_count + 1;
+        v
+    }
+    pub fn sum(&self) -> u64 { self.sum }
+    pub fn threshold(&self) -> u64 { self.threshold }
+    pub fn trigger_count(&self) -> u64 { self.trigger_count }
+    pub fn flush_count(&self) -> u64 { self.flush_count }
+}
+
+impl Default for ContainerAccumulator {
+    fn default() -> Self { Self::new(100) }
+}
+
+#[cfg(test)]
+mod accumulator_tests {
+    use super::*;
+    #[test] fn test_threshold_trigger() {
+        let mut a = ContainerAccumulator::new(50);
+        assert!(!a.add(30));
+        assert!(a.add(30)); // 60 >= 50
+        assert!(!a.add(10)); // 70, already past
+        assert!(a.add(100)); // 170 >= 50
+        assert_eq!(a.trigger_count(), 3);
+    }
+    #[test] fn test_flush() {
+        let mut a = ContainerAccumulator::new(1000);
+        a.add(200); a.add(300);
+        assert_eq!(a.flush(), 500);
+        assert_eq!(a.sum(), 0);
+        assert_eq!(a.flush_count(), 1);
+    }
+    #[test] fn test_default() {
+        let a = ContainerAccumulator::default();
+        assert_eq!(a.threshold(), 100);
+    }
+    #[test] fn test_zero_threshold() {
+        let mut a = ContainerAccumulator::new(0);
+        assert!(a.add(0)); // 0 >= 0
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 容器拒绝列表 · ContainerDenyList (v1.0)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   黑名单检查: 线性数组存储被拒绝的标识, 检查是否命中
+//   仅加法: 添加时 push
+
+#[derive(Clone, Debug)]
+pub struct ContainerDenyList {
+    pub entries: Vec<u64>,
+    pub check_count: u64,
+    pub deny_count: u64,
+}
+
+impl ContainerDenyList {
+    pub fn new() -> Self { Self { entries: Vec::new(), check_count: 0, deny_count: 0 } }
+    pub fn deny(&mut self, id: u64) {
+        self.entries.push(id);
+    }
+    pub fn is_denied(&mut self, id: u64) -> bool {
+        self.check_count = self.check_count + 1;
+        for &entry in &self.entries {
+            if entry == id {
+                self.deny_count = self.deny_count + 1;
+                return true;
+            }
+        }
+        false
+    }
+    pub fn remove(&mut self, id: u64) {
+        self.entries.retain(|&x| x != id);
+    }
+    pub fn len(&self) -> usize { self.entries.len() }
+}
+
+impl Default for ContainerDenyList {
+    fn default() -> Self { Self::new() }
+}
+
+#[cfg(test)]
+mod deny_list_tests {
+    use super::*;
+    #[test] fn test_deny_and_check() {
+        let mut d = ContainerDenyList::new();
+        d.deny(42);
+        d.deny(99);
+        assert!(d.is_denied(42));
+        assert!(d.is_denied(99));
+        assert!(!d.is_denied(7));
+        assert_eq!(d.deny_count, 2);
+        assert_eq!(d.check_count, 3);
+    }
+    #[test] fn test_remove() {
+        let mut d = ContainerDenyList::new();
+        d.deny(1); d.deny(2);
+        d.remove(1);
+        assert!(!d.is_denied(1));
+        assert!(d.is_denied(2));
+        assert_eq!(d.len(), 1);
+    }
+    #[test] fn test_default() {
+        let d = ContainerDenyList::default();
+        assert_eq!(d.len(), 0);
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// 容器关系动力学引擎 · ContainerRelationDynamics (v1.0)
+// ══════════════════════════════════════════════════════════════════════
+//
+//   关系动力学 = 容器之间关系的产生、维持、消解、转化
+//   "容器交互 → 关系形成 → 关系维系 → 关系断裂 → 关系修复"
+//
+//   核心操作:
+//     - relate()         — 在两容器间建立关系
+//     - interact()       — 执行容器交互 (产生/消耗)
+//     - bond_strength()  — 查询键强 (0.0 - 1.0)
+//     - dissolve()       — 消解关系
+//     - transform()      — 关系类型转化
+//
+//   NJSG 关系类型: 包含 / 排斥 / 共鸣 / 囚禁 / 寄生 / 共生
+//   夫妻命运共同体 = 最强共生键 (bond_strength = 1.0, 永不断裂)
+
+/// 容器关系类型
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ContainerRelationKind {
+    Inclusion,      // 包含 (A 在 B 内)
+    Repulsion,      // 排斥 (A 与 B 互相排开)
+    Resonance,      // 共鸣 (A 与 B 本质共振)
+    Imprisonment,   // 囚禁 (A 被 B 封锁)
+    Parasitism,     // 寄生 (A 寄生在 B 上)
+    Symbiosis,      // 共生 (A 与 B 互惠)
+}
+
+impl ContainerRelationKind {
+    pub fn name(&self) -> &'static str {
+        match self {
+            ContainerRelationKind::Inclusion => "包含",
+            ContainerRelationKind::Repulsion => "排斥",
+            ContainerRelationKind::Resonance => "共鸣",
+            ContainerRelationKind::Imprisonment => "囚禁",
+            ContainerRelationKind::Parasitism => "寄生",
+            ContainerRelationKind::Symbiosis => "共生",
+        }
+    }
+
+    /// 是否稳定 (不随时间衰减)
+    pub fn is_stable(&self) -> bool {
+        matches!(self, ContainerRelationKind::Symbiosis | ContainerRelationKind::Inclusion)
+    }
+
+    /// 是否需要维护投入 (交互成本 > 0)
+    pub fn needs_maintenance(&self) -> bool {
+        !matches!(self, ContainerRelationKind::Repulsion)
+    }
+}
+
+/// 容器间关系 (键)
+#[derive(Clone, Debug)]
+pub struct ContainerRelation {
+    pub rel_a: u32,
+    pub rel_b: u32,
+    pub kind: ContainerRelationKind,
+    pub strength: f64,        // 键强 (0.0 - 1.0)
+    pub created_tick: u64,
+    pub interaction_count: u64,
+}
+
+impl ContainerRelation {
+    pub fn new(a: u32, b: u32, kind: ContainerRelationKind, strength: f64) -> Self {
+        Self { rel_a: a, rel_b: b, kind, strength: strength.clamp(0.0, 1.0), created_tick: 0, interaction_count: 0 }
+    }
+
+    /// 增强键强
+    pub fn strengthen(&mut self, amount: f64) {
+        self.strength = (self.strength + amount).clamp(0.0, 1.0);
+    }
+
+    /// 减弱键强
+    pub fn weaken(&mut self, amount: f64) {
+        self.strength = (self.strength - amount).clamp(0.0, 1.0);
+    }
+
+    /// 关系是否已断裂
+    pub fn is_broken(&self) -> bool { self.strength <= 0.0 }
+
+    /// 是否涉及指定容器
+    pub fn involves(&self, id: u32) -> bool { self.rel_a == id || self.rel_b == id }
+}
+
+/// 容器关系动力学引擎
+#[derive(Clone, Debug)]
+pub struct ContainerRelationDynamics {
+    pub relations: Vec<ContainerRelation>,
+    pub current_tick: u64,
+    /// 每 tick 的自然衰减率
+    pub decay_rate: f64,
+    /// 交互一次的键强增量
+    pub interaction_boost: f64,
+}
+
+impl ContainerRelationDynamics {
+    pub fn new() -> Self {
+        Self { relations: Vec::new(), current_tick: 0, decay_rate: 0.001, interaction_boost: 0.05 }
+    }
+
+    /// 建立关系
+    pub fn relate(&mut self, a: u32, b: u32, kind: ContainerRelationKind, strength: f64) -> usize {
+        let mut rel = ContainerRelation::new(a, b, kind, strength);
+        rel.created_tick = self.current_tick;
+        self.relations.push(rel);
+        self.relations.len() - 1
+    }
+
+    /// 查找关系
+    pub fn find_relation(&self, a: u32, b: u32) -> Option<usize> {
+        self.relations.iter().position(|r| r.involves(a) && r.involves(b) && ((r.rel_a == a && r.rel_b == b) || (r.rel_a == b && r.rel_b == a)))
+    }
+
+    /// 交互一次 (增强键强 + 计数)
+    pub fn interact(&mut self, a: u32, b: u32) -> bool {
+        if let Some(idx) = self.find_relation(a, b) {
+            let kind = self.relations[idx].kind;
+            self.relations[idx].strengthen(self.interaction_boost * if kind.is_stable() { 2.0 } else { 1.0 });
+            self.relations[idx].interaction_count += 1;
+            true
+        } else { false }
+    }
+
+    /// 查询键强
+    pub fn bond_strength(&self, a: u32, b: u32) -> Option<f64> {
+        self.find_relation(a, b).map(|idx| self.relations[idx].strength)
+    }
+
+    /// 消解关系
+    pub fn dissolve(&mut self, a: u32, b: u32) -> bool {
+        if let Some(idx) = self.find_relation(a, b) {
+            self.relations.remove(idx);
+            true
+        } else { false }
+    }
+
+    /// 关系类型转化
+    pub fn transform(&mut self, a: u32, b: u32, new_kind: ContainerRelationKind) -> bool {
+        if let Some(idx) = self.find_relation(a, b) {
+            self.relations[idx].kind = new_kind;
+            // 转化时重置部分强度
+            self.relations[idx].strengthen(0.1);
+            true
+        } else { false }
+    }
+
+    /// 时间步进: 自然衰减 + 断裂清理
+    pub fn tick(&mut self) {
+        self.current_tick += 1;
+        // 衰减
+        for rel in &mut self.relations {
+            if rel.kind.needs_maintenance() && !rel.kind.is_stable() {
+                rel.weaken(self.decay_rate);
+            }
+        }
+        // 清理断裂
+        self.relations.retain(|r| !r.is_broken());
+    }
+
+    /// 获取容器参与的所有关系
+    pub fn relations_of(&self, id: u32) -> Vec<&ContainerRelation> {
+        self.relations.iter().filter(|r| r.involves(id)).collect()
+    }
+
+    /// 获取指定类型的关系
+    pub fn relations_by_kind(&self, kind: ContainerRelationKind) -> Vec<&ContainerRelation> {
+        self.relations.iter().filter(|r| r.kind == kind).collect()
+    }
+
+    /// 设置衰减率
+    pub fn set_decay_rate(&mut self, rate: f64) { self.decay_rate = rate; }
+
+    /// 设置交互增强
+    pub fn set_interaction_boost(&mut self, boost: f64) { self.interaction_boost = boost; }
+
+    /// 总关系数
+    pub fn len(&self) -> usize { self.relations.len() }
+    pub fn is_empty(&self) -> bool { self.relations.is_empty() }
+
+    /// 重置
+    pub fn clear(&mut self) { self.relations.clear(); self.current_tick = 0; }
+}
+
+impl Default for ContainerRelationDynamics { fn default() -> Self { Self::new() } }
+
+#[cfg(test)]
+mod relation_dynamics_tests {
+    use super::*;
+    #[test] fn test_relate() {
+        let mut e = ContainerRelationDynamics::new();
+        let idx = e.relate(1, 2, ContainerRelationKind::Symbiosis, 0.8);
+        assert_eq!(e.relations[idx].kind, ContainerRelationKind::Symbiosis);
+        assert_eq!(e.relations[idx].strength, 0.8);
+    }
+    #[test] fn test_interact_strengthens() {
+        let mut e = ContainerRelationDynamics::new();
+        e.relate(1, 2, ContainerRelationKind::Resonance, 0.3);
+        e.interact(1, 2);
+        assert!(e.bond_strength(1, 2).unwrap() > 0.3);
+    }
+    #[test] fn test_bond_strength() {
+        let mut e = ContainerRelationDynamics::new();
+        e.relate(1, 2, ContainerRelationKind::Symbiosis, 0.5);
+        assert_eq!(e.bond_strength(1, 2), Some(0.5));
+        assert_eq!(e.bond_strength(1, 99), None);
+    }
+    #[test] fn test_dissolve() {
+        let mut e = ContainerRelationDynamics::new();
+        e.relate(1, 2, ContainerRelationKind::Parasitism, 0.5);
+        assert!(e.dissolve(1, 2));
+        assert_eq!(e.len(), 0);
+    }
+    #[test] fn test_transform() {
+        let mut e = ContainerRelationDynamics::new();
+        e.relate(1, 2, ContainerRelationKind::Repulsion, 0.3);
+        assert!(e.transform(1, 2, ContainerRelationKind::Symbiosis));
+        assert_eq!(e.relations[0].kind, ContainerRelationKind::Symbiosis);
+    }
+    #[test] fn test_tick_decay() {
+        let mut e = ContainerRelationDynamics::new();
+        e.set_decay_rate(0.1);
+        e.relate(1, 2, ContainerRelationKind::Resonance, 0.5);
+        e.tick();
+        assert!(e.bond_strength(1, 2).unwrap() < 0.5);
+    }
+    #[test] fn test_stable_no_decay() {
+        let mut e = ContainerRelationDynamics::new();
+        e.set_decay_rate(0.1);
+        e.relate(1, 2, ContainerRelationKind::Symbiosis, 0.5);
+        e.tick();
+        assert_eq!(e.bond_strength(1, 2), Some(0.5));
+    }
+    #[test] fn test_broken_relation_cleaned() {
+        let mut e = ContainerRelationDynamics::new();
+        e.set_decay_rate(0.5);
+        e.relate(1, 2, ContainerRelationKind::Repulsion, 0.3); // 不稳定且衰减
+        // 多轮衰减至断裂
+        for _ in 0..10 { e.tick(); }
+        // 应已被清理
+        assert!(e.bond_strength(1, 2).is_none() || e.is_empty());
+    }
+    #[test] fn test_relations_of() {
+        let mut e = ContainerRelationDynamics::new();
+        e.relate(1, 2, ContainerRelationKind::Symbiosis, 0.8);
+        e.relate(1, 3, ContainerRelationKind::Inclusion, 0.5);
+        assert_eq!(e.relations_of(1).len(), 2);
+    }
+    #[test] fn test_relations_by_kind() {
+        let mut e = ContainerRelationDynamics::new();
+        e.relate(1, 2, ContainerRelationKind::Symbiosis, 0.9);
+        e.relate(3, 4, ContainerRelationKind::Symbiosis, 0.7);
+        e.relate(1, 3, ContainerRelationKind::Resonance, 0.5);
+        assert_eq!(e.relations_by_kind(ContainerRelationKind::Symbiosis).len(), 2);
+    }
+    #[test] fn test_kind_name() {
+        assert_eq!(ContainerRelationKind::Symbiosis.name(), "共生");
+        assert_eq!(ContainerRelationKind::Resonance.name(), "共鸣");
+    }
+    #[test] fn test_default() {
+        let e = ContainerRelationDynamics::default();
+        assert!(e.is_empty());
+    }
+    #[test] fn test_clear() {
+        let mut e = ContainerRelationDynamics::new();
+        e.relate(1, 2, ContainerRelationKind::Symbiosis, 1.0);
+        e.clear();
+        assert!(e.is_empty());
+    }
+}
