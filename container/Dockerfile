@@ -53,7 +53,7 @@ RUN cd kernel && \
     /src/entrypoint.c src/njsg_mengji.c \
     -lpthread -lm \
     -o /usr/local/bin/njsg-mengji-demo \
-    2>&1 | tail -5 || true
+    2>&1
 
 # 构建时三分支独立验证 (triune/bag/offline)
 RUN set -e; cd /tmp; \
@@ -94,7 +94,6 @@ COPY --from=builder /src/BUILD_COMMIT /etc/hunyuan-os-build-commit
 
 # 复制内核头文件 (供运行时编程接口)
 COPY --from=builder /src/hunyuan-os/kernel/src/njsg_mengji.h /usr/local/include/hunyuan/
-COPY --from=builder /src/hunyuan-os/kernel/src/njsg_kernel.h /usr/local/include/hunyuan/ 2>/dev/null || true
 
 # 盟机合网络数据目录
 VOLUME ["/var/lib/hunyuan-os"]
