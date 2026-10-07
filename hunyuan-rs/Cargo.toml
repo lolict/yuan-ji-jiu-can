@@ -151,6 +151,10 @@ name = "visual-glyph"
 path = "src/bin/visual_glyph.rs"
 
 [[bin]]
+name = "container-runtime"
+path = "src/bin/container_runtime.rs"
+
+[[bin]]
 name = "ttf-64-gen"
 path = "src/bin/ttf_64_gen.rs"
 

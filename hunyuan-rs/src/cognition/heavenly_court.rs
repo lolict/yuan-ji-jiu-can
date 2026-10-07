@@ -272,7 +272,7 @@ impl TemporalVersionEngine {
         };
 
         // 记录纠正关联
-        if let Some((sym, used)) = error_info {
+        if let Some((sym, _used)) = error_info {
             self.error_corrections.push(ErrorCorrection {
                 error_version_id: error_id,
                 correction_version_id: id,
@@ -1103,7 +1103,7 @@ impl AestheticScore {
     pub fn evaluate(symbol: &str, context: &[String]) -> Self {
         let sym_chars: Vec<char> = symbol.chars().collect();
         // 和谐度: 与上下文的字符重叠
-        let ctx_count = context.iter().map(|s| s.chars().count()).sum::<usize>().max(1);
+        let _ctx_count = context.iter().map(|s| s.chars().count()).sum::<usize>().max(1);
         let overlap = sym_chars.iter().filter(|c| context.iter().any(|s| s.contains(**c))).count();
         let harmony = overlap as f64 / sym_chars.len().max(1) as f64;
         // 简洁度

@@ -189,6 +189,12 @@ pub use character_creator::{CharacterCreator, GlyphEncoding, GlyphPolarity, Glyp
                             StrokeDatabase, ContainerEnc,
                             STROKE_TABLE, STROKE_NAMES, CONTAINER_NAMES};
 
+// ── 容器字体统一架构 ──
+#[path = "container_font_unified.rs"]
+pub mod container_font_unified;
+// 注: Polarity/Verdict 由其他模块导出, 不在此重复 re-export
+// 使用: mqf::container_font_unified::{Address32, Geometry3D, ...}
+
 // ── 笔画容器 → SVG 可视字形渲染 ──
 #[path = "encoding/svg_renderer.rs"]
 pub mod svg_renderer;

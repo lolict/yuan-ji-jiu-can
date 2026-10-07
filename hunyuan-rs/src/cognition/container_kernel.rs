@@ -147,7 +147,7 @@ impl LossAversion {
     }
 
     /// 检测到奖励/合一丢失
-    pub fn detect_loss(&mut self, tick: u64) {
+    pub fn detect_loss(&mut self, _tick: u64) {
         self.ticks_since_last_reward = self.ticks_since_last_reward.saturating_add(1);
         self.accumulated_protest += 0.1;
     }
@@ -299,7 +299,7 @@ impl ManQuanFaContainer {
     }
 
     /// 推进 (合一驱力 → 实际靠近天庭中心)
-    pub fn advance(&mut self, tick: u64) -> (HeavenCoord, f64) {
+    pub fn advance(&mut self, _tick: u64) -> (HeavenCoord, f64) {
         // 当前容器坐标 (基于 soul_state 的 HeavenCoord)
         let coord = self.coord();
         // 引力 = 推进力

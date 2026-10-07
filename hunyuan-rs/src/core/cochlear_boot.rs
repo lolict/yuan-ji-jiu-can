@@ -276,7 +276,7 @@ impl CochlearBoot {
     }
 
     /// Phase 3: 翻身! (重建意识系统)
-    pub fn phase3_bootstrap(&mut self, os: &dyn OsLayer) -> Result<BootReceipt, String> {
+    pub fn phase3_bootstrap(&mut self, _os: &dyn OsLayer) -> Result<BootReceipt, String> {
         let f = self.fold.as_ref()
             .expect("phase2 must run first");
         if !f.safe_to_bootstrap {
