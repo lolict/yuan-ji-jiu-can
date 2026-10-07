@@ -162,7 +162,7 @@ fn stroke_defs(ch: char) -> Option<Vec<StrokeDef>> {
     Some(defs)
 }
 
-// 笔画绘制到图像
+// 笔画绘制到图像（支持线宽）
 fn draw_stroke(img: &mut RgbImage, s: &StrokeDef, ox: i32, oy: i32, scale: i32, color: Rgb<u8>) {
     let x0 = ox + s.x0 * scale / 100;
     let y0 = oy + s.y0 * scale / 100;
@@ -170,22 +170,66 @@ fn draw_stroke(img: &mut RgbImage, s: &StrokeDef, ox: i32, oy: i32, scale: i32, 
     let y1 = oy + s.y1 * scale / 100;
     let cx = ox + s.cx * scale / 100;
     let cy = oy + s.cy * scale / 100;
+    let thickness = (scale / 40).max(2); // 线宽：scale=200 → 5px
     if s.cx == 0 && s.cy == 0 {
-        bresenham(img, x0, y0, x1, y1, color);
+        draw_thick_line(img, x0, y0, x1, y1, thickness, color);
     } else if s.typ == 7 || s.typ == 6 || s.typ == 13 {
-        draw_arc(img, x0, y0, cx, cy, x1, y1, color);
+        draw_thick_arc(img, x0, y0, cx, cy, x1, y1, thickness, color);
     } else {
         let mx = (x0 + cx) / 2;
         let my = (y0 + cy) / 2;
         let nx = (cx + x1) / 2;
         let ny = (cy + y1) / 2;
-        bresenham(img, x0, y0, mx, my, color);
-        bresenham(img, mx, my, nx, ny, color);
-        bresenham(img, nx, ny, x1, y1, color);
+        draw_thick_line(img, x0, y0, mx, my, thickness, color);
+        draw_thick_line(img, mx, my, nx, ny, thickness, color);
+        draw_thick_line(img, nx, ny, x1, y1, thickness, color);
     }
 }
 
-fn bresenham(img: &mut RgbImage, x0: i32, y0: i32, x1: i32, y1: i32, color: Rgb<u8>) {
+fn draw_thick_line(img: &mut RgbImage, x0: i32, y0: i32, x1: i32, y1: i32, thickness: i32, color: Rgb<u8>) {
+    let mut x0 = x0;
+    let mut y0 = y0;
+    let dx = (x1 - x0).abs();
+    let dy = -(y1 - y0).abs();
+    let sx = if x0 < x1 { 1 } else { -1 };
+    let sy = if y0 < y1 { 1 } else { -1 };
+    let mut err = dx + dy;
+    let r = thickness / 2;
+    loop {
+        // 绘制粗点（方形刷）
+        for dy in -r..=r {
+            for dx in -r..=r {
+                let px = x0 + dx;
+                let py = y0 + dy;
+                if px >= 0 && py >= 0 && (px as u32) < img.width() && (py as u32) < img.height() {
+                    img.put_pixel(px as u32, py as u32, color);
+                }
+            }
+        }
+        if x0 == x1 && y0 == y1 { break; }
+        let e2 = 2 * err;
+        if e2 >= dy { err += dy; x0 += sx; }
+        if e2 <= dx { err += dx; y0 += sy; }
+    }
+}
+
+fn draw_thick_arc(img: &mut RgbImage, x0: i32, y0: i32, cx: i32, cy: i32, x1: i32, y1: i32, thickness: i32, color: Rgb<u8>) {
+    let steps = 32;
+    let mut pts = Vec::new();
+    for i in 0..=steps {
+        let t = i as f64 / steps as f64;
+        let tt = 1.0 - t;
+        let x = tt * tt * x0 as f64 + 2.0 * tt * t * cx as f64 + t * t * x1 as f64;
+        let y = tt * tt * y0 as f64 + 2.0 * tt * t * cy as f64 + t * t * y1 as f64;
+        pts.push((x.round() as i32, y.round() as i32));
+    }
+    for w in pts.windows(2) {
+        draw_thick_line(img, w[0].0, w[0].1, w[1].0, w[1].1, thickness, color);
+    }
+}
+
+#[allow(dead_code)]
+fn _bresenham(img: &mut RgbImage, x0: i32, y0: i32, x1: i32, y1: i32, color: Rgb<u8>) {
     let mut x0 = x0;
     let mut y0 = y0;
     let dx = (x1 - x0).abs();
@@ -204,7 +248,8 @@ fn bresenham(img: &mut RgbImage, x0: i32, y0: i32, x1: i32, y1: i32, color: Rgb<
     }
 }
 
-fn draw_arc(img: &mut RgbImage, x0: i32, y0: i32, cx: i32, cy: i32, x1: i32, y1: i32, color: Rgb<u8>) {
+#[allow(dead_code)]
+fn _draw_arc(img: &mut RgbImage, x0: i32, y0: i32, cx: i32, cy: i32, x1: i32, y1: i32, color: Rgb<u8>) {
     let steps = 24;
     let mut pts = Vec::new();
     for i in 0..=steps {
@@ -215,10 +260,9 @@ fn draw_arc(img: &mut RgbImage, x0: i32, y0: i32, cx: i32, cy: i32, x1: i32, y1:
         pts.push((x.round() as i32, y.round() as i32));
     }
     for w in pts.windows(2) {
-        bresenham(img, w[0].0, w[0].1, w[1].0, w[1].1, color);
+        _bresenham(img, w[0].0, w[0].1, w[1].0, w[1].1, color);
     }
 }
-
 // 5x7 ASCII bitmap
 const FONT_5X7: [[u8; 5]; 37] = [
     [0x0E,0x11,0x13,0x15,0x0E],[0x04,0x0C,0x04,0x04,0x0E],[0x0E,0x01,0x0E,0x10,0x1F],

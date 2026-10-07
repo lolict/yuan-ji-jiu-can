@@ -207,6 +207,58 @@ fn stroke_layout_offset(index: usize, total: usize, stroke_type: u8) -> (f64, f6
     }
 }
 
+/// 将容器单元 (u64) 渲染为 8×8 位图 SVG
+///
+/// 每一位对应一个容器存在 (1) 或虚无 (0)。
+/// 布局: 高位在左上, 低位在右下, 每行 8 位共 8 行 = 64 位。
+pub fn render_cell_bitmap(container_cell: u64) -> String {
+    let cell = 12.0;
+    let pad = 6.0;
+    let cols = 8usize;
+    let rows = 8usize;
+    let width = cols as f64 * cell + 2.0 * pad;
+    let height = rows as f64 * cell + 2.0 * pad;
+
+    let mut svg = String::new();
+    svg.push_str(&format!(
+        "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 {:.0} {:.0}\" width=\"{:.0}\" height=\"{:.0}\">",
+        width, height, width, height
+    ));
+    svg.push_str(&format!(
+        r##"<rect x="0" y="0" width="{:.0}" height="{:.0}" fill="#0a0a12" stroke="#333"/>"##,
+        width, height
+    ));
+
+    for row in 0..rows {
+        for col in 0..cols {
+            let bit_idx = (row * cols + col) as u8;
+            let bit_val = (container_cell >> (63 - bit_idx)) & 1;
+            let x = pad + col as f64 * cell;
+            let y = pad + row as f64 * cell;
+
+            let (fill, stroke, opacity) = if bit_val == 1 {
+                ("#6c5ce7", "#a29bfe", "0.9")
+            } else {
+                ("#1a1a2e", "#2d2d44", "0.3")
+            };
+
+            svg.push_str(&format!(
+                r##"<rect x="{:.1}" y="{:.1}" width="{:.1}" height="{:.1}" fill="{}" stroke="{}" stroke-width="0.5" opacity="{}" rx="1"/>"##,
+                x, y, cell - 1.0, cell - 1.0, fill, stroke, opacity
+            ));
+        }
+    }
+
+    // 标注十六进制值
+    svg.push_str(&format!(
+        r##"<text x="{:.0}" y="{:.0}" text-anchor="middle" font-size="7" fill="#666">0x{:016X}</text>"##,
+        width / 2.0, height - 1.0, container_cell
+    ));
+
+    svg.push_str("</svg>");
+    svg
+}
+
 /// 渲染一个字符 + 其容器槽位格为完整文档
 pub fn render_character_sheet(ch: char) -> Option<String> {
     let glyph_svg = render_glyph_svg(ch)?;

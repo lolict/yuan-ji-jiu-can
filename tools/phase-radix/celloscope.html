@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>细胞镜 · SMRL 64位编码可视化</title>
+<style>
+:root {
+  --bg: #060a10; --panel: #0c1420; --edge: #1a2840;
+  --text: #c0cce0; --muted: #4a5e78;
+  --stroke: #5470a0; --pol: #e07040; --wife: #5b8abf; --husband: #c46a8a;
+  --sys: #70b060; --compact: #7c5bf9; --reserved: #2a3550;
+  --bag: #5470a0; --op: #b0744a; --init: #b05050; --final: #409070;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'JetBrains Mono', monospace; background: var(--bg); color: var(--text); min-height: 100vh; padding: 20px; }
+
+h1 { font-size: 16px; margin-bottom: 4px; }
+h1 span { color: var(--compact); }
+.sub { font-size: 10px; color: var(--muted); margin-bottom: 20px; }
+
+.row { display: flex; gap: 16px; flex-wrap: wrap; }
+
+.card {
+  background: var(--panel); border: 1px solid var(--edge);
+  border-radius: 8px; padding: 16px; flex: 1; min-width: 480px; max-width: 700px;
+}
+.card h2 { font-size: 12px; color: var(--compact); margin-bottom: 10px; border-bottom: 1px solid var(--edge); padding-bottom: 8px; }
+
+/* ── 输入区 ── */
+.input-bar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+.input-bar input {
+  background: var(--bg); border: 1px solid var(--edge); color: var(--text);
+  font-family: inherit; font-size: 16px; padding: 6px 10px; border-radius: 4px;
+  width: 120px;
+}
+.input-bar input:focus { border-color: var(--compact); outline: none; }
+.btn {
+  background: var(--panel); border: 1px solid var(--edge); color: var(--text);
+  font-family: inherit; font-size: 10px; padding: 5px 12px; border-radius: 4px; cursor: pointer;
+}
+.btn:hover { border-color: var(--compact); }
+
+/* ── 64位细胞 ── */
+.cell-grid {
+  display: grid; grid-template-columns: repeat(16, 1fr); gap: 2px;
+  font-size: 9px; margin-bottom: 12px;
+}
+.bit {
+  aspect-ratio: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  border-radius: 3px; cursor: pointer; transition: all 0.2s;
+  border: 1px solid transparent; position: relative;
+}
+.bit:hover { transform: scale(1.3); z-index: 10; border-color: #fff; }
+.bit .idx { font-size: 7px; color: var(--muted); position: absolute; top: 1px; left: 2px; }
+.bit .val { font-size: 11px; font-weight: bold; }
+
+.bit-0 { background: var(--reserved); color: var(--muted); }
+.bit-stroke { background: var(--stroke); color: #fff; }
+.bit-wife { background: var(--wife); color: #fff; }
+.bit-husband { background: var(--husband); color: #fff; }
+.bit-pol { background: var(--pol); color: #fff; }
+.bit-compact { background: var(--compact); color: #fff; }
+.bit-sys { background: var(--sys); color: #fff; }
+.bit-active { box-shadow: 0 0 6px rgba(255,255,255,0.5); }
+
+/* ── 字段表 ── */
+.field-table { font-size: 10px; width: 100%; border-collapse: collapse; }
+.field-table td { padding: 3px 6px; border-bottom: 1px solid rgba(26,40,64,0.5); }
+.field-table .k { color: var(--muted); }
+.field-table .bits { color: var(--compact); font-size: 9px; }
+.field-table .val { color: var(--text); font-weight: bold; text-align: right; }
+.field-table tr:hover td { background: rgba(26,40,64,0.3); }
+
+/* ── 字段彩色条 ── */
+.field-bar {
+  display: flex; height: 22px; border-radius: 4px; overflow: hidden;
+  border: 1px solid var(--edge); margin-bottom: 12px; font-size: 8px;
+}
+.field-seg {
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-weight: bold; cursor: default;
+  border-right: 1px solid rgba(0,0,0,0.3);
+}
+.field-seg:last-child { border-right: none; }
+
+/* ── 编码展示 ── */
+.hex-display {
+  font-size: 18px; letter-spacing: 2px; padding: 10px;
+  background: rgba(0,0,0,0.4); border-radius: 6px; border: 1px solid var(--edge);
+  text-align: center; margin-bottom: 10px; font-weight: bold;
+}
+.hex-display span { margin: 0 1px; padding: 0 1px; border-radius: 2px; }
+
+/* ── 字历史 ── */
+.char-history {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px;
+}
+.char-chip {
+  background: var(--bg); border: 1px solid var(--edge); border-radius: 4px;
+  padding: 4px 8px; font-size: 13px; cursor: pointer;
+  transition: all 0.15s;
+}
+.char-chip:hover { border-color: var(--compact); background: var(--edge); }
+.char-chip .detail { display: block; font-size: 8px; color: var(--muted); margin-top: 2px; }
+
+/* ── 对比模式 ── */
+.compare-mode { display: flex; gap: 12px; flex-wrap: wrap; }
+.compare-item {
+  flex: 1; min-width: 200px; padding: 10px;
+  background: rgba(0,0,0,0.3); border: 1px solid var(--edge); border-radius: 6px;
+}
+.compare-item h3 { font-size: 20px; text-align: center; margin-bottom: 6px; }
+.compare-item .hex { font-size: 12px; text-align: center; color: var(--compact); letter-spacing: 1px; }
+</style>
+</head>
+<body>
+
+<h1>细胞<span>镜</span> <span class="sub">SMRL 64位编码可视化 · 位置即编码 · 编码即几何</span></h1>
+
+<div class="input-bar">
+  <input id="input-text" type="text" value="囝共生" maxlength="12" placeholder="输入汉字...">
+  <button class="btn" id="btn-add">+ 编码</button>
+  <button class="btn" id="btn-clear">清空</button>
+  <button class="btn" id="btn-compare">对比</button>
+  <span style="color:var(--muted);font-size:9px;margin-left:8px">← 输完按 Enter 或点击 "+编码" 添加到历史</span>
+</div>
+
+<div class="row">
+  <!-- 主细胞视图 -->
+  <div class="card">
+    <h2>SMRL 64-bit 细胞 [<span id="current-char">—</span>]</h2>
+
+    <div class="hex-display" id="hex-display">
+      <span style="color:#2a3550">00</span> <span style="color:#2a3550">00</span>
+      <span style="color:#2a3550">00</span> <span style="color:#2a3550">00</span>
+      <span style="color:#2a3550">00</span> <span style="color:#2a3550">00</span>
+      <span style="color:#2a3550">00</span> <span style="color:#2a3550">00</span>
+    </div>
+
+    <div class="field-bar" id="field-bar"></div>
+
+    <div class="cell-grid" id="cell-grid"></div>
+
+    <table class="field-table" id="field-table"></table>
+  </div>
+
+  <!-- 字段分析 -->
+  <div class="card">
+    <h2>字段详解 · [<span id="detail-char">—</span>]</h2>
+    <div id="field-detail">
+      <div style="color:var(--muted);font-size:10px;padding:20px;text-align:center">
+        输入汉字查看各字段解码
+      </div>
+    </div>
+
+    <h2 style="margin-top:20px">编码历史</h2>
+    <div class="char-history" id="history"></div>
+  </div>
+</div>
+
+<!-- 对比模式 -->
+<div class="card" id="compare-card" style="margin-top:16px;display:none">
+  <h2>字符对比 · Cell 差异</h2>
+  <div class="compare-mode" id="compare-mode"></div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// 细胞镜 · SMRL 64-bit 编码字段解析
+// ══════════════════════════════════════════════════════════════
+
+const CHAR_DATA = {
+  '一':[0],'二':[0,0],'三':[0,0,0],'四':[1,6,2,0,0],'五':[0,1,0,6,0],
+  '六':[0,4,2,4],'七':[0,9],'八':[2,3],'九':[2,15],'十':[0,1],
+  '人':[2,3],'入':[2,3],'大':[0,2,3],'天':[0,0,2,3],'夫':[0,0,2,3],
+  '太':[0,2,3,4],'女':[2,0,0],'子':[0,9,0],'小':[1,2,4],'山':[1,7,1],
+  '水':[1,6,2,3],'火':[4,2,2,3],'木':[0,1,2,3],'金':[2,0,0,1,4,0],
+  '土':[0,1,0],'王':[0,0,1,0],'主':[4,0,0,1,0],
+  '心':[4,11,4,4],'手':[2,0,0,9],'囗':[1,6,0],'囡':[1,6,0,0,2,0],
+  '囝':[1,6,0,1,0,9],'地':[0,1,5,9,15],'照':[1,6,15,0],'口':[1,6,0],
+  '中':[1,6,0,1],'日':[1,6,0,0],'目':[1,6,0,0,0],'分':[2,10,15,2],
+  '公':[0,1,6,4,0],'阴':[1,6,5,0],'阳':[1,6,0,0],'妻':[0,1,0,1,0,1,0,3],
+  '我':[0,1,5,0,15],'袋':[0,1,0,5,0,1,15],'桶':[0,1,5,0,6,0,1],
+  '罐':[0,1,0,1,0,0,0,0],'百':[2,0,0,0,1,0,0],'千':[0,2,1],
+  '万':[0,2,0],'上':[0,1,0],'下':[0,1,4],'左':[0,2,0,1,0],
+  '右':[2,0,1,0],'石':[0,2,1,6,0],'田':[1,6,0,1,0],
+  '禾':[2,0,1,2,3],'米':[4,2,0,1,2,3],'父':[4,2,4,3],'母':[11,4,0,4,4],
+  '儿':[2,9],'老':[0,2,9,2,15],'友':[0,2,6,3],'耳':[0,1,1,0,0,4],
+  '头':[4,4,0,2,4],'面':[0,2,1,6,0,0,0],'刘':[4,2,0,1,2,4],
+  '李':[0,1,2,3,0,9,0],'张':[0,6,2,0,0,0],'陈':[0,9,0,0,1,0,2,3],
+  '杨':[0,1,2,3,2,2,0,9],'盆':[2,3,1,6,4,0,0],'盂':[0,0,1,6,4,0,0,0],
+  '瓶':[0,1,0,4,2,0,6,0],'杯':[0,1,2,3,0,0,4],
+  '盎':[0,2,3,1,6,0,0,0,0],'盒':[2,3,0,1,6,4,0,0],
+  '竹':[2,0,9,2,0,9],'篮':[2,0,9,2,0,9,0,1,6,0,1,0],
+  '箩':[2,0,9,2,0,9,0,0,1,15,4],'箕':[2,0,9,2,0,9,0,0,1,0,0,4],
+  '笼':[2,0,9,2,0,9,0,2,15],'来':[0,4,2,3,0,1,0],'去':[0,1,0,4,2],
+  '走':[0,1,0,0,1,5,2,3],'看':[2,0,0,1,6,0,0,0],
+  '好':[2,0,0,0,9,0],'美':[2,3,0,0,0,1,0,4],
+  '爱':[2,4,0,2,4,0,2,3,2,3],'生':[2,0,0,1,0],'死':[0,2,0,1,15],
+  '有':[0,1,2,0,0,0],'无':[0,2,0,9],'是':[1,6,0,0,0,1,5,2,3],
+  '非':[1,0,0,0,1,0,0],'满':[0,1,5,4,0,1,0,4,2,3,0,0],
+  '全':[0,2,3,0,0,1,0],'法':[0,1,0,0,4,2,3],'共':[0,1,2,3,0,4],
+  '同':[1,6,2,0,0,0],'和':[2,0,0,1,4,1,6,0],'平':[0,4,2,1,0],
+  '安':[4,4,0,2,0,0],'星':[1,6,0,2,0,0,1,0],'空':[4,4,0,0,1,0],
+  '海':[0,1,4,0,0,4,2,0,4],'楚':[0,1,2,3,0,1,2,3,0,0,1,0],
+  '恬':[4,4,1,2,0,0,0,0,2,0],'盖':[4,4,0,0,1,6,0,0],
+  '容':[4,4,0,0,1,2,0,0],'器':[1,6,0,4,1,6,0,0,4,0,0,4],
+  '缸':[2,0,0,0,1,0],'壶':[0,1,4,0,0,1,0,0,0],
+  '盏':[0,0,4,2,0,0,2,3],'盉':[2,0,1,6,0,4,0,0,0,0],
+  '箱':[2,0,9,2,0,9,0,0,1,2,0,0,0],'情':[4,4,1,0,0,1,0,0,2,0,0],
+  '婚':[2,6,0,2,0,2,0,1,6,0,0,0],'缘':[2,6,2,0,0,2,3,2,0,2,0,1],
+  '月':[2,6,0,0],'光':[4,0,2,6,2,3],'明':[1,6,0,0,2,6,0,0],
+  '念':[0,1,2,4,4,12,4,4],'想':[0,1,2,4,4,0,0,2,3,4],
+  '意':[4,0,2,3,0,0,1,0,4,4,6,4],'思':[1,6,0,0,2,3,4,12,4,4],
+  '灵':[0,0,2,3,2,4],'神':[4,0,1,6,1,6,0,0],
+  '魂':[0,0,2,3,4,2,2,0,2,3,2,2],'梦':[0,1,2,3,0,1,2,3,4],
+};
+
+const CONTAINER_NAMES = [
+  '袋','桶','罐','盆','盂','壶','盒','瓶',
+  '盏','盎','篓','筐','篮','箩','箕','笼'
+];
+const STROKE_NAMES = [
+  '横','竖','撇','捺','点','提','横折','竖折',
+  '横撇','竖钩','横钩','弯钩','竖弯钩','横折折','竖弯','斜钩'
+];
+const CONTAINER_POLARITY = [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0];
+const CONTAINER_SIDE = ['夫','妻','夫','妻','夫','妻','夫','妻','夫','妻','夫','妻','夫','妻','夫','妻'];
+
+// ── 位字段定义 ──
+// SMRL Cell: bits 0-15 = 笔画容器, bits 16-31 = 操作/扩展, bits 38-39 = 夫妻,
+// bit 54-59 = 6-bit 紧凑编码, bit 62 = 极性
+const FIELDS = [
+  { name: '笔画容器', bits: '0-15', start: 0,  count: 16, cls: 'stroke', desc: '16笔画→容器激活掩码' },
+  { name: '扩展/操作', bits: '16-31', start: 16, count: 16, cls: 'sys', desc: '操作族/声母/韵母编码' },
+  { name: '妻子在场', bits: '38', start: 38, count: 1, cls: 'wife', desc: 'bit38=妻子侧激活' },
+  { name: '丈夫在场', bits: '39', start: 39, count: 1, cls: 'husband', desc: 'bit39=丈夫侧激活' },
+  { name: '6-bit码', bits: '54-59', start: 54, count: 6, cls: 'compact', desc: '紧凑编码(低6位容器号)' },
+  { name: '极性', bits: '62', start: 62, count: 1, cls: 'pol', desc: '1=阳(丈夫) 0=阴(妻子)' },
+];
+
+// ── 状态 ──
+let currentCell = 0n;
+let history = [];
+
+// ── 计算一个字的 cell ──
+function computeCell(ch) {
+  const strokes = CHAR_DATA[ch];
+  if (!strokes) return null;
+
+  let cell = 0n;
+  const containers = [];
+
+  for (const s of strokes) {
+    const ci = s % 16;
+    if (!(cell & (1n << BigInt(ci)))) {
+      cell |= (1n << BigInt(ci));
+    }
+    containers.push(ci);
+  }
+
+  // bit38/39 = 基于横竖占比
+  let hengshu = 0, total = strokes.length;
+  for (const s of strokes) { if (s === 0 || s === 6 || s === 8 || s === 13) hengshu++; }
+  const side = hengshu > total / 2 ? 'husband' : 'wife';
+  if (side === 'husband') cell |= (1n << 39n);
+  else cell |= (1n << 38n);
+
+  // polarity = 笔画总数奇=阳 偶=阴
+  if (total % 2 === 1) cell |= (1n << 62n);
+
+  // code6 = 低6位 |= 容器号
+  let code6 = 0;
+  for (const ci of containers.slice(-3)) { code6 |= 1 << (ci % 6); }
+  cell |= (BigInt(code6) << 54n);
+
+  return { ch, cell, strokes, containers, side, polarity: total % 2 === 1 ? '阳' : '阴' };
+}
+
+// ── 渲染 ──
+function encodeAndAdd(text) {
+  for (const ch of text) {
+    const result = computeCell(ch);
+    if (!result) continue;
+    currentCell = result.cell;
+    history.unshift(result);
+    if (history.length > 30) history.pop();
+  }
+  render();
+}
+
+function render() {
+  const cell = currentCell;
+  const hex = cell.toString(16).padStart(16, '0').toUpperCase();
+
+  // 十六进制显示
+  const hexEl = document.getElementById('hex-display');
+  hexEl.innerHTML = '';
+  for (let i = 0; i < 16; i += 2) {
+    const byte = hex.slice(i, i + 2);
+    const byteIdx = 7 - (i / 2);
+    let cls = 'reserved';
+    if (byteIdx >= 0 && byteIdx < 1) cls = 'stroke';
+    else if (byteIdx >= 4 && byteIdx < 5) {
+      if (byte !== '00') cls = byte[1] === '8' || byte[1] === '9' || byte[1] === 'A' || byte[1] === 'B' ? 'husband' : 'wife';
+    } else if (byteIdx >= 6 && byteIdx < 7) cls = 'compact';
+    else if (byteIdx === 7) cls = 'pol';
+    hexEl.innerHTML += `<span style="color:var(--${cls==='reserved'?'muted':cls})">${byte}</span> `;
+  }
+
+  // 字段彩色条
+  const bar = document.getElementById('field-bar');
+  bar.innerHTML = '';
+  for (const f of FIELDS) {
+    let widthPct;
+    if (f.count > 10) widthPct = (f.count / 64) * 100;
+    else if (f.count > 1) widthPct = 8;
+    else widthPct = 3;
+    bar.innerHTML += `<div class="field-seg" style="width:${widthPct}%;background:var(--${f.cls})" title="${f.name} (${f.bits})">${f.count > 6 ? f.name : f.bits}</div>`;
+  }
+
+  // 64位网格
+  const grid = document.getElementById('cell-grid');
+  grid.innerHTML = '';
+  for (let i = 63; i >= 0; i--) {
+    const val = (cell >> BigInt(i)) & 1n;
+    const isActive = val === 1n;
+    let cls = isActive ? 'bit-' + getFieldClass(i) : 'bit-0';
+    if (isActive) cls += ' bit-active';
+    const div = document.createElement('div');
+    div.className = 'bit ' + cls;
+    div.innerHTML = `<span class="idx">${i}</span><span class="val">${val}</span>`;
+    div.title = `bit ${i}: ${getBitDesc(i)} = ${val}`;
+    div.onclick = () => { selectBit(i); };
+    grid.appendChild(div);
+  }
+
+  // 字段表
+  const table = document.getElementById('field-table');
+  table.innerHTML = '';
+  const results = history[0];
+  for (const f of FIELDS) {
+    let val;
+    if (f.count === 1) val = ((cell >> BigInt(f.start)) & 1n).toString();
+    else {
+      const v = (cell >> BigInt(f.start)) & ((1n << BigInt(f.count)) - 1n);
+      val = '0x' + v.toString(16).padStart(f.count > 8 ? 4 : 2, '0').toUpperCase() + ` (${v})`;
+    }
+    table.innerHTML += `<tr><td class="k">${f.name}</td><td class="bits">${f.bits}</td><td class="val">${val}</td></tr>`;
+  }
+
+  // 字段详情
+  if (results) {
+    document.getElementById('current-char').textContent = results.ch;
+    document.getElementById('detail-char').textContent = results.ch;
+
+    const detail = document.getElementById('field-detail');
+    const activeContainers = [];
+    for (let i = 0; i < 16; i++) {
+      if (cell & (1n << BigInt(i))) {
+        activeContainers.push({ idx: i, name: CONTAINER_NAMES[i], pol: CONTAINER_POLARITY[i], side: CONTAINER_SIDE[i] });
+      }
+    }
+
+    let html = `<div style="font-size:24px;text-align:center;margin-bottom:8px">${results.ch}</div>`;
+    html += `<div style="font-size:9px;color:var(--muted);margin-bottom:10px;text-align:center">${results.strokes.length}画 · ${results.polarity} · ${results.side === 'husband' ? '丈夫侧' : '妻子侧'}</div>`;
+
+    html += `<div style="font-size:10px;color:var(--stroke);margin-bottom:6px">笔画容器 (bits 0-15):</div>`;
+    html += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px">';
+    for (const ac of activeContainers) {
+      html += `<span style="background:var(--stroke);padding:2px 6px;border-radius:3px;font-size:9px" title="bit${ac.idx}">${ac.name} [${ac.idx}] ${ac.side}</span>`;
+    }
+    html += '</div>';
+
+    html += `<div style="font-size:10px;color:var(--compact);margin-bottom:6px">6-bit 码 (bits 54-59):</div>`;
+    const c6 = Number((cell >> 54n) & 0x3Fn);
+    html += `<div style="font-size:14px;color:var(--compact);margin-bottom:12px;letter-spacing:1px">0b${c6.toString(2).padStart(6,'0')} = ${c6}</div>`;
+
+    html += `<div style="font-size:10px;color:var(--pol);margin-bottom:4px">极性位 (bit 62):</div>`;
+    const pol = (cell >> 62n) & 1n;
+    html += `<div style="font-size:12px;color:var(--pol)">${pol === 1n ? '● 阳 (奇画)' : '○ 阴 (偶画)'}</div>`;
+
+    html += `<div style="margin-top:12px;font-size:10px;color:var("${results.side === 'husband' ? 'husband' : 'wife'}");margin-bottom:4px">在场标记:</div>`;
+    const w38 = (cell >> 38n) & 1n, w39 = (cell >> 39n) & 1n;
+    html += `<div style="font-size:10px">bit38(妻子)=${w38 === 1n ? '✓' : '✗'} · bit39(丈夫)=${w39 === 1n ? '✓' : '✗'}</div>`;
+
+    detail.innerHTML = html;
+  }
+
+  // 历史
+  const hist = document.getElementById('history');
+  hist.innerHTML = '';
+  for (const h of history.slice(0, 20)) {
+    const hex = h.cell.toString(16).padStart(16,'0').toUpperCase();
+    hist.innerHTML += `<div class="char-chip" onclick="selectChar('${h.ch}')">
+      <span>${h.ch}</span>
+      <span class="detail">...${hex.slice(12)} · ${h.strokes.length}画 · ${h.polarity}</span>
+    </div>`;
+  }
+}
+
+function getFieldClass(bit) {
+  if (bit < 16) return 'stroke';
+  if (bit < 32) return 'sys';
+  if (bit === 38) return 'wife';
+  if (bit === 39) return 'husband';
+  if (bit >= 54 && bit <= 59) return 'compact';
+  if (bit === 62) return 'pol';
+  return 'sys';
+}
+
+function getBitDesc(bit) {
+  if (bit < 16) return `笔画容器[${CONTAINER_NAMES[bit]}]`;
+  if (bit < 32) return '操作/声母/韵母';
+  if (bit === 38) return '妻子在场';
+  if (bit === 39) return '丈夫在场';
+  if (bit >= 54 && bit <= 59) return '6-bit紧凑码[' + (bit - 54) + ']';
+  if (bit === 62) return '极性(阳/阴)';
+  return 'reserved';
+}
+
+// 选中一位的交互
+let selectedBit = -1;
+function selectBit(bit) {
+  selectedBit = bit;
+  // 重新加亮选中
+  render();
+}
+
+// 选中历史字符
+function selectChar(ch) {
+  const r = computeCell(ch);
+  if (r) { currentCell = r.cell; render(); }
+}
+
+// 对比模式
+function showCompare() {
+  if (history.length < 2) return;
+  const card = document.getElementById('compare-card');
+  card.style.display = 'block';
+  const el = document.getElementById('compare-mode');
+
+  const uniq = [...new Set(history.slice(0, 8))];
+  el.innerHTML = '';
+  for (const h of uniq) {
+    const hex = h.cell.toString(16).padStart(16,'0').toUpperCase();
+
+    // 找该字的激活容器
+    const actives = [];
+    for (let i = 0; i < 16; i++) { if (h.cell & (1n << BigInt(i))) actives.push(CONTAINER_NAMES[i]); }
+
+    el.innerHTML += `<div class="compare-item">
+      <h3>${h.ch}</h3>
+      <div class="hex">...${hex.slice(8)}</div>
+      <div style="font-size:8px;color:var(--muted);text-align:center;margin-top:4px">${h.strokes.length}画 ${h.polarity} ${h.side === 'husband' ? '夫侧' : '妻侧'}</div>
+      <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:2px;justify-content:center">
+        ${actives.map(a => `<span style="font-size:7px;background:var(--stroke);padding:1px 3px;border-radius:2px">${a}</span>`).join('')}
+      </div>
+    </div>`;
+  }
+}
+
+// ── 事件 ──
+document.getElementById('btn-add').addEventListener('click', () => {
+  const input = document.getElementById('input-text');
+  encodeAndAdd(input.value);
+});
+document.getElementById('input-text').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { encodeAndAdd(e.target.value); }
+});
+document.getElementById('btn-clear').addEventListener('click', () => {
+  history = []; currentCell = 0n; selectedBit = -1;
+  document.getElementById('compare-card').style.display = 'none';
+  render();
+});
+document.getElementById('btn-compare').addEventListener('click', () => {
+  showCompare();
+});
+
+// ── 初始 ──
+encodeAndAdd('囝共生');
+</script>
+</body>
+</html>

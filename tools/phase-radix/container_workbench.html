@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>容器工作台 · ContainerOS 联编可视化</title>
+<style>
+:root {
+  --bg: #060a10; --panel: #0a1220; --edge: #1a2840;
+  --text: #c8d4e4; --muted: #4a5e78;
+  --stroke: #5470a0; --pol: #e07040; --wife: #5b8abf; --husband: #c46a8a;
+  --sys: #70b060; --compact: #7c5bf9; --reserved: #2a3550;
+  --bag: #5470a0; --op: #b0744a; --init: #b05050; --final: #409070;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'JetBrains Mono', monospace; background: var(--bg); color: var(--text); height: 100vh; display: grid; grid-template-rows: auto 1fr; overflow: hidden; }
+
+/* ── 顶部 ── */
+#header {
+  display: flex; align-items: center; gap: 12px; padding: 8px 16px;
+  background: linear-gradient(180deg, rgba(10,16,32,0.95) 0%, var(--bg) 100%);
+  border-bottom: 1px solid var(--edge);
+}
+#header h1 { font-size: 13px; }
+#header h1 span { color: var(--compact); }
+#header .sub { font-size: 9px; color: var(--muted); margin-left: 4px; }
+
+#input-area { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+#text-input {
+  background: var(--bg); border: 1px solid var(--edge); color: var(--text);
+  font-family: inherit; font-size: 16px; padding: 4px 10px; border-radius: 4px; width: 100px;
+}
+#text-input:focus { border-color: var(--compact); outline: none; }
+
+.btn {
+  background: var(--panel); border: 1px solid var(--edge); color: var(--text);
+  font-family: inherit; font-size: 9px; padding: 4px 10px; border-radius: 4px;
+  cursor: pointer; white-space: nowrap;
+}
+.btn:hover { border-color: var(--compact); }
+.btn.active { background: var(--compact); color: #fff; }
+
+/* ── 主布局 ── */
+#main {
+  display: grid; grid-template-columns: 1.1fr 1fr; gap: 0; overflow: hidden;
+}
+
+/* ── 左侧 3D 视图 ── */
+#view-3d {
+  position: relative; border-right: 1px solid var(--edge);
+  overflow: hidden;
+}
+#view-3d canvas { display: block; }
+
+#view-3d .overlay {
+  position: absolute; top: 8px; left: 8px; right: 8px;
+  display: flex; justify-content: space-between; pointer-events: none;
+}
+#view-3d .overlay * { pointer-events: auto; }
+.float-panel {
+  background: rgba(10,16,32,0.85); border: 1px solid var(--edge);
+  border-radius: 5px; padding: 6px 10px; font-size: 9px;
+  backdrop-filter: blur(4px);
+}
+.float-panel h3 { color: var(--compact); font-size: 9px; margin-bottom: 4px; }
+.float-panel .row { display: flex; justify-content: space-between; gap: 6px; padding: 1px 0; }
+.float-panel .k { color: var(--muted); }
+.float-panel .v { color: var(--text); }
+
+#view-3d .bottom-bar {
+  position: absolute; bottom: 8px; left: 8px; right: 8px;
+  display: flex; gap: 8px; align-items: center; justify-content: space-between;
+}
+.bottom-bar .legend { display: flex; gap: 6px; font-size: 8px; }
+.lg { display: flex; align-items: center; gap: 3px; }
+.dot { width: 6px; height: 6px; border-radius: 50%; }
+
+/* ── 右下面板 ── */
+#right-panel {
+  display: grid; grid-template-rows: auto 1fr auto; overflow: hidden;
+}
+
+#cell-area {
+  padding: 12px; border-bottom: 1px solid var(--edge); overflow-y: auto;
+}
+#cell-area h2 { font-size: 11px; color: var(--compact); margin-bottom: 8px; }
+
+.cell-bits {
+  display: grid; grid-template-columns: repeat(16, 1fr); gap: 1.5px;
+  margin-bottom: 8px;
+}
+.bit {
+  aspect-ratio: 1; border-radius:2px; display:flex; align-items:center; justify-content:center;
+  font-size: 8px; cursor: pointer; transition: all 0.2s;
+}
+.bit:hover { transform: scale(1.4); z-index: 5; }
+.bit-0 { background: var(--reserved); color: var(--muted); }
+.bit-s { background: var(--stroke); color: #fff; }
+.bit-w { background: var(--wife); color: #fff; }
+.bit-h { background: var(--husband); color: #fff; }
+.bit-p { background: var(--pol); color: #fff; }
+.bit-c { background: var(--compact); color: #fff; }
+.bit-on { box-shadow: 0 0 4px rgba(255,255,255,0.4); }
+
+.hex-row {
+  font-size: 13px; letter-spacing: 1.5px; padding: 6px 8px;
+  background: rgba(0,0,0,0.4); border-radius: 4px; text-align: center;
+  border: 1px solid var(--edge); margin-bottom: 8px;
+}
+.hex-row span { padding: 0 1px; border-radius: 2px; }
+
+#state-area {
+  padding: 12px; overflow-y: auto; border-bottom: 1px solid var(--edge);
+}
+#state-area h2 { font-size: 11px; color: var(--compact); margin-bottom: 8px; }
+
+.state-table { font-size: 9px; width: 100%; }
+.state-table td { padding: 2px 4px; border-bottom: 1px solid rgba(26,40,64,0.4); }
+.state-table .k { color: var(--muted); }
+.state-table .v { text-align: right; }
+
+#history-area {
+  padding: 12px; max-height: 180px; overflow-y: auto;
+}
+#history-area h2 { font-size: 11px; color: var(--compact); margin-bottom: 8px; }
+.char-list { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; }
+.char-chip {
+  background: var(--panel); border: 1px solid var(--edge); border-radius: 3px;
+  padding: 3px 8px; cursor: pointer; font-size: 14px; transition: all 0.15s;
+}
+.char-chip:hover { border-color: var(--compact); }
+.char-chip .sub { display: block; font-size: 7px; color: var(--muted); text-align: center; }
+
+/* ── 底部状态栏 ── */
+#statusbar {
+  padding: 6px 12px; background: rgba(0,0,0,0.4); font-size: 8px;
+  display: flex; gap: 12px; color: var(--muted); border-top: 1px solid var(--edge);
+}
+#statusbar span { color: var(--text); }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <h1>容器<span>工作台</span> <span class="sub">ContainerOS Live · 3D+Cell+State 联动</span></h1>
+  <div id="input-area">
+    <input id="text-input" type="text" value="囝共生" maxlength="10" placeholder="输入...">
+    <button class="btn" id="btn-go">▶ 执行</button>
+    <button class="btn" id="btn-reset">↺ 复位</button>
+    <button class="btn active" id="btn-label">名</button>
+  </div>
+</div>
+
+<div id="main">
+  <!-- 左: 3D 视图 -->
+  <div id="view-3d">
+    <canvas id="cv3d"></canvas>
+    <div class="overlay">
+      <div class="float-panel">
+        <h3>SMRL Cell</h3>
+        <div class="row"><span class="k">hex</span><span class="v" id="cell-hex">0x0000</span></div>
+        <div class="row"><span class="k">深度</span><span class="v" id="cell-depth">0</span></div>
+        <div class="row"><span class="k">激活</span><span class="v" id="cell-count">0/16</span></div>
+      </div>
+      <div class="float-panel">
+        <h3>视角</h3>
+        <div class="row"><span class="k">X</span><span class="v" id="cell-rotx">0°</span></div>
+        <div class="row"><span class="k">Y</span><span class="v" id="cell-roty">0°</span></div>
+      </div>
+    </div>
+    <div class="bottom-bar">
+      <div class="legend">
+        <div class="lg"><div class="dot" style="background:var(--stroke)"></div>容器</div>
+        <div class="lg"><div class="dot" style="background:var(--wife)"></div>妻子</div>
+        <div class="lg"><div class="dot" style="background:var(--husband)"></div>丈夫</div>
+        <div class="lg"><div class="dot" style="background:var(--pol)"></div>极性</div>
+        <div class="lg"><div class="dot" style="background:var(--compact)"></div>编码</div>
+      </div>
+      <div style="font-size:8px;color:var(--muted)">拖拽旋转 · 滚轮缩放 · 位置即编码即几何</div>
+    </div>
+  </div>
+
+  <!-- 右: 细胞 + 状态 -->
+  <div id="right-panel">
+    <div id="cell-area">
+      <h2>▦ SMRL 64-bit 细胞</h2>
+      <div class="hex-row" id="hex-row"></div>
+      <div class="cell-bits" id="cell-bits"></div>
+    </div>
+    <div id="state-area">
+      <h2>⚙ ContainerOS 状态</h2>
+      <table class="state-table" id="state-table"></table>
+    </div>
+    <div id="history-area">
+      <h2>⚡ 编码历史</h2>
+      <div class="char-list" id="char-list"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+//  ContainerOS 工作台 — 3D + Cell + State 联动
+// ══════════════════════════════════════════════════════════════
+
+// ── 数据层 ──
+const CHAR_DATA = {
+  '一':[0],'二':[0,0],'三':[0,0,0],'四':[1,6,2,0,0],'五':[0,1,0,6,0],
+  '六':[0,4,2,4],'七':[0,9],'八':[2,3],'九':[2,15],'十':[0,1],
+  '人':[2,3],'入':[2,3],'大':[0,2,3],'天':[0,0,2,3],'夫':[0,0,2,3],
+  '太':[0,2,3,4],'女':[2,0,0],'子':[0,9,0],'小':[1,2,4],'山':[1,7,1],
+  '水':[1,6,2,3],'火':[4,2,2,3],'木':[0,1,2,3],'金':[2,0,0,1,4,0],
+  '土':[0,1,0],'王':[0,0,1,0],'主':[4,0,0,1,0],
+  '心':[4,11,4,4],'手':[2,0,0,9],'囗':[1,6,0],'囡':[1,6,0,0,2,0],
+  '囝':[1,6,0,1,0,9],'地':[0,1,5,9,15],'照':[1,6,15,0],'口':[1,6,0],
+  '中':[1,6,0,1],'日':[1,6,0,0],'目':[1,6,0,0,0],'分':[2,10,15,2],
+  '公':[0,1,6,4,0],'阴':[1,6,5,0],'阳':[1,6,0,0],'妻':[0,1,0,1,0,1,0,3],
+  '我':[0,1,5,0,15],'袋':[0,1,0,5,0,1,15],'桶':[0,1,5,0,6,0,1],
+  '罐':[0,1,0,1,0,0,0,0],'百':[2,0,0,0,1,0,0],'千':[0,2,1],
+  '万':[0,2,0],'上':[0,1,0],'下':[0,1,4],'左':[0,2,0,1,0],
+  '右':[2,0,1,0],'石':[0,2,1,6,0],'田':[1,6,0,1,0],
+  '禾':[2,0,1,2,3],'米':[4,2,0,1,2,3],'父':[4,2,4,3],'母':[11,4,0,4,4],
+  '儿':[2,9],'老':[0,2,9,2,15],'友':[0,2,6,3],'耳':[0,1,1,0,0,4],
+  '头':[4,4,0,2,4],'面':[0,2,1,6,0,0,0],'刘':[4,2,0,1,2,4],
+  '李':[0,1,2,3,0,9,0],'张':[0,6,2,0,0,0],'陈':[0,9,0,0,1,0,2,3],
+  '杨':[0,1,2,3,2,2,0,9],'盆':[2,3,1,6,4,0,0],'盂':[0,0,1,6,4,0,0,0],
+  '瓶':[0,1,0,4,2,0,6,0],'杯':[0,1,2,3,0,0,4],
+  '盎':[0,2,3,1,6,0,0,0,0],'盒':[2,3,0,1,6,4,0,0],
+  '竹':[2,0,9,2,0,9],'篮':[2,0,9,2,0,9,0,1,6,0,1,0],
+  '箩':[2,0,9,2,0,9,0,0,1,15,4],'箕':[2,0,9,2,0,9,0,0,1,0,0,4],
+  '笼':[2,0,9,2,0,9,0,2,15],'来':[0,4,2,3,0,1,0],'去':[0,1,0,4,2],
+  '走':[0,1,0,0,1,5,2,3],'看':[2,0,0,1,6,0,0,0],
+  '好':[2,0,0,0,9,0],'美':[2,3,0,0,0,1,0,4],
+  '爱':[2,4,0,2,4,0,2,3,2,3],'生':[2,0,0,1,0],'死':[0,2,0,1,15],
+  '有':[0,1,2,0,0,0],'无':[0,2,0,9],'是':[1,6,0,0,0,1,5,2,3],
+  '非':[1,0,0,0,1,0,0],'满':[0,1,5,4,0,1,0,4,2,3,0,0],
+  '全':[0,2,3,0,0,1,0],'法':[0,1,0,0,4,2,3],'共':[0,1,2,3,0,4],
+  '同':[1,6,2,0,0,0],'和':[2,0,0,1,4,1,6,0],'平':[0,4,2,1,0],
+  '安':[4,4,0,2,0,0],'星':[1,6,0,2,0,0,1,0],'空':[4,4,0,0,1,0],
+  '海':[0,1,4,0,0,4,2,0,4],'楚':[0,1,2,3,0,1,2,3,0,0,1,0],
+  '恬':[4,4,1,2,0,0,0,0,2,0],'盖':[4,4,0,0,1,6,0,0],
+  '容':[4,4,0,0,1,2,0,0],'器':[1,6,0,4,1,6,0,0,4,0,0,4],
+  '缸':[2,0,0,0,1,0],'壶':[0,1,4,0,0,1,0,0,0],
+  '盏':[0,0,4,2,0,0,2,3],'盉':[2,0,1,6,0,4,0,0,0,0],
+  '箱':[2,0,9,2,0,9,0,0,1,2,0,0,0],'情':[4,4,1,0,0,1,0,0,2,0,0],
+  '婚':[2,6,0,2,0,2,0,1,6,0,0,0],'缘':[2,6,2,0,0,2,3,2,0,2,0,1],
+  '月':[2,6,0,0],'光':[4,0,2,6,2,3],'明':[1,6,0,0,2,6,0,0],
+  '念':[0,1,2,4,4,12,4,4],'想':[0,1,2,4,4,0,0,2,3,4],
+  '意':[4,0,2,3,0,0,1,0,4,4,6,4],'思':[1,6,0,0,2,3,4,12,4,4],
+  '灵':[0,0,2,3,2,4],'神':[4,0,1,6,1,6,0,0],
+  '魂':[0,0,2,3,4,2,2,0,2,3,2,2],'梦':[0,1,2,3,0,1,2,3,4],
+};
+
+const CONTAINER_NAMES = [
+  '袋','桶','罐','盆','盂','壶','盒','瓶',
+  '盏','盎','篓','筐','篮','箩','箕','笼'
+];
+const STROKE_NAMES = [
+  '横','竖','撇','捺','点','提','横折','竖折',
+  '横撇','竖钩','横钩','弯钩','竖弯钩','横折折','竖弯','斜钩'
+];
+const CONTAINER_POLARITY = [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0];
+const CONTAINER_SIDE = ['夫','妻','夫','妻','夫','妻','夫','妻','夫','妻','夫','妻','夫','妻','夫','妻'];
+
+// ── ContainerOS 状态 ──
+const os = {
+  cell: 0n,
+  depth: 0,
+  shellPath: [],
+  history: [],
+  activeContainers: new Set(),
+};
+
+// ── ContainerOS: 吞食一个字 ──
+function osIngest(ch) {
+  const strokes = CHAR_DATA[ch];
+  if (!strokes) return;
+
+  const stepState = { before: os.cell, activated: [], containers: [] };
+
+  for (const s of strokes) {
+    const ci = s % 16;
+    if (!os.activeContainers.has(ci)) {
+      os.activeContainers.add(ci);
+      os.cell |= (1n << BigInt(ci));
+      stepState.activated.push(ci);
+    }
+    stepState.containers.push(ci);
+    os.shellPath.push(ci);
+    os.depth++;
+  }
+
+  // bit38/39: 横竖占比
+  let hengshu = 0;
+  for (const s of strokes) { if (s === 0 || s === 6 || s === 8 || s === 13) hengshu++; }
+  const wifePresent = hengshu <= strokes.length / 2;    // 非横竖主导 = 妻子风格
+  const husbandPresent = hengshu > strokes.length / 2;  // 横竖主导 = 丈夫风格
+  if (wifePresent) os.cell |= (1n << 38n);
+  if (husbandPresent) os.cell |= (1n << 39n);
+
+  // bit62: 奇偶极性
+  if (strokes.length % 2 === 1) os.cell |= (1n << 62n);
+
+  // bits 54-59: 6-bit 紧凑码 (容器号低3位的或)
+  let code6 = 0;
+  for (const ci of stepState.containers.slice(-3)) code6 |= 1 << (ci % 6);
+  os.cell = (os.cell & ~(0x3Fn << 54n)) | (BigInt(code6 & 0x3F) << 54n);
+
+  os.history.push({ ch, strokes, stepState, side: husbandPresent ? '丈夫侧' : '妻子侧' });
+}
+
+function osReset() {
+  os.cell = 0n; os.depth = 0; os.shellPath = []; os.history = []; os.activeContainers.clear();
+}
+
+// ── 3D 引擎 ──
+const canvas = document.getElementById('cv3d');
+const ctx3 = canvas.getContext('2d');
+let W3, H3, cx3, cy3;
+let rotX = -0.4, rotY = 0.5, dist = 260;
+let dragging3 = false, lx3 = 0, ly3 = 0;
+let showLabels = true;
+let lastTime = performance.now();
+
+function resize3() {
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.parentElement.getBoundingClientRect();
+  W3 = rect.width; H3 = rect.height;
+  canvas.width = W3 * dpr; canvas.height = H3 * dpr;
+  canvas.style.width = W3 + 'px'; canvas.style.height = H3 + 'px';
+  ctx3.setTransform(dpr, 0, 0, dpr, 0, 0);
+  cx3 = W3 / 2; cy3 = H3 / 2;
+}
+setTimeout(resize3, 100);
+window.addEventListener('resize', resize3);
+
+canvas.addEventListener('mousedown', e => { dragging3 = true; lx3 = e.clientX; ly3 = e.clientY; });
+window.addEventListener('mouseup', () => { dragging3 = false; });
+canvas.addEventListener('mousemove', e => {
+  if (!dragging3) return;
+  rotY += (e.clientX - lx3) * 0.008;
+  rotX += (e.clientY - ly3) * 0.008;
+  rotX = Math.max(-1.5, Math.min(1.5, rotX));
+  lx3 = e.clientX; ly3 = e.clientY;
+});
+canvas.addEventListener('wheel', e => {
+  e.preventDefault(); dist = Math.max(100, Math.min(500, dist + e.deltaY * 0.3));
+}, { passive: false });
+
+function rotate3(p) {
+  const cx = Math.cos(rotX), sx = Math.sin(rotX);
+  const y1 = p.y * cx - p.z * sx;
+  const z1 = p.y * sx + p.z * cx;
+  const cy = Math.cos(rotY), sy = Math.sin(rotY);
+  return { x: p.x * cy + z1 * sy, y: y1, z: -p.x * sy + z1 * cy };
+}
+function project3(p) {
+  const fov = 500;
+  const s = fov / (fov + p.z + dist);
+  return { x: cx3 + p.x * s, y: cy3 + p.y * s, s };
+}
+function cpos(idx) {
+  const x = idx & 3, y = (idx >> 2) & 3;
+  return { x: (x - 1.5) * 42, y: -(y - 1.5) * 42, z: 0 };
+}
+
+function draw3D() {
+  ctx3.clearRect(0, 0, W3, H3);
+  // bg radial
+  const grad = ctx3.createRadialGradient(cx3, cy3, 0, cx3, cy3, Math.max(W3, H3) * 0.7);
+  grad.addColorStop(0, '#0f1828'); grad.addColorStop(1, '#060a10');
+  ctx3.fillStyle = grad; ctx3.fillRect(0, 0, W3, H3);
+
+  // grid lines
+  ctx3.strokeStyle = 'rgba(26,40,64,0.25)'; ctx3.lineWidth = 0.5;
+  for (let i = -2; i <= 2; i++) {
+    const p1 = project3(rotate3({ x: i * 30, y: -60, z: 0 }));
+    const p2 = project3(rotate3({ x: i * 30, y: 60, z: 0 }));
+    ctx3.beginPath(); ctx3.moveTo(p1.x, p1.y); ctx3.lineTo(p2.x, p2.y); ctx3.stroke();
+    const p3 = project3(rotate3({ x: -60, y: i * 30, z: 0 }));
+    const p4 = project3(rotate3({ x: 60, y: i * 30, z: 0 }));
+    ctx3.beginPath(); ctx3.moveTo(p3.x, p3.y); ctx3.lineTo(p4.x, p4.y); ctx3.stroke();
+  }
+
+  // axes
+  const o3 = project3(rotate3({ x: 0, y: 0, z: 0 }));
+  const ax = project3(rotate3({ x: 70, y: 0, z: 0 }));
+  ctx3.strokeStyle = '#c46a8a88'; ctx3.lineWidth = 1;
+  ctx3.beginPath(); ctx3.moveTo(o3.x, o3.y); ctx3.lineTo(ax.x, ax.y); ctx3.stroke();
+
+  // shell path
+  if (os.shellPath.length > 1) {
+    ctx3.strokeStyle = 'rgba(124,91,191,0.4)'; ctx3.lineWidth = 1;
+    ctx3.beginPath();
+    for (let i = 0; i < os.shellPath.length; i++) {
+      const p = project3(rotate3(cpos(os.shellPath[i] % 16)));
+      if (i === 0) ctx3.moveTo(p.x, p.y); else ctx3.lineTo(p.x, p.y);
+    }
+    ctx3.stroke();
+  }
+
+  // containers (按 z 排序)
+  const items = [];
+  for (let i = 0; i < 16; i++) {
+    const active = os.activeContainers.has(i);
+    const pos = cpos(i);
+    const proj = project3(rotate3(pos));
+    items.push({ idx: i, active, proj, rot: rotate3(pos) });
+  }
+  items.sort((a, b) => a.rot.z - b.rot.z);
+
+  const t = performance.now() / 1000;
+  for (const item of items) {
+    const size = 12 * item.proj.s;
+    const pulse = item.active ? 1 + Math.sin(t * 3 + item.idx * 0.7) * 0.2 : 1;
+    const s = size * pulse;
+    const [r, g, b] = item.active ? [84 * 1.4, 112 * 1.4, 160 * 1.4|0] : [40, 55, 75];
+    const alpha = item.active ? 0.9 : 0.4;
+
+    ctx3.globalAlpha = alpha;
+    ctx3.fillStyle = `rgb(${r|0},${g|0},${b|0})`;
+    const x = item.proj.x - s / 2, y = item.proj.y - s / 2;
+    const r2 = s * 0.2;
+    ctx3.beginPath();
+    ctx3.moveTo(x + r2, y); ctx3.lineTo(x + s - r2, y);
+    ctx3.quadraticCurveTo(x + s, y, x + s, y + r2);
+    ctx3.lineTo(x + s, y + s - r2);
+    ctx3.quadraticCurveTo(x + s, y + s, x + s - r2, y + s);
+    ctx3.lineTo(x + r2, y + s);
+    ctx3.quadraticCurveTo(x, y + s, x, y + s - r2);
+    ctx3.lineTo(x, y + r2);
+    ctx3.quadraticCurveTo(x, y, x + r2, y);
+    ctx3.fill();
+
+    if (item.active) {
+      ctx3.strokeStyle = CONTAINER_POLARITY[item.idx] ? 'rgba(224,112,64,0.8)' : 'rgba(64,160,192,0.8)';
+      ctx3.lineWidth = 1.2; ctx3.stroke();
+    } else {
+      ctx3.strokeStyle = 'rgba(40,55,75,0.5)'; ctx3.lineWidth = 0.5; ctx3.stroke();
+    }
+
+    // polarity dot
+    if (item.active) {
+      ctx3.beginPath();
+      ctx3.arc(item.proj.x + s * 0.35, item.proj.y - s * 0.35, 2 * item.proj.s, 0, Math.PI * 2);
+      ctx3.fillStyle = CONTAINER_POLARITY[item.idx] ? '#e07040' : '#40a0c0';
+      ctx3.fill();
+    }
+
+    if (showLabels) {
+      ctx3.globalAlpha = alpha * 0.7;
+      ctx3.fillStyle = '#c8d4e4';
+      ctx3.font = `${Math.max(7, 8 * item.proj.s)|0}px 'JetBrains Mono', monospace`;
+      ctx3.textAlign = 'center';
+      ctx3.fillText(CONTAINER_NAMES[item.idx], item.proj.x, item.proj.y + 2);
+    }
+    ctx3.globalAlpha = 1;
+  }
+
+  // update 3D HUD
+  document.getElementById('cell-rotx').textContent = `${(rotX*57.3).toFixed(0)}°`;
+  document.getElementById('cell-roty').textContent = `${(rotY*57.3).toFixed(0)}°`;
+}
+
+// ── Cell 视图 ──
+function renderCell() {
+  const cell = os.cell;
+  const hex = cell.toString(16).padStart(16, '0').toUpperCase();
+
+  // hex display
+  const hexEl = document.getElementById('hex-row');
+  hexEl.innerHTML = '';
+  for (let i = 0; i < 16; i += 2) {
+    const byte = hex.slice(i, i + 2);
+    hexEl.innerHTML += `<span style="color:var(--text)">${byte}</span> `;
+  }
+
+  // 64-bit grid (bits 63..0, left to right)
+  const grid = document.getElementById('cell-bits');
+  grid.innerHTML = '';
+  for (let bit = 63; bit >= 0; bit--) {
+    const val = Number((cell >> BigInt(bit)) & 1n);
+    let cls = 'bit-0';
+    if (val) {
+      if (bit < 16) cls = 'bit-s';
+      else if (bit === 38) cls = 'bit-w';
+      else if (bit === 39) cls = 'bit-h';
+      else if (bit >= 54 && bit <= 59) cls = 'bit-c';
+      else if (bit === 62) cls = 'bit-p';
+      else cls = 'bit-s';
+    }
+    if (val) cls += ' bit-on';
+    const div = document.createElement('div');
+    div.className = 'bit ' + cls;
+    if (val) div.textContent = '1';
+    else div.textContent = '0';
+    div.title = `bit ${bit} = ${val}`;
+    grid.appendChild(div);
+  }
+}
+
+// ── 状态表 ──
+function renderState() {
+  const tbl = document.getElementById('state-table');
+  const cell = os.cell;
+  tbl.innerHTML = '';
+
+  const fields = [
+    ['Cell (hex)', '0x' + cell.toString(16).padStart(16, '0').toUpperCase()],
+    ['深度 (depth)', os.depth],
+    ['激活容器', `${os.activeContainers.size}/16`],
+    ['壳路径长', os.shellPath.length],
+    ['历史字数', os.history.length],
+    ['妻子(b38)', (cell >> 38n) & 1n ? '✓' : '✗'],
+    ['丈夫(b39)', (cell >> 39n) & 1n ? '✓' : '✗'],
+    ['极性(b62)', (cell >> 62n) & 1n ? '阳(1)' : '阴(0)'],
+    ['编码(b54-59)', '0b' + Number((cell >> 54n) & 0x3Fn).toString(2).padStart(6, '0')],
+  ];
+  for (const [k, v] of fields) {
+    tbl.innerHTML += `<tr><td class="k">${k}</td><td class="v">${v}</td></tr>`;
+  }
+}
+
+// ── 历史 ──
+function renderHistory() {
+  const el = document.getElementById('char-list');
+  el.innerHTML = '';
+  for (const h of os.history.slice(-20)) {
+    const hex = h.stepState.before.toString(16).padStart(4,'0');
+    const act = h.stepState.activated.map(ci => CONTAINER_NAMES[ci]).join('');
+    el.innerHTML += `<div class="char-chip" title="${h.stepState.activated.map(ci => CONTAINER_NAMES[ci]+'['+ci+']').join(' ')}">
+      <span>${h.ch}</span>
+      <span class="sub">${h.strokes.length}画 · ${h.side}</span>
+    </div>`;
+  }
+}
+
+// ── 渲染总入口 ──
+function renderAll() {
+  renderCell();
+  renderState();
+  renderHistory();
+  document.getElementById('cell-hex').textContent = '0x' + os.cell.toString(16).padStart(4, '0').toUpperCase();
+  document.getElementById('cell-depth').textContent = os.depth;
+  document.getElementById('cell-count').textContent = `${os.activeContainers.size}/16`;
+}
+
+// ── 动画循环 ──
+function frame(now) {
+  const dt = Math.min(50, now - lastTime) / 1000;
+  lastTime = now;
+  // 缓慢自转
+  if (!dragging3) rotY += 0.15 * dt;
+  draw3D();
+  requestAnimationFrame(frame);
+}
+
+// ── 执行 ──
+function execute(text) {
+  for (const ch of text) osIngest(ch);
+  renderAll();
+}
+
+// ── 事件 ──
+document.getElementById('btn-go').addEventListener('click', () => {
+  execute(document.getElementById('text-input').value);
+});
+document.getElementById('text-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') execute(e.target.value);
+});
+document.getElementById('btn-reset').addEventListener('click', () => {
+  osReset(); renderAll();
+  document.getElementById('text-input').value = '';
+});
+document.getElementById('btn-label').addEventListener('click', function() {
+  this.classList.toggle('active');
+  showLabels = this.classList.contains('active');
+});
+
+// ── 初始化 ──
+execute('囝共生');
+requestAnimationFrame(now => { lastTime = now; frame(now); });
+</script>
+</body>
+</html>

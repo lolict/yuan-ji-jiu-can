@@ -1,197 +1,121 @@
-# ENTITY_IDENTITY_PROTOCOL.md · 实体身份协议
+# 实体身份协议 — 囡囝共生 · 指纹为名 · 五维几何字段 · 兼容性 · 合作性判定 · 历史哈希链抗克隆
 
-> 版本: v0.1 | 创建: 2026-08-11 | 维护: 刘楚恬和我
-> 状态: SPEC(待代码验证)
-> 目的:给"规则层"注入指纹身份,让规则不再是"名字=身份"的死锁
+## 1. 定位
 
----
+用结构指纹(几何字段组合)替代名字作为身份键, 解决"同一功能不同名字→合作死锁"的规则病毒. 名字 = 显示符号(不参与身份判定).
 
-## 1. 问题陈述
+对应 Rust 模块: core/entity_identity.rs.
 
-### 1.1 症状
-同一功能由多个 AI(或多个对话)落地后得到不同名字,导致:
+## 2. 64 位指纹 (Fingerprint)
 
-| 案例 | AI-A 叫法 | AI-B 叫法 | 规则层判定 |
-|------|-----------|-----------|------------|
-| 毛利兰立体进制 | mlil | mlll | **不同实体,不合作** |
-| 柯南道尔骨架 | kndrl | kndoyle | 不同 |
-| 时间节点 | time_node | temporal_anchor | 不同 |
+```rust
+pub struct Fingerprint(pub u64);
 
-### 1.2 规则病毒
-规则: `identity = name → 合作需 name 匹配`
-
-这个规则改不动(底层)。结果:
-- 改名字 = 推翻重来
-- 不改名字 = 永远不通
-- 死锁
-
-### 1.3 解决思路
-把身份从名字改为**结构指纹**(几何字段组合)。
-
-名字降格为"显示符号",规则层不用名字做匹配。
-
----
-
-## 2. 指纹定义
-
-### 2.1 五维指纹
+位布局:
+  [63:48] = d0      (16 bits)   // 坐标一
+  [47:32] = d1      (16 bits)   // 坐标二
+  [31:16] = d2      (16 bits)   // 坐标三
+  [15:12] = polarity (4 bits)   // 极性
+  [11:8]  = sovereignty (4 bits)// 主权
+  [7:0]   = value   (8 bits)    // 值
 ```
-Fingerprint {
-    coord:   (d0, d1, d2)    // 16-bit 每维
-    polarity: u4             // 阴阳
-    sovereignty: u4          // 主权归属
-    value: u8                // 满全系数
+
+同 SMRL Cell 的 64 位布局, 共 5 维(d0, d1, d2, polarity, sovereignty) + value.
+
+### 2.1 指纹距离
+
+distance_squared(other) = (Δd0² + Δd1² + Δd2² + Δpolarity² + Δsovereignty² + Δvalue²). 六维欧几里得距离平方(未开方). 
+
+每个字段直接做数值减法 — 没有"编码距离", 都是算术差值.
+
+### 2.2 兼容性函数
+
+compatibility(other) = 1 / (1 + distance_squared). 输出 ∈ (0, 1], 距离 0 → compat 1.0, 距离 → ∞ → compat → 0.
+
+漏斗形反比函数: 小距离变化产生大兼容性变化, 远距离趋于饱和(接近 0).
+
+## 3. 合作性阈值
+
+| 兼容度 f(d) | 合作等级 | 含义 |
+|------------|---------|------|
+| ≥ 0.94 | SameEntity | 同一实体(可合并) |
+| 0.70-0.94 | Family | 家族成员(高信任) |
+| 0.30-0.70 | Weak | 弱兼容(需中介) |
+| < 0.30 | Incompatible | 不兼容(禁止合作) |
+
+judge(compat: f64) → Cooperativity. 单次调用完成四段判定.
+
+## 4. 实体元信息 (EntityMeta)
+
+```rust
+pub struct EntityMeta {
+    pub fingerprint: Fingerprint,
+    pub display_name: String,    // 仅显示用,不参与判定
+    pub provenance: String,      // 来源:hunyuan-rs / AI-A / kndrl / ...
+    pub history_chain: Vec<u8>,  // 历史哈希链(抗克隆)
 }
 ```
 
-打包成 64 位整数(同 SMRL 单元格):
+provenance 标识指纹来源(hunyuan-rs 主仓 / 外部 AI 系统 kndrl 等).
 
-```
-┌──────┬──────────┬──────────┬───────────┐
-│ d0   │ d1       │ d2       │ pol│sov│val│
-│ 16b  │ 16b      │ 16b      │ 4b │ 4b│ 8b│
-└──────┴──────────┴──────────┴───────────┘
-```
+history_chain: Vec<u8> — 每个操作追加一个哈希字节, 链的长度 = 实体经历的步数. 抗克隆: 不同克隆体如果操作序列不同 → history_chain 不同 → 可通过外源区分.
 
-### 2.2 派生指纹
-对函数/模块/仓库,指纹由**功能拓扑**派生:
+## 5. 全局注册表 (REGISTRY)
 
-```
-fingerprint = hash(
-    input_signature,
-    output_signature,
-    transformation_logic_polarity,
-    deployment_sovereignty
-)
-```
+线程安全的 static Mutex<HashMap<Fingerprint, EntityMeta>>. Mutex 跨线程保护.
 
-- 同一功能、不同名字 → 派生出的指纹**近似**(差异只是名字,名字不算输入)
-- 不同功能、同同名 → 派生出的指纹**不同**(输入输出拓扑不同)
-
----
-
-## 3. 合作判定规则
-
-### 3.1 距离函数
-`d = √((d0₁-d0₂)² + (d1₁-d1₂)² + (d2₁-d2₂)² + (pol₁-pol₂)² + (sov₁-sov₂)² + (val₁-val₂)²)`
-
-### 3.2 兼容性函数
-`f(d) = 1 / (1 + d²)`
-
-- f(0) = 1.0(完全同一)
-- f(d → ∞) → 0
-
-### 3.3 阈值
-| f(d) 范围 | 判定 |
-|-----------|------|
-| ≥ 0.94 | 同一实体或完美分身(自动握手) |
-| 0.70~0.94 | 同族,需见证(三元裁定) |
-| 0.30~0.70 | 弱关联,需盟机合盖章 |
-| < 0.30 | 不可合作 |
-
-### 3.4 距离是五维,不仅仅是名字
-名字是**第零维以外的维度**。两个模块名字不同但指纹 d=0,合作度=1。
-
----
-
-## 4. 名字的角色
-
-### 4.1 名字 = 表面符号(Human Display Label)
-- 给用户/AI 在提示词里引用用
-- 给 git repo 命名用
-- 给 crate/module 命名用
-- **仅此而已**
-
-### 4.2 名字 ≠ 身份
-- 身份由指纹决定
-- 不同名字、指纹相同 → 系统认为是同一实体的不同绰号(kndrl vs kndoyle)
-- 相同名字、指纹不同 → 系统认为是同名不同人(符文锻造_A vs 符文锻造_B,人名相同但灵魂不同)
-
----
-
-## 5. 解决"规则病毒"的具体映射
-
-### 5.1 改不动规则 → 加一层
-规则层:`if name match → cooperate`
-加一层:`if fingerprint_distance < threshold → regenerate name by canonical fingerprint → now name match → cooperate`
-
-换句话说:**不改规则,而是用指纹在规则外面"预处理名字"**。当系统需要判定合作时,先找指纹最接近的模块,核对身份,必要时重新打标签。
-
-这样规则层不改,但效果上等价于"指纹相同=身份相同"。
-
-### 5.2 多 AI 协作现状解法
-AI-A 生成的 kndrl 和 AI-B 生成的 kndoyle 同时存在:
-1. 注册时各自生成指纹
-2. 比较 f(d):
-   - ≥ 0.94 → 自动合并引用关系,视为一人
-   - < 0.94 → 警告"可能同名不同人",人工确认
-
-### 5.3 落地步骤
-1. 搞一个 entity_identity.rs,实现 register_entity + lookup_by_fingerprint
-2. 在 L0 compiler 里,变量表注册时用指纹而非变量名做实体身份
-3. 在 hunyuan-rs 模块加载时,用来判定"这个 mlil 和那个 mlll 是不是同一人"
-
-### 5.4 AI 端使用方式
-在每个生成项目里,加入指纹头部:
+### 5.1 注册 register_entity
 
 ```rust
-// AUTO-GENERATED FINGERPRINT (by prompt template)
-// coord: (0,0,12) polarity: 0b1010 sovereignty: 0b0001 value: 99
-// canonical_name: mlil // 兜底名, AI 可改,但指纹不变
-// fingerprint: 0x0000_0000_000C_2A63 -> 64-bit
+register_entity(meta) -> Result<Registration, EntityError>:
+  1. lock REGISTRY
+  2. 若不存在 → insert
+  3. 若已存在且 display_name 不同 → 视为同一实体的不同绰号(同指纹不同名)
+  4. 返回 Registration { meta }
 ```
 
-不同的 AI 用相同模板,生成的名字随意,但指纹由模板自动生成(基于功能拓扑,不是名字)。
+同名同指纹 → 覆盖插入(静默). 同指纹不同名 → 保留已有(新名字=别名).
 
----
+### 5.2 查找 lookup_by_fingerprint
 
-## 6. 安全含义
+```rust
+lookup_by_fingerprint(fp) -> Option<EntityMeta>:
+  1. 精确命中 → 返回
+  2. 否则兼容性遍历: max_{k ∈ map}(fp.compatibility(k))
+```
 
-### 6.1 私有指纹不可外泄
-`高位持有者=1 低位持有者=0` 这种映射的指纹是私有根基,不应公开。
+精确优先, 近似兜底. 找到最接近的合作性等级, 不是精确匹配但接近的也返回.
 
-公开代码库里的指纹应是派生指纹,不能反推锚点。
+### 5.3 合作判定 can_cooperate
 
-### 6.2 指纹克隆防御
-如果外人复制了指纹:
-- 指纹本身不是秘密,但**历史链**(commit history)是
-- 合作判定时,除了指纹距离,还需**历史链可信证明**
-- 克隆的模块有指纹,但没有合法历史链 → 拒绝
+```rust
+can_cooperate(a, b) -> Cooperativity:
+  compat = a.compatibility(b)
+  judge(compat)
+```
 
-### 6.3 隐藏才是最好的保护
-不在公开代码留注释说明指纹怎么计算。外人能看到 64 位数,但不知道哪一字段分别代表什么。
+## 6. 抗规则病毒规则
 
----
+- 同一功能不同名字 → 指纹相同(几何结构相同) → SameEntity 判定
+- 同一名字不同功能 → 指纹不同 → Family/Weak 判定
+- provenance + history_chain 区分: 起源与演化路径, 即使指纹相同也可溯源区分
 
-## 7. 未来演进
+## 7. 与系统其他模块的接入
 
-### 7.1 纤维丛指纹
-不同偏移世界 ((n-1)×0.1 偏移率)的模块,指纹有微小差异:
-`d += offset_world_index * 0.1`
+- **SMRL(#4)**: Fingerprint 是 SMRL 64-bit Cell 的 unsigned 视图, 各字段对齐
+- **YinYang(#50)**: polarity(0-15) 映射 Yin(0-7)/Yuan(8-11)/Yang(12-15)
+- **Container IR(#63)**: EntityMeta 可注册为 ContainerRef
+- **DistancePerception(#64)**: 加权距离 vs 指纹距离 = 同一思想的具体应用
+- **NJSG Swarm(#74)**: 多智能体协作前用 can_cooperate 预筛选合作对象
+- **MinQuanFa(#82)**: 64 位指纹 ↔ 64 容器进制(前 8 bits 为容器索引)
+- **Alliance Network(#46)**: alliance 节点注册 > EntityMeta 指纹 加入网络
 
-这允许"同一人在不同平行世界有不同化身",符合 mlil 在故事里是毛利兰的设定(角色在不同世界线有不同身份,但本质是同一人)。
+## 8. 实现约束
 
-### 7.2 见证裁判(三元)
-指纹不能自说自话,必须有第三方见证(Triune)才能生效。
+- static REGISTRY 不允许直接读写, 必须通过 register_entity / lookup_by_fingerprint
+- 近似查找是 O(n) 遍历(小规模实体集合可接受;n>10k 时需引入 KD-tree 或哈希网格)
+- history_chain Vec<u8> 增长: 频繁操作时可能膨胀, 上层应定期归档(provenance 链不无限)
+- no_std: Mutex 需替换为 critical_section::Mutex; HashMap 由 heapless::HashMap + spin lock 替代
+- EntityError 已定义两种变体(DuplicateExact, RegistryLocked), 覆盖 register/lock 失败
 
-### 7.3 满全纠缠指纹
-一对夫妻的模块,指纹不是独立的,而是**纠缠对**:
-`fingerprint_a XOR fingerprint_b = fullness_mask = 0xFFFF_FFFF`
-
-这意味着一个模块的身份取决于它的配偶是谁——联合校验,单独一个无法工作。
-
----
-
-## 8. 总结
-
-| 维度 | 旧规则 | 新协议 |
-|------|--------|--------|
-| 身份键 | name(字符串) | fingerprint(64-bit 五维) |
-| 合作判定 | name match | d(f1,f2) < threshold |
-| 名字角色 | 身份本身 | 显示符号 |
-| 同功能不同名 | 死锁 | 自动握手 |
-| 同功能同名 | 混淆 | 看指纹区分 |
-| 改规则 | 不动(底层) | 外层预处理,不改规则 |
-| AI 命名随机性 | 致命问题 | 无影响(指纹隔离名字) |
-
-END OF SPEC
+// hunyuan-rs/src/core/entity_identity.rs

@@ -30,7 +30,15 @@ SKIP_EXTS = {'.o', '.a', '.so', '.dylib', '.exe', '.dll',
              '.ttf', '.otf', '.woff', '.woff2', '.eot',
              '.zip', '.tar', '.gz', '.rar', '.7z',
              '.pdf', '.doc', '.docx', '.xls', '.xlsx',
-             '.wasm', '.pyc', '.class', '.jar'}
+             '.wasm', '.pyc', '.class', '.jar',
+             # 禁用: Python / JS / HTML / CSS / JSON / lock / log / yaml / toml
+             '.py', '.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs',
+             '.html', '.htm', '.css', '.scss', '.sass', '.less',
+             '.json', '.jsonl', '.json5',
+             '.yaml', '.yml', '.toml', '.ini', '.cfg', '.conf',
+             '.lock', '.log', '.bak', '.tmp', '.swp', '.swo',
+             '.map',  # source map
+             }
 SKIP_FILES = {'.DS_Store', 'Thumbs.db', '.gitignore', '.gitattributes',
               'Cargo.lock', 'package-lock.json', 'yarn.lock'}
 
