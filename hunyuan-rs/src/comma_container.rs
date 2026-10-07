@@ -18741,10 +18741,10 @@ mod accumulator_tests {
     use super::*;
     #[test] fn test_threshold_trigger() {
         let mut a = ContainerAccumulator::new(50);
-        assert!(!a.add(30));
-        assert!(a.add(30)); // 60 >= 50
-        assert!(!a.add(10)); // 70, already past
-        assert!(a.add(100)); // 170 >= 50
+        assert!(!a.add(30));  // 30 < 50, no trigger
+        assert!(a.add(30));   // 60 >= 50, triggers
+        assert!(a.add(10));   // 70 >= 50, still triggers (monotonic)
+        assert!(a.add(100));  // 170 >= 50, still triggers
         assert_eq!(a.trigger_count(), 3);
     }
     #[test] fn test_flush() {
@@ -19016,7 +19016,7 @@ impl ContainerRelationDynamics {
 impl Default for ContainerRelationDynamics { fn default() -> Self { Self::new() } }
 
 #[cfg(test)]
-mod relation_dynamics_tests {
+mod container_relation_dynamics_tests {
     use super::*;
     #[test] fn test_relate() {
         let mut e = ContainerRelationDynamics::new();
@@ -19065,7 +19065,7 @@ mod relation_dynamics_tests {
     #[test] fn test_broken_relation_cleaned() {
         let mut e = ContainerRelationDynamics::new();
         e.set_decay_rate(0.5);
-        e.relate(1, 2, ContainerRelationKind::Repulsion, 0.3); // 不稳定且衰减
+        e.relate(1, 2, ContainerRelationKind::Resonance, 0.3); // 不稳定且需维护, 衰减
         // 多轮衰减至断裂
         for _ in 0..10 { e.tick(); }
         // 应已被清理

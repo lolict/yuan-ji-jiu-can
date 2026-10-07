@@ -193,7 +193,7 @@ pub use character_creator::{CharacterCreator, GlyphEncoding, GlyphPolarity, Glyp
 #[path = "encoding/svg_renderer.rs"]
 pub mod svg_renderer;
 pub use svg_renderer::{render_glyph_svg, render_grid, project_grid, render_character_sheet,
-                       stroke_path, stroke_color, GRID_SIZE};
+                       render_cell_bitmap, stroke_path, stroke_color, GRID_SIZE};
 
 // 在场本体论 (最小存根 — 供 chain_resonance 兼容)
 #[path = "core/presence_ontology.rs"]
@@ -392,6 +392,7 @@ pub mod clock_trigger;
 // ── v0.87 信号通信引擎 ‑ 涟漪传输 · 广播 · 定向 · 信号衰减 · 反馈回路 ──
 #[path = "core/signal_comms.rs"]
 pub mod signal_comms;
+
 // ── v0.66 运行环引擎 — 最小OS接口·鼓膜自举·八流心跳·编码在场·结束即开始 ──
 #[path = "core/runtime_loop.rs"]
 pub mod runtime_loop;
@@ -1026,6 +1027,11 @@ pub use homophonic_router::{ResonantPath, HomophonicRouter};
 pub mod meta_ime;
 pub use meta_ime::{Intent as MetaIntent, MetaIME};
 
+// ── v0.67 心算核心 — 满全法: 汉字共振=计算·极性通断=逻辑·无需CPU ──
+#[path = "core/mental_core.rs"]
+pub mod mental_core;
+pub use mental_core::{MentalState, MentalCore, Thought};
+
 // ── v0.59 聂小倩·本质匹配引擎 — 游魂寻踪·公约数共振·撞墙回退 ──
 #[path = "core/njq_matching.rs"]
 pub mod njq_matching;
@@ -1048,7 +1054,6 @@ pub use hunyuan_live_code::{
     LivingCode, CodeKind, StartPoint, HunyuanLiveCoder, CompiledLayout,
 };
 
-// ── v0.43 自举编译器 · YinYang→SmrlCellOp (BootstrapCompiler) ──
 #[path = "core/bootstrap_compiler.rs"]
 pub mod bootstrap_compiler;
 pub use bootstrap_compiler::{
