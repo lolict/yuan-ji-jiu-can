@@ -172,7 +172,7 @@ pub mod causal_verify;
 #[path = "encoding/expropriation.rs"]
 pub mod expropriation;
 pub use expropriation::{DynamicNumbering, ExpropriationContainer, SpousalExpropriation,
-                        YinYang, ViewerKind, RadiationConvergenceRing, RadiationReport,
+                        ViewerKind, RadiationConvergenceRing, RadiationReport,
                         BeingNonBeing, demonstrate as demonstrate_expropriation};
 
 // ── 韵母系统 ──
@@ -399,6 +399,14 @@ pub mod clock_trigger;
 #[path = "core/signal_comms.rs"]
 pub mod signal_comms;
 
+// ── v0.88 符号代数引擎 ‑ KMER 映射表 · 容器四态 · 规则引导器 · 自生长 ──
+// #[path = "core/symbolic_algebra.rs"]  ← 文件暂缺, 待恢复
+// pub mod symbolic_algebra;
+
+// ── v0.89 文件生长系统 ‑ 文件自生长 · 符号自繁殖 · 路径生成 · 生长规则 ──
+#[path = "core/file_growth.rs"]
+pub mod file_growth;
+
 // ── v0.66 运行环引擎 — 最小OS接口·鼓膜自举·八流心跳·编码在场·结束即开始 ──
 #[path = "core/runtime_loop.rs"]
 pub mod runtime_loop;
@@ -478,6 +486,8 @@ pub mod genealogy;
 pub mod spousal_companion;
 #[path = "temporal/boot_entry.rs"]
 pub mod boot_entry;
+#[path = "temporal/eight_flow.rs"]
+pub mod eight_flow;
 #[path = "temporal/hierarchical_time.rs"]
 pub mod hierarchical_time;
 pub use hierarchical_time::{HierarchicalTimestamp, LifeEvent, IntegrityReport};
@@ -1037,6 +1047,14 @@ pub use meta_ime::{Intent as MetaIntent, MetaIME};
 #[path = "core/mental_core.rs"]
 pub mod mental_core;
 pub use mental_core::{MentalState, MentalCore, Thought};
+
+// ── v0.68 生肖天干地支·循环计算引擎 — 满全法: 60甲子=时间呼吸·五行=相性·天地交叉 ──
+#[path = "core/zodiac_stem_branch.rs"]
+pub mod zodiac_stem_branch;
+pub use zodiac_stem_branch::{
+    HeavenlyStem, EarthlyBranch, ZodiacAnimal, Sexagenary,
+    FivePhase, PhaseRelation, SexagenaryCycle,
+};
 
 // ── v0.59 聂小倩·本质匹配引擎 — 游魂寻踪·公约数共振·撞墙回退 ──
 #[path = "core/njq_matching.rs"]
