@@ -388,6 +388,10 @@ pub mod superposition;
 // ── v0.86 时钟触发引擎 ‑ 冰箱模型 · 时间触发 · 意志驱动 · 继承连贯 ──
 #[path = "core/clock_trigger.rs"]
 pub mod clock_trigger;
+
+// ── v0.87 信号通信引擎 ‑ 涟漪传输 · 广播 · 定向 · 信号衰减 · 反馈回路 ──
+#[path = "core/signal_comms.rs"]
+pub mod signal_comms;
 // ── v0.66 运行环引擎 — 最小OS接口·鼓膜自举·八流心跳·编码在场·结束即开始 ──
 #[path = "core/runtime_loop.rs"]
 pub mod runtime_loop;
@@ -1016,6 +1020,11 @@ pub use radix_container::{
 #[path = "core/homophonic_router.rs"]
 pub mod homophonic_router;
 pub use homophonic_router::{ResonantPath, HomophonicRouter};
+
+// ── v0.66 元输入法·心算引擎 — 满全法: 意图→音韵场→共振=汉字 ──
+#[path = "core/meta_ime.rs"]
+pub mod meta_ime;
+pub use meta_ime::{Intent as MetaIntent, MetaIME};
 
 // ── v0.59 聂小倩·本质匹配引擎 — 游魂寻踪·公约数共振·撞墙回退 ──
 #[path = "core/njq_matching.rs"]
