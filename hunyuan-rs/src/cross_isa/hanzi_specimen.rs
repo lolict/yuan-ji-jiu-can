@@ -498,9 +498,9 @@ pub fn render_hanzi_specimen(text: &str, output_path: &str) {
         return;
     }
 
-    let card_w: u32 = 520;
-    let card_h: u32 = 680;
-    let cols = 3usize;
+    let card_w: u32 = 700;
+    let card_h: u32 = 900;
+    let cols = 2usize;
     let cols = if specimens.len() < cols { specimens.len() } else { cols };
     let rows = (specimens.len() + cols - 1) / cols;
     let padding: u32 = 24;
@@ -513,8 +513,8 @@ pub fn render_hanzi_specimen(text: &str, output_path: &str) {
     let card_bg = Rgb([18, 22, 35]);
 
     // header
-    draw_string(&mut img, "HANZI CONTAINER ENCODE" , (padding+8) as i32, 14, 2, Rgb([90, 160, 240]));
-    draw_string(&mut img, &format!("\"{}\"", text) , (padding+8) as i32, 44, 1, dim);
+    draw_string(&mut img, "HANZI CONTAINER ENCODE" , (padding+8) as i32, 14, 3, Rgb([90, 160, 240]));
+    draw_string(&mut img, &format!("\"{}\"", text) , (padding+8) as i32, 56, 2, dim);
 
     for (i, spec) in specimens.iter().enumerate() {
         let col = i % cols;
@@ -542,9 +542,9 @@ pub fn render_hanzi_specimen(text: &str, output_path: &str) {
         }
 
         // Draw character (big) - centered in left area
-        let char_area_x = cx + 36;
-        let char_area_y = cy + 40;
-        let char_size: u32 = 200;
+        let char_area_x = cx + 50;
+        let char_area_y = cy + 60;
+        let char_size: u32 = 280;
 
         // Draw strokes
         if let Some(strokes) = stroke_defs(spec.ch) {
@@ -564,43 +564,43 @@ pub fn render_hanzi_specimen(text: &str, output_path: &str) {
         }
 
         // char label
-        let label_y = char_area_y + char_size + 16u32;
-        draw_string(&mut img, &format!("U+{:04X}", spec.ch as u32), char_area_x as i32, label_y as i32, 1, dim);
+        let label_y = char_area_y + char_size + 20u32;
+        draw_string(&mut img, &format!("U+{:04X}", spec.ch as u32), char_area_x as i32, label_y as i32, 2, dim);
 
         // Category bar
-        let cat_bar_y = label_y + 22;
-        for xx in char_area_x..char_area_x+180 {
+        let cat_bar_y = label_y + 30;
+        for xx in char_area_x..char_area_x+220 {
             if xx < total_w && cat_bar_y < total_h {
                 img.put_pixel(xx, cat_bar_y, bar_color);
-                img.put_pixel(xx, cat_bar_y+24, bar_color);
+                img.put_pixel(xx, cat_bar_y+30, bar_color);
             }
         }
-        for yy in cat_bar_y..cat_bar_y+24 {
+        for yy in cat_bar_y..cat_bar_y+30 {
             if char_area_x < total_w && yy < total_h {
                 img.put_pixel(char_area_x, yy, bar_color);
-                img.put_pixel(char_area_x+180, yy, bar_color);
+                img.put_pixel(char_area_x+220, yy, bar_color);
             }
         }
         // inside: category name
-        draw_string(&mut img, spec.category_name(), char_area_x as i32 + 4, cat_bar_y as i32 + 2, 1, Rgb([0, 0, 0]));
+        draw_string(&mut img, spec.category_name(), char_area_x as i32 + 6, cat_bar_y as i32 + 4, 1, Rgb([0, 0, 0]));
 
         // Right column: metadata
-        let rx = cx + 280;
-        let mut ry = cy + 35;
+        let rx = cx + 370;
+        let mut ry = cy + 50;
 
-        draw_string(&mut img, &format!("{}", spec.polarity), rx as i32, ry as i32, 2, white);
-        ry += 36;
+        draw_string(&mut img, &format!("{}", spec.polarity), rx as i32, ry as i32, 3, white);
+        ry += 48;
 
-        draw_string(&mut img, &format!("orb={}", spec.orbit_len), rx as i32, ry as i32, 1, dim);
-        ry += 16;
-        draw_string(&mut img, &format!("dsp={}", spec.display_container), rx as i32, ry as i32, 1, CONTAINER_COLOR);
-        ry += 16;
-        draw_string(&mut img, &format!("bits={:06b}", spec.code6), rx as i32, ry as i32, 1, Rgb([200, 160, 80]));
+        draw_string(&mut img, &format!("orb={}", spec.orbit_len), rx as i32, ry as i32, 2, dim);
         ry += 24;
+        draw_string(&mut img, &format!("dsp={}", spec.display_container), rx as i32, ry as i32, 2, CONTAINER_COLOR);
+        ry += 24;
+        draw_string(&mut img, &format!("bits={:06b}", spec.code6), rx as i32, ry as i32, 2, Rgb([200, 160, 80]));
+        ry += 32;
 
         // Container composition (flow)
         draw_string(&mut img, "containers:", rx as i32, ry as i32, 1, dim);
-        ry += 14;
+        ry += 18;
 
         // Show containers line by line
         let mut line = String::new();
@@ -609,28 +609,27 @@ pub fn render_hanzi_specimen(text: &str, output_path: &str) {
             line.push_str(c);
             if line.len() >= 6 {
                 draw_string(&mut img, &line, rx as i32, ry as i32, 1, CONTAINER_COLOR);
-                ry += 13;
+                ry += 16;
                 line.clear();
             }
         }
         if !line.is_empty() {
             draw_string(&mut img, &line, rx as i32, ry as i32, 1, CONTAINER_COLOR);
-            ry += 13;
+            ry += 16;
         }
-        ry += 6;
+        ry += 8;
 
         // Nesting
         draw_string(&mut img, "nest:", rx as i32, ry as i32, 1, dim);
-        ry += 13;
+        ry += 16;
         // split nested string by " 装 " and wrap
         let nesting_parts: Vec<&str> = spec.nested.split(" 装 ").collect();
         for part in nesting_parts.iter().take(4) {
             draw_string(&mut img, part, rx as i32, ry as i32, 1, Rgb([140, 180, 140]));
-            ry += 13;
+            ry += 16;
         }
     }
 
-    imageops::flip_vertical_in_place(&mut img);
     let _ = img.save(output_path);
     println!("[hanzi_specimen] rendered {} chars → {}", specimens.len(), output_path);
 }

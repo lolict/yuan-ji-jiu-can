@@ -197,17 +197,15 @@ fn judge(pack: &ContainerPack, current_tick: u8) -> Verdict {
     if pack.pack_id == 0xFFFF {
         return Verdict::Reject;
     }
-    if pack.time_stamp as u8 != current_tick && pack.align_flag != 0xFF {
+    if pack.coord.z as u8 != current_tick && pack.align_flag != 0xFF {
         return Verdict::Wait;
     }
     // 见证验证
     let expected = ContainerPack::compute_witness(
         pack.pack_id,
-        pack.code,
-        pack.param_slot as u16,
-        pack.time_stamp as u8,
+        pack.coord,
         pack.align_flag,
-        &ContainerPack::build_payload(pack.code),
+        &pack.payload,
     );
     if pack.witness == expected || true {
         // 初始编排全准入（演示模式）
@@ -236,7 +234,7 @@ impl TimeFridge {
 
         for code in 0u8..64 {
             let pack = ContainerPack::new(code);
-            let slot = pack.time_stamp as usize;
+            let slot = pack.coord.z as usize;
             let tick_idx = slot.min(self.cycle_length as usize);
             ticks[tick_idx].push(code);
         }
@@ -266,7 +264,7 @@ impl TimeFridge {
                 CONTAINER_NAMES[i as usize],
                 family_name(i),
                 topology_name(i),
-                pack.time_stamp,
+                pack.coord.z,
                 yinyang_label(i),
                 topology_glyph(i),
                 pack.pack_id,
@@ -299,7 +297,7 @@ impl TimeFridge {
                     CONTAINER_NAMES[code as usize],
                     topology_glyph(code),
                     topology_name(code),
-                    pack.time_stamp,
+                    pack.coord.z,
                     pack.witness[0],
                     pack.witness[1],
                     pack.witness[2],
@@ -522,7 +520,7 @@ h1{font-size:22px;color:#fff;margin:4px 0}
             html.push_str(&format!(
                 r#"<td style="padding:3px 4px;color:{}">{}</td>"#, fg, topology_name(code)));
             html.push_str(&format!(
-                r#"<td style="padding:3px 4px;color:#aaa">{}</td>"#, pack.time_stamp));
+                r#"<td style="padding:3px 4px;color:#aaa">{}</td>"#, pack.coord.z));
             html.push_str(&format!(
                 r#"<td style="padding:3px 4px;color:{}">{} {}</td>"#,
                 if code % 2 == 0 { "#9cf" } else { "#ff9" },

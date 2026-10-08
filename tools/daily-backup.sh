@@ -2,6 +2,7 @@
 # daily-backup.sh — 每日备份: git add/commit + sync_remotes + memory-backup
 # 由 cron 在 23:30 触发, 不创建 CatPaw 新会话
 
+trap "" SIGPIPE
 set -uo pipefail
 
 WORKSPACE="/mnt/data/catpaw/home/.meituan-catpaw/desk_default_workspace/hunyuan-os"

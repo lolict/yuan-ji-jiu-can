@@ -2,22 +2,20 @@
 // 消灭运行时，所有行为编译时预编排
 // 执行时只查表、裁决、取袋、输出
 //
-// 容器包布局（与约定对齐）：
-// pack_id:8B  func_code:2B  param_slot:8B  time_stamp:4B  align_flag:1B  payload:NB  witness:3B
-// payload 4B 对齐（不足补零）
+// 容器包布局（坐标不冗余存储）：
+// pack_id:8B  coord:24B(X:8/Y:16/Z:8)  align_flag:1B  payload:NB  witness:3B
+// 坐标权威 = Coord3D，不从 x/y/z 冗余重建
 
 use crate::cross_isa::coordinate::Coord3D;
 use crate::cross_isa::vocabulary::*;
 use crate::cross_isa::compose::Sentence;
 
 /// 容器包：存放在冰箱格子里的预编码指令
-/// 二进制布局与约定一致
+/// 坐标权威来自单一 Coord3D，不冗余存储
 #[derive(Debug, Clone)]
 pub struct ContainerPack {
     pub pack_id: u64,          // 8B 公约数
-    pub func_code: u16,        // 2B X坐标/功能ID
-    pub param_slot: u64,       // 8B Y坐标/参数
-    pub time_stamp: u32,       // 4B Z坐标/时间窗
+    pub coord: Coord3D,        // 三维坐标 [X:语义ID][Y:操作数][Z:时间窗]
     pub align_flag: u8,        // 1B 相位对齐
     pub payload: Vec<u8>,      // NB 预编码动作序列（4B对齐）
     pub witness: [u8; 3],      // 3B 三元裁决签名
@@ -30,9 +28,7 @@ impl ContainerPack {
         let witness = Self::compute_witness(pack_id, coord, align_flag, &aligned_payload);
         Self {
             pack_id,
-            func_code: coord.x as u16,
-            param_slot: coord.y as u64,
-            time_stamp: coord.z as u32,
+            coord,
             align_flag,
             payload: aligned_payload,
             witness,
@@ -82,9 +78,9 @@ impl ContainerPack {
         self.witness == expected
     }
 
-    /// 解包恢复坐标
+    /// 获取坐标（权威来源）
     pub fn coord(&self) -> Coord3D {
-        Coord3D::new(self.func_code as u8, self.param_slot as u16, self.time_stamp as u8)
+        self.coord
     }
 
     /// 获取未填充的 payload 长度（去除对齐补零）
@@ -113,7 +109,7 @@ impl TriuneJudge {
             return Verdict::Reject;
         }
         // 2. Z轴未对齐
-        if pack.time_stamp != current_z as u32 && pack.time_stamp != 0xFF {
+        if pack.coord.z != current_z && pack.coord.z != 0xFF {
             return Verdict::Wait;
         }
         // 3. 见证验证
@@ -164,7 +160,7 @@ impl Fridge {
     /// 按Z轴时间窗口批量取出（同一时间段的所有包）
     pub fn fetch_time_slot(&self, z: u8) -> Vec<&ContainerPack> {
         self.storage.values()
-            .filter(|p| p.time_stamp == z as u32 && TriuneJudge::judge(p, z) == Verdict::Admit)
+            .filter(|p| p.coord.z == z && TriuneJudge::judge(p, z) == Verdict::Admit)
             .collect()
     }
 }
@@ -240,13 +236,13 @@ mod tests {
     }
 
     #[test]
-    fn pack_fields_match_coord() {
+    fn pack_coord_is_authoritative() {
         let coord = Coord3D::new(0x03, 0x0A10, 0x5F);
         let payload = vec![0x33, 0x10, 0x31, 0x00];
         let pack = ContainerPack::new(42, coord, 7, payload);
-        assert_eq!(pack.func_code, 0x03);
-        assert_eq!(pack.param_slot, 0x0A10);
-        assert_eq!(pack.time_stamp, 0x5F);
+        assert_eq!(pack.coord.x, 0x03);
+        assert_eq!(pack.coord.y, 0x0A10);
+        assert_eq!(pack.coord.z, 0x5F);
         assert_eq!(pack.align_flag, 7);
         assert_eq!(pack.pack_id, 42);
     }

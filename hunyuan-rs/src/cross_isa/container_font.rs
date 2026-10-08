@@ -335,9 +335,9 @@ fn build_mcod_table(srcs: &[GlyphSource]) -> Vec<u8> {
                 w.u16(s.classification.orbit.elements[i as usize] as u16);
             } else { w.u16(0); }
         }
-        w.u8(s.pack.func_code as u8);
-        w.u8(s.pack.time_stamp as u8);
-        w.u16(s.pack.param_slot as u16);
+        w.u8(s.pack.coord.x);
+        w.u8(s.pack.coord.z);
+        w.u16(s.pack.coord.y);
         while (w.pos()-es) < 48 { w.u8(0); }
     }
     w.buf
@@ -643,10 +643,9 @@ fn build_mcod_for_containers(
     for (_, _, _, pack) in sources {
         let es = w.pos();
         w.u32(pack.pack_id as u32);
-        w.u16(pack.func_code);    // X = semantic flag (容器族码)
-        w.u8(pack.func_code as u8);
+        w.u8(pack.coord.x);       // X = semantic flag (容器族码)
         w.u8(pack.align_flag);
-        w.u16(pack.param_slot as u16);
+        w.u16(pack.coord.y);
         for i in 0..8u8 {
             if (i as usize) < pack.payload.len() { w.u16(pack.payload[i as usize] as u16); }
             else { w.u16(0); }

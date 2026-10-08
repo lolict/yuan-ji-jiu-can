@@ -191,7 +191,7 @@ impl EvaluationEngine {
                 let score_a = judgment_map.get(&a.pack_id).map(|r| r.score).unwrap_or(0.5);
                 let score_b = judgment_map.get(&b.pack_id).map(|r| r.score).unwrap_or(0.5);
                 let amplitude = score_a.min(score_b);
-                let latency = if a.func_code == b.func_code { 1 } else { 2 };
+                let latency = if a.coord.x == b.coord.x { 1 } else { 2 };
                 let ack = judgment_map.get(&a.pack_id).map(|r| r.score > 0.5).unwrap_or(false)
                     && judgment_map.get(&b.pack_id).map(|r| r.score > 0.5).unwrap_or(false);
                 let tick = ca.z as u32;

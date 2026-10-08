@@ -14,7 +14,14 @@ use std::env;
 use std::process;
 
 mod container_runtime;
+mod registry;
+mod compiler;
+mod temporal;
+
 use container_runtime::{ContainerOS, ArbitrationResult, OsHeader};
+use registry::Registry;
+use compiler::{LiveCompiler, OpCode};
+use crate::temporal::{Timeline, TriggerKind, TriggerRule, TimeAction};
 
 // 笔画 → 容器 (按 SKILL.md 16 基础笔画映射表)
 const STROKE_HENG: u8 = 0;     // 横 一 → 袋
@@ -492,10 +499,14 @@ fn main() {
     let mut boot_mode = false;
     let mut meta_mode = false;
     let mut os_mode = false;
+    let mut registry_mode = false;
+    let mut compile_mode = false;
+    let mut timeline_mode = false;
     let mut load_file: Option<String> = None;
     let mut output_file: Option<&str> = None;
     let mut save_path: Option<String> = None;
     let mut initial_os: Option<ContainerOS> = None;
+    let mut resume_binary_path: Option<String> = None;
     let mut input = "";
 
     let mut i = 1;
@@ -516,6 +527,9 @@ fn main() {
             "--boot" | "-b" => { boot_mode = true; i += 1; }
             "--meta" | "-m" => { meta_mode = true; i += 1; }
             "--os" | "-O" => { os_mode = true; i += 1; }
+            "--registry" | "-R" => { registry_mode = true; i += 1; }
+            "--compile" | "-C" => { compile_mode = true; i += 1; }
+            "--timeline" | "-L" => { timeline_mode = true; i += 1; }
             "--fold" | "-f" => {
                 fold_mode = true;
                 i += 1;
@@ -543,10 +557,9 @@ fn main() {
                 if i + 1 < args.len() { save_path = Some(args[i + 1].clone()); }
                 i += 2;
             }
-            "--resume" | "-r" => {
+            "--resume" => {
                 if i + 1 < args.len() {
                     let path = args[i + 1].clone();
-                    // 尝试二进制加载 (OsHeader)
                     if let Ok(bytes) = std::fs::read(&path) {
                         if bytes.len() > 0 && bytes[0] == container_runtime::OS_FORMAT_VERSION {
                             if let Some(header) = container_runtime::OsHeader::from_bytes(&bytes) {
@@ -555,6 +568,7 @@ fn main() {
                                 initial_os = Some(header.os);
                             }
                         } else {
+                            resume_binary_path = Some(path.clone());
                             load_file = Some(path);
                         }
                     }
@@ -593,6 +607,45 @@ fn main() {
         encode_boot(input_str)
     } else if meta_mode {
         encode_meta(input_str)
+    } else if registry_mode {
+        if let Some(path) = resume_binary_path.take() {
+            if let Ok(bytes) = std::fs::read(&path) {
+                if let Some(reg) = Registry::deserialize(&bytes) {
+                    eprintln!("[resume] 注册清单恢复: {} ({} entries)", path, reg.len());
+                    reg.export()
+                } else { format!("[resume] 反序列化失败: {}\n", path) }
+            } else { format!("[resume] 读取失败: {}\n", path) }
+        } else {
+            let out = encode_registry(input_str);
+            if let Some(path) = save_path.take() { write_registry_dump(&path, input_str); }
+            out
+        }
+    } else if compile_mode {
+        if let Some(path) = resume_binary_path.take() {
+            if let Ok(bytes) = std::fs::read(&path) {
+                if let Some(prog) = compiler::ContainerProgram::deserialize(&bytes) {
+                    eprintln!("[resume] 容器程序恢复: {} (source=\"{}\" instr={})",
+                        path, prog.source_chars, prog.instructions.len());
+                    prog.to_hex_dump()
+                } else { format!("[resume] 反序列化失败: {}\n", path) }
+            } else { format!("[resume] 读取失败: {}\n", path) }
+        } else {
+            let out = encode_compile(input_str);
+            if let Some(path) = save_path.take() { write_program_binary(&path, input_str); }
+            out
+        }
+    } else if timeline_mode {
+        if let Some(path) = resume_binary_path.take() {
+            eprintln!("[resume] 时间线日志恢复: {}", path);
+            match std::fs::read_to_string(&path) {
+                Ok(content) => content,
+                Err(_) => format!("[resume] 读取失败: {}\n", path),
+            }
+        } else {
+            let out = encode_timeline(input_str);
+            if let Some(path) = save_path.take() { write_text_file(&path, &out); }
+            out
+        }
     } else if os_mode {
         let (text, final_os) = encode_os(input_str, initial_os.take());
         // Binary save via --save: write final OsHeader bytes to disk
@@ -917,6 +970,88 @@ impl std::fmt::Display for ContainerRelation {
             Self::Compatible => write!(f, "兼容"),
             Self::Conflict => write!(f, "冲突"),
             Self::Symbiosis => write!(f, "共生"),
+        }
+    }
+}
+
+// ══════════════════════════════════════════════════════════════
+// 持久化辅助函数
+// ══════════════════════════════════════════════════════════════
+
+/// 写文本文件
+fn write_text_file(path: &str, content: &str) {
+    use std::io::Write;
+    match std::fs::File::create(path) {
+        Ok(mut f) => {
+            let _ = f.write_all(content.as_bytes());
+            eprintln!("[save] 文本已写入: {} ({} bytes)", path, content.len());
+        }
+        Err(e) => {
+            eprintln!("写入失败 {}: {}", path, e);
+        }
+    }
+}
+
+/// 写注册清单 dump 到文件
+fn write_registry_dump(path: &str, input: &str) {
+    let mut reg = Registry::new();
+    let mut address_counter: u8 = 1;
+
+    for ch in input.chars() {
+        if let Some(strokes) = lookup_strokes(ch) {
+            let mut cell: u64 = 0;
+            for &s in strokes {
+                cell |= 1u64 << (s % 16);
+            }
+            let tags: &[&str] = if strokes.len() % 2 == 0 { &["阴"] } else { &["阳"] };
+            reg.register(&ch.to_string(), address_counter, cell, strokes.len() as u32, tags);
+            address_counter += 1;
+            if address_counter == 0 { address_counter = 1; }
+        }
+    }
+
+    // 写文本 dump
+    let dump = reg.export();
+    write_text_file(path, &dump);
+
+    // 同时写二进制 .bin
+    let bin_path = format!("{}.bin", path);
+    let bytes = reg.serialize();
+    use std::io::Write;
+    if let Ok(mut f) = std::fs::File::create(&bin_path) {
+        let _ = f.write_all(&bytes);
+        eprintln!("[save] 注册清单二进制: {} ({} bytes)", bin_path, bytes.len());
+    }
+}
+
+/// 写容器程序二进制到文件
+fn write_program_binary(path: &str, input: &str) {
+    use compiler::{LiveCompiler, ContainerProgram};
+
+    let mut comp = LiveCompiler::new();
+    let mut os = ContainerOS::new();
+
+    for ch in input.chars() {
+        if let Some(strokes) = lookup_strokes(ch) {
+            comp.compile_char(ch, strokes);
+            for &s in strokes {
+                os.absorb(s % 16);
+            }
+        }
+    }
+
+    let prog = comp.finalize(os);
+    let bytes = prog.serialize();
+
+    use std::io::Write;
+    match std::fs::File::create(path) {
+        Ok(mut f) => {
+            let _ = f.write_all(&bytes);
+            eprintln!("[save] 容器程序二进制: {} ({} bytes) source=\"{}\" instr={}",
+                path, bytes.len(), prog.source_chars, prog.len());
+        }
+        Err(e) => {
+            eprintln!("写入失败 {}: {}", path, e);
         }
     }
 }
@@ -1358,6 +1493,196 @@ fn build_os_header(input: &str, initial: Option<ContainerOS>) -> OsHeader {
 /// 从已有 ContainerOS 构建 OsHeader
 fn build_os_header_from_os(os: ContainerOS) -> OsHeader {
     OsHeader::new(os)
+}
+
+// ══════════════════════════════════════════════════════════════
+// 注册清单编码
+// ══════════════════════════════════════════════════════════════
+fn encode_registry(input: &str) -> String {
+    let mut buf = String::new();
+    let mut reg = Registry::new();
+    let mut address_counter: u8 = 1;  // 地址从 1 开始 (0 保留)
+
+    buf.push_str("═══ 注册清单 ═══\n\n");
+
+    for ch in input.chars() {
+        if let Some(strokes) = lookup_strokes(ch) {
+            // 计算 cell (哪些容器位被激活)
+            let mut cell: u64 = 0;
+            for &s in strokes {
+                cell |= 1u64 << (s % 16);
+            }
+
+            // 确定标签
+            let tags: &[&str] = if strokes.len() % 2 == 0 {
+                &["阴"]
+            } else {
+                &["阳"]
+            };
+
+            let seq = reg.register(
+                &ch.to_string(),
+                address_counter,
+                cell,
+                strokes.len() as u32,
+                tags
+            );
+
+            let x = address_counter & 0x03;
+            let y = (address_counter >> 2) & 0x03;
+            let z = (address_counter >> 4) & 0x03;
+
+            buf.push_str(&format!(
+                "#{:3} [0x{:02X}] ({},{},{})  {}  cell=0b{:016b} · {}画 · {} · seq={}\n",
+                seq, address_counter, x, y, z,
+                ch, cell, strokes.len(),
+                if strokes.len() % 2 == 0 { "阴" } else { "阳" },
+                seq
+            ));
+
+            address_counter += 1;
+            if address_counter == 0 { address_counter = 1; }
+        }
+    }
+
+    buf.push_str("\n");
+    buf.push_str(&reg.export());
+
+    // 序列化验证
+    let bytes = reg.serialize();
+    buf.push_str(&format!("\n序列化: {} bytes\n", bytes.len()));
+    if let Some(reg2) = Registry::deserialize(&bytes) {
+        buf.push_str(&format!("反序列化验证: 恢复 {} 条 ✓\n", reg2.len()));
+    }
+
+    buf
+}
+
+// ══════════════════════════════════════════════════════════════
+// 活码编译器
+// ══════════════════════════════════════════════════════════════
+fn encode_compile(input: &str) -> String {
+    use compiler::{LiveCompiler, OpCode};
+
+    let mut buf = String::new();
+    let mut comp = LiveCompiler::new();
+    let mut os = ContainerOS::new();
+
+    buf.push_str("═══ 活码编译器 ═══\n\n");
+
+    for ch in input.chars() {
+        if let Some(strokes) = lookup_strokes(ch) {
+            comp.compile_char(ch, strokes);
+
+            // 同步更新 ContainerOS
+            for &s in strokes {
+                os.absorb(s % 16);
+            }
+
+            buf.push_str(&format!("  {} ({}画) → {} ops\n",
+                ch, strokes.len(), comp.program().len()));
+        }
+    }
+
+    let prog = comp.finalize(os.clone());
+    buf.push_str(&format!("\n── 编译产物 ──\n"));
+    buf.push_str(&format!("源字符: \"{}\"\n", prog.source_chars));
+    buf.push_str(&format!("指令数: {}\n", prog.len()));
+    buf.push_str(&format!("入口点: {}\n", prog.entry_point));
+
+    // 操作码序列
+    buf.push_str("\n── 操作码序列 ──\n");
+    for (i, instr) in prog.instructions.iter().enumerate() {
+        let op_name = match instr.op {
+            OpCode::Absorb => "吸收",
+            OpCode::Nest => "嵌套",
+            OpCode::Merge => "汇合",
+            OpCode::Arbitrate => "裁决",
+            OpCode::Emit => "产出",
+            OpCode::Wait => "等待",
+            OpCode::Jump => "跳转",
+            OpCode::Halt => "结束",
+        };
+        buf.push_str(&format!("  {:3}  {:4} [{:02X}]\n", i, op_name, instr.operand));
+    }
+
+    // 序列化
+    let bytes = prog.serialize();
+    buf.push_str(&format!("\n容器程序二进制: {} bytes\n", bytes.len()));
+    buf.push_str(&prog.to_hex_dump());
+
+    // 反序列化验证
+    if let Some(prog2) = compiler::ContainerProgram::deserialize(&bytes) {
+        buf.push_str(&format!("\n反序列化验证: source=\"{}\" instr={} ✓\n",
+            prog2.source_chars, prog2.instructions.len()));
+    }
+
+    buf
+}
+
+// ══════════════════════════════════════════════════════════════
+// 时间线引擎
+// ══════════════════════════════════════════════════════════════
+fn encode_timeline(input: &str) -> String {
+    use crate::temporal::{Timeline, TriggerRule, TriggerKind, TimeAction};
+
+    let mut buf = String::new();
+    let mut tl = Timeline::new();
+    let mut os = ContainerOS::new();
+
+    buf.push_str("═══ 时间线引擎 ═══\n\n");
+
+    // 编排: 每个字在指定 tick 被激活
+    let mut tick: u64 = 0;
+    for ch in input.chars() {
+        tick += 3;  // 每字间隔 3 tick
+        if let Some(strokes) = lookup_strokes(ch) {
+            let name = format!("{}({}画)", ch, strokes.len());
+            let mut actions = vec![TimeAction::Activate(strokes[0] % 16, name.clone())];
+            // 多位笔画 → 添加额外激活
+            for &s in &strokes[1..] {
+                tick += 1;
+                actions.push(TimeAction::Activate(s % 16, format!("{}.{}", ch, s)));
+            }
+            for action in actions {
+                tl.schedule(tick, action);
+            }
+        }
+    }
+
+    // 添加触发规则
+    let mut rule1 = TriggerRule::new(
+        TriggerKind::DepthReached(5),
+        vec![12],
+        "深度≥5 → 激活箕"
+    );
+    tl.add_triggers(rule1);
+
+    let mut rule2 = TriggerRule::new(
+        TriggerKind::Relative(4),
+        vec![7],
+        "每4tick → 激活盎"
+    );
+    tl.add_triggers(rule2);
+
+    // 快照点
+    tl.schedule(tick / 2, TimeAction::Snapshot("middle".to_string()));
+    tl.schedule(tick + 2, TimeAction::Snapshot("final".to_string()));
+
+    // 运行
+    let results = tl.run(&mut os, tick + 3);
+
+    buf.push_str(&format!("执行 {} ticks\n\n", tl.current_tick));
+
+    // 时间线日志
+    buf.push_str(&tl.export_log());
+
+    // 最终状态
+    buf.push_str(&format!("\n── 最终状态 ──\n"));
+    buf.push_str(&format!("depth: {} · active: {}\n", os.depth(), os.active_containers().len()));
+    buf.push_str(&format!("cell: 0x{:016X}\n", os.cell()));
+
+    buf
 }
 
 fn encode_atlas() -> String {

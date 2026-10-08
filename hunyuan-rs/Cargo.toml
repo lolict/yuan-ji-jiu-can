@@ -155,6 +155,10 @@ name = "container-runtime"
 path = "src/bin/container_runtime.rs"
 
 [[bin]]
+name = "container-time-fridge"
+path = "src/bin/container_time_fridge.rs"
+
+[[bin]]
 name = "ttf-64-gen"
 path = "src/bin/ttf_64_gen.rs"
 

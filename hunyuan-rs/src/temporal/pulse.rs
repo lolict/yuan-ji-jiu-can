@@ -330,6 +330,11 @@ impl PulseBody {
     pub fn phase(&self) -> BreathPhase { self.phase }
     pub fn total_steps(&self) -> u64 { self.total_steps }
     pub fn beat_count(&self) -> u64 { self.beat_count }
+
+    /// 当前流速步长 (代理到 Velocity::radial_step)
+    pub fn radial_step(&self) -> u32 {
+        self.velocity.radial_step()
+    }
 }
 
 // ════════════════════════════════════════════════════════════

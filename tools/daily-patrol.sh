@@ -2,6 +2,7 @@
 # daily-patrol.sh — 每日巡守: fetch + 三端比对 + 测试 + memory-backup 推送
 # 由 cron 在 02:00 触发, 不创建 CatPaw 新会话
 
+trap "" SIGPIPE
 set -uo pipefail
 
 export PATH="/mnt/data/catpaw/home/.cargo/bin:$PATH"

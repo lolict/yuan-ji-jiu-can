@@ -157,9 +157,9 @@ mod tests {
         
         // 验证基本字段
         assert_eq!(pack.pack_id, 1);
-        assert_eq!(pack.func_code as u8, 0x03);
-        assert_eq!(pack.param_slot as u16, 0x0001);
-        assert_eq!(pack.time_stamp as u8, 0x01);
+        assert_eq!(pack.coord.x, 0x03);
+        assert_eq!(pack.coord.y, 0x0001);
+        assert_eq!(pack.coord.z, 0x01);
         assert_eq!(pack.align_flag, 0);
         assert!(pack.verify_witness());
     }
