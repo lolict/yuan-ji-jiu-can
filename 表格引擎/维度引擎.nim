@@ -58,11 +58,19 @@ type
   Boundary* = object
     dim*: Dimension       # 出生在第几维
     selfAlive*: bool      # 只为自己活
+    forStomach*: bool     # 为自己的肠胃活
+    forLife*: bool        # 为自己的人生活
+    forProperty*: bool    # 为自己的财产活
+    forFamily*: bool      # 为自己的家人活
 
 proc newBoundary*(d: Dimension): Boundary =
-  ## 每升一维，生一个边界，边界只为自己活
+  ## 每升一维，生一个边界，边界只为自己活（四个方面全部自保）
   result.dim = d
   result.selfAlive = true
+  result.forStomach = true
+  result.forLife = true
+  result.forProperty = true
+  result.forFamily = true
 
 proc boundaryCount*(maxDim: Dimension): int =
   ## 空间面向：从零维到 maxDim 共产生多少边界
@@ -87,13 +95,47 @@ proc isOblique*(d: Dimension): bool =
 
 proc capacitySplit*(d: Dimension): int =
   ## 三维之后不知道怎么分配总容量 → 细节倍率
-  ## n⁴=6(六面), n⁵=8(八方), n⁶=12(十二棱), n⁷=20(廿面), n⁸=32, n⁹=80, n¹⁰=320...
-  const detailSeq = [1, 1, 2, 3, 6, 8, 12, 20, 32, 80, 320]
+  ## 六面(6) 八方(8) 十二棱(12) 廿面(20) 32个 80个 320个 180个 500个...
+  const detailSeq = [1, 1, 2, 3, 6, 8, 12, 20, 32, 80, 320, 180, 500]
   if d < detailSeq.len:
     result = detailSeq[d]
   else:
     # 斜交细分持续放大
     result = detailSeq[^1] * (1 shl (d - detailSeq.len + 1))
+
+# =============================================================================
+# 中心 · 每个维度站在一个中心里看世界
+# =============================================================================
+
+type
+  Center* = object
+    dim*: Dimension        # 哪个维度
+    angleSpan*: int        # 有限的角度内（< 384° 满角）
+    observer*: bool        # 站在中心里看世界
+    single*: bool          # 单中心 = true；分散多中心 = false
+
+proc newCenter*(d: Dimension): Center =
+  ## 每一个存在的维度，都是在有限的角度内，站在一个中心里面看世界
+  result.dim = d
+  result.angleSpan = 384 - int(d) * 16  # 维度越高，可见角度越细
+  if result.angleSpan < 1:
+    result.angleSpan = 1
+  result.observer = true
+  result.single = true
+
+proc disperse*(c: var Center) =
+  ## 分散成多个中心——这种维度算什么，不晓得
+  c.single = false
+
+proc viewRichness*(c: Center): string =
+  ## 站在中心看世界的丰富度
+  if c.single:
+    if c.dim <= 3:
+      result = "正交中心：看得清正交的世界"
+    else:
+      result = "斜交中心：看得清更丰富的世界（但为了什么不知道）"
+  else:
+    result = "多中心：这种维度算什么不晓得"
 
 # =============================================================================
 # 整体观 · 唯零维与一维可谈
@@ -151,16 +193,26 @@ when isMainModule:
   echo "  n² 被 n¹ 遏制：", restrainedBy(2, 1)
   echo "  n¹ 被 n⁰ 遏制：", restrainedBy(1, 0)
   
-  echo "\n--- 边界递增 (空间面向) ---"
+  echo "\n--- 边界递增 (空间面向，每边界四方面自保) ---"
   for d in 0..5:
     let b = newBoundary(Dimension(d))
-    echo "  ", label(Dimension(d)), " → 生边界", boundaryCount(Dimension(d)), "个，只为自己活：", b.selfAlive
+    echo "  ", label(Dimension(d)), " → 生边界", boundaryCount(Dimension(d)),
+         "个 [肠胃:", b.forStomach, " 人生:", b.forLife,
+         " 财产:", b.forProperty, " 家人:", b.forFamily, "]"
   
   echo "\n--- 正交/斜交 ---"
   for d in 0..10:
     let dd = Dimension(d)
     let tag = if dd.isOrthogonal(): "正交" elif dd.isOblique(): "斜交细节" else: "管辖层"
     echo "  ", label(dd), ": ", tag, " (细分倍率 ", dd.capacitySplit(), ")"
+  
+  echo "\n--- 中心 (每个维度站一个中心看世界) ---"
+  for d in [0, 3, 5]:
+    var c = newCenter(Dimension(d))
+    echo "  ", label(Dimension(d)), ": 角跨", c.angleSpan, "° 单中心 → ", c.viewRichness()
+  var dispersed = newCenter(5)
+  dispersed.disperse()
+  echo "  n⁵ 分散多中心 → ", dispersed.viewRichness()
   
   echo "\n--- 整体观 ---"
   echo "  零维+时间 = 整体观：", hasWholeness(0, oriTime)
