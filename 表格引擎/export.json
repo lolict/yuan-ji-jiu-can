@@ -1,0 +1,10 @@
+{
+  "version": "1.0",
+  "table": {
+    "maxRows": 254,
+    "rows": [
+      {"row": 1, "question": "我当前站入有还是无的状态？", "viewpoint": "Wu", "state": "Control", "jurisdiction": "SelfClaim", "gameIdentity": "Controller", "answer": "已决 — 无侧自主张确认，可执行主权操作", "belief": "主张·创造·跃迁·长出"},
+      {"row": 2, "question": "管辖权归属是谁？", "viewpoint": "Wu", "state": "Control", "jurisdiction": "SelfClaim", "gameIdentity": "Controller", "answer": "已决 — 无侧自主张确认，可执行主权操作", "belief": "主张·创造·跃迁·长出"}
+    ]
+  }
+}

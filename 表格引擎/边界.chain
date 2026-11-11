@@ -1,0 +1,15 @@
+# 边界语法 · 自描述
+gttx://schema|边界|符号|作用|层级
+gttx://schema|边界|gttx://|特征入口|行首
+gttx://schema|边界|"#"|注释|行首
+gttx://schema|边界|"|"|顶层字段边界|顶层
+gttx://schema|边界|","|内层字段边界|围墙内
+gttx://schema|边界|";"|记录结束|围墙内
+gttx://schema|边界|"{"|围墙开|单元首
+gttx://schema|边界|"}"|围墙闭|围墙内
+gttx://schema|边界|"\""|引号保护|单元首
+gttx://schema|边界|"@"|头部索引|单元首
+gttx://schema|边界|":"|键值分隔|头部内
+gttx://schema|边界|"."|整块结束|行尾
+gttx://schema|边界|"@索引:容量"|头部|单元首
+gttx://schema|边界|"{总管:位宽,域:位宽}"|位域围墙|单元
