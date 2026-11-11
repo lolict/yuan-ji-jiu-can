@@ -1,0 +1,9 @@
+# 任务真源 · gttx://task|名|参数 (机会节拍按加法序逐拍取一)
+# 音节参数取自 口诀表.txt 真行 (bā/bǒ 在册); 态取自 轴.toml [态] (空/有/乙)
+gttx://task|造字|b,a,bā
+gttx://task|距离|江,工
+gttx://task|关系|江
+gttx://task|存在|工,乙
+gttx://task|造字|b,o,bǒ
+gttx://task|机器执行|演示
+gttx://task|不详|演示拒绝

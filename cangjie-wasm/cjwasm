@@ -1,0 +1,68 @@
+#!/bin/bash
+set -euo pipefail
+
+ROOT=$(cd "$(dirname "$0")" && pwd)
+CJC=${CJC:-$(command -v cjc || echo /root/.local/bin/cjc)}
+
+usage() {
+    cat >&2 <<'EOF'
+usage:
+  cjwasm build <file.cj>            Cangjie → build/<stem>.chirtxt → build/<stem>.wasm
+  cjwasm run   <file.cj> [args...]  构建后由 wasmtime 调用 main
+  cjwasm invoke <fn> <file.cj> [args...]
+EOF
+}
+
+abs() {
+    local p=$1
+    if [ -d "$(dirname "$p")" ]; then
+        echo "$(cd "$(dirname "$p")" && pwd)/$(basename "$p")"
+    else
+        echo "$p"
+    fi
+}
+
+build_one() {
+    local src
+    src=$(abs "$1")
+    [ -f "$src" ] || { echo "no such file: $1" >&2; exit 1; }
+
+    local stem
+    stem=$(basename "$src" .cj)
+    mkdir -p "$ROOT/build"
+
+    (cd "$ROOT/build" && "$CJC" --dump-chir --dump-to-screen "$src" > "$stem.chirtxt" 2>/dev/null)
+    "$ROOT/chir_wasm" "$ROOT/build/$stem.chirtxt" "$ROOT/build/$stem.wasm" >&2
+
+    echo "$ROOT/build/$stem.wasm"
+}
+
+cmd=${1:-}
+case "$cmd" in
+    build)
+        shift
+        [ $# -ge 1 ] || { usage; exit 1; }
+        build_one "$1"
+        ;;
+    run)
+        shift
+        [ $# -ge 1 ] || { usage; exit 1; }
+        src=$1
+        shift
+        wasm=$(build_one "$src")
+        exec wasmtime run --invoke main "$wasm" "$@"
+        ;;
+    invoke)
+        shift
+        [ $# -ge 2 ] || { usage; exit 1; }
+        fn=$1
+        src=$2
+        shift 2
+        wasm=$(build_one "$src")
+        exec wasmtime run --invoke "$fn" "$wasm" "$@"
+        ;;
+    *)
+        usage
+        exit 1
+        ;;
+esac

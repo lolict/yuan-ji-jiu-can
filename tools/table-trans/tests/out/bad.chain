@@ -1,0 +1,119 @@
+# 表格编程·全局静态翻译表 v0.2 · gttx://tab
+# 目的: 把外来机器码(wasm/arm64/arm32/汇编文本)静态对齐到满全法容器符号, 编入我们的地址空间
+# 符号真源: encoding/opcode_registry.md §0.1 容器族符号 (合/退/积/分/入/出/召/审/差/复/阴/阳/裁/判)
+# 容器类型真源: docs/MACRO_ISA_MACRO_MACHINE_CODE.md (加法/螺旋/镜像/折叠 四类)
+# 编址纪律: lazyform.esv:57 口诀表仅清点; cmd.chain:72 串联用加法; SYMBOL_AUTHORITY §3.5 仅加减
+# 允许: 表行增补(可持续逐项扩充) ; 禁止: 改动已授权符号名, 引入表外进制, 无来源行
+# 优先级: 更特异的掩码排前(载入自动排序), 首个命中生效
+# 积累: 每行一个外来编码+一个来源 ; 突破: 无来源行载入即拒, 未译行自动显形
+# 验收: make test 全绿, 未译=0, 无来源行被拒
+#
+# 格式: gttx://tab|符号|功能域|容器类型|外域|编码|备注|来源
+#   wasm 编码: 操作码:立即数种类 (none/u32/s32/s64/memarg/brtable/blocktype)
+#   arm 编码: 掩码=值 (定长4字节字, 小端文件序, 值必须为掩码后的形式)
+#   容器类型: 加法=运算 螺旋=传输 镜像=逻辑 折叠=控制流
+#   来源约定: 授权引用写 opcode_registry.md§0.1(符号) / MACRO_ISA§3(折叠容器) / ARM A64手册 / ARM A32手册 / wasm规范
+#             凡我的推断必须以「我推断:」开头并注明待裁决项, 未经用户裁决不得摘掉标记
+#
+# ── 折 (控制流块) ──
+gttx://tab|折|控制流|折叠|wasm|0x00:none|unreachable|我推断:折叠容器(MACRO_ISA§3)+wasm规范,待裁决
+gttx://tab|折|控制流|折叠|wasm|0x01:none|nop|我推断:折叠容器(MACRO_ISA§3)+wasm规范,待裁决
+gttx://tab|折|控制流|折叠|wasm|0x02:blocktype|block|我推断:折叠容器(MACRO_ISA§3)+wasm规范,待裁决
+gttx://tab|折|控制流|折叠|wasm|0x03:blocktype|loop|我推断:折叠容器(MACRO_ISA§3)+wasm规范,待裁决
+gttx://tab|折|控制流|折叠|wasm|0x0B:none|end|我推断:折叠容器(MACRO_ISA§3)+wasm规范,待裁决
+gttx://tab|折|控制流|折叠|wasm|0x1A:none|drop 亦可改揭(出栈),待裁决|我推断:折/揭之间,待裁决+wasm规范
+gttx://tab|折|控制流|折叠|wasm|0x0E:brtable|br_table 多前驱调度|我推断:折叠容器(MACRO_ISA§3)+wasm规范,待裁决
+# ── 召 (无条件跳转) ──
+gttx://tab|召|跳转|折叠|wasm|0x0C:u32|br|opcode_registry.md§0.1(召)+wasm规范
+gttx://tab|召|跳转|折叠|arm64|0xFC000000=0x14000000|B|opcode_registry.md§0.1(召)+ARM A64手册
+gttx://tab|召|跳转|折叠|arm32|0xFF000000=0xEA000000|B|opcode_registry.md§0.1(召)+ARM A32手册
+# ── 审 (条件跳转) ──
+gttx://tab|审|跳转|折叠|wasm|0x0D:u32|br_if|opcode_registry.md§0.1(审)+wasm规范
+gttx://tab|审|跳转|折叠|wasm|0x04:blocktype|if|opcode_registry.md§0.1(审)+wasm规范
+gttx://tab|审|跳转|折叠|wasm|0x05:none|else|opcode_registry.md§0.1(审)+wasm规范
+gttx://tab|审|跳转|折叠|arm64|0xFE000000=0x34000000|CBZ 32位|opcode_registry.md§0.1(审)+ARM A64手册
+gttx://tab|审|跳转|折叠|arm64|0xFE000000=0xB4000000|CBZ 64位|opcode_registry.md§0.1(审)+ARM A64手册
+gttx://tab|审|跳转|折叠|arm32|0xFF000000=0x0A000000|BEQ|opcode_registry.md§0.1(审)+ARM A32手册
+# ── 差 (启用子程) ──
+gttx://tab|差|跳转|折叠|wasm|0x10:u32|call|opcode_registry.md§0.1(差)+wasm规范
+gttx://tab|差|跳转|折叠|arm64|0xFC000000=0x94000000|BL|opcode_registry.md§0.1(差)+ARM A64手册
+gttx://tab|差|跳转|折叠|arm32|0xFF000000=0xEB000000|BL|opcode_registry.md§0.1(差)+ARM A32手册
+# ── 复 (子程交回) ──
+gttx://tab|复|跳转|折叠|wasm|0x0F:none|return|opcode_registry.md§0.1(复)+wasm规范
+gttx://tab|复|跳转|折叠|arm64|0xFFFFFFFF=0xD65F03C0|RET|opcode_registry.md§0.1(复)+ARM A64手册
+gttx://tab|复|跳转|折叠|arm32|0xFFFFFFFF=0xE12FFF1E|BX LR|opcode_registry.md§0.1(复)+ARM A32手册
+# ── 迁 (数据传输, 我推断的新符号, 待授权) ──
+gttx://tab|迁|存取|螺旋|wasm|0x20:u32|local.get|我推断:新符号迁,待授权+wasm规范
+gttx://tab|迁|存取|螺旋|wasm|0x21:u32|local.set|我推断:新符号迁,待授权+wasm规范
+gttx://tab|迁|存取|螺旋|wasm|0x23:u32|global.get|我推断:新符号迁,待授权+wasm规范
+gttx://tab|迁|存取|螺旋|wasm|0x24:u32|global.set|我推断:新符号迁,待授权+wasm规范
+gttx://tab|迁|存取|螺旋|wasm|0x41:s32|i32.const|我推断:新符号迁,待授权+wasm规范
+gttx://tab|迁|存取|螺旋|wasm|0x42:s64|i64.const|我推断:新符号迁,待授权+wasm规范
+gttx://tab|迁|存取|螺旋|arm64|0x7F800000=0x52800000|MOVZ 32/64|我推断:新符号迁,待授权+ARM A64手册
+gttx://tab|迁|存取|螺旋|arm32|0x0FF00000=0x03A00000|MOV 立即数|我推断:新符号迁,待授权+ARM A32手册
+# ── 入 (加载) ──
+gttx://tab|入|存取|螺旋|wasm|0x28:memarg|i32.load|opcode_registry.md§0.1(入)+wasm规范
+gttx://tab|入|存取|螺旋|wasm|0x29:memarg|i64.load|opcode_registry.md§0.1(入)+wasm规范
+gttx://tab|入|存取|螺旋|arm64|0xFFC00000=0xF9400000|LDR 立即数 32/64|opcode_registry.md§0.1(入)+ARM A64手册
+gttx://tab|入|存取|螺旋|arm32|0x0FF00000=0x05900000|LDR 立即数|opcode_registry.md§0.1(入)+ARM A32手册
+# ── 出 (存储) ──
+gttx://tab|出|存取|螺旋|wasm|0x36:memarg|i32.store|opcode_registry.md§0.1(出)+wasm规范
+gttx://tab|出|存取|螺旋|wasm|0x37:memarg|i64.store|opcode_registry.md§0.1(出)+wasm规范
+gttx://tab|出|存取|螺旋|arm64|0xFFC00000=0xF9000000|STR 立即数 32/64|opcode_registry.md§0.1(出)+ARM A64手册
+gttx://tab|出|存取|螺旋|arm32|0x0FF00000=0x05800000|STR 立即数|opcode_registry.md§0.1(出)+ARM A32手册
+# ── 合 (加法) ──
+gttx://tab|合|运算|加法|wasm|0x6A:none|i32.add|opcode_registry.md§0.1(合)+wasm规范
+gttx://tab|合|运算|加法|wasm|0x7C:none|i64.add|opcode_registry.md§0.1(合)+wasm规范
+gttx://tab|合|运算|加法|arm64|0x7F800000=0x11000000|ADD 立即数 32/64|opcode_registry.md§0.1(合)+ARM A64手册
+gttx://tab|合|运算|加法|arm32|0x0FF00000=0x02800000|ADD 立即数|opcode_registry.md§0.1(合)+ARM A32手册
+# ── 退 (减法) ──
+gttx://tab|退|运算|加法|wasm|0x6B:none|i32.sub|opcode_registry.md§0.1(退)+wasm规范
+gttx://tab|退|运算|加法|wasm|0x7D:none|i64.sub|opcode_registry.md§0.1(退)+wasm规范
+gttx://tab|退|运算|加法|arm64|0x7F800000=0x51000000|SUB 立即数 32/64|opcode_registry.md§0.1(退)+ARM A64手册
+gttx://tab|退|运算|加法|arm32|0x0FF00000=0x02400000|SUB 立即数|opcode_registry.md§0.1(退)+ARM A32手册
+# ── 积 (乘法·仅清点用) ──
+gttx://tab|积|运算|加法|wasm|0x6C:none|i32.mul|opcode_registry.md§0.1(积)+wasm规范
+gttx://tab|积|运算|加法|wasm|0x7E:none|i64.mul|opcode_registry.md§0.1(积)+wasm规范
+gttx://tab|积|运算|加法|arm64|0x7FE0FC00=0x1B007C00|MUL|opcode_registry.md§0.1(积)+ARM A64手册
+gttx://tab|积|运算|加法|arm32|0x0FF000F0=0x00000090|MUL|opcode_registry.md§0.1(积)+ARM A32手册
+# ── 分 (除法) ──
+gttx://tab|分|运算|加法|wasm|0x6D:none|i32.div_s|opcode_registry.md§0.1(分)+wasm规范
+gttx://tab|分|运算|加法|wasm|0x6E:none|i32.div_u|opcode_registry.md§0.1(分)+wasm规范
+gttx://tab|分|运算|加法|wasm|0x7F:none|i64.div_s|opcode_registry.md§0.1(分)+wasm规范
+gttx://tab|分|运算|加法|wasm|0x80:none|i64.div_u|opcode_registry.md§0.1(分)+wasm规范
+gttx://tab|分|运算|加法|arm64|0x7FE0FC00=0x1AC00C00|SDIV|opcode_registry.md§0.1(分)+ARM A64手册
+gttx://tab|分|运算|加法|arm64|0x7FE0FC00=0x1AC00800|UDIV|opcode_registry.md§0.1(分)+ARM A64手册
+# ── 损 (取余, 我推断, 待裁决) ──
+gttx://tab|损|运算|加法|wasm|0x6F:none|i32.rem_s|我推断:rem→损(减法同义),待裁决+wasm规范
+gttx://tab|损|运算|加法|wasm|0x70:none|i32.rem_u|我推断:rem→损(减法同义),待裁决+wasm规范
+gttx://tab|损|运算|加法|wasm|0x81:none|i64.rem_s|我推断:rem→损(减法同义),待裁决+wasm规范
+gttx://tab|损|运算|加法|wasm|0x82:none|i64.rem_u|我推断:rem→损(减法同义),待裁决+wasm规范
+# ── 阴 (逻辑与) ──
+gttx://tab|阴|逻辑|镜像|wasm|0x71:none|i32.and|opcode_registry.md§0.1(阴)+wasm规范
+gttx://tab|阴|逻辑|镜像|wasm|0x83:none|i64.and|opcode_registry.md§0.1(阴)+wasm规范
+gttx://tab|阴|逻辑|镜像|arm64|0x7F800000=0x12000000|AND 立即数 32/64|opcode_registry.md§0.1(阴)+ARM A64手册
+# ── 阳 (逻辑或) ──
+gttx://tab|阳|逻辑|镜像|wasm|0x72:none|i32.or|opcode_registry.md§0.1(阳)+wasm规范
+gttx://tab|阳|逻辑|镜像|wasm|0x84:none|i64.or|opcode_registry.md§0.1(阳)+wasm规范
+gttx://tab|阳|逻辑|镜像|arm64|0x7F800000=0x32000000|ORR 立即数 32/64|opcode_registry.md§0.1(阳)+ARM A64手册
+# ── 裁 (逻辑异或) ──
+gttx://tab|裁|逻辑|镜像|wasm|0x73:none|i32.xor|opcode_registry.md§0.1(裁)+wasm规范
+gttx://tab|裁|逻辑|镜像|wasm|0x85:none|i64.xor|opcode_registry.md§0.1(裁)+wasm规范
+gttx://tab|裁|逻辑|镜像|arm64|0x7F800000=0x52000000|EOR 立即数 32/64|opcode_registry.md§0.1(裁)+ARM A64手册
+# ── 判 (比较) ──
+gttx://tab|判|逻辑|镜像|wasm|0x45:none|i32.eqz|opcode_registry.md§0.1(判)+wasm规范
+gttx://tab|判|逻辑|镜像|wasm|0x46:none|i32.eq|opcode_registry.md§0.1(判)+wasm规范
+gttx://tab|判|逻辑|镜像|wasm|0x47:none|i32.ne|opcode_registry.md§0.1(判)+wasm规范
+gttx://tab|判|逻辑|镜像|wasm|0x48:none|i32.lt_s|opcode_registry.md§0.1(判)+wasm规范
+gttx://tab|判|逻辑|镜像|wasm|0x4A:none|i32.gt_s|opcode_registry.md§0.1(判)+wasm规范
+gttx://tab|判|逻辑|镜像|wasm|0x4C:none|i32.le_s|opcode_registry.md§0.1(判)+wasm规范
+gttx://tab|判|逻辑|镜像|wasm|0x4E:none|i32.ge_s|opcode_registry.md§0.1(判)+wasm规范
+gttx://tab|判|逻辑|镜像|wasm|0x51:none|i64.eq|opcode_registry.md§0.1(判)+wasm规范
+gttx://tab|判|逻辑|镜像|wasm|0x52:none|i64.ne|opcode_registry.md§0.1(判)+wasm规范
+gttx://tab|判|逻辑|镜像|wasm|0x53:none|i64.lt_s|opcode_registry.md§0.1(判)+wasm规范
+gttx://tab|判|逻辑|镜像|wasm|0x55:none|i64.gt_s|opcode_registry.md§0.1(判)+wasm规范
+gttx://tab|判|逻辑|镜像|wasm|0x57:none|i64.le_s|opcode_registry.md§0.1(判)+wasm规范
+gttx://tab|判|逻辑|镜像|wasm|0x59:none|i64.ge_s|opcode_registry.md§0.1(判)+wasm规范
+gttx://tab|判|逻辑|镜像|arm64|0x7F800000=0x71000000|CMP 立即数 32/64|opcode_registry.md§0.1(判)+ARM A64手册
+gttx://tab|判|逻辑|镜像|arm32|0x0FF00000=0x03500000|CMP 立即数|opcode_registry.md§0.1(判)+ARM A32手册
+gttx://tab|折|控制流|折叠|wasm|0x99:none|无来源行

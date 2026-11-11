@@ -1,0 +1,151 @@
+# 汉字地址系统 · 种子表（可注释源）
+# 真源已收口到 字.toml 。本文件保留种子记录。
+# 地址格式: 总笔画-偏旁笔画-剩余笔画-字
+# 流程: 拆字 → 查笔画 → 拼接 → 地址 → 渲染
+
+[meta]
+name = "汉字地址系统"
+stage = "验证规则"
+focus = "江"
+
+# ── 偏旁笔画 ──────────────────────────────────────────
+[radicals."氵"]
+strokes = 3
+seq = "丶丶一"
+
+[radicals."亻"]
+strokes = 2
+seq = "丿丨"
+
+[radicals."工"]
+strokes = 3
+seq = "一丨一"
+
+[radicals."可"]
+strokes = 5
+seq = "一丨乙一丨"
+
+[radicals."胡"]
+strokes = 9
+seq = "一丨丨乙丿乙一一"
+
+[radicals."每"]
+strokes = 7
+seq = "丿一乙乙一丶一"
+
+[radicals."尔"]
+strokes = 5
+seq = "丿乙亅丿丶"
+
+[radicals."也"]
+strokes = 3
+seq = "乙丨乙"
+
+[radicals."女"]
+strokes = 3
+seq = "乙丿一"
+
+[radicals."子"]
+strokes = 3
+seq = "乙乙丨"
+
+[radicals."日"]
+strokes = 4
+seq = "丨乙一一"
+
+[radicals."月"]
+strokes = 4
+seq = "丿乙一一"
+
+[radicals."木"]
+strokes = 4
+seq = "一丨丿丶"
+
+# ── 拆字表 ────────────────────────────────────────────
+[[chars]]
+ch = "江"
+left = "氵"
+right = "工"
+struct = "左右"
+addr = "6-3-3-江"
+seq = "丶丶一一丨一"
+
+[[chars]]
+ch = "河"
+left = "氵"
+right = "可"
+struct = "左右"
+addr = "8-3-5-河"
+seq = "丶丶一一丨乙一丨"
+
+[[chars]]
+ch = "湖"
+left = "氵"
+right = "胡"
+struct = "左右"
+addr = "12-3-9-湖"
+seq = "丶丶一一丨丨乙丿乙一一"
+
+[[chars]]
+ch = "海"
+left = "氵"
+right = "每"
+struct = "左右"
+addr = "10-3-7-海"
+seq = "丶丶丿一乙乙一丶一"
+
+[[chars]]
+ch = "你"
+left = "亻"
+right = "尔"
+struct = "左右"
+addr = "7-2-5-你"
+seq = "丿丨丿乙亅丿丶"
+
+[[chars]]
+ch = "他"
+left = "亻"
+right = "也"
+struct = "左右"
+addr = "5-2-3-他"
+seq = "丿丨乙丨乙"
+
+[[chars]]
+ch = "好"
+left = "女"
+right = "子"
+struct = "左右"
+addr = "6-3-3-好"
+seq = "乙丿一乙乙丨"
+
+[[chars]]
+ch = "明"
+left = "日"
+right = "月"
+struct = "左右"
+addr = "8-4-4-明"
+seq = "丨乙一一丿乙一一"
+
+[[chars]]
+ch = "林"
+left = "木"
+right = "木"
+struct = "左右"
+addr = "8-4-4-林"
+seq = "一丨丿丶一丨丿丶"
+
+[[chars]]
+ch = "工"
+left = "工"
+right = ""
+struct = "独体"
+addr = "3-3-0-工"
+seq = "一丨一"
+
+[[chars]]
+ch = "木"
+left = "木"
+right = ""
+struct = "独体"
+addr = "4-4-0-木"
+seq = "一丨丿丶"

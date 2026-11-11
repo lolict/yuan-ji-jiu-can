@@ -1,0 +1,3 @@
+build/
+chir_wasm
+*.wasm

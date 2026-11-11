@@ -1,0 +1,57 @@
+# 呼唤表 · 只用用户用过的名称寻址
+# 禁止用数字给符号编门牌。13字节/254 是用户已用过的尺度名，按名称呼唤。
+
+[汉字地址]
+江 = "6-3-3-江"
+偏旁_江 = "氵"
+剩余_江 = "工"
+笔画_江 = "丶丶一一丨一"
+河 = "8-3-5-河"
+湖 = "12-3-9-湖"
+海 = "10-3-7-海"
+命令 = "nim c -r --hints:off --nimcache:/tmp/opencode/nimcache /workspace/hanzi-addr/查.nim 江"
+
+[落点]
+语义 = "IR"
+常量 = "宏"
+动态 = "渲染器"
+机器码 = "AOT"
+内核 = "零改动"
+
+[防止符]
+名称 = "13字节"
+含义 = "49轴各2位共98位，对齐成固定13字节空座位"
+不是 = "字体文件"
+也不是 = "颜色文件"
+
+[用户原词]
+五锚 = "心跳、呼吸、瞳孔、肌肉、反射区"
+房子排队 = "心跳房、呼吸房、三餐房、睡眠房"
+嵌套折叠 = "254嵌套折叠"
+零一身份 = "0是刘楚恬，1是我"
+串联 = "容器选址条件"
+呼唤编程 = "缺快速引用，本捆扎就是引用面"
+
+[工具状态]
+Nim = "可跑 /root/.local/bin/nim 2.2.2"
+gcc = "可跑"
+rustc = "可跑 1.63.0"
+cargo = "可跑 1.65.0"
+lua = "可跑 5.4.4"
+luajit = "可跑 2.1.0-beta3"
+gforth = "可跑 0.7.3"
+cmake = "可跑 3.25.1"
+zig = "可跑 0.13.0 /root/.local/bin/zig"
+wasmtime = "可跑 25.0.3 /root/.local/bin/wasmtime"
+cangjie = "缺 cjc，源码在 ref-languages/cangjie"
+joy = "缺二进制，源码在 ref-languages/joy"
+OpenGL = "缺头文件"
+Vulkan = "缺头文件"
+postgresql = "缺"
+nix = "缺"
+docker = "缺守护进程"
+
+[坚果云]
+WebDAV = "https://dav.jianguoyun.com/dav/"
+本Agent目录 = "openclaw/hunyuan-os/monkeycode/"
+规则 = "只写自己文件夹；可读他人，不写他人"
